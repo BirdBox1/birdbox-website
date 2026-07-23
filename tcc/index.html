@@ -139,11 +139,24 @@
   }
 
   .bb-eyebrow {
-    font-size: 12px;
-    letter-spacing: 0.16em;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--tcc);
-    margin-bottom: 10px;
+    color: #ffffff;
+    margin-bottom: 16px;
+    text-shadow: 0 1px 10px rgba(0,0,0,0.7);
+  }
+  .bb-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 28px;
+    height: 4px;
+    background: var(--tcc);
+    border-radius: 2px;
   }
   .bb-panel__title {
     font-size: clamp(24px, 3.4vw, 32px);
@@ -401,6 +414,18 @@
       </div>
     </div>
   </div>
+
+  <section class="bb-panel bb-panel--left" style="background-image: url('ng7173.jpeg');" id="programming">
+    <div class="bb-panel__inner">
+      <div class="bb-panel__content">
+        <div class="bb-eyebrow">Programming</div>
+        <h2 class="bb-panel__title">Programming, Done For You</h2>
+        <p class="bb-panel__desc">Block, blog, and individualized programming delivered through CoachRx &mdash; built by the BirdBox team so you're never guessing what to program next.</p>
+        <div class="bb-panel__meta">Delivered via CoachRx</div>
+        <a class="bb-btn bb-btn--ghost" href="#" data-checkout="coachrx-bb-programming">Explore Programming &rarr;</a>
+      </div>
+    </div>
+  </section>
 
   <section class="bb-proof" id="proof">
     <div class="bb-proof__inner">
