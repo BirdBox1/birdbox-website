@@ -109,17 +109,21 @@
   .bb-video__frame {
     position: relative;
     width: 100%;
-    padding-top: 56.25%; /* 16:9 */
-    border-radius: 4px;
+    height: 32vw;
+    min-height: 200px;
+    max-height: 420px;
     overflow: hidden;
     background: #000;
   }
   .bb-video__frame iframe {
     position: absolute;
-    top: 0; left: 0;
+    top: 50%;
+    left: 0;
     width: 100%;
-    height: 100%;
+    height: 56.25vw;
+    min-height: 350px;
     border: 0;
+    transform: translateY(-50%);
   }
 
   .bb-map-frame {
@@ -271,7 +275,7 @@
 
   <div class="bb-video">
     <div class="bb-video__frame">
-      <iframe src="https://www.youtube.com/embed/gcUMI4g4IQM?autoplay=1&mute=1&playsinline=1&loop=1&playlist=gcUMI4g4IQM&controls=1" title="BirdBox Coaching Level 1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      <iframe src="https://www.youtube.com/embed/gcUMI4g4IQM?autoplay=1&mute=1&playsinline=1&loop=1&playlist=gcUMI4g4IQM&controls=1&modestbranding=1&rel=0" title="BirdBox Coaching Level 1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
     </div>
   </div>
 
