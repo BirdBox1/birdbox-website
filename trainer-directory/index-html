@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trainer Directory | BirdBox Coaching</title>
+<meta name="description" content="Find a BirdBox approved coach near you &mdash; a directory of coaches who have completed BirdBox Coaching certification.">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #1C1719; }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: #F2EFEF;
+  }
+  a { color: inherit; }
+  :root {
+    --tcc: #4FA8DE;
+    --ink: #F2EFEF;
+    --muted: #8A8385;
+    --line: #342F31;
+    --paper: #1C1719;
+  }
+
+  .bb-topbar {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: var(--paper);
+  }
+  .bb-topbar a { color: #ADA6A8; text-decoration: none; }
+  .bb-topbar a:hover { color: #ffffff; }
+  .bb-topbar a.is-active { color: #ffffff; }
+
+  .bb-back {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 18px 24px 0;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .bb-back a { text-decoration: none; color: var(--muted); }
+  .bb-back a:hover { color: var(--tcc); }
+
+  .bb-hero {
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 72px 24px 8px;
+  }
+  .bb-hero__eyebrow {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--tcc);
+    margin-bottom: 10px;
+  }
+  .bb-hero__title {
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    margin: 0 0 16px;
+  }
+  .bb-hero__desc {
+    font-size: 17px;
+    line-height: 1.6;
+    color: #C7C1C3;
+  }
+  .bb-hero__cta {
+    margin-top: 28px;
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding-bottom: 56px;
+  }
+
+  .bb-section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 24px;
+    border-top: 1px solid var(--line);
+  }
+  .bb-section--flush { border-top: none; padding-top: 24px; }
+  .bb-section__label {
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .bb-section__title {
+    font-size: clamp(22px, 3vw, 28px);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
+  }
+  .bb-section__desc {
+    font-size: 16px;
+    line-height: 1.65;
+    color: #C7C1C3;
+    max-width: 640px;
+    margin: 0 0 12px;
+  }
+
+  /* ---- Community Box directory frame ---- */
+  .bb-directory-frame {
+    margin-top: 28px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    background: #FFFFFF;
+  }
+  .bb-directory-frame__inner {
+    padding: 16px;
+    min-height: 420px;
+  }
+
+  .bb-list {
+    margin: 0 0 24px;
+    padding: 0 0 0 20px;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #C7C1C3;
+  }
+  .bb-list li { margin-bottom: 6px; }
+  .bb-list li strong { color: #E4E0E1; }
+
+  .bb-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-top: 24px;
+  }
+  @media (max-width: 680px) {
+    .bb-steps { grid-template-columns: 1fr; }
+  }
+  .bb-step {
+    background: #1C1719;
+    padding: 24px;
+  }
+  .bb-step__num {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--tcc);
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .bb-step__title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+  .bb-step__desc {
+    font-size: 14px;
+    line-height: 1.55;
+    color: #C7C1C3;
+  }
+
+  .bb-btn {
+    display: inline-block;
+    padding: 14px 28px;
+    border-radius: 2px;
+    background: var(--tcc);
+    color: #0E1A22;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+  .bb-btn:hover { opacity: 0.85; }
+  .bb-btn--ghost {
+    background: transparent;
+    border: 1px solid var(--tcc);
+    color: var(--tcc);
+  }
+
+  .bb-footer {
+    text-align: center;
+    padding: 24px 24px 60px;
+    font-size: 13px;
+    color: #756F71;
+    border-top: 1px solid var(--line);
+  }
+
+  /* ---------- PHOTO BACKGROUND BAND ---------- */
+
+  .bb-hero-band {
+    background-image:
+      linear-gradient(180deg,
+        rgba(28,23,25,0.82) 0%,
+        rgba(28,23,25,0.74) 45%,
+        rgba(28,23,25,0.97) 100%),
+      url("hero-directory.jpeg");
+    background-size: cover;
+    background-position: center 45%;
+    background-repeat: no-repeat;
+  }
+</style>
+<script async>
+(function() {
+  xhr = new XMLHttpRequest();
+  xhr.open("POST", "https://cfapi.communitybox.co/bootstrap/revision", true);
+  xhr.onload = function() {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      var returnObj = JSON.parse(xhr.responseText);
+      if (returnObj.hasOwnProperty("err")) {
+        console.error(returnObj.err);
+      } else {
+        var r = returnObj.revision;
+        var l = document.createElement("script");
+        l.src = "https://dashboard.communitybox.co/embed/" + r + "/cbebloader-" + r + ".js";
+        document.head.appendChild(l);
+      }
+    }
+  };
+  xhr.send("2714b035-c524-45d6-922b-e11fb12ff91f");
+})();
+</script>
+</head>
+<body>
+
+  <nav class="bb-topbar">
+    <a href="/merch">Merch Store</a>
+    <a href="/blog">Blog</a>
+    <a href="/trainer-directory" class="is-active">Trainer Directory</a>
+    <a href="/account">My Account</a>
+    <a href="/about">About</a>
+  </nav>
+
+  <div class="bb-back">
+    <a href="/">&larr; Back to BirdBox Coaching</a>
+  </div>
+
+  <!-- ===== HERO BAND (photo background) ===== -->
+  <div class="bb-hero-band">
+    <header class="bb-hero">
+      <div class="bb-hero__eyebrow">BirdBox Approved Coaches</div>
+      <h1 class="bb-hero__title">Trainer Directory</h1>
+      <p class="bb-hero__desc">Every coach listed here has completed BirdBox Coaching certification. Search by location to find one near you.</p>
+      <div class="bb-hero__cta">
+        <a class="bb-btn" href="#directory">Find a Coach &rarr;</a>
+      </div>
+    </header>
+  </div>
+  <!-- ===== END HERO BAND ===== -->
+
+  <section class="bb-section bb-section--flush" id="directory">
+    <div class="bb-section__label">Approved Coaches Worldwide</div>
+    <h2 class="bb-section__title">Find a Coach Near You</h2>
+    <p class="bb-section__desc">Browse the directory below. Use the search and filters to narrow by location, then select a coach to see their gym, qualifications, and how to get in touch.</p>
+
+    <div class="bb-directory-frame">
+      <div class="bb-directory-frame__inner">
+        <!-- Community Box directory embed (BirdBox Trainer Directory box). -->
+        <div id="communitybox-target" box="3b937335-788a-49d4-a2bd-f8439eca49d5"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bb-section" id="what-it-means">
+    <div class="bb-section__label">What the Listing Means</div>
+    <h2 class="bb-section__title">Why BirdBox Approved Matters</h2>
+    <p class="bb-section__desc">A coach in this directory has invested in formal development beyond their day-to-day practice.</p>
+    <ul class="bb-list">
+      <li><strong>Completed certification</strong> &mdash; each listed coach has passed a BirdBox Coaching course</li>
+      <li><strong>Coaching, not just programming</strong> &mdash; trained in communication, the coach-athlete relationship, and intervention</li>
+      <li><strong>Ongoing development</strong> &mdash; many go on to Level 2, mentorship, and specialist courses</li>
+    </ul>
+  </section>
+
+  <section class="bb-section" id="get-listed">
+    <div class="bb-section__label">For Coaches</div>
+    <h2 class="bb-section__title">Completed a Course? Get Listed</h2>
+    <p class="bb-section__desc">If you've passed a BirdBox Coaching certification and you're not on the map yet, get in touch and we'll add you.</p>
+    <div class="bb-steps">
+      <div class="bb-step">
+        <div class="bb-step__num">01</div>
+        <div class="bb-step__title">Complete a Course</div>
+        <div class="bb-step__desc">Pass any BirdBox Coaching certification, live or online.</div>
+      </div>
+      <div class="bb-step">
+        <div class="bb-step__num">02</div>
+        <div class="bb-step__title">Send Your Details</div>
+        <div class="bb-step__desc">Your name, gym, location, and how athletes can reach you.</div>
+      </div>
+      <div class="bb-step">
+        <div class="bb-step__num">03</div>
+        <div class="bb-step__title">Appear on the Map</div>
+        <div class="bb-step__desc">We'll add your pin so athletes in your area can find you.</div>
+      </div>
+    </div>
+    <div class="bb-hero__cta" style="justify-content: flex-start; padding-bottom: 0;">
+      <a class="bb-btn" href="mailto:Info@birdboxcoaching.com?subject=Trainer%20Directory%20Listing&body=I%20have%20completed%20a%20BirdBox%20Coaching%20certification%20and%20would%20like%20to%20be%20added%20to%20the%20trainer%20directory.%0A%0AName%3A%0AGym%3A%0ACity%20%2F%20Country%3A%0ACourse%20completed%3A%0AContact%20details%20to%20display%3A">Request a Listing &rarr;</a>
+      <a class="bb-btn bb-btn--ghost" href="/tcc">See the Courses &rarr;</a>
+    </div>
+  </section>
+
+  <footer class="bb-footer">
+    &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
+  </footer>
+
+</body>
+</html>
