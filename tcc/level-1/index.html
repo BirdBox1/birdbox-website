@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Level 1 Live Seminar | The Coaches Course | BirdBox Coaching</title>
+<meta name="description" content="Find a BirdBox Coaching Level 1 seminar near you and register &mdash; a two-day, hands-on coaching development course.">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #1C1719; }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: #F2EFEF;
+  }
+  a { color: inherit; }
+  :root {
+    --tcc: #4FA8DE;
+    --ink: #F2EFEF;
+    --muted: #8A8385;
+    --line: #342F31;
+    --paper: #1C1719;
+  }
+
+  .bb-topbar {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: var(--paper);
+  }
+  .bb-topbar a { color: #ADA6A8; text-decoration: none; }
+  .bb-topbar a:hover { color: #ffffff; }
+
+  .bb-back {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 18px 24px 0;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .bb-back a { text-decoration: none; color: var(--muted); }
+  .bb-back a:hover { color: var(--tcc); }
+
+  .bb-hero {
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 24px 8px;
+  }
+  .bb-hero__eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--tcc);
+    margin-bottom: 10px;
+  }
+  .bb-hero__title {
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    margin: 0 0 16px;
+  }
+  .bb-hero__desc {
+    font-size: 17px;
+    line-height: 1.6;
+    color: #C7C1C3;
+  }
+
+  .bb-section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 24px;
+    border-top: 1px solid var(--line);
+  }
+  .bb-section__label {
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .bb-section__title {
+    font-size: clamp(22px, 3vw, 28px);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
+  }
+  .bb-section__desc {
+    font-size: 16px;
+    line-height: 1.65;
+    color: #C7C1C3;
+    max-width: 640px;
+    margin: 0 0 12px;
+  }
+
+  /* ---- Map embed panel ---- */
+  .bb-map-frame {
+    margin-top: 28px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    background: #131011;
+  }
+  .bb-map-frame__inner {
+    min-height: 520px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+  }
+  .bb-map-placeholder {
+    text-align: center;
+    max-width: 460px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .bb-map-placeholder strong {
+    display: block;
+    color: #E4E0E1;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+  .bb-map-placeholder code {
+    display: block;
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: #0E0C0D;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    font-size: 12px;
+    color: #8FBFE0;
+    text-align: left;
+    overflow-x: auto;
+  }
+
+  .bb-list {
+    margin: 0 0 24px;
+    padding: 0 0 0 20px;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #C7C1C3;
+  }
+  .bb-list li { margin-bottom: 6px; }
+
+  .bb-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-top: 24px;
+  }
+  @media (max-width: 680px) {
+    .bb-steps { grid-template-columns: 1fr; }
+  }
+  .bb-step {
+    background: #1C1719;
+    padding: 24px;
+  }
+  .bb-step__num {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--tcc);
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .bb-step__title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+  .bb-step__desc {
+    font-size: 14px;
+    line-height: 1.55;
+    color: #C7C1C3;
+  }
+
+  .bb-btn {
+    display: inline-block;
+    padding: 14px 28px;
+    border-radius: 2px;
+    background: var(--tcc);
+    color: #0E1A22;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+  .bb-btn:hover { opacity: 0.85; }
+  .bb-btn--ghost {
+    background: transparent;
+    border: 1px solid var(--tcc);
+    color: var(--tcc);
+  }
+
+  .bb-footer {
+    text-align: center;
+    padding: 24px 24px 60px;
+    font-size: 13px;
+    color: #756F71;
+    border-top: 1px solid var(--line);
+  }
+</style>
+</head>
+<body>
+
+  <nav class="bb-topbar">
+    <a href="/merch">Merch Store</a>
+    <a href="/blog">Blog</a>
+    <a href="/trainer-directory">Trainer Directory</a>
+    <a href="/account">My Account</a>
+    <a href="/about">About</a>
+  </nav>
+
+  <div class="bb-back">
+    <a href="/tcc">&larr; Back to The Coaches Course</a>
+  </div>
+
+  <header class="bb-hero">
+    <div class="bb-hero__eyebrow">Level 1 &middot; Live Seminar</div>
+    <h1 class="bb-hero__title">Find a Seminar Near You</h1>
+    <p class="bb-hero__desc">Two days that change how you coach &mdash; hands-on drills, real-time feedback, and clear frameworks you can use immediately. Find an upcoming date and location below.</p>
+  </header>
+
+  <section class="bb-section" id="map">
+    <div class="bb-section__label">Upcoming Dates &amp; Locations</div>
+    <h2 class="bb-section__title">Choose Your Location</h2>
+    <p class="bb-section__desc">Browse upcoming Level 1 seminars on the map below and select a pin to see the date, venue, and registration details for that seminar.</p>
+
+    <div class="bb-map-frame">
+      <div class="bb-map-frame__inner">
+        <!--
+          COMMUNITY BOX EMBED GOES HERE.
+          Paste the embed snippet exactly as Community Box gives it to you
+          (usually an <iframe> or a <div> + <script> pair from your
+          Community Box directory settings) in place of this comment.
+
+          Each entry's "link"/"website" field in Community Box is what
+          currently points to a Webconnex/RegFox URL — update that field
+          per entry to point to the new registration link for that date
+          instead (see the chat notes on replacing RegFox).
+        -->
+        <div class="bb-map-placeholder">
+          <strong>Community Box map embed placeholder</strong>
+          Paste your Community Box embed snippet here to replace this box &mdash; it will keep working exactly as it does today.
+          <code>&lt;!-- e.g. --&gt;
+&lt;div id="communitybox-directory"&gt;&lt;/div&gt;
+&lt;script src="https://.../communitybox-embed.js"&gt;&lt;/script&gt;</code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bb-section" id="details">
+    <div class="bb-section__label">What's Included</div>
+    <h2 class="bb-section__title">A Weekend Built for Real Coaching</h2>
+    <ul class="bb-list">
+      <li>Two full days of in-person, hands-on instruction</li>
+      <li>Practical drills and coaching frameworks you can use the next session</li>
+      <li>Real-time feedback on your coaching from the BirdBox team</li>
+      <li>A printed and digital copy of the Level 1 course materials</li>
+      <li>Certificate of completion</li>
+    </ul>
+    <div class="bb-section__desc" style="margin-top: 4px;">No prerequisite &mdash; open to coaches at any stage.</div>
+  </section>
+
+  <section class="bb-section" id="how-it-works">
+    <div class="bb-section__label">How Registration Works</div>
+    <h2 class="bb-section__title">Three Steps to Your Seat</h2>
+    <div class="bb-steps">
+      <div class="bb-step">
+        <div class="bb-step__num">01</div>
+        <div class="bb-step__title">Pick a Date</div>
+        <div class="bb-step__desc">Find a location and date that works for you on the map above.</div>
+      </div>
+      <div class="bb-step">
+        <div class="bb-step__num">02</div>
+        <div class="bb-step__title">Register &amp; Pay</div>
+        <div class="bb-step__desc">Pay in full, or set up a deposit and payment plan.</div>
+      </div>
+      <div class="bb-step">
+        <div class="bb-step__num">03</div>
+        <div class="bb-step__title">Get Confirmed</div>
+        <div class="bb-step__desc">You'll receive confirmation and joining details by email straight away.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="bb-cross" style="text-align:center; padding: 8px 24px 64px;">
+    <a class="bb-btn bb-btn--ghost" href="/tcc">&larr; Back to The Coaches Course overview</a>
+  </div>
+
+  <footer class="bb-footer">
+    &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
+  </footer>
+
+</body>
+</html>
