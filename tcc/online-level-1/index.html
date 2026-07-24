@@ -93,6 +93,144 @@
   }
   .bb-hero__cta {
     margin-top: 28px;
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .bb-video {
+    width: 100%;
+    margin: 32px 0 0;
+    padding: 0;
+  }
+  .bb-video__frame {
+    position: relative;
+    width: 100%;
+    height: 32vw;
+    min-height: 200px;
+    max-height: 420px;
+    overflow: hidden;
+    background: #000;
+  }
+  .bb-video__frame iframe {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 56.25vw;
+    min-height: 350px;
+    border: 0;
+    transform: translateY(-50%);
+  }
+
+  .bb-badge-strip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 24px;
+    border-top: 1px solid var(--line);
+    text-align: center;
+  }
+  .bb-badge-strip__pill {
+    display: inline-block;
+    padding: 8px 16px;
+    border: 1px solid var(--tcc);
+    border-radius: 999px;
+    color: var(--tcc);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .bb-curriculum {
+    margin: 0 0 8px;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 32px;
+  }
+  @media (max-width: 680px) {
+    .bb-curriculum { grid-template-columns: 1fr; }
+  }
+  .bb-curriculum li {
+    font-size: 14px;
+    line-height: 1.55;
+    color: #C7C1C3;
+  }
+  .bb-curriculum li strong {
+    display: block;
+    color: #E4E0E1;
+    font-size: 15px;
+    margin-bottom: 2px;
+  }
+
+  .bb-fact-row {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    margin: 20px 0 4px;
+  }
+  .bb-fact {
+    min-width: 140px;
+  }
+  .bb-fact__label {
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .bb-fact__value {
+    font-size: 20px;
+    font-weight: 800;
+    color: #E4E0E1;
+  }
+
+  .bb-lang-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 14px;
+  }
+  .bb-lang-table th, .bb-lang-table td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .bb-lang-table th {
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .bb-lang-table td { color: #C7C1C3; }
+  .bb-lang-table td:first-child { color: #E4E0E1; font-weight: 700; }
+
+  .bb-testimonial {
+    max-width: 640px;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 19px;
+    line-height: 1.55;
+    font-style: italic;
+    color: #E4E0E1;
+  }
+  .bb-testimonial cite {
+    display: block;
+    margin-top: 16px;
+    font-style: normal;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--tcc);
   }
 
   .bb-section {
@@ -219,8 +357,20 @@
     <p class="bb-hero__desc">The core principles from Level 1, delivered as a self-paced course &mdash; video lessons and practical tools you can apply to your coaching and member development right away.</p>
     <div class="bb-hero__cta">
       <a class="bb-btn" href="https://www.birdboxacademy.com/course/bbcdlevel1">Start Online Course &rarr;</a>
+      <a class="bb-btn bb-btn--ghost" href="https://youtu.be/p7tp5ucuu1o?feature=shared">Preview Online Course &rarr;</a>
     </div>
   </header>
+
+  <div class="bb-video">
+    <div class="bb-video__frame">
+      <iframe src="https://www.youtube.com/embed/p7tp5ucuu1o?modestbranding=1&rel=0" title="BirdBox Coaching Level 1 Online Course Preview" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <div class="bb-badge-strip">
+    <span class="bb-badge-strip__pill">CrossFit&reg; Approved Certification</span>
+    <span class="bb-badge-strip__pill">44 CEUs</span>
+  </div>
 
   <section class="bb-section" id="details">
     <div class="bb-section__label">What's Included</div>
@@ -229,10 +379,76 @@
       <li>Full library of video lessons covering the Level 1 curriculum</li>
       <li>Practical tools and frameworks you can apply immediately</li>
       <li>Self-paced &mdash; start, pause, and revisit lessons whenever you need to</li>
-      <li>Delivered through LearnWorlds, accessible on desktop or mobile</li>
       <li>Certificate of completion</li>
     </ul>
-    <div class="bb-section__desc" style="margin-top: 4px;">No prerequisite &mdash; open to coaches at any stage.</div>
+    <div class="bb-fact-row">
+      <div class="bb-fact">
+        <div class="bb-fact__label">Duration</div>
+        <div class="bb-fact__value">~60 hours</div>
+      </div>
+      <div class="bb-fact">
+        <div class="bb-fact__label">Price (English)</div>
+        <div class="bb-fact__value">&euro;690</div>
+      </div>
+      <div class="bb-fact">
+        <div class="bb-fact__label">Prerequisite</div>
+        <div class="bb-fact__value">None</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bb-section" id="study-topics">
+    <div class="bb-section__label">Study Topics</div>
+    <h2 class="bb-section__title">A Complete Coaching Curriculum</h2>
+    <ul class="bb-curriculum">
+      <li><strong>Methodology</strong> Coaching definitions, coach hierarchies of needs, and shaping your personal coaching philosophy.</li>
+      <li><strong>Know Yourself</strong> Understand your personality, traits, and behaviors to improve your coaching effectiveness.</li>
+      <li><strong>Coach-Athlete Relationship</strong> Foundational concepts and academic models for building strong relationships.</li>
+      <li><strong>Communication</strong> Different types of communication and skills training to improve your coaching practice.</li>
+      <li><strong>Leadership</strong> What type of leader/coach you are, and how to improve your behaviors.</li>
+      <li><strong>Biomechanics</strong> Principles of biomechanics and how they guide more effective coaching.</li>
+      <li><strong>Dependence, Independence &amp; Interdependence</strong> Building athletes who become proficient in their own training.</li>
+      <li><strong>Motivation</strong> What makes a coach motivational, and how to become more effective at it.</li>
+      <li><strong>Applicable Coaching Models</strong> Major coaching models you can use directly in your own practice.</li>
+      <li><strong>Identification and Interventions</strong> Developing your coach's eye and making positive coaching interventions.</li>
+      <li><strong>Psychological Skills Training</strong> Interventions to help develop your athletes and your service to them.</li>
+      <li><strong>Conflict</strong> Forms of conflict you may face as a coach, and psychological skills to deal with it.</li>
+      <li><strong>Standards, Mastery &amp; Maximum Motor Potential</strong> Long-term athlete development and expressing maximum motor potential.</li>
+      <li><strong>Burnout</strong> What it is, how to identify and avoid it, and how to support someone experiencing it.</li>
+      <li><strong>Building or Refining Your Own Coaching Philosophy</strong> Developing a philosophy that guides you to execute your coaching effectively.</li>
+    </ul>
+  </section>
+
+  <section class="bb-section" id="payment-options">
+    <div class="bb-section__label">Payment Options</div>
+    <h2 class="bb-section__title">Choose What Fits Your Budget</h2>
+    <ul class="bb-list">
+      <li><strong>Pay in full</strong> &mdash; get immediate access</li>
+      <li><strong>Monthly plan</strong> &mdash; split the cost into simple installments</li>
+      <li><strong>Deposit &amp; balance</strong> &mdash; pay a deposit now, then the remainder before starting</li>
+    </ul>
+  </section>
+
+  <section class="bb-section" id="languages">
+    <div class="bb-section__label">Available Languages</div>
+    <h2 class="bb-section__title">Study at Your Own Pace, In Your Own Language</h2>
+    <p class="bb-section__desc">Fully translated into French, German, Spanish, Italian, and Brazilian Portuguese.</p>
+    <table class="bb-lang-table">
+      <tr><th>Language</th><th>Duration</th><th>Price</th></tr>
+      <tr><td>English</td><td>~60 hours</td><td>&euro;690</td></tr>
+      <tr><td>Fran&ccedil;ais</td><td>~40&ndash;50 hours</td><td>$699</td></tr>
+      <tr><td>Deutsch</td><td>~40&ndash;50 hours</td><td>$699</td></tr>
+      <tr><td>Espa&ntilde;ol</td><td>~40&ndash;50 hours</td><td>$699</td></tr>
+      <tr><td>Italiano</td><td>~40&ndash;50 hours</td><td>$699</td></tr>
+      <tr><td>Portugu&ecirc;s, Brasileiro</td><td>~40&ndash;50 hours</td><td>$500</td></tr>
+    </table>
+  </section>
+
+  <section class="bb-section" id="testimonial">
+    <blockquote class="bb-testimonial">
+      &ldquo;There is only so much technical coaching you can do before you run out of technical coaching. Then you have to develop a relationship.&rdquo;
+      <cite>BirdBox Mentor Team &mdash; Justin Holly</cite>
+    </blockquote>
   </section>
 
   <section class="bb-section" id="how-it-works">
