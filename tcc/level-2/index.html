@@ -287,6 +287,26 @@
     border-top: 1px solid var(--line);
   }
 </style>
+<script async>
+(function() {
+  xhr = new XMLHttpRequest();
+  xhr.open("POST", "https://cfapi.communitybox.co/bootstrap/revision", true);
+  xhr.onload = function() {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      var returnObj = JSON.parse(xhr.responseText);
+      if (returnObj.hasOwnProperty("err")) {
+        console.error(returnObj.err);
+      } else {
+        var r = returnObj.revision;
+        var l = document.createElement("script");
+        l.src = "https://dashboard.communitybox.co/embed/" + r + "/cbebloader-" + r + ".js";
+        document.head.appendChild(l);
+      }
+    }
+  };
+  xhr.send("2714b035-c524-45d6-922b-e11fb12ff91f");
+})();
+</script>
 </head>
 <body>
 
@@ -359,17 +379,8 @@
     <p class="bb-section__desc">Browse upcoming Level 2 seminars on the map below and select a pin to see the date, venue, and registration details for that seminar.</p>
     <div class="bb-map-frame">
       <div class="bb-map-frame__inner">
-        <!--
-          Community Box directory embed for Level 2 seminars.
-          This likely needs its own directory/box ID (separate from the
-          Level 1 one) — grab it the same way as before: Community Box
-          dashboard > this directory > Embed & Preview > Other, or from
-          the Squarespace code block on the live /level2 page.
-        -->
-        <div class="bb-map-placeholder">
-          <strong>Community Box map embed placeholder</strong>
-          Paste the Level 2 seminar directory's embed snippet here &mdash; same process as the Level 1 map.
-        </div>
+        <!-- Community Box directory embed (BirdBox Level 2 Seminars box). -->
+        <div id="communitybox-target" box="15366baa-f7ae-4068-a955-598c84b03a9a"></div>
       </div>
     </div>
   </section>
