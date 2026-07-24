@@ -106,14 +106,10 @@
     border: 1px solid var(--line);
     border-radius: 4px;
     overflow: hidden;
-    background: #131011;
+    background: #FFFFFF;
   }
   .bb-map-frame__inner {
-    min-height: 520px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 32px;
+    padding: 16px;
   }
   .bb-map-placeholder {
     text-align: center;
@@ -211,6 +207,26 @@
     border-top: 1px solid var(--line);
   }
 </style>
+<script async>
+(function() {
+  xhr = new XMLHttpRequest();
+  xhr.open("POST", "https://cfapi.communitybox.co/bootstrap/revision", true);
+  xhr.onload = function() {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      var returnObj = JSON.parse(xhr.responseText);
+      if (returnObj.hasOwnProperty("err")) {
+        console.error(returnObj.err);
+      } else {
+        var r = returnObj.revision;
+        var l = document.createElement("script");
+        l.src = "https://dashboard.communitybox.co/embed/" + r + "/cbebloader-" + r + ".js";
+        document.head.appendChild(l);
+      }
+    }
+  };
+  xhr.send("2714b035-c524-45d6-922b-e11fb12ff91f");
+})();
+</script>
 </head>
 <body>
 
@@ -240,23 +256,13 @@
     <div class="bb-map-frame">
       <div class="bb-map-frame__inner">
         <!--
-          COMMUNITY BOX EMBED GOES HERE.
-          Paste the embed snippet exactly as Community Box gives it to you
-          (usually an <iframe> or a <div> + <script> pair from your
-          Community Box directory settings) in place of this comment.
-
-          Each entry's "link"/"website" field in Community Box is what
-          currently points to a Webconnex/RegFox URL — update that field
-          per entry to point to the new registration link for that date
-          instead (see the chat notes on replacing RegFox).
+          Community Box directory embed (BirdBox Live Seminars L1 box).
+          Each pin's "link" field in Community Box is what points to a
+          Webconnex/RegFox URL today — update that field per entry to
+          point to the new registration link for that date instead
+          (see the chat notes on replacing RegFox).
         -->
-        <div class="bb-map-placeholder">
-          <strong>Community Box map embed placeholder</strong>
-          Paste your Community Box embed snippet here to replace this box &mdash; it will keep working exactly as it does today.
-          <code>&lt;!-- e.g. --&gt;
-&lt;div id="communitybox-directory"&gt;&lt;/div&gt;
-&lt;script src="https://.../communitybox-embed.js"&gt;&lt;/script&gt;</code>
-        </div>
+        <div id="communitybox-target" box="9f6df0e8-fe88-46c4-b65b-6671ccdba7ce"></div>
       </div>
     </div>
   </section>
