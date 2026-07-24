@@ -209,26 +209,6 @@
     background-repeat: no-repeat;
   }
 </style>
-<script async>
-(function() {
-  xhr = new XMLHttpRequest();
-  xhr.open("POST", "https://cfapi.communitybox.co/bootstrap/revision", true);
-  xhr.onload = function() {
-    if (xhr.readyState === 4 && xhr.status === 200) {
-      var returnObj = JSON.parse(xhr.responseText);
-      if (returnObj.hasOwnProperty("err")) {
-        console.error(returnObj.err);
-      } else {
-        var r = returnObj.revision;
-        var l = document.createElement("script");
-        l.src = "https://dashboard.communitybox.co/embed/" + r + "/cbebloader-" + r + ".js";
-        document.head.appendChild(l);
-      }
-    }
-  };
-  xhr.send("2714b035-c524-45d6-922b-e11fb12ff91f");
-})();
-</script>
 </head>
 <body>
 
@@ -311,6 +291,32 @@
   <footer class="bb-footer">
     &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
   </footer>
+
+  <!--
+    Community Box loader. This sits at the end of the body, AFTER the
+    #communitybox-target div above, so the widget has something to render
+    into by the time it runs.
+  -->
+  <script>
+  (function() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "https://cfapi.communitybox.co/bootstrap/revision", true);
+    xhr.onload = function() {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        var returnObj = JSON.parse(xhr.responseText);
+        if (returnObj.hasOwnProperty("err")) {
+          console.error(returnObj.err);
+        } else {
+          var r = returnObj.revision;
+          var l = document.createElement("script");
+          l.src = "https://dashboard.communitybox.co/embed/" + r + "/cbebloader-" + r + ".js";
+          document.head.appendChild(l);
+        }
+      }
+    };
+    xhr.send("2714b035-c524-45d6-922b-e11fb12ff91f");
+  })();
+  </script>
 
 </body>
 </html>
