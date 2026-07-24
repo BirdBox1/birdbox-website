@@ -101,6 +101,27 @@
   }
 
   /* ---- Map embed panel ---- */
+  .bb-video {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .bb-video__frame {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 */
+    border-radius: 4px;
+    overflow: hidden;
+    background: #000;
+  }
+  .bb-video__frame iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
   .bb-map-frame {
     margin-top: 28px;
     border: 1px solid var(--line);
@@ -247,6 +268,12 @@
     <h1 class="bb-hero__title">Find a Seminar Near You</h1>
     <p class="bb-hero__desc">Two days that change how you coach &mdash; hands-on drills, real-time feedback, and clear frameworks you can use immediately. Find an upcoming date and location below.</p>
   </header>
+
+  <div class="bb-video">
+    <div class="bb-video__frame">
+      <iframe src="https://www.youtube.com/embed/gcUMI4g4IQM" title="BirdBox Coaching Level 1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
+  </div>
 
   <section class="bb-section" id="map">
     <div class="bb-section__label">Upcoming Dates &amp; Locations</div>
