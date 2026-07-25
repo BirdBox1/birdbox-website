@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Level 1 Seminar | The Gymnastics Course | BirdBox Coaching</title>
+<meta name="description" content="The Gymnastics Course Level 1 &mdash; a hands-on, immersive weekend for coaches and athletes ready to understand gymnastics, fix movement, and coach with confidence.">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #1C1719; }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: #F2EFEF;
+  }
+  a { color: inherit; }
+  :root {
+    --tgc: #CE3B32;          /* TGC red — adjust to your exact brand red */
+    --ink: #F2EFEF;
+    --muted: #8A8385;
+    --line: #342F31;
+    --paper: #1C1719;
+  }
+
+  .bb-topbar {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: var(--paper);
+  }
+  .bb-topbar a { color: #ADA6A8; text-decoration: none; }
+  .bb-topbar a:hover { color: #ffffff; }
+  .bb-topbar a.is-active { color: #ffffff; }
+
+  .bb-back {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 18px 24px 0;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .bb-back a { text-decoration: none; color: var(--muted); }
+  .bb-back a:hover { color: var(--tgc); }
+
+  .bb-hero {
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 72px 24px 8px;
+  }
+  .bb-hero__eyebrow {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--tgc);
+    margin-bottom: 10px;
+  }
+  .bb-hero__title {
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    margin: 0 0 16px;
+  }
+  .bb-hero__desc {
+    font-size: 17px;
+    line-height: 1.6;
+    color: #C7C1C3;
+  }
+  .bb-hero__cta {
+    margin-top: 28px;
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .bb-badge-strip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 24px 40px;
+    text-align: center;
+  }
+  .bb-badge-strip__pill {
+    display: inline-block;
+    padding: 8px 16px;
+    border: 1px solid var(--tgc);
+    border-radius: 999px;
+    color: var(--tgc);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .bb-section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 24px;
+    border-top: 1px solid var(--line);
+  }
+  .bb-section__label {
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .bb-section__title {
+    font-size: clamp(22px, 3vw, 28px);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
+  }
+  .bb-section__desc {
+    font-size: 16px;
+    line-height: 1.65;
+    color: #C7C1C3;
+    max-width: 640px;
+    margin: 0 0 12px;
+  }
+
+  .bb-list {
+    margin: 0 0 24px;
+    padding: 0 0 0 20px;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #C7C1C3;
+  }
+  .bb-list li { margin-bottom: 6px; }
+  .bb-list li strong { color: #E4E0E1; }
+
+  /* two-column topic grid */
+  .bb-curriculum {
+    margin: 0 0 8px;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 32px;
+  }
+  @media (max-width: 680px) { .bb-curriculum { grid-template-columns: 1fr; } }
+  .bb-curriculum li {
+    font-size: 15px;
+    line-height: 1.55;
+    color: #C7C1C3;
+  }
+  .bb-curriculum li strong {
+    display: block;
+    color: #E4E0E1;
+    margin-bottom: 2px;
+  }
+
+  .bb-fact-row {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    margin: 20px 0 4px;
+  }
+  .bb-fact { min-width: 150px; }
+  .bb-fact__label {
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .bb-fact__value {
+    font-size: 20px;
+    font-weight: 800;
+    color: #E4E0E1;
+  }
+
+  .bb-price-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 14px;
+  }
+  .bb-price-table th, .bb-price-table td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .bb-price-table th {
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .bb-price-table td { color: #C7C1C3; }
+  .bb-price-table td:first-child { color: #E4E0E1; font-weight: 700; }
+
+  .bb-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-top: 24px;
+  }
+  @media (max-width: 680px) { .bb-steps { grid-template-columns: 1fr; } }
+  .bb-step {
+    background: #1C1719;
+    padding: 24px;
+  }
+  .bb-step__num {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--tgc);
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .bb-step__title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+  .bb-step__desc {
+    font-size: 14px;
+    line-height: 1.55;
+    color: #C7C1C3;
+  }
+
+  /* "inside the seminar" blocks */
+  .bb-inside {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 28px;
+  }
+  @media (max-width: 680px) { .bb-inside { grid-template-columns: 1fr; gap: 28px; } }
+  .bb-inside__item { }
+  .bb-inside__title {
+    font-size: 17px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+  }
+  .bb-inside__rule {
+    width: 40px;
+    height: 2px;
+    background: var(--tgc);
+    margin-bottom: 12px;
+  }
+  .bb-inside__desc {
+    font-size: 15px;
+    line-height: 1.65;
+    color: #C7C1C3;
+    margin: 0;
+  }
+
+  .bb-note {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #A69FA1;
+    border-left: 2px solid var(--line);
+    padding-left: 16px;
+    margin-top: 24px;
+  }
+  .bb-note p { margin: 0 0 10px; }
+  .bb-note p:last-child { margin-bottom: 0; }
+
+  .bb-btn {
+    display: inline-block;
+    padding: 14px 28px;
+    border-radius: 2px;
+    background: var(--tgc);
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+  .bb-btn:hover { opacity: 0.85; }
+  .bb-btn--ghost {
+    background: transparent;
+    border: 1px solid var(--tgc);
+    color: var(--tgc);
+  }
+
+  .bb-footer {
+    text-align: center;
+    padding: 24px 24px 60px;
+    font-size: 13px;
+    color: #756F71;
+    border-top: 1px solid var(--line);
+  }
+</style>
+</head>
+<body>
+
+  <nav class="bb-topbar">
+    <a href="/merch">Merch Store</a>
+    <a href="/blog">Blog</a>
+    <a href="/trainer-directory">Trainer Directory</a>
+    <a href="/birdbox-team">BirdBox Team</a>
+    <a href="/account">My Account</a>
+    <a href="/about">About</a>
+  </nav>
+
+  <div class="bb-back">
+    <a href="/tgc">&larr; Back to The Gymnastics Course</a>
+  </div>
+
+  <header class="bb-hero">
+    <div class="bb-hero__eyebrow">Level 1 &middot; Live Seminar</div>
+    <h1 class="bb-hero__title">Learn. Coach. Improve.</h1>
+    <p class="bb-hero__desc">A hands-on, immersive weekend for coaches and athletes ready to understand gymnastics, fix movement, and coach with confidence.</p>
+    <div class="bb-hero__cta">
+      <a class="bb-btn" href="https://taplink.cc/thegymnasticscourse/p/aa7624/">View Dates &amp; Book Your Spot &rarr;</a>
+    </div>
+  </header>
+
+  <div class="bb-badge-strip">
+    <span class="bb-badge-strip__pill">CrossFit&reg; Approved CEU Provider</span>
+    <span class="bb-badge-strip__pill">Level 1 Certification</span>
+  </div>
+
+  <section class="bb-section" id="problem">
+    <div class="bb-section__label">The Problem</div>
+    <h2 class="bb-section__title">Still Coaching Without a System?</h2>
+    <p class="bb-section__desc">Most coaches feel unsure when teaching gymnastics. You've relied on Instagram clips, old drills, or trial and error. This seminar changes that.</p>
+  </section>
+
+  <section class="bb-section" id="what-you-get">
+    <div class="bb-section__label">What You'll Get</div>
+    <h2 class="bb-section__title">Three Things You Leave With</h2>
+    <div class="bb-steps">
+      <div class="bb-step">
+        <div class="bb-step__num">01</div>
+        <div class="bb-step__title">Movement Diagnostics</div>
+        <div class="bb-step__desc">Learn how to identify faults in bodyweight movement and coach them effectively.</div>
+      </div>
+      <div class="bb-step">
+        <div class="bb-step__num">02</div>
+        <div class="bb-step__title">Clear Progressions</div>
+        <div class="bb-step__desc">Master the "static before dynamic, strict before kipping" framework with real coaching applications.</div>
+      </div>
+      <div class="bb-step">
+        <div class="bb-step__num">03</div>
+        <div class="bb-step__title">Coaching Interventions</div>
+        <div class="bb-step__desc">Use cues, constraints, and interventions to create meaningful movement change on the spot.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bb-section" id="who">
+    <div class="bb-section__label">Who It's For</div>
+    <h2 class="bb-section__title">Who Should Attend?</h2>
+    <p class="bb-section__desc">Whether you're a CrossFit coach, part-time trainer, gym owner, or competitive athlete, this seminar is built for you. If you want a rock-solid understanding of movement, this is where it begins.</p>
+  </section>
+
+  <section class="bb-section" id="topics">
+    <div class="bb-section__label">Topics Covered</div>
+    <h2 class="bb-section__title">The Level 1 Curriculum</h2>
+    <ul class="bb-curriculum">
+      <li><strong>Methodology</strong> Gymnastics coaching methodology and the hierarchy of development.</li>
+      <li><strong>Foundational Shapes</strong> How to teach hollow, arch, and the shapes everything else is built on.</li>
+      <li><strong>Strict Strength</strong> The role of strict strength and isometric control.</li>
+      <li><strong>Fault Diagnosis</strong> Diagnosing faults and applying real-time fixes.</li>
+      <li><strong>Pulling Progressions</strong> Pull-up, toes-to-bar and inversion progressions.</li>
+      <li><strong>Skill Progressions</strong> Pistols, push-ups, ring and bar muscle-ups.</li>
+      <li><strong>Warm-Up Design</strong> Building warm-ups using the RAMP and DROM frameworks.</li>
+      <li><strong>Delivery</strong> Teaching with clarity, intent, and confidence.</li>
+    </ul>
+  </section>
+
+  <section class="bb-section" id="inside">
+    <div class="bb-section__label">Inside the Seminar</div>
+    <h2 class="bb-section__title">What Two Days Actually Look Like</h2>
+    <p class="bb-section__desc">Gymnastics is purely bodyweight movement, and the human body is infinitely complex. Add task completion or a time priority and it can be overwhelming. We'll teach you to understand it differently.</p>
+
+    <div class="bb-inside">
+      <div class="bb-inside__item">
+        <h3 class="bb-inside__title">Understanding Gymnastics Movement</h3>
+        <div class="bb-inside__rule"></div>
+        <p class="bb-inside__desc">There is no greater modality than gymnastics for affecting change on a population. Its essence is coordination &mdash; recruiting the right musculature for the right task. Simple in concept, increasingly complex as movement becomes compound.</p>
+      </div>
+      <div class="bb-inside__item">
+        <h3 class="bb-inside__title">Movement Assessment</h3>
+        <div class="bb-inside__rule"></div>
+        <p class="bb-inside__desc">We'll teach you to see and correct movement more simply, so you can assess what's in front of you and act on it rather than guess.</p>
+      </div>
+      <div class="bb-inside__item">
+        <h3 class="bb-inside__title">How to Spot and Self-Spot</h3>
+        <div class="bb-inside__rule"></div>
+        <p class="bb-inside__desc">The goal of any coach is to progress an athlete as quickly and safely as possible. There is no faster route to gymnastic success than spotting and self-spotting.</p>
+      </div>
+      <div class="bb-inside__item">
+        <h3 class="bb-inside__title">Programming and Scaling</h3>
+        <div class="bb-inside__rule"></div>
+        <p class="bb-inside__desc">Gymnastics programming doesn't need to be hard. It just needs to be often. We'll teach you to program gymnastics regularly to support skill development and responsible intensity.</p>
+      </div>
+      <div class="bb-inside__item">
+        <h3 class="bb-inside__title">Class Management</h3>
+        <div class="bb-inside__rule"></div>
+        <p class="bb-inside__desc">Product delivery is key &mdash; in the training world you're only as good as your last class. We'll help you build the ideal class plan while productively implementing gymnastics exposure.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="bb-section" id="format">
+    <div class="bb-section__label">Seminar Format</div>
+    <h2 class="bb-section__title">Lecture, Demo, Practice, Feedback</h2>
+    <p class="bb-section__desc">Our two-day seminar blends lecture, demonstration, practice, feedback, and collaborative drills. You'll leave with a coaching and training model you can apply on Monday morning.</p>
+    <div class="bb-fact-row">
+      <div class="bb-fact">
+        <div class="bb-fact__label">Duration</div>
+        <div class="bb-fact__value">2 Full Days</div>
+      </div>
+      <div class="bb-fact">
+        <div class="bb-fact__label">Locations</div>
+        <div class="bb-fact__value">International</div>
+      </div>
+      <div class="bb-fact">
+        <div class="bb-fact__label">Prerequisite</div>
+        <div class="bb-fact__value">None</div>
+      </div>
+    </div>
+    <ul class="bb-list" style="margin-top: 28px;">
+      <li>70+ page seminar guide</li>
+      <li>Exclusive discounts on online course access</li>
+      <li>Certification upon completion</li>
+    </ul>
+  </section>
+
+  <section class="bb-section" id="outcomes">
+    <div class="bb-section__label">The Outcome</div>
+    <h2 class="bb-section__title">What You'll Walk Away With</h2>
+    <ul class="bb-list">
+      <li>A clear, repeatable system for teaching gymnastics</li>
+      <li>Confidence to coach high-skill movements safely</li>
+      <li>A structured coaching eye to spot and fix faults</li>
+      <li>A seminar manual and certificate of completion</li>
+    </ul>
+  </section>
+
+  <section class="bb-section" id="preparation">
+    <div class="bb-section__label">Before You Arrive</div>
+    <h2 class="bb-section__title">What to Bring</h2>
+    <ul class="bb-list">
+      <li>Government-issued photo ID</li>
+      <li>The Gymnastics Course Seminar Guide, with a pen or pencil</li>
+      <li>Suitable clothes for working out</li>
+      <li>Snacks and fluids, plus a meal if you're not going off site at lunch</li>
+    </ul>
+  </section>
+
+  <section class="bb-section" id="pricing">
+    <div class="bb-section__label">Pricing</div>
+    <h2 class="bb-section__title">Investment</h2>
+    <p class="bb-section__desc">Applicable local taxes are added at checkout.</p>
+    <table class="bb-price-table">
+      <tr><th>Currency</th><th>Price</th></tr>
+      <tr><td>USD</td><td>$645</td></tr>
+      <tr><td>Euro</td><td>&euro;640 + VAT</td></tr>
+      <tr><td>Pound Sterling</td><td>&pound;545 + VAT</td></tr>
+      <tr><td>AUD</td><td>$1030 + VAT</td></tr>
+      <tr><td>CAD</td><td>$940</td></tr>
+    </table>
+
+    <div class="bb-note">
+      <p>The Gymnastics Course reserves the right to update pricing at any time. Some courses are set in local currency, with the exchange rate fixed when the course is created. Pricing applies at the time registration opens.</p>
+      <p><strong>Refunds:</strong> due to the number of scheduled courses, we don't accommodate refunds. If there's a scheduling issue, a credit for a future course registration will be issued.</p>
+      <p><strong>Discounts:</strong> to enquire about discounts for first responders, full-time school teachers, and active duty and veteran military personnel, email us with your desired seminar location and proof of employment or status.</p>
+      <p><strong>Re-attending:</strong> if you attended a course after 2015 and want to come again, you get 50% off. Email us your certificate and the course you'd like to re-attend and we'll send a discount code.</p>
+    </div>
+  </section>
+
+  <section class="bb-section" id="book">
+    <div class="bb-section__label">Upcoming Seminars</div>
+    <h2 class="bb-section__title">Secure Your Spot</h2>
+    <p class="bb-section__desc">Spaces are limited to keep quality and interaction high. Find an upcoming date and location, and book your place at the next Level 1 seminar.</p>
+    <div class="bb-hero__cta" style="justify-content: flex-start;">
+      <a class="bb-btn" href="https://taplink.cc/thegymnasticscourse/p/aa7624/">Book Your Seminar &rarr;</a>
+      <a class="bb-btn bb-btn--ghost" href="mailto:info@thegymnasticscourse.education?subject=TGC%20Level%201%20Enquiry">Ask a Question &rarr;</a>
+    </div>
+  </section>
+
+  <section class="bb-section" id="overview">
+    <div class="bb-section__label">Overview</div>
+    <h2 class="bb-section__title">About The Gymnastics Course</h2>
+    <p class="bb-section__desc">The Gymnastics Course is a professional coaching development seminar, led and developed by a team of expert-level coaches from around the world, aimed at creating and eliciting potential from professional trainers, coaches, gym owners, and athletes.</p>
+    <p class="bb-section__desc">Our goal is to use the information and methodology of gymnastics and body movement to augment your training and coaching, as we have for over a decade.</p>
+    <div class="bb-hero__cta" style="justify-content: flex-start;">
+      <a class="bb-btn bb-btn--ghost" href="/tcc">Coaching Development at BirdBox &rarr;</a>
+    </div>
+  </section>
+
+  <div class="bb-cross" style="text-align:center; padding: 8px 24px 64px;">
+    <a class="bb-btn bb-btn--ghost" href="/tgc">&larr; Back to The Gymnastics Course overview</a>
+  </div>
+
+  <footer class="bb-footer">
+    &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
+  </footer>
+
+</body>
+</html>
