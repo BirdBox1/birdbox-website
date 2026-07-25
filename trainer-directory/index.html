@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BirdBox Team | BirdBox Coaching</title>
-<meta name="description" content="Meet the BirdBox Coaching team &mdash; our worldwide team of educators and support staff.">
+<title>Trainer Directory | BirdBox Coaching</title>
+<meta name="description" content="Find a BirdBox approved coach near you &mdash; a directory of coaches who have completed BirdBox Coaching certification.">
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; background: #1C1719; }
@@ -37,7 +37,7 @@
   .bb-topbar a.is-active { color: #ffffff; }
 
   .bb-back {
-    max-width: 1100px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 18px 24px 0;
     font-size: 13px;
@@ -51,7 +51,7 @@
     text-align: center;
     max-width: 720px;
     margin: 0 auto;
-    padding: 72px 24px 56px;
+    padding: 72px 24px 8px;
   }
   .bb-hero__eyebrow {
     font-size: 18px;
@@ -73,42 +73,22 @@
     line-height: 1.6;
     color: #C7C1C3;
   }
-
-  /* ---- Tabs ---- */
-  .bb-tabs {
+  .bb-hero__cta {
+    margin-top: 28px;
     display: flex;
+    gap: 14px;
     justify-content: center;
-    gap: 4px;
     flex-wrap: wrap;
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 32px 24px 0;
-  }
-  .bb-tab {
-    display: inline-block;
-    padding: 12px 24px;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    text-decoration: none;
-    color: var(--muted);
-    border-bottom: 2px solid transparent;
-    transition: color 0.2s ease, border-color 0.2s ease;
-  }
-  .bb-tab:hover { color: #E4E0E1; }
-  .bb-tab.is-active {
-    color: var(--tcc);
-    border-bottom-color: var(--tcc);
+    padding-bottom: 56px;
   }
 
   .bb-section {
-    max-width: 1100px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 48px 24px;
     border-top: 1px solid var(--line);
   }
-  .bb-section--flush { border-top: none; padding-top: 32px; }
+  .bb-section--flush { border-top: none; padding-top: 24px; }
   .bb-section__label {
     font-size: 12px;
     letter-spacing: 0.16em;
@@ -131,93 +111,60 @@
     margin: 0 0 12px;
   }
 
-  /* ---- Team grid ---- */
-  .bb-team {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 32px 24px;
-    margin-top: 32px;
-  }
-  @media (max-width: 900px) { .bb-team { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 680px) { .bb-team { grid-template-columns: repeat(2, 1fr); gap: 28px 16px; } }
-  @media (max-width: 420px) { .bb-team { grid-template-columns: 1fr; } }
-
-  .bb-person { text-align: center; }
-
-  .bb-person__photo {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    margin-bottom: 14px;
-    background: #241F21;
+  /* ---- Community Box directory frame ---- */
+  .bb-directory-frame {
+    margin-top: 28px;
     border: 1px solid var(--line);
-    border-radius: 2px;
+    border-radius: 4px;
     overflow: hidden;
+    background: #FFFFFF;
   }
-  /* Initials show through when no headshot file is present */
-  .bb-person__photo::before {
-    content: attr(data-initials);
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 30px;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    color: #4A4245;
-  }
-  .bb-person__photo img {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
+  .bb-directory-frame__inner {
+    padding: 16px;
+    min-height: 420px;
   }
 
-  .bb-person__name {
-    font-size: 16px;
-    font-weight: 800;
-    margin: 0 0 4px;
-    letter-spacing: -0.01em;
-  }
-  .bb-person__creds {
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 6px;
-    line-height: 1.4;
-  }
-  .bb-person__role {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--tcc);
-    margin-bottom: 4px;
-  }
-  .bb-person__loc {
-    font-size: 13px;
+  .bb-list {
+    margin: 0 0 24px;
+    padding: 0 0 0 20px;
+    font-size: 15px;
+    line-height: 1.7;
     color: #C7C1C3;
-    margin-bottom: 10px;
   }
-  .bb-person__links {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
+  .bb-list li { margin-bottom: 6px; }
+  .bb-list li strong { color: #E4E0E1; }
+
+  .bb-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-top: 24px;
   }
-  .bb-person__link {
-    font-size: 12px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    text-decoration: none;
-    color: var(--muted);
-    border-bottom: 1px solid transparent;
-    transition: color 0.2s ease, border-color 0.2s ease;
+  @media (max-width: 680px) {
+    .bb-steps { grid-template-columns: 1fr; }
   }
-  .bb-person__link:hover {
+  .bb-step {
+    background: #1C1719;
+    padding: 24px;
+  }
+  .bb-step__num {
+    font-size: 13px;
+    font-weight: 800;
     color: var(--tcc);
-    border-bottom-color: var(--tcc);
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .bb-step__title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+  .bb-step__desc {
+    font-size: 14px;
+    line-height: 1.55;
+    color: #C7C1C3;
   }
 
   .bb-btn {
@@ -247,6 +194,20 @@
     color: #756F71;
     border-top: 1px solid var(--line);
   }
+
+  /* ---------- PHOTO BACKGROUND BAND ---------- */
+
+  .bb-hero-band {
+    background-image:
+      linear-gradient(180deg,
+        rgba(28,23,25,0.82) 0%,
+        rgba(28,23,25,0.74) 45%,
+        rgba(28,23,25,0.97) 100%),
+      url("hero-directory.jpeg");
+    background-size: cover;
+    background-position: center 45%;
+    background-repeat: no-repeat;
+  }
 </style>
 </head>
 <body>
@@ -254,7 +215,8 @@
   <nav class="bb-topbar">
     <a href="/merch">Merch Store</a>
     <a href="/blog">Blog</a>
-    <a href="/trainer-directory">Trainer Directory</a>
+    <a href="/trainer-directory" class="is-active">Trainer Directory</a>
+    <a href="/birdbox-team">BirdBox Team</a>
     <a href="/account">My Account</a>
     <a href="/about">About</a>
   </nav>
@@ -263,385 +225,99 @@
     <a href="/">&larr; Back to BirdBox Coaching</a>
   </div>
 
-  <header class="bb-hero">
-    <div class="bb-hero__eyebrow">BirdBox Team</div>
-    <h1 class="bb-hero__title">Meet Our Team</h1>
-    <p class="bb-hero__desc">Our worldwide team of educators and support staff &mdash; the coaches who deliver every BirdBox seminar, course, and mentorship.</p>
-  </header>
+  <!-- ===== HERO BAND (photo background) ===== -->
+  <div class="bb-hero-band">
+    <header class="bb-hero">
+      <div class="bb-hero__eyebrow">BirdBox Approved Coaches</div>
+      <h1 class="bb-hero__title">Trainer Directory</h1>
+      <p class="bb-hero__desc">Every coach listed here has completed a BirdBox Coaching Certification. Search by location to find one near you.</p>
+      <div class="bb-hero__cta">
+        <a class="bb-btn" href="#directory">Find a Coach &rarr;</a>
+      </div>
+    </header>
+  </div>
+  <!-- ===== END HERO BAND ===== -->
 
-  <nav class="bb-tabs">
-    <a class="bb-tab" href="/trainer-directory">Trainer Directory</a>
-    <a class="bb-tab is-active" href="/birdbox-team">BirdBox Team</a>
-  </nav>
+  <section class="bb-section bb-section--flush" id="directory">
+    <div class="bb-section__label">Approved Coaches Worldwide</div>
+    <h2 class="bb-section__title">Find a Coach Near You</h2>
+    <p class="bb-section__desc">Browse the directory below. Use the search and filters to narrow by location, then select a coach to see their gym, qualifications, and how to get in touch.</p>
 
-  <section class="bb-section bb-section--flush" id="team">
-    <div class="bb-team">
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="NB">
-          <img src="team/nathan-bird.jpeg" alt="Nathan Bird" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Nathan Bird</h3>
-        <div class="bb-person__creds">BSc, MSc, CSCS, CCFT</div>
-        <div class="bb-person__role">Founder, CEO &amp; Lead Coach</div>
-        <div class="bb-person__loc">Paris, France</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Nathan@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/coach_birdy" target="_blank" rel="noopener">@coach_birdy</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="MD">
-          <img src="team/michaela-dotterweich.jpeg" alt="Michaela Dotterweich" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Michaela Dotterweich</h3>
-        <div class="bb-person__creds">BSc, MSc, CCFT</div>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Munich, Germany</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Michaela@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/coach_michaela_birdbox" target="_blank" rel="noopener">@coach_michaela_birdbox</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="BL">
-          <img src="team/barney-linssen.jpeg" alt="Barney Linssen" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Barney Linssen</h3>
-        <div class="bb-person__creds">MSc, CSCS, CCFT</div>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Brighton, UK</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Barney@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/coach.barney" target="_blank" rel="noopener">@coach.barney</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="MZ">
-          <img src="team/mel-zinggrebe.jpeg" alt="Mel Zinggrebe" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Mel Zinggrebe</h3>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Mallorca, Spain</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Mel@thegymnasticscourse.education">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/coachmel_tgc" target="_blank" rel="noopener">@coachmel_tgc</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="DL">
-          <img src="team/dane-leavy.jpeg" alt="Dane Leavy" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Dane Leavy</h3>
-        <div class="bb-person__creds">BSc, CCFT</div>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">St Pete, FL</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Dane@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/dane_leavy" target="_blank" rel="noopener">@dane_leavy</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="JE">
-          <img src="team/joyce-edelman.jpeg" alt="Joyce Edelman" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Joyce Edelman</h3>
-        <div class="bb-person__role">Assistant Coach</div>
-        <div class="bb-person__loc">Almere, Netherlands</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Joyce@thegymnasticscourse.education">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/joycedelman" target="_blank" rel="noopener">@joycedelman</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="ZS">
-          <img src="team/zsolt-soti.jpeg" alt="Zsolt Sóti" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Zsolt Sóti</h3>
-        <div class="bb-person__creds">MSc, CCFT</div>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Budapest, Hungary</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Zsolt@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/zsolt_soti" target="_blank" rel="noopener">@zsolt_soti</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="JE">
-          <img src="team/jessica-estrada.jpeg" alt="Jessica Estrada" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Jessica Estrada</h3>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Austin, TX</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Jess@thegymnasticscourse.education">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/estradaflys" target="_blank" rel="noopener">@estradaflys</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="MO">
-          <img src="team/manfredi-ottavi.jpeg" alt="Manfredi Ottavi" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Manfredi Ottavi</h3>
-        <div class="bb-person__creds">BSc, D.O. (Osteopath), CSCS, CCFT</div>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Rome, Italy</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Manfredi@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/manfrediottavi" target="_blank" rel="noopener">@manfrediottavi</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="TD">
-          <img src="team/taylor-deering.jpeg" alt="Taylor Deering" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Taylor Deering</h3>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Austin, TX</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Taylor@thegymnasticscourse.education">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/taytay_deering" target="_blank" rel="noopener">@taytay_deering</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="LH">
-          <img src="team/liam-hogan.jpeg" alt="Liam Hogan" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Liam Hogan</h3>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Bournemouth, UK</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Liam@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/thecfcoach" target="_blank" rel="noopener">@thecfcoach</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="FL">
-          <img src="team/fraser-lynes.jpeg" alt="Fraser Lynes" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Fraser Lynes</h3>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Glasgow, UK</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:fraser@thegymnasticscourse.education">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/fraserlynes" target="_blank" rel="noopener">@fraserlynes</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="JB">
-          <img src="team/jeremy-brincat.jpeg" alt="Jeremy Brincat" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Jeremy Brincat</h3>
-        <div class="bb-person__creds">CCFT, CSCS</div>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Paris, France</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Jeremy@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/upsidedown_jeremy" target="_blank" rel="noopener">@upsidedown_jeremy</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="GG">
-          <img src="team/giulietta-gastaldo.jpeg" alt="Giulietta Gastaldo" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Giulietta Gastaldo</h3>
-        <div class="bb-person__creds">D.O. (Osteopath)</div>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Turin, Italy</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Giulia@thegymnasticscourse.education">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/giuliettagastaldo" target="_blank" rel="noopener">@giuliettagastaldo</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="JE">
-          <img src="team/junior-edelman.jpeg" alt="Junior Edelman" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Junior Edelman</h3>
-        <div class="bb-person__role">Assistant Coach</div>
-        <div class="bb-person__loc">Almere, Netherlands</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Junior@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/jr_edelman" target="_blank" rel="noopener">@jr_edelman</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="JS">
-          <img src="team/justin-swart.jpeg" alt="Justin Swart" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Justin Swart</h3>
-        <div class="bb-person__creds">BSc, CCFT</div>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Cape Town, South Africa</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Justin@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/justin.swart" target="_blank" rel="noopener">@justin.swart</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="AN">
-          <img src="team/amadeu-neves.jpeg" alt="Amadeu Neves" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Amadeu Neves</h3>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Lisbon, Portugal</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Amadeu@thegymnasticscourse.education">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/amadeunevescds" target="_blank" rel="noopener">@amadeunevescds</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="NG">
-          <img src="team/nicolas-glenny.jpeg" alt="Nicolas Glenny" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Nicolas Glenny</h3>
-        <div class="bb-person__role">Media</div>
-        <div class="bb-person__loc">Barcelona, Spain</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:media@thegymnasticscourse.education">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/nicoglenny_ph" target="_blank" rel="noopener">@nicoglenny_ph</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="ZL">
-          <img src="team/zoltan-lovas.jpeg" alt="Zoltan Lovas" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Zoltan Lovas</h3>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Valencia, Spain</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Zoltan@thegymnasticscourse.education">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/zoltanlovas" target="_blank" rel="noopener">@zoltanlovas</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="RN">
-          <img src="team/rob-noy.jpeg" alt="Rob Noy" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Rob Noy</h3>
-        <div class="bb-person__creds">CCFT</div>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Noosa, Australia</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Rob@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/robnoy_coach" target="_blank" rel="noopener">@robnoy_coach</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="LV">
-          <img src="team/luis-vela.jpeg" alt="Luis Vela" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Luis Vela</h3>
-        <div class="bb-person__creds">MSc</div>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">McAllen, TX</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Luis@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/coach.luisvela" target="_blank" rel="noopener">@coach.luisvela</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="SB">
-          <img src="team/sam-burns.jpeg" alt="Sam Burns" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Sam Burns</h3>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Portland, ME</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Sam@thegymnasticscourse.education">Email</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="GR">
-          <img src="team/guston-rankin.jpeg" alt="Guston Rankin" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Guston Rankin</h3>
-        <div class="bb-person__creds">BSc, CCFT</div>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Tokyo, Japan</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Guston@thegymnasticscourse.education">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/Guston.fit.inverted" target="_blank" rel="noopener">@Guston.fit.inverted</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="LW">
-          <img src="team/lukasz-wysocki.jpeg" alt="Lukasz Wysocki" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Lukasz Wysocki</h3>
-        <div class="bb-person__creds">CCFT</div>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Warsaw, Poland</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Lukasz@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/lukaszgrzegorwysocki" target="_blank" rel="noopener">@lukaszgrzegorwysocki</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="MG">
-          <img src="team/marcus-grimalt.jpeg" alt="Marcus Grimalt" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Marcus Grimalt</h3>
-        <div class="bb-person__creds">MSc</div>
-        <div class="bb-person__role">Lead Coach</div>
-        <div class="bb-person__loc">Mallorca, Spain</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Marcus@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/coachmarcus_birdbox" target="_blank" rel="noopener">@coachmarcus_birdbox</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="AD">
-          <img src="team/asier-moreno-diez.jpeg" alt="Asier Moreno Diez" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Asier Moreno Diez</h3>
-        <div class="bb-person__creds">MSc</div>
-        <div class="bb-person__role">Assistant Coach</div>
-        <div class="bb-person__loc">Gold Coast, Australia</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Asier@thegymnasticscourse.education">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/movewithasier" target="_blank" rel="noopener">@movewithasier</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="KH">
-          <img src="team/kai-hacker.jpeg" alt="Kai Häcker" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Kai Häcker</h3>
-        <div class="bb-person__creds">BSc, MSc</div>
-        <div class="bb-person__role">Assistant Coach</div>
-        <div class="bb-person__loc">Augsburg, Germany</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Kai@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/kaihckr" target="_blank" rel="noopener">@kaihckr</a>
-        </div>
-      </article>
-      <article class="bb-person">
-        <div class="bb-person__photo" data-initials="SH">
-          <img src="team/sarah-haspel.jpeg" alt="Sarah Haspel" loading="lazy" onerror="this.remove()">
-        </div>
-        <h3 class="bb-person__name">Sarah Haspel</h3>
-        <div class="bb-person__role">Administration &amp; Social Media</div>
-        <div class="bb-person__loc">Munich, Germany</div>
-        <div class="bb-person__links">
-          <a class="bb-person__link" href="mailto:Sarah@birdboxcoaching.com">Email</a>
-          <a class="bb-person__link" href="https://instagram.com/batatarah" target="_blank" rel="noopener">@batatarah</a>
-        </div>
-      </article>
+    <div class="bb-directory-frame">
+      <div class="bb-directory-frame__inner">
+        <!-- Community Box directory embed (BirdBox Trainer Directory box). -->
+        <div id="communitybox-target" box="3b937335-788a-49d4-a2bd-f8439eca49d5"></div>
+      </div>
     </div>
   </section>
 
-  <section class="bb-section" id="join">
-    <div class="bb-section__label">Work With Us</div>
-    <h2 class="bb-section__title">Interested in Joining the Team?</h2>
-    <p class="bb-section__desc">We're always interested in hearing from coaches who've been through our courses and want to take the next step into education.</p>
-    <p style="margin-top: 24px;">
-      <a class="bb-btn bb-btn--ghost" href="mailto:Info@birdboxcoaching.com?subject=Joining%20the%20BirdBox%20Team">Get in Touch &rarr;</a>
-    </p>
+  <section class="bb-section" id="what-it-means">
+    <div class="bb-section__label">What the Listing Means</div>
+    <h2 class="bb-section__title">Why BirdBox Approved Matters</h2>
+    <p class="bb-section__desc">A coach in this directory has invested in formal development beyond their day-to-day practice.</p>
+    <ul class="bb-list">
+      <li><strong>Completed certification</strong> &mdash; each listed coach has passed a BirdBox Coaching course</li>
+      <li><strong>Coaching, not just programming</strong> &mdash; trained in communication, the coach-athlete relationship, and intervention</li>
+      <li><strong>Ongoing development</strong> &mdash; many go on to Level 2, mentorship, and specialist courses</li>
+    </ul>
+  </section>
+
+  <section class="bb-section" id="get-listed">
+    <div class="bb-section__label">For Coaches</div>
+    <h2 class="bb-section__title">Completed a Course? Get Listed</h2>
+    <p class="bb-section__desc">If you've passed a BirdBox Coaching certification and you're not on the map yet, get in touch and we'll add you.</p>
+    <div class="bb-steps">
+      <div class="bb-step">
+        <div class="bb-step__num">01</div>
+        <div class="bb-step__title">Complete a Course</div>
+        <div class="bb-step__desc">Pass any BirdBox Coaching certification, live or online.</div>
+      </div>
+      <div class="bb-step">
+        <div class="bb-step__num">02</div>
+        <div class="bb-step__title">Send Your Details</div>
+        <div class="bb-step__desc">Your name, gym, location, and how athletes can reach you.</div>
+      </div>
+      <div class="bb-step">
+        <div class="bb-step__num">03</div>
+        <div class="bb-step__title">Appear on the Map</div>
+        <div class="bb-step__desc">We'll add your pin so athletes in your area can find you.</div>
+      </div>
+    </div>
+    <div class="bb-hero__cta" style="justify-content: flex-start; padding-bottom: 0;">
+      <a class="bb-btn" href="mailto:Info@birdboxcoaching.com?subject=Trainer%20Directory%20Listing&body=I%20have%20completed%20a%20BirdBox%20Coaching%20certification%20and%20would%20like%20to%20be%20added%20to%20the%20trainer%20directory.%0A%0AName%3A%0AGym%3A%0ACity%20%2F%20Country%3A%0ACourse%20completed%3A%0AContact%20details%20to%20display%3A">Request a Listing &rarr;</a>
+      <a class="bb-btn bb-btn--ghost" href="/tcc">See the Courses &rarr;</a>
+    </div>
   </section>
 
   <footer class="bb-footer">
     &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
   </footer>
+
+  <!--
+    Community Box loader. This sits at the end of the body, AFTER the
+    #communitybox-target div above, so the widget has something to render
+    into by the time it runs.
+  -->
+  <script>
+  (function() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "https://cfapi.communitybox.co/bootstrap/revision", true);
+    xhr.onload = function() {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        var returnObj = JSON.parse(xhr.responseText);
+        if (returnObj.hasOwnProperty("err")) {
+          console.error(returnObj.err);
+        } else {
+          var r = returnObj.revision;
+          var l = document.createElement("script");
+          l.src = "https://dashboard.communitybox.co/embed/" + r + "/cbebloader-" + r + ".js";
+          document.head.appendChild(l);
+        }
+      }
+    };
+    xhr.send("2714b035-c524-45d6-922b-e11fb12ff91f");
+  })();
+  </script>
 
 </body>
 </html>
