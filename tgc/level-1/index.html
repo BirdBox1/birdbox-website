@@ -317,12 +317,12 @@
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    min-height: 520px;
+    display: flex;
+    align-items: center;
   }
+  .bb-photo-band .bb-section { width: 100%; }
   .bb-photo-band .bb-section { border-top: none; }
-
-  @media (min-width: 900px) {
-    .bb-photo-band { background-attachment: fixed; }
-  }
 
   .bb-band--included {
     background-image:
@@ -368,22 +368,22 @@
     /* Text spans the full width on a phone, so darken evenly */
     .bb-band--included {
       background-image:
-        linear-gradient(rgba(28,23,25,0.90), rgba(28,23,25,0.90)),
+        linear-gradient(rgba(28,23,25,0.82), rgba(28,23,25,0.82)),
         url("band-included.jpeg");
     }
     .bb-band--topics {
       background-image:
-        linear-gradient(rgba(28,23,25,0.90), rgba(28,23,25,0.90)),
+        linear-gradient(rgba(28,23,25,0.82), rgba(28,23,25,0.82)),
         url("band-topics.jpeg");
     }
     .bb-band--format {
       background-image:
-        linear-gradient(rgba(28,23,25,0.90), rgba(28,23,25,0.90)),
+        linear-gradient(rgba(28,23,25,0.82), rgba(28,23,25,0.82)),
         url("band-format.jpeg");
     }
     .bb-band--pricing {
       background-image:
-        linear-gradient(rgba(28,23,25,0.91), rgba(28,23,25,0.91)),
+        linear-gradient(rgba(28,23,25,0.84), rgba(28,23,25,0.84)),
         url("band-pricing.jpeg");
     }
   }
