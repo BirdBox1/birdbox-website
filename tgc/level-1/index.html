@@ -298,6 +298,26 @@
     border-top: 1px solid var(--line);
   }
 </style>
+<script async>
+(function() {
+  xhr = new XMLHttpRequest();
+  xhr.open("POST", "https://cfapi.communitybox.co/bootstrap/revision", true);
+  xhr.onload = function() {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      var returnObj = JSON.parse(xhr.responseText);
+      if (returnObj.hasOwnProperty("err")) {
+        console.error(returnObj.err);
+      } else {
+        var r = returnObj.revision;
+        var l = document.createElement("script");
+        l.src = "https://dashboard.communitybox.co/embed/" + r + "/cbebloader-" + r + ".js";
+        document.head.appendChild(l);
+      }
+    }
+  };
+  xhr.send("2714b035-c524-45d6-922b-e11fb12ff91f");
+})();
+</script>
 </head>
 <body>
 
@@ -406,16 +426,8 @@
     <p class="bb-section__desc">Spaces are limited to ensure quality and interaction &mdash; browse upcoming locations on the map below and select a pin to see dates and registration details.</p>
     <div class="bb-map-frame">
       <div class="bb-map-frame__inner">
-        <!--
-          Community Box directory embed for TGC Level 1 seminars.
-          Grab this the same way as the BirdBox maps: Community Box
-          dashboard > this directory > Embed & Preview > Squarespace
-          (copy the code shown, ignore the platform-specific instructions).
-        -->
-        <div class="bb-map-placeholder">
-          <strong>Community Box map embed placeholder</strong>
-          Paste the TGC Level 1 seminar directory's embed snippet here.
-        </div>
+        <!-- Community Box directory embed (TGC Level 1 Seminars box). -->
+        <div id="communitybox-target" box="16a5c579-4f46-4860-a435-9cabb4eaeadc"></div>
       </div>
     </div>
   </section>
