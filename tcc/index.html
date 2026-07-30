@@ -138,34 +138,64 @@
     .bb-panel__content { max-width: 100%; }
   }
 
-  .bb-format-badge {
-    display: inline-block;
-    padding: 7px 18px;
-    border-radius: 999px;
-    font-size: 18px;
+  .bb-stamp {
+    position: relative;
+    width: 104px;
+    height: 104px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transform: rotate(-6deg);
+    margin-bottom: 18px;
+    background: radial-gradient(circle at 35% 30%, #6BBBE8, var(--tcc) 55%, #2E6A93 100%);
+    box-shadow:
+      0 4px 14px rgba(0,0,0,0.55),
+      inset 0 0 0 3px rgba(255,255,255,0.15),
+      inset 0 0 0 8px rgba(0,0,0,0.25);
+  }
+  .bb-stamp::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px dashed rgba(255,255,255,0.35);
+  }
+  .bb-stamp__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #0E1A22;
+    transform: rotate(6deg);
+  }
+  .bb-stamp__level {
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .bb-stamp__method {
+    margin-top: 4px;
+    font-size: 9px;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    margin-bottom: 14px;
+    text-align: center;
+    line-height: 1.15;
+    max-width: 74px;
   }
-  .bb-format-badge--seminar {
-    background: var(--tcc);
-    color: #0E1A22;
+  .bb-stamp--service {
+    background: radial-gradient(circle at 35% 30%, #3A3436, #1C1719 70%);
+    box-shadow:
+      0 4px 14px rgba(0,0,0,0.55),
+      inset 0 0 0 3px rgba(255,255,255,0.06),
+      inset 0 0 0 8px rgba(255,255,255,0.03);
   }
-  .bb-format-badge--online {
-    background: transparent;
-    border: 1px solid var(--tcc);
-    color: var(--tcc);
-  }
-  .bb-format-badge--bundle {
-    background: linear-gradient(90deg, var(--tcc) 0%, #8FBFE0 100%);
-    color: #0E1A22;
-  }
-  .bb-format-badge--ongoing {
-    background: transparent;
-    border: 1px dashed #8A8385;
-    color: #C7C1C3;
-  }
+  .bb-stamp--service::before { border-color: rgba(138,131,133,0.5); }
+  .bb-stamp--service .bb-stamp__inner { color: var(--tcc); }
+  .bb-stamp--service .bb-stamp__icon { width: 26px; height: 26px; }
+  .bb-stamp--service .bb-stamp__method { color: #E4E0E1; }
 
   .bb-eyebrow {
     display: inline-flex;
@@ -386,7 +416,12 @@
   <section class="bb-panel bb-panel--left" style="background-image: url('ng1527.jpeg');" id="l1-seminar">
     <div class="bb-panel__inner">
       <div class="bb-panel__content">
-        <div class="bb-format-badge bb-format-badge--seminar">Live Seminar</div>
+        <div class="bb-stamp">
+          <div class="bb-stamp__inner">
+            <div class="bb-stamp__level">L1</div>
+            <div class="bb-stamp__method">Live<br>Seminar</div>
+          </div>
+        </div>
         <div class="bb-eyebrow">Level 1 &middot; Live Seminar</div>
         <h2 class="bb-panel__title">Two Days That Change How You Coach</h2>
         <p class="bb-panel__desc">A hands-on weekend that sharpens your coaching craft through practical drills, real-time feedback, and clear frameworks you can use immediately. Built for coaches at any stage who want to create lasting results for their athletes and members.</p>
@@ -399,7 +434,12 @@
   <section class="bb-panel bb-panel--right" style="background-image: url('ng7173.jpeg');" id="l1-online">
     <div class="bb-panel__inner">
       <div class="bb-panel__content">
-        <div class="bb-format-badge bb-format-badge--online">Online Course</div>
+        <div class="bb-stamp">
+          <div class="bb-stamp__inner">
+            <div class="bb-stamp__level">L1</div>
+            <div class="bb-stamp__method">Online<br>Course</div>
+          </div>
+        </div>
         <div class="bb-eyebrow">Level 1 &middot; Online Learning</div>
         <h2 class="bb-panel__title">Learn It From Anywhere</h2>
         <p class="bb-panel__desc">The core principles from Level 1, delivered as a self-paced course &mdash; video lessons and practical tools you can apply to your coaching and member development right away.</p>
@@ -412,7 +452,12 @@
   <section class="bb-panel bb-panel--left" style="background-image: url('ng6962.jpeg');" id="l2-seminar">
     <div class="bb-panel__inner">
       <div class="bb-panel__content">
-        <div class="bb-format-badge bb-format-badge--bundle">Live + Online</div>
+        <div class="bb-stamp">
+          <div class="bb-stamp__inner">
+            <div class="bb-stamp__level">L2</div>
+            <div class="bb-stamp__method">Live +<br>Online</div>
+          </div>
+        </div>
         <div class="bb-eyebrow">Level 2 &middot; Live Seminar + Online Course</div>
         <h2 class="bb-panel__title">Sharpen Your Coach's Eye</h2>
         <p class="bb-panel__desc">The next step after Level 1. This two-day course deepens your biomechanics knowledge and equips you with targeted interventions to address movement issues and elevate athlete performance. Includes the Level 2 online course.</p>
@@ -425,7 +470,12 @@
   <section class="bb-panel bb-panel--right" style="background-image: url('ng6929.jpeg');" id="mentorship-panel">
     <div class="bb-panel__inner">
       <div class="bb-panel__content">
-        <div class="bb-format-badge bb-format-badge--ongoing">Ongoing Mentorship</div>
+        <div class="bb-stamp bb-stamp--service">
+          <div class="bb-stamp__inner">
+            <svg class="bb-stamp__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12 a4 4 0 1 1 8 0 a4 4 0 0 1 -8 0"/><path d="M4 20 c0 -3 3 -5 8 -5 s8 2 8 5"/></svg>
+            <div class="bb-stamp__method">Mentorship</div>
+          </div>
+        </div>
         <div class="bb-eyebrow">Mentorship</div>
         <h2 class="bb-panel__title">Keep Growing After the Seminar</h2>
         <p class="bb-panel__desc">Ongoing 1:1 support for coaches who want to keep developing after Level 1 or Level 2. Choose the level of support that fits where you are.</p>
@@ -451,7 +501,12 @@
   <section class="bb-panel bb-panel--left" style="background-image: url('ng7173.jpeg');" id="programming">
     <div class="bb-panel__inner">
       <div class="bb-panel__content">
-        <div class="bb-format-badge bb-format-badge--ongoing">Add-On Service</div>
+        <div class="bb-stamp bb-stamp--service">
+          <div class="bb-stamp__inner">
+            <svg class="bb-stamp__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="4" width="14" height="17" rx="1.5"/><path d="M9 9h6 M9 13h6 M9 17h3"/></svg>
+            <div class="bb-stamp__method">Programming</div>
+          </div>
+        </div>
         <div class="bb-eyebrow">Programming</div>
         <h2 class="bb-panel__title">Programming, Done For You</h2>
         <p class="bb-panel__desc">Block, blog, and individualized programming delivered through CoachRx &mdash; built by the BirdBox team so you're never guessing what to program next.</p>
