@@ -157,30 +157,33 @@
   }
 
   .bb-eyebrow {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    gap: 14px;
+    font-size: clamp(19px, 2.6vw, 26px);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
     text-transform: uppercase;
-    color: #C7C1C3;
-    margin-bottom: 16px;
+    color: var(--ink);
+    margin-bottom: 12px;
     text-shadow: 0 1px 10px rgba(0,0,0,0.7);
   }
   .bb-eyebrow::before {
     content: '';
-    display: inline-block;
-    width: 28px;
-    height: 4px;
+    flex: 0 0 auto;
+    width: 42px;
+    height: 5px;
     background: var(--tcc);
     border-radius: 2px;
   }
   .bb-panel__title {
-    font-size: clamp(24px, 3.4vw, 32px);
-    font-weight: 800;
+    font-size: clamp(16px, 1.9vw, 19px);
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: -0.01em;
+    letter-spacing: 0.02em;
+    line-height: 1.35;
+    color: #C7C1C3;
     margin: 0 0 16px;
     text-shadow: 0 2px 12px rgba(0,0,0,0.5);
   }
