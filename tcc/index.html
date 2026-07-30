@@ -220,8 +220,32 @@
     color: var(--tcc);
   }
 
-  /* ---- Mentorship tiers (solid, sits below its panel) ---- */
+  /* ---- Merged photo section: panel + tiers share one image ---- */
+  .bb-panel--merged {
+    display: block;
+    min-height: 0;
+  }
+  .bb-panel--merged::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 62%;
+    background: linear-gradient(to bottom,
+      rgba(28,23,25,0) 0%,
+      rgba(28,23,25,0.55) 40%,
+      rgba(28,23,25,0.92) 78%,
+      var(--paper) 100%);
+    z-index: 1;
+  }
+  .bb-panel--merged .bb-panel__inner {
+    padding-top: 96px;
+    padding-bottom: 24px;
+  }
+
+  /* ---- Mentorship tiers ---- */
   .bb-tiers-wrap {
+    position: relative;
+    z-index: 2;
     max-width: 1040px;
     margin: 0 auto;
     padding: 56px 24px;
@@ -251,7 +275,7 @@
     .bb-tiers { grid-template-columns: 1fr; }
   }
   .bb-tier {
-    background: #1C1719;
+    background: rgba(24,20,21,0.82);
     padding: 28px;
     display: flex;
     flex-direction: column;
@@ -432,7 +456,7 @@
     </div>
   </section>
 
-  <section class="bb-panel bb-panel--right" style="background-image: url('ng6929.jpeg');" id="mentorship-panel">
+  <section class="bb-panel bb-panel--right bb-panel--merged" style="background-image: url('ng6929.jpeg');" id="mentorship-panel">
     <div class="bb-panel__inner">
       <div class="bb-panel__content">
         <div class="bb-eyebrow">Mentorship</div>
@@ -440,9 +464,8 @@
         <p class="bb-panel__desc">Ongoing 1:1 support for coaches who want to keep developing after Level 1 or Level 2. Choose the level of support that fits where you are.</p>
       </div>
     </div>
-  </section>
 
-  <div class="bb-tiers-wrap" id="mentorship">
+    <div class="bb-tiers-wrap" id="mentorship">
     <div class="bb-tiers">
       <div class="bb-tier">
         <div class="bb-tier__top">
@@ -465,7 +488,8 @@
         <a class="bb-btn bb-btn--ghost" href="#" data-checkout="circle-mentorship-tier2">Register Interest &rarr;</a>
       </div>
     </div>
-  </div>
+    </div>
+  </section>
 
   <section class="bb-panel bb-panel--left" style="background-image: url('ng7173.jpeg');" id="programming">
     <div class="bb-panel__inner">
