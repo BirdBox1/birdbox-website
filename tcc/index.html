@@ -212,9 +212,21 @@
     text-shadow: 0 1px 8px rgba(0,0,0,0.5);
   }
   .bb-panel__meta {
-    font-size: 14px;
-    color: #C7C1C3;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-bottom: 24px;
+  }
+  .bb-panel__meta span {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #16110F;
+    background: #F2EFEF;
+    border-left: 3px solid var(--tcc);
+    padding: 8px 13px;
+    border-radius: 2px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.45);
   }
 
   .bb-btn {
@@ -447,7 +459,7 @@
         <div class="bb-eyebrow">Level 1 &middot; Live Seminar</div>
         <h2 class="bb-panel__title">Two Days That Change How You Coach</h2>
         <p class="bb-panel__desc">A hands-on weekend that sharpens your coaching craft through practical drills, real-time feedback, and clear frameworks you can use immediately. Built for coaches at any stage who want to create lasting results for their athletes and members.</p>
-        <div class="bb-panel__meta">In-person &middot; Two days &middot; No prerequisite</div>
+        <div class="bb-panel__meta"><span>In-person</span><span>Two days</span><span>No prerequisite</span></div>
         <a class="bb-btn" href="/tcc/level-1">Register for L1 &rarr;</a>
       </div>
     </div>
@@ -460,7 +472,7 @@
         <div class="bb-eyebrow">Level 1 &middot; Online Learning</div>
         <h2 class="bb-panel__title">Learn It From Anywhere</h2>
         <p class="bb-panel__desc">The core principles from Level 1, delivered as a self-paced course &mdash; video lessons and practical tools you can apply to your coaching and member development right away.</p>
-        <div class="bb-panel__meta">Self-paced &middot; Delivered via LearnWorlds</div>
+        <div class="bb-panel__meta"><span>Self-paced</span><span>Delivered via LearnWorlds</span></div>
         <a class="bb-btn bb-btn--ghost" href="/tcc/online-level-1">Start Online Course &rarr;</a>
       </div>
     </div>
@@ -473,7 +485,7 @@
         <div class="bb-eyebrow">Level 2 &middot; Live Seminar + Online Course</div>
         <h2 class="bb-panel__title">Sharpen Your Coach's Eye</h2>
         <p class="bb-panel__desc">The next step after Level 1. This two-day course deepens your biomechanics knowledge and equips you with targeted interventions to address movement issues and elevate athlete performance. Includes the Level 2 online course.</p>
-        <div class="bb-panel__meta">In-person + online &middot; Prerequisite: BirdBox L1</div>
+        <div class="bb-panel__meta"><span>In-person + online</span><span>Prerequisite: BirdBox L1</span></div>
         <a class="bb-btn" href="/tcc/level-2">Register for L2 &rarr;</a>
       </div>
     </div>
@@ -521,7 +533,7 @@
         <div class="bb-eyebrow">Programming</div>
         <h2 class="bb-panel__title">Programming, Done For You</h2>
         <p class="bb-panel__desc">Block, blog, and individualized programming delivered through CoachRx &mdash; built by the BirdBox team so you're never guessing what to program next.</p>
-        <div class="bb-panel__meta">Delivered via CoachRx</div>
+        <div class="bb-panel__meta"><span>Delivered via CoachRx</span></div>
         <a class="bb-btn bb-btn--ghost" href="#" data-checkout="coachrx-bb-programming">Explore Programming &rarr;</a>
       </div>
     </div>
