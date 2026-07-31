@@ -368,6 +368,18 @@
     color: #C7C1C3;
     margin: 0;
   }
+  /* ---- Community Box map embed ---- */
+  .bb-map {
+    position: relative;
+    width: 100%;
+    min-height: 560px;
+    border: 1px solid var(--line);
+    background: #141011;
+  }
+  .bb-map #communitybox-target { width: 100%; }
+  .bb-map iframe { display: block; width: 100%; border: 0; }
+  @media (max-width: 700px) { .bb-map { min-height: 440px; } }
+
 </style>
 </head>
 <body>
@@ -418,6 +430,37 @@
     </div>
   </section>
 
+  <div class="bb-structure" id="dates">
+    <div class="bb-structure__head">
+      <div class="bb-eyebrow">Find A Workshop</div>
+      <h2 class="bb-panel__title">See What's Coming Up Near You</h2>
+      <p class="bb-panel__desc">Every upcoming workshop is pinned on the map. Select a location to see the movements, the coach, the date and the price &mdash; and register from there.</p>
+    </div>
+    <div class="bb-map">
+      <div id="communitybox-target" box="6ed64185-58fd-4a57-9924-90df07a181d8"></div>
+      <script async>
+        ( function() {
+          xhr = new XMLHttpRequest();
+          xhr.open( "POST", "https://cfapi.communitybox.co/bootstrap/revision", true );
+          xhr.onload = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+              var returnObj = JSON.parse(xhr.responseText);
+              if( returnObj.hasOwnProperty("err") ) {
+                console.error(returnObj.err);
+              } else {
+                var r = returnObj.revision;
+                var l = document.createElement("script");
+                l.src = "https://dashboard.communitybox.co/embed/"+r+"/cbebloader-"+r+".js";
+                document.head.appendChild( l );
+              };
+            };
+          };
+          xhr.send( "2714b035-c524-45d6-922b-e11fb12ff91f" );
+        })();
+      </script>
+    </div>
+  </div>
+
   <div class="bb-structure" id="structure">
     <div class="bb-structure__head">
       <div class="bb-eyebrow">The Shape Of The Session</div>
@@ -458,14 +501,6 @@
       </div>
     </div>
   </section>
-
-  <div class="bb-structure" id="dates">
-    <div class="bb-structure__head" style="text-align:center;">
-      <h2 class="bb-panel__title" style="color:var(--ink);">Find A Workshop Near You</h2>
-      <p class="bb-panel__desc">Upcoming workshops are listed on the map. Pick a location to see the movements, the coach, the date and the price &mdash; and register.</p>
-      <p style="margin-top:24px;"><a class="bb-btn" href="#" data-checkout="tgc-workshop-map">Open The Workshop Map &rarr;</a></p>
-    </div>
-  </div>
 
   <div class="bb-cross">
     <div class="bb-cross__label">Explore Other Pathways</div>
