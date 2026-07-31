@@ -375,8 +375,11 @@
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
   }
-  /* this block sits tight to the section that follows */
-  #dates { padding-bottom: 16px; }
+  /* The widget reserves empty space under its last result that we can't
+     reach from outside, so this block closes up around it. */
+  #dates { padding-bottom: 0; }
+  .bb-map { margin-bottom: -56px; }
+  #dates + .bb-structure { padding-top: 28px; }
 
 </style>
 </head>
