@@ -370,6 +370,13 @@
   }
   .bb-map #communitybox-target { width: 100%; }
   .bb-map iframe { display: block; width: 100%; border: 0; }
+  /* the widget leaves trailing space under its last item */
+  .bb-map #communitybox-target > *:last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  /* this block sits tight to the section that follows */
+  #dates { padding-bottom: 16px; }
 
 </style>
 </head>
