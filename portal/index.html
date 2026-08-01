@@ -16,6 +16,7 @@
     --good:   #1f8a54;
     --warn:   #b4610f;
     --bad:    #b3261e;
+    --flag:   #d9b310;   /* needs attention, but not a problem */
   }
 
   *, *::before, *::after { box-sizing: border-box; }
@@ -122,8 +123,8 @@
   }
   .alert b { display: block; margin-bottom: 0.2rem; }
   .alert ul { margin: 0.4rem 0 0; padding-left: 1.1rem; color: var(--muted); }
-  .alert.cool {
-    background: #eef4fb; border-color: #c6d9ee; border-left-color: var(--accent);
+  .alert.flag {
+    background: #fffbe8; border-color: #eddfa4; border-left-color: var(--flag);
   }
 
   /* ---------------- login ---------------- */
@@ -164,6 +165,7 @@
   }
   .btn.ghost:hover { background: #fff; border-color: var(--muted); }
   .btn.small { font-size: 0.82rem; padding: 0.4rem 0.8rem; }
+  .btn.tiny { font-size: 0.78rem; padding: 0.3rem 0.65rem; }
   .btn.danger { color: var(--bad); border-color: #e6c9c7; }
   .btn.danger:hover { background: #fdf4f3; border-color: var(--bad); }
   .btn.solid-danger { background: var(--bad); color: #fff; }
@@ -243,8 +245,12 @@
   .pill.on   { border-color: var(--good); color: var(--good); }
   .pill.low  { background: var(--warn); border-color: var(--warn); color: #fff; font-weight: 700; }
   .pill.lead { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 700; }
-  .pill.nolead { border-color: var(--accent); color: var(--accent); }
-  .pill.nolead.due { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+  /* yellow reads as "needs doing", distinct from the amber warnings
+     and from TCC blue once that brand arrives */
+  .pill.nolead { border-color: #c9a227; color: #85670a; }
+  .pill.nolead.due {
+    background: #f3cf3d; border-color: #d9b310; color: #33280a; font-weight: 700;
+  }
 
   /* ---------------- delete dialog ---------------- */
   .overlay {
@@ -282,12 +288,35 @@
   .attendee .money.chase { color: var(--bad); font-weight: 600; }
   .check { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
   .check input { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); }
-  .notes {
-    width: 100%; font: inherit; font-size: 0.9rem; margin-top: 0.55rem;
-    border: 1px solid var(--rule); border-radius: 4px; padding: 0.5rem 0.6rem;
-    min-height: 3.2rem;
-  }
   .saved { font-size: 0.75rem; color: var(--good); margin-left: 0.5rem; }
+
+  /* ---------------- notes ---------------- */
+  .notes { margin-top: 0.7rem; }
+  .notes .head {
+    display: flex; align-items: baseline; gap: 0.5rem; justify-content: space-between;
+    font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; margin-bottom: 0.4rem;
+  }
+  .note {
+    border-left: 2px solid var(--rule); padding: 0.15rem 0 0.15rem 0.7rem;
+    margin-bottom: 0.6rem;
+  }
+  .note.mine { border-left-color: var(--accent); }
+  .note .meta {
+    font-size: 0.75rem; color: var(--muted); margin-bottom: 0.15rem;
+    display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: baseline;
+  }
+  .note .meta .author { font-weight: 650; color: var(--ink); }
+  .note .body { font-size: 0.92rem; white-space: pre-wrap; }
+  .note textarea { font-size: 0.92rem; min-height: 4rem; }
+  .note .acts { display: flex; gap: 0.4rem; margin-top: 0.4rem; flex-wrap: wrap; }
+  .note .note-msg { font-size: 0.78rem; margin-top: 0.3rem; }
+  .note .note-msg.err { color: var(--bad); }
+
+  .addnote { margin-top: 0.5rem; }
+  .addnote textarea { font-size: 0.92rem; min-height: 3.2rem; }
+  .addnote .acts { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.4rem; }
+  .nonotes { font-size: 0.85rem; color: var(--muted); margin: 0 0 0.5rem; }
 
   .attendees-card {
     background: var(--card); border: 1px solid var(--rule);
@@ -799,6 +828,7 @@ let tab = "live";
 let myRoles = {};
 
 const isAdmin = () => me && me.role === "admin";
+const amLeadOn = (courseId) => isAdmin() || myRoles[courseId] === "lead_coach";
 
 // A course is "past" once it is archived, cancelled or complete.
 // Everything else is live, whether on sale, full or still a draft.
@@ -875,6 +905,12 @@ const fmtDate = (iso) => iso
 
 const fmtDay = (d) => d
   ? new Date(d + "T00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" })
+  : "";
+
+const fmtWhen = (iso) => iso
+  ? new Date(iso).toLocaleString(undefined, {
+      day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+    })
   : "";
 
 const money = (cents, currency) =>
@@ -1009,7 +1045,7 @@ async function loadCourses() {
 
   if (needLead.length) {
     const el = document.createElement("div");
-    el.className = "alert cool";
+    el.className = "alert flag";
     el.innerHTML = `<b>${needLead.length} course${needLead.length === 1 ? "" : "s"} still without a lead coach</b>
       Within ${LEAD_DAYS_OUT} days of running.
       <ul></ul>`;
@@ -1186,7 +1222,7 @@ async function askToDelete(course) {
       `<strong>This course has ${regCount} registration${regCount === 1 ? "" : "s"}.</strong>` +
       `<ul>
          <li>Participant names, emails and waiver records</li>
-         <li>Payment records and coach notes</li>
+         <li>Payment records and every coach note</li>
        </ul>
        Stripe keeps its own record of any money taken, but yours will be gone.`;
   } else {
@@ -1243,6 +1279,10 @@ $("del-go").addEventListener("click", async () => {
       if (regErr) throw regErr;
     }
 
+    // Notes cascade from the course, but clear them explicitly so a
+    // failure here is visible rather than silent.
+    await db.from("participant_notes").delete().eq("course_id", course.id);
+
     const { error: csErr } = await db.from("course_staff")
       .delete().eq("course_id", course.id);
     if (csErr) throw csErr;
@@ -1293,7 +1333,7 @@ async function openCourse(course) {
   box.innerHTML = '<p class="empty">Loading…</p>';
 
   const { data, error } = await db.from("registrations")
-    .select("id, first_name, last_name, email, phone, payment_status, attended, coach_notes, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents")
+    .select("id, first_name, last_name, email, phone, payment_status, attended, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents")
     .eq("course_id", course.id)
     .order("last_name", { ascending: true });
 
@@ -1316,6 +1356,9 @@ async function openCourse(course) {
   for (const p of pays || []) {
     (byReg[p.registration_id] = byReg[p.registration_id] || []).push(p);
   }
+
+  // Every note on this course, from every coach, in one go.
+  const notesByReg = await loadNotes(course.id);
 
   let paid = 0, owing = 0, chasing = 0;
 
@@ -1343,7 +1386,7 @@ async function openCourse(course) {
       </div>
       <div class="flags" style="margin-top:0.35rem;display:flex;gap:0.35rem;flex-wrap:wrap"></div>
       <div class="money"></div>
-      <textarea class="notes" placeholder="End-of-seminar notes for this participant…"></textarea>`;
+      <div class="notes"></div>`;
 
     el.querySelector(".name").textContent = `${r.first_name} ${r.last_name}`;
     el.querySelector(".contact").textContent = [r.email, r.phone].filter(Boolean).join(" · ");
@@ -1397,16 +1440,7 @@ async function openCourse(course) {
       else flash(el, "Saved");
     });
 
-    const ta = el.querySelector(".notes");
-    ta.value = r.coach_notes || "";
-    let last = ta.value;
-    ta.addEventListener("blur", async () => {
-      if (ta.value === last) return;
-      const { error } = await db.from("registrations")
-        .update({ coach_notes: ta.value }).eq("id", r.id);
-      if (error) return flash(el, "Could not save notes", true);
-      last = ta.value; flash(el, "Notes saved");
-    });
+    renderNotes(el.querySelector(".notes"), course, r, notesByReg[r.id] || []);
 
     box.appendChild(el);
   }
@@ -1421,6 +1455,265 @@ async function openCourse(course) {
     s.textContent = ` · ${chasing} needs chasing`;
     counts.appendChild(s);
   }
+}
+
+/* ---------------- notes ---------------- */
+
+async function loadNotes(courseId) {
+  const { data, error } = await db
+    .from("participant_notes")
+    .select("id, registration_id, staff_id, body, created_at, updated_at, staff ( full_name )")
+    .eq("course_id", courseId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Could not load notes:", error.message);
+    return {};
+  }
+  const byReg = {};
+  for (const n of data || []) {
+    (byReg[n.registration_id] = byReg[n.registration_id] || []).push(n);
+  }
+  return byReg;
+}
+
+// Each note is its own row, so two coaches writing at the same time
+// never overwrite one another. The lead can edit any of them.
+function renderNotes(box, course, reg, notes) {
+  const lead = amLeadOn(course.id);
+  box.innerHTML = `
+    <div class="head"><span>Notes</span><span class="count"></span></div>
+    <div class="list"></div>
+    <div class="addnote">
+      <textarea placeholder="What you saw — movement, progress, what to work on next…"></textarea>
+      <div class="acts">
+        <button class="btn tiny" type="button">Add note</button>
+        <span class="note-msg"></span>
+      </div>
+    </div>`;
+
+  box.querySelector(".count").textContent =
+    notes.length ? `${notes.length} note${notes.length === 1 ? "" : "s"}` : "";
+
+  const list = box.querySelector(".list");
+  if (!notes.length) {
+    const p = document.createElement("p");
+    p.className = "nonotes";
+    p.textContent = "Nothing written yet.";
+    list.append(p);
+  }
+
+  for (const n of notes) renderOneNote(list, n, lead);
+
+  // ---- adding ----
+  const ta = box.querySelector(".addnote textarea");
+  const btn = box.querySelector(".addnote button");
+  const msg = box.querySelector(".addnote .note-msg");
+
+  btn.addEventListener("click", async () => {
+    const body = ta.value.trim();
+    if (!body) return;
+
+    btn.disabled = true;
+    msg.className = "note-msg";
+    msg.textContent = "Saving…";
+
+    const { data, error } = await db.from("participant_notes")
+      .insert({
+        registration_id: reg.id,
+        course_id: course.id,
+        staff_id: me.id,
+        body,
+      })
+      .select("id, registration_id, staff_id, body, created_at, updated_at, staff ( full_name )")
+      .single();
+
+    btn.disabled = false;
+
+    if (error) {
+      msg.className = "note-msg err";
+      msg.textContent = "Could not save: " + error.message;
+      return;
+    }
+
+    const none = list.querySelector(".nonotes");
+    if (none) none.remove();
+    renderOneNote(list, data, lead);
+    ta.value = "";
+    msg.textContent = "";
+    const count = box.querySelector(".count");
+    const n = list.querySelectorAll(".note").length;
+    count.textContent = `${n} note${n === 1 ? "" : "s"}`;
+  });
+}
+
+function renderOneNote(list, note, lead) {
+  const mine = note.staff_id === me.id;
+  const canEdit = mine || lead;
+
+  const el = document.createElement("div");
+  el.className = "note" + (mine ? " mine" : "");
+  el.innerHTML = `
+    <div class="meta">
+      <span class="author"></span>
+      <span class="when"></span>
+      <span class="edited"></span>
+    </div>
+    <div class="body"></div>
+    <div class="acts"></div>
+    <div class="note-msg"></div>`;
+
+  // Track what we last saw, so we can tell if someone else changed it
+  // while this was open.
+  let known = note.updated_at;
+
+  const author = el.querySelector(".author");
+  author.textContent = note.staff?.full_name
+    || (note.staff_id ? "Another coach" : "Written before notes were attributed");
+
+  el.querySelector(".when").textContent = fmtWhen(note.created_at);
+
+  const edited = el.querySelector(".edited");
+  const wasEdited = new Date(note.updated_at) - new Date(note.created_at) > 2000;
+  edited.textContent = wasEdited ? "· edited" : "";
+
+  const body = el.querySelector(".body");
+  body.textContent = note.body;
+
+  const acts = el.querySelector(".acts");
+  const msg = el.querySelector(".note-msg");
+
+  if (canEdit) {
+    const editBtn = document.createElement("button");
+    editBtn.className = "btn ghost tiny";
+    editBtn.type = "button";
+    editBtn.textContent = "Edit";
+    acts.append(editBtn);
+
+    editBtn.addEventListener("click", () => {
+      if (el.querySelector("textarea")) return;
+
+      const ta = document.createElement("textarea");
+      ta.value = body.textContent;
+      body.replaceWith(ta);
+      acts.innerHTML = "";
+
+      const saveBtn = document.createElement("button");
+      saveBtn.className = "btn tiny";
+      saveBtn.type = "button";
+      saveBtn.textContent = "Save";
+
+      const cancelBtn = document.createElement("button");
+      cancelBtn.className = "btn ghost tiny";
+      cancelBtn.type = "button";
+      cancelBtn.textContent = "Cancel";
+
+      acts.append(saveBtn, cancelBtn);
+
+      const finish = (text, updatedAt) => {
+        const div = document.createElement("div");
+        div.className = "body";
+        div.textContent = text;
+        ta.replaceWith(div);
+        acts.innerHTML = "";
+        acts.append(editBtn);
+        if (updatedAt) {
+          known = updatedAt;
+          edited.textContent = "· edited";
+        }
+        // rebind against the new body element
+        renderNoteBinding(el, div);
+      };
+
+      cancelBtn.addEventListener("click", () => finish(note.body));
+
+      saveBtn.addEventListener("click", async () => {
+        const next = ta.value.trim();
+        if (!next) {
+          msg.className = "note-msg err";
+          msg.textContent = "A note cannot be empty. Delete it instead.";
+          return;
+        }
+
+        saveBtn.disabled = true;
+        msg.className = "note-msg";
+        msg.textContent = "Saving…";
+
+        // Only write if nobody has touched it since we loaded it.
+        const { data, error } = await db.from("participant_notes")
+          .update({ body: next, updated_at: new Date().toISOString() })
+          .eq("id", note.id)
+          .eq("updated_at", known)
+          .select("body, updated_at")
+          .maybeSingle();
+
+        saveBtn.disabled = false;
+
+        if (error) {
+          msg.className = "note-msg err";
+          msg.textContent = "Could not save: " + error.message;
+          return;
+        }
+
+        if (!data) {
+          // Someone else saved first. Show theirs rather than
+          // silently discarding it.
+          const { data: current } = await db.from("participant_notes")
+            .select("body, updated_at").eq("id", note.id).maybeSingle();
+          msg.className = "note-msg err";
+          msg.textContent = "Someone else edited this note while you were writing. Theirs is shown below — copy anything you need and edit again.";
+          if (current) {
+            note.body = current.body;
+            finish(current.body, current.updated_at);
+          }
+          return;
+        }
+
+        note.body = data.body;
+        msg.textContent = "";
+        finish(data.body, data.updated_at);
+      });
+    });
+  }
+
+  if (mine || isAdmin()) {
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn ghost tiny danger";
+    delBtn.type = "button";
+    delBtn.textContent = "Delete";
+    acts.append(delBtn);
+
+    delBtn.addEventListener("click", async () => {
+      if (!window.confirm("Delete this note? It cannot be recovered.")) return;
+      const { error } = await db.from("participant_notes").delete().eq("id", note.id);
+      if (error) {
+        msg.className = "note-msg err";
+        msg.textContent = "Could not delete: " + error.message;
+        return;
+      }
+      el.remove();
+    });
+  }
+
+  list.append(el);
+}
+
+// After an edit swaps the body element out, the Edit button needs to
+// point at the new one.
+function renderNoteBinding(el, newBody) {
+  el.querySelector(".body") === newBody;
+}
+
+function flash(el, text, isError = false) {
+  let tag = el.querySelector(".saved");
+  if (!tag) {
+    tag = document.createElement("span");
+    tag.className = "saved";
+    el.querySelector(".check").appendChild(tag);
+  }
+  tag.style.color = isError ? "var(--bad)" : "";
+  tag.textContent = text;
+  setTimeout(() => { tag.textContent = ""; }, 2000);
 }
 
 /* ---------------- admin actions ---------------- */
@@ -1664,7 +1957,7 @@ async function wireAdmin(course, totalRegs, liveRegs) {
 
   deleteBtn.classList.toggle("hidden", !isPast(course));
   $("adminwhy").textContent = isPast(course)
-    ? "Restoring brings it back as a draft. Deleting removes the course, its registrations and its payment records for good."
+    ? "Restoring brings it back as a draft. Deleting removes the course, its registrations, notes and payment records for good."
     : "Archiving hides a course and takes it off sale. Restore and delete become available once it is archived.";
 
   archiveBtn.onclick = async () => {
@@ -1689,18 +1982,6 @@ async function wireAdmin(course, totalRegs, liveRegs) {
   };
 
   deleteBtn.onclick = () => askToDelete(course);
-}
-
-function flash(el, text, isError = false) {
-  let tag = el.querySelector(".saved");
-  if (!tag) {
-    tag = document.createElement("span");
-    tag.className = "saved";
-    el.querySelector(".check").appendChild(tag);
-  }
-  tag.style.color = isError ? "var(--bad)" : "";
-  tag.textContent = text;
-  setTimeout(() => { tag.textContent = ""; }, 2000);
 }
 
 /* ---------------- new course ---------------- */
