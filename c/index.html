@@ -1,1 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Register — BirdBox Coaching</title>
+<meta name="description" content="Register for a BirdBox Coaching seminar or workshop.">
+<style>
+  :root {
+    --ink:    #16181b;
+    --paper:  #ffffff;
+    --shell:  #0d0e10;
+    --rule:   #e3e0da;
+    --muted:  #6c7178;
+    --accent: #2f7fd0;
+    --warn:   #b4610f;
+    --bad:    #b3261e;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+
+  .bar {
+    background: var(--shell); padding: 0.7rem 1.25rem;
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .mark { width: 32px; height: 32px; border-radius: 4px; background: #fff;
+          display: grid; place-items: center; flex: none; }
+  .mark img { width: 24px; height: 24px; object-fit: contain; }
+  .bar .name {
+    font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9;
+  }
+
+  .wrap { max-width: 44rem; margin: 0 auto; padding: 0 1.25rem 5rem; }
+
+  .hero { position: relative; margin: 0 -1.25rem; }
+  .hero .photo { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: #ddd; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    background: #fff; border: 1px solid var(--rule); border-radius: 4px;
+    padding: 0.3rem 0.6rem; font-size: 0.7rem; letter-spacing: 0.12em;
+    text-transform: uppercase; font-weight: 600;
+  }
+  .badge img { width: 20px; height: 20px; object-fit: contain; }
+
+  .head { padding-top: 1.5rem; }
+  h1 {
+    font-size: clamp(1.5rem, 5.5vw, 2.15rem); line-height: 1.15;
+    letter-spacing: -0.025em; font-weight: 650; margin: 0.85rem 0 0.5rem;
+  }
+  .facts { color: var(--muted); font-size: 0.95rem; margin: 0 0 0.35rem; }
+  .facts strong { color: var(--ink); font-weight: 600; }
+
+  .buy {
+    border: 1px solid var(--rule); border-top: 3px solid var(--brandcolour, var(--accent));
+    border-radius: 6px; padding: 1.15rem; margin: 1.5rem 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem; flex-wrap: wrap;
+  }
+  .price { font-size: 1.7rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; }
+  .price small { display: block; font-size: 0.78rem; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+  .btn {
+    font: inherit; font-size: 1.02rem; font-weight: 650; background: var(--ink); color: #fff;
+    border: 0; border-radius: 5px; padding: 0.85rem 1.6rem; cursor: pointer; flex: 1 1 12rem;
+  }
+  .btn:hover { background: #000; }
+  .btn[disabled] { opacity: 0.45; cursor: default; }
+  .seats { width: 100%; font-size: 0.85rem; color: var(--muted); margin: 0; }
+  .seats.low { color: var(--warn); font-weight: 600; }
+
+  h2 {
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; margin: 2rem 0 0.6rem;
+  }
+  p { margin: 0 0 1rem; }
+  .movements {
+    border-left: 3px solid var(--brandcolour, var(--accent));
+    padding: 0.15rem 0 0.15rem 0.9rem; margin: 0 0 1.25rem; font-size: 1.02rem;
+  }
+
+  .venue { border: 1px solid var(--rule); border-radius: 6px; padding: 1rem 1.15rem; }
+  .venue .vname { font-weight: 650; }
+  .venue .vaddr { color: var(--muted); font-size: 0.92rem; }
+
+  footer {
+    margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--rule);
+    font-size: 0.82rem; color: var(--muted);
+  }
+  footer a { color: var(--muted); }
+  .msg { font-size: 0.9rem; margin: 0.75rem 0 0; width: 100%; }
+  .msg.err { color: var(--bad); }
+
+  .state { padding: 5rem 0; text-align: center; color: var(--muted); }
+  .state h1 { font-size: 1.3rem; color: var(--ink); }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+  <span class="name">BirdBox Coaching</span>
+</div>
+
+<div class="wrap">
+  <div id="loading" class="state"><p>Loading…</p></div>
+
+  <div id="missing" class="state hidden">
+    <h1>This course is not available</h1>
+    <p>It may have been removed, or the link may be wrong.<br>
+       Please check the link, or contact
+       <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a>.</p>
+  </div>
+
+  <main id="course" class="hidden">
+    <div class="hero" id="hero"><img class="photo" id="photo" alt=""></div>
+
+    <div class="head">
+      <span class="badge" id="badge"><img id="badgeicon" alt=""><span id="badgetext"></span></span>
+      <h1 id="title"></h1>
+      <p class="facts" id="when"></p>
+      <p class="facts" id="where"></p>
+    </div>
+
+    <div class="buy">
+      <div class="price" id="price"></div>
+      <button class="btn" id="register" type="button">Register</button>
+      <p class="seats" id="seats"></p>
+      <p class="msg" id="msg"></p>
+    </div>
+
+    <div id="summarywrap" class="hidden">
+      <p style="font-size:1.08rem" id="summary"></p>
+    </div>
+
+    <div id="movementswrap" class="hidden">
+      <h2>What we will coach</h2>
+      <p class="movements" id="movements"></p>
+    </div>
+
+    <div id="descwrap" class="hidden">
+      <h2>About this course</h2>
+      <div id="description"></div>
+    </div>
+
+    <div id="venuewrap" class="hidden">
+      <h2>Where</h2>
+      <div class="venue">
+        <div class="vname" id="venuename"></div>
+        <div class="vaddr" id="venueaddr"></div>
+      </div>
+    </div>
+
+    <footer>
+      <p>Registering means you accept our
+        <a href="/agreements/#terms">terms of sale</a> and
+        <a href="/agreements/#waiver">waiver of liability</a>.
+        Course fees are non-refundable; transfers and credits are available.</p>
+      <p>BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland ·
+        <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a></p>
+    </footer>
+  </main>
+</div>
+
 
