@@ -48,7 +48,7 @@ export default async (req) => {
     // ---- look up the course ------------------------------------
     const { data: course, error } = await supabase
       .from("courses")
-      .select("id, brand, type, title, summary, slug, price_cents, deposit_cents, currency, capacity, status, starts_at, city, country")
+      .select("id, brand, type, level, language, title, summary, slug, price_cents, deposit_cents, currency, capacity, status, starts_at, city, country")
       .eq("slug", slug)
       .single();
 
@@ -68,6 +68,11 @@ export default async (req) => {
     if (count !== null && count >= course.capacity) {
       return json({ error: "This course is full" }, 409);
     }
+
+    // ---- does this course have a prerequisite? ------------------
+    // Taken from the template so it works for any level 2 course,
+    // not just TGC.
+    const prerequisite = await prerequisiteFor(course);
 
     // ---- price, after any discount -----------------------------
     let full = course.price_cents;
@@ -128,6 +133,42 @@ export default async (req) => {
 
     const origin = req.headers.get("origin") || process.env.SITE_URL;
 
+    // ---- the questions we ask at checkout ----------------------
+    const customFields = [
+      {
+        key: "firstname",
+        label: { type: "custom", custom: "Participant first name" },
+        type: "text",
+        optional: false,
+      },
+      {
+        key: "lastname",
+        label: { type: "custom", custom: "Participant last name" },
+        type: "text",
+        optional: false,
+      },
+    ];
+
+    // A prerequisite cannot be enforced, but it can be declared —
+    // which gives us a record and flags anyone who needs approving.
+    if (prerequisite) {
+      customFields.push({
+        key: "prereq",
+        label: {
+          type: "custom",
+          custom: `Have you completed ${prerequisite} in the last 5 years?`,
+        },
+        type: "dropdown",
+        optional: false,
+        dropdown: {
+          options: [
+            { label: "Yes", value: "yes" },
+            { label: "No — please contact me", value: "no" },
+          ],
+        },
+      });
+    }
+
     // ---- build the Checkout session ----------------------------
     const session = {
       mode: "payment",
@@ -150,22 +191,7 @@ export default async (req) => {
         },
       },
 
-      // the person attending is not always the person paying, and a
-      // billing name cannot be split reliably — so ask outright
-      custom_fields: [
-        {
-          key: "firstname",
-          label: { type: "custom", custom: "Participant first name" },
-          type: "text",
-          optional: false,
-        },
-        {
-          key: "lastname",
-          label: { type: "custom", custom: "Participant last name" },
-          type: "text",
-          optional: false,
-        },
-      ],
+      custom_fields: customFields,
 
       line_items: [
         {
@@ -201,6 +227,7 @@ export default async (req) => {
         full_price_cents: String(course.price_cents),
         discount_code: appliedCode || "",
         discount_cents: String(discountCents),
+        prerequisite: prerequisite || "",
       },
 
       success_url: `${origin}/registration-complete/?session_id={CHECKOUT_SESSION_ID}`,
@@ -225,6 +252,26 @@ export default async (req) => {
     return json({ error: "Could not start checkout" }, 500);
   }
 };
+
+// Matches the same loose level/language rules the course page uses.
+async function prerequisiteFor(course) {
+  if (course.type === "workshop") return null;
+
+  const { data } = await supabase
+    .from("course_templates")
+    .select("level, language, prerequisites")
+    .eq("brand", course.brand)
+    .eq("type", course.type);
+
+  if (!data || !data.length) return null;
+
+  const lvl = (v) => String(v == null ? "" : v).replace(/\D/g, "");
+  const match = data.find((t) => lvl(t.level) === lvl(course.level)) || data[0];
+
+  const pre = (match.prerequisites || "").trim();
+  if (!pre || pre.toLowerCase() === "none") return null;
+  return pre;
+}
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
