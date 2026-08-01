@@ -167,4 +167,183 @@
   </main>
 </div>
 
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
+const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const BRAND = {
+  birdbox: { icon: "/brand/birdBox.png", colour: "#2f7fd0", label: "BirdBox" },
+  tcc:     { icon: "/brand/tcc.png",     colour: "#2f7fd0", label: "The Coaches Course" },
+  tgc:     { icon: "/brand/tgc.png",     colour: "#9e2029", label: "The Gymnastics Course" },
+  tec:     { icon: "/brand/tec.png",     colour: "#1c6b3f", label: "The Endurance Course" },
+  twc:     { icon: "/brand/twc.png",     colour: "#e8a317", label: "The Weightlifting Course" },
+};
+
+const LANG = {
+  en: "English", fr: "French", es: "Spanish", de: "German", it: "Italian",
+  ja: "Japanese", ko: "Korean", pt: "Portuguese", pl: "Polish",
+};
+
+const $ = (id) => document.getElementById(id);
+
+const parts = location.pathname.split("/").filter(Boolean);
+const slug = parts[parts.length - 1] === "c" ? null : parts[parts.length - 1];
+
+load();
+
+async function load() {
+  if (!slug) return notFound();
+
+  const { data: course, error } = await db
+    .from("courses")
+    .select("id, brand, type, level, title, slug, summary, description, movements, workshop_focus, venue_name, address, city, country, starts_at, ends_at, timezone, capacity, price_cents, deposit_cents, currency, status, language, image_url")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error || !course) return notFound();
+
+  const b = BRAND[course.brand] || BRAND.birdbox;
+  document.documentElement.style.setProperty("--brandcolour", b.colour);
+  document.title = course.title + " — BirdBox Coaching";
+
+  if (course.image_url) {
+    $("photo").src = course.image_url;
+    $("photo").alt = course.venue_name || course.city || "";
+  } else {
+    $("photo").remove();
+  }
+
+  $("badgeicon").src = b.icon;
+  $("badgetext").textContent =
+    [b.label, course.level ? course.level.replace("L", "Level ") : null]
+      .filter(Boolean).join(" · ");
+
+  $("title").textContent = course.title;
+
+  const strong = document.createElement("strong");
+  strong.textContent = formatDates(course);
+  $("when").append(strong);
+  if (course.language && course.language !== "en") {
+    $("when").append(" · Taught in " + (LANG[course.language] || course.language));
+  }
+
+  $("where").textContent =
+    [course.venue_name, course.city, course.country].filter(Boolean).join(", ");
+
+  const money = (cents) => new Intl.NumberFormat(undefined, {
+    style: "currency", currency: course.currency || "EUR", maximumFractionDigits: 0,
+  }).format((cents || 0) / 100);
+
+  $("price").append(money(course.price_cents));
+  if (course.deposit_cents) {
+    const s = document.createElement("small");
+    s.textContent = "or " + money(course.deposit_cents) + " deposit — balance charged before the course";
+    $("price").append(s);
+  }
+
+  const { count } = await db
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("course_id", course.id)
+    .not("payment_status", "in", '("refunded","failed")');
+
+  const taken = count || 0;
+  const left = Math.max(0, course.capacity - taken);
+  const isFull = course.status === "full" || left === 0;
+
+  if (isFull) {
+    $("seats").textContent = "This course is full.";
+    $("seats").classList.add("low");
+    $("register").disabled = true;
+    $("register").textContent = "Fully booked";
+  } else if (left <= 3) {
+    $("seats").textContent = "Only " + left + (left === 1 ? " place" : " places") + " left.";
+    $("seats").classList.add("low");
+  } else {
+    $("seats").textContent = left + " of " + course.capacity + " places available.";
+  }
+
+  fill("summary", course.summary);
+  fill("movements", course.movements || course.workshop_focus);
+  fill("description", course.description, true);
+
+  if (course.venue_name || course.address) {
+    $("venuewrap").classList.remove("hidden");
+    $("venuename").textContent = course.venue_name || "";
+    $("venueaddr").textContent =
+      [course.address, course.city, course.country].filter(Boolean).join(", ");
+  }
+
+  $("register").addEventListener("click", () => checkout(course.slug));
+
+  $("loading").classList.add("hidden");
+  $("course").classList.remove("hidden");
+}
+
+function fill(id, value, isHtml) {
+  if (!value) return;
+  const wrap = $(id + "wrap");
+  if (wrap) wrap.classList.remove("hidden");
+  if (isHtml) {
+    $(id).innerHTML = "";
+    const paras = String(value).split(/\n{2,}/);
+    for (const para of paras) {
+      const p = document.createElement("p");
+      p.textContent = para.trim();
+      if (p.textContent) $(id).append(p);
+    }
+  } else {
+    $(id).textContent = value;
+  }
+}
+
+function formatDates(c) {
+  const opts = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+  const start = new Date(c.starts_at);
+  const startStr = start.toLocaleDateString(undefined, opts);
+  if (!c.ends_at) return startStr;
+  const end = new Date(c.ends_at);
+  if (start.toDateString() === end.toDateString()) return startStr;
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+  if (sameMonth) {
+    return start.getDate() + "–" + end.getDate() + " " +
+      end.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  }
+  return startStr + " – " + end.toLocaleDateString(undefined, opts);
+}
+
+async function checkout(slug) {
+  const btn = $("register");
+  const msg = $("msg");
+  btn.disabled = true;
+  msg.className = "msg";
+  msg.textContent = "Opening secure checkout…";
+  try {
+    const res = await fetch("/.netlify/functions/create-checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: slug }),
+    });
+    const data = await res.json();
+    if (data.url) { location.href = data.url; return; }
+    msg.className = "msg err";
+    msg.textContent = data.error || "Could not start checkout. Please try again.";
+    btn.disabled = false;
+  } catch (e) {
+    msg.className = "msg err";
+    msg.textContent = "Could not reach the payment system. Please try again.";
+    btn.disabled = false;
+  }
+}
+
+function notFound() {
+  $("loading").classList.add("hidden");
+  $("missing").classList.remove("hidden");
+}
+</script>
+
+</body>
+</html>
