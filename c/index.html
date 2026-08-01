@@ -141,10 +141,12 @@
     width: 0.7rem; height: 2px; background: var(--brandcolour, var(--accent));
   }
 
-  .spec { display: flex; flex-wrap: wrap; align-items: center; gap: 0.7rem; margin: 0 0 1.4rem; }
+  /* chips sized so the CrossFit seal sits on the same line */
+  .spec { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0 0 1.4rem; }
   .spec span {
-    border: 1px solid var(--rule); border-radius: 5px; padding: 0.5rem 0.85rem;
-    font-size: 1rem; color: var(--muted); background: rgba(16,18,21,0.55);
+    border: 1px solid var(--rule); border-radius: 4px; padding: 0.32rem 0.6rem;
+    font-size: 0.84rem; color: var(--muted); background: rgba(16,18,21,0.55);
+    white-space: nowrap;
   }
   .spec b { color: var(--ink); font-weight: 650; }
   .spec img.ceu { width: 88px; height: 88px; object-fit: contain; }
@@ -155,6 +157,12 @@
   }
   .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   .video .shield { position: absolute; inset: 0; }
+
+  /* detailed breakdown, kept as typed so the lists stay lists */
+  .detail {
+    white-space: pre-line; font-size: 1rem; line-height: 1.6;
+    margin: 0 0 1.25rem;
+  }
 
   .venue {
     background: var(--panel);
@@ -280,6 +288,13 @@
           allow="autoplay; encrypted-media; picture-in-picture"
           allowfullscreen loading="lazy"></iframe>
         <div class="shield"></div>
+      </div>
+    </div>
+
+    <div id="detailwrap" class="hidden">
+      <h2>What we cover</h2>
+      <div class="readable">
+        <p class="detail" id="detail"></p>
       </div>
     </div>
 
@@ -455,6 +470,12 @@ async function load() {
   if (embed) {
     $("videowrap").classList.remove("hidden");
     $("video").src = embed;
+  }
+
+  // detailed breakdown, after the video
+  if (tpl && tpl.detail) {
+    $("detailwrap").classList.remove("hidden");
+    $("detail").textContent = String(tpl.detail).trim();
   }
 
   if (course.venue_name || course.address) {
