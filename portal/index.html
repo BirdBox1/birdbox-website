@@ -165,6 +165,8 @@
   .btn.danger:hover { background: #fdf4f3; border-color: var(--bad); }
   .btn.solid-danger { background: var(--bad); color: #fff; }
   .btn.solid-danger:hover { background: #8f1e17; }
+  .btn.go { background: var(--good); color: #fff; }
+  .btn.go:hover { background: #17electric; background: #176e43; }
 
   .msg { font-size: 0.85rem; margin-top: 0.9rem; min-height: 1.2em; }
   .msg.err { color: var(--bad); }
@@ -210,14 +212,17 @@
   .copy:hover { background: #faf9f7; color: var(--ink); }
   .copy.done { color: var(--good); }
 
-  /* permanent delete, only ever on an archived or cancelled course */
-  .bin {
+  /* restore and delete, only on an archived or cancelled course */
+  .rowbtn {
     flex: none; width: 2.9rem; background: none; cursor: pointer;
     border: 0; border-left: 1px solid var(--rule);
-    display: grid; place-items: center; color: var(--bad);
+    display: grid; place-items: center;
   }
-  .bin:hover { background: #fdf4f3; }
-  .bin svg { width: 17px; height: 17px; display: block; }
+  .rowbtn svg { width: 17px; height: 17px; display: block; }
+  .rowbtn.restore { color: var(--accent); }
+  .rowbtn.restore:hover { background: #eef4fb; }
+  .rowbtn.bin { color: var(--bad); }
+  .rowbtn.bin:hover { background: #fdf4f3; }
 
   .tag {
     display: inline-block; font-size: 0.66rem; letter-spacing: 0.09em;
@@ -417,6 +422,14 @@
 
     <div class="admin-panel hidden" id="adminpanel">
       <h3>Admin</h3>
+
+      <div class="admin-row" id="salesrow">
+        <button class="btn small go hidden" id="publishbtn" type="button">Put back on sale</button>
+        <button class="btn ghost small hidden" id="unpublishbtn" type="button">Take off sale</button>
+        <span class="why" id="saleswhy"></span>
+      </div>
+
+      <div class="sep" id="salessep"></div>
 
       <div id="reschedwrap">
         <div class="grid2">
@@ -724,6 +737,10 @@ const BIN_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
   <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
   <path d="M10 11v6M14 11v6"/></svg>`;
 
+const RESTORE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>`;
+
 function tagFor(course) {
   const b = BRAND[course.brand] || BRAND.birdbox;
   const lvl = String(course.level || "").replace(/\D/g, "");
@@ -1004,11 +1021,23 @@ async function loadCourses() {
       }, 1800);
     });
 
-    // Permanent delete lives only where it belongs: an admin, looking
-    // at something already archived or cancelled.
+    // Restore and permanent delete live only where they belong: an
+    // admin, looking at something already archived or cancelled.
     if (isAdmin() && isPast(c)) {
+      const restore = document.createElement("button");
+      restore.className = "rowbtn restore";
+      restore.type = "button";
+      restore.title = "Restore as a draft";
+      restore.setAttribute("aria-label", "Restore " + c.title);
+      restore.innerHTML = RESTORE_SVG;
+      restore.addEventListener("click", (e) => {
+        e.stopPropagation();
+        restoreCourse(c);
+      });
+      el.append(restore);
+
       const bin = document.createElement("button");
-      bin.className = "bin";
+      bin.className = "rowbtn bin";
       bin.type = "button";
       bin.title = "Delete permanently";
       bin.setAttribute("aria-label", "Delete " + c.title + " permanently");
@@ -1022,6 +1051,30 @@ async function loadCourses() {
 
     list.appendChild(el);
   }
+}
+
+/* ---------------- restore ---------------- */
+
+// Always back as a draft, never straight back on sale — an accidental
+// archive should not put a course back in front of buyers by itself.
+async function restoreCourse(course) {
+  if (!window.confirm(
+    `Restore "${course.title}"?\n\n` +
+    "It comes back as a draft, so it will not be on sale until you publish it."
+  )) return;
+
+  const { error } = await db.from("courses")
+    .update({ archived: false, status: "draft" })
+    .eq("id", course.id);
+
+  if (error) {
+    window.alert("Could not restore: " + error.message);
+    return;
+  }
+  tab = "live";
+  $("tab-live").classList.add("on");
+  $("tab-past").classList.remove("on");
+  await loadCourses();
 }
 
 /* ---------------- permanent delete ---------------- */
@@ -1049,10 +1102,8 @@ async function askToDelete(course) {
          <li>Payment records and coach notes</li>
        </ul>
        Stripe keeps its own record of any money taken, but yours will be gone.`;
-    loses.classList.remove("hidden");
   } else {
     loses.innerHTML = "Nobody has registered, so nothing else is lost.";
-    loses.classList.remove("hidden");
   }
 
   $("del-input").value = "";
@@ -1140,7 +1191,8 @@ async function openCourse(course) {
     [course.city, course.country].filter(Boolean).join(", "),
     course.status === "complete" ? "Completed"
       : course.status === "cancelled" ? "Cancelled"
-      : course.archived ? "Archived" : null,
+      : course.archived ? "Archived"
+      : course.status === "draft" ? "Draft — not on sale" : null,
   ].filter(Boolean).join(" · ");
   $("counts").textContent = "";
   $("admin-msg").textContent = "";
@@ -1303,6 +1355,42 @@ function wireAdmin(course, totalRegs, liveRegs) {
   const msg = $("admin-msg");
   panel.classList.remove("hidden");
 
+  // ---- on sale, or not ----
+  const publishBtn = $("publishbtn");
+  const unpublishBtn = $("unpublishbtn");
+  const isDraft = !course.archived && course.status === "draft";
+  const isSelling = !course.archived && course.status === "published";
+
+  publishBtn.classList.toggle("hidden", !isDraft);
+  unpublishBtn.classList.toggle("hidden", !isSelling);
+  $("salesrow").classList.toggle("hidden", !isDraft && !isSelling);
+  $("salessep").classList.toggle("hidden", !isDraft && !isSelling);
+  $("saleswhy").textContent = isDraft
+    ? "This course is a draft. Nobody can see or buy it until you put it on sale."
+    : isSelling ? "This course is live and taking registrations." : "";
+
+  publishBtn.onclick = async () => {
+    if (!window.confirm(`Put "${course.title}" on sale? The page goes live immediately.`)) return;
+    publishBtn.disabled = true;
+    msg.className = "msg"; msg.textContent = "Putting on sale…";
+    const { error } = await db.from("courses")
+      .update({ status: "published", archived: false }).eq("id", course.id);
+    publishBtn.disabled = false;
+    if (error) { msg.className = "msg err"; msg.textContent = "Could not save: " + error.message; return; }
+    await loadCourses();
+  };
+
+  unpublishBtn.onclick = async () => {
+    if (!window.confirm(`Take "${course.title}" off sale? It becomes a draft and stops selling.`)) return;
+    unpublishBtn.disabled = true;
+    msg.className = "msg"; msg.textContent = "Taking off sale…";
+    const { error } = await db.from("courses")
+      .update({ status: "draft" }).eq("id", course.id);
+    unpublishBtn.disabled = false;
+    if (error) { msg.className = "msg err"; msg.textContent = "Could not save: " + error.message; return; }
+    await loadCourses();
+  };
+
   // Prefill the reschedule fields with the dates it has now.
   const start = new Date(course.starts_at);
   $("r-date").value = start.toISOString().slice(0, 10);
@@ -1389,32 +1477,27 @@ function wireAdmin(course, totalRegs, liveRegs) {
     $("cancelbtn").disabled = false;
   };
 
-  // ---- archive, and delete once archived ----
+  // ---- archive, restore and delete ----
   const archiveBtn = $("archivebtn");
   const deleteBtn = $("deletebtn");
-  archiveBtn.textContent = course.archived ? "Restore from archive" : "Archive";
+  archiveBtn.textContent = isPast(course) ? "Restore as a draft" : "Archive";
 
-  // Deleting is only offered on something already put away — you
-  // cannot destroy a course that is still live by accident.
   deleteBtn.classList.toggle("hidden", !isPast(course));
   $("adminwhy").textContent = isPast(course)
-    ? "Deleting removes the course, its registrations and its payment records for good."
-    : "Archiving hides a course and takes it off sale. Delete becomes available once it is archived.";
+    ? "Restoring brings it back as a draft. Deleting removes the course, its registrations and its payment records for good."
+    : "Archiving hides a course and takes it off sale. Restore and delete become available once it is archived.";
 
   archiveBtn.onclick = async () => {
-    const goingToArchive = !course.archived;
-    if (goingToArchive &&
-        !window.confirm(`Archive "${course.title}"? It will be taken off sale and hidden from the live list.`)) return;
+    if (isPast(course)) return restoreCourse(course);
+
+    if (!window.confirm(`Archive "${course.title}"? It will be taken off sale and hidden from the live list.`)) return;
 
     archiveBtn.disabled = true;
     msg.className = "msg";
-    msg.textContent = goingToArchive ? "Archiving…" : "Restoring…";
+    msg.textContent = "Archiving…";
 
-    const patch = goingToArchive
-      ? { archived: true, status: "cancelled" }
-      : { archived: false, status: "draft" };
-
-    const { error } = await db.from("courses").update(patch).eq("id", course.id);
+    const { error } = await db.from("courses")
+      .update({ archived: true, status: "cancelled" }).eq("id", course.id);
     archiveBtn.disabled = false;
 
     if (error) {
