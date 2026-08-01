@@ -26,9 +26,15 @@
     font-size: 17px; line-height: 1.65; -webkit-font-smoothing: antialiased;
     position: relative; min-height: 100vh;
   }
+  /* the photo itself */
   #wash {
-    position: fixed; inset: 0; z-index: -1; opacity: 0.30;
+    position: fixed; inset: 0; z-index: -2; opacity: 0.30;
     background: center 30% / cover no-repeat; pointer-events: none;
+  }
+  /* a colour laid over the photo, used where a template asks for one */
+  #tint {
+    position: fixed; inset: 0; z-index: -1; opacity: 0;
+    background: var(--paper); pointer-events: none;
   }
 
   .bar {
@@ -56,7 +62,10 @@
   .badge img { width: 44px; height: 44px; object-fit: contain; }
 
   /* a template can supply its own lockup, which replaces the badge */
-  .lockup { display: block; max-width: 15rem; width: 55%; height: auto; }
+  .lockup {
+    display: block; max-width: 15rem; width: 55%; height: auto;
+    filter: drop-shadow(0 2px 14px rgba(0,0,0,0.55));
+  }
 
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden;
         clip: rect(0 0 0 0); white-space: nowrap; }
@@ -64,12 +73,13 @@
   h1.shown {
     font-size: clamp(1.5rem, 4.6vw, 2.1rem); line-height: 1.15;
     letter-spacing: -0.02em; font-weight: 700; margin: 1.4rem 0 0.5rem;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.5);
   }
 
   .facts {
     font-size: clamp(1.25rem, 3.4vw, 1.6rem); line-height: 1.25;
     letter-spacing: -0.015em; color: var(--ink); margin: 1.2rem 0 0.25rem;
-    font-weight: 600;
+    font-weight: 600; text-shadow: 0 2px 14px rgba(0,0,0,0.5);
   }
   .facts.place { color: var(--muted); font-weight: 500; margin: 0 0 0.25rem; }
 
@@ -221,6 +231,7 @@
 <body>
 
 <div id="wash"></div>
+<div id="tint"></div>
 
 <div class="bar">
   <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
@@ -409,20 +420,22 @@ async function load() {
   const b = BRAND[course.brand] || BRAND.birdbox;
   document.documentElement.style.setProperty("--brandcolour", b.colour);
 
-  // Only a template that asks for its own page colour gets one. The
-  // panels turn translucent to suit it; everything else stays as is.
+  const bg = tpl && tpl.background_url;
+  if (bg) $("wash").style.backgroundImage = "url('" + bg + "')";
+
+  // A template that asks for a page colour gets the photo at full
+  // strength with that colour laid over it, rather than a faint wash.
   if (tpl && tpl.page_bg) {
     const root = document.documentElement.style;
     root.setProperty("--paper", tpl.page_bg);
-    root.setProperty("--panel", "rgba(0,0,0,0.38)");
-    root.setProperty("--rule", "rgba(255,255,255,0.18)");
-    root.setProperty("--muted", "#c3bcbd");
+    root.setProperty("--panel", "rgba(0,0,0,0.55)");
+    root.setProperty("--rule", "rgba(255,255,255,0.20)");
+    root.setProperty("--muted", "#cfc6c7");
+    $("wash").style.opacity = "1";
+    $("tint").style.opacity = "0.62";
   }
 
   document.title = course.title + " — BirdBox Coaching";
-
-  const bg = tpl && tpl.background_url;
-  if (bg) $("wash").style.backgroundImage = "url('" + bg + "')";
 
   // A template lockup replaces the brand chip where there is one.
   if (tpl && tpl.logo_url) {
