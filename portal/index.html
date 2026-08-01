@@ -51,16 +51,16 @@
   }
   .bar .right { display: flex; align-items: center; gap: 0.8rem; }
   .bar .who { font-size: 0.85rem; color: #cfd4d9; white-space: nowrap; }
-  .bar button {
+  .bar button, .bar a.linkbtn {
     font: inherit; font-size: 0.8rem; background: none; color: #cfd4d9;
-    border: 1px solid #33373c; padding: 0.3rem 0.7rem; border-radius: 3px; cursor: pointer;
+    border: 1px solid #33373c; padding: 0.3rem 0.7rem; border-radius: 3px;
+    cursor: pointer; text-decoration: none; white-space: nowrap;
   }
-  .bar button:hover { color: #fff; border-color: #55595e; }
+  .bar button:hover, .bar a.linkbtn:hover { color: #fff; border-color: #55595e; }
 
   .wrap { max-width: 56rem; margin: 0 auto; padding: 1.25rem 1.25rem 4rem; }
 
   /* ---------------- team banner ---------------- */
-  /* full bleed: breaks out of .wrap to the window edges */
   .banner {
     position: relative; overflow: hidden; background: var(--shell);
     width: 100vw; margin-left: calc(50% - 50vw);
@@ -77,7 +77,6 @@
   }
   .banner .caption {
     position: absolute; bottom: 1.1rem; color: #fff;
-    /* line the text up with the page content, not the window edge */
     left: max(1.25rem, calc(50vw - 28rem + 1.25rem));
     right: 1.25rem;
   }
@@ -251,6 +250,7 @@
     <span class="brandname">Coach Portal</span>
   </span>
   <span class="right">
+    <a class="linkbtn hidden" id="codeslink" href="/portal/codes/">Discount codes</a>
     <span class="who" id="who"></span>
     <button id="signout" class="hidden" type="button">Sign out</button>
   </span>
@@ -413,7 +413,7 @@
         </div>
         <div class="grid2">
           <div class="field">
-            <label for="f-city">City</label>
+            <label for="f-city">City <span class="hint">shown under the date</span></label>
             <input id="f-city" type="text" placeholder="Dublin">
           </div>
           <div class="field">
@@ -571,6 +571,7 @@ $("signout").addEventListener("click", async () => {
   me = null;
   $("who").textContent = "";
   $("signout").classList.add("hidden");
+  $("codeslink").classList.add("hidden");
   $("password").value = "";
   show("login");
 });
@@ -598,6 +599,7 @@ async function start() {
   $("hello").textContent = `Welcome back, ${staff.full_name.split(" ")[0]}`;
   $("myrole").textContent = staff.role.replace(/_/g, " ");
   $("newcourse").classList.toggle("hidden", staff.role !== "admin");
+  $("codeslink").classList.toggle("hidden", staff.role !== "admin");
 
   await loadCourses();
 }
@@ -763,7 +765,7 @@ async function openCourse(course) {
     const flags = el.querySelector(".flags");
     const addPill = (text, cls = "") => {
       const s = document.createElement("span");
-      s.className = "pill " + cls; s.textContent = text; flags.appendChild(s);
+      s.className = "pill " + cls; s.textContent = text; flags.append(s);
     };
 
     const status = r.payment_status || "";
@@ -938,12 +940,13 @@ async function saveCourse() {
   if (!slug)   { buildSlug(); slug = $("f-slug").value.trim(); }
   if (!slug)   { msg.className = "msg err"; msg.textContent = "Add a link."; return; }
 
-  // title: use the workshop name if there is one, otherwise brand + level + city
+  // Title: the city is shown under the date on the course page and in
+  // the venue block, so it never goes in the title as well.
   const wname = $("f-workshop").value.trim();
   const level = $("f-level").value;
   const label = BRAND[brand]?.label || "BirdBox";
   const title = type === "workshop" && wname
-    ? `${label} Workshop — ${wname}${city ? " · " + city : ""}`
+    ? `${label} Workshop — ${wname}`
     : `${label}${level ? " " + level.replace("L", "Level ") : ""}${city ? " — " + city : ""}`;
 
   $("save").disabled = true;
