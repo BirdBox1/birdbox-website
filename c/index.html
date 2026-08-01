@@ -206,4 +206,257 @@
         <a href="/agreements/#terms">terms of sale</a> and
         <a href="/agreements/#waiver">waiver of liability</a>.
         Course fees are non-refundable; transfers and credits are available.</p>
-      
+      <p>BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland ·
+        <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a></p>
+    </footer>
+  </main>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const BRAND = {
+  birdbox: { icon: "/brand/birdBox.png", colour: "#2f7fd0", label: "BirdBox" },
+  tcc:     { icon: "/brand/tcc.png",     colour: "#2f7fd0", label: "The Coaches Course" },
+  tgc:     { icon: "/brand/tgc.png",     colour: "#9e2029", label: "The Gymnastics Course" },
+  tec:     { icon: "/brand/tec.png",     colour: "#1c6b3f", label: "The Endurance Course" },
+  twc:     { icon: "/brand/twc.png",     colour: "#e8a317", label: "The Weightlifting Course" },
+};
+
+const LANG = {
+  en: "English", fr: "French", es: "Spanish", de: "German", it: "Italian",
+  ja: "Japanese", ko: "Korean", pt: "Portuguese", pl: "Polish",
+};
+
+const $ = (id) => document.getElementById(id);
+
+const parts = location.pathname.split("/").filter(Boolean);
+const slug = parts[parts.length - 1] === "c" ? null : parts[parts.length - 1];
+
+load();
+
+async function load() {
+  if (!slug) return notFound();
+
+  const { data: course, error } = await db
+    .from("courses")
+    .select("id, brand, type, level, title, slug, summary, description, movements, workshop_focus, venue_name, address, city, country, starts_at, ends_at, timezone, capacity, price_cents, deposit_cents, currency, status, language, image_url")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error || !course) return notFound();
+
+  // Workshops are always bespoke, so they never inherit a template.
+  const tpl = course.type === "workshop" ? null : await loadTemplate(course);
+
+  const b = BRAND[course.brand] || BRAND.birdbox;
+  document.documentElement.style.setProperty("--brandcolour", b.colour);
+  document.title = course.title + " — BirdBox Coaching";
+
+  const bg = tpl && tpl.background_url;
+  if (bg) $("band").style.backgroundImage = "url('" + bg + "')";
+
+  $("badgeicon").src = b.icon;
+  $("badgetext").textContent =
+    [b.label, course.level ? "Level " + String(course.level).replace(/\D/g, "") : null]
+      .filter(Boolean).join(" · ");
+
+  $("title").textContent = course.title;
+
+  const strong = document.createElement("strong");
+  strong.textContent = formatDates(course);
+  $("when").append(strong);
+  if (course.language && course.language !== "en") {
+    $("when").append(" · Taught in " + (LANG[course.language] || course.language));
+  }
+
+  $("where").textContent =
+    [course.venue_name, course.city, course.country].filter(Boolean).join(", ");
+
+  const money = (cents) => new Intl.NumberFormat(undefined, {
+    style: "currency", currency: course.currency || "EUR", maximumFractionDigits: 0,
+  }).format((cents || 0) / 100);
+
+  $("price").append(money(course.price_cents));
+  if (course.deposit_cents) {
+    const s = document.createElement("small");
+    s.textContent = "or " + money(course.deposit_cents) + " deposit — balance charged before the course";
+    $("price").append(s);
+  }
+
+  const { count } = await db
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("course_id", course.id)
+    .not("payment_status", "in", '("refunded","failed")');
+
+  const taken = count || 0;
+  const left = Math.max(0, course.capacity - taken);
+  const isFull = course.status === "full" || left === 0;
+
+  if (isFull) {
+    $("seats").textContent = "This course is full.";
+    $("seats").classList.add("low");
+    $("register").disabled = true;
+    $("register").textContent = "Fully booked";
+  } else if (left <= 3) {
+    $("seats").textContent = "Only " + left + (left === 1 ? " place" : " places") + " left.";
+    $("seats").classList.add("low");
+  } else {
+    $("seats").textContent = left + " of " + course.capacity + " places available.";
+  }
+
+  // Spec chips — template values, course wins if it has its own.
+  const specs = [];
+  if (tpl && tpl.ceus) specs.push(["CEUs", tpl.ceus]);
+  if (tpl && tpl.prerequisites) specs.push(["Prerequisite", tpl.prerequisites]);
+  specs.push(["Language", LANG[course.language] || course.language || "English"]);
+  for (const [label, value] of specs) {
+    const el = document.createElement("span");
+    el.innerHTML = label + " <b></b>";
+    el.querySelector("b").textContent = value;
+    $("specwrap").append(el);
+  }
+
+  // Course text overrides the template; otherwise the template fills in.
+  fill("summary", course.summary || (tpl && tpl.headline));
+  fill("movements", course.movements || course.workshop_focus);
+  fill("description", course.description || (tpl && tpl.intro), true);
+
+  const included = tpl && tpl.included;
+  if (included) {
+    $("includedwrap").classList.remove("hidden");
+    for (const line of String(included).split("\n")) {
+      if (!line.trim()) continue;
+      const li = document.createElement("li");
+      li.textContent = line.trim();
+      $("included").append(li);
+    }
+  }
+
+  const embed = embedUrl(tpl && tpl.video_url);
+  if (embed) {
+    $("videowrap").classList.remove("hidden");
+    $("video").src = embed;
+  }
+
+  if (course.venue_name || course.address) {
+    $("venuewrap").classList.remove("hidden");
+    $("venuename").textContent = course.venue_name || "";
+    $("venueaddr").textContent =
+      [course.address, course.city, course.country].filter(Boolean).join(", ");
+    if (course.image_url) {
+      $("venuephoto").src = course.image_url;
+      $("venuephoto").alt = course.venue_name || course.city || "";
+      $("venuephoto").classList.remove("hidden");
+    }
+  }
+
+  $("register").addEventListener("click", () => checkout(course.slug));
+
+  $("loading").classList.add("hidden");
+  $("course").classList.remove("hidden");
+}
+
+// Templates are keyed on brand + type + level + language, but level and
+// language get written inconsistently ("1" vs "L1", "en" vs "English"),
+// so match in JS and fall back to any language for that level.
+async function loadTemplate(course) {
+  const { data } = await db
+    .from("course_templates")
+    .select("*")
+    .eq("brand", course.brand)
+    .eq("type", course.type);
+
+  if (!data || !data.length) return null;
+
+  const lvl = (v) => String(v == null ? "" : v).replace(/\D/g, "");
+  const lang = (v) => {
+    const s = String(v == null ? "" : v).trim().toLowerCase();
+    if (LANG[s]) return s;
+    for (const k in LANG) if (LANG[k].toLowerCase() === s) return k;
+    return s;
+  };
+
+  const sameLevel = data.filter((t) => lvl(t.level) === lvl(course.level));
+  const pool = sameLevel.length ? sameLevel : data;
+  return pool.find((t) => lang(t.language) === lang(course.language)) || pool[0];
+}
+
+function embedUrl(url) {
+  if (!url) return null;
+  const yt = String(url).match(/(?:youtu\.be\/|v=|youtube\.com\/embed\/)([A-Za-z0-9_-]{6,})/);
+  if (yt) return "https://www.youtube.com/embed/" + yt[1];
+  const vm = String(url).match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vm) return "https://player.vimeo.com/video/" + vm[1];
+  return null;
+}
+
+function fill(id, value, isHtml) {
+  if (!value) return;
+  const wrap = $(id + "wrap");
+  if (wrap) wrap.classList.remove("hidden");
+  if (isHtml) {
+    $(id).innerHTML = "";
+    const paras = String(value).split(/\n{2,}/);
+    for (const para of paras) {
+      const p = document.createElement("p");
+      p.textContent = para.trim();
+      if (p.textContent) $(id).append(p);
+    }
+  } else {
+    $(id).textContent = value;
+  }
+}
+
+function formatDates(c) {
+  const opts = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+  const start = new Date(c.starts_at);
+  const startStr = start.toLocaleDateString(undefined, opts);
+  if (!c.ends_at) return startStr;
+  const end = new Date(c.ends_at);
+  if (start.toDateString() === end.toDateString()) return startStr;
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+  if (sameMonth) {
+    return start.getDate() + "–" + end.getDate() + " " +
+      end.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  }
+  return startStr + " – " + end.toLocaleDateString(undefined, opts);
+}
+
+async function checkout(slug) {
+  const btn = $("register");
+  const msg = $("msg");
+  btn.disabled = true;
+  msg.className = "msg";
+  msg.textContent = "Opening secure checkout…";
+  try {
+    const res = await fetch("/.netlify/functions/create-checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: slug }),
+    });
+    const data = await res.json();
+    if (data.url) { location.href = data.url; return; }
+    msg.className = "msg err";
+    msg.textContent = data.error || "Could not start checkout. Please try again.";
+    btn.disabled = false;
+  } catch (e) {
+    msg.className = "msg err";
+    msg.textContent = "Could not reach the payment system. Please try again.";
+    btn.disabled = false;
+  }
+}
+
+function notFound() {
+  $("loading").classList.add("hidden");
+  $("missing").classList.remove("hidden");
+}
+</script>
+
+</body>
+</html>
