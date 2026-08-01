@@ -1,0 +1,9 @@
+{
+  "name": "birdbox-website",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "stripe": "^17.7.0",
+    "@supabase/supabase-js": "^2.48.0"
+  }
+}
