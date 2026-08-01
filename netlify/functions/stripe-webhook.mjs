@@ -47,6 +47,13 @@ export default async (req) => {
     const details = full.customer_details || {};
     const [firstName, ...rest] = (details.name || "").trim().split(" ");
 
+    // Stripe reports the consent tick back on the session.
+    // Only record a signature if it was actually accepted.
+    const accepted = full.consent?.terms_of_service === "accepted";
+    const signedAt = accepted
+      ? new Date(full.created * 1000).toISOString()
+      : null;
+
     const { error } = await supabase.from("registrations").insert({
       course_id: full.metadata.course_id,
       first_name: firstName || "—",
@@ -54,6 +61,8 @@ export default async (req) => {
       email: details.email,
       phone: details.phone || null,
       country: details.address?.country || null,
+      waiver_signed_at: signedAt,
+      waiver_version: accepted ? full.metadata.waiver_version : null,
       payment_status: "paid_in_full",
       amount_paid_cents: full.amount_total,
       currency: (full.currency || "eur").toUpperCase(),
@@ -73,6 +82,10 @@ export default async (req) => {
       return new Response("logged", { status: 200 });
     }
 
+    if (!accepted) {
+      console.warn("Registration created without waiver acceptance", full.id);
+    }
+
     return new Response("ok", { status: 200 });
   } catch (err) {
     console.error("Webhook handler error:", err);
@@ -82,4 +95,3 @@ export default async (req) => {
 };
 
 export const config = { path: "/api/stripe-webhook" };
-
