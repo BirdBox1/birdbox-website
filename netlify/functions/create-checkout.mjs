@@ -53,6 +53,11 @@ export default async (req) => {
     // ---- create the Checkout session ---------------------------
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+
+      // always create a Stripe Customer — without one there is no
+      // saved card, and deposits / instalments cannot be charged later
+      customer_creation: "always",
+
       line_items: [
         {
           quantity: 1,
@@ -100,4 +105,3 @@ function json(body, status = 200) {
     headers: { "Content-Type": "application/json" },
   });
 }
-
