@@ -114,7 +114,7 @@
   a.back { margin-bottom: 1rem; }
   a.back:hover, .textlink:hover { text-decoration: underline; }
 
-  /* a course needing a decision, called out at the top of the list */
+  /* something that needs a decision, called out above the list */
   .alert {
     background: #fff8f0; border: 1px solid #efd6b8; border-left: 3px solid var(--warn);
     border-radius: 6px; padding: 0.9rem 1.05rem; margin-bottom: 1rem;
@@ -122,6 +122,9 @@
   }
   .alert b { display: block; margin-bottom: 0.2rem; }
   .alert ul { margin: 0.4rem 0 0; padding-left: 1.1rem; color: var(--muted); }
+  .alert.cool {
+    background: #eef4fb; border-color: #c6d9ee; border-left-color: var(--accent);
+  }
 
   /* ---------------- login ---------------- */
   .login {
@@ -240,6 +243,8 @@
   .pill.on   { border-color: var(--good); color: var(--good); }
   .pill.low  { background: var(--warn); border-color: var(--warn); color: #fff; font-weight: 700; }
   .pill.lead { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 700; }
+  .pill.nolead { border-color: var(--accent); color: var(--accent); }
+  .pill.nolead.due { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
 
   /* ---------------- delete dialog ---------------- */
   .overlay {
@@ -444,7 +449,7 @@
       <div class="coachlist" id="editcoaches"></div>
       <div class="admin-row" style="margin-top:0.9rem">
         <button class="btn small" id="savecoaches" type="button">Save coaches</button>
-        <span class="why">The lead coach handles participant emails and feedback. Assistants coach and write notes.</span>
+        <span class="why">The lead coach handles participant emails and feedback. Assistants coach and write notes. A lead can be left until later.</span>
       </div>
 
       <div class="sep"></div>
@@ -678,7 +683,7 @@
       </div>
 
       <div class="panel">
-        <h3>Coaches <span class="hint" style="text-transform:none;letter-spacing:0">— one lead, any number of assistants</span></h3>
+        <h3>Coaches <span class="hint" style="text-transform:none;letter-spacing:0">— optional, can be set later</span></h3>
         <div class="coachlist" id="coachlist"></div>
       </div>
 
@@ -733,6 +738,10 @@ const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 // this many days out.
 const LOW_NUMBERS = 5;
 const LOW_DAYS_OUT = 24;
+
+// A course far out does not need a lead coach yet — staff move, have
+// families, run their own gyms. Inside this window it does.
+const LEAD_DAYS_OUT = 90;
 
 const BRAND = {
   birdbox: { icon: "/brand/birdBox.png", colour: "#2f7fd0", label: "BirdBox", slug: "bb"  },
@@ -790,7 +799,6 @@ let tab = "live";
 let myRoles = {};
 
 const isAdmin = () => me && me.role === "admin";
-const amLeadOn = (courseId) => isAdmin() || myRoles[courseId] === "lead_coach";
 
 // A course is "past" once it is archived, cancelled or complete.
 // Everything else is live, whether on sale, full or still a draft.
@@ -950,6 +958,17 @@ async function loadCourses() {
     booked[r.course_id] = (booked[r.course_id] || 0) + 1;
   }
 
+  // Which courses have a lead coach. Admin needs this to plan; a
+  // coach already knows what they are on.
+  const hasLead = {};
+  if (isAdmin()) {
+    const { data: leads } = await db.from("course_staff")
+      .select("course_id, role")
+      .in("course_id", courses.map((c) => c.id))
+      .eq("role", "lead_coach");
+    for (const l of leads || []) hasLead[l.course_id] = true;
+  }
+
   // Anything close and quiet gets called out at the top, so it is a
   // decision rather than something noticed too late.
   const struggling = tab === "live"
@@ -973,6 +992,32 @@ async function loadCourses() {
       li.textContent =
         `${c.title} — ${fmtDate(c.starts_at)}, ${booked[c.id] || 0} booked, ` +
         `${d} day${d === 1 ? "" : "s"} away`;
+      ul.append(li);
+    }
+    alertBox.append(el);
+  }
+
+  // Courses coming up without anyone running them. Far-off dates are
+  // left alone deliberately — that allocation happens later.
+  const needLead = (isAdmin() && tab === "live")
+    ? courses.filter((c) => {
+        if (c.status === "draft" || hasLead[c.id]) return false;
+        const days = daysUntil(c.starts_at);
+        return days >= 0 && days <= LEAD_DAYS_OUT;
+      })
+    : [];
+
+  if (needLead.length) {
+    const el = document.createElement("div");
+    el.className = "alert cool";
+    el.innerHTML = `<b>${needLead.length} course${needLead.length === 1 ? "" : "s"} still without a lead coach</b>
+      Within ${LEAD_DAYS_OUT} days of running.
+      <ul></ul>`;
+    const ul = el.querySelector("ul");
+    for (const c of needLead) {
+      const d = daysUntil(c.starts_at);
+      const li = document.createElement("li");
+      li.textContent = `${c.title} — ${fmtDate(c.starts_at)}, ${d} day${d === 1 ? "" : "s"} away`;
       ul.append(li);
     }
     alertBox.append(el);
@@ -1022,11 +1067,20 @@ async function loadCourses() {
       const s = document.createElement("span");
       s.className = "pill " + cls; s.textContent = text; flags.append(s);
     };
+
     // A coach should see at a glance whether this one is theirs to run.
     if (!isAdmin() && myRoles[c.id]) {
       add(myRoles[c.id] === "lead_coach" ? "you: lead" : "you: assist",
           myRoles[c.id] === "lead_coach" ? "lead" : "");
     }
+
+    // Admin sees where a lead is still to be decided. Quiet when the
+    // date is far off, insistent once it is close.
+    if (isAdmin() && !isPast(c) && !hasLead[c.id] && c.status !== "draft") {
+      const due = days >= 0 && days <= LEAD_DAYS_OUT;
+      add("no lead", due ? "nolead due" : "nolead");
+    }
+
     if (isLow) add(`${taken} booked · ${days}d away`, "low");
     if (c.status === "complete") add("completed", "draft");
     else if (c.status === "cancelled") add("cancelled", "bad");
@@ -1476,16 +1530,12 @@ async function wireAdmin(course, totalRegs, liveRegs) {
     const picked = readCoachPicker($("editcoaches"));
     const leads = picked.filter((p) => p.role === "lead_coach");
 
+    // Two leads is a mistake. No lead is a perfectly normal state for
+    // a course months out, so it saves without complaint.
     if (leads.length > 1) {
       msg.className = "msg err";
       msg.textContent = "Only one lead coach — the others should be assistants.";
       return;
-    }
-    if (!leads.length && picked.length) {
-      if (!window.confirm(
-        "No lead coach on this course.\n\n" +
-        "Nobody will be responsible for participant emails or feedback. Save anyway?"
-      )) return;
     }
 
     $("savecoaches").disabled = true;
@@ -1513,9 +1563,12 @@ async function wireAdmin(course, totalRegs, liveRegs) {
 
     $("savecoaches").disabled = false;
     msg.className = "msg ok";
+    const assists = picked.length - leads.length;
     msg.textContent = leads.length
-      ? `Saved. ${leads.length ? "Lead coach set" : ""}${picked.length > 1 ? `, ${picked.length - 1} assisting` : ""}.`
-      : "Saved.";
+      ? `Saved — lead coach set${assists ? `, ${assists} assisting` : ""}.`
+      : picked.length
+        ? `Saved — ${assists} assisting, lead still to be decided.`
+        : "Saved — nobody assigned yet.";
   };
 
   // Prefill the reschedule fields with the dates it has now.
@@ -1543,7 +1596,7 @@ async function wireAdmin(course, totalRegs, liveRegs) {
     const who = liveRegs === 1 ? "1 participant" : `${liveRegs} participants`;
     if (!window.confirm(
       `Move "${course.title}" to ${newStart.toLocaleDateString()}?\n\n` +
-      `${who} and the assigned coaches will be emailed.`
+      `${who} and any assigned coaches will be emailed.`
     )) return;
 
     $("reschedbtn").disabled = true;
