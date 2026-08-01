@@ -217,8 +217,11 @@
   /* text sections sit on a veil so a busy photo cannot fight the words */
   .readable {
     background: rgba(0,0,0,0.45); border-radius: 6px;
-    padding: 0.1rem 1rem; margin: 0 -1rem;
+    padding: 1.1rem 1rem 0.4rem; margin: 1.6rem -1rem 0;
   }
+  /* the panel supplies its own top padding, so the first heading
+     inside it must not add another 2rem on top */
+  .readable .first-inside h2 { margin-top: 0; }
 
   footer {
     margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--rule);
@@ -289,7 +292,7 @@
 
     <div class="spec" id="specwrap"></div>
 
-    <div class="readable" id="info">
+    <div class="readable hidden" id="info">
       <div id="summarywrap" class="hidden">
         <p class="lede" id="summary"></p>
       </div>
@@ -537,6 +540,16 @@ async function load() {
   fill("summary", course.summary || (tpl && tpl.headline));
   fill("movements", course.movements || course.workshop_focus);
   fill("description", course.description || (tpl && tpl.intro), true);
+
+  // Only show the text panel if something ended up inside it, and let
+  // the first surviving section sit flush with the panel's padding.
+  const shown = ["summarywrap", "movementswrap", "descwrap"]
+    .map((id) => $(id))
+    .filter((el) => !el.classList.contains("hidden"));
+  if (shown.length) {
+    $("info").classList.remove("hidden");
+    shown[0].classList.add("first-inside");
+  }
 
   const included = tpl && tpl.included;
   if (included) {
