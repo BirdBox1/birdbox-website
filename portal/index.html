@@ -163,6 +163,8 @@
   .btn.small { font-size: 0.82rem; padding: 0.4rem 0.8rem; }
   .btn.danger { color: var(--bad); border-color: #e6c9c7; }
   .btn.danger:hover { background: #fdf4f3; border-color: var(--bad); }
+  .btn.solid-danger { background: var(--bad); color: #fff; }
+  .btn.solid-danger:hover { background: #8f1e17; }
 
   .msg { font-size: 0.85rem; margin-top: 0.9rem; min-height: 1.2em; }
   .msg.err { color: var(--bad); }
@@ -208,6 +210,15 @@
   .copy:hover { background: #faf9f7; color: var(--ink); }
   .copy.done { color: var(--good); }
 
+  /* permanent delete, only ever on an archived or cancelled course */
+  .bin {
+    flex: none; width: 2.9rem; background: none; cursor: pointer;
+    border: 0; border-left: 1px solid var(--rule);
+    display: grid; place-items: center; color: var(--bad);
+  }
+  .bin:hover { background: #fdf4f3; }
+  .bin svg { width: 17px; height: 17px; display: block; }
+
   .tag {
     display: inline-block; font-size: 0.66rem; letter-spacing: 0.09em;
     text-transform: uppercase; padding: 0.18rem 0.5rem;
@@ -223,6 +234,29 @@
   .pill.draft{ border-color: var(--muted); color: var(--muted); }
   .pill.on   { border-color: var(--good); color: var(--good); }
   .pill.low  { background: var(--warn); border-color: var(--warn); color: #fff; font-weight: 700; }
+
+  /* ---------------- delete dialog ---------------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 60;
+    background: rgba(13,14,16,0.55);
+    display: grid; place-items: center; padding: 1.25rem;
+  }
+  .dialog {
+    background: var(--card); border-radius: 8px; max-width: 27rem; width: 100%;
+    padding: 1.5rem; box-shadow: 0 18px 50px rgba(0,0,0,0.25);
+  }
+  .dialog h3 { margin: 0 0 0.6rem; font-size: 1.05rem; letter-spacing: -0.01em; }
+  .dialog p { margin: 0 0 0.8rem; font-size: 0.9rem; line-height: 1.55; }
+  .dialog .loses {
+    background: #fdf4f3; border: 1px solid #e6c9c7; border-radius: 5px;
+    padding: 0.7rem 0.85rem; font-size: 0.86rem; color: var(--bad);
+    margin: 0 0 1rem;
+  }
+  .dialog .loses ul { margin: 0.35rem 0 0; padding-left: 1.1rem; }
+  .dialog input {
+    letter-spacing: 0.12em; font-weight: 650; text-transform: uppercase;
+  }
+  .dialog .row { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1.1rem; }
 
   /* ---------------- attendees ---------------- */
   .attendee { padding: 0.9rem 1.05rem; border-bottom: 1px solid var(--rule); }
@@ -426,7 +460,7 @@
 
       <div class="admin-row">
         <button class="btn ghost small" id="archivebtn" type="button">Archive</button>
-        <button class="btn ghost small danger" id="deletebtn" type="button">Delete</button>
+        <button class="btn ghost small danger hidden" id="deletebtn" type="button">Delete permanently</button>
         <span class="why" id="adminwhy"></span>
       </div>
 
@@ -641,6 +675,22 @@
   </div>
 </section>
 
+<!-- ============ DELETE DIALOG ============ -->
+<div class="overlay hidden" id="delwrap">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="del-h">
+    <h3 id="del-h">Delete this course permanently</h3>
+    <p id="del-what"></p>
+    <div class="loses" id="del-loses"></div>
+    <label for="del-input">Type DELETE to confirm</label>
+    <input id="del-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <p class="msg" id="del-msg"></p>
+    <div class="row">
+      <button class="btn ghost" id="del-cancel" type="button">Cancel</button>
+      <button class="btn solid-danger" id="del-go" type="button" disabled>Delete permanently</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -668,6 +718,11 @@ const TAG_COLOUR = {
   "tgc:2":        "#b02a33",  // brighter red
   "tgc:workshop": "#e23b32",  // lighter, electric
 };
+
+const BIN_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+  <path d="M10 11v6M14 11v6"/></svg>`;
 
 function tagFor(course) {
   const b = BRAND[course.brand] || BRAND.birdbox;
@@ -698,8 +753,8 @@ let tab = "live";
 
 const isAdmin = () => me && me.role === "admin";
 
-// A course is "past" once it is archived or cancelled. Everything
-// else is live, whether it is on sale, full or still a draft.
+// A course is "past" once it is archived, cancelled or complete.
+// Everything else is live, whether on sale, full or still a draft.
 const isPast = (c) => !!c.archived || c.status === "cancelled" || c.status === "complete";
 
 /* ---------------- auth ---------------- */
@@ -949,9 +1004,122 @@ async function loadCourses() {
       }, 1800);
     });
 
+    // Permanent delete lives only where it belongs: an admin, looking
+    // at something already archived or cancelled.
+    if (isAdmin() && isPast(c)) {
+      const bin = document.createElement("button");
+      bin.className = "bin";
+      bin.type = "button";
+      bin.title = "Delete permanently";
+      bin.setAttribute("aria-label", "Delete " + c.title + " permanently");
+      bin.innerHTML = BIN_SVG;
+      bin.addEventListener("click", (e) => {
+        e.stopPropagation();
+        askToDelete(c);
+      });
+      el.append(bin);
+    }
+
     list.appendChild(el);
   }
 }
+
+/* ---------------- permanent delete ---------------- */
+
+let pendingDelete = null;
+
+async function askToDelete(course) {
+  pendingDelete = course;
+
+  const { count: regCount } = await db.from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("course_id", course.id);
+
+  $("del-what").innerHTML =
+    `<strong></strong> and everything attached to it will be removed from the database. ` +
+    `This cannot be undone.`;
+  $("del-what").querySelector("strong").textContent = course.title;
+
+  const loses = $("del-loses");
+  if (regCount) {
+    loses.innerHTML =
+      `<strong>This course has ${regCount} registration${regCount === 1 ? "" : "s"}.</strong>` +
+      `<ul>
+         <li>Participant names, emails and waiver records</li>
+         <li>Payment records and coach notes</li>
+       </ul>
+       Stripe keeps its own record of any money taken, but yours will be gone.`;
+    loses.classList.remove("hidden");
+  } else {
+    loses.innerHTML = "Nobody has registered, so nothing else is lost.";
+    loses.classList.remove("hidden");
+  }
+
+  $("del-input").value = "";
+  $("del-go").disabled = true;
+  $("del-msg").textContent = "";
+  $("delwrap").classList.remove("hidden");
+  setTimeout(() => $("del-input").focus(), 50);
+}
+
+function closeDelete() {
+  $("delwrap").classList.add("hidden");
+  pendingDelete = null;
+}
+
+$("del-cancel").addEventListener("click", closeDelete);
+$("delwrap").addEventListener("click", (e) => {
+  if (e.target === $("delwrap")) closeDelete();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("delwrap").classList.contains("hidden")) closeDelete();
+});
+
+$("del-input").addEventListener("input", () => {
+  $("del-go").disabled = $("del-input").value.trim().toUpperCase() !== "DELETE";
+});
+
+$("del-go").addEventListener("click", async () => {
+  if (!pendingDelete) return;
+  const course = pendingDelete;
+  const msg = $("del-msg");
+
+  $("del-go").disabled = true;
+  msg.className = "msg";
+  msg.textContent = "Deleting…";
+
+  try {
+    // Children first, so nothing is left pointing at a course that
+    // no longer exists.
+    const { data: regs } = await db.from("registrations")
+      .select("id").eq("course_id", course.id);
+
+    const ids = (regs || []).map((r) => r.id);
+    if (ids.length) {
+      const { error: payErr } = await db.from("payments")
+        .delete().in("registration_id", ids);
+      if (payErr) throw payErr;
+
+      const { error: regErr } = await db.from("registrations")
+        .delete().eq("course_id", course.id);
+      if (regErr) throw regErr;
+    }
+
+    const { error: csErr } = await db.from("course_staff")
+      .delete().eq("course_id", course.id);
+    if (csErr) throw csErr;
+
+    const { error } = await db.from("courses").delete().eq("id", course.id);
+    if (error) throw error;
+
+    closeDelete();
+    await loadCourses();
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = "Could not delete: " + (err.message || "unknown error");
+    $("del-go").disabled = false;
+  }
+});
 
 /* ---------------- attendees ---------------- */
 
@@ -1221,18 +1389,17 @@ function wireAdmin(course, totalRegs, liveRegs) {
     $("cancelbtn").disabled = false;
   };
 
-  // ---- archive and delete ----
+  // ---- archive, and delete once archived ----
   const archiveBtn = $("archivebtn");
   const deleteBtn = $("deletebtn");
   archiveBtn.textContent = course.archived ? "Restore from archive" : "Archive";
 
-  // A course with registrations is a financial record. It can be put
-  // out of the way, but it must never be destroyed.
-  const canDelete = totalRegs === 0;
-  deleteBtn.disabled = !canDelete;
-  $("adminwhy").textContent = canDelete
-    ? "Archiving hides a course and takes it off sale. Deleting is permanent."
-    : `This course has ${totalRegs} registration${totalRegs === 1 ? "" : "s"}, so it cannot be deleted — archive it instead.`;
+  // Deleting is only offered on something already put away — you
+  // cannot destroy a course that is still live by accident.
+  deleteBtn.classList.toggle("hidden", !isPast(course));
+  $("adminwhy").textContent = isPast(course)
+    ? "Deleting removes the course, its registrations and its payment records for good."
+    : "Archiving hides a course and takes it off sale. Delete becomes available once it is archived.";
 
   archiveBtn.onclick = async () => {
     const goingToArchive = !course.archived;
@@ -1258,26 +1425,7 @@ function wireAdmin(course, totalRegs, liveRegs) {
     await loadCourses();
   };
 
-  deleteBtn.onclick = async () => {
-    if (!canDelete) return;
-    if (!window.confirm(`Delete "${course.title}" permanently? This cannot be undone.`)) return;
-    if (!window.confirm("Last check — this removes the course and its link for good. Delete?")) return;
-
-    deleteBtn.disabled = true;
-    msg.className = "msg";
-    msg.textContent = "Deleting…";
-
-    await db.from("course_staff").delete().eq("course_id", course.id);
-    const { error } = await db.from("courses").delete().eq("id", course.id);
-
-    if (error) {
-      deleteBtn.disabled = false;
-      msg.className = "msg err";
-      msg.textContent = "Could not delete: " + error.message;
-      return;
-    }
-    await loadCourses();
-  };
+  deleteBtn.onclick = () => askToDelete(course);
 }
 
 function flash(el, text, isError = false) {
