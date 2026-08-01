@@ -45,6 +45,7 @@ export default async (req) => {
     });
 
     const details = full.customer_details || {};
+    const meta = full.metadata || {};
 
     // participant name comes from the explicit checkout fields.
     // Fall back to splitting the billing name only if they are missing.
@@ -62,21 +63,35 @@ export default async (req) => {
       ? new Date(full.created * 1000).toISOString()
       : null;
 
-    const { error } = await supabase.from("registrations").insert({
-      course_id: full.metadata.course_id,
-      first_name: firstName,
-      last_name: lastName,
-      email: details.email,
-      phone: details.phone || null,
-      country: details.address?.country || null,
-      waiver_signed_at: signedAt,
-      waiver_version: accepted ? full.metadata.waiver_version : null,
-      payment_status: "paid_in_full",
-      amount_paid_cents: full.amount_total,
-      currency: (full.currency || "eur").toUpperCase(),
-      stripe_customer_id: full.customer,
-      stripe_session_id: full.id,
-    });
+    const option = meta.payment_option || "full";
+    const balanceCents = Number(meta.balance_cents || 0);
+    const discountCents = Number(meta.discount_cents || 0);
+    const discountCode = meta.discount_code || null;
+
+    // A deposit is not full payment — the balance is still owed.
+    const paymentStatus = option === "deposit" ? "deposit_paid" : "paid_in_full";
+
+    const { data: registration, error } = await supabase
+      .from("registrations")
+      .insert({
+        course_id: meta.course_id,
+        first_name: firstName,
+        last_name: lastName,
+        email: details.email,
+        phone: details.phone || null,
+        country: details.address?.country || null,
+        waiver_signed_at: signedAt,
+        waiver_version: accepted ? meta.waiver_version : null,
+        payment_status: paymentStatus,
+        amount_paid_cents: full.amount_total,
+        currency: (full.currency || "eur").toUpperCase(),
+        stripe_customer_id: full.customer,
+        stripe_session_id: full.id,
+        discount_code: discountCode,
+        discount_cents: discountCents,
+      })
+      .select("id")
+      .single();
 
     if (error) {
       // 23514 = the capacity trigger fired: paid but no seat.
@@ -84,10 +99,48 @@ export default async (req) => {
       console.error("REGISTRATION FAILED AFTER PAYMENT", {
         session: full.id,
         email: details.email,
-        course: full.metadata.course_slug,
+        course: meta.course_slug,
         error,
       });
       return new Response("logged", { status: 200 });
+    }
+
+    // ---- money already taken, recorded as instalment 1 -------------
+    const intentId =
+      typeof full.payment_intent === "string"
+        ? full.payment_intent
+        : full.payment_intent?.id || null;
+
+    await addPayment({
+      registration_id: registration.id,
+      sequence: 1,
+      amount_cents: full.amount_total,
+      due_date: today(),
+      charged_at: new Date().toISOString(),
+      status: "paid",
+      stripe_payment_intent_id: intentId,
+    });
+
+    // ---- balance owed on a deposit, charged before the course ------
+    if (option === "deposit" && balanceCents > 0) {
+      await addPayment({
+        registration_id: registration.id,
+        sequence: 2,
+        amount_cents: balanceCents,
+        due_date: (meta.balance_due_at || "").slice(0, 10) || null,
+        status: "pending",
+      });
+    }
+
+    // ---- burn a redemption so single-use codes stop working --------
+    if (discountCode) {
+      const { error: bumpError } = await supabase.rpc(
+        "bump_discount_redemption",
+        { p_code: discountCode }
+      );
+      if (bumpError) {
+        console.error("Could not count discount redemption", discountCode, bumpError);
+      }
     }
 
     if (!accepted) {
@@ -101,5 +154,24 @@ export default async (req) => {
     return new Response("error", { status: 500 });
   }
 };
+
+// The payments.status enum is not one I can see from here, so if the
+// value is rejected the row is written without it and the column
+// default applies. A missing payment row must never lose a paid
+// registration, so failures are logged rather than thrown.
+async function addPayment(row) {
+  const { error } = await supabase.from("payments").insert(row);
+  if (!error) return;
+
+  const { status, ...withoutStatus } = row;
+  const retry = await supabase.from("payments").insert(withoutStatus);
+  if (retry.error) {
+    console.error("Could not write payment row", row, retry.error);
+  }
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export const config = { path: "/api/stripe-webhook" };
