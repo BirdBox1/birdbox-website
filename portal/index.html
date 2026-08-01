@@ -172,16 +172,20 @@
   }
   .pill.on   { border-color: var(--good); color: var(--good); }
   .pill.warn { border-color: var(--warn); color: var(--warn); }
+  .pill.bad  { border-color: var(--bad); color: var(--bad); font-weight: 650; }
   .pill.draft{ border-color: var(--muted); color: var(--muted); }
 
   /* ---------------- attendees ---------------- */
   .attendee { padding: 0.9rem 1.05rem; border-bottom: 1px solid var(--rule); }
   .attendee:last-child { border-bottom: 0; }
+  .attendee.chase { border-left: 3px solid var(--bad); }
   .attendee .row1 {
     display: flex; align-items: center; gap: 0.75rem; justify-content: space-between;
   }
   .attendee .name { font-weight: 650; }
   .attendee .contact { font-size: 0.84rem; color: var(--muted); word-break: break-all; }
+  .attendee .money { font-size: 0.82rem; color: var(--muted); margin-top: 0.3rem; }
+  .attendee .money.chase { color: var(--bad); font-weight: 600; }
   .check { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
   .check input { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); }
   .notes {
@@ -196,6 +200,7 @@
     padding: 2rem 1.25rem; text-align: center; color: var(--muted); font-size: 0.9rem;
   }
   .counts { font-size: 0.85rem; color: var(--muted); margin-bottom: 1rem; }
+  .counts .chase { color: var(--bad); font-weight: 650; }
 
   /* ---------------- form ---------------- */
   .panel {
@@ -469,8 +474,8 @@
             <input id="f-price" type="number" min="0" step="1" placeholder="640">
           </div>
           <div class="field">
-            <label for="f-deposit">Deposit <span class="hint">blank for none</span></label>
-            <input id="f-deposit" type="number" min="0" step="1" placeholder="200">
+            <label for="f-deposit">Deposit <span class="hint">blank for the standard 25%</span></label>
+            <input id="f-deposit" type="number" min="0" step="1" placeholder="25% of the price">
           </div>
         </div>
       </div>
@@ -597,6 +602,15 @@ const fmtDate = (iso) => iso
   ? new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
   : "";
 
+const fmtDay = (d) => d
+  ? new Date(d + "T00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" })
+  : "";
+
+const money = (cents, currency) =>
+  new Intl.NumberFormat(undefined, {
+    style: "currency", currency: currency || "EUR", maximumFractionDigits: 0,
+  }).format((cents || 0) / 100);
+
 $("newcourse").addEventListener("click", openForm);
 $("back").addEventListener("click", loadCourses);
 $("back2").addEventListener("click", loadCourses);
@@ -670,6 +684,15 @@ async function loadCourses() {
 
 /* ---------------- attendees ---------------- */
 
+const PAY_LABEL = {
+  paid_in_full: "paid in full",
+  deposit_paid: "deposit paid",
+  plan_active:  "payment plan",
+  pending:      "payment pending",
+  refunded:     "refunded",
+  failed:       "payment failed",
+};
+
 async function openCourse(course) {
   show("course");
   $("course-title").textContent = course.title;
@@ -682,7 +705,7 @@ async function openCourse(course) {
   box.innerHTML = '<p class="empty">Loading…</p>';
 
   const { data, error } = await db.from("registrations")
-    .select("id, first_name, last_name, email, phone, payment_status, attended, coach_notes, waiver_signed_at")
+    .select("id, first_name, last_name, email, phone, payment_status, attended, coach_notes, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents")
     .eq("course_id", course.id)
     .order("last_name", { ascending: true });
 
@@ -691,13 +714,31 @@ async function openCourse(course) {
   const regs = data || [];
   if (!regs.length) { box.innerHTML = '<p class="empty">No registrations yet.</p>'; return; }
 
-  const paid = regs.filter((r) => r.payment_status === "paid_in_full").length;
-  $("counts").textContent = `${regs.length} of ${course.capacity} places · ${paid} paid in full`;
+  // Instalments, so we can show what is still owed and what has failed.
+  const byReg = {};
+  const { data: pays } = await db.from("payments")
+    .select("registration_id, sequence, amount_cents, due_date, status, last_error")
+    .in("registration_id", regs.map((r) => r.id));
+  for (const p of pays || []) {
+    (byReg[p.registration_id] = byReg[p.registration_id] || []).push(p);
+  }
+
+  let paid = 0, owing = 0, chasing = 0;
 
   box.innerHTML = "";
   for (const r of regs) {
+    const rows = byReg[r.id] || [];
+    const outstanding = rows.filter((p) => p.sequence > 1 && p.status !== "paid");
+    const failed = outstanding.filter((p) => p.status === "failed");
+    const owed = outstanding.reduce((sum, p) => sum + (p.amount_cents || 0), 0);
+
+    const needsChasing = failed.length > 0 || r.payment_status === "failed";
+    if (r.payment_status === "paid_in_full") paid++;
+    else if (owed > 0) owing++;
+    if (needsChasing) chasing++;
+
     const el = document.createElement("div");
-    el.className = "attendee";
+    el.className = "attendee" + (needsChasing ? " chase" : "");
     el.innerHTML = `
       <div class="row1">
         <div>
@@ -707,20 +748,49 @@ async function openCourse(course) {
         <label class="check"><input type="checkbox"> Attended</label>
       </div>
       <div class="flags" style="margin-top:0.35rem"></div>
+      <div class="money"></div>
       <textarea class="notes" placeholder="End-of-seminar notes for this participant…"></textarea>`;
 
     el.querySelector(".name").textContent = `${r.first_name} ${r.last_name}`;
     el.querySelector(".contact").textContent = [r.email, r.phone].filter(Boolean).join(" · ");
 
     const flags = el.querySelector(".flags");
-    const pay = document.createElement("span");
-    pay.className = "pill" + (r.payment_status === "paid_in_full" ? " on" : "");
-    pay.textContent = (r.payment_status || "").replace(/_/g, " ");
-    flags.appendChild(pay);
-    if (!r.waiver_signed_at) {
-      const w = document.createElement("span");
-      w.className = "pill warn"; w.textContent = "no waiver"; flags.appendChild(w);
+    const addPill = (text, cls = "") => {
+      const s = document.createElement("span");
+      s.className = "pill " + cls; s.textContent = text; flags.appendChild(s);
+    };
+
+    const status = r.payment_status || "";
+    addPill(
+      PAY_LABEL[status] || status.replace(/_/g, " "),
+      status === "paid_in_full" ? "on"
+        : status === "refunded" || status === "failed" ? "bad"
+        : "warn"
+    );
+    if (failed.length) addPill("balance failed", "bad");
+    if (!r.waiver_signed_at) addPill("no waiver", "warn");
+
+    // What is still owed, and when it will be taken.
+    const line = el.querySelector(".money");
+    const bits = [];
+    if (owed > 0) {
+      const next = outstanding[0];
+      bits.push(
+        failed.length
+          ? `${money(owed, r.currency)} outstanding — payment failed, needs chasing`
+          : `${money(owed, r.currency)} balance, charged automatically ${fmtDay(next.due_date)}`
+      );
     }
+    if (me.role === "admin") {
+      bits.push(`${money(r.amount_paid_cents, r.currency)} received`);
+      if (r.discount_code) {
+        bits.push(`code ${r.discount_code} (−${money(r.discount_cents, r.currency)})`);
+      }
+    }
+    if (failed.length && failed[0].last_error) bits.push(failed[0].last_error);
+    line.textContent = bits.join(" · ");
+    line.classList.toggle("chase", needsChasing);
+    if (!bits.length) line.remove();
 
     const cb = el.querySelector("input[type=checkbox]");
     cb.checked = !!r.attended;
@@ -745,6 +815,17 @@ async function openCourse(course) {
     });
 
     box.appendChild(el);
+  }
+
+  const counts = $("counts");
+  counts.textContent =
+    `${regs.length} of ${course.capacity} places · ${paid} paid in full` +
+    (owing ? ` · ${owing} awaiting balance` : "");
+  if (chasing) {
+    const s = document.createElement("span");
+    s.className = "chase";
+    s.textContent = ` · ${chasing} needs chasing`;
+    counts.appendChild(s);
   }
 }
 
@@ -804,10 +885,18 @@ function buildSlug() {
     const d = new Date(start + "T00:00");
     stamp = String(d.getMonth() + 1).padStart(2, "0") + String(d.getFullYear()).slice(-2);
   }
-  const wname = $("f-type").value === "workshop"
-    ? ($("f-workshop").value || "").trim().toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24)
-    : "";
+  // cut the workshop name at a word boundary, never mid-word
+  let wname = "";
+  if ($("f-type").value === "workshop") {
+    const words = ($("f-workshop").value || "").trim().toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).filter(Boolean);
+    const kept = [];
+    for (const w of words) {
+      if ([...kept, w].join("-").length > 24) break;
+      kept.push(w);
+    }
+    wname = kept.join("-");
+  }
   $("f-slug").value = [brand, level, wname, city, stamp].filter(Boolean).join("-");
 }
 ["f-brand", "f-level", "f-city", "f-date", "f-workshop"].forEach((id) =>
