@@ -45,15 +45,7 @@
 
   .wrap { max-width: 44rem; margin: 0 auto; padding: 0 1.25rem 5rem; }
 
-  .band {
-    position: relative; margin: 0 -1.25rem; padding: 2.4rem 1.25rem 2rem;
-    background: var(--shell) center 40% / cover no-repeat; color: #fff;
-  }
-  .band::before {
-    content: ""; position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(13,14,16,.55), rgba(16,18,21,.94));
-  }
-  .band > * { position: relative; }
+  .head { padding: 2.25rem 0 0; }
 
   .badge {
     display: inline-flex; align-items: center; gap: 0.5rem;
@@ -67,8 +59,8 @@
     font-size: clamp(1.5rem, 5.5vw, 2.15rem); line-height: 1.15;
     letter-spacing: -0.025em; font-weight: 650; margin: 0.85rem 0 0.5rem;
   }
-  .band .facts { color: #cfd3d7; font-size: 0.95rem; margin: 0 0 0.35rem; }
-  .band .facts strong { color: #fff; font-weight: 600; }
+  .facts { color: var(--muted); font-size: 0.95rem; margin: 0 0 0.35rem; }
+  .facts strong { color: var(--ink); font-weight: 600; }
 
   .buy {
     background: var(--panel);
@@ -113,8 +105,13 @@
   .spec b { color: var(--ink); font-weight: 650; }
   .spec img.ceu { width: 54px; height: 54px; object-fit: contain; }
 
-  .video { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 6px; overflow: hidden; }
+  .video {
+    position: relative; aspect-ratio: 16 / 9; background: #000;
+    border-radius: 6px; overflow: hidden;
+  }
   .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  /* blocks clicks through to YouTube titles and end cards */
+  .video .shield { position: absolute; inset: 0; }
 
   .venue {
     background: var(--panel);
@@ -161,7 +158,7 @@
   </div>
 
   <main id="course" class="hidden">
-    <div class="band" id="band">
+    <div class="head">
       <span class="badge" id="badge"><img id="badgeicon" alt=""><span id="badgetext"></span></span>
       <h1 id="title"></h1>
       <p class="facts" id="when"></p>
@@ -204,9 +201,12 @@
 
     <div id="videowrap" class="hidden">
       <h2>Watch</h2>
-      <div class="video"><iframe id="video" title="Course video"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen loading="lazy"></iframe></div>
+      <div class="video">
+        <iframe id="video" title="Course video"
+          allow="autoplay; encrypted-media; picture-in-picture"
+          allowfullscreen loading="lazy"></iframe>
+        <div class="shield"></div>
+      </div>
     </div>
 
     <div id="includedwrap" class="hidden">
@@ -271,10 +271,7 @@ async function load() {
   document.title = course.title + " — BirdBox Coaching";
 
   const bg = tpl && tpl.background_url;
-  if (bg) {
-    $("band").style.backgroundImage = "url('" + bg + "')";
-    $("wash").style.backgroundImage = "url('" + bg + "')";
-  }
+  if (bg) $("wash").style.backgroundImage = "url('" + bg + "')";
 
   $("badgeicon").src = b.icon;
   $("badgetext").textContent =
@@ -320,11 +317,11 @@ async function load() {
     $("register").textContent = "Fully booked";
   }
 
-  // Spec chips
+  // Spec chips — CEUs last so the CrossFit seal sits beside them.
   const specs = [];
-  if (tpl && tpl.ceus) specs.push(["CrossFit CEUs", tpl.ceus]);
-  if (tpl && tpl.prerequisites) specs.push(["Prerequisite", tpl.prerequisites]);
   specs.push(["Language", LANG[course.language] || course.language || "English"]);
+  if (tpl && tpl.prerequisites) specs.push(["Prerequisite", tpl.prerequisites]);
+  if (tpl && tpl.ceus) specs.push(["CrossFit CEUs", tpl.ceus]);
   for (const [label, value] of specs) {
     const el = document.createElement("span");
     el.innerHTML = label + " <b></b>";
@@ -404,12 +401,17 @@ async function loadTemplate(course) {
   return pool.find((t) => lang(t.language) === lang(course.language)) || pool[0];
 }
 
+// Silent, looping, chrome-free playback.
 function embedUrl(url) {
   if (!url) return null;
+  const opts = (id) =>
+    "?autoplay=1&mute=1&loop=1&playlist=" + id +
+    "&controls=0&modestbranding=1&rel=0&disablekb=1&playsinline=1&iv_load_policy=3";
   const yt = String(url).match(/(?:youtu\.be\/|v=|youtube\.com\/embed\/)([A-Za-z0-9_-]{6,})/);
-  if (yt) return "https://www.youtube.com/embed/" + yt[1];
+  if (yt) return "https://www.youtube-nocookie.com/embed/" + yt[1] + opts(yt[1]);
   const vm = String(url).match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  if (vm) return "https://player.vimeo.com/video/" + vm[1];
+  if (vm) return "https://player.vimeo.com/video/" + vm[1] +
+    "?autoplay=1&muted=1&loop=1&background=1";
   return null;
 }
 
