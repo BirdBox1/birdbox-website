@@ -16,12 +16,6 @@
     --good:   #1f8a54;
     --warn:   #b4610f;
     --bad:    #b3261e;
-
-    --birdbox: #2f7fd0;
-    --tcc:     #2f7fd0;
-    --tgc:     #9e2029;
-    --tec:     #1c6b3f;
-    --twc:     #e8a317;
   }
 
   *, *::before, *::after { box-sizing: border-box; }
@@ -146,11 +140,13 @@
   .card {
     background: var(--card); border: 1px solid var(--rule);
     border-radius: 6px; margin-bottom: 0.7rem; overflow: hidden;
+    display: flex; align-items: stretch;
+    border-left: 3px solid var(--rule);
   }
   .course {
     display: grid; grid-template-columns: 44px 1fr; gap: 0.9rem;
-    width: 100%; text-align: left; font: inherit;
-    background: none; border: 0; border-left: 3px solid var(--rule);
+    flex: 1 1 auto; min-width: 0; text-align: left; font: inherit;
+    background: none; border: 0;
     padding: 0.95rem 1.05rem; cursor: pointer;
   }
   .course:hover { background: #faf9f7; }
@@ -167,18 +163,32 @@
   .course .title { font-weight: 650; letter-spacing: -0.01em; }
   .course .when { font-size: 0.82rem; color: var(--muted); white-space: nowrap; }
   .course .line { font-size: 0.85rem; color: var(--muted); margin-top: 0.1rem; }
-  .course .flags { margin-top: 0.4rem; }
+  .course .flags { margin-top: 0.4rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
 
-  .pill {
-    display: inline-block; font-size: 0.65rem; letter-spacing: 0.1em;
-    text-transform: uppercase; padding: 0.12rem 0.45rem;
-    border: 1px solid var(--rule); border-radius: 2px; color: var(--muted);
-    margin-right: 0.35rem;
+  /* quick share, sits to the right of every course */
+  .copy {
+    flex: none; width: 3.4rem; font: inherit; font-size: 0.68rem;
+    letter-spacing: 0.06em; text-transform: uppercase; font-weight: 650;
+    background: none; color: var(--muted);
+    border: 0; border-left: 1px solid var(--rule); cursor: pointer;
   }
-  .pill.on   { border-color: var(--good); color: var(--good); }
+  .copy:hover { background: #faf9f7; color: var(--ink); }
+  .copy.done { color: var(--good); }
+
+  .tag {
+    display: inline-block; font-size: 0.66rem; letter-spacing: 0.09em;
+    text-transform: uppercase; padding: 0.18rem 0.5rem;
+    border-radius: 3px; color: #fff; font-weight: 700;
+  }
+  .pill {
+    display: inline-block; font-size: 0.66rem; letter-spacing: 0.09em;
+    text-transform: uppercase; padding: 0.16rem 0.45rem;
+    border: 1px solid var(--rule); border-radius: 3px; color: var(--muted);
+  }
   .pill.warn { border-color: var(--warn); color: var(--warn); }
   .pill.bad  { border-color: var(--bad); color: var(--bad); font-weight: 650; }
   .pill.draft{ border-color: var(--muted); color: var(--muted); }
+  .pill.on   { border-color: var(--good); color: var(--good); }
 
   /* ---------------- attendees ---------------- */
   .attendee { padding: 0.9rem 1.05rem; border-bottom: 1px solid var(--rule); }
@@ -199,6 +209,11 @@
     min-height: 3.2rem;
   }
   .saved { font-size: 0.75rem; color: var(--good); margin-left: 0.5rem; }
+
+  .attendees-card {
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: 6px; overflow: hidden;
+  }
 
   .empty {
     background: var(--card); border: 1px dashed var(--rule); border-radius: 6px;
@@ -305,7 +320,7 @@
     <h2 id="course-title"></h2>
     <p class="sub" id="course-meta"></p>
     <p class="counts" id="counts"></p>
-    <div class="card" id="attendees"></div>
+    <div class="attendees-card" id="attendees"></div>
   </div>
 </section>
 
@@ -530,6 +545,27 @@ const BRAND = {
   twc:     { icon: "/brand/twc.png",     colour: "#e8a317", label: "TWC",     slug: "twc" },
 };
 
+// One tag per course, so a coach can tell L1 from L2 from a workshop
+// at a glance. TGC stays in the red family; other brands keep theirs.
+const TAG_COLOUR = {
+  "tgc:1":        "#6d101a",  // dark burgundy
+  "tgc:2":        "#b02a33",  // brighter red
+  "tgc:workshop": "#e23b32",  // lighter, electric
+};
+
+function tagFor(course) {
+  const b = BRAND[course.brand] || BRAND.birdbox;
+  const lvl = String(course.level || "").replace(/\D/g, "");
+  const isWorkshop = course.type === "workshop";
+
+  const text = isWorkshop
+    ? `${b.label} Workshop`
+    : lvl ? `${b.label} L${lvl}` : b.label;
+
+  const key = isWorkshop ? `${course.brand}:workshop` : `${course.brand}:${lvl}`;
+  return { text, colour: TAG_COLOUR[key] || b.colour };
+}
+
 const $ = (id) => document.getElementById(id);
 const views = {
   login:   $("view-login"),
@@ -654,10 +690,13 @@ async function loadCourses() {
   list.innerHTML = "";
   for (const c of courses) {
     const b = BRAND[c.brand] || BRAND.birdbox;
+    const tag = tagFor(c);
+
     const el = document.createElement("div");
     el.className = "card";
+    el.style.borderLeftColor = tag.colour;
     el.innerHTML = `
-      <button class="course" type="button" style="border-left-color:${b.colour}">
+      <button class="course" type="button">
         <span class="icon"><img alt=""></span>
         <span>
           <span class="top">
@@ -667,7 +706,9 @@ async function loadCourses() {
           <span class="line"></span>
           <span class="flags"></span>
         </span>
-      </button>`;
+      </button>
+      <button class="copy" type="button" title="Copy the registration link">Copy<br>link</button>`;
+
     el.querySelector(".icon img").src = b.icon;
     el.querySelector(".title").textContent = c.title;
     el.querySelector(".when").textContent = fmtDate(c.starts_at);
@@ -675,17 +716,41 @@ async function loadCourses() {
       [c.city, c.country].filter(Boolean).join(", ") || "Location to be confirmed";
 
     const flags = el.querySelector(".flags");
+
+    const t = document.createElement("span");
+    t.className = "tag";
+    t.style.background = tag.colour;
+    t.textContent = tag.text;
+    flags.append(t);
+
     const add = (text, cls = "") => {
       const s = document.createElement("span");
-      s.className = "pill " + cls; s.textContent = text; flags.appendChild(s);
+      s.className = "pill " + cls; s.textContent = text; flags.append(s);
     };
-    add(b.label);
-    if (c.level) add(c.level);
     if (c.status === "full") add("full", "warn");
     if (c.status === "draft") add("draft", "draft");
     if (c.status === "cancelled") add("cancelled", "warn");
 
     el.querySelector(".course").addEventListener("click", () => openCourse(c));
+
+    const copyBtn = el.querySelector(".copy");
+    copyBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const url = `${location.origin}/c/${c.slug}/`;
+      try {
+        await navigator.clipboard.writeText(url);
+        copyBtn.classList.add("done");
+        copyBtn.innerHTML = "Copied";
+      } catch {
+        // clipboard blocked — show the link so it can be copied by hand
+        window.prompt("Copy this link", url);
+      }
+      setTimeout(() => {
+        copyBtn.classList.remove("done");
+        copyBtn.innerHTML = "Copy<br>link";
+      }, 1800);
+    });
+
     list.appendChild(el);
   }
 }
@@ -755,7 +820,7 @@ async function openCourse(course) {
         </div>
         <label class="check"><input type="checkbox"> Attended</label>
       </div>
-      <div class="flags" style="margin-top:0.35rem"></div>
+      <div class="flags" style="margin-top:0.35rem;display:flex;gap:0.35rem;flex-wrap:wrap"></div>
       <div class="money"></div>
       <textarea class="notes" placeholder="End-of-seminar notes for this participant…"></textarea>`;
 
@@ -941,7 +1006,7 @@ async function saveCourse() {
   if (!slug)   { msg.className = "msg err"; msg.textContent = "Add a link."; return; }
 
   // Title: the city is shown under the date on the course page and in
-  // the venue block, so it never goes in the title as well.
+  // the venue block, so it never goes in a workshop title as well.
   const wname = $("f-workshop").value.trim();
   const level = $("f-level").value;
   const label = BRAND[brand]?.label || "BirdBox";
