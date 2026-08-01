@@ -1,0 +1,124 @@
+// netlify/functions/validate-discount.mjs
+//
+// POST { slug: "tgc-l1-london-nov", code: "GROUP5" }
+//   -> { ok: true, code, label, discount_cents, total_cents, deposit_cents }
+//   -> { ok: false, error: "..." }
+//
+// Runs server-side using the service key. The discount_codes table has
+// no public read policy on purpose — if the browser could query it,
+// anyone could list every live code.
+
+import { createClient } from "@supabase/supabase-js";
+
+// Must match create-checkout.mjs
+const DEPOSIT_RATE = 0.25;
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  { auth: { persistSession: false } }
+);
+
+export default async (req) => {
+  if (req.method !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+
+  try {
+    const { slug, code } = await req.json();
+    if (!slug || !code) return json({ ok: false, error: "Missing details" }, 400);
+
+    const { data: course } = await supabase
+      .from("courses")
+      .select("id, brand, type, price_cents, deposit_cents, currency, status")
+      .eq("slug", slug)
+      .single();
+
+    if (!course) return json({ ok: false, error: "Course not found" }, 404);
+
+    const result = await priceWithDiscount(course, code);
+    if (result.error) return json({ ok: false, error: result.error }, 200);
+
+    return json({
+      ok: true,
+      code: result.row.code,
+      label: result.row.label || null,
+      discount_cents: result.discount,
+      total_cents: result.total,
+      deposit_cents: result.deposit,
+    });
+  } catch (err) {
+    console.error("validate-discount failed:", err);
+    return json({ ok: false, error: "Could not check that code" }, 500);
+  }
+};
+
+// Shared by create-checkout so the price is never trusted from the browser.
+export async function priceWithDiscount(course, code) {
+  const clean = String(code || "").trim();
+  if (!clean) return { error: "Enter a code" };
+
+  const { data: rows } = await supabase
+    .from("discount_codes")
+    .select("*")
+    .ilike("code", clean);
+
+  const row = rows && rows[0];
+  if (!row) return { error: "That code isn't recognised" };
+  if (!row.active) return { error: "That code is no longer active" };
+
+  const now = new Date();
+  if (row.starts_at && new Date(row.starts_at) > now) {
+    return { error: "That code isn't active yet" };
+  }
+  if (row.expires_at && new Date(row.expires_at) < now) {
+    return { error: "That code has expired" };
+  }
+  if (row.max_redemptions !== null && row.times_redeemed >= row.max_redemptions) {
+    return { error: "That code has already been used" };
+  }
+  if (row.brand && row.brand !== course.brand) {
+    return { error: "That code doesn't apply to this course" };
+  }
+  if (row.course_type && row.course_type !== course.type) {
+    return { error: "That code doesn't apply to this course" };
+  }
+  if (row.course_id && row.course_id !== course.id) {
+    return { error: "That code doesn't apply to this course" };
+  }
+
+  const full = course.price_cents;
+  let discount = 0;
+
+  if (row.kind === "percent") {
+    discount = Math.round(full * (Number(row.percent_off) / 100));
+  } else {
+    // A fixed credit only makes sense in the currency it was issued in.
+    if (String(row.currency).toUpperCase() !== String(course.currency).toUpperCase()) {
+      return { error: "That credit is in a different currency to this course" };
+    }
+    discount = row.amount_off_cents;
+  }
+
+  if (discount > full) discount = full;
+  const total = full - discount;
+
+  if (total < 100) {
+    return { error: "That code cannot be used on this course" };
+  }
+
+  // Deposit is recalculated off the discounted total, so a 25% code
+  // does not leave someone paying a deposit against the old price.
+  const deposit = course.deposit_cents
+    ? Math.min(course.deposit_cents, total)
+    : Math.round(total * DEPOSIT_RATE);
+
+  return { row, discount, total, deposit };
+}
+
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
