@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 40rem;
+           margin: 4rem auto; padding: 0 1.5rem; }
+    button { font-size: 1.1rem; padding: 0.9rem 1.6rem; cursor: pointer;
+             background: #111; color: #fff; border: 0; border-radius: 6px; }
+    button[disabled] { opacity: 0.5; }
+    pre { background: #f4f4f4; padding: 1rem; border-radius: 6px;
+          white-space: pre-wrap; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <h1>Checkout test</h1>
+  <p>Course slug: <code>tcc-l1-dublin-test</code></p>
+  <button id="buy">Register — €10</button>
+  <pre id="out"></pre>
+
+  <script>
+    const btn = document.getElementById('buy');
+    const out = document.getElementById('out');
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      out.textContent = 'Creating checkout session…';
+      try {
+        const res = await fetch('/.netlify/functions/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug: 'tcc-l1-dublin-test' })
+        });
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          out.textContent = 'Error ' + res.status + '\n' + JSON.stringify(data, null, 2);
+          btn.disabled = false;
+        }
+      } catch (err) {
+        out.textContent = 'Request failed: ' + err.message;
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
