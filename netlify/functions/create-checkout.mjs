@@ -21,6 +21,9 @@ const DEPOSIT_RATE = 0.25;
 // the course starts, so nobody attends without having paid.
 const BALANCE_DAYS_BEFORE = 14;
 
+// Stripe rejects a custom field label longer than this.
+const LABEL_MAX = 50;
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const supabase = createClient(
@@ -151,19 +154,20 @@ export default async (req) => {
 
     // A prerequisite cannot be enforced, but it can be declared —
     // which gives us a record and flags anyone who needs approving.
+    // Stripe allows three custom fields, and this is the third.
     if (prerequisite) {
       customFields.push({
         key: "prereq",
         label: {
           type: "custom",
-          custom: `Have you completed ${prerequisite} in the last 5 years?`,
+          custom: clip(`Completed ${prerequisite} within 5 years?`),
         },
         type: "dropdown",
         optional: false,
         dropdown: {
           options: [
             { label: "Yes", value: "yes" },
-            { label: "No — please contact me", value: "no" },
+            { label: "Not yet - please contact me", value: "no" },
           ],
         },
       });
@@ -248,8 +252,10 @@ export default async (req) => {
     const created = await stripe.checkout.sessions.create(session);
     return json({ url: created.url });
   } catch (err) {
+    // Stripe's own message is far more useful than a generic one when
+    // a field is malformed, so pass it back rather than swallowing it.
     console.error("create-checkout failed:", err);
-    return json({ error: "Could not start checkout" }, 500);
+    return json({ error: err.message || "Could not start checkout" }, 500);
   }
 };
 
@@ -271,6 +277,10 @@ async function prerequisiteFor(course) {
   const pre = (match.prerequisites || "").trim();
   if (!pre || pre.toLowerCase() === "none") return null;
   return pre;
+}
+
+function clip(text) {
+  return text.length <= LABEL_MAX ? text : text.slice(0, LABEL_MAX - 1) + "?";
 }
 
 function json(body, status = 200) {
