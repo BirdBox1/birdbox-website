@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Discount codes — BirdBox Coaching</title>
+<style>
+  :root {
+    --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+    --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0;
+    --good:#1f8a54; --warn:#b4610f; --bad:#b3261e;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+
+  .bar{background:var(--shell);color:#fff;padding:0.7rem 1.25rem;
+    display:flex;align-items:center;justify-content:space-between;gap:1rem}
+  .bar .left{display:flex;align-items:center;gap:0.75rem}
+  .mark{width:34px;height:34px;border-radius:4px;background:#fff;
+    display:grid;place-items:center;flex:none}
+  .mark img{width:26px;height:26px;object-fit:contain}
+  .brandname{font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;color:#9aa1a9}
+  .bar a{color:#cfd4d9;font-size:0.85rem;text-decoration:none}
+  .bar a:hover{color:#fff}
+
+  .wrap{max-width:52rem;margin:0 auto;padding:1.5rem 1.25rem 4rem}
+  h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0 0 0.2rem;font-weight:600}
+  .sub{color:var(--muted);font-size:0.9rem;margin:0 0 1.5rem}
+  h2{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 1rem;font-weight:600}
+
+  label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.3rem}
+  .hint{font-weight:400;color:var(--muted);font-size:0.78rem}
+  input,select{width:100%;font:inherit;padding:0.55rem 0.65rem;
+    border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink)}
+  input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .field{margin-bottom:1rem}
+  .grid2{display:grid;gap:1rem;grid-template-columns:1fr}
+  @media(min-width:34rem){.grid2{grid-template-columns:1fr 1fr}}
+
+  .panel{background:var(--card);border:1px solid var(--rule);
+    border-radius:6px;padding:1.25rem;margin-bottom:1.25rem}
+
+  .btn{font:inherit;font-weight:600;background:var(--ink);color:#fff;
+    border:0;border-radius:4px;padding:0.6rem 1.1rem;cursor:pointer}
+  .btn:hover{background:#000}
+  .btn[disabled]{opacity:0.5;cursor:default}
+  .btn.wide{width:100%}
+  .btn.ghost{background:none;color:var(--ink);border:1px solid var(--rule);font-weight:500}
+  .btn.small{font-size:0.8rem;padding:0.35rem 0.7rem}
+
+  .msg{font-size:0.85rem;margin-top:0.9rem;min-height:1.2em}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+
+  .code{border-bottom:1px solid var(--rule);padding:0.9rem 0}
+  .code:last-child{border-bottom:0}
+  .code .top{display:flex;align-items:baseline;gap:0.6rem;flex-wrap:wrap}
+  .code .name{font-weight:700;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:1.02rem;letter-spacing:0.04em}
+  .code .off{font-weight:650}
+  .code .label{color:var(--muted);font-size:0.88rem}
+  .code .meta{color:var(--muted);font-size:0.84rem;margin-top:0.2rem}
+  .code .actions{margin-top:0.5rem}
+
+  .pill{display:inline-block;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;
+    padding:0.12rem 0.45rem;border:1px solid var(--rule);border-radius:2px;
+    color:var(--muted);margin-left:0.35rem}
+  .pill.on{border-color:var(--good);color:var(--good)}
+  .pill.off{border-color:var(--bad);color:var(--bad)}
+  .pill.warn{border-color:var(--warn);color:var(--warn)}
+
+  .empty{background:var(--card);border:1px dashed var(--rule);border-radius:6px;
+    padding:2rem 1.25rem;text-align:center;color:var(--muted);font-size:0.9rem}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="left">
+    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+    <span class="brandname">Discount codes</span>
+  </span>
+  <a href="/portal/">← Back to portal</a>
+</div>
+
+<div class="wrap">
+  <div id="gate" class="empty">Checking your access…</div>
+
+  <div id="app" class="hidden">
+    <h1>Discount codes</h1>
+    <p class="sub">Codes are typed in at registration. The price is always recalculated on our
+      side, so a code can never be edited into a bigger discount by the customer.</p>
+
+    <div class="panel">
+      <h2>New code</h2>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="f-code">Code <span class="hint">what they type in</span></label>
+          <input id="f-code" type="text" autocapitalize="characters" spellcheck="false"
+                 placeholder="GROUP5" style="text-transform:uppercase">
+          <button class="btn ghost small" id="gen" type="button" style="margin-top:0.4rem">Generate one</button>
+        </div>
+        <div class="field">
+          <label for="f-label">Internal note <span class="hint">never shown to customers</span></label>
+          <input id="f-label" type="text" placeholder="Group of 5 — Madrid November">
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="f-kind">Type of discount</label>
+          <select id="f-kind">
+            <option value="percent">Percentage off</option>
+            <option value="amount">Fixed amount off</option>
+          </select>
+        </div>
+        <div class="field" id="wrap-percent">
+          <label for="f-percent">Percent off</label>
+          <input id="f-percent" type="number" min="1" max="100" step="1" placeholder="25">
+        </div>
+        <div class="field hidden" id="wrap-amount">
+          <label for="f-amount">Amount off <span class="hint">whole units</span></label>
+          <input id="f-amount" type="number" min="1" step="1" placeholder="150">
+        </div>
+      </div>
+
+      <div class="field hidden" id="wrap-currency">
+        <label for="f-currency">Currency <span class="hint">a fixed amount only works on courses priced in this currency</span></label>
+        <select id="f-currency">
+          <option value="EUR">EUR</option>
+          <option value="GBP">GBP</option>
+          <option value="USD">USD</option>
+          <option value="AUD">AUD</option>
+          <option value="CAD">CAD</option>
+        </select>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="f-brand">Valid on brand</label>
+          <select id="f-brand">
+            <option value="">Any brand</option>
+            <option value="tcc">TCC</option>
+            <option value="tgc">TGC</option>
+            <option value="tec">TEC</option>
+            <option value="twc">TWC</option>
+            <option value="birdbox">BirdBox</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-type">Valid on type</label>
+          <select id="f-type">
+            <option value="">Any type</option>
+            <option value="live_seminar">Live seminar</option>
+            <option value="workshop">Workshop</option>
+            <option value="online_course">Online course</option>
+            <option value="mentorship">Mentorship</option>
+            <option value="programming">Programming</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="f-course">Valid on one course only <span class="hint">optional</span></label>
+        <select id="f-course"><option value="">Any course</option></select>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="f-max">Number of uses <span class="hint">blank for unlimited</span></label>
+          <input id="f-max" type="number" min="1" step="1" placeholder="unlimited">
+        </div>
+        <div class="field">
+          <label for="f-expires">Expires <span class="hint">blank for never</span></label>
+          <input id="f-expires" type="date">
+        </div>
+      </div>
+
+      <button class="btn wide" id="save" type="button">Create code</button>
+      <p class="msg" id="form-msg"></p>
+    </div>
+
+    <div class="panel">
+      <h2>Existing codes</h2>
+      <div id="list"><p class="empty">Loading…</p></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const $ = (id) => document.getElementById(id);
+
+start();
+
+async function start() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) {
+    $("gate").innerHTML =
+      'You are not signed in. <a href="/portal/">Sign in to the portal</a> first, then come back.';
+    return;
+  }
+
+  const { data: staff } = await db
+    .from("staff").select("id, full_name, role, active")
+    .eq("id", session.user.id).maybeSingle();
+
+  if (!staff || !staff.active) {
+    $("gate").textContent = "This account is not an active staff member.";
+    return;
+  }
+  if (staff.role !== "admin") {
+    $("gate").textContent = "Only admins can manage discount codes.";
+    return;
+  }
+
+  $("gate").classList.add("hidden");
+  $("app").classList.remove("hidden");
+
+  await loadCourses();
+  await loadCodes();
+}
+
+// ---------------- form behaviour ----------------
+
+$("f-kind").addEventListener("change", () => {
+  const isAmount = $("f-kind").value === "amount";
+  $("wrap-percent").classList.toggle("hidden", isAmount);
+  $("wrap-amount").classList.toggle("hidden", !isAmount);
+  $("wrap-currency").classList.toggle("hidden", !isAmount);
+});
+
+$("gen").addEventListener("click", () => {
+  // no 0/O or 1/I — these get read out over the phone
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < 8; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  $("f-code").value = out;
+});
+
+async function loadCourses() {
+  const { data } = await db.from("courses")
+    .select("id, title, starts_at")
+    .order("starts_at", { ascending: true });
+  for (const c of data || []) {
+    const o = document.createElement("option");
+    o.value = c.id;
+    o.textContent = c.title;
+    $("f-course").append(o);
+  }
+}
+
+$("save").addEventListener("click", saveCode);
+
+async function saveCode() {
+  const msg = $("form-msg");
+  msg.className = "msg";
+
+  const code = $("f-code").value.trim().toUpperCase();
+  const kind = $("f-kind").value;
+
+  if (!code) { msg.className = "msg err"; msg.textContent = "Add a code."; return; }
+  if (/\s/.test(code)) {
+    msg.className = "msg err";
+    msg.textContent = "Codes cannot contain spaces — people mistype them.";
+    return;
+  }
+
+  const row = {
+    code,
+    label: $("f-label").value.trim() || null,
+    kind,
+    brand: $("f-brand").value || null,
+    course_type: $("f-type").value || null,
+    course_id: $("f-course").value || null,
+    max_redemptions: $("f-max").value ? parseInt($("f-max").value, 10) : null,
+    expires_at: $("f-expires").value
+      ? new Date($("f-expires").value + "T23:59:59").toISOString()
+      : null,
+    active: true,
+  };
+
+  if (kind === "percent") {
+    const pct = parseFloat($("f-percent").value);
+    if (!pct || pct <= 0 || pct > 100) {
+      msg.className = "msg err"; msg.textContent = "Percent must be between 1 and 100."; return;
+    }
+    row.percent_off = pct;
+  } else {
+    const amt = parseFloat($("f-amount").value);
+    if (!amt || amt <= 0) {
+      msg.className = "msg err"; msg.textContent = "Add an amount."; return;
+    }
+    row.amount_off_cents = Math.round(amt * 100);
+    row.currency = $("f-currency").value;
+  }
+
+  $("save").disabled = true;
+  msg.textContent = "Creating…";
+
+  const { error } = await db.from("discount_codes").insert(row);
+  $("save").disabled = false;
+
+  if (error) {
+    msg.className = "msg err";
+    msg.textContent = error.code === "23505"
+      ? "That code already exists. Pick another."
+      : error.message;
+    return;
+  }
+
+  msg.className = "msg ok";
+  msg.textContent = code + " created.";
+  ["f-code","f-label","f-percent","f-amount","f-max","f-expires"]
+    .forEach((id) => { $(id).value = ""; });
+  await loadCodes();
+}
+
+// ---------------- the list ----------------
+
+const fmtDate = (iso) => iso
+  ? new Date(iso).toLocaleDateString(undefined, { day:"numeric", month:"short", year:"numeric" })
+  : null;
+
+async function loadCodes() {
+  const box = $("list");
+  const { data, error } = await db.from("discount_codes")
+    .select("*").order("created_at", { ascending: false });
+
+  if (error) { box.innerHTML = '<p class="empty">Could not load codes.</p>'; return; }
+  if (!data || !data.length) { box.innerHTML = '<p class="empty">No codes yet.</p>'; return; }
+
+  box.innerHTML = "";
+  for (const c of data) {
+    const expired = c.expires_at && new Date(c.expires_at) < new Date();
+    const usedUp = c.max_redemptions !== null && c.times_redeemed >= c.max_redemptions;
+
+    const off = c.kind === "percent"
+      ? c.percent_off + "% off"
+      : new Intl.NumberFormat(undefined, {
+          style: "currency", currency: c.currency || "EUR", maximumFractionDigits: 0,
+        }).format((c.amount_off_cents || 0) / 100) + " off";
+
+    const scope = [
+      c.brand ? c.brand.toUpperCase() : null,
+      c.course_type ? c.course_type.replace(/_/g, " ") : null,
+      c.course_id ? "one course only" : null,
+    ].filter(Boolean).join(" · ") || "any course";
+
+    const uses = c.max_redemptions === null
+      ? c.times_redeemed + " used"
+      : c.times_redeemed + " of " + c.max_redemptions + " used";
+
+    const el = document.createElement("div");
+    el.className = "code";
+    el.innerHTML = `
+      <div class="top">
+        <span class="name"></span>
+        <span class="off"></span>
+        <span class="label"></span>
+        <span class="flags"></span>
+      </div>
+      <div class="meta"></div>
+      <div class="actions"></div>`;
+
+    el.querySelector(".name").textContent = c.code;
+    el.querySelector(".off").textContent = off;
+    el.querySelector(".label").textContent = c.label || "";
+
+    const flags = el.querySelector(".flags");
+    const pill = (t, cls) => {
+      const s = document.createElement("span");
+      s.className = "pill " + cls; s.textContent = t; flags.append(s);
+    };
+    if (!c.active) pill("switched off", "off");
+    else if (expired) pill("expired", "warn");
+    else if (usedUp) pill("used up", "warn");
+    else pill("live", "on");
+
+    el.querySelector(".meta").textContent =
+      [scope, uses, c.expires_at ? "expires " + fmtDate(c.expires_at) : null]
+        .filter(Boolean).join(" · ");
+
+    const btn = document.createElement("button");
+    btn.className = "btn ghost small";
+    btn.type = "button";
+    btn.textContent = c.active ? "Switch off" : "Switch back on";
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      const { error } = await db.from("discount_codes")
+        .update({ active: !c.active }).eq("id", c.id);
+      if (error) { btn.disabled = false; btn.textContent = "Could not save"; return; }
+      await loadCodes();
+    });
+    el.querySelector(".actions").append(btn);
+
+    box.append(el);
+  }
+}
+</script>
+
+</body>
+</html>
