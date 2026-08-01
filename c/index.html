@@ -54,7 +54,6 @@
   }
   .badge img { width: 44px; height: 44px; object-fit: contain; }
 
-  /* course title kept for search engines and screen readers only */
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden;
         clip: rect(0 0 0 0); white-space: nowrap; }
 
@@ -68,20 +67,30 @@
   .buy {
     background: var(--panel);
     border: 1px solid var(--rule); border-top: 3px solid var(--brandcolour, var(--accent));
-    border-radius: 6px; padding: 1.15rem; margin: 1.6rem 0 2rem;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 1rem; flex-wrap: wrap;
+    border-radius: 6px; padding: 1.25rem; margin: 1.6rem 0 2rem;
   }
-  .price { font-size: 1.7rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; }
-  .price small { display: block; font-size: 0.78rem; font-weight: 400; color: var(--muted); letter-spacing: 0; }
-  .btn {
-    font: inherit; font-size: 1.02rem; font-weight: 650;
-    background: var(--brandcolour, var(--accent)); color: #fff;
-    border: 0; border-radius: 5px; padding: 0.85rem 1.6rem; cursor: pointer; flex: 1 1 12rem;
+  .price { font-size: 1.9rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; }
+  .price small { display: block; font-size: 0.82rem; font-weight: 400; color: var(--muted); letter-spacing: 0; margin-top: 0.2rem; }
+
+  .options { display: grid; gap: 0.7rem; margin-top: 1.15rem; }
+  .opt {
+    display: flex; align-items: center; gap: 0.9rem; width: 100%;
+    font: inherit; text-align: left; cursor: pointer;
+    background: transparent; color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 5px; padding: 0.85rem 1rem;
   }
-  .btn:hover { filter: brightness(1.12); }
-  .btn[disabled] { opacity: 0.45; cursor: default; filter: none; }
-  .seats { width: 100%; font-size: 0.85rem; color: var(--warn); font-weight: 600; margin: 0; }
+  .opt:hover { border-color: rgba(255,255,255,0.32); background: rgba(255,255,255,0.03); }
+  .opt.primary {
+    background: var(--brandcolour, var(--accent)); border-color: transparent; color: #fff;
+  }
+  .opt.primary:hover { filter: brightness(1.12); background: var(--brandcolour, var(--accent)); }
+  .opt .label { font-weight: 650; }
+  .opt .note { display: block; font-weight: 400; font-size: 0.86rem; color: var(--muted); margin-top: 0.1rem; }
+  .opt.primary .note { color: rgba(255,255,255,0.82); }
+  .opt .amount { margin-left: auto; font-weight: 650; white-space: nowrap; }
+  .opt[disabled] { opacity: 0.45; cursor: default; filter: none; }
+
+  .seats { font-size: 0.9rem; color: var(--warn); font-weight: 600; margin: 0.9rem 0 0; }
 
   h2 {
     font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
@@ -140,7 +149,7 @@
     font-size: 0.82rem; color: var(--muted);
   }
   footer a { color: var(--muted); }
-  .msg { font-size: 0.9rem; margin: 0.75rem 0 0; width: 100%; }
+  .msg { font-size: 0.9rem; margin: 0.9rem 0 0; }
   .msg.err { color: var(--bad); }
 
   .state { padding: 5rem 0; text-align: center; color: var(--muted); }
@@ -178,7 +187,7 @@
 
     <div class="buy">
       <div class="price" id="price"></div>
-      <button class="btn" id="register" type="button">Register</button>
+      <div class="options" id="options"></div>
       <p class="seats hidden" id="seats"></p>
       <p class="msg" id="msg"></p>
     </div>
@@ -249,6 +258,19 @@ const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
 const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+// Must match create-checkout.mjs
+const DEPOSIT_RATE = 0.25;
+const BALANCE_DAYS_BEFORE = 14;
+
+// Klarna is not available everywhere; these are the countries where
+// we offer it. Anywhere else sees full payment and deposit only.
+const KLARNA_COUNTRIES = [
+  "united kingdom", "uk", "ireland", "france", "germany", "spain", "italy",
+  "netherlands", "belgium", "austria", "portugal", "poland", "sweden",
+  "norway", "denmark", "finland", "switzerland", "czechia", "greece",
+  "united states", "usa", "us", "canada", "australia", "new zealand",
+];
+
 const BRAND = {
   birdbox: { icon: "/brand/birdBox.png", colour: "#2f7fd0", label: "BirdBox" },
   tcc:     { icon: "/brand/tcc.png",     colour: "#2f7fd0", label: "The Coaches Course" },
@@ -309,12 +331,11 @@ async function load() {
     style: "currency", currency: course.currency || "EUR", maximumFractionDigits: 0,
   }).format((cents || 0) / 100);
 
-  $("price").append(money(course.price_cents));
-  if (course.deposit_cents) {
-    const s = document.createElement("small");
-    s.textContent = "or " + money(course.deposit_cents) + " deposit — balance charged before the course";
-    $("price").append(s);
-  }
+  const full = course.price_cents;
+  const deposit = course.deposit_cents || Math.round(full * DEPOSIT_RATE);
+  const balance = full - deposit;
+
+  $("price").append(money(full));
 
   // Places remaining is staff information — the portal shows it.
   const { count } = await db
@@ -324,14 +345,75 @@ async function load() {
     .not("payment_status", "in", '("refunded","failed")');
 
   const left = Math.max(0, course.capacity - (count || 0));
-  if (course.status === "full" || left === 0) {
-    $("seats").textContent = "This course is full.";
+  const isFull = course.status === "full" || left === 0;
+
+  if (isFull) {
+    $("seats").textContent = "This course is full. Email us to join the waiting list.";
     $("seats").classList.remove("hidden");
-    $("register").disabled = true;
-    $("register").textContent = "Fully booked";
   }
 
-  // Spec chips — CEUs last so the CrossFit seal sits beside them.
+  // ---- payment options -------------------------------------------
+  const klarnaOk = KLARNA_COUNTRIES.includes(
+    String(course.country || "").trim().toLowerCase()
+  );
+
+  const options = [
+    {
+      key: "full",
+      primary: true,
+      label: "Pay in full",
+      note: "Card, Apple Pay or Link",
+      amount: money(full),
+    },
+  ];
+
+  if (balance > 0) {
+    options.push({
+      key: "deposit",
+      label: "Pay a deposit",
+      note: "Balance of " + money(balance) + " charged automatically " +
+            BALANCE_DAYS_BEFORE + " days before the course",
+      amount: money(deposit),
+    });
+  }
+
+  if (klarnaOk) {
+    options.push({
+      key: "klarna",
+      label: "Spread the cost with Klarna",
+      note: "Klarna splits the payment for you — subject to their approval",
+      amount: money(full),
+    });
+  }
+
+  for (const opt of options) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "opt" + (opt.primary ? " primary" : "");
+    btn.disabled = isFull;
+
+    const text = document.createElement("span");
+    const label = document.createElement("span");
+    label.className = "label";
+    label.textContent = isFull ? "Fully booked" : opt.label;
+    const note = document.createElement("span");
+    note.className = "note";
+    note.textContent = opt.note;
+    text.append(label);
+    if (!isFull) text.append(note);
+
+    const amount = document.createElement("span");
+    amount.className = "amount";
+    if (!isFull) amount.textContent = opt.amount;
+
+    btn.append(text, amount);
+    btn.addEventListener("click", () => checkout(course.slug, opt.key, btn));
+    $("options").append(btn);
+
+    if (isFull) break; // one disabled button is enough
+  }
+
+  // ---- spec chips ------------------------------------------------
   const specs = [];
   specs.push(["Language", LANG[course.language] || course.language || "English"]);
   if (tpl && tpl.prerequisites) specs.push(["Prerequisite", tpl.prerequisites]);
@@ -392,8 +474,6 @@ async function load() {
       $("directions").classList.remove("hidden");
     }
   }
-
-  $("register").addEventListener("click", () => checkout(course.slug));
 
   $("loading").classList.add("hidden");
   $("course").classList.remove("hidden");
@@ -470,28 +550,31 @@ function formatDates(c) {
   return startStr + " – " + end.toLocaleDateString(undefined, opts);
 }
 
-async function checkout(slug) {
-  const btn = $("register");
+async function checkout(slug, option, btn) {
   const msg = $("msg");
-  btn.disabled = true;
+  const buttons = document.querySelectorAll(".opt");
+  buttons.forEach((b) => (b.disabled = true));
+  const label = btn.querySelector(".label");
+  const original = label.textContent;
+  label.textContent = "Opening secure checkout…";
   msg.className = "msg";
-  msg.textContent = "Opening secure checkout…";
+  msg.textContent = "";
   try {
     const res = await fetch("/.netlify/functions/create-checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: slug }),
+      body: JSON.stringify({ slug: slug, option: option }),
     });
     const data = await res.json();
     if (data.url) { location.href = data.url; return; }
     msg.className = "msg err";
     msg.textContent = data.error || "Could not start checkout. Please try again.";
-    btn.disabled = false;
   } catch (e) {
     msg.className = "msg err";
     msg.textContent = "Could not reach the payment system. Please try again.";
-    btn.disabled = false;
   }
+  label.textContent = original;
+  buttons.forEach((b) => (b.disabled = false));
 }
 
 function notFound() {
