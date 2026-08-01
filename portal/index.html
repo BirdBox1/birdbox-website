@@ -88,11 +88,13 @@
     gap: 1rem; margin-bottom: 1.25rem;
   }
 
-  a.back {
+  a.back, .textlink {
     display: inline-block; font-size: 0.85rem; color: var(--accent);
-    text-decoration: none; margin-bottom: 1rem; cursor: pointer;
+    background: none; border: 0; padding: 0; font-family: inherit;
+    text-decoration: none; cursor: pointer;
   }
-  a.back:hover { text-decoration: underline; }
+  a.back { margin-bottom: 1rem; }
+  a.back:hover, .textlink:hover { text-decoration: underline; }
 
   /* ---------------- login ---------------- */
   .login {
@@ -131,6 +133,9 @@
     background: none; color: var(--ink); border: 1px solid var(--rule); font-weight: 500;
   }
   .btn.ghost:hover { background: #fff; border-color: var(--muted); }
+  .btn.small { font-size: 0.82rem; padding: 0.4rem 0.8rem; }
+  .btn.danger { color: var(--bad); border-color: #e6c9c7; }
+  .btn.danger:hover { background: #fdf4f3; border-color: var(--bad); }
 
   .msg { font-size: 0.85rem; margin-top: 0.9rem; min-height: 1.2em; }
   .msg.err { color: var(--bad); }
@@ -143,6 +148,7 @@
     display: flex; align-items: stretch;
     border-left: 3px solid var(--rule);
   }
+  .card.is-archived { opacity: 0.6; }
   .course {
     display: grid; grid-template-columns: 44px 1fr; gap: 0.9rem;
     flex: 1 1 auto; min-width: 0; text-align: left; font: inherit;
@@ -213,6 +219,15 @@
   .attendees-card {
     background: var(--card); border: 1px solid var(--rule);
     border-radius: 6px; overflow: hidden;
+  }
+
+  /* admin-only actions on a single course */
+  .admin-actions {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+    margin: 1.5rem 0 0; padding-top: 1.1rem; border-top: 1px solid var(--rule);
+  }
+  .admin-actions .why {
+    font-size: 0.82rem; color: var(--muted); flex: 1 1 14rem; min-width: 0;
   }
 
   .empty {
@@ -305,6 +320,7 @@
       <div>
         <h1>Courses</h1>
         <p class="sub" id="courses-sub" style="margin:0"></p>
+        <button class="textlink hidden" id="togglearchived" type="button" style="margin-top:0.4rem">Show archived</button>
       </div>
       <button class="btn hidden" id="newcourse" type="button">New course</button>
     </div>
@@ -321,6 +337,13 @@
     <p class="sub" id="course-meta"></p>
     <p class="counts" id="counts"></p>
     <div class="attendees-card" id="attendees"></div>
+
+    <div class="admin-actions hidden" id="adminactions">
+      <button class="btn ghost small" id="archivebtn" type="button">Archive</button>
+      <button class="btn ghost small danger" id="deletebtn" type="button">Delete</button>
+      <span class="why" id="adminwhy"></span>
+    </div>
+    <p class="msg" id="admin-msg"></p>
   </div>
 </section>
 
@@ -578,6 +601,7 @@ const show = (n) =>
 
 let me = null;
 let staffList = [];
+let showArchived = false;
 
 /* ---------------- auth ---------------- */
 
@@ -630,12 +654,14 @@ async function start() {
   if (!staff.active)   return fail("This account is no longer active.");
 
   me = staff;
+  const isAdmin = staff.role === "admin";
   $("who").textContent = staff.full_name;
   $("signout").classList.remove("hidden");
   $("hello").textContent = `Welcome back, ${staff.full_name.split(" ")[0]}`;
   $("myrole").textContent = staff.role.replace(/_/g, " ");
-  $("newcourse").classList.toggle("hidden", staff.role !== "admin");
-  $("codeslink").classList.toggle("hidden", staff.role !== "admin");
+  $("newcourse").classList.toggle("hidden", !isAdmin);
+  $("codeslink").classList.toggle("hidden", !isAdmin);
+  $("togglearchived").classList.toggle("hidden", !isAdmin);
 
   await loadCourses();
 }
@@ -655,35 +681,49 @@ const money = (cents, currency) =>
     style: "currency", currency: currency || "EUR", maximumFractionDigits: 0,
   }).format((cents || 0) / 100);
 
+const isAdmin = () => me && me.role === "admin";
+
 $("newcourse").addEventListener("click", openForm);
 $("back").addEventListener("click", loadCourses);
 $("back2").addEventListener("click", loadCourses);
 $("tocourses").addEventListener("click", loadCourses);
+
+$("togglearchived").addEventListener("click", () => {
+  showArchived = !showArchived;
+  $("togglearchived").textContent = showArchived ? "Hide archived" : "Show archived";
+  loadCourses();
+});
 
 async function loadCourses() {
   show("courses");
   const list = $("courses-list");
   list.innerHTML = '<p class="empty">Loading…</p>';
 
+  const cols = "id, brand, type, level, title, city, country, starts_at, capacity, status, slug, archived";
+
   let courses = [];
-  if (me.role === "admin") {
+  if (isAdmin()) {
     const { data, error } = await db.from("courses")
-      .select("id, brand, type, level, title, city, country, starts_at, capacity, status, slug")
+      .select(cols)
       .order("starts_at", { ascending: true });
     if (error) { list.innerHTML = '<p class="empty">Could not load courses.</p>'; return; }
     courses = data || [];
     $("courses-sub").textContent = "Every course across all brands.";
   } else {
     const { data, error } = await db.from("course_staff")
-      .select("courses (id, brand, type, level, title, city, country, starts_at, capacity, status, slug)");
+      .select(`courses (${cols})`);
     if (error) { list.innerHTML = '<p class="empty">Could not load courses.</p>'; return; }
     courses = (data || []).map((r) => r.courses).filter(Boolean);
     courses.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
     $("courses-sub").textContent = "Courses you are allocated to.";
   }
 
+  // Archived courses stay out of the way. Only an admin can bring
+  // them back into view, and only they ever archived them.
+  if (!showArchived) courses = courses.filter((c) => !c.archived);
+
   if (!courses.length) {
-    list.innerHTML = '<p class="empty">No courses yet.</p>';
+    list.innerHTML = `<p class="empty">${showArchived ? "No courses." : "No courses yet."}</p>`;
     return;
   }
 
@@ -693,7 +733,7 @@ async function loadCourses() {
     const tag = tagFor(c);
 
     const el = document.createElement("div");
-    el.className = "card";
+    el.className = "card" + (c.archived ? " is-archived" : "");
     el.style.borderLeftColor = tag.colour;
     el.innerHTML = `
       <button class="course" type="button">
@@ -727,6 +767,7 @@ async function loadCourses() {
       const s = document.createElement("span");
       s.className = "pill " + cls; s.textContent = text; flags.append(s);
     };
+    if (c.archived) add("archived", "draft");
     if (c.status === "full") add("full", "warn");
     if (c.status === "draft") add("draft", "draft");
     if (c.status === "cancelled") add("cancelled", "warn");
@@ -772,8 +813,11 @@ async function openCourse(course) {
   $("course-meta").textContent = [
     fmtDate(course.starts_at),
     [course.city, course.country].filter(Boolean).join(", "),
+    course.archived ? "Archived" : null,
   ].filter(Boolean).join(" · ");
   $("counts").textContent = "";
+  $("admin-msg").textContent = "";
+  $("adminactions").classList.add("hidden");
   const box = $("attendees");
   box.innerHTML = '<p class="empty">Loading…</p>';
 
@@ -785,6 +829,9 @@ async function openCourse(course) {
   if (error) { box.innerHTML = '<p class="empty">Could not load registrations.</p>'; return; }
 
   const regs = data || [];
+
+  if (isAdmin()) wireAdminActions(course, regs.length);
+
   if (!regs.length) { box.innerHTML = '<p class="empty">No registrations yet.</p>'; return; }
 
   // Instalments, so we can show what is still owed and what has failed.
@@ -854,7 +901,7 @@ async function openCourse(course) {
           : `${money(owed, r.currency)} balance, charged automatically ${fmtDay(next.due_date)}`
       );
     }
-    if (me.role === "admin") {
+    if (isAdmin()) {
       bits.push(`${money(r.amount_paid_cents, r.currency)} received`);
       if (r.discount_code) {
         bits.push(`code ${r.discount_code} (−${money(r.discount_cents, r.currency)})`);
@@ -900,6 +947,75 @@ async function openCourse(course) {
     s.textContent = ` · ${chasing} needs chasing`;
     counts.appendChild(s);
   }
+}
+
+/* ---------------- archive and delete (admins only) ---------------- */
+
+function wireAdminActions(course, registrationCount) {
+  const wrap = $("adminactions");
+  const archiveBtn = $("archivebtn");
+  const deleteBtn = $("deletebtn");
+  const why = $("adminwhy");
+  const msg = $("admin-msg");
+
+  wrap.classList.remove("hidden");
+  archiveBtn.textContent = course.archived ? "Restore from archive" : "Archive";
+
+  // A course with registrations is a financial record. It can be put
+  // out of the way, but it must never be destroyed.
+  const canDelete = registrationCount === 0;
+  deleteBtn.disabled = !canDelete;
+  why.textContent = canDelete
+    ? "Archiving hides a course and takes it off sale. Deleting is permanent."
+    : `This course has ${registrationCount} registration${registrationCount === 1 ? "" : "s"}, so it cannot be deleted — archive it instead.`;
+
+  archiveBtn.onclick = async () => {
+    const goingToArchive = !course.archived;
+    if (goingToArchive &&
+        !window.confirm(`Archive "${course.title}"? It will be taken off sale and hidden from the list.`)) return;
+
+    archiveBtn.disabled = true;
+    msg.className = "msg";
+    msg.textContent = goingToArchive ? "Archiving…" : "Restoring…";
+
+    // Archiving also takes it off sale, so nobody can buy a place on
+    // a course the team has stopped running.
+    const patch = goingToArchive
+      ? { archived: true, status: "cancelled" }
+      : { archived: false, status: "draft" };
+
+    const { error } = await db.from("courses").update(patch).eq("id", course.id);
+    archiveBtn.disabled = false;
+
+    if (error) {
+      msg.className = "msg err";
+      msg.textContent = "Could not save: " + error.message;
+      return;
+    }
+    await loadCourses();
+  };
+
+  deleteBtn.onclick = async () => {
+    if (!canDelete) return;
+    if (!window.confirm(`Delete "${course.title}" permanently? This cannot be undone.`)) return;
+    if (!window.confirm("Last check — this removes the course and its link for good. Delete?")) return;
+
+    deleteBtn.disabled = true;
+    msg.className = "msg";
+    msg.textContent = "Deleting…";
+
+    // Clear the coach assignments first, in case nothing cascades.
+    await db.from("course_staff").delete().eq("course_id", course.id);
+    const { error } = await db.from("courses").delete().eq("id", course.id);
+
+    if (error) {
+      deleteBtn.disabled = false;
+      msg.className = "msg err";
+      msg.textContent = "Could not delete: " + error.message;
+      return;
+    }
+    await loadCourses();
+  };
 }
 
 function flash(el, text, isError = false) {
