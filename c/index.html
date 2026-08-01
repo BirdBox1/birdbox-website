@@ -7,14 +7,15 @@
 <meta name="description" content="Register for a BirdBox Coaching seminar or workshop.">
 <style>
   :root {
-    --ink:    #16181b;
-    --paper:  #ffffff;
+    --ink:    #eceae6;
+    --paper:  #101215;
+    --panel:  #191c20;
     --shell:  #0d0e10;
-    --rule:   #e3e0da;
-    --muted:  #6c7178;
+    --rule:   rgba(255,255,255,0.14);
+    --muted:  #99a0a8;
     --accent: #2f7fd0;
-    --warn:   #b4610f;
-    --bad:    #b3261e;
+    --warn:   #e0a04a;
+    --bad:    #e0736a;
   }
   *, *::before, *::after { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
@@ -22,11 +23,18 @@
     margin: 0; background: var(--paper); color: var(--ink);
     font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased;
+    position: relative; min-height: 100vh;
+  }
+  /* faint full-page wash of the brand photo */
+  #wash {
+    position: fixed; inset: 0; z-index: -1; opacity: 0.10;
+    background: center 30% / cover no-repeat; pointer-events: none;
   }
 
   .bar {
     background: var(--shell); padding: 0.7rem 1.25rem;
     display: flex; align-items: center; gap: 0.75rem;
+    border-bottom: 1px solid var(--rule);
   }
   .mark { width: 32px; height: 32px; border-radius: 4px; background: #fff;
           display: grid; place-items: center; flex: none; }
@@ -37,22 +45,21 @@
 
   .wrap { max-width: 44rem; margin: 0 auto; padding: 0 1.25rem 5rem; }
 
-  /* brand background band replaces the old hero photo */
   .band {
     position: relative; margin: 0 -1.25rem; padding: 2.4rem 1.25rem 2rem;
     background: var(--shell) center 40% / cover no-repeat; color: #fff;
   }
   .band::before {
     content: ""; position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(13,14,16,.62), rgba(13,14,16,.88));
+    background: linear-gradient(180deg, rgba(13,14,16,.55), rgba(16,18,21,.94));
   }
   .band > * { position: relative; }
 
   .badge {
     display: inline-flex; align-items: center; gap: 0.5rem;
-    background: #fff; border: 1px solid var(--rule); border-radius: 4px;
+    background: rgba(255,255,255,0.08); border: 1px solid var(--rule); border-radius: 4px;
     padding: 0.3rem 0.6rem; font-size: 0.7rem; letter-spacing: 0.12em;
-    text-transform: uppercase; font-weight: 600; color: var(--ink);
+    text-transform: uppercase; font-weight: 600; color: #fff;
   }
   .badge img { width: 20px; height: 20px; object-fit: contain; }
 
@@ -64,6 +71,7 @@
   .band .facts strong { color: #fff; font-weight: 600; }
 
   .buy {
+    background: var(--panel);
     border: 1px solid var(--rule); border-top: 3px solid var(--brandcolour, var(--accent));
     border-radius: 6px; padding: 1.15rem; margin: 1.5rem 0 2rem;
     display: flex; align-items: center; justify-content: space-between;
@@ -72,13 +80,13 @@
   .price { font-size: 1.7rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; }
   .price small { display: block; font-size: 0.78rem; font-weight: 400; color: var(--muted); letter-spacing: 0; }
   .btn {
-    font: inherit; font-size: 1.02rem; font-weight: 650; background: var(--ink); color: #fff;
+    font: inherit; font-size: 1.02rem; font-weight: 650;
+    background: var(--brandcolour, var(--accent)); color: #fff;
     border: 0; border-radius: 5px; padding: 0.85rem 1.6rem; cursor: pointer; flex: 1 1 12rem;
   }
-  .btn:hover { background: #000; }
-  .btn[disabled] { opacity: 0.45; cursor: default; }
-  .seats { width: 100%; font-size: 0.85rem; color: var(--muted); margin: 0; }
-  .seats.low { color: var(--warn); font-weight: 600; }
+  .btn:hover { filter: brightness(1.12); }
+  .btn[disabled] { opacity: 0.45; cursor: default; filter: none; }
+  .seats { width: 100%; font-size: 0.85rem; color: var(--warn); font-weight: 600; margin: 0; }
 
   h2 {
     font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
@@ -97,22 +105,24 @@
     width: 0.7rem; height: 2px; background: var(--brandcolour, var(--accent));
   }
 
-  .spec { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0 0 1.25rem; }
+  .spec { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin: 0 0 1.25rem; }
   .spec span {
     border: 1px solid var(--rule); border-radius: 4px; padding: 0.3rem 0.65rem;
     font-size: 0.82rem; color: var(--muted);
   }
   .spec b { color: var(--ink); font-weight: 650; }
+  .spec img.ceu { width: 54px; height: 54px; object-fit: contain; }
 
   .video { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 6px; overflow: hidden; }
   .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 
   .venue {
+    background: var(--panel);
     border: 1px solid var(--rule); border-radius: 6px; padding: 1rem 1.15rem;
     display: flex; gap: 0.9rem; align-items: center;
   }
   .venue img {
-    width: 84px; height: 84px; object-fit: cover; border-radius: 4px; flex: none; background: #ddd;
+    width: 84px; height: 84px; object-fit: cover; border-radius: 4px; flex: none; background: #2a2e33;
   }
   .venue .vname { font-weight: 650; }
   .venue .vaddr { color: var(--muted); font-size: 0.92rem; }
@@ -127,10 +137,13 @@
 
   .state { padding: 5rem 0; text-align: center; color: var(--muted); }
   .state h1 { font-size: 1.3rem; color: var(--ink); }
+  .state a { color: var(--ink); }
   .hidden { display: none !important; }
 </style>
 </head>
 <body>
+
+<div id="wash"></div>
 
 <div class="bar">
   <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
@@ -158,7 +171,7 @@
     <div class="buy">
       <div class="price" id="price"></div>
       <button class="btn" id="register" type="button">Register</button>
-      <p class="seats" id="seats"></p>
+      <p class="seats hidden" id="seats"></p>
       <p class="msg" id="msg"></p>
     </div>
 
@@ -178,18 +191,6 @@
       <div id="description"></div>
     </div>
 
-    <div id="includedwrap" class="hidden">
-      <h2>What's included</h2>
-      <ul class="tick" id="included"></ul>
-    </div>
-
-    <div id="videowrap" class="hidden">
-      <h2>Watch</h2>
-      <div class="video"><iframe id="video" title="Course video"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen loading="lazy"></iframe></div>
-    </div>
-
     <div id="venuewrap" class="hidden">
       <h2>Where</h2>
       <div class="venue">
@@ -199,6 +200,18 @@
           <div class="vaddr" id="venueaddr"></div>
         </div>
       </div>
+    </div>
+
+    <div id="videowrap" class="hidden">
+      <h2>Watch</h2>
+      <div class="video"><iframe id="video" title="Course video"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen loading="lazy"></iframe></div>
+    </div>
+
+    <div id="includedwrap" class="hidden">
+      <h2>What's included</h2>
+      <ul class="tick" id="included"></ul>
     </div>
 
     <footer>
@@ -258,7 +271,10 @@ async function load() {
   document.title = course.title + " — BirdBox Coaching";
 
   const bg = tpl && tpl.background_url;
-  if (bg) $("band").style.backgroundImage = "url('" + bg + "')";
+  if (bg) {
+    $("band").style.backgroundImage = "url('" + bg + "')";
+    $("wash").style.backgroundImage = "url('" + bg + "')";
+  }
 
   $("badgeicon").src = b.icon;
   $("badgetext").textContent =
@@ -288,31 +304,25 @@ async function load() {
     $("price").append(s);
   }
 
+  // Places remaining is staff information — the portal shows it.
+  // The public page only ever says whether the course is closed.
   const { count } = await db
     .from("registrations")
     .select("id", { count: "exact", head: true })
     .eq("course_id", course.id)
     .not("payment_status", "in", '("refunded","failed")');
 
-  const taken = count || 0;
-  const left = Math.max(0, course.capacity - taken);
-  const isFull = course.status === "full" || left === 0;
-
-  if (isFull) {
+  const left = Math.max(0, course.capacity - (count || 0));
+  if (course.status === "full" || left === 0) {
     $("seats").textContent = "This course is full.";
-    $("seats").classList.add("low");
+    $("seats").classList.remove("hidden");
     $("register").disabled = true;
     $("register").textContent = "Fully booked";
-  } else if (left <= 3) {
-    $("seats").textContent = "Only " + left + (left === 1 ? " place" : " places") + " left.";
-    $("seats").classList.add("low");
-  } else {
-    $("seats").textContent = left + " of " + course.capacity + " places available.";
   }
 
-  // Spec chips — template values, course wins if it has its own.
+  // Spec chips
   const specs = [];
-  if (tpl && tpl.ceus) specs.push(["CEUs", tpl.ceus]);
+  if (tpl && tpl.ceus) specs.push(["CrossFit CEUs", tpl.ceus]);
   if (tpl && tpl.prerequisites) specs.push(["Prerequisite", tpl.prerequisites]);
   specs.push(["Language", LANG[course.language] || course.language || "English"]);
   for (const [label, value] of specs) {
@@ -320,6 +330,13 @@ async function load() {
     el.innerHTML = label + " <b></b>";
     el.querySelector("b").textContent = value;
     $("specwrap").append(el);
+  }
+  if (tpl && tpl.ceus) {
+    const seal = document.createElement("img");
+    seal.className = "ceu";
+    seal.src = "/brand/ceu-approved.png";
+    seal.alt = "CrossFit approved CEU provider";
+    $("specwrap").append(seal);
   }
 
   // Course text overrides the template; otherwise the template fills in.
