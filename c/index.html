@@ -15,6 +15,7 @@
     --muted:  #99a0a8;
     --accent: #2f7fd0;
     --warn:   #e0a04a;
+    --good:   #6fbf87;
     --bad:    #e0736a;
   }
   *, *::before, *::after { box-sizing: border-box; }
@@ -70,7 +71,11 @@
     border-radius: 6px; padding: 1.25rem; margin: 1.6rem 0 2rem;
   }
   .price { font-size: 1.9rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; }
-  .price small { display: block; font-size: 0.82rem; font-weight: 400; color: var(--muted); letter-spacing: 0; margin-top: 0.2rem; }
+  .price .was {
+    font-size: 1.1rem; font-weight: 400; color: var(--muted);
+    text-decoration: line-through; margin-right: 0.5rem;
+  }
+  .price small { display: block; font-size: 0.82rem; font-weight: 400; color: var(--good); letter-spacing: 0; margin-top: 0.2rem; }
 
   .options { display: grid; gap: 0.7rem; margin-top: 1.15rem; }
   .opt {
@@ -89,6 +94,30 @@
   .opt.primary .note { color: rgba(255,255,255,0.82); }
   .opt .amount { margin-left: auto; font-weight: 650; white-space: nowrap; }
   .opt[disabled] { opacity: 0.45; cursor: default; filter: none; }
+
+  .promo { margin-top: 1.15rem; padding-top: 1.1rem; border-top: 1px solid var(--rule); }
+  .promo-toggle {
+    font: inherit; font-size: 0.9rem; color: var(--muted);
+    background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline;
+  }
+  .promo-toggle:hover { color: var(--ink); }
+  .promo-row { display: flex; gap: 0.6rem; margin-top: 0.7rem; }
+  .promo-row input {
+    flex: 1 1 auto; min-width: 0; font: inherit; font-size: 0.98rem;
+    background: var(--paper); color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 5px; padding: 0.7rem 0.85rem;
+    text-transform: uppercase;
+  }
+  .promo-row input::placeholder { color: var(--muted); text-transform: none; }
+  .promo-row button {
+    font: inherit; font-weight: 650; cursor: pointer; white-space: nowrap;
+    background: transparent; color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 5px; padding: 0.7rem 1.1rem;
+  }
+  .promo-row button:hover { border-color: rgba(255,255,255,0.32); }
+  .promo-msg { font-size: 0.88rem; margin: 0.6rem 0 0; }
+  .promo-msg.ok { color: var(--good); }
+  .promo-msg.err { color: var(--bad); }
 
   .seats { font-size: 0.9rem; color: var(--warn); font-weight: 600; margin: 0.9rem 0 0; }
 
@@ -188,6 +217,17 @@
     <div class="buy">
       <div class="price" id="price"></div>
       <div class="options" id="options"></div>
+
+      <div class="promo" id="promo">
+        <button class="promo-toggle" id="promotoggle" type="button">Have a discount code?</button>
+        <div class="promo-row hidden" id="promorow">
+          <input id="promoinput" type="text" autocomplete="off" autocapitalize="characters"
+                 spellcheck="false" placeholder="Enter code" aria-label="Discount code">
+          <button id="promoapply" type="button">Apply</button>
+        </div>
+        <p class="promo-msg" id="promomsg"></p>
+      </div>
+
       <p class="seats hidden" id="seats"></p>
       <p class="msg" id="msg"></p>
     </div>
@@ -289,6 +329,18 @@ const $ = (id) => document.getElementById(id);
 const parts = location.pathname.split("/").filter(Boolean);
 const slug = parts[parts.length - 1] === "c" ? null : parts[parts.length - 1];
 
+// Everything the buy box needs, rebuilt whenever a code is applied.
+const state = {
+  course: null,
+  isFull: false,
+  klarnaOk: false,
+  code: null,
+  total: 0,
+  deposit: 0,
+  discount: 0,
+  money: (c) => String(c),
+};
+
 load();
 
 async function load() {
@@ -327,15 +379,9 @@ async function load() {
   $("where").textContent =
     [course.city, course.country].filter(Boolean).join(" — ");
 
-  const money = (cents) => new Intl.NumberFormat(undefined, {
+  state.money = (cents) => new Intl.NumberFormat(undefined, {
     style: "currency", currency: course.currency || "EUR", maximumFractionDigits: 0,
   }).format((cents || 0) / 100);
-
-  const full = course.price_cents;
-  const deposit = course.deposit_cents || Math.round(full * DEPOSIT_RATE);
-  const balance = full - deposit;
-
-  $("price").append(money(full));
 
   // Places remaining is staff information — the portal shows it.
   const { count } = await db
@@ -345,73 +391,23 @@ async function load() {
     .not("payment_status", "in", '("refunded","failed")');
 
   const left = Math.max(0, course.capacity - (count || 0));
-  const isFull = course.status === "full" || left === 0;
 
-  if (isFull) {
-    $("seats").textContent = "This course is full. Email us to join the waiting list.";
-    $("seats").classList.remove("hidden");
-  }
-
-  // ---- payment options -------------------------------------------
-  const klarnaOk = KLARNA_COUNTRIES.includes(
+  state.course = course;
+  state.isFull = course.status === "full" || left === 0;
+  state.klarnaOk = KLARNA_COUNTRIES.includes(
     String(course.country || "").trim().toLowerCase()
   );
+  state.total = course.price_cents;
+  state.deposit = course.deposit_cents || Math.round(course.price_cents * DEPOSIT_RATE);
 
-  const options = [
-    {
-      key: "full",
-      primary: true,
-      label: "Pay in full",
-      note: "Card, Apple Pay or Link",
-      amount: money(full),
-    },
-  ];
-
-  if (balance > 0) {
-    options.push({
-      key: "deposit",
-      label: "Pay a deposit",
-      note: "Balance of " + money(balance) + " charged automatically " +
-            BALANCE_DAYS_BEFORE + " days before the course",
-      amount: money(deposit),
-    });
+  if (state.isFull) {
+    $("seats").textContent = "This course is full. Email us to join the waiting list.";
+    $("seats").classList.remove("hidden");
+    $("promo").classList.add("hidden");
   }
 
-  if (klarnaOk) {
-    options.push({
-      key: "klarna",
-      label: "Spread the cost with Klarna",
-      note: "Klarna splits the payment for you — subject to their approval",
-      amount: money(full),
-    });
-  }
-
-  for (const opt of options) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "opt" + (opt.primary ? " primary" : "");
-    btn.disabled = isFull;
-
-    const text = document.createElement("span");
-    const label = document.createElement("span");
-    label.className = "label";
-    label.textContent = isFull ? "Fully booked" : opt.label;
-    const note = document.createElement("span");
-    note.className = "note";
-    note.textContent = opt.note;
-    text.append(label);
-    if (!isFull) text.append(note);
-
-    const amount = document.createElement("span");
-    amount.className = "amount";
-    if (!isFull) amount.textContent = opt.amount;
-
-    btn.append(text, amount);
-    btn.addEventListener("click", () => checkout(course.slug, opt.key, btn));
-    $("options").append(btn);
-
-    if (isFull) break; // one disabled button is enough
-  }
+  renderBuyBox();
+  wirePromo();
 
   // ---- spec chips ------------------------------------------------
   const specs = [];
@@ -477,6 +473,146 @@ async function load() {
 
   $("loading").classList.add("hidden");
   $("course").classList.remove("hidden");
+}
+
+function renderBuyBox() {
+  const { course, money, total, deposit, discount, isFull } = state;
+  const balance = total - deposit;
+
+  // ---- price -----------------------------------------------------
+  $("price").innerHTML = "";
+  if (discount > 0) {
+    const was = document.createElement("span");
+    was.className = "was";
+    was.textContent = money(course.price_cents);
+    $("price").append(was);
+  }
+  $("price").append(document.createTextNode(money(total)));
+  if (discount > 0) {
+    const saved = document.createElement("small");
+    saved.textContent = state.code + " applied — " + money(discount) + " off";
+    $("price").append(saved);
+  }
+
+  // ---- options ---------------------------------------------------
+  $("options").innerHTML = "";
+
+  if (isFull) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "opt primary";
+    btn.disabled = true;
+    btn.innerHTML = "<span><span class='label'>Fully booked</span></span>";
+    $("options").append(btn);
+    return;
+  }
+
+  const options = [
+    {
+      key: "full",
+      primary: true,
+      label: "Pay in full",
+      note: "Card, Apple Pay or Link",
+      amount: money(total),
+    },
+  ];
+
+  if (balance > 0) {
+    options.push({
+      key: "deposit",
+      label: "Pay a deposit",
+      note: "Balance of " + money(balance) + " charged automatically " +
+            BALANCE_DAYS_BEFORE + " days before the course",
+      amount: money(deposit),
+    });
+  }
+
+  if (state.klarnaOk) {
+    options.push({
+      key: "klarna",
+      label: "Spread the cost with Klarna",
+      note: "Klarna splits the payment for you — subject to their approval",
+      amount: money(total),
+    });
+  }
+
+  for (const opt of options) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "opt" + (opt.primary ? " primary" : "");
+
+    const text = document.createElement("span");
+    const label = document.createElement("span");
+    label.className = "label";
+    label.textContent = opt.label;
+    const note = document.createElement("span");
+    note.className = "note";
+    note.textContent = opt.note;
+    text.append(label, note);
+
+    const amount = document.createElement("span");
+    amount.className = "amount";
+    amount.textContent = opt.amount;
+
+    btn.append(text, amount);
+    btn.addEventListener("click", () => checkout(course.slug, opt.key, btn));
+    $("options").append(btn);
+  }
+}
+
+function wirePromo() {
+  $("promotoggle").addEventListener("click", () => {
+    $("promorow").classList.toggle("hidden");
+    $("promoinput").focus();
+  });
+
+  $("promoapply").addEventListener("click", applyCode);
+  $("promoinput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") applyCode();
+  });
+}
+
+async function applyCode() {
+  const input = $("promoinput");
+  const msg = $("promomsg");
+  const code = input.value.trim();
+  if (!code) return;
+
+  $("promoapply").disabled = true;
+  msg.className = "promo-msg";
+  msg.textContent = "Checking…";
+
+  try {
+    const res = await fetch("/.netlify/functions/validate-discount", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: state.course.slug, code: code }),
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      msg.className = "promo-msg err";
+      msg.textContent = data.error || "That code isn't recognised";
+      $("promoapply").disabled = false;
+      return;
+    }
+
+    state.code = data.code;
+    state.discount = data.discount_cents;
+    state.total = data.total_cents;
+    state.deposit = data.deposit_cents;
+
+    msg.className = "promo-msg ok";
+    msg.textContent = (data.label ? data.label + " — " : "") +
+      state.money(data.discount_cents) + " off";
+    $("promorow").classList.add("hidden");
+    $("promotoggle").textContent = "Use a different code";
+    renderBuyBox();
+  } catch (e) {
+    msg.className = "promo-msg err";
+    msg.textContent = "Could not check that code. Please try again.";
+  }
+  $("promoapply").disabled = false;
 }
 
 async function loadTemplate(course) {
@@ -563,7 +699,7 @@ async function checkout(slug, option, btn) {
     const res = await fetch("/.netlify/functions/create-checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: slug, option: option }),
+      body: JSON.stringify({ slug: slug, option: option, code: state.code }),
     });
     const data = await res.json();
     if (data.url) { location.href = data.url; return; }
