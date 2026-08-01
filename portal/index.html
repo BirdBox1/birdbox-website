@@ -116,4 +116,340 @@
     border: 1px solid var(--rule); border-radius: 4px; padding: 0.5rem 0.6rem;
     min-height: 3.2rem; resize: vertical; background: #fff;
   }
-  .notes:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px;
+  .notes:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .saved { font-size: 0.75rem; color: var(--good); margin-left: 0.5rem; }
+
+  .empty {
+    background: var(--card); border: 1px dashed var(--rule); border-radius: 5px;
+    padding: 2rem 1.25rem; text-align: center; color: var(--muted); font-size: 0.9rem;
+  }
+
+  .counts { font-size: 0.85rem; color: var(--muted); margin-bottom: 1rem; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="brand">BirdBox · Coach Portal</span>
+  <span style="display:flex;align-items:center;gap:0.9rem">
+    <span class="who" id="who"></span>
+    <button id="signout" class="hidden" type="button">Sign out</button>
+  </span>
+</div>
+
+<section id="view-login">
+  <div class="login">
+    <h1>Sign in</h1>
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="username" inputmode="email">
+    <label for="password">Password</label>
+    <input id="password" type="password" autocomplete="current-password">
+    <button class="btn" id="signin" type="button">Sign in</button>
+    <p class="msg" id="login-msg"></p>
+  </div>
+</section>
+
+<section id="view-courses" class="hidden">
+  <div class="wrap">
+    <h1>Your courses</h1>
+    <p class="sub" id="courses-sub"></p>
+    <div id="courses-list"></div>
+  </div>
+</section>
+
+<section id="view-course" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back">← All courses</a>
+    <h2 id="course-title"></h2>
+    <p class="sub" id="course-meta"></p>
+    <p class="counts" id="counts"></p>
+    <div class="card" id="attendees"></div>
+  </div>
+</section>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+// Publishable key — safe in client code. Row-level security in the
+// database decides what each signed-in coach can actually see.
+const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const $ = (id) => document.getElementById(id);
+const views = {
+  login:   $("view-login"),
+  courses: $("view-courses"),
+  course:  $("view-course"),
+};
+function show(name) {
+  Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== name));
+}
+
+let me = null;
+
+$("signin").addEventListener("click", signIn);
+$("password").addEventListener("keydown", (e) => { if (e.key === "Enter") signIn(); });
+
+async function signIn() {
+  const msg = $("login-msg");
+  msg.className = "msg";
+  msg.textContent = "Signing in…";
+  $("signin").disabled = true;
+
+  const { error } = await db.auth.signInWithPassword({
+    email: $("email").value.trim(),
+    password: $("password").value,
+  });
+
+  $("signin").disabled = false;
+
+  if (error) {
+    msg.className = "msg err";
+    msg.textContent = "That email and password did not match. Try again.";
+    return;
+  }
+  msg.textContent = "";
+  await start();
+}
+
+$("signout").addEventListener("click", async () => {
+  await db.auth.signOut();
+  me = null;
+  $("who").textContent = "";
+  $("signout").classList.add("hidden");
+  $("password").value = "";
+  show("login");
+});
+
+async function start() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { show("login"); return; }
+
+  const { data: staff, error } = await db
+    .from("staff")
+    .select("id, full_name, role, active")
+    .eq("id", session.user.id)
+    .maybeSingle();
+
+  if (error || !staff) {
+    const msg = $("login-msg");
+    msg.className = "msg err";
+    msg.textContent = "This login is not set up as a staff member. Contact an admin.";
+    await db.auth.signOut();
+    show("login");
+    return;
+  }
+
+  if (!staff.active) {
+    const msg = $("login-msg");
+    msg.className = "msg err";
+    msg.textContent = "This account is no longer active.";
+    await db.auth.signOut();
+    show("login");
+    return;
+  }
+
+  me = staff;
+  $("who").textContent = staff.full_name;
+  $("signout").classList.remove("hidden");
+  await loadCourses();
+}
+
+function fmtDate(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString(undefined, {
+    day: "numeric", month: "short", year: "numeric",
+  });
+}
+
+async function loadCourses() {
+  show("courses");
+  const list = $("courses-list");
+  list.innerHTML = '<p class="empty">Loading…</p>';
+
+  let courses = [];
+
+  if (me.role === "admin") {
+    const { data, error } = await db
+      .from("courses")
+      .select("id, brand, type, level, title, city, country, starts_at, capacity, status")
+      .order("starts_at", { ascending: true });
+    if (error) { list.innerHTML = `<p class="empty">Could not load courses.</p>`; return; }
+    courses = data || [];
+    $("courses-sub").textContent = "Admin view — every course across all brands.";
+  } else {
+    // coaches see only courses they are assigned to.
+    // (courses also has a public read policy for the website, so we
+    //  filter through course_staff rather than relying on that.)
+    const { data, error } = await db
+      .from("course_staff")
+      .select("courses (id, brand, type, level, title, city, country, starts_at, capacity, status)");
+    if (error) { list.innerHTML = `<p class="empty">Could not load courses.</p>`; return; }
+    courses = (data || []).map((r) => r.courses).filter(Boolean);
+    courses.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+    $("courses-sub").textContent = "Courses you are allocated to.";
+  }
+
+  if (!courses.length) {
+    list.innerHTML = '<p class="empty">You have no courses allocated yet.</p>';
+    return;
+  }
+
+  list.innerHTML = "";
+  for (const c of courses) {
+    const el = document.createElement("div");
+    el.className = "card";
+    el.innerHTML = `
+      <button class="course" type="button">
+        <span class="top">
+          <span class="title"></span>
+          <span class="when"></span>
+        </span>
+        <span class="line"></span>
+        <span class="flags"></span>
+      </button>`;
+    el.querySelector(".title").textContent = c.title;
+    el.querySelector(".when").textContent = fmtDate(c.starts_at);
+    el.querySelector(".line").textContent =
+      [c.city, c.country].filter(Boolean).join(", ") || "Location to be confirmed";
+
+    const flags = el.querySelector(".flags");
+    const brand = document.createElement("span");
+    brand.className = "pill brand";
+    brand.textContent = c.brand;
+    flags.appendChild(brand);
+
+    if (c.status !== "published") {
+      const st = document.createElement("span");
+      st.className = c.status === "full" ? "pill full" : "pill";
+      st.textContent = c.status;
+      flags.appendChild(st);
+    }
+
+    el.querySelector(".course").addEventListener("click", () => openCourse(c));
+    list.appendChild(el);
+  }
+}
+
+$("back").addEventListener("click", loadCourses);
+
+async function openCourse(course) {
+  show("course");
+  $("course-title").textContent = course.title;
+  $("course-meta").textContent =
+    [fmtDate(course.starts_at), [course.city, course.country].filter(Boolean).join(", ")]
+      .filter(Boolean).join(" · ");
+  $("counts").textContent = "";
+  const box = $("attendees");
+  box.innerHTML = '<p class="empty">Loading…</p>';
+
+  const { data, error } = await db
+    .from("registrations")
+    .select("id, first_name, last_name, email, phone, payment_status, attended, coach_notes, waiver_signed_at")
+    .eq("course_id", course.id)
+    .order("last_name", { ascending: true });
+
+  if (error) {
+    box.innerHTML = '<p class="empty">Could not load registrations.</p>';
+    return;
+  }
+
+  const regs = data || [];
+  if (!regs.length) {
+    box.innerHTML = '<p class="empty">No registrations yet.</p>';
+    return;
+  }
+
+  const paid = regs.filter((r) => r.payment_status === "paid_in_full").length;
+  $("counts").textContent =
+    `${regs.length} of ${course.capacity} places · ${paid} paid in full`;
+
+  box.innerHTML = "";
+  for (const r of regs) {
+    const el = document.createElement("div");
+    el.className = "attendee";
+    el.innerHTML = `
+      <div class="row1">
+        <div>
+          <div class="name"></div>
+          <div class="contact"></div>
+        </div>
+        <label class="check">
+          <input type="checkbox"> Attended
+        </label>
+      </div>
+      <div class="flags"></div>
+      <textarea class="notes" placeholder="End-of-seminar notes for this participant…"></textarea>`;
+
+    el.querySelector(".name").textContent = `${r.first_name} ${r.last_name}`;
+    el.querySelector(".contact").textContent =
+      [r.email, r.phone].filter(Boolean).join(" · ");
+
+    const flags = el.querySelector(".flags");
+    const pay = document.createElement("span");
+    pay.className = "pill";
+    pay.textContent = (r.payment_status || "").replace(/_/g, " ");
+    flags.appendChild(pay);
+
+    if (!r.waiver_signed_at) {
+      const w = document.createElement("span");
+      w.className = "pill full";
+      w.textContent = "no waiver";
+      flags.appendChild(w);
+    }
+
+    const cb = el.querySelector('input[type=checkbox]');
+    cb.checked = !!r.attended;
+    cb.addEventListener("change", async () => {
+      cb.disabled = true;
+      const { error } = await db
+        .from("registrations")
+        .update({ attended: cb.checked })
+        .eq("id", r.id);
+      cb.disabled = false;
+      if (error) {
+        cb.checked = !cb.checked;
+        flash(el, "Could not save", true);
+      } else {
+        flash(el, "Saved");
+      }
+    });
+
+    const ta = el.querySelector(".notes");
+    ta.value = r.coach_notes || "";
+    let last = ta.value;
+    ta.addEventListener("blur", async () => {
+      if (ta.value === last) return;
+      const { error } = await db
+        .from("registrations")
+        .update({ coach_notes: ta.value })
+        .eq("id", r.id);
+      if (error) { flash(el, "Could not save notes", true); return; }
+      last = ta.value;
+      flash(el, "Notes saved");
+    });
+
+    box.appendChild(el);
+  }
+}
+
+function flash(el, text, isError = false) {
+  let tag = el.querySelector(".saved");
+  if (!tag) {
+    tag = document.createElement("span");
+    tag.className = "saved";
+    el.querySelector(".check").appendChild(tag);
+  }
+  tag.style.color = isError ? "#b3261e" : "";
+  tag.textContent = text;
+  setTimeout(() => { tag.textContent = ""; }, 2000);
+}
+
+start();
+</script>
+
+</body>
+</html>
