@@ -166,7 +166,7 @@
   .btn.solid-danger { background: var(--bad); color: #fff; }
   .btn.solid-danger:hover { background: #8f1e17; }
   .btn.go { background: var(--good); color: #fff; }
-  .btn.go:hover { background: #17electric; background: #176e43; }
+  .btn.go:hover { background: #176e43; }
 
   .msg { font-size: 0.85rem; margin-top: 0.9rem; min-height: 1.2em; }
   .msg.err { color: var(--bad); }
@@ -239,6 +239,7 @@
   .pill.draft{ border-color: var(--muted); color: var(--muted); }
   .pill.on   { border-color: var(--good); color: var(--good); }
   .pill.low  { background: var(--warn); border-color: var(--warn); color: #fff; font-weight: 700; }
+  .pill.lead { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 700; }
 
   /* ---------------- delete dialog ---------------- */
   .overlay {
@@ -319,12 +320,20 @@
     font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
     color: var(--muted); margin: 0 0 1rem; font-weight: 600;
   }
-  .coachlist { display: grid; gap: 0.4rem; max-height: 14rem; overflow-y: auto; }
-  .coachlist label {
-    display: flex; align-items: center; gap: 0.5rem; font-weight: 400;
-    font-size: 0.9rem; margin: 0; cursor: pointer;
+
+  /* who is on the course, and in what capacity */
+  .coachlist { display: grid; gap: 0.35rem; max-height: 18rem; overflow-y: auto; }
+  .coachrow {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.3rem 0; border-bottom: 1px solid var(--rule);
   }
-  .coachlist input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); }
+  .coachrow:last-child { border-bottom: 0; }
+  .coachrow .cname {
+    flex: 1 1 auto; min-width: 0; font-size: 0.9rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .coachrow select { flex: 0 0 8.5rem; width: 8.5rem; font-size: 0.85rem; padding: 0.35rem 0.4rem; }
+  .coachrow.on .cname { font-weight: 650; }
 
   .result {
     background: #eef4fb; border: 1px solid var(--accent); border-radius: 6px;
@@ -430,6 +439,15 @@
       </div>
 
       <div class="sep" id="salessep"></div>
+
+      <h3>Coaches on this course</h3>
+      <div class="coachlist" id="editcoaches"></div>
+      <div class="admin-row" style="margin-top:0.9rem">
+        <button class="btn small" id="savecoaches" type="button">Save coaches</button>
+        <span class="why">The lead coach handles participant emails and feedback. Assistants coach and write notes.</span>
+      </div>
+
+      <div class="sep"></div>
 
       <div id="reschedwrap">
         <div class="grid2">
@@ -660,7 +678,7 @@
       </div>
 
       <div class="panel">
-        <h3>Coaches <span class="hint" style="text-transform:none;letter-spacing:0">— can be added later</span></h3>
+        <h3>Coaches <span class="hint" style="text-transform:none;letter-spacing:0">— one lead, any number of assistants</span></h3>
         <div class="coachlist" id="coachlist"></div>
       </div>
 
@@ -768,7 +786,11 @@ let me = null;
 let staffList = [];
 let tab = "live";
 
+// What I am on each course I am assigned to: lead_coach or assistant.
+let myRoles = {};
+
 const isAdmin = () => me && me.role === "admin";
+const amLeadOn = (courseId) => isAdmin() || myRoles[courseId] === "lead_coach";
 
 // A course is "past" once it is archived, cancelled or complete.
 // Everything else is live, whether on sale, full or still a draft.
@@ -800,6 +822,7 @@ async function signIn() {
 $("signout").addEventListener("click", async () => {
   await db.auth.signOut();
   me = null;
+  myRoles = {};
   $("who").textContent = "";
   $("signout").classList.add("hidden");
   $("codeslink").classList.add("hidden");
@@ -887,9 +910,14 @@ async function loadCourses() {
     $("courses-sub").textContent = "Every course across all brands.";
   } else {
     const { data, error } = await db.from("course_staff")
-      .select(`courses (${cols})`);
+      .select(`role, courses (${cols})`);
     if (error) { list.innerHTML = '<p class="empty">Could not load courses.</p>'; return; }
-    all = (data || []).map((r) => r.courses).filter(Boolean);
+
+    myRoles = {};
+    all = (data || [])
+      .filter((r) => r.courses)
+      .map((r) => { myRoles[r.courses.id] = r.role; return r.courses; });
+
     all.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
     $("courses-sub").textContent = "Courses you are allocated to.";
   }
@@ -994,6 +1022,11 @@ async function loadCourses() {
       const s = document.createElement("span");
       s.className = "pill " + cls; s.textContent = text; flags.append(s);
     };
+    // A coach should see at a glance whether this one is theirs to run.
+    if (!isAdmin() && myRoles[c.id]) {
+      add(myRoles[c.id] === "lead_coach" ? "you: lead" : "you: assist",
+          myRoles[c.id] === "lead_coach" ? "lead" : "");
+    }
     if (isLow) add(`${taken} booked · ${days}d away`, "low");
     if (c.status === "complete") add("completed", "draft");
     else if (c.status === "cancelled") add("cancelled", "bad");
@@ -1186,14 +1219,19 @@ const PAY_LABEL = {
 async function openCourse(course) {
   show("course");
   $("course-title").textContent = course.title;
+
+  const myRole = isAdmin() ? null : myRoles[course.id];
   $("course-meta").textContent = [
     fmtDate(course.starts_at),
     [course.city, course.country].filter(Boolean).join(", "),
+    myRole === "lead_coach" ? "You are lead coach"
+      : myRole === "assistant" ? "You are assisting" : null,
     course.status === "complete" ? "Completed"
       : course.status === "cancelled" ? "Cancelled"
       : course.archived ? "Archived"
       : course.status === "draft" ? "Draft — not on sale" : null,
   ].filter(Boolean).join(" · ");
+
   $("counts").textContent = "";
   $("admin-msg").textContent = "";
   $("adminpanel").classList.add("hidden");
@@ -1350,7 +1388,38 @@ async function callAdmin(payload) {
   return data;
 }
 
-function wireAdmin(course, totalRegs, liveRegs) {
+// One row per staff member, with what they are on this course.
+function renderCoachPicker(box, assigned) {
+  box.innerHTML = "";
+  for (const s of staffList) {
+    const current = assigned[s.id] || "";
+    const row = document.createElement("div");
+    row.className = "coachrow" + (current ? " on" : "");
+    row.innerHTML = `
+      <span class="cname"></span>
+      <select>
+        <option value="">Not on this course</option>
+        <option value="lead_coach">Lead coach</option>
+        <option value="assistant">Assistant</option>
+      </select>`;
+    row.querySelector(".cname").textContent = s.full_name;
+    const sel = row.querySelector("select");
+    sel.value = current;
+    sel.dataset.staff = s.id;
+    sel.addEventListener("change", () => {
+      row.classList.toggle("on", !!sel.value);
+    });
+    box.append(row);
+  }
+}
+
+function readCoachPicker(box) {
+  return Array.from(box.querySelectorAll("select"))
+    .filter((s) => s.value)
+    .map((s) => ({ staff_id: s.dataset.staff, role: s.value }));
+}
+
+async function wireAdmin(course, totalRegs, liveRegs) {
   const panel = $("adminpanel");
   const msg = $("admin-msg");
   panel.classList.remove("hidden");
@@ -1389,6 +1458,64 @@ function wireAdmin(course, totalRegs, liveRegs) {
     unpublishBtn.disabled = false;
     if (error) { msg.className = "msg err"; msg.textContent = "Could not save: " + error.message; return; }
     await loadCourses();
+  };
+
+  // ---- who is coaching ----
+  if (!staffList.length) {
+    const { data } = await db.from("staff")
+      .select("id, full_name, role").eq("active", true).order("full_name");
+    staffList = data || [];
+  }
+  const { data: assignedRows } = await db.from("course_staff")
+    .select("staff_id, role").eq("course_id", course.id);
+  const assigned = {};
+  for (const r of assignedRows || []) assigned[r.staff_id] = r.role;
+  renderCoachPicker($("editcoaches"), assigned);
+
+  $("savecoaches").onclick = async () => {
+    const picked = readCoachPicker($("editcoaches"));
+    const leads = picked.filter((p) => p.role === "lead_coach");
+
+    if (leads.length > 1) {
+      msg.className = "msg err";
+      msg.textContent = "Only one lead coach — the others should be assistants.";
+      return;
+    }
+    if (!leads.length && picked.length) {
+      if (!window.confirm(
+        "No lead coach on this course.\n\n" +
+        "Nobody will be responsible for participant emails or feedback. Save anyway?"
+      )) return;
+    }
+
+    $("savecoaches").disabled = true;
+    msg.className = "msg"; msg.textContent = "Saving…";
+
+    // Replace the set outright — simpler and safer than working out
+    // which rows changed.
+    const { error: delErr } = await db.from("course_staff")
+      .delete().eq("course_id", course.id);
+    if (delErr) {
+      $("savecoaches").disabled = false;
+      msg.className = "msg err"; msg.textContent = "Could not save: " + delErr.message;
+      return;
+    }
+
+    if (picked.length) {
+      const rows = picked.map((p) => ({ course_id: course.id, ...p }));
+      const { error } = await db.from("course_staff").insert(rows);
+      if (error) {
+        $("savecoaches").disabled = false;
+        msg.className = "msg err"; msg.textContent = "Could not save: " + error.message;
+        return;
+      }
+    }
+
+    $("savecoaches").disabled = false;
+    msg.className = "msg ok";
+    msg.textContent = leads.length
+      ? `Saved. ${leads.length ? "Lead coach set" : ""}${picked.length > 1 ? `, ${picked.length - 1} assisting` : ""}.`
+      : "Saved.";
   };
 
   // Prefill the reschedule fields with the dates it has now.
@@ -1537,14 +1664,7 @@ async function openForm() {
       .select("id, full_name, role").eq("active", true).order("full_name");
     staffList = data || [];
   }
-  const box = $("coachlist");
-  box.innerHTML = "";
-  for (const s of staffList) {
-    const l = document.createElement("label");
-    l.innerHTML = `<input type="checkbox" value="${s.id}"> <span></span>`;
-    l.querySelector("span").textContent = `${s.full_name} — ${s.role.replace(/_/g, " ")}`;
-    box.appendChild(l);
-  }
+  renderCoachPicker($("coachlist"), {});
 }
 
 function toggleWorkshopFields() {
@@ -1614,6 +1734,13 @@ async function saveCourse() {
   if (!slug)   { buildSlug(); slug = $("f-slug").value.trim(); }
   if (!slug)   { msg.className = "msg err"; msg.textContent = "Add a link."; return; }
 
+  const picked = readCoachPicker($("coachlist"));
+  if (picked.filter((p) => p.role === "lead_coach").length > 1) {
+    msg.className = "msg err";
+    msg.textContent = "Only one lead coach — the others should be assistants.";
+    return;
+  }
+
   // Title: the city is shown under the date on the course page and in
   // the venue block, so it never goes in a workshop title as well.
   const wname = $("f-workshop").value.trim();
@@ -1679,10 +1806,9 @@ async function saveCourse() {
       );
     }
 
-    // 3. coaches
-    const picked = Array.from($("coachlist").querySelectorAll("input:checked")).map((i) => i.value);
+    // 3. coaches, with the role each of them holds
     if (picked.length) {
-      const rows = picked.map((id) => ({ course_id: course.id, staff_id: id, role: "lead_coach" }));
+      const rows = picked.map((p) => ({ course_id: course.id, ...p }));
       const { error: csErr } = await db.from("course_staff").insert(rows);
       if (csErr) console.error("Coach assignment failed:", csErr);
     }
