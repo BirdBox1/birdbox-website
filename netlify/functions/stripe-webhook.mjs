@@ -45,7 +45,15 @@ export default async (req) => {
     });
 
     const details = full.customer_details || {};
-    const [firstName, ...rest] = (details.name || "").trim().split(" ");
+
+    // participant name comes from the explicit checkout fields.
+    // Fall back to splitting the billing name only if they are missing.
+    const field = (key) =>
+      full.custom_fields?.find((f) => f.key === key)?.text?.value?.trim();
+
+    const [billingFirst, ...billingRest] = (details.name || "").trim().split(" ");
+    const firstName = field("firstname") || billingFirst || "—";
+    const lastName = field("lastname") || billingRest.join(" ") || "—";
 
     // Stripe reports the consent tick back on the session.
     // Only record a signature if it was actually accepted.
@@ -56,8 +64,8 @@ export default async (req) => {
 
     const { error } = await supabase.from("registrations").insert({
       course_id: full.metadata.course_id,
-      first_name: firstName || "—",
-      last_name: rest.join(" ") || "—",
+      first_name: firstName,
+      last_name: lastName,
       email: details.email,
       phone: details.phone || null,
       country: details.address?.country || null,
