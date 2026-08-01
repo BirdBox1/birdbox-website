@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Participant Agreements — BirdBox Coaching</title>
+<meta name="description" content="Terms of sale, waiver, health declaration and media consent for BirdBox Coaching courses and seminars.">
+<style>
+  :root {
+    --ink:      #16181b;
+    --paper:    #fbfaf8;
+    --shell:    #101113;
+    --rule:     #dcd9d3;
+    --muted:    #6c7178;
+    --accent:   #2f7fd0;
+    --measure:  38rem;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    background: var(--shell);
+    color: #fff;
+    padding: 2.75rem 1.5rem 2.25rem;
+  }
+  .shell-inner { max-width: 62rem; margin: 0 auto; }
+
+  .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #9aa1a9;
+    margin: 0 0 0.6rem;
+  }
+  .shell h1 {
+    font-size: clamp(1.6rem, 4.5vw, 2.4rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    margin: 0 0 1rem;
+    max-width: 22ch;
+  }
+  .entity {
+    font-size: 0.9rem;
+    color: #b6bcc3;
+    margin: 0;
+    max-width: 46ch;
+  }
+
+  .stamp {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-top: 1.75rem;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid #33373c;
+    border-left: 3px solid var(--accent);
+    background: #17191c;
+    font-size: 0.8rem;
+  }
+  .stamp .label {
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    color: #9aa1a9;
+  }
+  .stamp .value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #fff;
+  }
+
+  .wrap {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: 0 1.5rem 5rem;
+    display: grid;
+    gap: 3rem;
+  }
+  @media (min-width: 62rem) {
+    .wrap {
+      grid-template-columns: 14rem 1fr;
+      gap: 4rem;
+      padding-top: 3.5rem;
+    }
+  }
+
+  nav.toc {
+    padding-top: 2.5rem;
+    font-size: 0.9rem;
+  }
+  @media (min-width: 62rem) {
+    nav.toc {
+      position: sticky;
+      top: 2.5rem;
+      align-self: start;
+      padding-top: 0;
+    }
+  }
+  nav.toc p {
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 0.9rem;
+  }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: doc; }
+  nav.toc li { counter-increment: doc; margin-bottom: 0.7rem; }
+  nav.toc a {
+    color: var(--ink);
+    text-decoration: none;
+    display: flex;
+    gap: 0.65rem;
+    line-height: 1.35;
+  }
+  nav.toc a::before {
+    content: counter(doc);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    padding-top: 0.1em;
+  }
+  nav.toc a:hover { color: var(--accent); }
+  nav.toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  nav.toc .opt {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+
+  main { max-width: var(--measure); }
+
+  article { padding-top: 2.75rem; }
+  article + article { border-top: 1px solid var(--rule); margin-top: 3.5rem; }
+
+  .docnum {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  h2 {
+    font-size: clamp(1.35rem, 3.5vw, 1.7rem);
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+    margin: 0 0 0.4rem;
+  }
+  .sub {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin: 0 0 2rem;
+  }
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 650;
+    letter-spacing: -0.005em;
+    margin: 2.25rem 0 0.5rem;
+  }
+  h3 .n {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-weight: 400;
+    margin-right: 0.5rem;
+  }
+
+  p { margin: 0 0 1rem; }
+  ul, ol.plain { margin: 0 0 1.15rem; padding-left: 1.15rem; }
+  li { margin-bottom: 0.45rem; }
+
+  strong { font-weight: 650; }
+  a { color: var(--accent); }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: #f1f4f8;
+    padding: 1rem 1.15rem;
+    margin: 1.5rem 0;
+    font-size: 0.94rem;
+  }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .hard {
+    border: 1px solid var(--ink);
+    padding: 1rem 1.15rem;
+    margin: 1.5rem 0;
+    font-size: 0.94rem;
+  }
+  .hard p:last-child { margin-bottom: 0; }
+
+  .tick {
+    font-weight: 650;
+    border-top: 1px solid var(--rule);
+    padding-top: 1.15rem;
+    margin-top: 2rem;
+  }
+
+  ol.q { padding-left: 1.4rem; margin: 0 0 1.25rem; }
+  ol.q li { margin-bottom: 0.8rem; }
+  ol.q .hint { color: var(--muted); font-style: italic; }
+
+  .optional-flag {
+    display: inline-block;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 0.15rem 0.5rem;
+    vertical-align: 0.35em;
+    margin-left: 0.5rem;
+    font-weight: 500;
+  }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    font-size: 0.86rem;
+    color: var(--muted);
+  }
+  footer p { margin-bottom: 0.4rem; }
+</style>
+</head>
+<body>
+
+<header class="shell">
+  <div class="shell-inner">
+    <p class="eyebrow">BirdBox Coaching</p>
+    <h1>Participant agreements</h1>
+    <p class="entity">
+      These apply to every BirdBox Coaching, The Coaches Course, The Gymnastics
+      Course, The Endurance Course and The Weightlifting Course seminar,
+      workshop and online course.
+    </p>
+    <div class="stamp">
+      <span class="label">Version</span>
+      <span class="value">2026-08-v1</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc" aria-label="Contents">
+    <p>Contents</p>
+    <ol>
+      <li><a href="#terms">Terms of sale</a></li>
+      <li><a href="#waiver">Assumption of risk and waiver of liability</a></li>
+      <li><a href="#health">Health and participation declaration</a></li>
+      <li><a href="#media">Photography and media consent<span class="opt">Optional</span></a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <article id="terms">
+      <span class="docnum">Document 01</span>
+      <h2>Terms of sale</h2>
+      <p class="sub">Agreed at checkout.</p>
+
+      <p>
+        <strong>BirdBox Coaching Limited</strong>, a company registered in
+        Ireland (company number 786123, VAT and OSS number IE4429982WH),
+        trading as BirdBox Coaching, The Coaches Course, The Gymnastics Course,
+        The Endurance Course and The Weightlifting Course — “we”, “us”.
+      </p>
+
+      <h3><span class="n">1.1</span>What you are buying</h3>
+      <p>
+        Your registration secures one place on the course, seminar or workshop
+        named at checkout, for the named participant. Places are limited and are
+        allocated in order of completed payment.
+      </p>
+
+      <h3><span class="n">1.2</span>Price and payment</h3>
+      <p>
+        Prices are shown at checkout in the currency of sale and include VAT
+        where it applies. Where a deposit or payment plan is offered, the
+        remaining balance is charged automatically to the payment method you
+        provide, on the dates shown to you at checkout. If a scheduled payment
+        fails we will contact you, and we may release your place if the balance
+        is not settled.
+      </p>
+
+      <h3><span class="n">1.3</span>Transfers and cancellation by you</h3>
+      <p>
+        Because we commit to venues, travel and coaching staff well in advance,
+        course fees are <strong>non-refundable</strong>. We will instead offer
+        you, at our discretion:
+      </p>
+      <ul>
+        <li>a transfer to another date or location of the same course;</li>
+        <li>a credit against a future course, valid for 24 months; or</li>
+        <li>a transfer to the equivalent online course.</li>
+      </ul>
+      <p>
+        To request one of these, contact us at least <strong>14 days</strong>
+        before the course start date. Requests inside 14 days are considered but
+        cannot be guaranteed.
+      </p>
+      <p>
+        You may transfer your place to another person at no charge up to 7 days
+        before the course, provided they meet any prerequisites and complete
+        their own health declaration and waiver.
+      </p>
+
+      <h3><span class="n">1.4</span>Discretionary refunds</h3>
+      <p>
+        In exceptional circumstances we may agree to a refund. Where we do, an
+        administration fee of <strong>€75</strong> is deducted to cover payment
+        processing, platform and banking costs we cannot recover.
+      </p>
+
+      <h3><span class="n">1.5</span>Cancellation or changes by us</h3>
+      <p>
+        We may cancel or reschedule a course — for example because of
+        insufficient registrations, venue failure, coach illness or events
+        outside our control. If we cancel and cannot offer you a suitable
+        alternative date, you will receive a <strong>full refund</strong> of the
+        course fee.
+      </p>
+      <div class="callout">
+        <p>
+          We are not responsible for your travel, accommodation or other costs.
+          We strongly recommend booking refundable travel or taking out travel
+          insurance.
+        </p>
+      </div>
+
+      <h3><span class="n">1.6</span>Your right to cancel (consumers in the EU and UK)</h3>
+      <p>
+        For courses taking place on a <strong>specific date</strong>, the
+        statutory 14-day cancellation right does not apply. This is the standard
+        exemption for leisure and event services tied to a date.
+      </p>
+      <p>
+        For <strong>online courses</strong>, you have 14 days to cancel from
+        purchase. By starting the course within that period you ask us to begin
+        supply immediately and you acknowledge that you lose the right to cancel
+        once you have accessed the content.
+      </p>
+
+      <h3><span class="n">1.7</span>Prerequisites</h3>
+      <p>
+        Some courses require you to have completed an earlier level. If you
+        register without the prerequisite we will offer a transfer or credit,
+        but we cannot admit you to the course.
+      </p>
+
+      <h3><span class="n">1.8</span>Conduct</h3>
+      <p>
+        We may refuse admission to, or remove from a course, anyone whose
+        behaviour puts themselves or others at risk, or who is under the
+        influence of alcohol or drugs. No refund or credit is due in that case.
+      </p>
+
+      <h3><span class="n">1.9</span>Contact</h3>
+      <p>
+        BirdBox Coaching Limited, 19 Baggot Street Lower, Dublin 2, D02 X658,
+        Ireland · <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a>
+      </p>
+    </article>
+
+    <article id="waiver">
+      <span class="docnum">Document 02</span>
+      <h2>Assumption of risk and waiver of liability</h2>
+      <p class="sub">Agreed at checkout. Read it carefully — it affects your legal rights.</p>
+
+      <p>
+        Agreeing to this is a condition of attending a BirdBox Coaching Limited
+        course, seminar or workshop.
+      </p>
+      <p>
+        In this document, <strong>“we”</strong>, <strong>“us”</strong> and
+        <strong>“BirdBox”</strong> mean BirdBox Coaching Limited, its directors,
+        employees, coaches, contractors, volunteers and representatives.
+        <strong>“The Course”</strong> means any seminar, workshop, course or
+        related activity we run, and any venue at which it takes place.
+      </p>
+
+      <h3><span class="n">2.1</span>I understand the activity involves risk</h3>
+      <p>
+        The Course involves physical exercise, including gymnastics,
+        weightlifting and other functional fitness movements, using equipment
+        such as barbells, rings, bars, ropes and boxes.
+      </p>
+      <p>I understand and accept that this carries a genuine risk of injury, including:</p>
+      <ul>
+        <li>minor injuries such as bruises, strains, sprains and abrasions;</li>
+        <li>significant injuries such as fractures, dislocations, joint, back and muscular injuries, and concussion;</li>
+        <li>in rare cases, serious cardiovascular events, catastrophic injury or death;</li>
+        <li>injury to a foetus, if I am pregnant.</li>
+      </ul>
+      <p>
+        I understand that these risks cannot be eliminated, that not every risk
+        can be listed, and that risk may arise from my own actions, the actions
+        of other participants, the condition of the venue or equipment, or from
+        a coach misjudging my ability, condition or a movement.
+      </p>
+      <p>
+        I understand that medical assistance may not be immediately available
+        and that the venue may be some distance from medical facilities.
+      </p>
+
+      <h3><span class="n">2.2</span>I am responsible for judging my own fitness to take part</h3>
+      <p>I confirm that:</p>
+      <ul>
+        <li>I have considered whether I am physically and mentally fit to take part, and have sought medical advice where appropriate;</li>
+        <li>I have completed the health and participation declaration truthfully, and will tell the coaching staff about any change before the Course begins;</li>
+        <li>I will work within my own limits, follow instructions and safety guidance, and stop and tell a coach if something hurts or does not feel right;</li>
+        <li>I will inspect equipment before use and ask if I am unsure how to use it.</li>
+      </ul>
+
+      <h3><span class="n">2.3</span>I accept the risk</h3>
+      <p>
+        Knowing all of the above, I choose freely to take part, and I accept the
+        risk of injury, loss or damage arising from my participation.
+      </p>
+
+      <h3><span class="n">2.4</span>Limits of our responsibility</h3>
+      <p>
+        To the fullest extent permitted by law, I agree not to bring a claim
+        against BirdBox for injury, loss or damage arising from the ordinary
+        risks of participation described above.
+      </p>
+      <div class="hard">
+        <p><strong>Nothing in this agreement excludes or limits our liability for:</strong></p>
+        <ul>
+          <li>death or personal injury caused by our negligence;</li>
+          <li>fraud or fraudulent misrepresentation; or</li>
+          <li>anything else that cannot lawfully be excluded.</li>
+        </ul>
+        <p>
+          Where you are dealing with us as a consumer, this agreement does not
+          affect your statutory rights.
+        </p>
+      </div>
+
+      <h3><span class="n">2.5</span>Emergency treatment</h3>
+      <p>
+        If I am injured or become unwell during the Course, I consent to first
+        aid or emergency medical treatment being given by qualified personnel,
+        and to staff calling emergency services on my behalf if I cannot do so
+        myself. I understand BirdBox is not obliged to provide medical care, and
+        that I am responsible for the cost of any medical treatment or
+        transport.
+      </p>
+
+      <h3><span class="n">2.6</span>My belongings</h3>
+      <p>
+        I am responsible for my own property at the venue. BirdBox is not
+        responsible for loss, theft or damage to personal belongings.
+      </p>
+
+      <h3><span class="n">2.7</span>Age</h3>
+      <p>
+        I confirm I am 18 or over. Participants under 18 may only attend with
+        the written agreement of a parent or guardian, who must also accept this
+        agreement on their behalf.
+      </p>
+
+      <h3><span class="n">2.8</span>Governing law</h3>
+      <p>
+        This agreement is governed by the laws of Ireland, and the Irish courts
+        have jurisdiction. If you are a consumer resident elsewhere in the EU,
+        this does not deprive you of the protection of the mandatory consumer
+        laws of your own country, or of your right to bring proceedings there.
+      </p>
+
+      <h3><span class="n">2.9</span>If part of this is unenforceable</h3>
+      <p>
+        If any part of this agreement is found to be invalid or unenforceable,
+        the rest continues to apply.
+      </p>
+
+      <p class="tick">☐ I have read and agree to the assumption of risk and waiver of liability.</p>
+    </article>
+
+    <article id="health">
+      <span class="docnum">Document 03</span>
+      <h2>Health and participation declaration</h2>
+      <p class="sub">Completed after purchase, before you attend. Seen only by the coaches assigned to your course.</p>
+
+      <p>
+        This is not a test and there are no wrong answers. Telling us about an
+        injury or condition does not stop you taking part — it lets your coach
+        give you appropriate alternatives on the day.
+      </p>
+
+      <ol class="q">
+        <li>Do you have any current injury, pain or physical limitation we should know about?</li>
+        <li>Have you had surgery or a significant injury in the last 12 months?</li>
+        <li>Do you have any medical condition that could be affected by strenuous exercise — for example a heart condition, high blood pressure, asthma, epilepsy, or a musculoskeletal, respiratory or circulatory condition?</li>
+        <li>Are you currently pregnant, or have you given birth in the last 6 months? <span class="hint">Yes / no / prefer not to say</span></li>
+        <li>Is there anything else you would like your coach to know?</li>
+        <li>Emergency contact — name, relationship and phone number. <span class="hint">Required</span></li>
+        <li>Do you carry medication we should know about in an emergency, such as an inhaler or adrenaline auto-injector?</li>
+      </ol>
+
+      <p class="tick">☐ I confirm this information is accurate, and I will tell the coaching staff if anything changes before the Course.</p>
+
+      <div class="callout">
+        <p>
+          <strong>How we handle this.</strong> This is health data. We collect it
+          with your explicit consent, show it only to the coaches assigned to
+          your course, use it solely to keep you safe during the Course, and
+          delete it 12 months afterwards. You can ask us to delete it sooner at
+          any time.
+        </p>
+      </div>
+    </article>
+
+    <article id="media">
+      <span class="docnum">Document 04</span>
+      <h2>Photography and media consent<span class="optional-flag">Optional</span></h2>
+      <p class="sub">Your answer has no effect on your place on the course.</p>
+
+      <p>
+        We often photograph and film our courses for teaching materials, social
+        media and marketing.
+      </p>
+      <p>
+        If you agree, you give BirdBox Coaching Limited permission to use
+        photographs and video in which you appear, and any comments you give us
+        about the course, in our marketing, social media, websites, teaching
+        materials and course promotion.
+      </p>
+      <ul>
+        <li>You will not be paid for this.</li>
+        <li>We will not use your image in a way that is misleading or damaging to you.</li>
+        <li>We will not publish your full name alongside your image unless you agree separately.</li>
+        <li>
+          <strong>You can withdraw this consent at any time</strong> by emailing
+          <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a>.
+          We will stop using your image in new material and remove it from our
+          own channels where we can. We may not be able to recall material
+          already printed or shared by others.
+        </li>
+      </ul>
+
+      <p class="tick">☐ Yes, I consent &nbsp;&nbsp; ☐ No, please do not photograph or film me</p>
+
+      <p class="sub" style="margin-top:1rem">
+        If you answer no, tell a coach at the start of the course so we can seat
+        you away from filming and brief the media team.
+      </p>
+    </article>
+
+    <footer>
+      <p>BirdBox Coaching Limited · Company number 786123 · VAT and OSS number IE4429982WH</p>
+      <p>19 Baggot Street Lower, Dublin 2, D02 X658, Ireland</p>
+      <p>Version 2026-08-v1. Earlier versions remain in force for participants who agreed to them.</p>
+    </footer>
+
+  </main>
+</div>
+
+</body>
+</html>
