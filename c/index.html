@@ -27,7 +27,7 @@
   }
   /* faint full-page wash of the brand photo */
   #wash {
-    position: fixed; inset: 0; z-index: -1; opacity: 0.10;
+    position: fixed; inset: 0; z-index: -1; opacity: 0.17;
     background: center 30% / cover no-repeat; pointer-events: none;
   }
 
@@ -401,14 +401,17 @@ async function loadTemplate(course) {
   return pool.find((t) => lang(t.language) === lang(course.language)) || pool[0];
 }
 
-// Silent, looping, chrome-free playback.
+// Silent, looping, caption-free, chrome-free playback.
 function embedUrl(url) {
   if (!url) return null;
-  const opts = (id) =>
-    "?autoplay=1&mute=1&loop=1&playlist=" + id +
-    "&controls=0&modestbranding=1&rel=0&disablekb=1&playsinline=1&iv_load_policy=3";
   const yt = String(url).match(/(?:youtu\.be\/|v=|youtube\.com\/embed\/)([A-Za-z0-9_-]{6,})/);
-  if (yt) return "https://www.youtube-nocookie.com/embed/" + yt[1] + opts(yt[1]);
+  if (yt) {
+    const id = yt[1];
+    return "https://www.youtube-nocookie.com/embed/" + id +
+      "?autoplay=1&mute=1&loop=1&playlist=" + id +
+      "&controls=0&modestbranding=1&rel=0&disablekb=1&playsinline=1" +
+      "&iv_load_policy=3&cc_load_policy=0&cc_lang_pref=en&fs=0";
+  }
   const vm = String(url).match(/vimeo\.com\/(?:video\/)?(\d+)/);
   if (vm) return "https://player.vimeo.com/video/" + vm[1] +
     "?autoplay=1&muted=1&loop=1&background=1";
