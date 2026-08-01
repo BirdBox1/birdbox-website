@@ -44,27 +44,31 @@
 
   .wrap { max-width: 44rem; margin: 0 auto; padding: 0 1.25rem 5rem; }
 
-  .head { padding: 2.25rem 0 0; }
+  .head { padding: 2.4rem 0 0; }
 
   .badge {
-    display: inline-flex; align-items: center; gap: 0.7rem;
+    display: inline-flex; align-items: center; gap: 0.8rem;
     background: rgba(255,255,255,0.08); border: 1px solid var(--rule); border-radius: 5px;
-    padding: 0.5rem 0.85rem; font-size: 0.92rem; letter-spacing: 0.1em;
-    text-transform: uppercase; font-weight: 600; color: #fff;
+    padding: 0.6rem 1rem; font-size: 1.12rem; letter-spacing: 0.08em;
+    text-transform: uppercase; font-weight: 650; color: #fff;
   }
-  .badge img { width: 34px; height: 34px; object-fit: contain; }
+  .badge img { width: 44px; height: 44px; object-fit: contain; }
 
-  h1 {
-    font-size: clamp(1.5rem, 5.5vw, 2.15rem); line-height: 1.15;
-    letter-spacing: -0.025em; font-weight: 650; margin: 0.85rem 0 0.5rem;
+  /* course title kept for search engines and screen readers only */
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden;
+        clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .facts {
+    font-size: clamp(1.25rem, 3.4vw, 1.6rem); line-height: 1.25;
+    letter-spacing: -0.015em; color: var(--ink); margin: 1.2rem 0 0.25rem;
+    font-weight: 600;
   }
-  .facts { color: var(--muted); font-size: 0.95rem; margin: 0 0 0.35rem; }
-  .facts strong { color: var(--ink); font-weight: 600; }
+  .facts.place { color: var(--muted); font-weight: 500; margin: 0 0 0.25rem; }
 
   .buy {
     background: var(--panel);
     border: 1px solid var(--rule); border-top: 3px solid var(--brandcolour, var(--accent));
-    border-radius: 6px; padding: 1.15rem; margin: 1.5rem 0 2rem;
+    border-radius: 6px; padding: 1.15rem; margin: 1.6rem 0 2rem;
     display: flex; align-items: center; justify-content: space-between;
     gap: 1rem; flex-wrap: wrap;
   }
@@ -85,10 +89,7 @@
   }
   p { margin: 0 0 1rem; }
 
-  .lede {
-    font-size: clamp(1.25rem, 3.2vw, 1.6rem); line-height: 1.32;
-    font-weight: 600; letter-spacing: -0.015em; margin: 0 0 1.5rem;
-  }
+  .lede { font-size: 1.08rem; font-weight: 400; margin: 0 0 1.4rem; }
 
   .movements {
     border-left: 3px solid var(--brandcolour, var(--accent));
@@ -102,10 +103,10 @@
     width: 0.7rem; height: 2px; background: var(--brandcolour, var(--accent));
   }
 
-  .spec { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin: 0 0 1.25rem; }
+  .spec { display: flex; flex-wrap: wrap; align-items: center; gap: 0.7rem; margin: 0 0 1.4rem; }
   .spec span {
-    border: 1px solid var(--rule); border-radius: 4px; padding: 0.3rem 0.65rem;
-    font-size: 0.82rem; color: var(--muted);
+    border: 1px solid var(--rule); border-radius: 5px; padding: 0.5rem 0.85rem;
+    font-size: 1rem; color: var(--muted);
   }
   .spec b { color: var(--ink); font-weight: 650; }
   .spec img.ceu { width: 88px; height: 88px; object-fit: contain; }
@@ -170,9 +171,9 @@
   <main id="course" class="hidden">
     <div class="head">
       <span class="badge" id="badge"><img id="badgeicon" alt=""><span id="badgetext"></span></span>
-      <h1 id="title"></h1>
+      <h1 class="sr" id="title"></h1>
       <p class="facts" id="when"></p>
-      <p class="facts" id="where"></p>
+      <p class="facts place" id="where"></p>
     </div>
 
     <div class="buy">
@@ -295,15 +296,14 @@ async function load() {
 
   $("title").textContent = course.title;
 
-  const strong = document.createElement("strong");
-  strong.textContent = formatDates(course);
-  $("when").append(strong);
+  $("when").textContent = formatDates(course);
   if (course.language && course.language !== "en") {
-    $("when").append(" · Taught in " + (LANG[course.language] || course.language));
+    $("when").textContent += " · Taught in " + (LANG[course.language] || course.language);
   }
 
+  // City — Country, e.g. London — United Kingdom, Austin — TX
   $("where").textContent =
-    [course.venue_name, course.city, course.country].filter(Boolean).join(", ");
+    [course.city, course.country].filter(Boolean).join(" — ");
 
   const money = (cents) => new Intl.NumberFormat(undefined, {
     style: "currency", currency: course.currency || "EUR", maximumFractionDigits: 0,
@@ -386,7 +386,7 @@ async function load() {
       .filter(Boolean).join(", ");
     if (query) {
       const q = encodeURIComponent(query);
-      $("map").src = "https://maps.google.com/maps?q=" + q + "&z=14&output=embed";
+      $("map").src = "https://maps.google.com/maps?q=" + q + "&z=13&output=embed";
       $("mapwrap").classList.remove("hidden");
       $("directions").href = "https://www.google.com/maps/search/?api=1&query=" + q;
       $("directions").classList.remove("hidden");
