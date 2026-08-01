@@ -1,6 +1,7 @@
 // netlify/functions/create-checkout.mjs
 //
-// POST { slug: "tgc-l1-dublin-oct" }  ->  { url: "https://checkout.stripe.com/..." }
+// POST { slug: "tgc-l1-dublin-oct", option: "full" | "deposit" | "klarna" }
+//   -> { url: "https://checkout.stripe.com/..." }
 //
 // Runs server-side only. The service key never reaches the browser.
 
@@ -11,6 +12,13 @@ import { createClient } from "@supabase/supabase-js";
 // It is stored against every registration so you can always tell
 // which version a given participant agreed to.
 const WAIVER_VERSION = "2026-08-v1";
+
+// Deposit is 25% unless the course carries its own deposit_cents.
+const DEPOSIT_RATE = 0.25;
+
+// The balance is taken from the saved card this many days before
+// the course starts, so nobody attends without having paid.
+const BALANCE_DAYS_BEFORE = 14;
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -26,13 +34,19 @@ export default async (req) => {
   }
 
   try {
-    const { slug } = await req.json();
+    const body = await req.json();
+    const slug = body.slug;
+    const option = body.option || "full";
+
     if (!slug) return json({ error: "Missing slug" }, 400);
+    if (!["full", "deposit", "klarna"].includes(option)) {
+      return json({ error: "Unknown payment option" }, 400);
+    }
 
     // ---- look up the course ------------------------------------
     const { data: course, error } = await supabase
       .from("courses")
-      .select("id, brand, title, summary, slug, price_cents, currency, capacity, status, starts_at, city, country")
+      .select("id, brand, title, summary, slug, price_cents, deposit_cents, currency, capacity, status, starts_at, city, country")
       .eq("slug", slug)
       .single();
 
@@ -53,14 +67,60 @@ export default async (req) => {
       return json({ error: "This course is full" }, 409);
     }
 
+    // ---- work out what is being charged now --------------------
+    const full = course.price_cents;
+    const deposit = course.deposit_cents || Math.round(full * DEPOSIT_RATE);
+
+    // Klarna cannot save a card, so it is full payment only.
+    // Klarna pays us upfront and carries the customer's credit risk.
+    const payingNow = option === "deposit" ? deposit : full;
+    const balance = option === "deposit" ? full - deposit : 0;
+
+    if (option === "deposit" && balance <= 0) {
+      return json({ error: "Deposit is not available on this course" }, 409);
+    }
+
+    // Balance date: BALANCE_DAYS_BEFORE ahead of the start, but never
+    // in the past — a late booking is charged the next day instead.
+    let balanceDueAt = null;
+    if (balance > 0) {
+      const due = new Date(course.starts_at);
+      due.setDate(due.getDate() - BALANCE_DAYS_BEFORE);
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      balanceDueAt = (due > tomorrow ? due : tomorrow).toISOString();
+    }
+
+    const currency = course.currency.toLowerCase();
+    const money = (cents) =>
+      new Intl.NumberFormat("en", {
+        style: "currency",
+        currency: course.currency,
+        maximumFractionDigits: 0,
+      }).format(cents / 100);
+
+    const lineName =
+      option === "deposit"
+        ? `${course.title} — deposit`
+        : course.title;
+
+    const lineDescription =
+      option === "deposit"
+        ? `Deposit. The remaining ${money(balance)} is charged automatically ${BALANCE_DAYS_BEFORE} days before the course.`
+        : course.summary || undefined;
+
     const origin = req.headers.get("origin") || process.env.SITE_URL;
 
-    // ---- create the Checkout session ---------------------------
-    const session = await stripe.checkout.sessions.create({
+    // ---- build the Checkout session ----------------------------
+    const session = {
       mode: "payment",
 
+      // Klarna gets its own session; card sessions stay card-only so
+      // the three choices on the page stay distinct.
+      payment_method_types: option === "klarna" ? ["klarna"] : ["card"],
+
       // always create a Stripe Customer — without one there is no
-      // saved card, and deposits / instalments cannot be charged later
+      // saved card, and the balance cannot be charged later
       customer_creation: "always",
 
       // required tick box, linked to the Terms of service URL set in
@@ -96,19 +156,17 @@ export default async (req) => {
         {
           quantity: 1,
           price_data: {
-            currency: course.currency.toLowerCase(),
-            unit_amount: course.price_cents,
+            currency,
+            unit_amount: payingNow,
             product_data: {
-              name: course.title,
-              description: course.summary || undefined,
+              name: lineName,
+              description: lineDescription,
             },
           },
         },
       ],
 
-      // save the card so deposits / instalments can be charged later
       payment_intent_data: {
-        setup_future_usage: "off_session",
         description: `${course.brand.toUpperCase()} — ${course.title}`,
       },
 
@@ -121,13 +179,30 @@ export default async (req) => {
         course_slug: course.slug,
         brand: course.brand,
         waiver_version: WAIVER_VERSION,
+        payment_option: option,
+        amount_paid_cents: String(payingNow),
+        balance_cents: String(balance),
+        balance_due_at: balanceDueAt || "",
+        full_price_cents: String(full),
       },
 
       success_url: `${origin}/registration-complete/?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/${course.brand}/${course.slug}/`,
-    });
+      cancel_url: `${origin}/c/${course.slug}/`,
+    };
 
-    return json({ url: session.url });
+    // Only card payments can be saved for the balance charge.
+    if (option !== "klarna") {
+      session.payment_intent_data.setup_future_usage = "off_session";
+    }
+
+    if (option === "deposit") {
+      session.custom_text.submit = {
+        message: `You are paying a deposit of ${money(deposit)}. The remaining ${money(balance)} will be charged to this card ${BALANCE_DAYS_BEFORE} days before the course starts.`,
+      };
+    }
+
+    const created = await stripe.checkout.sessions.create(session);
+    return json({ url: created.url });
   } catch (err) {
     console.error("create-checkout failed:", err);
     return json({ error: "Could not start checkout" }, 500);
