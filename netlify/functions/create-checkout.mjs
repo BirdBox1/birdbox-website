@@ -7,6 +7,11 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
+// Bump this whenever the wording at /agreements/ changes.
+// It is stored against every registration so you can always tell
+// which version a given participant agreed to.
+const WAIVER_VERSION = "2026-08-v1";
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const supabase = createClient(
@@ -58,6 +63,18 @@ export default async (req) => {
       // saved card, and deposits / instalments cannot be charged later
       customer_creation: "always",
 
+      // required tick box, linked to the Terms of service URL set in
+      // Stripe → Settings → Business → Public details
+      consent_collection: {
+        terms_of_service: "required",
+      },
+      custom_text: {
+        terms_of_service_acceptance: {
+          message:
+            "I have read and agree to the BirdBox Coaching terms of sale and the assumption of risk and waiver of liability.",
+        },
+      },
+
       line_items: [
         {
           quantity: 1,
@@ -86,6 +103,7 @@ export default async (req) => {
         course_id: course.id,
         course_slug: course.slug,
         brand: course.brand,
+        waiver_version: WAIVER_VERSION,
       },
 
       success_url: `${origin}/registration-complete/?session_id={CHECKOUT_SESSION_ID}`,
