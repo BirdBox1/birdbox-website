@@ -11,7 +11,7 @@
 //
 // Three audiences, three different emails:
 //   participants — what it means for them, including refunds
-//   coaches      — the dates and the gym, nothing else
+//   coaches      — a plain notification of the change, nothing else
 //   info@        — the full summary, including anything that failed
 
 import Stripe from "stripe";
@@ -161,7 +161,7 @@ async function reschedule(course, body, admin) {
     if (ok) emailed++;
   }
 
-  // ---- coaches: the dates and the gym ----
+  // ---- coaches: a record of the change, already agreed ----
   const coaches = await assignedCoaches(course.id);
   let coachesEmailed = 0;
   for (const c of coaches) {
@@ -171,10 +171,9 @@ async function reschedule(course, body, admin) {
       heading: "Course date changed",
       body: [
         `Hi ${escapeHtml(firstName(c.full_name))},`,
-        `<strong>${escapeHtml(course.title)}</strong> has moved.`,
+        `<strong>${escapeHtml(course.title)}</strong> has been moved.`,
         `<strong>Was:</strong> ${longDate(oldStart)}<br><strong>Now:</strong> ${longDate(startsAt)}${endsAt ? " – " + longDate(endsAt) : ""}`,
         coachVenueBlock(course),
-        `Reply if the new date does not work for you.`,
       ],
     });
     if (ok) coachesEmailed++;
@@ -298,7 +297,7 @@ async function cancel(course, body, admin) {
     if (ok) emailed++;
   }
 
-  // ---- coaches: it is off, and where it was ----
+  // ---- coaches: a record that it is off ----
   const coaches = await assignedCoaches(course.id);
   let coachesEmailed = 0;
   for (const c of coaches) {
@@ -308,9 +307,8 @@ async function cancel(course, body, admin) {
       heading: "Course cancelled",
       body: [
         `Hi ${escapeHtml(firstName(c.full_name))},`,
-        `<strong>${escapeHtml(course.title)}</strong> on ${longDate(course.starts_at)} is not going ahead. You can take it out of your diary.`,
+        `<strong>${escapeHtml(course.title)}</strong> on ${longDate(course.starts_at)} has been cancelled.`,
         coachVenueBlock(course),
-        `Participants have been contacted directly.`,
       ],
     });
     if (ok) coachesEmailed++;
@@ -378,7 +376,7 @@ function venueLine(course) {
   return where ? `<strong>Where:</strong> ${escapeHtml(where)} — unchanged.` : "";
 }
 
-// Coaches need the gym itself, set out clearly.
+// Coaches get the gym itself, set out clearly.
 function coachVenueBlock(course) {
   const lines = [];
   if (course.venue_name) lines.push(`<strong>${escapeHtml(course.venue_name)}</strong>`);
