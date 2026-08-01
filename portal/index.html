@@ -96,6 +96,15 @@
   a.back { margin-bottom: 1rem; }
   a.back:hover, .textlink:hover { text-decoration: underline; }
 
+  /* a course needing a decision, called out at the top of the list */
+  .alert {
+    background: #fff8f0; border: 1px solid #efd6b8; border-left: 3px solid var(--warn);
+    border-radius: 6px; padding: 0.9rem 1.05rem; margin-bottom: 1rem;
+    font-size: 0.9rem; color: var(--ink);
+  }
+  .alert b { display: block; margin-bottom: 0.2rem; }
+  .alert ul { margin: 0.4rem 0 0; padding-left: 1.1rem; color: var(--muted); }
+
   /* ---------------- login ---------------- */
   .login {
     max-width: 22rem; margin: 3.5rem auto; background: var(--card);
@@ -110,7 +119,7 @@
   .hint { font-weight: 400; color: var(--muted); font-size: 0.78rem; }
 
   input[type=email], input[type=password], input[type=text], input[type=number],
-  input[type=datetime-local], input[type=date], select, textarea {
+  input[type=datetime-local], input[type=date], input[type=time], select, textarea {
     width: 100%; font: inherit; padding: 0.55rem 0.65rem;
     border: 1px solid var(--rule); border-radius: 4px; background: #fff; color: var(--ink);
   }
@@ -195,6 +204,7 @@
   .pill.bad  { border-color: var(--bad); color: var(--bad); font-weight: 650; }
   .pill.draft{ border-color: var(--muted); color: var(--muted); }
   .pill.on   { border-color: var(--good); color: var(--good); }
+  .pill.low  { background: var(--warn); border-color: var(--warn); color: #fff; font-weight: 700; }
 
   /* ---------------- attendees ---------------- */
   .attendee { padding: 0.9rem 1.05rem; border-bottom: 1px solid var(--rule); }
@@ -222,13 +232,19 @@
   }
 
   /* admin-only actions on a single course */
-  .admin-actions {
-    display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
-    margin: 1.5rem 0 0; padding-top: 1.1rem; border-top: 1px solid var(--rule);
+  .admin-panel {
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 1.25rem; margin-top: 1.5rem;
   }
-  .admin-actions .why {
-    font-size: 0.82rem; color: var(--muted); flex: 1 1 14rem; min-width: 0;
+  .admin-panel h3 {
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 1rem; font-weight: 600;
   }
+  .admin-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .admin-row .why {
+    font-size: 0.82rem; color: var(--muted); flex: 1 1 12rem; min-width: 0;
+  }
+  .sep { height: 1px; background: var(--rule); margin: 1.25rem 0; }
 
   .empty {
     background: var(--card); border: 1px dashed var(--rule); border-radius: 6px;
@@ -325,6 +341,7 @@
       <button class="btn hidden" id="newcourse" type="button">New course</button>
     </div>
 
+    <div id="lowalert"></div>
     <div id="courses-list"></div>
   </div>
 </section>
@@ -338,12 +355,57 @@
     <p class="counts" id="counts"></p>
     <div class="attendees-card" id="attendees"></div>
 
-    <div class="admin-actions hidden" id="adminactions">
-      <button class="btn ghost small" id="archivebtn" type="button">Archive</button>
-      <button class="btn ghost small danger" id="deletebtn" type="button">Delete</button>
-      <span class="why" id="adminwhy"></span>
+    <div class="admin-panel hidden" id="adminpanel">
+      <h3>Admin</h3>
+
+      <div id="reschedwrap">
+        <div class="grid2">
+          <div class="field">
+            <label for="r-date">New start date</label>
+            <input id="r-date" type="date">
+          </div>
+          <div class="field">
+            <label for="r-starttime">Start time</label>
+            <input id="r-starttime" type="time" value="09:00">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="r-enddate">New end date <span class="hint">same day if blank</span></label>
+            <input id="r-enddate" type="date">
+          </div>
+          <div class="field">
+            <label for="r-endtime">End time</label>
+            <input id="r-endtime" type="time" value="17:00">
+          </div>
+        </div>
+        <div class="admin-row">
+          <button class="btn small" id="reschedbtn" type="button">Move the date</button>
+          <span class="why">Participants and assigned coaches are emailed automatically. Any unpaid balance moves with it.</span>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="field">
+        <label for="c-reason">Why it is cancelled <span class="hint">optional — goes in the email to participants</span></label>
+        <textarea id="c-reason" placeholder="Leave blank and we will say it was our decision, not theirs."></textarea>
+      </div>
+      <div class="admin-row">
+        <button class="btn small danger" id="cancelbtn" type="button">Cancel and refund everyone</button>
+        <span class="why" id="cancelwhy"></span>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="admin-row">
+        <button class="btn ghost small" id="archivebtn" type="button">Archive</button>
+        <button class="btn ghost small danger" id="deletebtn" type="button">Delete</button>
+        <span class="why" id="adminwhy"></span>
+      </div>
+
+      <p class="msg" id="admin-msg"></p>
     </div>
-    <p class="msg" id="admin-msg"></p>
   </div>
 </section>
 
@@ -560,6 +622,11 @@ const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
 const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+// When to worry about a course: fewer than this many paid places,
+// this many days out.
+const LOW_NUMBERS = 5;
+const LOW_DAYS_OUT = 24;
+
 const BRAND = {
   birdbox: { icon: "/brand/birdBox.png", colour: "#2f7fd0", label: "BirdBox", slug: "bb"  },
   tcc:     { icon: "/brand/tcc.png",     colour: "#2f7fd0", label: "TCC",     slug: "tcc" },
@@ -602,6 +669,8 @@ const show = (n) =>
 let me = null;
 let staffList = [];
 let showArchived = false;
+
+const isAdmin = () => me && me.role === "admin";
 
 /* ---------------- auth ---------------- */
 
@@ -654,14 +723,14 @@ async function start() {
   if (!staff.active)   return fail("This account is no longer active.");
 
   me = staff;
-  const isAdmin = staff.role === "admin";
+  const admin = staff.role === "admin";
   $("who").textContent = staff.full_name;
   $("signout").classList.remove("hidden");
   $("hello").textContent = `Welcome back, ${staff.full_name.split(" ")[0]}`;
   $("myrole").textContent = staff.role.replace(/_/g, " ");
-  $("newcourse").classList.toggle("hidden", !isAdmin);
-  $("codeslink").classList.toggle("hidden", !isAdmin);
-  $("togglearchived").classList.toggle("hidden", !isAdmin);
+  $("newcourse").classList.toggle("hidden", !admin);
+  $("codeslink").classList.toggle("hidden", !admin);
+  $("togglearchived").classList.toggle("hidden", !admin);
 
   await loadCourses();
 }
@@ -681,7 +750,8 @@ const money = (cents, currency) =>
     style: "currency", currency: currency || "EUR", maximumFractionDigits: 0,
   }).format((cents || 0) / 100);
 
-const isAdmin = () => me && me.role === "admin";
+const daysUntil = (iso) =>
+  Math.ceil((new Date(iso) - new Date()) / 86400000);
 
 $("newcourse").addEventListener("click", openForm);
 $("back").addEventListener("click", loadCourses);
@@ -697,6 +767,8 @@ $("togglearchived").addEventListener("click", () => {
 async function loadCourses() {
   show("courses");
   const list = $("courses-list");
+  const alertBox = $("lowalert");
+  alertBox.innerHTML = "";
   list.innerHTML = '<p class="empty">Loading…</p>';
 
   const cols = "id, brand, type, level, title, city, country, starts_at, capacity, status, slug, archived";
@@ -727,14 +799,53 @@ async function loadCourses() {
     return;
   }
 
+  // How many places are actually taken on each course.
+  const booked = {};
+  const { data: regs } = await db.from("registrations")
+    .select("course_id, payment_status")
+    .in("course_id", courses.map((c) => c.id));
+  for (const r of regs || []) {
+    if (r.payment_status === "refunded" || r.payment_status === "failed") continue;
+    booked[r.course_id] = (booked[r.course_id] || 0) + 1;
+  }
+
+  // Anything close and quiet gets called out at the top, so it is a
+  // decision rather than something noticed too late.
+  const struggling = courses.filter((c) => {
+    if (c.archived || c.status === "cancelled" || c.status === "draft") return false;
+    const days = daysUntil(c.starts_at);
+    return days >= 0 && days <= LOW_DAYS_OUT && (booked[c.id] || 0) < LOW_NUMBERS;
+  });
+
+  if (struggling.length) {
+    const el = document.createElement("div");
+    el.className = "alert";
+    el.innerHTML = `<b>${struggling.length} course${struggling.length === 1 ? "" : "s"} need${struggling.length === 1 ? "s" : ""} a decision</b>
+      Under ${LOW_NUMBERS} places sold, within ${LOW_DAYS_OUT} days of running.
+      <ul></ul>`;
+    const ul = el.querySelector("ul");
+    for (const c of struggling) {
+      const li = document.createElement("li");
+      li.textContent =
+        `${c.title} — ${fmtDate(c.starts_at)}, ${booked[c.id] || 0} booked, ` +
+        `${daysUntil(c.starts_at)} day${daysUntil(c.starts_at) === 1 ? "" : "s"} away`;
+      ul.append(li);
+    }
+    alertBox.append(el);
+  }
+
   list.innerHTML = "";
   for (const c of courses) {
     const b = BRAND[c.brand] || BRAND.birdbox;
     const tag = tagFor(c);
+    const taken = booked[c.id] || 0;
+    const days = daysUntil(c.starts_at);
+    const isLow = !c.archived && c.status !== "cancelled" && c.status !== "draft" &&
+                  days >= 0 && days <= LOW_DAYS_OUT && taken < LOW_NUMBERS;
 
     const el = document.createElement("div");
     el.className = "card" + (c.archived ? " is-archived" : "");
-    el.style.borderLeftColor = tag.colour;
+    el.style.borderLeftColor = isLow ? "#b4610f" : tag.colour;
     el.innerHTML = `
       <button class="course" type="button">
         <span class="icon"><img alt=""></span>
@@ -767,6 +878,7 @@ async function loadCourses() {
       const s = document.createElement("span");
       s.className = "pill " + cls; s.textContent = text; flags.append(s);
     };
+    if (isLow) add(`${taken} booked · ${days}d away`, "low");
     if (c.archived) add("archived", "draft");
     if (c.status === "full") add("full", "warn");
     if (c.status === "draft") add("draft", "draft");
@@ -817,7 +929,7 @@ async function openCourse(course) {
   ].filter(Boolean).join(" · ");
   $("counts").textContent = "";
   $("admin-msg").textContent = "";
-  $("adminactions").classList.add("hidden");
+  $("adminpanel").classList.add("hidden");
   const box = $("attendees");
   box.innerHTML = '<p class="empty">Loading…</p>';
 
@@ -829,8 +941,11 @@ async function openCourse(course) {
   if (error) { box.innerHTML = '<p class="empty">Could not load registrations.</p>'; return; }
 
   const regs = data || [];
+  const live = regs.filter(
+    (r) => r.payment_status !== "refunded" && r.payment_status !== "failed"
+  );
 
-  if (isAdmin()) wireAdminActions(course, regs.length);
+  if (isAdmin()) wireAdmin(course, regs.length, live.length);
 
   if (!regs.length) { box.innerHTML = '<p class="empty">No registrations yet.</p>'; return; }
 
@@ -949,25 +1064,129 @@ async function openCourse(course) {
   }
 }
 
-/* ---------------- archive and delete (admins only) ---------------- */
+/* ---------------- admin actions ---------------- */
 
-function wireAdminActions(course, registrationCount) {
-  const wrap = $("adminactions");
+async function callAdmin(payload) {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) throw new Error("Your session has expired — sign in again.");
+
+  const res = await fetch("/.netlify/functions/course-admin", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + session.access_token,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || "That did not work.");
+  return data;
+}
+
+function wireAdmin(course, totalRegs, liveRegs) {
+  const panel = $("adminpanel");
+  const msg = $("admin-msg");
+  panel.classList.remove("hidden");
+
+  // Prefill the reschedule fields with the dates it has now.
+  const start = new Date(course.starts_at);
+  $("r-date").value = start.toISOString().slice(0, 10);
+  $("r-starttime").value = start.toTimeString().slice(0, 5);
+  if (course.ends_at) {
+    const end = new Date(course.ends_at);
+    $("r-enddate").value = end.toISOString().slice(0, 10);
+    $("r-endtime").value = end.toTimeString().slice(0, 5);
+  } else {
+    $("r-enddate").value = "";
+  }
+
+  // ---- move the date ----
+  $("reschedbtn").onclick = async () => {
+    const date = $("r-date").value;
+    if (!date) { msg.className = "msg err"; msg.textContent = "Pick a new date."; return; }
+
+    const newStart = new Date(date + "T" + ($("r-starttime").value || "09:00"));
+    const newEnd = $("r-endtime").value
+      ? new Date(($("r-enddate").value || date) + "T" + $("r-endtime").value)
+      : null;
+
+    const who = liveRegs === 1 ? "1 participant" : `${liveRegs} participants`;
+    if (!window.confirm(
+      `Move "${course.title}" to ${newStart.toLocaleDateString()}?\n\n` +
+      `${who} and the assigned coaches will be emailed.`
+    )) return;
+
+    $("reschedbtn").disabled = true;
+    msg.className = "msg"; msg.textContent = "Moving the date and sending emails…";
+
+    try {
+      const r = await callAdmin({
+        action: "reschedule",
+        courseId: course.id,
+        startsAt: newStart.toISOString(),
+        endsAt: newEnd ? newEnd.toISOString() : null,
+      });
+      msg.className = "msg ok";
+      msg.textContent =
+        `Moved. ${r.emailed} of ${r.participants} participant${r.participants === 1 ? "" : "s"} emailed, ` +
+        `${r.coachesEmailed} coach${r.coachesEmailed === 1 ? "" : "es"} emailed.`;
+      setTimeout(loadCourses, 2500);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("reschedbtn").disabled = false;
+  };
+
+  // ---- cancel and refund ----
+  const cancelWhy = $("cancelwhy");
+  cancelWhy.textContent = liveRegs
+    ? `Refunds ${liveRegs} participant${liveRegs === 1 ? "" : "s"} in full, stops any unpaid balances, emails everyone and archives the course.`
+    : "Nobody has booked, so there is nothing to refund. This will archive the course.";
+
+  $("cancelbtn").onclick = async () => {
+    if (!window.confirm(
+      `Cancel "${course.title}"?\n\n` +
+      (liveRegs
+        ? `${liveRegs} participant${liveRegs === 1 ? " will be" : "s will be"} refunded in full and emailed.`
+        : "Nobody has booked.")
+    )) return;
+    if (liveRegs && !window.confirm("Last check — this issues real refunds. Go ahead?")) return;
+
+    $("cancelbtn").disabled = true;
+    msg.className = "msg"; msg.textContent = "Cancelling, refunding and sending emails…";
+
+    try {
+      const r = await callAdmin({
+        action: "cancel",
+        courseId: course.id,
+        reason: $("c-reason").value.trim() || null,
+      });
+      const problems = (r.problems || []).length;
+      msg.className = problems ? "msg err" : "msg ok";
+      msg.textContent = problems
+        ? `Cancelled, but ${problems} refund${problems === 1 ? "" : "s"} did not go through — check your email for details.`
+        : `Cancelled. ${r.emailed} participant${r.emailed === 1 ? "" : "s"} refunded and emailed.`;
+      setTimeout(loadCourses, 3000);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("cancelbtn").disabled = false;
+  };
+
+  // ---- archive and delete ----
   const archiveBtn = $("archivebtn");
   const deleteBtn = $("deletebtn");
-  const why = $("adminwhy");
-  const msg = $("admin-msg");
-
-  wrap.classList.remove("hidden");
   archiveBtn.textContent = course.archived ? "Restore from archive" : "Archive";
 
   // A course with registrations is a financial record. It can be put
   // out of the way, but it must never be destroyed.
-  const canDelete = registrationCount === 0;
+  const canDelete = totalRegs === 0;
   deleteBtn.disabled = !canDelete;
-  why.textContent = canDelete
+  $("adminwhy").textContent = canDelete
     ? "Archiving hides a course and takes it off sale. Deleting is permanent."
-    : `This course has ${registrationCount} registration${registrationCount === 1 ? "" : "s"}, so it cannot be deleted — archive it instead.`;
+    : `This course has ${totalRegs} registration${totalRegs === 1 ? "" : "s"}, so it cannot be deleted — archive it instead.`;
 
   archiveBtn.onclick = async () => {
     const goingToArchive = !course.archived;
@@ -978,8 +1197,6 @@ function wireAdminActions(course, registrationCount) {
     msg.className = "msg";
     msg.textContent = goingToArchive ? "Archiving…" : "Restoring…";
 
-    // Archiving also takes it off sale, so nobody can buy a place on
-    // a course the team has stopped running.
     const patch = goingToArchive
       ? { archived: true, status: "cancelled" }
       : { archived: false, status: "draft" };
@@ -1004,7 +1221,6 @@ function wireAdminActions(course, registrationCount) {
     msg.className = "msg";
     msg.textContent = "Deleting…";
 
-    // Clear the coach assignments first, in case nothing cascades.
     await db.from("course_staff").delete().eq("course_id", course.id);
     const { error } = await db.from("courses").delete().eq("id", course.id);
 
