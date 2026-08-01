@@ -421,12 +421,22 @@
         <h3>When</h3>
         <div class="grid2">
           <div class="field">
-            <label for="f-start">Starts</label>
-            <input id="f-start" type="datetime-local">
+            <label for="f-date">Date</label>
+            <input id="f-date" type="date">
           </div>
           <div class="field">
-            <label for="f-end">Ends <span class="hint">optional</span></label>
-            <input id="f-end" type="datetime-local">
+            <label for="f-starttime">Start time</label>
+            <input id="f-starttime" type="time" value="09:00">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="f-enddate">End date <span class="hint">same day if blank</span></label>
+            <input id="f-enddate" type="date">
+          </div>
+          <div class="field">
+            <label for="f-endtime">End time</label>
+            <input id="f-endtime" type="time" value="12:00">
           </div>
         </div>
         <div class="field">
@@ -788,10 +798,10 @@ function buildSlug() {
   const city  = ($("f-city").value || "").trim().toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const start = $("f-start").value;
+  const start = $("f-date").value;
   let stamp = "";
   if (start) {
-    const d = new Date(start);
+    const d = new Date(start + "T00:00");
     stamp = String(d.getMonth() + 1).padStart(2, "0") + String(d.getFullYear()).slice(-2);
   }
   const wname = $("f-type").value === "workshop"
@@ -800,7 +810,7 @@ function buildSlug() {
     : "";
   $("f-slug").value = [brand, level, wname, city, stamp].filter(Boolean).join("-");
 }
-["f-brand", "f-level", "f-city", "f-start", "f-workshop"].forEach((id) =>
+["f-brand", "f-level", "f-city", "f-date", "f-workshop"].forEach((id) =>
   $(id).addEventListener("change", buildSlug)
 );
 $("f-city").addEventListener("blur", buildSlug);
@@ -824,11 +834,11 @@ async function saveCourse() {
   const brand = $("f-brand").value;
   const type  = $("f-type").value;
   const city  = $("f-city").value.trim();
-  const start = $("f-start").value;
+  const start = $("f-date").value;
   const price = $("f-price").value;
   let slug    = $("f-slug").value.trim();
 
-  if (!start)  { msg.className = "msg err"; msg.textContent = "Add a start date and time."; return; }
+  if (!start)  { msg.className = "msg err"; msg.textContent = "Add a date."; return; }
   if (!price)  { msg.className = "msg err"; msg.textContent = "Add a price."; return; }
   if (!slug)   { buildSlug(); slug = $("f-slug").value.trim(); }
   if (!slug)   { msg.className = "msg err"; msg.textContent = "Add a link."; return; }
@@ -871,8 +881,10 @@ async function saveCourse() {
       address: $("f-address").value.trim() || null,
       city: city || null,
       country: $("f-country").value.trim().toUpperCase() || null,
-      starts_at: new Date(start).toISOString(),
-      ends_at: $("f-end").value ? new Date($("f-end").value).toISOString() : null,
+      starts_at: new Date(start + "T" + ($("f-starttime").value || "09:00")).toISOString(),
+      ends_at: $("f-endtime").value
+        ? new Date(($("f-enddate").value || start) + "T" + $("f-endtime").value).toISOString()
+        : null,
       timezone: $("f-timezone").value.trim() || "Europe/Dublin",
       capacity: parseInt($("f-capacity").value, 10) || 15,
       price_cents: Math.round(parseFloat(price) * 100),
@@ -931,7 +943,7 @@ $("copylink").addEventListener("click", async () => {
 
 $("another").addEventListener("click", () => {
   ["f-summary","f-description","f-workshop","f-movements","f-venue","f-address",
-   "f-city","f-country","f-start","f-end","f-price","f-deposit","f-slug","f-adminnotes"]
+   "f-city","f-country","f-date","f-enddate","f-price","f-deposit","f-slug","f-adminnotes"]
     .forEach((id) => { $(id).value = ""; });
   $("f-image").value = "";
   $("thumb").style.display = "none";
