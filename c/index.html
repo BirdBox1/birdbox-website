@@ -9,10 +9,10 @@
   :root {
     --ink:    #eceae6;
     --paper:  #101215;
-    --panel:  #191c20;
+    --panel:  rgba(0,0,0,0.34);
     --shell:  #0d0e10;
-    --rule:   rgba(255,255,255,0.14);
-    --muted:  #99a0a8;
+    --rule:   rgba(255,255,255,0.16);
+    --muted:  #a7adb4;
     --accent: #2f7fd0;
     --warn:   #e0a04a;
     --good:   #6fbf87;
@@ -55,8 +55,16 @@
   }
   .badge img { width: 44px; height: 44px; object-fit: contain; }
 
+  /* a template can supply its own lockup, which replaces the badge */
+  .lockup { display: block; max-width: 15rem; width: 55%; height: auto; }
+
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden;
         clip: rect(0 0 0 0); white-space: nowrap; }
+
+  h1.shown {
+    font-size: clamp(1.5rem, 4.6vw, 2.1rem); line-height: 1.15;
+    letter-spacing: -0.02em; font-weight: 700; margin: 1.4rem 0 0.5rem;
+  }
 
   .facts {
     font-size: clamp(1.25rem, 3.4vw, 1.6rem); line-height: 1.25;
@@ -69,6 +77,7 @@
     background: var(--panel);
     border: 1px solid var(--rule); border-top: 3px solid var(--brandcolour, var(--accent));
     border-radius: 6px; padding: 1.25rem; margin: 1.6rem 0 2rem;
+    backdrop-filter: blur(2px);
   }
   .price { font-size: 1.9rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; }
   .price .was {
@@ -77,10 +86,9 @@
   }
   .price small { display: block; font-size: 0.82rem; font-weight: 400; color: var(--good); letter-spacing: 0; margin-top: 0.2rem; }
 
-  /* before you pay: the prerequisite, said plainly */
   .prereq {
     border: 1px solid rgba(224,160,74,0.45);
-    background: rgba(224,160,74,0.10);
+    background: rgba(224,160,74,0.12);
     border-radius: 5px; padding: 0.75rem 0.9rem; margin: 1.1rem 0 0;
     font-size: 0.9rem; line-height: 1.5;
   }
@@ -96,14 +104,14 @@
     background: transparent; color: var(--ink);
     border: 1px solid var(--rule); border-radius: 5px; padding: 0.85rem 1rem;
   }
-  .opt:hover { border-color: rgba(255,255,255,0.32); background: rgba(255,255,255,0.03); }
+  .opt:hover { border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.05); }
   .opt.primary {
     background: var(--brandcolour, var(--accent)); border-color: transparent; color: #fff;
   }
-  .opt.primary:hover { filter: brightness(1.12); background: var(--brandcolour, var(--accent)); }
+  .opt.primary:hover { filter: brightness(1.14); background: var(--brandcolour, var(--accent)); }
   .opt .label { font-weight: 650; }
   .opt .note { display: block; font-weight: 400; font-size: 0.86rem; color: var(--muted); margin-top: 0.1rem; }
-  .opt.primary .note { color: rgba(255,255,255,0.82); }
+  .opt.primary .note { color: rgba(255,255,255,0.85); }
   .opt .amount { margin-left: auto; font-weight: 650; white-space: nowrap; }
   .opt[disabled] { opacity: 0.45; cursor: default; filter: none; }
 
@@ -116,7 +124,7 @@
   .promo-row { display: flex; gap: 0.6rem; margin-top: 0.7rem; }
   .promo-row input {
     flex: 1 1 auto; min-width: 0; font: inherit; font-size: 0.98rem;
-    background: var(--paper); color: var(--ink);
+    background: rgba(0,0,0,0.35); color: var(--ink);
     border: 1px solid var(--rule); border-radius: 5px; padding: 0.7rem 0.85rem;
     text-transform: uppercase;
   }
@@ -126,7 +134,7 @@
     background: transparent; color: var(--ink);
     border: 1px solid var(--rule); border-radius: 5px; padding: 0.7rem 1.1rem;
   }
-  .promo-row button:hover { border-color: rgba(255,255,255,0.32); }
+  .promo-row button:hover { border-color: rgba(255,255,255,0.4); }
   .promo-msg { font-size: 0.88rem; margin: 0.6rem 0 0; }
   .promo-msg.ok { color: var(--good); }
   .promo-msg.err { color: var(--bad); }
@@ -153,11 +161,10 @@
     width: 0.7rem; height: 2px; background: var(--brandcolour, var(--accent));
   }
 
-  /* chips sized so the CrossFit seal sits on the same line */
   .spec { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0 0 1.4rem; }
   .spec span {
     border: 1px solid var(--rule); border-radius: 4px; padding: 0.32rem 0.6rem;
-    font-size: 0.84rem; color: var(--muted); background: rgba(16,18,21,0.55);
+    font-size: 0.84rem; color: var(--muted); background: rgba(0,0,0,0.4);
     white-space: nowrap;
   }
   .spec b { color: var(--ink); font-weight: 650; }
@@ -181,20 +188,20 @@
   }
   .venue .top { display: flex; gap: 0.9rem; align-items: center; }
   .venue .top img {
-    width: 84px; height: 84px; object-fit: cover; border-radius: 4px; flex: none; background: #2a2e33;
+    width: 84px; height: 84px; object-fit: cover; border-radius: 4px; flex: none; background: rgba(0,0,0,0.4);
   }
   .venue .vname { font-weight: 650; }
   .venue .vaddr { color: var(--muted); font-size: 0.92rem; }
   .map {
     margin-top: 0.9rem; border-radius: 4px; overflow: hidden;
-    height: 170px; background: #2a2e33;
+    height: 170px; background: rgba(0,0,0,0.4);
   }
   .map iframe { width: 100%; height: 100%; border: 0; display: block; filter: grayscale(0.3); }
   .directions { display: inline-block; margin-top: 0.6rem; font-size: 0.88rem; color: var(--ink); }
 
-  /* text sections sit on a slight veil so a busy photo cannot fight the words */
+  /* text sections sit on a veil so a busy photo cannot fight the words */
   .readable {
-    background: rgba(16,18,21,0.72); border-radius: 6px;
+    background: rgba(0,0,0,0.42); border-radius: 6px;
     padding: 0.1rem 1rem; margin: 0 -1rem;
   }
 
@@ -233,7 +240,8 @@
 
   <main id="course" class="hidden">
     <div class="head">
-      <span class="badge" id="badge"><img id="badgeicon" alt=""><span id="badgetext"></span></span>
+      <img class="lockup hidden" id="lockup" alt="">
+      <span class="badge hidden" id="badge"><img id="badgeicon" alt=""><span id="badgetext"></span></span>
       <h1 class="sr" id="title"></h1>
       <p class="facts" id="when"></p>
       <p class="facts place" id="where"></p>
@@ -394,21 +402,41 @@ async function load() {
 
   if (error || !course) return notFound();
 
-  const tpl = course.type === "workshop" ? null : await loadTemplate(course);
+  // Workshops now inherit a template too — the shared furniture comes
+  // from it, while the name and movements typed per workshop win.
+  const tpl = await loadTemplate(course);
+  const isWorkshop = course.type === "workshop";
 
   const b = BRAND[course.brand] || BRAND.birdbox;
   document.documentElement.style.setProperty("--brandcolour", b.colour);
+  if (tpl && tpl.page_bg) {
+    document.documentElement.style.setProperty("--paper", tpl.page_bg);
+  }
   document.title = course.title + " — BirdBox Coaching";
 
   const bg = tpl && tpl.background_url;
   if (bg) $("wash").style.backgroundImage = "url('" + bg + "')";
 
-  $("badgeicon").src = b.icon;
-  $("badgetext").textContent =
-    [b.label, course.level ? "Level " + String(course.level).replace(/\D/g, "") : null]
-      .filter(Boolean).join(" · ");
+  // A template lockup replaces the brand chip where there is one.
+  if (tpl && tpl.logo_url) {
+    $("lockup").src = tpl.logo_url;
+    $("lockup").alt = b.label + " workshop";
+    $("lockup").classList.remove("hidden");
+  } else {
+    $("badgeicon").src = b.icon;
+    $("badgetext").textContent =
+      [b.label, course.level ? "Level " + String(course.level).replace(/\D/g, "") : null]
+        .filter(Boolean).join(" · ");
+    $("badge").classList.remove("hidden");
+  }
 
+  // On a seminar the badge says what it is, so the title is for search
+  // engines only. On a workshop the name is the whole point — show it.
   $("title").textContent = course.title;
+  if (isWorkshop) {
+    $("title").classList.remove("sr");
+    $("title").classList.add("shown");
+  }
 
   $("when").textContent = formatDates(course);
   if (course.language && course.language !== "en") {
@@ -445,6 +473,9 @@ async function load() {
   );
   state.total = course.price_cents;
   state.deposit = course.deposit_cents || Math.round(course.price_cents * DEPOSIT_RATE);
+
+  // A three-hour workshop is not worth a deposit — pay or do not.
+  if (isWorkshop) state.deposit = state.total;
 
   if (state.isFull) {
     $("seats").textContent = "This course is full. Email us to join the waiting list.";
@@ -652,7 +683,9 @@ async function applyCode() {
     state.code = data.code;
     state.discount = data.discount_cents;
     state.total = data.total_cents;
-    state.deposit = data.deposit_cents;
+    state.deposit = state.course.type === "workshop"
+      ? data.total_cents
+      : data.deposit_cents;
 
     msg.className = "promo-msg ok";
     msg.textContent = (data.label ? data.label + " — " : "") +
