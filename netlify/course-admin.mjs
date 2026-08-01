@@ -168,13 +168,13 @@ async function reschedule(course, body, admin) {
     const ok = await sendEmail({
       to: c.email,
       subject: `Date change: ${course.title}`,
-      heading: "A course you are coaching has moved",
+      heading: "A course you are down to coach has moved",
       body: [
         `Hi ${escapeHtml(firstName(c.full_name))},`,
         `<strong>${escapeHtml(course.title)}</strong> has been moved to a new date.`,
         `<strong>Was:</strong> ${longDate(oldStart)}<br><strong>Now:</strong> ${longDate(startsAt)}${endsAt ? " – " + longDate(endsAt) : ""}`,
         venueLine(course),
-        `Please check your travel and let us know as soon as you can if the new date does not work for you.`,
+        `Let us know as soon as you can if the new date does not work for you. We will confirm before anyone books travel, as usual.`,
       ],
     });
     if (ok) coachesEmailed++;
@@ -298,19 +298,19 @@ async function cancel(course, body, admin) {
     if (ok) emailed++;
   }
 
-  // ---- coaches: do not travel. No money mentioned. ----
+  // ---- coaches: it is off. No money, no travel assumptions. ----
   const coaches = await assignedCoaches(course.id);
   let coachesEmailed = 0;
   for (const c of coaches) {
     const ok = await sendEmail({
       to: c.email,
       subject: `Cancelled: ${course.title}`,
-      heading: "A course you are coaching has been cancelled",
+      heading: "A course you were down to coach has been cancelled",
       body: [
         `Hi ${escapeHtml(firstName(c.full_name))},`,
-        `<strong>${escapeHtml(course.title)}</strong> on ${longDate(course.starts_at)} is no longer going ahead.`,
+        `<strong>${escapeHtml(course.title)}</strong> on ${longDate(course.starts_at)} is no longer going ahead, so you can take it out of your diary.`,
         venueLine(course),
-        `Please cancel any travel or accommodation you have booked for it. If you have costs you cannot recover, reply to this email and we will sort it out.`,
+        `If you had booked anything for it, reply to this email and we will sort it out.`,
         `Participants have been contacted directly.`,
       ],
     });
