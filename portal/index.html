@@ -85,7 +85,25 @@
 
   .headrow {
     display: flex; align-items: flex-start; justify-content: space-between;
-    gap: 1rem; margin-bottom: 1.25rem;
+    gap: 1rem; margin-bottom: 1rem;
+  }
+
+  /* ---------------- tabs ---------------- */
+  .tabs {
+    display: flex; gap: 0.4rem; margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .tab {
+    font: inherit; font-size: 0.88rem; font-weight: 600;
+    background: none; border: 0; border-bottom: 2px solid transparent;
+    color: var(--muted); padding: 0.5rem 0.15rem; margin-right: 1.1rem;
+    cursor: pointer; white-space: nowrap;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.on { color: var(--ink); border-bottom-color: var(--ink); }
+  .tab .n {
+    font-size: 0.72rem; font-weight: 650; color: var(--muted);
+    margin-left: 0.3rem;
   }
 
   a.back, .textlink {
@@ -157,7 +175,7 @@
     display: flex; align-items: stretch;
     border-left: 3px solid var(--rule);
   }
-  .card.is-archived { opacity: 0.6; }
+  .card.is-archived { opacity: 0.65; }
   .course {
     display: grid; grid-template-columns: 44px 1fr; gap: 0.9rem;
     flex: 1 1 auto; min-width: 0; text-align: left; font: inherit;
@@ -336,9 +354,17 @@
       <div>
         <h1>Courses</h1>
         <p class="sub" id="courses-sub" style="margin:0"></p>
-        <button class="textlink hidden" id="togglearchived" type="button" style="margin-top:0.4rem">Show archived</button>
       </div>
       <button class="btn hidden" id="newcourse" type="button">New course</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" id="tab-live" type="button" data-tab="live">
+        Live <span class="n" id="n-live"></span>
+      </button>
+      <button class="tab" id="tab-past" type="button" data-tab="past">
+        Archived &amp; cancelled <span class="n" id="n-past"></span>
+      </button>
     </div>
 
     <div id="lowalert"></div>
@@ -668,9 +694,13 @@ const show = (n) =>
 
 let me = null;
 let staffList = [];
-let showArchived = false;
+let tab = "live";
 
 const isAdmin = () => me && me.role === "admin";
+
+// A course is "past" once it is archived or cancelled. Everything
+// else is live, whether it is on sale, full or still a draft.
+const isPast = (c) => !!c.archived || c.status === "cancelled" || c.status === "complete";
 
 /* ---------------- auth ---------------- */
 
@@ -730,7 +760,6 @@ async function start() {
   $("myrole").textContent = staff.role.replace(/_/g, " ");
   $("newcourse").classList.toggle("hidden", !admin);
   $("codeslink").classList.toggle("hidden", !admin);
-  $("togglearchived").classList.toggle("hidden", !admin);
 
   await loadCourses();
 }
@@ -758,11 +787,14 @@ $("back").addEventListener("click", loadCourses);
 $("back2").addEventListener("click", loadCourses);
 $("tocourses").addEventListener("click", loadCourses);
 
-$("togglearchived").addEventListener("click", () => {
-  showArchived = !showArchived;
-  $("togglearchived").textContent = showArchived ? "Hide archived" : "Show archived";
-  loadCourses();
-});
+for (const id of ["tab-live", "tab-past"]) {
+  $(id).addEventListener("click", () => {
+    tab = $(id).dataset.tab;
+    $("tab-live").classList.toggle("on", tab === "live");
+    $("tab-past").classList.toggle("on", tab === "past");
+    loadCourses();
+  });
+}
 
 async function loadCourses() {
   show("courses");
@@ -771,31 +803,40 @@ async function loadCourses() {
   alertBox.innerHTML = "";
   list.innerHTML = '<p class="empty">Loading…</p>';
 
-  const cols = "id, brand, type, level, title, city, country, starts_at, capacity, status, slug, archived";
+  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, capacity, status, slug, archived";
 
-  let courses = [];
+  let all = [];
   if (isAdmin()) {
     const { data, error } = await db.from("courses")
       .select(cols)
       .order("starts_at", { ascending: true });
     if (error) { list.innerHTML = '<p class="empty">Could not load courses.</p>'; return; }
-    courses = data || [];
+    all = data || [];
     $("courses-sub").textContent = "Every course across all brands.";
   } else {
     const { data, error } = await db.from("course_staff")
       .select(`courses (${cols})`);
     if (error) { list.innerHTML = '<p class="empty">Could not load courses.</p>'; return; }
-    courses = (data || []).map((r) => r.courses).filter(Boolean);
-    courses.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+    all = (data || []).map((r) => r.courses).filter(Boolean);
+    all.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
     $("courses-sub").textContent = "Courses you are allocated to.";
   }
 
-  // Archived courses stay out of the way. Only an admin can bring
-  // them back into view, and only they ever archived them.
-  if (!showArchived) courses = courses.filter((c) => !c.archived);
+  const liveOnes = all.filter((c) => !isPast(c));
+  const pastOnes = all.filter(isPast);
+
+  $("n-live").textContent = liveOnes.length ? liveOnes.length : "";
+  $("n-past").textContent = pastOnes.length ? pastOnes.length : "";
+
+  // Past courses read newest first — you are looking back, not forward.
+  const courses = tab === "past"
+    ? pastOnes.slice().sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at))
+    : liveOnes;
 
   if (!courses.length) {
-    list.innerHTML = `<p class="empty">${showArchived ? "No courses." : "No courses yet."}</p>`;
+    list.innerHTML = `<p class="empty">${
+      tab === "past" ? "Nothing archived or cancelled." : "No live courses."
+    }</p>`;
     return;
   }
 
@@ -811,11 +852,13 @@ async function loadCourses() {
 
   // Anything close and quiet gets called out at the top, so it is a
   // decision rather than something noticed too late.
-  const struggling = courses.filter((c) => {
-    if (c.archived || c.status === "cancelled" || c.status === "draft") return false;
-    const days = daysUntil(c.starts_at);
-    return days >= 0 && days <= LOW_DAYS_OUT && (booked[c.id] || 0) < LOW_NUMBERS;
-  });
+  const struggling = tab === "live"
+    ? courses.filter((c) => {
+        if (c.status === "draft") return false;
+        const days = daysUntil(c.starts_at);
+        return days >= 0 && days <= LOW_DAYS_OUT && (booked[c.id] || 0) < LOW_NUMBERS;
+      })
+    : [];
 
   if (struggling.length) {
     const el = document.createElement("div");
@@ -825,10 +868,11 @@ async function loadCourses() {
       <ul></ul>`;
     const ul = el.querySelector("ul");
     for (const c of struggling) {
+      const d = daysUntil(c.starts_at);
       const li = document.createElement("li");
       li.textContent =
         `${c.title} — ${fmtDate(c.starts_at)}, ${booked[c.id] || 0} booked, ` +
-        `${daysUntil(c.starts_at)} day${daysUntil(c.starts_at) === 1 ? "" : "s"} away`;
+        `${d} day${d === 1 ? "" : "s"} away`;
       ul.append(li);
     }
     alertBox.append(el);
@@ -837,15 +881,15 @@ async function loadCourses() {
   list.innerHTML = "";
   for (const c of courses) {
     const b = BRAND[c.brand] || BRAND.birdbox;
-    const tag = tagFor(c);
+    const t = tagFor(c);
     const taken = booked[c.id] || 0;
     const days = daysUntil(c.starts_at);
-    const isLow = !c.archived && c.status !== "cancelled" && c.status !== "draft" &&
+    const isLow = tab === "live" && c.status !== "draft" &&
                   days >= 0 && days <= LOW_DAYS_OUT && taken < LOW_NUMBERS;
 
     const el = document.createElement("div");
-    el.className = "card" + (c.archived ? " is-archived" : "");
-    el.style.borderLeftColor = isLow ? "#b4610f" : tag.colour;
+    el.className = "card" + (isPast(c) ? " is-archived" : "");
+    el.style.borderLeftColor = isLow ? "#b4610f" : t.colour;
     el.innerHTML = `
       <button class="course" type="button">
         <span class="icon"><img alt=""></span>
@@ -868,21 +912,22 @@ async function loadCourses() {
 
     const flags = el.querySelector(".flags");
 
-    const t = document.createElement("span");
-    t.className = "tag";
-    t.style.background = tag.colour;
-    t.textContent = tag.text;
-    flags.append(t);
+    const tagEl = document.createElement("span");
+    tagEl.className = "tag";
+    tagEl.style.background = t.colour;
+    tagEl.textContent = t.text;
+    flags.append(tagEl);
 
     const add = (text, cls = "") => {
       const s = document.createElement("span");
       s.className = "pill " + cls; s.textContent = text; flags.append(s);
     };
     if (isLow) add(`${taken} booked · ${days}d away`, "low");
-    if (c.archived) add("archived", "draft");
+    if (c.status === "complete") add("completed", "draft");
+    else if (c.status === "cancelled") add("cancelled", "bad");
+    else if (c.archived) add("archived", "draft");
     if (c.status === "full") add("full", "warn");
     if (c.status === "draft") add("draft", "draft");
-    if (c.status === "cancelled") add("cancelled", "warn");
 
     el.querySelector(".course").addEventListener("click", () => openCourse(c));
 
@@ -925,7 +970,9 @@ async function openCourse(course) {
   $("course-meta").textContent = [
     fmtDate(course.starts_at),
     [course.city, course.country].filter(Boolean).join(", "),
-    course.archived ? "Archived" : null,
+    course.status === "complete" ? "Completed"
+      : course.status === "cancelled" ? "Cancelled"
+      : course.archived ? "Archived" : null,
   ].filter(Boolean).join(" · ");
   $("counts").textContent = "";
   $("admin-msg").textContent = "";
@@ -1139,8 +1186,7 @@ function wireAdmin(course, totalRegs, liveRegs) {
   };
 
   // ---- cancel and refund ----
-  const cancelWhy = $("cancelwhy");
-  cancelWhy.textContent = liveRegs
+  $("cancelwhy").textContent = liveRegs
     ? `Refunds ${liveRegs} participant${liveRegs === 1 ? "" : "s"} in full, stops any unpaid balances, emails everyone and archives the course.`
     : "Nobody has booked, so there is nothing to refund. This will archive the course.";
 
@@ -1191,7 +1237,7 @@ function wireAdmin(course, totalRegs, liveRegs) {
   archiveBtn.onclick = async () => {
     const goingToArchive = !course.archived;
     if (goingToArchive &&
-        !window.confirm(`Archive "${course.title}"? It will be taken off sale and hidden from the list.`)) return;
+        !window.confirm(`Archive "${course.title}"? It will be taken off sale and hidden from the live list.`)) return;
 
     archiveBtn.disabled = true;
     msg.className = "msg";
