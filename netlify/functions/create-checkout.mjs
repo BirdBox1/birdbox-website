@@ -99,3 +99,136 @@ export default async (req) => {
     if (balance > 0) {
       const due = new Date(course.starts_at);
       due.setDate(due.getDate() - BALANCE_DAYS_BEFORE);
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      balanceDueAt = (due > tomorrow ? due : tomorrow).toISOString();
+    }
+
+    const currency = course.currency.toLowerCase();
+    const money = (cents) =>
+      new Intl.NumberFormat("en", {
+        style: "currency",
+        currency: course.currency,
+        maximumFractionDigits: 0,
+      }).format(cents / 100);
+
+    const lineName =
+      option === "deposit" ? `${course.title} — deposit` : course.title;
+
+    const notes = [];
+    if (option === "deposit") {
+      notes.push(
+        `Deposit. The remaining ${money(balance)} is charged automatically ${BALANCE_DAYS_BEFORE} days before the course.`
+      );
+    }
+    if (appliedCode) {
+      notes.push(`Code ${appliedCode} applied — ${money(discountCents)} off.`);
+    }
+    if (!notes.length && course.summary) notes.push(course.summary);
+
+    const origin = req.headers.get("origin") || process.env.SITE_URL;
+
+    // ---- build the Checkout session ----------------------------
+    const session = {
+      mode: "payment",
+
+      // Klarna gets its own session; card sessions stay card-only so
+      // the three choices on the page stay distinct.
+      payment_method_types: option === "klarna" ? ["klarna"] : ["card"],
+
+      // always create a Stripe Customer — without one there is no
+      // saved card, and the balance cannot be charged later
+      customer_creation: "always",
+
+      consent_collection: {
+        terms_of_service: "required",
+      },
+      custom_text: {
+        terms_of_service_acceptance: {
+          message:
+            "I have read and agree to the BirdBox Coaching terms of sale and the assumption of risk and waiver of liability.",
+        },
+      },
+
+      // the person attending is not always the person paying, and a
+      // billing name cannot be split reliably — so ask outright
+      custom_fields: [
+        {
+          key: "firstname",
+          label: { type: "custom", custom: "Participant first name" },
+          type: "text",
+          optional: false,
+        },
+        {
+          key: "lastname",
+          label: { type: "custom", custom: "Participant last name" },
+          type: "text",
+          optional: false,
+        },
+      ],
+
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency,
+            unit_amount: payingNow,
+            product_data: {
+              name: lineName,
+              description: notes.join(" ") || undefined,
+            },
+          },
+        },
+      ],
+
+      payment_intent_data: {
+        description: `${course.brand.toUpperCase()} — ${course.title}`,
+      },
+
+      phone_number_collection: { enabled: true },
+      billing_address_collection: "required",
+
+      // everything the webhook needs to write the registration row
+      metadata: {
+        course_id: course.id,
+        course_slug: course.slug,
+        brand: course.brand,
+        waiver_version: WAIVER_VERSION,
+        payment_option: option,
+        amount_paid_cents: String(payingNow),
+        balance_cents: String(balance),
+        balance_due_at: balanceDueAt || "",
+        full_price_cents: String(course.price_cents),
+        discount_code: appliedCode || "",
+        discount_cents: String(discountCents),
+      },
+
+      success_url: `${origin}/registration-complete/?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/c/${course.slug}/`,
+    };
+
+    // Only card payments can be saved for the balance charge.
+    if (option !== "klarna") {
+      session.payment_intent_data.setup_future_usage = "off_session";
+    }
+
+    if (option === "deposit") {
+      session.custom_text.submit = {
+        message: `You are paying a deposit of ${money(deposit)}. The remaining ${money(balance)} will be charged to this card ${BALANCE_DAYS_BEFORE} days before the course starts.`,
+      };
+    }
+
+    const created = await stripe.checkout.sessions.create(session);
+    return json({ url: created.url });
+  } catch (err) {
+    console.error("create-checkout failed:", err);
+    return json({ error: "Could not start checkout" }, 500);
+  }
+};
+
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
