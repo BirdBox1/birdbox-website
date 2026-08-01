@@ -25,7 +25,6 @@
     font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased;
     position: relative; min-height: 100vh;
   }
-  /* faint full-page wash of the brand photo */
   #wash {
     position: fixed; inset: 0; z-index: -1; opacity: 0.17;
     background: center 30% / cover no-repeat; pointer-events: none;
@@ -48,12 +47,12 @@
   .head { padding: 2.25rem 0 0; }
 
   .badge {
-    display: inline-flex; align-items: center; gap: 0.5rem;
-    background: rgba(255,255,255,0.08); border: 1px solid var(--rule); border-radius: 4px;
-    padding: 0.3rem 0.6rem; font-size: 0.7rem; letter-spacing: 0.12em;
+    display: inline-flex; align-items: center; gap: 0.7rem;
+    background: rgba(255,255,255,0.08); border: 1px solid var(--rule); border-radius: 5px;
+    padding: 0.5rem 0.85rem; font-size: 0.92rem; letter-spacing: 0.1em;
     text-transform: uppercase; font-weight: 600; color: #fff;
   }
-  .badge img { width: 20px; height: 20px; object-fit: contain; }
+  .badge img { width: 34px; height: 34px; object-fit: contain; }
 
   h1 {
     font-size: clamp(1.5rem, 5.5vw, 2.15rem); line-height: 1.15;
@@ -85,6 +84,12 @@
     color: var(--muted); font-weight: 600; margin: 2rem 0 0.6rem;
   }
   p { margin: 0 0 1rem; }
+
+  .lede {
+    font-size: clamp(1.25rem, 3.2vw, 1.6rem); line-height: 1.32;
+    font-weight: 600; letter-spacing: -0.015em; margin: 0 0 1.5rem;
+  }
+
   .movements {
     border-left: 3px solid var(--brandcolour, var(--accent));
     padding: 0.15rem 0 0.15rem 0.9rem; margin: 0 0 1.25rem; font-size: 1.02rem;
@@ -103,26 +108,31 @@
     font-size: 0.82rem; color: var(--muted);
   }
   .spec b { color: var(--ink); font-weight: 650; }
-  .spec img.ceu { width: 54px; height: 54px; object-fit: contain; }
+  .spec img.ceu { width: 88px; height: 88px; object-fit: contain; }
 
   .video {
     position: relative; aspect-ratio: 16 / 9; background: #000;
     border-radius: 6px; overflow: hidden;
   }
   .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-  /* blocks clicks through to YouTube titles and end cards */
   .video .shield { position: absolute; inset: 0; }
 
   .venue {
     background: var(--panel);
     border: 1px solid var(--rule); border-radius: 6px; padding: 1rem 1.15rem;
-    display: flex; gap: 0.9rem; align-items: center;
   }
-  .venue img {
+  .venue .top { display: flex; gap: 0.9rem; align-items: center; }
+  .venue .top img {
     width: 84px; height: 84px; object-fit: cover; border-radius: 4px; flex: none; background: #2a2e33;
   }
   .venue .vname { font-weight: 650; }
   .venue .vaddr { color: var(--muted); font-size: 0.92rem; }
+  .map {
+    margin-top: 0.9rem; border-radius: 4px; overflow: hidden;
+    height: 170px; background: #2a2e33;
+  }
+  .map iframe { width: 100%; height: 100%; border: 0; display: block; filter: grayscale(0.3); }
+  .directions { display: inline-block; margin-top: 0.6rem; font-size: 0.88rem; color: var(--ink); }
 
   footer {
     margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--rule);
@@ -175,7 +185,7 @@
     <div class="spec" id="specwrap"></div>
 
     <div id="summarywrap" class="hidden">
-      <p style="font-size:1.08rem" id="summary"></p>
+      <p class="lede" id="summary"></p>
     </div>
 
     <div id="movementswrap" class="hidden">
@@ -191,11 +201,17 @@
     <div id="venuewrap" class="hidden">
       <h2>Where</h2>
       <div class="venue">
-        <img id="venuephoto" alt="" class="hidden">
-        <div>
-          <div class="vname" id="venuename"></div>
-          <div class="vaddr" id="venueaddr"></div>
+        <div class="top">
+          <img id="venuephoto" alt="" class="hidden">
+          <div>
+            <div class="vname" id="venuename"></div>
+            <div class="vaddr" id="venueaddr"></div>
+          </div>
         </div>
+        <div class="map hidden" id="mapwrap">
+          <iframe id="map" title="Map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+        <a class="directions hidden" id="directions" target="_blank" rel="noopener">Open in Maps →</a>
       </div>
     </div>
 
@@ -263,7 +279,6 @@ async function load() {
 
   if (error || !course) return notFound();
 
-  // Workshops are always bespoke, so they never inherit a template.
   const tpl = course.type === "workshop" ? null : await loadTemplate(course);
 
   const b = BRAND[course.brand] || BRAND.birdbox;
@@ -302,7 +317,6 @@ async function load() {
   }
 
   // Places remaining is staff information — the portal shows it.
-  // The public page only ever says whether the course is closed.
   const { count } = await db
     .from("registrations")
     .select("id", { count: "exact", head: true })
@@ -336,7 +350,6 @@ async function load() {
     $("specwrap").append(seal);
   }
 
-  // Course text overrides the template; otherwise the template fills in.
   fill("summary", course.summary || (tpl && tpl.headline));
   fill("movements", course.movements || course.workshop_focus);
   fill("description", course.description || (tpl && tpl.intro), true);
@@ -368,6 +381,16 @@ async function load() {
       $("venuephoto").alt = course.venue_name || course.city || "";
       $("venuephoto").classList.remove("hidden");
     }
+
+    const query = [course.venue_name, course.address, course.city, course.country]
+      .filter(Boolean).join(", ");
+    if (query) {
+      const q = encodeURIComponent(query);
+      $("map").src = "https://maps.google.com/maps?q=" + q + "&z=14&output=embed";
+      $("mapwrap").classList.remove("hidden");
+      $("directions").href = "https://www.google.com/maps/search/?api=1&query=" + q;
+      $("directions").classList.remove("hidden");
+    }
   }
 
   $("register").addEventListener("click", () => checkout(course.slug));
@@ -376,9 +399,6 @@ async function load() {
   $("course").classList.remove("hidden");
 }
 
-// Templates are keyed on brand + type + level + language, but level and
-// language get written inconsistently ("1" vs "L1", "en" vs "English"),
-// so match in JS and fall back to any language for that level.
 async function loadTemplate(course) {
   const { data } = await db
     .from("course_templates")
