@@ -9,13 +9,21 @@
     --ink:    #16181b;
     --paper:  #f4f3f0;
     --card:   #ffffff;
-    --shell:  #101113;
+    --shell:  #0d0e10;
     --rule:   #e0ddd7;
     --muted:  #6c7178;
     --accent: #2f7fd0;
     --good:   #1f8a54;
     --warn:   #b4610f;
+    --bad:    #b3261e;
+
+    --birdbox: #2f7fd0;
+    --tcc:     #2f7fd0;
+    --tgc:     #9e2029;
+    --tec:     #1c6b3f;
+    --twc:     #e8a317;
   }
+
   *, *::before, *::after { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body {
@@ -24,26 +32,62 @@
     font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased;
   }
 
+  /* ---------------- top bar ---------------- */
   .bar {
     background: var(--shell); color: #fff;
-    padding: 0.85rem 1.25rem;
+    padding: 0.7rem 1.25rem;
     display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   }
-  .bar .brand {
-    font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: #9aa1a9;
+  .bar .left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+  .mark {
+    width: 34px; height: 34px; border-radius: 4px; background: #fff;
+    display: grid; place-items: center; flex: none;
   }
-  .bar .who { font-size: 0.85rem; color: #cfd4d9; }
+  .mark img { width: 26px; height: 26px; object-fit: contain; display: block; }
+  .bar .brandname {
+    font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9;
+    white-space: nowrap;
+  }
+  .bar .right { display: flex; align-items: center; gap: 0.8rem; }
+  .bar .who { font-size: 0.85rem; color: #cfd4d9; white-space: nowrap; }
   .bar button {
     font: inherit; font-size: 0.8rem; background: none; color: #cfd4d9;
     border: 1px solid #33373c; padding: 0.3rem 0.7rem; border-radius: 3px; cursor: pointer;
   }
   .bar button:hover { color: #fff; border-color: #55595e; }
 
-  .wrap { max-width: 56rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+  .wrap { max-width: 56rem; margin: 0 auto; padding: 1.25rem 1.25rem 4rem; }
 
-  h1 { font-size: 1.5rem; letter-spacing: -0.02em; margin: 0 0 0.25rem; font-weight: 600; }
+  /* ---------------- team banner ---------------- */
+  .banner {
+    position: relative; border-radius: 6px; overflow: hidden;
+    margin-bottom: 1.5rem; background: var(--shell);
+    aspect-ratio: 3 / 1; max-height: 200px;
+  }
+  .banner img {
+    width: 100%; height: 100%; object-fit: cover; object-position: center 35%;
+    display: block;
+  }
+  .banner .veil {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(10,11,13,0.88) 0%, rgba(10,11,13,0.25) 55%, rgba(10,11,13,0) 100%);
+  }
+  .banner .caption {
+    position: absolute; left: 1.1rem; right: 1.1rem; bottom: 0.85rem; color: #fff;
+  }
+  .banner .hello { font-size: 1.15rem; font-weight: 650; letter-spacing: -0.015em; }
+  .banner .role {
+    font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: #b9c0c7;
+  }
+
+  h1 { font-size: 1.4rem; letter-spacing: -0.02em; margin: 0 0 0.2rem; font-weight: 600; }
   h2 { font-size: 1.15rem; letter-spacing: -0.015em; margin: 0 0 0.2rem; font-weight: 600; }
-  .sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.5rem; }
+  .sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.25rem; }
+
+  .headrow {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 1rem; margin-bottom: 1.25rem;
+  }
 
   a.back {
     display: inline-block; font-size: 0.85rem; color: var(--accent);
@@ -51,113 +95,199 @@
   }
   a.back:hover { text-decoration: underline; }
 
+  /* ---------------- login ---------------- */
   .login {
-    max-width: 22rem; margin: 4rem auto; background: var(--card);
-    border: 1px solid var(--rule); border-radius: 5px; padding: 1.75rem;
+    max-width: 22rem; margin: 3.5rem auto; background: var(--card);
+    border: 1px solid var(--rule); border-radius: 6px; padding: 1.75rem;
+    text-align: left;
   }
-  .login h1 { font-size: 1.25rem; margin-bottom: 1.25rem; }
-  label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.3rem; }
-  input[type=email], input[type=password] {
-    width: 100%; font: inherit; padding: 0.6rem 0.7rem; margin-bottom: 1rem;
-    border: 1px solid var(--rule); border-radius: 4px; background: #fff;
+  .login .lmark { width: 46px; height: 46px; margin-bottom: 1rem; }
+  .login .lmark img { width: 100%; height: 100%; object-fit: contain; }
+  .login h1 { font-size: 1.2rem; margin-bottom: 1.15rem; }
+
+  label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .hint { font-weight: 400; color: var(--muted); font-size: 0.78rem; }
+
+  input[type=email], input[type=password], input[type=text], input[type=number],
+  input[type=datetime-local], input[type=date], select, textarea {
+    width: 100%; font: inherit; padding: 0.55rem 0.65rem;
+    border: 1px solid var(--rule); border-radius: 4px; background: #fff; color: var(--ink);
   }
-  input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  textarea { min-height: 4.5rem; resize: vertical; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 1px;
+  }
+  .field { margin-bottom: 1rem; }
+  .grid2 { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+  @media (min-width: 34rem) { .grid2 { grid-template-columns: 1fr 1fr; } }
+
   .btn {
     font: inherit; font-weight: 600; background: var(--ink); color: #fff;
-    border: 0; border-radius: 4px; padding: 0.65rem 1.1rem; cursor: pointer; width: 100%;
+    border: 0; border-radius: 4px; padding: 0.6rem 1.1rem; cursor: pointer;
   }
   .btn:hover { background: #000; }
   .btn[disabled] { opacity: 0.5; cursor: default; }
+  .btn.wide { width: 100%; }
+  .btn.ghost {
+    background: none; color: var(--ink); border: 1px solid var(--rule); font-weight: 500;
+  }
+  .btn.ghost:hover { background: #fff; border-color: var(--muted); }
 
   .msg { font-size: 0.85rem; margin-top: 0.9rem; min-height: 1.2em; }
-  .msg.err { color: #b3261e; }
+  .msg.err { color: var(--bad); }
   .msg.ok  { color: var(--good); }
 
+  /* ---------------- course cards ---------------- */
   .card {
     background: var(--card); border: 1px solid var(--rule);
-    border-radius: 5px; margin-bottom: 0.75rem;
+    border-radius: 6px; margin-bottom: 0.7rem; overflow: hidden;
   }
   .course {
-    display: block; width: 100%; text-align: left; font: inherit;
-    background: none; border: 0; padding: 1rem 1.1rem; cursor: pointer;
+    display: grid; grid-template-columns: 44px 1fr; gap: 0.9rem;
+    width: 100%; text-align: left; font: inherit;
+    background: none; border: 0; border-left: 3px solid var(--rule);
+    padding: 0.95rem 1.05rem; cursor: pointer;
   }
   .course:hover { background: #faf9f7; }
   .course:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .course .icon {
+    width: 44px; height: 44px; border-radius: 4px; background: #fff;
+    border: 1px solid var(--rule); display: grid; place-items: center; overflow: hidden;
+  }
+  .course .icon img { width: 34px; height: 34px; object-fit: contain; }
   .course .top {
-    display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem;
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 0.75rem; flex-wrap: wrap;
   }
   .course .title { font-weight: 650; letter-spacing: -0.01em; }
   .course .when { font-size: 0.82rem; color: var(--muted); white-space: nowrap; }
-  .course .line { font-size: 0.85rem; color: var(--muted); margin-top: 0.15rem; }
+  .course .line { font-size: 0.85rem; color: var(--muted); margin-top: 0.1rem; }
+  .course .flags { margin-top: 0.4rem; }
 
   .pill {
-    display: inline-block; font-size: 0.66rem; letter-spacing: 0.1em;
+    display: inline-block; font-size: 0.65rem; letter-spacing: 0.1em;
     text-transform: uppercase; padding: 0.12rem 0.45rem;
     border: 1px solid var(--rule); border-radius: 2px; color: var(--muted);
-    margin-right: 0.4rem;
+    margin-right: 0.35rem;
   }
-  .pill.brand { border-color: var(--accent); color: var(--accent); }
-  .pill.full  { border-color: var(--warn);   color: var(--warn); }
+  .pill.on   { border-color: var(--good); color: var(--good); }
+  .pill.warn { border-color: var(--warn); color: var(--warn); }
+  .pill.draft{ border-color: var(--muted); color: var(--muted); }
 
-  .attendee { padding: 0.9rem 1.1rem; border-bottom: 1px solid var(--rule); }
+  /* ---------------- attendees ---------------- */
+  .attendee { padding: 0.9rem 1.05rem; border-bottom: 1px solid var(--rule); }
   .attendee:last-child { border-bottom: 0; }
   .attendee .row1 {
     display: flex; align-items: center; gap: 0.75rem; justify-content: space-between;
   }
   .attendee .name { font-weight: 650; }
   .attendee .contact { font-size: 0.84rem; color: var(--muted); word-break: break-all; }
-  .flags { margin-top: 0.35rem; }
-
-  .check { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; cursor: pointer; }
+  .check { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
   .check input { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); }
-
   .notes {
-    width: 100%; font: inherit; font-size: 0.9rem; margin-top: 0.6rem;
+    width: 100%; font: inherit; font-size: 0.9rem; margin-top: 0.55rem;
     border: 1px solid var(--rule); border-radius: 4px; padding: 0.5rem 0.6rem;
-    min-height: 3.2rem; resize: vertical; background: #fff;
+    min-height: 3.2rem;
   }
-  .notes:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .saved { font-size: 0.75rem; color: var(--good); margin-left: 0.5rem; }
 
   .empty {
-    background: var(--card); border: 1px dashed var(--rule); border-radius: 5px;
+    background: var(--card); border: 1px dashed var(--rule); border-radius: 6px;
     padding: 2rem 1.25rem; text-align: center; color: var(--muted); font-size: 0.9rem;
   }
-
   .counts { font-size: 0.85rem; color: var(--muted); margin-bottom: 1rem; }
+
+  /* ---------------- form ---------------- */
+  .panel {
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 1.25rem; margin-bottom: 1rem;
+  }
+  .panel h3 {
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 1rem; font-weight: 600;
+  }
+  .coachlist { display: grid; gap: 0.4rem; max-height: 14rem; overflow-y: auto; }
+  .coachlist label {
+    display: flex; align-items: center; gap: 0.5rem; font-weight: 400;
+    font-size: 0.9rem; margin: 0; cursor: pointer;
+  }
+  .coachlist input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); }
+
+  .result {
+    background: #eef4fb; border: 1px solid var(--accent); border-radius: 6px;
+    padding: 1.15rem; margin-bottom: 1rem;
+  }
+  .result h3 { margin: 0 0 0.5rem; font-size: 1rem; letter-spacing: -0.01em; }
+  .linkbox {
+    display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.75rem; flex-wrap: wrap;
+  }
+  .linkbox input {
+    flex: 1 1 16rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem;
+  }
+  .thumb {
+    margin-top: 0.6rem; max-width: 100%; border-radius: 4px; border: 1px solid var(--rule);
+    display: none;
+  }
   .hidden { display: none !important; }
 </style>
 </head>
 <body>
 
 <div class="bar">
-  <span class="brand">BirdBox · Coach Portal</span>
-  <span style="display:flex;align-items:center;gap:0.9rem">
+  <span class="left">
+    <span class="mark"><img src="/brand/birdbox.png" alt=""></span>
+    <span class="brandname">Coach Portal</span>
+  </span>
+  <span class="right">
     <span class="who" id="who"></span>
     <button id="signout" class="hidden" type="button">Sign out</button>
   </span>
 </div>
 
+<!-- ============ LOGIN ============ -->
 <section id="view-login">
   <div class="login">
+    <div class="lmark"><img src="/brand/birdbox.png" alt="BirdBox"></div>
     <h1>Sign in</h1>
-    <label for="email">Email</label>
-    <input id="email" type="email" autocomplete="username" inputmode="email">
-    <label for="password">Password</label>
-    <input id="password" type="password" autocomplete="current-password">
-    <button class="btn" id="signin" type="button">Sign in</button>
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" inputmode="email">
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password">
+    </div>
+    <button class="btn wide" id="signin" type="button">Sign in</button>
     <p class="msg" id="login-msg"></p>
   </div>
 </section>
 
+<!-- ============ COURSES ============ -->
 <section id="view-courses" class="hidden">
   <div class="wrap">
-    <h1>Your courses</h1>
-    <p class="sub" id="courses-sub"></p>
+    <div class="banner">
+      <img src="/brand/team-2026.jpg" alt="The BirdBox coaching team">
+      <div class="veil"></div>
+      <div class="caption">
+        <div class="hello" id="hello"></div>
+        <div class="role" id="myrole"></div>
+      </div>
+    </div>
+
+    <div class="headrow">
+      <div>
+        <h1>Courses</h1>
+        <p class="sub" id="courses-sub" style="margin:0"></p>
+      </div>
+      <button class="btn hidden" id="newcourse" type="button">New course</button>
+    </div>
+
     <div id="courses-list"></div>
   </div>
 </section>
 
+<!-- ============ ATTENDEES ============ -->
 <section id="view-course" class="hidden">
   <div class="wrap">
     <a class="back" id="back">← All courses</a>
@@ -168,44 +298,244 @@
   </div>
 </section>
 
+<!-- ============ NEW COURSE ============ -->
+<section id="view-new" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back2">← All courses</a>
+    <h2>New course</h2>
+    <p class="sub">Fill this in and the course goes live. You will get a link to paste into Community Box.</p>
+
+    <div id="created" class="result hidden">
+      <h3>Course created</h3>
+      <p style="margin:0;font-size:0.9rem" id="created-title"></p>
+      <div class="linkbox">
+        <input type="text" id="created-link" readonly>
+        <button class="btn" id="copylink" type="button">Copy</button>
+      </div>
+      <div class="linkbox">
+        <button class="btn ghost" id="another" type="button">Create another</button>
+        <button class="btn ghost" id="tocourses" type="button">Back to courses</button>
+      </div>
+    </div>
+
+    <div id="form">
+      <div class="panel">
+        <h3>What and where</h3>
+        <div class="grid2">
+          <div class="field">
+            <label for="f-brand">Brand</label>
+            <select id="f-brand">
+              <option value="tcc">TCC — The Coaches Course</option>
+              <option value="tgc">TGC — The Gymnastics Course</option>
+              <option value="tec">TEC — The Endurance Course</option>
+              <option value="twc">TWC — The Weightlifting Course</option>
+              <option value="birdbox">BirdBox</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-type">Type</label>
+            <select id="f-type">
+              <option value="live_seminar">Live seminar</option>
+              <option value="workshop">Workshop</option>
+              <option value="online_course">Online course</option>
+              <option value="mentorship">Mentorship</option>
+              <option value="programming">Programming</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label for="f-level">Level <span class="hint">leave blank for workshops</span></label>
+            <select id="f-level">
+              <option value="">—</option>
+              <option value="L1">Level 1</option>
+              <option value="L2">Level 2</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-language">Language of delivery</label>
+            <select id="f-language">
+              <option value="en">English</option>
+              <option value="fr">French</option>
+              <option value="es">Spanish</option>
+              <option value="de">German</option>
+              <option value="it">Italian</option>
+              <option value="ja">Japanese</option>
+              <option value="ko">Korean</option>
+              <option value="pt">Portuguese</option>
+              <option value="pl">Polish</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field" id="wrap-workshop">
+          <label for="f-workshop">Workshop name <span class="hint">shown at point of sale</span></label>
+          <input id="f-workshop" type="text" placeholder="Rings: forward and backward rolls">
+        </div>
+
+        <div class="field" id="wrap-movements">
+          <label for="f-movements">Movements covered <span class="hint">one line, sold on this</span></label>
+          <input id="f-movements" type="text" placeholder="Strict pull-up, toes-to-bar, pull-over">
+        </div>
+
+        <div class="field">
+          <label for="f-summary">One-line summary <span class="hint">used on the map pin</span></label>
+          <input id="f-summary" type="text" placeholder="Two-day coaching development seminar">
+        </div>
+
+        <div class="field">
+          <label for="f-description">Description <span class="hint">optional, shown on the course page</span></label>
+          <textarea id="f-description"></textarea>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Venue</h3>
+        <div class="field">
+          <label for="f-venue">Host gym</label>
+          <input id="f-venue" type="text" placeholder="CrossFit Dublin">
+        </div>
+        <div class="field">
+          <label for="f-address">Address <span class="hint">optional</span></label>
+          <input id="f-address" type="text">
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="f-city">City</label>
+            <input id="f-city" type="text" placeholder="Dublin">
+          </div>
+          <div class="field">
+            <label for="f-country">Country <span class="hint">two-letter code</span></label>
+            <input id="f-country" type="text" maxlength="2" placeholder="IE" style="text-transform:uppercase">
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-image">Host gym photo <span class="hint">optional</span></label>
+          <input id="f-image" type="file" accept="image/*">
+          <img class="thumb" id="thumb" alt="">
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>When</h3>
+        <div class="grid2">
+          <div class="field">
+            <label for="f-start">Starts</label>
+            <input id="f-start" type="datetime-local">
+          </div>
+          <div class="field">
+            <label for="f-end">Ends <span class="hint">optional</span></label>
+            <input id="f-end" type="datetime-local">
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-timezone">Time zone</label>
+          <input id="f-timezone" type="text" value="Europe/Dublin">
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Places and price</h3>
+        <div class="grid2">
+          <div class="field">
+            <label for="f-capacity">Capacity</label>
+            <input id="f-capacity" type="number" min="1" value="15">
+          </div>
+          <div class="field">
+            <label for="f-currency">Currency</label>
+            <select id="f-currency">
+              <option value="EUR">EUR</option>
+              <option value="USD">USD</option>
+              <option value="GBP">GBP</option>
+              <option value="AUD">AUD</option>
+              <option value="CAD">CAD</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="f-price">Price <span class="hint">whole units, e.g. 640</span></label>
+            <input id="f-price" type="number" min="0" step="1" placeholder="640">
+          </div>
+          <div class="field">
+            <label for="f-deposit">Deposit <span class="hint">blank for none</span></label>
+            <input id="f-deposit" type="number" min="0" step="1" placeholder="200">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Coaches <span class="hint" style="text-transform:none;letter-spacing:0">— can be added later</span></h3>
+        <div class="coachlist" id="coachlist"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Publish</h3>
+        <div class="field">
+          <label for="f-status">Status</label>
+          <select id="f-status">
+            <option value="published">Published — live and on sale now</option>
+            <option value="draft">Draft — not visible, no sales</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-slug">Link <span class="hint">generated for you, edit if you need to</span></label>
+          <input id="f-slug" type="text">
+        </div>
+        <div class="field">
+          <label for="f-adminnotes">Internal note <span class="hint">never shown publicly</span></label>
+          <input id="f-adminnotes" type="text">
+        </div>
+        <button class="btn wide" id="save" type="button">Create course</button>
+        <p class="msg" id="form-msg"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-// Publishable key — safe in client code. Row-level security in the
-// database decides what each signed-in coach can actually see.
 const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
-
 const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const BRAND = {
+  birdbox: { icon: "/brand/birdbox.png", colour: "#2f7fd0", label: "BirdBox", slug: "bb"  },
+  tcc:     { icon: "/brand/tcc.png",     colour: "#2f7fd0", label: "TCC",     slug: "tcc" },
+  tgc:     { icon: "/brand/tgc.png",     colour: "#9e2029", label: "TGC",     slug: "tgc" },
+  tec:     { icon: "/brand/tec.png",     colour: "#1c6b3f", label: "TEC",     slug: "tec" },
+  twc:     { icon: "/brand/twc.png",     colour: "#e8a317", label: "TWC",     slug: "twc" },
+};
 
 const $ = (id) => document.getElementById(id);
 const views = {
   login:   $("view-login"),
   courses: $("view-courses"),
   course:  $("view-course"),
+  newc:    $("view-new"),
 };
-function show(name) {
-  Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== name));
-}
+const show = (n) =>
+  Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== n));
 
 let me = null;
+let staffList = [];
+
+/* ---------------- auth ---------------- */
 
 $("signin").addEventListener("click", signIn);
 $("password").addEventListener("keydown", (e) => { if (e.key === "Enter") signIn(); });
 
 async function signIn() {
   const msg = $("login-msg");
-  msg.className = "msg";
-  msg.textContent = "Signing in…";
+  msg.className = "msg"; msg.textContent = "Signing in…";
   $("signin").disabled = true;
-
   const { error } = await db.auth.signInWithPassword({
     email: $("email").value.trim(),
     password: $("password").value,
   });
-
   $("signin").disabled = false;
-
   if (error) {
     msg.className = "msg err";
     msg.textContent = "That email and password did not match. Try again.";
@@ -229,41 +559,38 @@ async function start() {
   if (!session) { show("login"); return; }
 
   const { data: staff, error } = await db
-    .from("staff")
-    .select("id, full_name, role, active")
-    .eq("id", session.user.id)
-    .maybeSingle();
+    .from("staff").select("id, full_name, role, active")
+    .eq("id", session.user.id).maybeSingle();
 
-  if (error || !staff) {
+  const fail = async (text) => {
     const msg = $("login-msg");
-    msg.className = "msg err";
-    msg.textContent = "This login is not set up as a staff member. Contact an admin.";
-    await db.auth.signOut();
-    show("login");
-    return;
-  }
+    msg.className = "msg err"; msg.textContent = text;
+    await db.auth.signOut(); show("login");
+  };
 
-  if (!staff.active) {
-    const msg = $("login-msg");
-    msg.className = "msg err";
-    msg.textContent = "This account is no longer active.";
-    await db.auth.signOut();
-    show("login");
-    return;
-  }
+  if (error || !staff) return fail("This login is not set up as a staff member. Contact an admin.");
+  if (!staff.active)   return fail("This account is no longer active.");
 
   me = staff;
   $("who").textContent = staff.full_name;
   $("signout").classList.remove("hidden");
+  $("hello").textContent = `Welcome back, ${staff.full_name.split(" ")[0]}`;
+  $("myrole").textContent = staff.role.replace(/_/g, " ");
+  $("newcourse").classList.toggle("hidden", staff.role !== "admin");
+
   await loadCourses();
 }
 
-function fmtDate(iso) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString(undefined, {
-    day: "numeric", month: "short", year: "numeric",
-  });
-}
+/* ---------------- courses ---------------- */
+
+const fmtDate = (iso) => iso
+  ? new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+  : "";
+
+$("newcourse").addEventListener("click", openForm);
+$("back").addEventListener("click", loadCourses);
+$("back2").addEventListener("click", loadCourses);
+$("tocourses").addEventListener("click", loadCourses);
 
 async function loadCourses() {
   show("courses");
@@ -271,101 +598,91 @@ async function loadCourses() {
   list.innerHTML = '<p class="empty">Loading…</p>';
 
   let courses = [];
-
   if (me.role === "admin") {
-    const { data, error } = await db
-      .from("courses")
-      .select("id, brand, type, level, title, city, country, starts_at, capacity, status")
+    const { data, error } = await db.from("courses")
+      .select("id, brand, type, level, title, city, country, starts_at, capacity, status, slug")
       .order("starts_at", { ascending: true });
-    if (error) { list.innerHTML = `<p class="empty">Could not load courses.</p>`; return; }
+    if (error) { list.innerHTML = '<p class="empty">Could not load courses.</p>'; return; }
     courses = data || [];
-    $("courses-sub").textContent = "Admin view — every course across all brands.";
+    $("courses-sub").textContent = "Every course across all brands.";
   } else {
-    // coaches see only courses they are assigned to.
-    // (courses also has a public read policy for the website, so we
-    //  filter through course_staff rather than relying on that.)
-    const { data, error } = await db
-      .from("course_staff")
-      .select("courses (id, brand, type, level, title, city, country, starts_at, capacity, status)");
-    if (error) { list.innerHTML = `<p class="empty">Could not load courses.</p>`; return; }
+    const { data, error } = await db.from("course_staff")
+      .select("courses (id, brand, type, level, title, city, country, starts_at, capacity, status, slug)");
+    if (error) { list.innerHTML = '<p class="empty">Could not load courses.</p>'; return; }
     courses = (data || []).map((r) => r.courses).filter(Boolean);
     courses.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
     $("courses-sub").textContent = "Courses you are allocated to.";
   }
 
   if (!courses.length) {
-    list.innerHTML = '<p class="empty">You have no courses allocated yet.</p>';
+    list.innerHTML = '<p class="empty">No courses yet.</p>';
     return;
   }
 
   list.innerHTML = "";
   for (const c of courses) {
+    const b = BRAND[c.brand] || BRAND.birdbox;
     const el = document.createElement("div");
     el.className = "card";
     el.innerHTML = `
-      <button class="course" type="button">
-        <span class="top">
-          <span class="title"></span>
-          <span class="when"></span>
+      <button class="course" type="button" style="border-left-color:${b.colour}">
+        <span class="icon"><img alt=""></span>
+        <span>
+          <span class="top">
+            <span class="title"></span>
+            <span class="when"></span>
+          </span>
+          <span class="line"></span>
+          <span class="flags"></span>
         </span>
-        <span class="line"></span>
-        <span class="flags"></span>
       </button>`;
+    el.querySelector(".icon img").src = b.icon;
     el.querySelector(".title").textContent = c.title;
     el.querySelector(".when").textContent = fmtDate(c.starts_at);
     el.querySelector(".line").textContent =
       [c.city, c.country].filter(Boolean).join(", ") || "Location to be confirmed";
 
     const flags = el.querySelector(".flags");
-    const brand = document.createElement("span");
-    brand.className = "pill brand";
-    brand.textContent = c.brand;
-    flags.appendChild(brand);
-
-    if (c.status !== "published") {
-      const st = document.createElement("span");
-      st.className = c.status === "full" ? "pill full" : "pill";
-      st.textContent = c.status;
-      flags.appendChild(st);
-    }
+    const add = (text, cls = "") => {
+      const s = document.createElement("span");
+      s.className = "pill " + cls; s.textContent = text; flags.appendChild(s);
+    };
+    add(b.label);
+    if (c.level) add(c.level);
+    if (c.status === "full") add("full", "warn");
+    if (c.status === "draft") add("draft", "draft");
+    if (c.status === "cancelled") add("cancelled", "warn");
 
     el.querySelector(".course").addEventListener("click", () => openCourse(c));
     list.appendChild(el);
   }
 }
 
-$("back").addEventListener("click", loadCourses);
+/* ---------------- attendees ---------------- */
 
 async function openCourse(course) {
   show("course");
   $("course-title").textContent = course.title;
-  $("course-meta").textContent =
-    [fmtDate(course.starts_at), [course.city, course.country].filter(Boolean).join(", ")]
-      .filter(Boolean).join(" · ");
+  $("course-meta").textContent = [
+    fmtDate(course.starts_at),
+    [course.city, course.country].filter(Boolean).join(", "),
+  ].filter(Boolean).join(" · ");
   $("counts").textContent = "";
   const box = $("attendees");
   box.innerHTML = '<p class="empty">Loading…</p>';
 
-  const { data, error } = await db
-    .from("registrations")
+  const { data, error } = await db.from("registrations")
     .select("id, first_name, last_name, email, phone, payment_status, attended, coach_notes, waiver_signed_at")
     .eq("course_id", course.id)
     .order("last_name", { ascending: true });
 
-  if (error) {
-    box.innerHTML = '<p class="empty">Could not load registrations.</p>';
-    return;
-  }
+  if (error) { box.innerHTML = '<p class="empty">Could not load registrations.</p>'; return; }
 
   const regs = data || [];
-  if (!regs.length) {
-    box.innerHTML = '<p class="empty">No registrations yet.</p>';
-    return;
-  }
+  if (!regs.length) { box.innerHTML = '<p class="empty">No registrations yet.</p>'; return; }
 
   const paid = regs.filter((r) => r.payment_status === "paid_in_full").length;
-  $("counts").textContent =
-    `${regs.length} of ${course.capacity} places · ${paid} paid in full`;
+  $("counts").textContent = `${regs.length} of ${course.capacity} places · ${paid} paid in full`;
 
   box.innerHTML = "";
   for (const r of regs) {
@@ -377,45 +694,33 @@ async function openCourse(course) {
           <div class="name"></div>
           <div class="contact"></div>
         </div>
-        <label class="check">
-          <input type="checkbox"> Attended
-        </label>
+        <label class="check"><input type="checkbox"> Attended</label>
       </div>
-      <div class="flags"></div>
+      <div class="flags" style="margin-top:0.35rem"></div>
       <textarea class="notes" placeholder="End-of-seminar notes for this participant…"></textarea>`;
 
     el.querySelector(".name").textContent = `${r.first_name} ${r.last_name}`;
-    el.querySelector(".contact").textContent =
-      [r.email, r.phone].filter(Boolean).join(" · ");
+    el.querySelector(".contact").textContent = [r.email, r.phone].filter(Boolean).join(" · ");
 
     const flags = el.querySelector(".flags");
     const pay = document.createElement("span");
-    pay.className = "pill";
+    pay.className = "pill" + (r.payment_status === "paid_in_full" ? " on" : "");
     pay.textContent = (r.payment_status || "").replace(/_/g, " ");
     flags.appendChild(pay);
-
     if (!r.waiver_signed_at) {
       const w = document.createElement("span");
-      w.className = "pill full";
-      w.textContent = "no waiver";
-      flags.appendChild(w);
+      w.className = "pill warn"; w.textContent = "no waiver"; flags.appendChild(w);
     }
 
-    const cb = el.querySelector('input[type=checkbox]');
+    const cb = el.querySelector("input[type=checkbox]");
     cb.checked = !!r.attended;
     cb.addEventListener("change", async () => {
       cb.disabled = true;
-      const { error } = await db
-        .from("registrations")
-        .update({ attended: cb.checked })
-        .eq("id", r.id);
+      const { error } = await db.from("registrations")
+        .update({ attended: cb.checked }).eq("id", r.id);
       cb.disabled = false;
-      if (error) {
-        cb.checked = !cb.checked;
-        flash(el, "Could not save", true);
-      } else {
-        flash(el, "Saved");
-      }
+      if (error) { cb.checked = !cb.checked; flash(el, "Could not save", true); }
+      else flash(el, "Saved");
     });
 
     const ta = el.querySelector(".notes");
@@ -423,13 +728,10 @@ async function openCourse(course) {
     let last = ta.value;
     ta.addEventListener("blur", async () => {
       if (ta.value === last) return;
-      const { error } = await db
-        .from("registrations")
-        .update({ coach_notes: ta.value })
-        .eq("id", r.id);
-      if (error) { flash(el, "Could not save notes", true); return; }
-      last = ta.value;
-      flash(el, "Notes saved");
+      const { error } = await db.from("registrations")
+        .update({ coach_notes: ta.value }).eq("id", r.id);
+      if (error) return flash(el, "Could not save notes", true);
+      last = ta.value; flash(el, "Notes saved");
     });
 
     box.appendChild(el);
@@ -443,11 +745,200 @@ function flash(el, text, isError = false) {
     tag.className = "saved";
     el.querySelector(".check").appendChild(tag);
   }
-  tag.style.color = isError ? "#b3261e" : "";
+  tag.style.color = isError ? "var(--bad)" : "";
   tag.textContent = text;
   setTimeout(() => { tag.textContent = ""; }, 2000);
 }
 
+/* ---------------- new course ---------------- */
+
+async function openForm() {
+  show("newc");
+  $("created").classList.add("hidden");
+  $("form").classList.remove("hidden");
+  $("form-msg").textContent = "";
+  toggleWorkshopFields();
+
+  if (!staffList.length) {
+    const { data } = await db.from("staff")
+      .select("id, full_name, role").eq("active", true).order("full_name");
+    staffList = data || [];
+  }
+  const box = $("coachlist");
+  box.innerHTML = "";
+  for (const s of staffList) {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="checkbox" value="${s.id}"> <span></span>`;
+    l.querySelector("span").textContent = `${s.full_name} — ${s.role.replace(/_/g, " ")}`;
+    box.appendChild(l);
+  }
+}
+
+function toggleWorkshopFields() {
+  const isWorkshop = $("f-type").value === "workshop";
+  $("wrap-workshop").classList.toggle("hidden", !isWorkshop);
+  $("wrap-movements").classList.toggle("hidden", !isWorkshop);
+}
+$("f-type").addEventListener("change", () => { toggleWorkshopFields(); buildSlug(); });
+
+// slug follows the existing convention: tgc-l1-gold-coast-0926
+function buildSlug() {
+  const brand = BRAND[$("f-brand").value]?.slug || "bb";
+  const level = ($("f-level").value || "").toLowerCase();
+  const city  = ($("f-city").value || "").trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const start = $("f-start").value;
+  let stamp = "";
+  if (start) {
+    const d = new Date(start);
+    stamp = String(d.getMonth() + 1).padStart(2, "0") + String(d.getFullYear()).slice(-2);
+  }
+  const wname = $("f-type").value === "workshop"
+    ? ($("f-workshop").value || "").trim().toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24)
+    : "";
+  $("f-slug").value = [brand, level, wname, city, stamp].filter(Boolean).join("-");
+}
+["f-brand", "f-level", "f-city", "f-start", "f-workshop"].forEach((id) =>
+  $(id).addEventListener("change", buildSlug)
+);
+$("f-city").addEventListener("blur", buildSlug);
+
+// image preview
+$("f-image").addEventListener("change", () => {
+  const f = $("f-image").files[0];
+  const t = $("thumb");
+  if (!f) { t.style.display = "none"; return; }
+  t.src = URL.createObjectURL(f);
+  t.style.display = "block";
+  t.style.maxHeight = "9rem";
+});
+
+$("save").addEventListener("click", saveCourse);
+
+async function saveCourse() {
+  const msg = $("form-msg");
+  msg.className = "msg";
+
+  const brand = $("f-brand").value;
+  const type  = $("f-type").value;
+  const city  = $("f-city").value.trim();
+  const start = $("f-start").value;
+  const price = $("f-price").value;
+  let slug    = $("f-slug").value.trim();
+
+  if (!start)  { msg.className = "msg err"; msg.textContent = "Add a start date and time."; return; }
+  if (!price)  { msg.className = "msg err"; msg.textContent = "Add a price."; return; }
+  if (!slug)   { buildSlug(); slug = $("f-slug").value.trim(); }
+  if (!slug)   { msg.className = "msg err"; msg.textContent = "Add a link."; return; }
+
+  // title: use the workshop name if there is one, otherwise brand + level + city
+  const wname = $("f-workshop").value.trim();
+  const level = $("f-level").value;
+  const label = BRAND[brand]?.label || "BirdBox";
+  const title = type === "workshop" && wname
+    ? `${label} Workshop — ${wname}${city ? " · " + city : ""}`
+    : `${label}${level ? " " + level.replace("L", "Level ") : ""}${city ? " — " + city : ""}`;
+
+  $("save").disabled = true;
+  msg.textContent = "Creating…";
+
+  try {
+    // 1. image, if one was chosen
+    let imageUrl = null;
+    const file = $("f-image").files[0];
+    if (file) {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${slug}-${Date.now()}.${ext}`;
+      const { error: upErr } = await db.storage
+        .from("course-images").upload(path, file, { cacheControl: "3600", upsert: false });
+      if (upErr) throw new Error("Photo upload failed: " + upErr.message);
+      imageUrl = db.storage.from("course-images").getPublicUrl(path).data.publicUrl;
+    }
+
+    // 2. the course
+    const row = {
+      brand, type,
+      level: level || null,
+      title,
+      slug,
+      summary: $("f-summary").value.trim() || null,
+      description: $("f-description").value.trim() || null,
+      movements: type === "workshop" ? ($("f-movements").value.trim() || null) : null,
+      workshop_focus: type === "workshop" ? (wname || null) : null,
+      venue_name: $("f-venue").value.trim() || null,
+      address: $("f-address").value.trim() || null,
+      city: city || null,
+      country: $("f-country").value.trim().toUpperCase() || null,
+      starts_at: new Date(start).toISOString(),
+      ends_at: $("f-end").value ? new Date($("f-end").value).toISOString() : null,
+      timezone: $("f-timezone").value.trim() || "Europe/Dublin",
+      capacity: parseInt($("f-capacity").value, 10) || 15,
+      price_cents: Math.round(parseFloat(price) * 100),
+      deposit_cents: $("f-deposit").value ? Math.round(parseFloat($("f-deposit").value) * 100) : null,
+      currency: $("f-currency").value,
+      language: $("f-language").value,
+      status: $("f-status").value,
+      image_url: imageUrl,
+      admin_notes: $("f-adminnotes").value.trim() || null,
+    };
+
+    const { data: course, error } = await db
+      .from("courses").insert(row).select("id, title, slug").single();
+
+    if (error) {
+      throw new Error(
+        error.code === "23505"
+          ? "That link is already used by another course. Change it and try again."
+          : error.message
+      );
+    }
+
+    // 3. coaches
+    const picked = Array.from($("coachlist").querySelectorAll("input:checked")).map((i) => i.value);
+    if (picked.length) {
+      const rows = picked.map((id) => ({ course_id: course.id, staff_id: id, role: "lead_coach" }));
+      const { error: csErr } = await db.from("course_staff").insert(rows);
+      if (csErr) console.error("Coach assignment failed:", csErr);
+    }
+
+    // 4. show the link
+    const url = `${location.origin}/c/${course.slug}/`;
+    $("created-title").textContent = course.title;
+    $("created-link").value = url;
+    $("created").classList.remove("hidden");
+    $("form").classList.add("hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = err.message || "Could not create the course.";
+  } finally {
+    $("save").disabled = false;
+  }
+}
+
+$("copylink").addEventListener("click", async () => {
+  const input = $("created-link");
+  try {
+    await navigator.clipboard.writeText(input.value);
+    $("copylink").textContent = "Copied";
+    setTimeout(() => { $("copylink").textContent = "Copy"; }, 1800);
+  } catch {
+    input.select();
+  }
+});
+
+$("another").addEventListener("click", () => {
+  ["f-summary","f-description","f-workshop","f-movements","f-venue","f-address",
+   "f-city","f-country","f-start","f-end","f-price","f-deposit","f-slug","f-adminnotes"]
+    .forEach((id) => { $(id).value = ""; });
+  $("f-image").value = "";
+  $("thumb").style.display = "none";
+  openForm();
+});
+
+/* ---------------- go ---------------- */
 start();
 </script>
 
