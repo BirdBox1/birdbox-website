@@ -75,6 +75,23 @@ export default async (req) => {
         },
       },
 
+      // the person attending is not always the person paying, and a
+      // billing name cannot be split reliably — so ask outright
+      custom_fields: [
+        {
+          key: "firstname",
+          label: { type: "custom", custom: "Participant first name" },
+          type: "text",
+          optional: false,
+        },
+        {
+          key: "lastname",
+          label: { type: "custom", custom: "Participant last name" },
+          type: "text",
+          optional: false,
+        },
+      ],
+
       line_items: [
         {
           quantity: 1,
