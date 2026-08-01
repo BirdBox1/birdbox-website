@@ -8,6 +8,11 @@
 // The caller must send their Supabase access token as a Bearer token.
 // We verify it here and check the staff row is an active admin —
 // the browser is never trusted to say who it is.
+//
+// Three audiences, three different emails:
+//   participants — what it means for them, including refunds
+//   coaches      — the schedule change only, never any money
+//   info@        — the full summary, including anything that failed
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
@@ -22,7 +27,7 @@ const supabase = createClient(
 
 const FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
 const REPLY_TO = "info@birdboxcoaching.com";
-const ALERT_EMAIL = "info@birdboxcoaching.com";
+const ADMIN_EMAIL = "info@birdboxcoaching.com";
 
 // Must match create-checkout.mjs
 const BALANCE_DAYS_BEFORE = 14;
@@ -136,7 +141,7 @@ async function reschedule(course, body, admin) {
     }
   }
 
-  // Tell everyone who has already booked.
+  // ---- participants ----
   let emailed = 0;
   for (const p of people) {
     const ok = await sendEmail({
@@ -144,8 +149,8 @@ async function reschedule(course, body, admin) {
       subject: `New date for ${course.title}`,
       heading: "Your course has a new date",
       body: [
-        `Hi ${p.first_name},`,
-        `We have had to move <strong>${course.title}</strong> to a new date. Your place has moved with it — there is nothing you need to do.`,
+        `Hi ${escapeHtml(p.first_name)},`,
+        `We have had to move <strong>${escapeHtml(course.title)}</strong> to a new date. Your place has moved with it — there is nothing you need to do.`,
         `<strong>Was:</strong> ${longDate(oldStart)}<br><strong>Now:</strong> ${longDate(startsAt)}${endsAt ? " – " + longDate(endsAt) : ""}`,
         venueLine(course),
         `If the new date does not work for you, reply to this email and we will sort it out — we can issue you a credit to use on another course, or refund you if you would rather.`,
@@ -156,14 +161,40 @@ async function reschedule(course, body, admin) {
     if (ok) emailed++;
   }
 
-  await notifyTeam(
+  // ---- coaches: the schedule, nothing else ----
+  const coaches = await assignedCoaches(course.id);
+  let coachesEmailed = 0;
+  for (const c of coaches) {
+    const ok = await sendEmail({
+      to: c.email,
+      subject: `Date change: ${course.title}`,
+      heading: "A course you are coaching has moved",
+      body: [
+        `Hi ${escapeHtml(firstName(c.full_name))},`,
+        `<strong>${escapeHtml(course.title)}</strong> has been moved to a new date.`,
+        `<strong>Was:</strong> ${longDate(oldStart)}<br><strong>Now:</strong> ${longDate(startsAt)}${endsAt ? " – " + longDate(endsAt) : ""}`,
+        venueLine(course),
+        `Please check your travel and let us know as soon as you can if the new date does not work for you.`,
+      ],
+    });
+    if (ok) coachesEmailed++;
+  }
+
+  await adminSummary(
     `Course rescheduled: ${course.title}`,
     `${admin.full_name} moved ${course.title} from ${longDate(oldStart)} to ${longDate(startsAt)}.\n\n` +
     `${people.length} participant${people.length === 1 ? "" : "s"} emailed: ${emailed} sent.\n` +
+    `${coaches.length} coach${coaches.length === 1 ? "" : "es"} emailed: ${coachesEmailed} sent.\n` +
     `${movedInvoices} pending balance invoice${movedInvoices === 1 ? "" : "s"} moved.`
   );
 
-  return json({ ok: true, participants: people.length, emailed, movedInvoices });
+  return json({
+    ok: true,
+    participants: people.length,
+    emailed,
+    coachesEmailed,
+    movedInvoices,
+  });
 }
 
 // ---------------------------------------------------------------
@@ -243,24 +274,22 @@ async function cancel(course, body, admin) {
     .update({ status: "cancelled", archived: true })
     .eq("id", course.id);
 
-  // Tell everyone, plainly.
+  // ---- participants: the apology and the money ----
   let emailed = 0;
   for (const p of people) {
     const r = results.find((x) => x.email === p.email);
-    const amount = r && r.refunded
-      ? money(r.refunded, p.currency)
-      : null;
+    const amount = r && r.refunded ? money(r.refunded, p.currency) : null;
 
     const ok = await sendEmail({
       to: p.email,
       subject: `${course.title} has been cancelled`,
       heading: "We have had to cancel this course",
       body: [
-        `Hi ${p.first_name},`,
-        `I am sorry to say we have had to cancel <strong>${course.title}</strong> on ${longDate(course.starts_at)}.`,
-        reason ? reason : `This was our decision and not something you did — we would rather cancel than run a course that would not be worth your time.`,
+        `Hi ${escapeHtml(p.first_name)},`,
+        `I am sorry to say we have had to cancel <strong>${escapeHtml(course.title)}</strong> on ${longDate(course.starts_at)}.`,
+        reason ? escapeHtml(reason) : `This was our decision and not something you did — we would rather cancel than run a course that would not be worth your time.`,
         amount
-          ? `<strong>You will be refunded ${amount} in full.</strong> The refund has already been sent to your bank and normally lands within five to ten working days, depending on your card issuer. You do not need to do anything.`
+          ? `<strong>You will be refunded ${amount} in full.</strong> The refund has already been sent back to your card and normally lands within five to ten working days, depending on your bank. You do not need to do anything.`
           : `<strong>You will be refunded in full.</strong> We are processing this now — it normally lands within five to ten working days.`,
         `If you would rather move to another date or another location, reply to this email and we will arrange it.`,
         `Apologies again for the disruption.`,
@@ -269,11 +298,31 @@ async function cancel(course, body, admin) {
     if (ok) emailed++;
   }
 
+  // ---- coaches: do not travel. No money mentioned. ----
+  const coaches = await assignedCoaches(course.id);
+  let coachesEmailed = 0;
+  for (const c of coaches) {
+    const ok = await sendEmail({
+      to: c.email,
+      subject: `Cancelled: ${course.title}`,
+      heading: "A course you are coaching has been cancelled",
+      body: [
+        `Hi ${escapeHtml(firstName(c.full_name))},`,
+        `<strong>${escapeHtml(course.title)}</strong> on ${longDate(course.starts_at)} is no longer going ahead.`,
+        venueLine(course),
+        `Please cancel any travel or accommodation you have booked for it. If you have costs you cannot recover, reply to this email and we will sort it out.`,
+        `Participants have been contacted directly.`,
+      ],
+    });
+    if (ok) coachesEmailed++;
+  }
+
   const failures = results.filter((r) => r.problems.length);
-  await notifyTeam(
+  await adminSummary(
     `Course cancelled: ${course.title}`,
     `${admin.full_name} cancelled ${course.title} (${longDate(course.starts_at)}).\n\n` +
     `${people.length} participant${people.length === 1 ? "" : "s"}, ${emailed} emailed.\n` +
+    `${coaches.length} coach${coaches.length === 1 ? "" : "es"}, ${coachesEmailed} emailed.\n` +
     `Refunded: ${money(refundedTotal, currency || "EUR")}\n\n` +
     (failures.length
       ? "NEEDS ATTENTION — these did not refund cleanly:\n" +
@@ -285,6 +334,7 @@ async function cancel(course, body, admin) {
     ok: true,
     participants: people.length,
     emailed,
+    coachesEmailed,
     refunded_cents: refundedTotal,
     problems: failures,
   });
@@ -301,6 +351,21 @@ async function participants(courseId) {
     .eq("course_id", courseId)
     .not("payment_status", "in", '("refunded","failed")');
   return data || [];
+}
+
+async function assignedCoaches(courseId) {
+  const { data } = await supabase
+    .from("course_staff")
+    .select("staff ( id, full_name, email, active )")
+    .eq("course_id", courseId);
+
+  return (data || [])
+    .map((r) => r.staff)
+    .filter((s) => s && s.active && s.email);
+}
+
+function firstName(full) {
+  return String(full || "").trim().split(" ")[0] || "there";
 }
 
 function courseUrl(course) {
@@ -404,22 +469,23 @@ async function sendEmail({ to, subject, heading, body, cta }) {
   }
 }
 
-async function notifyTeam(subject, text) {
+// Goes to info@ only. Never to coaches.
+async function adminSummary(subject, text) {
   const key = process.env.RESEND_API_KEY;
-  if (!key) { console.warn("TEAM ALERT:", subject, text); return; }
+  if (!key) { console.warn("ADMIN SUMMARY:", subject, text); return; }
   try {
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
       body: JSON.stringify({
         from: `BirdBox <${FROM}>`,
-        to: [ALERT_EMAIL],
+        to: [ADMIN_EMAIL],
         subject: "[BirdBox] " + subject,
         text,
       }),
     });
   } catch (err) {
-    console.error("Could not send team alert:", err.message);
+    console.error("Could not send admin summary:", err.message);
   }
 }
 
