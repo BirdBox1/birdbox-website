@@ -67,6 +67,12 @@
     filter: drop-shadow(0 2px 14px rgba(0,0,0,0.55));
   }
 
+  /* workshops lead with the lockup, centred and large */
+  .head.centred { text-align: center; padding-top: 2.8rem; }
+  .head.centred .lockup {
+    margin: 0 auto 0.4rem; width: 74%; max-width: 22rem;
+  }
+
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden;
         clip: rect(0 0 0 0); white-space: nowrap; }
 
@@ -249,7 +255,7 @@
   </div>
 
   <main id="course" class="hidden">
-    <div class="head">
+    <div class="head" id="head">
       <img class="lockup hidden" id="lockup" alt="">
       <span class="badge hidden" id="badge"><img id="badgeicon" alt=""><span id="badgetext"></span></span>
       <h1 class="sr" id="title"></h1>
@@ -257,7 +263,7 @@
       <p class="facts place" id="where"></p>
     </div>
 
-    <div class="buy">
+    <div class="buy" id="buy">
       <div class="price" id="price"></div>
 
       <div class="prereq hidden" id="prereq">
@@ -283,7 +289,7 @@
 
     <div class="spec" id="specwrap"></div>
 
-    <div class="readable">
+    <div class="readable" id="info">
       <div id="summarywrap" class="hidden">
         <p class="lede" id="summary"></p>
       </div>
@@ -338,7 +344,7 @@
       <ul class="tick" id="included"></ul>
     </div>
 
-    <footer>
+    <footer id="foot">
       <p>Registering means you accept our
         <a href="/agreements/#terms">terms of sale</a> and
         <a href="/agreements/#waiver">waiver of liability</a>.
@@ -456,6 +462,7 @@ async function load() {
   if (isWorkshop) {
     $("title").classList.remove("sr");
     $("title").classList.add("shown");
+    $("head").classList.add("centred");
   }
 
   $("when").textContent = formatDates(course);
@@ -510,6 +517,7 @@ async function load() {
   // ---- spec chips ------------------------------------------------
   const specs = [];
   specs.push(["Language", LANG[course.language] || course.language || "English"]);
+  if (tpl && tpl.duration) specs.push(["Duration", tpl.duration]);
   if (tpl && tpl.prerequisites) specs.push(["Prerequisite", tpl.prerequisites]);
   if (tpl && tpl.ceus) specs.push(["CrossFit CEUs", tpl.ceus]);
   for (const [label, value] of specs) {
@@ -573,6 +581,14 @@ async function load() {
       $("directions").href = "https://www.google.com/maps/search/?api=1&query=" + q;
       $("directions").classList.remove("hidden");
     }
+  }
+
+  // A workshop is sold on what it is, not on the brand — so the
+  // running order becomes lockup, what it is, the facts, then price.
+  if (isWorkshop) {
+    const main = $("course");
+    ["head", "info", "specwrap", "buy", "venuewrap", "videowrap", "includedwrap", "foot"]
+      .forEach((id) => main.append($(id)));
   }
 
   $("loading").classList.add("hidden");
