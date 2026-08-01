@@ -11,7 +11,7 @@
 //
 // Three audiences, three different emails:
 //   participants — what it means for them, including refunds
-//   coaches      — the schedule change only, never any money
+//   coaches      — the dates and the gym, nothing else
 //   info@        — the full summary, including anything that failed
 
 import Stripe from "stripe";
@@ -47,7 +47,7 @@ export default async (req) => {
 
     const { data: course } = await supabase
       .from("courses")
-      .select("id, title, slug, brand, starts_at, ends_at, timezone, venue_name, city, country, status")
+      .select("id, title, slug, brand, starts_at, ends_at, timezone, venue_name, address, city, country, status")
       .eq("id", courseId)
       .single();
 
@@ -161,20 +161,20 @@ async function reschedule(course, body, admin) {
     if (ok) emailed++;
   }
 
-  // ---- coaches: the schedule, nothing else ----
+  // ---- coaches: the dates and the gym ----
   const coaches = await assignedCoaches(course.id);
   let coachesEmailed = 0;
   for (const c of coaches) {
     const ok = await sendEmail({
       to: c.email,
       subject: `Date change: ${course.title}`,
-      heading: "A course you are down to coach has moved",
+      heading: "Course date changed",
       body: [
         `Hi ${escapeHtml(firstName(c.full_name))},`,
-        `<strong>${escapeHtml(course.title)}</strong> has been moved to a new date.`,
+        `<strong>${escapeHtml(course.title)}</strong> has moved.`,
         `<strong>Was:</strong> ${longDate(oldStart)}<br><strong>Now:</strong> ${longDate(startsAt)}${endsAt ? " – " + longDate(endsAt) : ""}`,
-        venueLine(course),
-        `Let us know as soon as you can if the new date does not work for you. We will confirm before anyone books travel, as usual.`,
+        coachVenueBlock(course),
+        `Reply if the new date does not work for you.`,
       ],
     });
     if (ok) coachesEmailed++;
@@ -298,19 +298,18 @@ async function cancel(course, body, admin) {
     if (ok) emailed++;
   }
 
-  // ---- coaches: it is off. No money, no travel assumptions. ----
+  // ---- coaches: it is off, and where it was ----
   const coaches = await assignedCoaches(course.id);
   let coachesEmailed = 0;
   for (const c of coaches) {
     const ok = await sendEmail({
       to: c.email,
       subject: `Cancelled: ${course.title}`,
-      heading: "A course you were down to coach has been cancelled",
+      heading: "Course cancelled",
       body: [
         `Hi ${escapeHtml(firstName(c.full_name))},`,
-        `<strong>${escapeHtml(course.title)}</strong> on ${longDate(course.starts_at)} is no longer going ahead, so you can take it out of your diary.`,
-        venueLine(course),
-        `If you had booked anything for it, reply to this email and we will sort it out.`,
+        `<strong>${escapeHtml(course.title)}</strong> on ${longDate(course.starts_at)} is not going ahead. You can take it out of your diary.`,
+        coachVenueBlock(course),
         `Participants have been contacted directly.`,
       ],
     });
@@ -373,9 +372,20 @@ function courseUrl(course) {
   return `${site.replace(/\/$/, "")}/c/${course.slug}/`;
 }
 
+// Participants only need to know it has not moved.
 function venueLine(course) {
   const where = [course.venue_name, course.city, course.country].filter(Boolean).join(", ");
   return where ? `<strong>Where:</strong> ${escapeHtml(where)} — unchanged.` : "";
+}
+
+// Coaches need the gym itself, set out clearly.
+function coachVenueBlock(course) {
+  const lines = [];
+  if (course.venue_name) lines.push(`<strong>${escapeHtml(course.venue_name)}</strong>`);
+  const place = [course.address, course.city, course.country].filter(Boolean).join(", ");
+  if (place) lines.push(escapeHtml(place));
+  if (!lines.length) return "";
+  return `<strong>Host gym:</strong><br>${lines.join("<br>")}`;
 }
 
 function longDate(iso) {
