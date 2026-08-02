@@ -35,11 +35,13 @@ const SITE_URL = process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.a
 // Brands whose confirmation copy has been written and approved.
 const SENDS_CONFIRMATION = ["tcc", "tgc"];
 
-const BRAND_NAME = {
-  tcc: "The Coaches Course",
-  tgc: "The Gymnastics Course",
-  tec: "The Endurance Course",
-  twc: "The Weightlifting Course",
+// Must match the BRAND table in c/index.html. The email is branded
+// to the course, not to whichever brand was written first.
+const BRAND = {
+  tcc: { name: "The Coaches Course",       colour: "#2f7fd0" },
+  tgc: { name: "The Gymnastics Course",    colour: "#9e2029" },
+  tec: { name: "The Endurance Course",     colour: "#1c6b3f" },
+  twc: { name: "The Weightlifting Course", colour: "#e8a317" },
 };
 
 export default async (req) => {
@@ -357,13 +359,13 @@ async function sendConfirmation({ courseId, email, firstName, option, balanceCen
       return;
     }
 
-    const brand = String(course.brand || "").toLowerCase();
+    const brandKey = String(course.brand || "").toLowerCase();
     const isSeminar = String(course.type || "").toLowerCase() !== "workshop";
 
     // Deliberately narrow. See the note at the top of this file.
-    if (!SENDS_CONFIRMATION.includes(brand) || !isSeminar) {
+    if (!SENDS_CONFIRMATION.includes(brandKey) || !isSeminar) {
       console.log("No confirmation copy for this course type — skipped", {
-        courseId, brand, type: course.type,
+        courseId, brand: brandKey, type: course.type,
       });
       return;
     }
@@ -374,16 +376,18 @@ async function sendConfirmation({ courseId, email, firstName, option, balanceCen
       return;
     }
 
-    const brandName = BRAND_NAME[brand] || "BirdBox Coaching";
+    const brand = BRAND[brandKey] || { name: "BirdBox Coaching", colour: "#2f7fd0" };
+    const accent = brand.colour;
     const levelDigits = String(course.level == null ? "" : course.level).replace(/\D/g, "");
-    const courseName = brandName + (levelDigits ? " — Level " + levelDigits : "");
+    const courseName = brand.name + (levelDigits ? " — Level " + levelDigits : "");
     const dates = formatDates(course);
     const place = [course.city, course.country].filter(Boolean).join(", ");
+    const fullAddress = addressLine(course);
 
     // Manuals only exist for Level 1 today. For anything else the
     // section is left out rather than linking to an empty page.
     const manualUrl = levelDigits === "1"
-      ? SITE_URL + "/manuals/" + brand + "-l1/"
+      ? SITE_URL + "/manuals/" + brandKey + "-l1/"
       : null;
 
     const bring = [
@@ -393,7 +397,7 @@ async function sendConfirmation({ courseId, email, firstName, option, balanceCen
       "Suitable clothes for training",
       "Snacks and fluids, and lunch if you are not going off site",
     ];
-    if (brand === "tgc") bring.push("Gymnastics grips, if you use them");
+    if (brandKey === "tgc") bring.push("Gymnastics grips, if you use them");
 
     const balanceNote = option === "deposit" && balanceCents > 0
       ? "Your deposit is paid. The remaining balance will be charged automatically to the same card 14 days before the course."
@@ -410,7 +414,7 @@ async function sendConfirmation({ courseId, email, firstName, option, balanceCen
       courseName.toUpperCase(),
       dates,
       course.venue_name || "",
-      [course.address, course.city, course.country].filter(Boolean).join(", "),
+      fullAddress,
       "",
       "COURSE SCHEDULE",
       "9:00am to 5:00pm each day, with a one-hour lunch break.",
@@ -436,11 +440,11 @@ async function sendConfirmation({ courseId, email, firstName, option, balanceCen
   <p>Hi ${esc(firstName)},</p>
   <p>Thank you for registering. Your confirmation is below.</p>
 
-  <div style="border-left:3px solid #9e2029;padding:2px 0 2px 14px;margin:24px 0;">
+  <div style="border-left:3px solid ${accent};padding:2px 0 2px 14px;margin:24px 0;">
     <div style="font-weight:700;font-size:18px;">${esc(courseName)}</div>
     <div style="font-size:17px;">${esc(dates)}</div>
     ${course.venue_name ? `<div style="margin-top:6px;">${esc(course.venue_name)}</div>` : ""}
-    <div style="color:#666;">${esc([course.address, course.city, course.country].filter(Boolean).join(", "))}</div>
+    <div style="color:#666;">${esc(fullAddress)}</div>
   </div>
 
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Course schedule</h3>
@@ -451,7 +455,7 @@ async function sendConfirmation({ courseId, email, firstName, option, balanceCen
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Reading material</h3>
   <p style="margin:0 0 12px;">Your course manual is available in several languages:</p>
   <p style="margin:0;">
-    <a href="${manualUrl}" style="display:inline-block;background:#9e2029;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Open your course manual</a>
+    <a href="${manualUrl}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Open your course manual</a>
   </p>
   <p style="color:#666;font-size:14px;margin:10px 0 0;">Choose your language on that page. Digital is fine, or print it if you prefer.</p>
   ` : ""}
@@ -464,7 +468,7 @@ async function sendConfirmation({ courseId, email, firstName, option, balanceCen
   ${balanceNote ? `<p style="background:#f4f4f4;border-radius:5px;padding:12px 14px;margin:24px 0 0;font-size:15px;">${esc(balanceNote)}</p>` : ""}
 
   <p style="margin:28px 0 0;">Any questions, just reply to this email or contact
-    <a href="mailto:${REPLY_TO}" style="color:#9e2029;">${REPLY_TO}</a>.</p>
+    <a href="mailto:${REPLY_TO}" style="color:${accent};">${REPLY_TO}</a>.</p>
 
   <p style="color:#888;font-size:13px;margin-top:32px;border-top:1px solid #e0e0e0;padding-top:16px;">
     BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland
@@ -500,6 +504,22 @@ async function sendConfirmation({ courseId, email, firstName, option, balanceCen
   } catch (err) {
     console.error("Could not send confirmation email", email, err);
   }
+}
+
+// The address field is typed by hand and often already contains the
+// city and country. Only add what is missing, so we do not end up
+// with "Kirchstraße 18, 80999 München, Germany, Munich, DE".
+function addressLine(course) {
+  const address = String(course.address || "").trim();
+  const seen = address.toLowerCase();
+  const parts = address ? [address] : [];
+  for (const bit of [course.city, course.country]) {
+    const value = String(bit || "").trim();
+    if (!value) continue;
+    if (seen.includes(value.toLowerCase())) continue;
+    parts.push(value);
+  }
+  return parts.join(", ");
 }
 
 // Sunday 25 January 2026 · 25–26 July 2026 · 30 July – 1 August 2026
