@@ -1,0 +1,4 @@
+# Bundle the prompt files with the functions so they can be read at
+# runtime. Without this the manual is not deployed alongside the code.
+[functions]
+  included_files = ["prompts/**"]
