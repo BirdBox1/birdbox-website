@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Participant Manual</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root { --bg:#0e0e0e; --card:#171717; --line:#2a2a2a; --text:#f5f5f5; --muted:#9a9a9a; --accent:#9b1b26; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+         display:flex; justify-content:center; padding:32px 20px 64px; }
+  .wrap { width:100%; max-width:520px; }
+  .logo { display:block; margin:0 auto 28px; max-width:170px; height:auto; }
+  h1 { font-size:22px; text-align:center; margin:0 0 6px; }
+  .sub { text-align:center; color:var(--muted); font-size:15px; margin:0 0 32px; line-height:1.5; }
+  .btn { display:flex; align-items:center; gap:14px; width:100%;
+         background:var(--card); border:1px solid var(--line); border-radius:12px;
+         padding:16px 18px; margin-bottom:12px; color:var(--text);
+         text-decoration:none; font-size:17px; font-weight:600; }
+  .btn:active { background:#202020; }
+  .flag { font-size:22px; line-height:1; }
+  .arrow { margin-left:auto; color:var(--muted); font-size:15px; font-weight:400; }
+  .msg { text-align:center; color:var(--muted); font-size:15px; padding:24px 0; }
+  .foot { text-align:center; color:#5f5f5f; font-size:13px; margin-top:36px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img id="brandLogo" class="logo" src="/brand/birdBox.png" alt="">
+  <h1 id="title">Participant Manual</h1>
+  <p class="sub">Choose your language. The manual opens as a PDF you can read or save.</p>
+  <div id="list"><p class="msg">Loading…</p></div>
+  <p class="foot">BirdBox Coaching Limited</p>
+</div>
+
+<script>
+/* ---- REPLACE THESE TWO LINES with the same two lines from c/index.html ---- */
+const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+const SUPABASE_ANON_KEY = "PASTE_YOUR_ANON_KEY_HERE";
+/* -------------------------------------------------------------------------- */
+
+const STORAGE = SUPABASE_URL + "/storage/v1/object/public/manuals/";
+
+const BRANDS = {
+  tcc: { name: "The Coaches Course",    logo: "/brand/tcc.png" },
+  tgc: { name: "The Gymnastics Course", logo: "/brand/tgc.png" },
+  tec: { name: "The Endurance Course",  logo: "/brand/tec.png" },
+  twc: { name: "The Weightlifting Course", logo: "/brand/twc.png" }
+};
+
+function parsePath() {
+  const parts = window.location.pathname.split("/").filter(Boolean);
+  const slug = parts[parts.length - 1] || "";
+  const bits = slug.split("-");
+  if (bits.length < 2) return null;
+  return { brand: bits[0].toLowerCase(), level: bits[1].toLowerCase() };
+}
+
+function show(html) { document.getElementById("list").innerHTML = html; }
+
+async function load() {
+  const target = parsePath();
+  if (!target || !BRANDS[target.brand]) {
+    show('<p class="msg">Manual not found.</p>');
+    return;
+  }
+
+  const brand = BRANDS[target.brand];
+  document.getElementById("brandLogo").src = brand.logo;
+  document.getElementById("brandLogo").alt = brand.name;
+  document.getElementById("title").textContent =
+    brand.name + " — Level " + target.level.replace(/^l/, "");
+  document.title = brand.name + " Manual";
+
+  try {
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data, error } = await client
+      .from("manuals")
+      .select("language,label,flag,filename,sort_order")
+      .eq("brand", target.brand)
+      .eq("level", target.level)
+      .eq("active", true)
+      .order("sort_order", { ascending: true });
+
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      show('<p class="msg">No manuals available yet.</p>');
+      return;
+    }
+
+    show(data.map(function (row) {
+      return '<a class="btn" href="' + STORAGE + encodeURIComponent(row.filename) +
+             '" target="_blank" rel="noopener">' +
+             '<span class="flag">' + (row.flag || "") + '</span>' +
+             '<span>' + row.label + '</span>' +
+             '<span class="arrow">PDF</span></a>';
+    }).join(""));
+  } catch (e) {
+    show('<p class="msg">Could not load the manuals. Please try again.</p>');
+  }
+}
+
+load();
+</script>
+</body>
+</html>
