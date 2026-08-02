@@ -185,31 +185,12 @@
   .spec b { color: var(--ink); font-weight: 650; }
   .spec img.ceu { width: 88px; height: 88px; object-fit: contain; }
 
-  /* The video is not loaded until someone asks for it. Until then this
-     is a still and a play button — no YouTube furniture, no request to
-     Google, and nothing playing at people who did not ask. */
   .video {
     position: relative; aspect-ratio: 16 / 9; background: #000;
     border-radius: 6px; overflow: hidden;
   }
   .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-  .video .poster {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    object-fit: cover; display: block;
-  }
-  .video .play {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    display: grid; place-items: center; cursor: pointer;
-    background: rgba(0,0,0,0.28); border: 0; padding: 0;
-    transition: background 0.15s ease;
-  }
-  .video .play:hover { background: rgba(0,0,0,0.14); }
-  .video .play svg {
-    width: 4.6rem; height: 4.6rem;
-    filter: drop-shadow(0 2px 12px rgba(0,0,0,0.55));
-  }
-  .video .play:hover svg { transform: scale(1.06); }
-  .video .play svg { transition: transform 0.15s ease; }
+  .video .shield { position: absolute; inset: 0; }
 
   .detail {
     white-space: pre-line; font-size: 1rem; line-height: 1.6;
@@ -347,15 +328,11 @@
 
     <div id="videowrap" class="hidden">
       <h2>Watch</h2>
-      <div class="video" id="video">
-        <img class="poster hidden" id="poster" alt="">
-        <button class="play" id="play" type="button" aria-label="Play the course video">
-          <svg viewBox="0 0 80 80" aria-hidden="true">
-            <circle cx="40" cy="40" r="38" fill="rgba(0,0,0,0.45)"
-                    stroke="#fff" stroke-width="2.5"/>
-            <path d="M33 27 L57 40 L33 53 Z" fill="#fff"/>
-          </svg>
-        </button>
+      <div class="video">
+        <iframe id="video" title="Course video"
+          allow="autoplay; encrypted-media; picture-in-picture"
+          allowfullscreen loading="lazy"></iframe>
+        <div class="shield"></div>
       </div>
     </div>
 
@@ -586,7 +563,11 @@ async function load() {
     }
   }
 
-  wireVideo(tpl && tpl.video_url);
+  const embed = embedUrl(tpl && tpl.video_url);
+  if (embed) {
+    $("videowrap").classList.remove("hidden");
+    $("video").src = embed;
+  }
 
   // detailed breakdown, after the video
   if (tpl && tpl.detail) {
@@ -597,14 +578,15 @@ async function load() {
   if (course.venue_name || course.address) {
     $("venuewrap").classList.remove("hidden");
     $("venuename").textContent = course.venue_name || "";
-    $("venueaddr").textContent = addressLine(course);
+    $("venueaddr").textContent =
+      [course.address, course.city, course.country].filter(Boolean).join(", ");
     if (course.image_url) {
       $("venuephoto").src = course.image_url;
       $("venuephoto").alt = course.venue_name || course.city || "";
       $("venuephoto").classList.remove("hidden");
     }
 
-    const query = [course.venue_name, addressLine(course)]
+    const query = [course.venue_name, course.address, course.city, course.country]
       .filter(Boolean).join(", ");
     if (query) {
       const q = encodeURIComponent(query);
@@ -625,21 +607,6 @@ async function load() {
 
   $("loading").classList.add("hidden");
   $("course").classList.remove("hidden");
-}
-
-// A full address usually already names the city and country, so
-// appending them again produced "…United Kingdom, Glasgow, UK".
-// Only add a part the address has not already said.
-function addressLine(course) {
-  const out = [];
-  const said = (v) =>
-    out.join(", ").toLowerCase().includes(String(v).trim().toLowerCase());
-
-  if (course.address) out.push(String(course.address).trim());
-  for (const part of [course.city, course.country]) {
-    if (part && !said(part)) out.push(String(part).trim());
-  }
-  return out.join(", ");
 }
 
 function renderBuyBox() {
@@ -806,63 +773,20 @@ async function loadTemplate(course) {
   return pool.find((t) => lang(t.language) === lang(course.language)) || pool[0];
 }
 
-// Nothing loads until someone presses play. Then it plays with sound,
-// because a video someone chose to watch should be audible.
-function wireVideo(url) {
-  const v = videoFrom(url);
-  if (!v) return;
-
-  $("videowrap").classList.remove("hidden");
-
-  if (v.poster) {
-    const img = $("poster");
-    img.src = v.poster;
-    img.classList.remove("hidden");
-    // maxresdefault does not exist for every video; fall back quietly.
-    img.addEventListener("error", () => {
-      if (v.posterFallback && img.src !== v.posterFallback) {
-        img.src = v.posterFallback;
-      } else {
-        img.classList.add("hidden");
-      }
-    }, { once: false });
-  }
-
-  $("play").addEventListener("click", () => {
-    const frame = document.createElement("iframe");
-    frame.src = v.play;
-    frame.title = "Course video";
-    frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
-    frame.allowFullscreen = true;
-    $("video").innerHTML = "";
-    $("video").append(frame);
-  }, { once: true });
-}
-
-function videoFrom(url) {
+// Silent, looping, caption-free, chrome-free playback.
+function embedUrl(url) {
   if (!url) return null;
-
   const yt = String(url).match(/(?:youtu\.be\/|v=|youtube\.com\/embed\/)([A-Za-z0-9_-]{6,})/);
   if (yt) {
     const id = yt[1];
-    return {
-      play: "https://www.youtube-nocookie.com/embed/" + id +
-            "?autoplay=1&rel=0&modestbranding=1&playsinline=1" +
-            "&iv_load_policy=3&cc_load_policy=0&fs=1&color=white",
-      poster: "https://i.ytimg.com/vi/" + id + "/maxresdefault.jpg",
-      posterFallback: "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg",
-    };
+    return "https://www.youtube-nocookie.com/embed/" + id +
+      "?autoplay=1&mute=1&loop=1&playlist=" + id +
+      "&controls=0&modestbranding=1&rel=0&disablekb=1&playsinline=1" +
+      "&iv_load_policy=3&cc_load_policy=0&cc_lang_pref=en&fs=0";
   }
-
   const vm = String(url).match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  if (vm) {
-    return {
-      play: "https://player.vimeo.com/video/" + vm[1] +
-            "?autoplay=1&title=0&byline=0&portrait=0",
-      poster: null,
-    };
-  }
-
+  if (vm) return "https://player.vimeo.com/video/" + vm[1] +
+    "?autoplay=1&muted=1&loop=1&background=1";
   return null;
 }
 
@@ -927,7 +851,6 @@ async function checkout(slug, option, btn) {
 
 function notFound() {
   $("loading").classList.add("hidden");
-  $("course").classList.add("hidden");
   $("missing").classList.remove("hidden");
 }
 </script>
