@@ -54,19 +54,12 @@
   .head { padding: 2.4rem 0 0; }
 
   .badge {
-    display: inline-flex; align-items: center; gap: 0.9rem;
+    display: inline-flex; align-items: center; gap: 0.8rem;
     background: rgba(255,255,255,0.08); border: 1px solid var(--rule); border-radius: 5px;
     padding: 0.6rem 1rem; font-size: 1.12rem; letter-spacing: 0.08em;
     text-transform: uppercase; font-weight: 650; color: #fff;
   }
-  /* Sized by height, not width. The brand marks are not all the same
-     shape — a square one stays square, while a wide lockup like TCC is
-     allowed to be wide instead of being squeezed into a 44px box and
-     rendered half-height. */
-  .badge img {
-    height: 54px; width: auto; max-width: 11rem; object-fit: contain;
-    display: block;
-  }
+  .badge img { width: 44px; height: 44px; object-fit: contain; }
 
   /* a template can supply its own lockup, which replaces the badge */
   .lockup {
