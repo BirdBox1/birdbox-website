@@ -64,13 +64,25 @@
   .pill.ok{background:var(--good);border-color:var(--good);color:#fff;font-weight:700}
   .pill.due{background:#f3cf3d;border-color:#d9b310;color:#33280a;font-weight:700}
   .pill.late{background:var(--warn);border-color:var(--warn);color:#fff;font-weight:700}
-  .pill.err{border-color:var(--bad);color:var(--bad);font-weight:700}
 
   .panel{background:var(--card);border:1px solid var(--rule);border-radius:6px;
     padding:1.25rem;margin-bottom:1rem}
   .panel h3{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;
     color:var(--muted);margin:0 0 0.8rem;font-weight:600}
   .panel .lead-in{font-size:0.88rem;color:var(--muted);margin:0 0 0.9rem}
+
+  /* the two halves of the pre-course email */
+  .stage{display:grid;gap:0.5rem}
+  .stage .num{
+    display:inline-grid;place-items:center;width:1.35rem;height:1.35rem;
+    border-radius:50%;background:var(--ink);color:#fff;font-size:0.75rem;
+    font-weight:700;margin-right:0.45rem;vertical-align:-3px}
+  .standard{
+    background:#fbfaf8;border:1px solid var(--rule);border-radius:5px;
+    padding:0.85rem 0.95rem;font-size:0.9rem;white-space:pre-wrap;color:#3c4147}
+  .standard .cap{
+    display:block;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;
+    color:var(--muted);font-weight:650;margin-bottom:0.4rem}
 
   label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.3rem}
   .hint{font-weight:400;color:var(--muted);font-size:0.78rem}
@@ -82,6 +94,7 @@
   .alert{background:#fffbe8;border:1px solid #eddfa4;border-left:3px solid var(--flag);
     border-radius:6px;padding:0.9rem 1.05rem;margin-bottom:1rem;font-size:0.9rem}
   .alert.warn{background:#fff8f0;border-color:#efd6b8;border-left-color:var(--warn)}
+  .alert.bad{background:#fdf4f3;border-color:#e6c9c7;border-left-color:var(--bad)}
   .alert b{display:block;margin-bottom:0.2rem}
 
   .msg{font-size:0.85rem;margin-top:0.9rem;min-height:1.2em}
@@ -106,14 +119,12 @@
 <div class="wrap">
   <div id="loading"><p class="sub">Loading…</p></div>
 
-  <!-- courses -->
   <section id="view-courses" class="hidden">
     <h1>Participant emails</h1>
     <p class="sub">Courses you are lead coach on.</p>
     <div id="courselist"></div>
   </section>
 
-  <!-- one course -->
   <section id="view-course" class="hidden">
     <button class="back" id="back-courses" type="button">← All courses</button>
     <h1 id="c-title"></h1>
@@ -121,32 +132,60 @@
 
     <div id="alerts"></div>
 
-    <!-- the pre-course email -->
+    <!-- ===== the pre-course email ===== -->
     <div class="panel">
       <h3>Before the course</h3>
       <p class="lead-in" id="pre-when"></p>
 
-      <div class="field">
-        <label for="pre-subject">Subject</label>
-        <input id="pre-subject" type="text">
-      </div>
-
-      <div class="field">
-        <label for="pre-body">The email
-          <span class="hint">{{first_name}} becomes each person's name</span>
+      <!-- step 1: their part -->
+      <div class="stage" id="pre-step1">
+        <label for="pre-personal">
+          <span class="num">1</span>Your part
+          <span class="hint">— the bit only you can write</span>
         </label>
-        <textarea id="pre-body" style="min-height:26rem"></textarea>
+        <p class="hint" style="margin:0 0 0.5rem">
+          Why you are looking forward to it, when you arrive, dinner plans,
+          anything that makes them feel expected. The greeting, times, venue
+          and sign-off are added for you.
+        </p>
+        <textarea id="pre-personal" style="min-height:9rem"
+          placeholder="This is Nathan, your lead coach for the weekend. I am really looking forward to meeting you all on Saturday morning…"></textarea>
+
+        <div class="standard" id="pre-standard">
+          <span class="cap">Then this is added automatically</span>
+          <span id="pre-standard-text"></span>
+        </div>
+
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-top:0.6rem">
+          <button class="btn small" id="pre-build" type="button">Save and build the email</button>
+          <span class="hint">You will see the whole thing next, and can still change it.</span>
+        </div>
       </div>
 
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
-        <button class="btn small ghost" id="pre-save" type="button">Save</button>
-        <button class="btn small go" id="pre-send" type="button">Send to everyone</button>
-        <span class="hint" id="pre-hint"></span>
+      <!-- step 2: check and send -->
+      <div class="stage hidden" id="pre-step2" style="margin-top:1.25rem">
+        <div class="field">
+          <label for="pre-subject"><span class="num">2</span>Subject</label>
+          <input id="pre-subject" type="text">
+        </div>
+        <div class="field">
+          <label for="pre-body">The finished email
+            <span class="hint">— read it through, change anything</span>
+          </label>
+          <textarea id="pre-body" style="min-height:24rem"></textarea>
+        </div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+          <button class="btn small ghost" id="pre-save" type="button">Save</button>
+          <button class="btn small ghost" id="pre-rebuild" type="button">Start again</button>
+          <button class="btn small go" id="pre-send" type="button">Send to everyone</button>
+          <span class="hint" id="pre-hint"></span>
+        </div>
       </div>
+
       <p class="msg" id="pre-msg"></p>
     </div>
 
-    <!-- welcomes -->
+    <!-- ===== welcomes ===== -->
     <h3 style="font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;
                color:var(--muted);margin:1.75rem 0 0.6rem;font-weight:600">
       Welcome emails</h3>
@@ -154,7 +193,6 @@
     <div id="peoplelist"></div>
   </section>
 
-  <!-- one welcome -->
   <section id="view-welcome" class="hidden">
     <button class="back" id="back-course" type="button">← Back to the course</button>
     <h1 id="w-name"></h1>
@@ -163,9 +201,9 @@
     <div class="panel">
       <h3>Your welcome to them</h3>
       <p class="lead-in">
-        This is yours to write. Something that connects — why you are looking
-        forward to the area, what you have planned, anything that makes them
-        feel expected rather than processed.
+        This one is yours entirely. Something that connects — why you are looking
+        forward to the area, what you have planned, anything that makes them feel
+        expected rather than processed.
       </p>
 
       <div class="field">
@@ -195,9 +233,7 @@ const db = createClient(
   "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
 );
 
-// A welcome is expected within this many days of someone registering.
 const WELCOME_DAYS = 3;
-// The pre-course email cannot go out sooner than this.
 const PRECOURSE_WINDOW_DAYS = 6;
 
 const $ = (id) => document.getElementById(id);
@@ -213,7 +249,7 @@ let me = null;
 let course = null;
 let template = null;
 let people = [];
-let emails = {};        // registration_id -> welcome row
+let emails = {};
 let precourse = null;
 let photoUrls = {};
 let current = null;
@@ -222,20 +258,9 @@ const fmtDate = (iso) => iso
   ? new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
   : "";
 
-const dayName = (iso, tz) => iso
-  ? new Date(iso).toLocaleDateString("en-GB", { weekday: "long", timeZone: tz || undefined })
-  : "";
-
-const clock = (iso, tz, shiftMinutes = 0) => {
-  if (!iso) return "";
-  const d = new Date(new Date(iso).getTime() + shiftMinutes * 60000);
-  return d.toLocaleTimeString("en-GB", {
-    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz || undefined,
-  });
-};
-
 const daysUntil = (iso) => Math.ceil((new Date(iso) - new Date()) / 86400000);
 const daysSince = (iso) => Math.floor((new Date() - new Date(iso)) / 86400000);
+const firstNameOf = (full) => String(full || "").trim().split(" ")[0] || "";
 
 start();
 
@@ -265,16 +290,13 @@ async function loadCourses() {
   let rows = [];
   if (me.role === "admin") {
     const { data } = await db.from("courses").select(cols)
-      .eq("archived", false)
-      .order("starts_at", { ascending: true });
+      .eq("archived", false).order("starts_at", { ascending: true });
     rows = data || [];
   } else {
     const { data } = await db.from("course_staff")
       .select(`role, courses (${cols})`)
-      .eq("staff_id", me.id)
-      .eq("role", "lead_coach");
-    rows = (data || []).map((r) => r.courses)
-      .filter((c) => c && !c.archived);
+      .eq("staff_id", me.id).eq("role", "lead_coach");
+    rows = (data || []).map((r) => r.courses).filter((c) => c && !c.archived);
     rows.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
   }
 
@@ -283,7 +305,6 @@ async function loadCourses() {
     return;
   }
 
-  // What still needs doing on each course.
   const ids = rows.map((r) => r.id);
   const { data: allEmails } = await db.from("course_emails")
     .select("course_id, registration_id, kind, status").in("course_id", ids);
@@ -327,8 +348,7 @@ async function loadCourses() {
       pill.textContent = "pre-course email due";
       pill.className = "pill due";
     } else if (sentPre.has(c.id)) {
-      pill.textContent = "all sent";
-      pill.className = "pill ok";
+      pill.textContent = "all sent"; pill.className = "pill ok";
     } else {
       pill.textContent = days >= 0 ? `${days}d away` : "past";
       pill.className = "pill";
@@ -354,24 +374,20 @@ async function openCourse(c) {
 
   const lvl = String(c.level || "").replace(/\D/g, "");
   const { data: tpls } = await db.from("course_templates")
-    .select("level, precourse_body")
-    .eq("brand", c.brand).eq("type", c.type);
+    .select("level, precourse_body").eq("brand", c.brand).eq("type", c.type);
   template = (tpls || []).find(
     (t) => String(t.level || "").replace(/\D/g, "") === lvl
   ) || (tpls || [])[0] || null;
 
   const { data: regs } = await db.from("registrations")
     .select("id, first_name, last_name, email, created_at, payment_status, photo_path")
-    .eq("course_id", c.id)
-    .order("created_at");
+    .eq("course_id", c.id).order("created_at");
 
   people = (regs || []).filter(
     (r) => r.payment_status !== "refunded" && r.payment_status !== "failed"
   );
 
-  const { data: es } = await db.from("course_emails")
-    .select("*").eq("course_id", c.id);
-
+  const { data: es } = await db.from("course_emails").select("*").eq("course_id", c.id);
   emails = {};
   precourse = null;
   for (const e of es || []) {
@@ -380,38 +396,71 @@ async function openCourse(c) {
   }
 
   await loadPhotos();
-  renderPrecourse();
-  renderPeople();
+
+  // Each half is drawn separately, so a problem in one cannot leave
+  // the other stuck on "Loading…".
+  try { renderPrecourse(); }
+  catch (err) {
+    console.error("Pre-course panel failed:", err);
+    $("pre-msg").className = "msg err";
+    $("pre-msg").textContent = "Could not build the draft: " + err.message;
+  }
+
+  try { renderPeople(); }
+  catch (err) {
+    console.error("Welcome list failed:", err);
+    $("peoplelist").innerHTML = '<p class="empty">Could not load participants.</p>';
+  }
 }
 
 async function loadPhotos() {
   photoUrls = {};
   const paths = people.map((p) => p.photo_path).filter(Boolean);
   if (!paths.length) return;
-  const { data } = await db.storage
-    .from("participant-photos").createSignedUrls(paths, 3600);
-  for (const item of data || []) {
-    if (item.signedUrl && !item.error) photoUrls[item.path] = item.signedUrl;
+  try {
+    const { data } = await db.storage
+      .from("participant-photos").createSignedUrls(paths, 3600);
+    for (const item of data || []) {
+      if (item.signedUrl && !item.error) photoUrls[item.path] = item.signedUrl;
+    }
+  } catch (err) {
+    console.error("Could not sign photo links:", err);
   }
 }
 
 /* ---------------- the pre-course email ---------------- */
 
-// Fill the standard text with what the course actually says, so the
-// times and address in the email can never contradict the system.
+function clock(iso, tz, shiftMinutes = 0) {
+  if (!iso) return "";
+  const d = new Date(new Date(iso).getTime() + shiftMinutes * 60000);
+  return d.toLocaleTimeString("en-GB", {
+    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz || undefined,
+  });
+}
+
+function dayName(iso, tz) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-GB", {
+    weekday: "long", timeZone: tz || undefined,
+  });
+}
+
+// The standard half, with the course's own details filled in.
 function buildStandard() {
-  if (!template?.precourse_body) return "";
+  if (!template || !template.precourse_body) {
+    return "[No standard text is set up for this course type yet. " +
+           "An admin can add it to the course template.]";
+  }
 
   const tz = course.timezone;
   const start = course.starts_at;
   const end = course.ends_at;
-
-  // Day two is the day after day one for a weekend seminar.
   const dayTwo = new Date(new Date(start).getTime() + 86400000).toISOString();
+  const twoDay = end && Math.round((new Date(end) - new Date(start)) / 86400000) >= 1;
 
   const values = {
     day1: dayName(start, tz),
-    day2: dayName(end && daysBetween(start, end) >= 1 ? end : dayTwo, tz),
+    day2: dayName(twoDay ? end : dayTwo, tz),
     reg1: clock(start, tz, -30),
     reg2: clock(start, tz, -10),
     start: clock(start, tz),
@@ -422,53 +471,60 @@ function buildStandard() {
     city: course.city || "",
   };
 
-  return template.precourse_body.replace(
+  return String(template.precourse_body).replace(
     /\{\{\s*(\w+)\s*\}\}/g,
-    (whole, key) => values[key] !== undefined ? values[key] : whole
+    (whole, key) => (values[key] !== undefined ? values[key] : whole)
   );
 }
 
-function daysBetween(a, b) {
-  return Math.round((new Date(b) - new Date(a)) / 86400000);
-}
-
-function renderPrecourse() {
-  const days = daysUntil(course.starts_at);
-  const open = days <= PRECOURSE_WINDOW_DAYS;
-  const sent = precourse?.status === "sent";
-
-  $("pre-when").textContent = sent
-    ? `Sent ${fmtDate(precourse.sent_at)} to everyone on the course.`
-    : open
-      ? `This can go now — the course is ${days} day${days === 1 ? "" : "s"} away. Send it by the Wednesday before.`
-      : `Opens ${PRECOURSE_WINDOW_DAYS} days before the course. That is ${days - PRECOURSE_WINDOW_DAYS} day${days - PRECOURSE_WINDOW_DAYS === 1 ? "" : "s"} from now.`;
-
-  // A first draft: their greeting, room for the personal part, then
-  // the standard detail already filled in.
-  const draft = precourse?.body || [
+// Their part, wrapped in the greeting and sign-off.
+function assemble(personal) {
+  return [
     "Good afternoon {{first_name}},",
     "",
-    `This is ${me.full_name.split(" ")[0]}, your lead coach for the seminar this weekend. I am looking forward to meeting you all.`,
-    "",
-    "[Write your own part here — anything you want them to know before they arrive.]",
+    String(personal || "").trim(),
     "",
     buildStandard(),
     "",
     "Many thanks",
     me.full_name,
   ].join("\n");
+}
 
-  $("pre-subject").value = precourse?.subject || `${course.title} — this weekend`;
-  $("pre-body").value = draft;
+function renderPrecourse() {
+  const days = daysUntil(course.starts_at);
+  const open = days <= PRECOURSE_WINDOW_DAYS;
+  const sent = precourse?.status === "sent";
+  const built = !!(precourse && precourse.body);
+
+  $("pre-when").textContent = sent
+    ? `Sent ${fmtDate(precourse.sent_at)} to everyone on the course.`
+    : open
+      ? `This can go now — the course is ${days} day${days === 1 ? "" : "s"} away. Send it by the Wednesday before.`
+      : `Opens ${PRECOURSE_WINDOW_DAYS} days before the course, which is ${days - PRECOURSE_WINDOW_DAYS} day${days - PRECOURSE_WINDOW_DAYS === 1 ? "" : "s"} from now. You can write it in the meantime.`;
+
+  $("pre-standard-text").textContent = buildStandard();
+  $("pre-personal").value = precourse?.personal_note || "";
+
+  // Once built, the whole email is shown for checking.
+  $("pre-step1").classList.toggle("hidden", built || sent);
+  $("pre-step2").classList.toggle("hidden", !built && !sent);
+
+  if (built || sent) {
+    $("pre-subject").value = precourse.subject || `${course.title} — this weekend`;
+    $("pre-body").value = precourse.body || "";
+  }
 
   $("pre-subject").disabled = sent;
   $("pre-body").disabled = sent;
   $("pre-save").disabled = sent;
+  $("pre-rebuild").disabled = sent;
   $("pre-send").disabled = sent || !open;
   $("pre-hint").textContent = sent
     ? "Already sent."
-    : open ? `Goes to ${people.length} participant${people.length === 1 ? "" : "s"}, one email each.`
-    : "Not yet — too far out.";
+    : open
+      ? `Goes to ${people.length} participant${people.length === 1 ? "" : "s"}, one email each.`
+      : "Not yet — too far out to send.";
 
   if (!sent && open) {
     const el = document.createElement("div");
@@ -479,10 +535,36 @@ function renderPrecourse() {
   }
 }
 
-$("pre-save").addEventListener("click", () => savePrecourse("Saved."));
+$("pre-build").addEventListener("click", async () => {
+  const personal = $("pre-personal").value.trim();
+  if (!personal) {
+    $("pre-msg").className = "msg err";
+    $("pre-msg").textContent = "Write your part first — that is the point of it.";
+    return;
+  }
+  await savePrecourse({
+    personal_note: personal,
+    body: assemble(personal),
+    subject: $("pre-subject").value.trim() || `${course.title} — this weekend`,
+  }, "Built. Read it through before sending.");
+  renderPrecourse();
+});
+
+$("pre-rebuild").addEventListener("click", () => {
+  if (!window.confirm("Start again from your personal part? Any edits to the full email will be lost.")) return;
+  $("pre-step2").classList.add("hidden");
+  $("pre-step1").classList.remove("hidden");
+  $("pre-msg").textContent = "";
+});
+
+$("pre-save").addEventListener("click", () => savePrecourse({
+  subject: $("pre-subject").value.trim(),
+  body: $("pre-body").value,
+}, "Saved."));
+
 $("pre-send").addEventListener("click", sendPrecourse);
 
-async function savePrecourse(note) {
+async function savePrecourse(patch, note) {
   const msg = $("pre-msg");
   msg.className = "msg"; msg.textContent = "Saving…";
 
@@ -490,9 +572,8 @@ async function savePrecourse(note) {
     course_id: course.id,
     registration_id: null,
     kind: "precourse",
-    subject: $("pre-subject").value.trim(),
-    body: $("pre-body").value,
     updated_at: new Date().toISOString(),
+    ...patch,
   };
 
   let result;
@@ -514,12 +595,20 @@ async function savePrecourse(note) {
 }
 
 async function sendPrecourse() {
+  if (!$("pre-body").value.trim()) {
+    $("pre-msg").className = "msg err";
+    $("pre-msg").textContent = "There is nothing to send.";
+    return;
+  }
   if (!window.confirm(
     `Send this to ${people.length} participant${people.length === 1 ? "" : "s"}?\n\n` +
     "Each gets their own email, addressed to them. This cannot be undone."
   )) return;
 
-  const saved = await savePrecourse("Sending…");
+  const saved = await savePrecourse({
+    subject: $("pre-subject").value.trim(),
+    body: $("pre-body").value,
+  }, "Sending…");
   if (!saved) return;
 
   $("pre-send").disabled = true;
@@ -531,7 +620,7 @@ async function sendPrecourse() {
     msg.textContent = r.failed
       ? `${r.sent} sent, ${r.failed} failed. ${(r.problems || []).join("; ")}`
       : `Sent to ${r.sent} participant${r.sent === 1 ? "" : "s"} as ${r.sentAs}.`;
-    await openCourse(course);
+    setTimeout(() => openCourse(course), 1500);
   } catch (err) {
     msg.className = "msg err";
     msg.textContent = err.message;
@@ -614,7 +703,8 @@ async function openWelcome(reg) {
   const e = emails[reg.id];
   const sent = e?.status === "sent";
 
-  $("w-subject").value = e?.subject || `Looking forward to seeing you in ${course.city || "person"}`;
+  $("w-subject").value = e?.subject
+    || `Looking forward to seeing you in ${course.city || "person"}`;
   $("w-body").value = e?.body || [
     `Hello ${reg.first_name},`,
     "",
@@ -688,8 +778,7 @@ async function sendWelcome() {
     msg.className = r.failed ? "msg err" : "msg ok";
     msg.textContent = r.failed
       ? `That did not send. ${(r.problems || []).join("; ")}`
-      : `Sent to ${current.first_name} as ${r.sentAs}.`;
-    emails[current.id] = { ...saved, status: "sent", sent_at: new Date().toISOString() };
+      : `Sent to ${current.first_name}.`;
     setTimeout(() => openCourse(course), 1200);
   } catch (err) {
     msg.className = "msg err";
