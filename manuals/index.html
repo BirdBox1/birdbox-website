@@ -4,106 +4,203 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Participant Manual</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>Participant Manual — BirdBox Coaching</title>
 <style>
-  :root { --bg:#0e0e0e; --card:#171717; --line:#2a2a2a; --text:#f5f5f5; --muted:#9a9a9a; --accent:#9b1b26; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--text);
-         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-         display:flex; justify-content:center; padding:32px 20px 64px; }
-  .wrap { width:100%; max-width:520px; }
-  .logo { display:block; margin:0 auto 28px; max-width:170px; height:auto; }
-  h1 { font-size:22px; text-align:center; margin:0 0 6px; }
-  .sub { text-align:center; color:var(--muted); font-size:15px; margin:0 0 32px; line-height:1.5; }
-  .btn { display:flex; align-items:center; gap:14px; width:100%;
-         background:var(--card); border:1px solid var(--line); border-radius:12px;
-         padding:16px 18px; margin-bottom:12px; color:var(--text);
-         text-decoration:none; font-size:17px; font-weight:600; }
-  .btn:active { background:#202020; }
-  .flag { font-size:22px; line-height:1; }
-  .arrow { margin-left:auto; color:var(--muted); font-size:15px; font-weight:400; }
-  .msg { text-align:center; color:var(--muted); font-size:15px; padding:24px 0; }
-  .foot { text-align:center; color:#5f5f5f; font-size:13px; margin-top:36px; }
+  :root {
+    --ink:    #eceae6;
+    --paper:  #101215;
+    --panel:  #191c20;
+    --shell:  #0d0e10;
+    --rule:   rgba(255,255,255,0.14);
+    --muted:  #99a0a8;
+    --accent: #2f7fd0;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px; line-height: 1.65; -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  .bar {
+    background: var(--shell); padding: 0.7rem 1.25rem;
+    display: flex; align-items: center; gap: 0.75rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .mark { width: 32px; height: 32px; border-radius: 4px; background: #fff;
+          display: grid; place-items: center; flex: none; }
+  .mark img { width: 24px; height: 24px; object-fit: contain; }
+  .bar .name {
+    font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9;
+  }
+
+  .wrap { max-width: 34rem; margin: 0 auto; padding: 2.6rem 1.25rem 4rem; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 0.9rem;
+    background: rgba(255,255,255,0.08); border: 1px solid var(--rule); border-radius: 5px;
+    padding: 0.6rem 1rem; font-size: 1.12rem; letter-spacing: 0.08em;
+    text-transform: uppercase; font-weight: 650; color: #fff;
+  }
+  .badge img { height: 54px; width: auto; max-width: 11rem; object-fit: contain; display: block; }
+
+  h1 {
+    font-size: clamp(1.4rem, 4.2vw, 1.85rem); line-height: 1.15;
+    letter-spacing: -0.02em; font-weight: 700; margin: 1.4rem 0 0.5rem;
+  }
+  .sub { color: var(--muted); font-size: 1rem; margin: 0 0 2rem; }
+
+  h2 {
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; margin: 0 0 0.7rem;
+  }
+
+  .opt {
+    display: flex; align-items: center; gap: 0.9rem; width: 100%;
+    border: 1px solid var(--rule); border-top: 3px solid var(--brandcolour, var(--accent));
+    border-radius: 5px; padding: 0.95rem 1.05rem; margin-bottom: 0.7rem;
+    background: var(--panel); color: var(--ink); text-decoration: none;
+  }
+  .opt:hover { border-color: rgba(255,255,255,0.32); }
+  .flag { font-size: 1.4rem; line-height: 1; }
+  .label { font-weight: 650; }
+  .amount { margin-left: auto; font-size: 0.84rem; color: var(--muted); white-space: nowrap; }
+
+  .state { padding: 3rem 0; text-align: center; color: var(--muted); }
+  .state h2 { color: var(--ink); font-size: 1.1rem; letter-spacing: 0; text-transform: none; }
+  .state a { color: var(--ink); }
+
+  footer {
+    margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--rule);
+    font-size: 0.82rem; color: var(--muted);
+  }
+  footer a { color: var(--muted); }
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <img id="brandLogo" class="logo" src="/brand/birdBox.png" alt="">
-  <h1 id="title">Participant Manual</h1>
-  <p class="sub">Choose your language. The manual opens as a PDF you can read or save.</p>
-  <div id="list"><p class="msg">Loading…</p></div>
-  <p class="foot">BirdBox Coaching Limited</p>
+
+<div class="bar">
+  <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+  <span class="name">BirdBox Coaching</span>
 </div>
 
-<script>
-/* ---- REPLACE THESE TWO LINES with the same two lines from c/index.html ---- */
+<div class="wrap">
+  <span class="badge hidden" id="badge"><img id="badgeicon" alt=""><span id="badgetext"></span></span>
+
+  <h1 id="title">Participant Manual</h1>
+  <p class="sub" id="sub">Choose your language. The manual opens as a PDF you can read on any device or save for later.</p>
+
+  <div id="listwrap" class="hidden">
+    <h2>Available languages</h2>
+    <div id="list"></div>
+  </div>
+
+  <div id="loading" class="state"><p>Loading…</p></div>
+
+  <div id="missing" class="state hidden">
+    <h2>This manual is not available</h2>
+    <p>The link may be wrong, or the manual may not be published yet.<br>
+       Please contact
+       <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a>.</p>
+  </div>
+
+  <footer>
+    <p>BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland ·
+      <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a></p>
+  </footer>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
 const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
-const SUPABASE_ANON_KEY = "PASTE_YOUR_ANON_KEY_HERE";
-/* -------------------------------------------------------------------------- */
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const STORAGE = SUPABASE_URL + "/storage/v1/object/public/manuals/";
 
-const BRANDS = {
-  tcc: { name: "The Coaches Course",    logo: "/brand/tcc.png" },
-  tgc: { name: "The Gymnastics Course", logo: "/brand/tgc.png" },
-  tec: { name: "The Endurance Course",  logo: "/brand/tec.png" },
-  twc: { name: "The Weightlifting Course", logo: "/brand/twc.png" }
+const BRAND = {
+  birdbox: { icon: "/brand/birdBox.png", colour: "#2f7fd0", label: "BirdBox" },
+  tcc:     { icon: "/brand/tcc.png",     colour: "#2f7fd0", label: "The Coaches Course" },
+  tgc:     { icon: "/brand/tgc.png",     colour: "#9e2029", label: "The Gymnastics Course" },
+  tec:     { icon: "/brand/tec.png",     colour: "#1c6b3f", label: "The Endurance Course" },
+  twc:     { icon: "/brand/twc.png",     colour: "#e8a317", label: "The Weightlifting Course" },
 };
 
-function parsePath() {
-  const parts = window.location.pathname.split("/").filter(Boolean);
-  const slug = parts[parts.length - 1] || "";
-  const bits = slug.split("-");
-  if (bits.length < 2) return null;
-  return { brand: bits[0].toLowerCase(), level: bits[1].toLowerCase() };
-}
+const $ = (id) => document.getElementById(id);
 
-function show(html) { document.getElementById("list").innerHTML = html; }
-
-async function load() {
-  const target = parsePath();
-  if (!target || !BRANDS[target.brand]) {
-    show('<p class="msg">Manual not found.</p>');
-    return;
-  }
-
-  const brand = BRANDS[target.brand];
-  document.getElementById("brandLogo").src = brand.logo;
-  document.getElementById("brandLogo").alt = brand.name;
-  document.getElementById("title").textContent =
-    brand.name + " — Level " + target.level.replace(/^l/, "");
-  document.title = brand.name + " Manual";
-
-  try {
-    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { data, error } = await client
-      .from("manuals")
-      .select("language,label,flag,filename,sort_order")
-      .eq("brand", target.brand)
-      .eq("level", target.level)
-      .eq("active", true)
-      .order("sort_order", { ascending: true });
-
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      show('<p class="msg">No manuals available yet.</p>');
-      return;
-    }
-
-    show(data.map(function (row) {
-      return '<a class="btn" href="' + STORAGE + encodeURIComponent(row.filename) +
-             '" target="_blank" rel="noopener">' +
-             '<span class="flag">' + (row.flag || "") + '</span>' +
-             '<span>' + row.label + '</span>' +
-             '<span class="arrow">PDF</span></a>';
-    }).join(""));
-  } catch (e) {
-    show('<p class="msg">Could not load the manuals. Please try again.</p>');
-  }
-}
+const parts = location.pathname.split("/").filter(Boolean);
+const slug = parts[parts.length - 1] === "manuals" ? null : parts[parts.length - 1];
 
 load();
+
+async function load() {
+  if (!slug) return notFound();
+
+  const bits = String(slug).toLowerCase().split("-");
+  if (bits.length < 2) return notFound();
+
+  const brandKey = bits[0];
+  const level = bits[1];
+  const b = BRAND[brandKey];
+  if (!b) return notFound();
+
+  document.documentElement.style.setProperty("--brandcolour", b.colour);
+
+  $("badgeicon").src = b.icon;
+  $("badgetext").textContent =
+    [b.label, "Level " + level.replace(/\D/g, "")].filter(Boolean).join(" · ");
+  $("badge").classList.remove("hidden");
+
+  $("title").textContent = "Participant Manual";
+  document.title = b.label + " Manual — BirdBox Coaching";
+
+  const { data, error } = await db
+    .from("manuals")
+    .select("language, label, flag, filename, sort_order")
+    .eq("brand", brandKey)
+    .eq("level", level)
+    .eq("active", true)
+    .order("sort_order", { ascending: true });
+
+  if (error || !data || !data.length) return notFound();
+
+  for (const row of data) {
+    const a = document.createElement("a");
+    a.className = "opt";
+    a.href = STORAGE + encodeURIComponent(row.filename);
+    a.target = "_blank";
+    a.rel = "noopener";
+
+    const flag = document.createElement("span");
+    flag.className = "flag";
+    flag.textContent = row.flag || "";
+
+    const label = document.createElement("span");
+    label.className = "label";
+    label.textContent = row.label;
+
+    const amount = document.createElement("span");
+    amount.className = "amount";
+    amount.textContent = "PDF";
+
+    a.append(flag, label, amount);
+    $("list").append(a);
+  }
+
+  $("loading").classList.add("hidden");
+  $("listwrap").classList.remove("hidden");
+}
+
+function notFound() {
+  $("loading").classList.add("hidden");
+  $("sub").classList.add("hidden");
+  $("missing").classList.remove("hidden");
+}
 </script>
+
 </body>
 </html>
