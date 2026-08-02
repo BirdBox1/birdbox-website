@@ -11,6 +11,8 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { dirname, join, resolve } from "node:path";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -85,11 +87,13 @@ async function run(registrationId, token) {
     return markFailed(registrationId, "There are no notes for this participant.");
   }
 
-  const manual = await loadManual(course);
-  if (!manual) {
-    return markFailed(registrationId,
-      "No feedback manual is set up for this course type yet.");
-  }
+  // Two quite different things can go wrong here, and they used to
+  // produce the same message: no manual is written for this course
+  // type yet, or one is written and the file could not be read. The
+  // first is expected and needs a person to write it; the second is
+  // a fault. They are reported separately now.
+  const found = await loadManual(course);
+  if (!found.ok) return markFailed(registrationId, found.message);
 
   const langCode = reg.feedback_language || course.language || "en";
   const language = LANGUAGE_NAMES[langCode] || langCode;
@@ -141,7 +145,7 @@ The available insert keys are:
 ${blocks.map((b) => `- ${b.key}: ${b.title}`).join("\n")}
 `.trim();
 
-  const result = await callClaude(manual, instruction);
+  const result = await callClaude(found.manual, instruction);
 
   const { error } = await supabase.from("feedback_drafts").upsert({
     registration_id: reg.id,
@@ -249,16 +253,53 @@ async function callClaude(manual, instruction) {
   }
 }
 
+// A relative path depends on the working directory the function
+// happens to be started in, which is not something to rely on. These
+// are tried in order and the first that reads wins; the one that
+// worked is logged, so the guesswork only has to happen once.
+function candidatePaths(relative) {
+  const here = dirname(fileURLToPath(import.meta.url));
+  return [
+    relative,
+    resolve(relative),
+    join(here, relative),
+    join(here, "..", relative),
+    join(here, "..", "..", relative),
+    join(process.cwd(), relative),
+  ];
+}
+
 async function loadManual(course) {
   const lvl = String(course.level || "").replace(/\D/g, "");
-  const path = MANUALS[`${course.brand}:${course.type}:${lvl}`];
-  if (!path) return null;
-  try {
-    return await readFile(path, "utf8");
-  } catch (err) {
-    console.error("Could not read manual", path, err.message);
-    return null;
+  const key = `${course.brand}:${course.type}:${lvl}`;
+  const relative = MANUALS[key];
+
+  if (!relative) {
+    return {
+      ok: false,
+      message: `No feedback manual has been written for ${course.brand.toUpperCase()}` +
+               `${course.level ? " " + course.level : ""} ${course.type.replace(/_/g, " ")} yet.`,
+    };
   }
+
+  const tried = [];
+  for (const path of candidatePaths(relative)) {
+    try {
+      const manual = await readFile(path, "utf8");
+      console.log("Manual loaded from:", path);
+      return { ok: true, manual };
+    } catch (err) {
+      tried.push(`${path} (${err.code || err.message})`);
+    }
+  }
+
+  console.error("Manual not found. Tried:\n" + tried.join("\n"));
+  return {
+    ok: false,
+    message:
+      `The manual for ${key} is set up but its file could not be read on the ` +
+      `server. It is expected at ${relative}. This is a fault, not a missing manual.`,
+  };
 }
 
 async function loadBlocks() {
