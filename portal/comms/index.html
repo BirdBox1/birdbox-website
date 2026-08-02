@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Participant emails — BirdBox Coaching</title>
+<style>
+  :root {
+    --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+    --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0;
+    --good:#1f8a54; --warn:#b4610f; --bad:#b3261e; --flag:#d9b310;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+
+  .bar{background:var(--shell);color:#fff;padding:0.7rem 1.25rem;
+    display:flex;align-items:center;justify-content:space-between;gap:1rem}
+  .bar .left{display:flex;align-items:center;gap:0.75rem;min-width:0}
+  .mark{width:34px;height:34px;border-radius:4px;background:#fff;
+    display:grid;place-items:center;flex:none}
+  .mark img{width:26px;height:26px;object-fit:contain;display:block}
+  .bar .brandname{font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;
+    color:#9aa1a9;white-space:nowrap}
+  .bar a{font:inherit;font-size:0.8rem;color:#cfd4d9;border:1px solid #33373c;
+    padding:0.3rem 0.7rem;border-radius:3px;text-decoration:none;white-space:nowrap}
+  .bar a:hover{color:#fff;border-color:#55595e}
+
+  .wrap{max-width:56rem;margin:0 auto;padding:1.5rem 1.25rem 5rem}
+  h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0 0 0.2rem;font-weight:600}
+  .sub{color:var(--muted);font-size:0.9rem;margin:0 0 1.25rem}
+  .back{display:inline-block;font-size:0.85rem;color:var(--accent);
+    text-decoration:none;margin-bottom:1rem;cursor:pointer;background:none;border:0;
+    font-family:inherit;padding:0}
+  .back:hover{text-decoration:underline}
+
+  .btn{font:inherit;font-weight:600;background:var(--ink);color:#fff;border:0;
+    border-radius:4px;padding:0.6rem 1.1rem;cursor:pointer}
+  .btn:hover{background:#000}
+  .btn[disabled]{opacity:0.45;cursor:default}
+  .btn.small{font-size:0.82rem;padding:0.4rem 0.8rem}
+  .btn.ghost{background:none;color:var(--ink);border:1px solid var(--rule);font-weight:500}
+  .btn.ghost:hover{background:#fff;border-color:var(--muted)}
+  .btn.go{background:var(--good)}
+  .btn.go:hover{background:#176e43}
+  .btn.wide{width:100%}
+
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:6px;
+    margin-bottom:0.7rem;overflow:hidden}
+  .row{display:flex;align-items:center;gap:0.9rem;width:100%;text-align:left;
+    font:inherit;background:none;border:0;padding:0.9rem 1.05rem;cursor:pointer}
+  .row:hover{background:#faf9f7}
+  .row .thumb{flex:none;width:40px;height:40px;border-radius:5px;overflow:hidden;
+    border:1px solid var(--rule);background:#eceae6}
+  .row .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .row .who{flex:1 1 auto;min-width:0}
+  .row .name{font-weight:650}
+  .row .meta{font-size:0.82rem;color:var(--muted)}
+
+  .pill{display:inline-block;font-size:0.66rem;letter-spacing:0.09em;
+    text-transform:uppercase;padding:0.16rem 0.45rem;border:1px solid var(--rule);
+    border-radius:3px;color:var(--muted);white-space:nowrap}
+  .pill.ok{background:var(--good);border-color:var(--good);color:#fff;font-weight:700}
+  .pill.due{background:#f3cf3d;border-color:#d9b310;color:#33280a;font-weight:700}
+  .pill.late{background:var(--warn);border-color:var(--warn);color:#fff;font-weight:700}
+  .pill.err{border-color:var(--bad);color:var(--bad);font-weight:700}
+
+  .panel{background:var(--card);border:1px solid var(--rule);border-radius:6px;
+    padding:1.25rem;margin-bottom:1rem}
+  .panel h3{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 0.8rem;font-weight:600}
+  .panel .lead-in{font-size:0.88rem;color:var(--muted);margin:0 0 0.9rem}
+
+  label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.3rem}
+  .hint{font-weight:400;color:var(--muted);font-size:0.78rem}
+  input[type=text],textarea{width:100%;font:inherit;padding:0.55rem 0.65rem;
+    border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink)}
+  textarea{resize:vertical;line-height:1.6}
+  .field{margin-bottom:1rem}
+
+  .alert{background:#fffbe8;border:1px solid #eddfa4;border-left:3px solid var(--flag);
+    border-radius:6px;padding:0.9rem 1.05rem;margin-bottom:1rem;font-size:0.9rem}
+  .alert.warn{background:#fff8f0;border-color:#efd6b8;border-left-color:var(--warn)}
+  .alert b{display:block;margin-bottom:0.2rem}
+
+  .msg{font-size:0.85rem;margin-top:0.9rem;min-height:1.2em}
+  .msg.err{color:var(--bad)}
+  .msg.ok{color:var(--good)}
+  .empty{background:var(--card);border:1px dashed var(--rule);border-radius:6px;
+    padding:2rem 1.25rem;text-align:center;color:var(--muted);font-size:0.9rem}
+  .counts{font-size:0.85rem;color:var(--muted);margin-bottom:1rem}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="left">
+    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+    <span class="brandname">Participant emails</span>
+  </span>
+  <a href="/portal/">← Portal</a>
+</div>
+
+<div class="wrap">
+  <div id="loading"><p class="sub">Loading…</p></div>
+
+  <!-- courses -->
+  <section id="view-courses" class="hidden">
+    <h1>Participant emails</h1>
+    <p class="sub">Courses you are lead coach on.</p>
+    <div id="courselist"></div>
+  </section>
+
+  <!-- one course -->
+  <section id="view-course" class="hidden">
+    <button class="back" id="back-courses" type="button">← All courses</button>
+    <h1 id="c-title"></h1>
+    <p class="sub" id="c-meta"></p>
+
+    <div id="alerts"></div>
+
+    <!-- the pre-course email -->
+    <div class="panel">
+      <h3>Before the course</h3>
+      <p class="lead-in" id="pre-when"></p>
+
+      <div class="field">
+        <label for="pre-subject">Subject</label>
+        <input id="pre-subject" type="text">
+      </div>
+
+      <div class="field">
+        <label for="pre-body">The email
+          <span class="hint">{{first_name}} becomes each person's name</span>
+        </label>
+        <textarea id="pre-body" style="min-height:26rem"></textarea>
+      </div>
+
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+        <button class="btn small ghost" id="pre-save" type="button">Save</button>
+        <button class="btn small go" id="pre-send" type="button">Send to everyone</button>
+        <span class="hint" id="pre-hint"></span>
+      </div>
+      <p class="msg" id="pre-msg"></p>
+    </div>
+
+    <!-- welcomes -->
+    <h3 style="font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;
+               color:var(--muted);margin:1.75rem 0 0.6rem;font-weight:600">
+      Welcome emails</h3>
+    <p class="counts" id="w-counts"></p>
+    <div id="peoplelist"></div>
+  </section>
+
+  <!-- one welcome -->
+  <section id="view-welcome" class="hidden">
+    <button class="back" id="back-course" type="button">← Back to the course</button>
+    <h1 id="w-name"></h1>
+    <p class="sub" id="w-meta"></p>
+
+    <div class="panel">
+      <h3>Your welcome to them</h3>
+      <p class="lead-in">
+        This is yours to write. Something that connects — why you are looking
+        forward to the area, what you have planned, anything that makes them
+        feel expected rather than processed.
+      </p>
+
+      <div class="field">
+        <label for="w-subject">Subject</label>
+        <input id="w-subject" type="text">
+      </div>
+
+      <div class="field">
+        <label for="w-body">The email</label>
+        <textarea id="w-body" style="min-height:18rem"></textarea>
+      </div>
+
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+        <button class="btn small ghost" id="w-save" type="button">Save</button>
+        <button class="btn small go" id="w-send" type="button">Send it</button>
+      </div>
+      <p class="msg" id="w-msg"></p>
+    </div>
+  </section>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient(
+  "https://yvdmazpxtpuvidlcifnq.supabase.co",
+  "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+);
+
+// A welcome is expected within this many days of someone registering.
+const WELCOME_DAYS = 3;
+// The pre-course email cannot go out sooner than this.
+const PRECOURSE_WINDOW_DAYS = 6;
+
+const $ = (id) => document.getElementById(id);
+const show = (n) => {
+  for (const v of ["courses", "course", "welcome"]) {
+    $("view-" + v).classList.toggle("hidden", v !== n);
+  }
+  $("loading").classList.add("hidden");
+  window.scrollTo({ top: 0 });
+};
+
+let me = null;
+let course = null;
+let template = null;
+let people = [];
+let emails = {};        // registration_id -> welcome row
+let precourse = null;
+let photoUrls = {};
+let current = null;
+
+const fmtDate = (iso) => iso
+  ? new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+  : "";
+
+const dayName = (iso, tz) => iso
+  ? new Date(iso).toLocaleDateString("en-GB", { weekday: "long", timeZone: tz || undefined })
+  : "";
+
+const clock = (iso, tz, shiftMinutes = 0) => {
+  if (!iso) return "";
+  const d = new Date(new Date(iso).getTime() + shiftMinutes * 60000);
+  return d.toLocaleTimeString("en-GB", {
+    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz || undefined,
+  });
+};
+
+const daysUntil = (iso) => Math.ceil((new Date(iso) - new Date()) / 86400000);
+const daysSince = (iso) => Math.floor((new Date() - new Date(iso)) / 86400000);
+
+start();
+
+async function start() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { location.href = "/portal/"; return; }
+
+  const { data: staff } = await db.from("staff")
+    .select("id, full_name, email, role, active")
+    .eq("id", session.user.id).maybeSingle();
+
+  if (!staff || !staff.active) { location.href = "/portal/"; return; }
+  me = staff;
+
+  await loadCourses();
+}
+
+/* ---------------- courses ---------------- */
+
+async function loadCourses() {
+  show("courses");
+  const list = $("courselist");
+  list.innerHTML = '<p class="empty">Loading…</p>';
+
+  const cols = "id, brand, type, level, title, city, country, venue_name, address, starts_at, ends_at, timezone, status, archived";
+
+  let rows = [];
+  if (me.role === "admin") {
+    const { data } = await db.from("courses").select(cols)
+      .eq("archived", false)
+      .order("starts_at", { ascending: true });
+    rows = data || [];
+  } else {
+    const { data } = await db.from("course_staff")
+      .select(`role, courses (${cols})`)
+      .eq("staff_id", me.id)
+      .eq("role", "lead_coach");
+    rows = (data || []).map((r) => r.courses)
+      .filter((c) => c && !c.archived);
+    rows.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+  }
+
+  if (!rows.length) {
+    list.innerHTML = '<p class="empty">No courses you are leading.</p>';
+    return;
+  }
+
+  // What still needs doing on each course.
+  const ids = rows.map((r) => r.id);
+  const { data: allEmails } = await db.from("course_emails")
+    .select("course_id, registration_id, kind, status").in("course_id", ids);
+  const { data: allRegs } = await db.from("registrations")
+    .select("id, course_id, created_at, payment_status").in("course_id", ids);
+
+  const sentWelcome = new Set();
+  const sentPre = new Set();
+  for (const e of allEmails || []) {
+    if (e.status !== "sent") continue;
+    if (e.kind === "welcome") sentWelcome.add(e.registration_id);
+    else sentPre.add(e.course_id);
+  }
+
+  const owed = {};
+  for (const r of allRegs || []) {
+    if (r.payment_status === "refunded" || r.payment_status === "failed") continue;
+    if (sentWelcome.has(r.id)) continue;
+    owed[r.course_id] = (owed[r.course_id] || 0) + 1;
+  }
+
+  list.innerHTML = "";
+  for (const c of rows) {
+    const el = document.createElement("div");
+    el.className = "card";
+    el.innerHTML = `<button class="row" type="button">
+      <span class="who"><span class="name"></span><span class="meta"></span></span>
+      <span class="pill"></span></button>`;
+    el.querySelector(".name").textContent = c.title;
+    el.querySelector(".meta").textContent =
+      [fmtDate(c.starts_at), [c.city, c.country].filter(Boolean).join(", ")]
+        .filter(Boolean).join(" · ");
+
+    const days = daysUntil(c.starts_at);
+    const pill = el.querySelector(".pill");
+
+    if (owed[c.id]) {
+      pill.textContent = `${owed[c.id]} welcome${owed[c.id] === 1 ? "" : "s"} to write`;
+      pill.className = "pill late";
+    } else if (!sentPre.has(c.id) && days >= 0 && days <= PRECOURSE_WINDOW_DAYS) {
+      pill.textContent = "pre-course email due";
+      pill.className = "pill due";
+    } else if (sentPre.has(c.id)) {
+      pill.textContent = "all sent";
+      pill.className = "pill ok";
+    } else {
+      pill.textContent = days >= 0 ? `${days}d away` : "past";
+      pill.className = "pill";
+    }
+
+    el.querySelector(".row").addEventListener("click", () => openCourse(c));
+    list.append(el);
+  }
+}
+
+/* ---------------- one course ---------------- */
+
+async function openCourse(c) {
+  course = c;
+  show("course");
+  $("c-title").textContent = c.title;
+  $("c-meta").textContent =
+    [fmtDate(c.starts_at), [c.venue_name, c.city, c.country].filter(Boolean).join(", ")]
+      .filter(Boolean).join(" · ");
+  $("alerts").innerHTML = "";
+  $("pre-msg").textContent = "";
+  $("peoplelist").innerHTML = '<p class="empty">Loading…</p>';
+
+  const lvl = String(c.level || "").replace(/\D/g, "");
+  const { data: tpls } = await db.from("course_templates")
+    .select("level, precourse_body")
+    .eq("brand", c.brand).eq("type", c.type);
+  template = (tpls || []).find(
+    (t) => String(t.level || "").replace(/\D/g, "") === lvl
+  ) || (tpls || [])[0] || null;
+
+  const { data: regs } = await db.from("registrations")
+    .select("id, first_name, last_name, email, created_at, payment_status, photo_path")
+    .eq("course_id", c.id)
+    .order("created_at");
+
+  people = (regs || []).filter(
+    (r) => r.payment_status !== "refunded" && r.payment_status !== "failed"
+  );
+
+  const { data: es } = await db.from("course_emails")
+    .select("*").eq("course_id", c.id);
+
+  emails = {};
+  precourse = null;
+  for (const e of es || []) {
+    if (e.kind === "precourse") precourse = e;
+    else emails[e.registration_id] = e;
+  }
+
+  await loadPhotos();
+  renderPrecourse();
+  renderPeople();
+}
+
+async function loadPhotos() {
+  photoUrls = {};
+  const paths = people.map((p) => p.photo_path).filter(Boolean);
+  if (!paths.length) return;
+  const { data } = await db.storage
+    .from("participant-photos").createSignedUrls(paths, 3600);
+  for (const item of data || []) {
+    if (item.signedUrl && !item.error) photoUrls[item.path] = item.signedUrl;
+  }
+}
+
+/* ---------------- the pre-course email ---------------- */
+
+// Fill the standard text with what the course actually says, so the
+// times and address in the email can never contradict the system.
+function buildStandard() {
+  if (!template?.precourse_body) return "";
+
+  const tz = course.timezone;
+  const start = course.starts_at;
+  const end = course.ends_at;
+
+  // Day two is the day after day one for a weekend seminar.
+  const dayTwo = new Date(new Date(start).getTime() + 86400000).toISOString();
+
+  const values = {
+    day1: dayName(start, tz),
+    day2: dayName(end && daysBetween(start, end) >= 1 ? end : dayTwo, tz),
+    reg1: clock(start, tz, -30),
+    reg2: clock(start, tz, -10),
+    start: clock(start, tz),
+    end: end ? clock(end, tz) : "17:00",
+    lunch: clock(start, tz, 210),
+    venue: course.venue_name || "the host gym",
+    address: [course.address, course.city, course.country].filter(Boolean).join(", "),
+    city: course.city || "",
+  };
+
+  return template.precourse_body.replace(
+    /\{\{\s*(\w+)\s*\}\}/g,
+    (whole, key) => values[key] !== undefined ? values[key] : whole
+  );
+}
+
+function daysBetween(a, b) {
+  return Math.round((new Date(b) - new Date(a)) / 86400000);
+}
+
+function renderPrecourse() {
+  const days = daysUntil(course.starts_at);
+  const open = days <= PRECOURSE_WINDOW_DAYS;
+  const sent = precourse?.status === "sent";
+
+  $("pre-when").textContent = sent
+    ? `Sent ${fmtDate(precourse.sent_at)} to everyone on the course.`
+    : open
+      ? `This can go now — the course is ${days} day${days === 1 ? "" : "s"} away. Send it by the Wednesday before.`
+      : `Opens ${PRECOURSE_WINDOW_DAYS} days before the course. That is ${days - PRECOURSE_WINDOW_DAYS} day${days - PRECOURSE_WINDOW_DAYS === 1 ? "" : "s"} from now.`;
+
+  // A first draft: their greeting, room for the personal part, then
+  // the standard detail already filled in.
+  const draft = precourse?.body || [
+    "Good afternoon {{first_name}},",
+    "",
+    `This is ${me.full_name.split(" ")[0]}, your lead coach for the seminar this weekend. I am looking forward to meeting you all.`,
+    "",
+    "[Write your own part here — anything you want them to know before they arrive.]",
+    "",
+    buildStandard(),
+    "",
+    "Many thanks",
+    me.full_name,
+  ].join("\n");
+
+  $("pre-subject").value = precourse?.subject || `${course.title} — this weekend`;
+  $("pre-body").value = draft;
+
+  $("pre-subject").disabled = sent;
+  $("pre-body").disabled = sent;
+  $("pre-save").disabled = sent;
+  $("pre-send").disabled = sent || !open;
+  $("pre-hint").textContent = sent
+    ? "Already sent."
+    : open ? `Goes to ${people.length} participant${people.length === 1 ? "" : "s"}, one email each.`
+    : "Not yet — too far out.";
+
+  if (!sent && open) {
+    const el = document.createElement("div");
+    el.className = "alert";
+    el.innerHTML = `<b>The pre-course email is due</b>
+      Send it by the end of Wednesday. ${people.length} participant${people.length === 1 ? "" : "s"} on the course.`;
+    $("alerts").append(el);
+  }
+}
+
+$("pre-save").addEventListener("click", () => savePrecourse("Saved."));
+$("pre-send").addEventListener("click", sendPrecourse);
+
+async function savePrecourse(note) {
+  const msg = $("pre-msg");
+  msg.className = "msg"; msg.textContent = "Saving…";
+
+  const row = {
+    course_id: course.id,
+    registration_id: null,
+    kind: "precourse",
+    subject: $("pre-subject").value.trim(),
+    body: $("pre-body").value,
+    updated_at: new Date().toISOString(),
+  };
+
+  let result;
+  if (precourse) {
+    result = await db.from("course_emails").update(row).eq("id", precourse.id).select().single();
+  } else {
+    result = await db.from("course_emails").insert(row).select().single();
+  }
+
+  if (result.error) {
+    msg.className = "msg err";
+    msg.textContent = "Could not save: " + result.error.message;
+    return null;
+  }
+  precourse = result.data;
+  msg.className = "msg ok";
+  msg.textContent = note || "Saved.";
+  return precourse;
+}
+
+async function sendPrecourse() {
+  if (!window.confirm(
+    `Send this to ${people.length} participant${people.length === 1 ? "" : "s"}?\n\n` +
+    "Each gets their own email, addressed to them. This cannot be undone."
+  )) return;
+
+  const saved = await savePrecourse("Sending…");
+  if (!saved) return;
+
+  $("pre-send").disabled = true;
+  const msg = $("pre-msg");
+
+  try {
+    const r = await callSend({ emailId: saved.id });
+    msg.className = r.failed ? "msg err" : "msg ok";
+    msg.textContent = r.failed
+      ? `${r.sent} sent, ${r.failed} failed. ${(r.problems || []).join("; ")}`
+      : `Sent to ${r.sent} participant${r.sent === 1 ? "" : "s"} as ${r.sentAs}.`;
+    await openCourse(course);
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = err.message;
+    $("pre-send").disabled = false;
+  }
+}
+
+/* ---------------- welcomes ---------------- */
+
+function renderPeople() {
+  const list = $("peoplelist");
+  if (!people.length) {
+    list.innerHTML = '<p class="empty">Nobody has registered yet.</p>';
+    $("w-counts").textContent = "";
+    return;
+  }
+
+  let sent = 0, due = 0, late = 0;
+  list.innerHTML = "";
+
+  for (const r of people) {
+    const e = emails[r.id];
+    const done = e?.status === "sent";
+    const age = daysSince(r.created_at);
+
+    if (done) sent++;
+    else if (age > WELCOME_DAYS) late++;
+    else due++;
+
+    const el = document.createElement("div");
+    el.className = "card";
+    el.innerHTML = `<button class="row" type="button">
+      <span class="thumb"></span>
+      <span class="who"><span class="name"></span><span class="meta"></span></span>
+      <span class="pill"></span></button>`;
+
+    const thumb = el.querySelector(".thumb");
+    const url = r.photo_path && photoUrls[r.photo_path];
+    if (url) {
+      const img = document.createElement("img");
+      img.src = url; img.alt = "";
+      thumb.append(img);
+    }
+
+    el.querySelector(".name").textContent = `${r.first_name} ${r.last_name}`;
+    el.querySelector(".meta").textContent = done
+      ? `Welcomed ${fmtDate(e.sent_at)}`
+      : `Registered ${age === 0 ? "today" : age === 1 ? "yesterday" : age + " days ago"}`;
+
+    const pill = el.querySelector(".pill");
+    if (done) { pill.textContent = "welcomed"; pill.className = "pill ok"; }
+    else if (age > WELCOME_DAYS) { pill.textContent = `${age} days waiting`; pill.className = "pill late"; }
+    else { pill.textContent = "to write"; pill.className = "pill due"; }
+
+    el.querySelector(".row").addEventListener("click", () => openWelcome(r));
+    list.append(el);
+  }
+
+  $("w-counts").textContent =
+    `${people.length} participant${people.length === 1 ? "" : "s"} · ${sent} welcomed` +
+    (due ? ` · ${due} to write` : "") +
+    (late ? ` · ${late} overdue` : "");
+
+  if (late) {
+    const el = document.createElement("div");
+    el.className = "alert warn";
+    el.innerHTML = `<b>${late} participant${late === 1 ? " has" : "s have"} been waiting more than ${WELCOME_DAYS} days</b>
+      We said we would write to people within two or three days of them registering.`;
+    $("alerts").prepend(el);
+  }
+}
+
+async function openWelcome(reg) {
+  current = reg;
+  show("welcome");
+  $("w-name").textContent = `${reg.first_name} ${reg.last_name}`;
+  $("w-meta").textContent = reg.email;
+  $("w-msg").textContent = "";
+
+  const e = emails[reg.id];
+  const sent = e?.status === "sent";
+
+  $("w-subject").value = e?.subject || `Looking forward to seeing you in ${course.city || "person"}`;
+  $("w-body").value = e?.body || [
+    `Hello ${reg.first_name},`,
+    "",
+    "",
+    "Many thanks",
+    me.full_name,
+  ].join("\n");
+
+  $("w-subject").disabled = sent;
+  $("w-body").disabled = sent;
+  $("w-save").disabled = sent;
+  $("w-send").disabled = sent;
+
+  if (sent) {
+    $("w-msg").className = "msg";
+    $("w-msg").textContent = `Sent ${fmtDate(e.sent_at)}. This cannot be changed.`;
+  }
+}
+
+$("w-save").addEventListener("click", () => saveWelcome("Saved."));
+$("w-send").addEventListener("click", sendWelcome);
+
+async function saveWelcome(note) {
+  const msg = $("w-msg");
+  msg.className = "msg"; msg.textContent = "Saving…";
+
+  const existing = emails[current.id];
+  const row = {
+    course_id: course.id,
+    registration_id: current.id,
+    kind: "welcome",
+    subject: $("w-subject").value.trim(),
+    body: $("w-body").value,
+    updated_at: new Date().toISOString(),
+  };
+
+  let result;
+  if (existing) {
+    result = await db.from("course_emails").update(row).eq("id", existing.id).select().single();
+  } else {
+    result = await db.from("course_emails").insert(row).select().single();
+  }
+
+  if (result.error) {
+    msg.className = "msg err";
+    msg.textContent = "Could not save: " + result.error.message;
+    return null;
+  }
+  emails[current.id] = result.data;
+  msg.className = "msg ok";
+  msg.textContent = note || "Saved.";
+  return result.data;
+}
+
+async function sendWelcome() {
+  if (!$("w-body").value.trim()) {
+    $("w-msg").className = "msg err";
+    $("w-msg").textContent = "There is nothing to send.";
+    return;
+  }
+  if (!window.confirm(`Send this to ${current.first_name}?`)) return;
+
+  const saved = await saveWelcome("Sending…");
+  if (!saved) return;
+
+  $("w-send").disabled = true;
+  const msg = $("w-msg");
+
+  try {
+    const r = await callSend({ emailId: saved.id, registrationId: current.id });
+    msg.className = r.failed ? "msg err" : "msg ok";
+    msg.textContent = r.failed
+      ? `That did not send. ${(r.problems || []).join("; ")}`
+      : `Sent to ${current.first_name} as ${r.sentAs}.`;
+    emails[current.id] = { ...saved, status: "sent", sent_at: new Date().toISOString() };
+    setTimeout(() => openCourse(course), 1200);
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = err.message;
+    $("w-send").disabled = false;
+  }
+}
+
+/* ---------------- shared ---------------- */
+
+async function callSend(payload) {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) throw new Error("Your session has expired — sign in again.");
+
+  const res = await fetch("/.netlify/functions/course-email-send", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + session.access_token,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || "That did not work.");
+  return data;
+}
+
+$("back-courses").addEventListener("click", loadCourses);
+$("back-course").addEventListener("click", () => openCourse(course));
+</script>
+
+</body>
+</html>
