@@ -16,7 +16,12 @@ const supabase = createClient(
   { auth: { persistSession: false } }
 );
 
-const FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
+// Where we may send as the coach's own address, because the domain
+// is verified in Resend. Anything else falls back to the shared
+// sending address with the coach's name on it.
+const VERIFIED_DOMAINS = ["birdboxcoaching.com"];
+
+const FALLBACK_FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
 const OFFICE = "info@birdboxcoaching.com";
 
 // Dollar-priced courses get the US spelling of the philosophy block.
@@ -66,10 +71,7 @@ export default async (req) => {
     for (const r of regs || []) byId[r.id] = r;
 
     const blockText = await loadBlocks(course);
-
-    // The coach's own address, so a reply reaches the person who
-    // watched them move.
-    const replyTo = staff.email || OFFICE;
+    const sender = senderFor(staff);
 
     let sent = 0;
     let failed = 0;
@@ -96,8 +98,7 @@ export default async (req) => {
 
       const ok = await sendEmail({
         to: reg.email,
-        replyTo,
-        fromName: staff.full_name,
+        sender,
         subject: d.subject || `Your feedback from ${course.title}`,
         text: full,
       });
@@ -121,9 +122,9 @@ export default async (req) => {
       }
     }
 
-    await officeSummary(course, staff, sent, failed, problems);
+    await officeSummary(course, staff, sender, sent, failed, problems);
 
-    return json({ ok: true, sent, failed, problems });
+    return json({ ok: true, sent, failed, problems, sentAs: sender.from });
   } catch (err) {
     console.error("feedback-send failed:", err);
     return json({ error: err.message || "Something went wrong" }, 500);
@@ -163,6 +164,28 @@ async function isLeadOrAdmin(staff, courseId) {
 }
 
 // ---------------------------------------------------------------
+// who it comes from
+// ---------------------------------------------------------------
+
+// If the coach's domain is verified we send as them outright. If it
+// is not, the shared address carries their name and their address is
+// used for replies — which is where every reply should land either
+// way, since they are the one who watched the participant move.
+function senderFor(staff) {
+  const email = (staff.email || "").trim().toLowerCase();
+  const domain = email.split("@")[1] || "";
+  const verified = VERIFIED_DOMAINS.includes(domain);
+
+  return {
+    from: verified
+      ? `${staff.full_name} <${email}>`
+      : `${staff.full_name} (BirdBox Coaching) <${FALLBACK_FROM}>`,
+    replyTo: email || OFFICE,
+    verified,
+  };
+}
+
+// ---------------------------------------------------------------
 // the approved passages
 // ---------------------------------------------------------------
 async function loadBlocks(course) {
@@ -181,13 +204,10 @@ async function loadBlocks(course) {
 
   const wantsUS = US_CURRENCIES.includes(course.currency);
 
-  // key + language -> the exact text to attach
   return (key, language) => {
     if (language && language !== "en" && byLang[language]?.[key]) {
       return byLang[language][key];
     }
-    // English falls back to the US spelling of the philosophy block
-    // on dollar-priced courses.
     if (wantsUS && base[key + "_us"]) return base[key + "_us"];
     return base[key] || null;
   };
@@ -197,8 +217,8 @@ async function loadBlocks(course) {
 // email
 // ---------------------------------------------------------------
 
-// Plain text kept as paragraphs. A feedback email is a letter, not a
-// marketing piece — no columns, no buttons, nothing to distract.
+// A feedback email is a letter, not a marketing piece — paragraphs,
+// nothing to click, nothing to distract.
 function template(text) {
   const paras = String(text)
     .split(/\n{2,}/)
@@ -237,7 +257,7 @@ function escapeHtml(s) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
-async function sendEmail({ to, replyTo, fromName, subject, text }) {
+async function sendEmail({ to, sender, subject, text }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) { console.warn("No Resend key; not sending to", to); return false; }
 
@@ -246,10 +266,10 @@ async function sendEmail({ to, replyTo, fromName, subject, text }) {
       method: "POST",
       headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: `${fromName} (BirdBox Coaching) <${FROM}>`,
+        from: sender.from,
         to: [to],
         cc: [OFFICE],
-        reply_to: replyTo,
+        reply_to: sender.replyTo,
         subject,
         text,
         html: template(text),
@@ -266,7 +286,7 @@ async function sendEmail({ to, replyTo, fromName, subject, text }) {
   }
 }
 
-async function officeSummary(course, staff, sent, failed, problems) {
+async function officeSummary(course, staff, sender, sent, failed, problems) {
   const key = process.env.RESEND_API_KEY;
   if (!key) return;
   try {
@@ -274,13 +294,17 @@ async function officeSummary(course, staff, sent, failed, problems) {
       method: "POST",
       headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: `BirdBox <${FROM}>`,
+        from: `BirdBox <${FALLBACK_FROM}>`,
         to: [OFFICE],
         subject: `[BirdBox] Feedback sent: ${course.title}`,
         text:
           `${staff.full_name} sent feedback for ${course.title}.\n\n` +
+          `Sent as: ${sender.from}\n` +
+          `Replies go to: ${sender.replyTo}\n\n` +
           `Sent: ${sent}\nFailed: ${failed}\n` +
-          (problems.length ? "\nNEEDS ATTENTION:\n" + problems.map((p) => "  " + p).join("\n") : ""),
+          (problems.length
+            ? "\nNEEDS ATTENTION:\n" + problems.map((p) => "  " + p).join("\n")
+            : ""),
       }),
     });
   } catch (err) {
