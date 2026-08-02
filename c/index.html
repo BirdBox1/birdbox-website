@@ -279,4 +279,658 @@
 
   <main id="course" class="hidden">
     <div class="head" id="head">
-      
+      <img class="lockup hidden" id="lockup" alt="">
+      <span class="badge hidden" id="badge"><img id="badgeicon" alt=""><span id="badgetext"></span></span>
+      <h1 class="sr" id="title"></h1>
+      <p class="facts" id="when"></p>
+      <p class="facts place" id="where"></p>
+    </div>
+
+    <div class="buy" id="buy">
+      <div class="price" id="price"></div>
+
+      <div class="prereq hidden" id="prereq">
+        <b>Before you book</b>
+        <span id="prereqtext"></span>
+      </div>
+
+      <div class="options" id="options"></div>
+
+      <div class="promo" id="promo">
+        <button class="promo-toggle" id="promotoggle" type="button">Have a discount code?</button>
+        <div class="promo-row hidden" id="promorow">
+          <input id="promoinput" type="text" autocomplete="off" autocapitalize="characters"
+                 spellcheck="false" placeholder="Enter code" aria-label="Discount code">
+          <button id="promoapply" type="button">Apply</button>
+        </div>
+        <p class="promo-msg" id="promomsg"></p>
+      </div>
+
+      <p class="seats hidden" id="seats"></p>
+      <p class="msg" id="msg"></p>
+    </div>
+
+    <div class="spec" id="specwrap"></div>
+
+    <div class="readable hidden" id="info">
+      <div id="summarywrap" class="hidden">
+        <p class="lede" id="summary"></p>
+      </div>
+
+      <div id="movementswrap" class="hidden">
+        <h2>What we will coach</h2>
+        <p class="movements" id="movements"></p>
+      </div>
+
+      <div id="descwrap" class="hidden">
+        <h2>About this course</h2>
+        <div id="description"></div>
+      </div>
+    </div>
+
+    <div id="venuewrap" class="hidden">
+      <h2>Where</h2>
+      <div class="venue">
+        <div class="top">
+          <img id="venuephoto" alt="" class="hidden">
+          <div>
+            <div class="vname" id="venuename"></div>
+            <div class="vaddr" id="venueaddr"></div>
+          </div>
+        </div>
+        <div class="map hidden" id="mapwrap">
+          <iframe id="map" title="Map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+        <a class="directions hidden" id="directions" target="_blank" rel="noopener">Open in Maps →</a>
+      </div>
+    </div>
+
+    <div id="videowrap" class="hidden">
+      <h2>Watch</h2>
+      <div class="video" id="video">
+        <img class="poster hidden" id="poster" alt="">
+        <button class="play" id="play" type="button" aria-label="Play the course video">
+          <svg viewBox="0 0 80 80" aria-hidden="true">
+            <circle cx="40" cy="40" r="38" fill="rgba(0,0,0,0.45)"
+                    stroke="#fff" stroke-width="2.5"/>
+            <path d="M33 27 L57 40 L33 53 Z" fill="#fff"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="detailwrap" class="hidden">
+      <h2>What we cover</h2>
+      <div class="readable">
+        <p class="detail" id="detail"></p>
+      </div>
+    </div>
+
+    <div id="includedwrap" class="hidden">
+      <h2>What's included</h2>
+      <ul class="tick" id="included"></ul>
+    </div>
+
+    <footer id="foot">
+      <p>Registering means you accept our
+        <a href="/agreements/#terms">terms of sale</a> and
+        <a href="/agreements/#waiver">waiver of liability</a>.
+        Course fees are non-refundable; transfers and credits are available.</p>
+      <p>BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland ·
+        <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a></p>
+    </footer>
+  </main>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Must match create-checkout.mjs
+const DEPOSIT_RATE = 0.25;
+const BALANCE_DAYS_BEFORE = 14;
+
+// Klarna is not available everywhere; these are the countries where
+// we offer it. Anywhere else sees full payment and deposit only.
+const KLARNA_COUNTRIES = [
+  "united kingdom", "uk", "ireland", "france", "germany", "spain", "italy",
+  "netherlands", "belgium", "austria", "portugal", "poland", "sweden",
+  "norway", "denmark", "finland", "switzerland", "czechia", "greece",
+  "united states", "usa", "us", "canada", "australia", "new zealand",
+];
+
+const BRAND = {
+  birdbox: { icon: "/brand/birdBox.png", colour: "#2f7fd0", label: "BirdBox" },
+  tcc:     { icon: "/brand/tcc.png",     colour: "#2f7fd0", label: "The Coaches Course" },
+  tgc:     { icon: "/brand/tgc.png",     colour: "#9e2029", label: "The Gymnastics Course" },
+  tec:     { icon: "/brand/tec.png",     colour: "#1c6b3f", label: "The Endurance Course" },
+  twc:     { icon: "/brand/twc.png",     colour: "#e8a317", label: "The Weightlifting Course" },
+};
+
+const LANG = {
+  en: "English", fr: "French", es: "Spanish", de: "German", it: "Italian",
+  ja: "Japanese", ko: "Korean", pt: "Portuguese", pl: "Polish",
+};
+
+const $ = (id) => document.getElementById(id);
+
+const parts = location.pathname.split("/").filter(Boolean);
+const slug = parts[parts.length - 1] === "c" ? null : parts[parts.length - 1];
+
+// Everything the buy box needs, rebuilt whenever a code is applied.
+const state = {
+  course: null,
+  isFull: false,
+  klarnaOk: false,
+  code: null,
+  total: 0,
+  deposit: 0,
+  discount: 0,
+  money: (c) => String(c),
+};
+
+load();
+
+async function load() {
+  if (!slug) return notFound();
+
+  const { data: course, error } = await db
+    .from("courses")
+    .select("id, brand, type, level, title, slug, summary, description, movements, workshop_focus, venue_name, address, city, country, starts_at, ends_at, timezone, capacity, price_cents, deposit_cents, currency, status, language, image_url")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error || !course) return notFound();
+
+  // Workshops inherit a template too — the shared furniture comes from
+  // it, while the name and movements typed per workshop win.
+  const tpl = await loadTemplate(course);
+  const isWorkshop = course.type === "workshop";
+
+  const b = BRAND[course.brand] || BRAND.birdbox;
+  document.documentElement.style.setProperty("--brandcolour", b.colour);
+
+  const bg = tpl && tpl.background_url;
+  if (bg) $("wash").style.backgroundImage = "url('" + bg + "')";
+
+  // A template that asks for a page colour gets the photo at full
+  // strength with that colour laid over it, rather than a faint wash.
+  if (tpl && tpl.page_bg) {
+    const root = document.documentElement.style;
+    root.setProperty("--paper", tpl.page_bg);
+    root.setProperty("--panel", "rgba(0,0,0,0.55)");
+    root.setProperty("--rule", "rgba(255,255,255,0.20)");
+    root.setProperty("--muted", "#cfc6c7");
+    $("wash").style.opacity = "1";
+    $("tint").style.opacity = "0.62";
+  }
+
+  document.title = course.title + " — BirdBox Coaching";
+
+  // A template lockup replaces the brand chip where there is one.
+  if (tpl && tpl.logo_url) {
+    $("lockup").src = tpl.logo_url;
+    $("lockup").alt = b.label + " workshop";
+    $("lockup").classList.remove("hidden");
+  } else {
+    $("badgeicon").src = b.icon;
+    $("badgetext").textContent =
+      [b.label, course.level ? "Level " + String(course.level).replace(/\D/g, "") : null]
+        .filter(Boolean).join(" · ");
+    $("badge").classList.remove("hidden");
+  }
+
+  // On a seminar the badge says what it is, so the title is for search
+  // engines only. On a workshop the name is the whole point — show it.
+  $("title").textContent = course.title;
+  if (isWorkshop) {
+    $("title").classList.remove("sr");
+    $("title").classList.add("shown");
+    $("head").classList.add("centred");
+  }
+
+  $("when").textContent = formatDates(course);
+  if (course.language && course.language !== "en") {
+    $("when").textContent += " · Taught in " + (LANG[course.language] || course.language);
+  }
+
+  // City — Country, e.g. London — United Kingdom, Austin — TX
+  $("where").textContent =
+    [course.city, course.country].filter(Boolean).join(" — ");
+
+  state.money = (cents) => new Intl.NumberFormat(undefined, {
+    style: "currency", currency: course.currency || "EUR", maximumFractionDigits: 0,
+  }).format((cents || 0) / 100);
+
+  // The prerequisite, said before anyone reaches for a card.
+  if (tpl && tpl.prereq_note) {
+    $("prereqtext").textContent = tpl.prereq_note;
+    $("prereq").classList.remove("hidden");
+  }
+
+  // Places remaining is staff information — the portal shows it.
+  const { count } = await db
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("course_id", course.id)
+    .not("payment_status", "in", '("refunded","failed")');
+
+  const left = Math.max(0, course.capacity - (count || 0));
+
+  state.course = course;
+  state.isFull = course.status === "full" || left === 0;
+  state.klarnaOk = KLARNA_COUNTRIES.includes(
+    String(course.country || "").trim().toLowerCase()
+  );
+  state.total = course.price_cents;
+  state.deposit = course.deposit_cents || Math.round(course.price_cents * DEPOSIT_RATE);
+
+  // A three-hour workshop is not worth splitting into a deposit and a
+  // balance chase — pay in full, or use Klarna.
+  if (isWorkshop) state.deposit = state.total;
+
+  if (state.isFull) {
+    $("seats").textContent = "This course is full. Email us to join the waiting list.";
+    $("seats").classList.remove("hidden");
+    $("promo").classList.add("hidden");
+  }
+
+  renderBuyBox();
+  wirePromo();
+
+  // ---- spec chips ------------------------------------------------
+  const specs = [];
+  specs.push(["Language", LANG[course.language] || course.language || "English"]);
+  if (tpl && tpl.duration) specs.push(["Duration", tpl.duration]);
+  if (tpl && tpl.prerequisites) specs.push(["Prerequisite", tpl.prerequisites]);
+  if (tpl && tpl.ceus) specs.push(["CrossFit CEUs", tpl.ceus]);
+  for (const [label, value] of specs) {
+    const el = document.createElement("span");
+    el.innerHTML = label + " <b></b>";
+    el.querySelector("b").textContent = value;
+    $("specwrap").append(el);
+  }
+  if (tpl && tpl.ceus) {
+    const seal = document.createElement("img");
+    seal.className = "ceu";
+    seal.src = "/brand/ceu-approved.png";
+    seal.alt = "CrossFit approved CEU provider";
+    $("specwrap").append(seal);
+  }
+
+  fill("summary", course.summary || (tpl && tpl.headline));
+  fill("movements", course.movements || course.workshop_focus);
+  fill("description", course.description || (tpl && tpl.intro), true);
+
+  // Only show the text panel if something ended up inside it, and let
+  // the first surviving section sit flush with the panel's padding.
+  const shown = ["summarywrap", "movementswrap", "descwrap"]
+    .map((id) => $(id))
+    .filter((el) => !el.classList.contains("hidden"));
+  if (shown.length) {
+    $("info").classList.remove("hidden");
+    shown[0].classList.add("first-inside");
+  }
+
+  const included = tpl && tpl.included;
+  if (included) {
+    $("includedwrap").classList.remove("hidden");
+    for (const line of String(included).split("\n")) {
+      if (!line.trim()) continue;
+      const li = document.createElement("li");
+      li.textContent = line.trim();
+      $("included").append(li);
+    }
+  }
+
+  wireVideo(tpl && tpl.video_url);
+
+  // detailed breakdown, after the video
+  if (tpl && tpl.detail) {
+    $("detailwrap").classList.remove("hidden");
+    $("detail").textContent = String(tpl.detail).trim();
+  }
+
+  if (course.venue_name || course.address) {
+    $("venuewrap").classList.remove("hidden");
+    $("venuename").textContent = course.venue_name || "";
+    $("venueaddr").textContent = addressLine(course);
+    if (course.image_url) {
+      $("venuephoto").src = course.image_url;
+      $("venuephoto").alt = course.venue_name || course.city || "";
+      $("venuephoto").classList.remove("hidden");
+    }
+
+    const query = [course.venue_name, addressLine(course)]
+      .filter(Boolean).join(", ");
+    if (query) {
+      const q = encodeURIComponent(query);
+      $("map").src = "https://maps.google.com/maps?q=" + q + "&z=13&output=embed";
+      $("mapwrap").classList.remove("hidden");
+      $("directions").href = "https://www.google.com/maps/search/?api=1&query=" + q;
+      $("directions").classList.remove("hidden");
+    }
+  }
+
+  // A workshop is sold on what it is, not on the brand — so the
+  // running order becomes lockup, what it is, the facts, then price.
+  if (isWorkshop) {
+    const main = $("course");
+    ["head", "info", "specwrap", "buy", "venuewrap", "videowrap", "includedwrap", "foot"]
+      .forEach((id) => main.append($(id)));
+  }
+
+  $("loading").classList.add("hidden");
+  $("course").classList.remove("hidden");
+}
+
+// A full address usually already names the city and country, so
+// appending them again produced "…United Kingdom, Glasgow, UK".
+// Only add a part the address has not already said.
+function addressLine(course) {
+  const out = [];
+  const said = (v) =>
+    out.join(", ").toLowerCase().includes(String(v).trim().toLowerCase());
+
+  if (course.address) out.push(String(course.address).trim());
+  for (const part of [course.city, course.country]) {
+    if (part && !said(part)) out.push(String(part).trim());
+  }
+  return out.join(", ");
+}
+
+function renderBuyBox() {
+  const { course, money, total, deposit, discount, isFull } = state;
+  const balance = total - deposit;
+
+  // ---- price -----------------------------------------------------
+  $("price").innerHTML = "";
+  if (discount > 0) {
+    const was = document.createElement("span");
+    was.className = "was";
+    was.textContent = money(course.price_cents);
+    $("price").append(was);
+  }
+  $("price").append(document.createTextNode(money(total)));
+  if (discount > 0) {
+    const saved = document.createElement("small");
+    saved.textContent = state.code + " applied — " + money(discount) + " off";
+    $("price").append(saved);
+  }
+
+  // ---- options ---------------------------------------------------
+  $("options").innerHTML = "";
+
+  if (isFull) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "opt primary";
+    btn.disabled = true;
+    btn.innerHTML = "<span><span class='label'>Fully booked</span></span>";
+    $("options").append(btn);
+    return;
+  }
+
+  const options = [
+    {
+      key: "full",
+      primary: true,
+      label: "Pay in full",
+      note: "Card, Apple Pay or Link",
+      amount: money(total),
+    },
+  ];
+
+  if (balance > 0) {
+    options.push({
+      key: "deposit",
+      label: "Pay a deposit",
+      note: "Balance of " + money(balance) + " charged automatically " +
+            BALANCE_DAYS_BEFORE + " days before the course",
+      amount: money(deposit),
+    });
+  }
+
+  if (state.klarnaOk) {
+    options.push({
+      key: "klarna",
+      label: "Spread the cost with Klarna",
+      note: "Klarna splits the payment for you — subject to their approval",
+      amount: money(total),
+    });
+  }
+
+  for (const opt of options) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "opt" + (opt.primary ? " primary" : "");
+
+    const text = document.createElement("span");
+    const label = document.createElement("span");
+    label.className = "label";
+    label.textContent = opt.label;
+    const note = document.createElement("span");
+    note.className = "note";
+    note.textContent = opt.note;
+    text.append(label, note);
+
+    const amount = document.createElement("span");
+    amount.className = "amount";
+    amount.textContent = opt.amount;
+
+    btn.append(text, amount);
+    btn.addEventListener("click", () => checkout(course.slug, opt.key, btn));
+    $("options").append(btn);
+  }
+}
+
+function wirePromo() {
+  $("promotoggle").addEventListener("click", () => {
+    $("promorow").classList.toggle("hidden");
+    $("promoinput").focus();
+  });
+
+  $("promoapply").addEventListener("click", applyCode);
+  $("promoinput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") applyCode();
+  });
+}
+
+async function applyCode() {
+  const input = $("promoinput");
+  const msg = $("promomsg");
+  const code = input.value.trim();
+  if (!code) return;
+
+  $("promoapply").disabled = true;
+  msg.className = "promo-msg";
+  msg.textContent = "Checking…";
+
+  try {
+    const res = await fetch("/.netlify/functions/validate-discount", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: state.course.slug, code: code }),
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      msg.className = "promo-msg err";
+      msg.textContent = data.error || "That code isn't recognised";
+      $("promoapply").disabled = false;
+      return;
+    }
+
+    state.code = data.code;
+    state.discount = data.discount_cents;
+    state.total = data.total_cents;
+    state.deposit = state.course.type === "workshop"
+      ? data.total_cents
+      : data.deposit_cents;
+
+    msg.className = "promo-msg ok";
+    msg.textContent = (data.label ? data.label + " — " : "") +
+      state.money(data.discount_cents) + " off";
+    $("promorow").classList.add("hidden");
+    $("promotoggle").textContent = "Use a different code";
+    renderBuyBox();
+  } catch (e) {
+    msg.className = "promo-msg err";
+    msg.textContent = "Could not check that code. Please try again.";
+  }
+  $("promoapply").disabled = false;
+}
+
+async function loadTemplate(course) {
+  const { data } = await db
+    .from("course_templates")
+    .select("*")
+    .eq("brand", course.brand)
+    .eq("type", course.type);
+
+  if (!data || !data.length) return null;
+
+  const lvl = (v) => String(v == null ? "" : v).replace(/\D/g, "");
+  const lang = (v) => {
+    const s = String(v == null ? "" : v).trim().toLowerCase();
+    if (LANG[s]) return s;
+    for (const k in LANG) if (LANG[k].toLowerCase() === s) return k;
+    return s;
+  };
+
+  const sameLevel = data.filter((t) => lvl(t.level) === lvl(course.level));
+  const pool = sameLevel.length ? sameLevel : data;
+  return pool.find((t) => lang(t.language) === lang(course.language)) || pool[0];
+}
+
+// Nothing loads until someone presses play. Then it plays with sound,
+// because a video someone chose to watch should be audible.
+function wireVideo(url) {
+  const v = videoFrom(url);
+  if (!v) return;
+
+  $("videowrap").classList.remove("hidden");
+
+  if (v.poster) {
+    const img = $("poster");
+    img.src = v.poster;
+    img.classList.remove("hidden");
+    // maxresdefault does not exist for every video; fall back quietly.
+    img.addEventListener("error", () => {
+      if (v.posterFallback && img.src !== v.posterFallback) {
+        img.src = v.posterFallback;
+      } else {
+        img.classList.add("hidden");
+      }
+    }, { once: false });
+  }
+
+  $("play").addEventListener("click", () => {
+    const frame = document.createElement("iframe");
+    frame.src = v.play;
+    frame.title = "Course video";
+    frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+    frame.allowFullscreen = true;
+    $("video").innerHTML = "";
+    $("video").append(frame);
+  }, { once: true });
+}
+
+function videoFrom(url) {
+  if (!url) return null;
+
+  const yt = String(url).match(/(?:youtu\.be\/|v=|youtube\.com\/embed\/)([A-Za-z0-9_-]{6,})/);
+  if (yt) {
+    const id = yt[1];
+    return {
+      play: "https://www.youtube-nocookie.com/embed/" + id +
+            "?autoplay=1&rel=0&modestbranding=1&playsinline=1" +
+            "&iv_load_policy=3&cc_load_policy=0&fs=1&color=white",
+      poster: "https://i.ytimg.com/vi/" + id + "/maxresdefault.jpg",
+      posterFallback: "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg",
+    };
+  }
+
+  const vm = String(url).match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vm) {
+    return {
+      play: "https://player.vimeo.com/video/" + vm[1] +
+            "?autoplay=1&title=0&byline=0&portrait=0",
+      poster: null,
+    };
+  }
+
+  return null;
+}
+
+function fill(id, value, isHtml) {
+  if (!value) return;
+  const wrap = $(id + "wrap");
+  if (wrap) wrap.classList.remove("hidden");
+  if (isHtml) {
+    $(id).innerHTML = "";
+    const paras = String(value).split(/\n{2,}/);
+    for (const para of paras) {
+      const p = document.createElement("p");
+      p.textContent = para.trim();
+      if (p.textContent) $(id).append(p);
+    }
+  } else {
+    $(id).textContent = value;
+  }
+}
+
+function formatDates(c) {
+  const opts = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+  const start = new Date(c.starts_at);
+  const startStr = start.toLocaleDateString(undefined, opts);
+  if (!c.ends_at) return startStr;
+  const end = new Date(c.ends_at);
+  if (start.toDateString() === end.toDateString()) return startStr;
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+  if (sameMonth) {
+    return start.getDate() + "–" + end.getDate() + " " +
+      end.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  }
+  return startStr + " – " + end.toLocaleDateString(undefined, opts);
+}
+
+async function checkout(slug, option, btn) {
+  const msg = $("msg");
+  const buttons = document.querySelectorAll(".opt");
+  buttons.forEach((b) => (b.disabled = true));
+  const label = btn.querySelector(".label");
+  const original = label.textContent;
+  label.textContent = "Opening secure checkout…";
+  msg.className = "msg";
+  msg.textContent = "";
+  try {
+    const res = await fetch("/.netlify/functions/create-checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: slug, option: option, code: state.code }),
+    });
+    const data = await res.json();
+    if (data.url) { location.href = data.url; return; }
+    msg.className = "msg err";
+    msg.textContent = data.error || "Could not start checkout. Please try again.";
+  } catch (e) {
+    msg.className = "msg err";
+    msg.textContent = "Could not reach the payment system. Please try again.";
+  }
+  label.textContent = original;
+  buttons.forEach((b) => (b.disabled = false));
+}
+
+function notFound() {
+  $("loading").classList.add("hidden");
+  $("course").classList.add("hidden");
+  $("missing").classList.remove("hidden");
+}
+</script>
+
+</body>
+</html>
