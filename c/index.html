@@ -162,8 +162,6 @@
   }
   p { margin: 0 0 1rem; }
 
-  .lede { font-size: 1.08rem; font-weight: 400; margin: 0 0 1.4rem; }
-
   .movements {
     border-left: 3px solid var(--brandcolour, var(--accent));
     padding: 0.15rem 0 0.15rem 0.9rem; margin: 0 0 1.25rem; font-size: 1.02rem;
@@ -293,11 +291,11 @@
 
     <div class="spec" id="specwrap"></div>
 
+    <!-- The one-line summary panel was removed deliberately. The selling
+         is done on the pages that link here; by the time someone reaches
+         this page they have decided, and the page's job is to take the
+         booking. -->
     <div class="readable hidden" id="info">
-      <div id="summarywrap" class="hidden">
-        <p class="lede" id="summary"></p>
-      </div>
-
       <div id="movementswrap" class="hidden">
         <h2>What we will coach</h2>
         <p class="movements" id="movements"></p>
@@ -538,13 +536,12 @@ async function load() {
     $("specwrap").append(seal);
   }
 
-  fill("summary", course.summary || (tpl && tpl.headline));
   fill("movements", course.movements || course.workshop_focus);
   fill("description", course.description || (tpl && tpl.intro), true);
 
   // Only show the text panel if something ended up inside it, and let
   // the first surviving section sit flush with the panel's padding.
-  const shown = ["summarywrap", "movementswrap", "descwrap"]
+  const shown = ["movementswrap", "descwrap"]
     .map((id) => $(id))
     .filter((el) => !el.classList.contains("hidden"));
   if (shown.length) {
