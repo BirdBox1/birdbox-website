@@ -1,3 +1,8 @@
 # Every course URL serves the same page; it reads the slug from the path.
 # 200 = rewrite, so the address bar keeps the real course URL.
 /c/*    /c/index.html    200
+
+# Same pattern for participant manuals. The page reads brand and level
+# from the path, e.g. /manuals/tgc-l1/ so adding a new manual is a
+# database row rather than a new page.
+/manuals/*    /manuals/index.html    200
