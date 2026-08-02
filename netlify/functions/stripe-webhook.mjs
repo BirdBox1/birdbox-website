@@ -8,6 +8,12 @@
 // invoice on the day, retries failures on its own schedule, and
 // emails the customer a hosted link to fix a dead card. Nothing here
 // runs on a timer.
+//
+// It also sends the participant their confirmation email, but only
+// for TCC and TGC seminars. Anything else — workshops, TEC, TWC —
+// sends nothing, because the schedule and kit list below are only
+// true for those two. Widen SENDS_CONFIRMATION when the copy for the
+// others exists, not before.
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
@@ -21,6 +27,20 @@ const supabase = createClient(
 );
 
 const ALERT_EMAIL = "info@birdboxcoaching.com";
+const REPLY_TO = "info@birdboxcoaching.com";
+
+// Change this one line when the custom domain goes live.
+const SITE_URL = process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.app";
+
+// Brands whose confirmation copy has been written and approved.
+const SENDS_CONFIRMATION = ["tcc", "tgc"];
+
+const BRAND_NAME = {
+  tcc: "The Coaches Course",
+  tgc: "The Gymnastics Course",
+  tec: "The Endurance Course",
+  twc: "The Weightlifting Course",
+};
 
 export default async (req) => {
   const signature = req.headers.get("stripe-signature");
@@ -168,6 +188,18 @@ async function onCheckoutCompleted(session) {
     console.warn("Registration created without waiver acceptance", full.id);
   }
 
+  // ---- the confirmation email ----------------------------------
+  // Never allowed to break the webhook: the seat is already booked
+  // and the money is taken, so a failed send is logged and flagged,
+  // not thrown.
+  await sendConfirmation({
+    courseId: meta.course_id,
+    email: details.email,
+    firstName,
+    option,
+    balanceCents,
+  });
+
   // ---- the balance, if this was a deposit ----------------------
   if (option !== "deposit" || balanceCents <= 0) return;
 
@@ -305,6 +337,200 @@ async function onInvoiceGivenUp(invoice) {
     `They have not been removed from the course — contact them or remove ` +
     `them manually.`
   );
+}
+
+// ---------------------------------------------------------------
+// the participant's confirmation
+// ---------------------------------------------------------------
+async function sendConfirmation({ courseId, email, firstName, option, balanceCents }) {
+  if (!email) return;
+
+  try {
+    const { data: course } = await supabase
+      .from("courses")
+      .select("brand, level, type, title, venue_name, address, city, country, starts_at, ends_at, timezone")
+      .eq("id", courseId)
+      .single();
+
+    if (!course) {
+      console.warn("No course found for confirmation email", courseId);
+      return;
+    }
+
+    const brand = String(course.brand || "").toLowerCase();
+    const isSeminar = String(course.type || "").toLowerCase() !== "workshop";
+
+    // Deliberately narrow. See the note at the top of this file.
+    if (!SENDS_CONFIRMATION.includes(brand) || !isSeminar) {
+      console.log("No confirmation copy for this course type — skipped", {
+        courseId, brand, type: course.type,
+      });
+      return;
+    }
+
+    const key = process.env.RESEND_API_KEY;
+    if (!key) {
+      console.warn("No RESEND_API_KEY — confirmation not sent to", email);
+      return;
+    }
+
+    const brandName = BRAND_NAME[brand] || "BirdBox Coaching";
+    const levelDigits = String(course.level == null ? "" : course.level).replace(/\D/g, "");
+    const courseName = brandName + (levelDigits ? " — Level " + levelDigits : "");
+    const dates = formatDates(course);
+    const place = [course.city, course.country].filter(Boolean).join(", ");
+
+    // Manuals only exist for Level 1 today. For anything else the
+    // section is left out rather than linking to an empty page.
+    const manualUrl = levelDigits === "1"
+      ? SITE_URL + "/manuals/" + brand + "-l1/"
+      : null;
+
+    const bring = [
+      "This confirmation email, printed or on your phone",
+      "Government-issued photo ID",
+      manualUrl ? "The course manual, with a pen — digital is fine, or print it if you prefer" : "A pen and something to write on",
+      "Suitable clothes for training",
+      "Snacks and fluids, and lunch if you are not going off site",
+    ];
+    if (brand === "tgc") bring.push("Gymnastics grips, if you use them");
+
+    const balanceNote = option === "deposit" && balanceCents > 0
+      ? "Your deposit is paid. The remaining balance will be charged automatically to the same card 14 days before the course."
+      : null;
+
+    const subject = "You're registered — " + courseName +
+      (place ? ", " + place : "") + ", " + dates;
+
+    const text = [
+      "Hi " + firstName + ",",
+      "",
+      "Thank you for registering. Your confirmation is below.",
+      "",
+      courseName.toUpperCase(),
+      dates,
+      course.venue_name || "",
+      [course.address, course.city, course.country].filter(Boolean).join(", "),
+      "",
+      "COURSE SCHEDULE",
+      "9:00am to 5:00pm each day, with a one-hour lunch break.",
+      "Please arrive at 8:30am on day one to check in.",
+      "",
+      manualUrl ? "READING MATERIAL" : null,
+      manualUrl ? manualUrl : null,
+      manualUrl ? "Choose your language on that page." : null,
+      manualUrl ? "" : null,
+      "WHAT TO BRING",
+      ...bring.map((b) => "- " + b),
+      "",
+      balanceNote,
+      balanceNote ? "" : null,
+      "Any questions, just reply to this email or contact " + REPLY_TO + ".",
+      "",
+      "BirdBox Coaching Limited",
+      "19 Baggot Street Lower, Dublin 2, D02 X658, Ireland",
+    ].filter((line) => line !== null).join("\n");
+
+    const html = `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#1a1a1a;max-width:560px;margin:0 auto;padding:8px 4px;">
+  <p>Hi ${esc(firstName)},</p>
+  <p>Thank you for registering. Your confirmation is below.</p>
+
+  <div style="border-left:3px solid #9e2029;padding:2px 0 2px 14px;margin:24px 0;">
+    <div style="font-weight:700;font-size:18px;">${esc(courseName)}</div>
+    <div style="font-size:17px;">${esc(dates)}</div>
+    ${course.venue_name ? `<div style="margin-top:6px;">${esc(course.venue_name)}</div>` : ""}
+    <div style="color:#666;">${esc([course.address, course.city, course.country].filter(Boolean).join(", "))}</div>
+  </div>
+
+  <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Course schedule</h3>
+  <p style="margin:0;">9:00am to 5:00pm each day, with a one-hour lunch break.<br>
+     Please arrive at <strong>8:30am on day one</strong> to check in.</p>
+
+  ${manualUrl ? `
+  <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Reading material</h3>
+  <p style="margin:0 0 12px;">Your course manual is available in several languages:</p>
+  <p style="margin:0;">
+    <a href="${manualUrl}" style="display:inline-block;background:#9e2029;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Open your course manual</a>
+  </p>
+  <p style="color:#666;font-size:14px;margin:10px 0 0;">Choose your language on that page. Digital is fine, or print it if you prefer.</p>
+  ` : ""}
+
+  <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">What to bring</h3>
+  <ul style="margin:0;padding-left:20px;">
+    ${bring.map((b) => `<li style="margin-bottom:4px;">${esc(b)}</li>`).join("")}
+  </ul>
+
+  ${balanceNote ? `<p style="background:#f4f4f4;border-radius:5px;padding:12px 14px;margin:24px 0 0;font-size:15px;">${esc(balanceNote)}</p>` : ""}
+
+  <p style="margin:28px 0 0;">Any questions, just reply to this email or contact
+    <a href="mailto:${REPLY_TO}" style="color:#9e2029;">${REPLY_TO}</a>.</p>
+
+  <p style="color:#888;font-size:13px;margin-top:32px;border-top:1px solid #e0e0e0;padding-top:16px;">
+    BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland
+  </p>
+</div>`;
+
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + key,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: process.env.CONFIRM_FROM || process.env.ALERT_FROM || REPLY_TO,
+        to: [email],
+        reply_to: REPLY_TO,
+        subject: subject,
+        text: text,
+        html: html,
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("Confirmation email rejected", res.status, body);
+      await alert(
+        "Confirmation email not delivered",
+        `The confirmation to ${email} for ${courseName} was rejected by ` +
+        `Resend (${res.status}). They are registered, but have not been ` +
+        `told. Response: ${body}`
+      );
+    }
+  } catch (err) {
+    console.error("Could not send confirmation email", email, err);
+  }
+}
+
+// Sunday 25 January 2026 · 25–26 July 2026 · 30 July – 1 August 2026
+function formatDates(course) {
+  const zone = course.timezone || "UTC";
+  const long = { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: zone };
+  const start = new Date(course.starts_at);
+  const startStr = start.toLocaleDateString("en-GB", long);
+  if (!course.ends_at) return startStr;
+
+  const end = new Date(course.ends_at);
+  const dayIn = (d) => d.toLocaleDateString("en-GB", { timeZone: zone });
+  if (dayIn(start) === dayIn(end)) return startStr;
+
+  const part = (d, opts) => d.toLocaleDateString("en-GB", { ...opts, timeZone: zone });
+  const sameMonth =
+    part(start, { month: "long", year: "numeric" }) ===
+    part(end, { month: "long", year: "numeric" });
+
+  if (sameMonth) {
+    return part(start, { day: "numeric" }) + "–" +
+           part(end, { day: "numeric", month: "long", year: "numeric" });
+  }
+  return part(start, { day: "numeric", month: "long" }) + " – " +
+         part(end, { day: "numeric", month: "long", year: "numeric" });
+}
+
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 // ---------------------------------------------------------------
