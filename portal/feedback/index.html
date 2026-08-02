@@ -29,12 +29,11 @@
 
   .wrap{max-width:56rem;margin:0 auto;padding:1.5rem 1.25rem 5rem}
   h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0 0 0.2rem;font-weight:600}
-  h2{font-size:1.1rem;margin:0 0 0.2rem;font-weight:600;letter-spacing:-0.015em}
   .sub{color:var(--muted);font-size:0.9rem;margin:0 0 1.25rem}
-  a.back{display:inline-block;font-size:0.85rem;color:var(--accent);
+  .back{display:inline-block;font-size:0.85rem;color:var(--accent);
     text-decoration:none;margin-bottom:1rem;cursor:pointer;background:none;border:0;
     font-family:inherit;padding:0}
-  a.back:hover{text-decoration:underline}
+  .back:hover{text-decoration:underline}
 
   .btn{font:inherit;font-weight:600;background:var(--ink);color:#fff;border:0;
     border-radius:4px;padding:0.6rem 1.1rem;cursor:pointer}
@@ -59,11 +58,11 @@
   .pill{display:inline-block;font-size:0.66rem;letter-spacing:0.09em;
     text-transform:uppercase;padding:0.16rem 0.45rem;border:1px solid var(--rule);
     border-radius:3px;color:var(--muted);white-space:nowrap}
-  .pill.none{border-color:var(--rule);color:var(--muted)}
   .pill.draft{border-color:var(--warn);color:var(--warn)}
   .pill.ok{background:var(--good);border-color:var(--good);color:#fff;font-weight:700}
   .pill.sent{border-color:var(--accent);color:var(--accent)}
   .pill.err{border-color:var(--bad);color:var(--bad);font-weight:700}
+  .pill.busy{border-color:var(--accent);color:var(--accent)}
 
   .panel{background:var(--card);border:1px solid var(--rule);border-radius:6px;
     padding:1.25rem;margin-bottom:1rem}
@@ -72,9 +71,9 @@
 
   label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.3rem}
   .hint{font-weight:400;color:var(--muted);font-size:0.78rem}
-  input[type=text],textarea,select{width:100%;font:inherit;padding:0.55rem 0.65rem;
+  input[type=text],textarea{width:100%;font:inherit;padding:0.55rem 0.65rem;
     border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink)}
-  textarea{min-height:22rem;resize:vertical;line-height:1.6}
+  textarea{min-height:24rem;resize:vertical;line-height:1.6}
   .field{margin-bottom:1rem}
 
   .blocks{display:grid;gap:0.5rem}
@@ -99,6 +98,12 @@
   .counts{font-size:0.85rem;color:var(--muted);margin-bottom:1rem}
   .sticky{position:sticky;bottom:0;background:var(--paper);
     padding:0.9rem 0;border-top:1px solid var(--rule);margin-top:1.25rem}
+
+  /* while a draft is being written */
+  .spin{display:inline-block;width:0.85rem;height:0.85rem;margin-right:0.45rem;
+    border:2px solid var(--rule);border-top-color:var(--accent);border-radius:50%;
+    animation:sp 0.7s linear infinite;vertical-align:-2px}
+  @keyframes sp{to{transform:rotate(360deg)}}
   .hidden{display:none!important}
 </style>
 </head>
@@ -115,14 +120,12 @@
 <div class="wrap">
   <div id="loading"><p class="sub">Loading…</p></div>
 
-  <!-- pick a course -->
   <section id="view-courses" class="hidden">
     <h1>Feedback</h1>
     <p class="sub">Courses you are lead coach on.</p>
     <div id="courselist"></div>
   </section>
 
-  <!-- participants on that course -->
   <section id="view-people" class="hidden">
     <button class="back" id="back-courses" type="button">← All courses</button>
     <h1 id="c-title"></h1>
@@ -136,7 +139,6 @@
     </div>
   </section>
 
-  <!-- one draft -->
   <section id="view-draft" class="hidden">
     <button class="back" id="back-people" type="button">← All participants</button>
     <h1 id="p-name"></h1>
@@ -172,7 +174,6 @@
         <button class="btn small" id="save" type="button">Save</button>
         <button class="btn small go" id="approve" type="button">Mark as checked</button>
         <button class="btn ghost small" id="unapprove" type="button">Unmark</button>
-        <button class="btn ghost small" id="regen" type="button">Rewrite from notes</button>
       </div>
       <p class="msg" id="d-msg"></p>
     </div>
@@ -200,7 +201,8 @@ let blocks = [];
 let course = null;
 let people = [];
 let drafts = {};
-let current = null;   // { reg, draft, notes }
+let current = null;
+let watching = null;   // interval id while a draft is being written
 
 const fmtDate = (iso) => iso
   ? new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
@@ -220,7 +222,6 @@ async function start() {
   me = staff;
 
   const { data: b } = await db.from("email_blocks").select("key, title, body").order("key");
-  // The US spelling variant is picked automatically, never by hand.
   blocks = (b || []).filter((x) => !x.key.endsWith("_us"));
 
   await loadCourses();
@@ -229,6 +230,7 @@ async function start() {
 /* ---------------- courses ---------------- */
 
 async function loadCourses() {
+  stopWatching();
   show("courses");
   const list = $("courselist");
   list.innerHTML = '<p class="empty">Loading…</p>';
@@ -254,20 +256,19 @@ async function loadCourses() {
     return;
   }
 
-  // How many drafts exist and how far along they are.
   const { data: ds } = await db.from("feedback_drafts")
     .select("course_id, status")
     .in("course_id", rows.map((r) => r.id));
 
   const tally = {};
   for (const d of ds || []) {
-    const t = tally[d.course_id] = tally[d.course_id] || { draft: 0, approved: 0, sent: 0 };
-    if (t[d.status] !== undefined) t[d.status]++;
+    const t = tally[d.course_id] = tally[d.course_id] || {};
+    t[d.status] = (t[d.status] || 0) + 1;
   }
 
   list.innerHTML = "";
   for (const c of rows) {
-    const t = tally[c.id] || { draft: 0, approved: 0, sent: 0 };
+    const t = tally[c.id] || {};
     const el = document.createElement("div");
     el.className = "card";
     el.innerHTML = `<button class="row" type="button">
@@ -282,7 +283,8 @@ async function loadCourses() {
     if (t.sent && !t.draft && !t.approved) { pill.textContent = "all sent"; pill.className = "pill sent"; }
     else if (t.approved) { pill.textContent = `${t.approved} checked`; pill.className = "pill ok"; }
     else if (t.draft) { pill.textContent = `${t.draft} drafted`; pill.className = "pill draft"; }
-    else { pill.textContent = "not started"; pill.className = "pill none"; }
+    else if (t.failed) { pill.textContent = "failed"; pill.className = "pill err"; }
+    else { pill.textContent = "not started"; pill.className = "pill"; }
 
     el.querySelector(".row").addEventListener("click", () => openCourse(c));
     list.append(el);
@@ -292,6 +294,7 @@ async function loadCourses() {
 /* ---------------- participants ---------------- */
 
 async function openCourse(c) {
+  stopWatching();
   course = c;
   show("people");
   $("c-title").textContent = c.title;
@@ -302,7 +305,7 @@ async function openCourse(c) {
   $("peoplelist").innerHTML = '<p class="empty">Loading…</p>';
 
   const { data: regs } = await db.from("registrations")
-    .select("id, first_name, last_name, email, attended, payment_status, feedback_language")
+    .select("id, first_name, last_name, email, payment_status, feedback_language")
     .eq("course_id", c.id)
     .order("last_name");
 
@@ -310,12 +313,8 @@ async function openCourse(c) {
     (r) => r.payment_status !== "refunded" && r.payment_status !== "failed"
   );
 
-  const { data: ds } = await db.from("feedback_drafts")
-    .select("*").eq("course_id", c.id);
-  drafts = {};
-  for (const d of ds || []) drafts[d.registration_id] = d;
+  await refreshDrafts();
 
-  // How many notes each person has — no notes means no draft.
   const { data: notes } = await db.from("participant_notes")
     .select("registration_id").eq("course_id", c.id);
   const noteCount = {};
@@ -324,6 +323,13 @@ async function openCourse(c) {
   }
 
   renderPeople(noteCount);
+}
+
+async function refreshDrafts() {
+  const { data: ds } = await db.from("feedback_drafts")
+    .select("*").eq("course_id", course.id);
+  drafts = {};
+  for (const d of ds || []) drafts[d.registration_id] = d;
 }
 
 function renderPeople(noteCount) {
@@ -358,17 +364,17 @@ function renderPeople(noteCount) {
 
     const pill = el.querySelector(".pill");
     if (d?.status === "sent") { pill.textContent = "sent"; pill.className = "pill sent"; }
-    else if (d?.send_error) { pill.textContent = "failed"; pill.className = "pill err"; }
+    else if (d?.status === "failed") { pill.textContent = "failed"; pill.className = "pill err"; }
+    else if (d?.send_error) { pill.textContent = "send failed"; pill.className = "pill err"; }
     else if (d?.status === "approved") { pill.textContent = "checked"; pill.className = "pill ok"; }
     else if (d) { pill.textContent = "needs checking"; pill.className = "pill draft"; }
-    else if (!n) { pill.textContent = "no notes"; pill.className = "pill none"; }
-    else { pill.textContent = "not written"; pill.className = "pill none"; }
+    else if (!n) { pill.textContent = "no notes"; pill.className = "pill"; }
+    else { pill.textContent = "not written"; pill.className = "pill"; }
 
     el.querySelector(".row").addEventListener("click", () => openDraft(r));
     list.append(el);
   }
 
-  const waiting = people.length - sent;
   $("c-counts").textContent =
     `${people.length} participant${people.length === 1 ? "" : "s"} · ` +
     `${drafted} to check · ${approved} checked · ${sent} sent` +
@@ -378,16 +384,18 @@ function renderPeople(noteCount) {
   btn.disabled = !approved;
   btn.textContent = approved
     ? `Send ${approved} checked email${approved === 1 ? "" : "s"}`
-    : waiting ? "Nothing checked yet" : "All sent";
+    : sent === people.length ? "All sent" : "Nothing checked yet";
 }
 
 /* ---------------- one draft ---------------- */
 
 async function openDraft(reg) {
+  stopWatching();
   show("draft");
   $("p-name").textContent = `${reg.first_name} ${reg.last_name}`;
   $("p-meta").textContent = reg.email;
   $("gen-msg").textContent = "";
+  $("gen-msg").className = "msg";
   $("d-msg").textContent = "";
 
   const { data: notes } = await db.from("participant_notes")
@@ -410,22 +418,29 @@ async function openDraft(reg) {
     }
   }
 
-  const d = drafts[reg.id] || null;
-  current = { reg, draft: d, notes: notes || [] };
+  current = { reg, draft: drafts[reg.id] || null, notes: notes || [] };
 
   $("generate").disabled = !(notes && notes.length);
-  $("gen-hint").textContent = notes && notes.length
-    ? "" : "Add notes for this participant first.";
-  $("generate").textContent = d ? "Rewrite from notes" : "Write the draft";
+  $("gen-hint").textContent = notes && notes.length ? "" : "Add notes for this participant first.";
+
+  // A previous attempt that failed explains itself here.
+  if (current.draft?.status === "failed") {
+    $("gen-msg").className = "msg err";
+    $("gen-msg").textContent = current.draft.gen_error || "The last attempt failed.";
+  } else if (current.draft?.gen_error) {
+    $("gen-msg").className = "msg";
+    $("gen-msg").textContent = current.draft.gen_error;
+  }
 
   renderDraft();
 }
 
 function renderDraft() {
   const d = current.draft;
-  const panel = $("draftpanel");
-  panel.classList.toggle("hidden", !d);
-  if (!d) return;
+  const usable = d && d.status !== "failed" && d.body;
+  $("draftpanel").classList.toggle("hidden", !usable);
+  $("generate").textContent = usable ? "Rewrite from notes" : "Write the draft";
+  if (!usable) return;
 
   $("d-subject").value = d.subject || "";
   $("d-body").value = d.body || "";
@@ -446,12 +461,10 @@ function renderDraft() {
   }
 
   const sent = d.status === "sent";
-  $("save").disabled = sent;
+  for (const id of ["save", "approve", "d-subject", "d-body"]) $(id).disabled = sent;
   $("approve").disabled = sent || d.status === "approved";
   $("unapprove").disabled = sent || d.status !== "approved";
-  $("regen").disabled = sent;
-  $("d-subject").disabled = sent;
-  $("d-body").disabled = sent;
+  $("generate").disabled = sent;
 
   $("d-msg").className = "msg";
   $("d-msg").textContent = sent
@@ -464,55 +477,92 @@ function chosenBlocks() {
     .map((i) => i.dataset.key);
 }
 
-/* ---------------- actions ---------------- */
+/* ---------------- writing ---------------- */
 
-async function callFn(name, payload) {
-  const { data: { session } } = await db.auth.getSession();
-  if (!session) throw new Error("Your session has expired — sign in again.");
-  const res = await fetch(`/.netlify/functions/${name}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + session.access_token,
-    },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json();
-  if (!res.ok || data.error) throw new Error(data.error || "That did not work.");
-  return data;
+function stopWatching() {
+  if (watching) { clearInterval(watching); watching = null; }
 }
 
+// The drafting function runs in the background and can take a minute,
+// so we start it and then watch the database for the result.
 async function generate() {
   const msg = $("gen-msg");
+  const reg = current.reg;
+  const before = current.draft?.generated_at || null;
+
   $("generate").disabled = true;
   msg.className = "msg";
-  msg.textContent = "Writing — this takes about half a minute…";
+  msg.innerHTML = '<span class="spin"></span>Writing — this usually takes under a minute…';
 
   try {
-    const r = await callFn("feedback-draft", {
-      action: "generate",
-      registrationId: current.reg.id,
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) throw new Error("Your session has expired — sign in again.");
+
+    const res = await fetch("/.netlify/functions/feedback-draft-background", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + session.access_token,
+      },
+      body: JSON.stringify({ registrationId: reg.id }),
     });
-    current.draft = r.draft;
-    drafts[current.reg.id] = r.draft;
-    msg.className = "msg ok";
-    msg.textContent = r.missing
-      ? "Written. Note: " + r.missing
-      : "Written. Read it through before marking it checked.";
-    $("generate").textContent = "Rewrite from notes";
-    renderDraft();
+
+    // A background function replies 202 straight away and carries on.
+    if (res.status !== 202 && !res.ok) {
+      throw new Error("Could not start writing. Try again.");
+    }
   } catch (err) {
     msg.className = "msg err";
     msg.textContent = err.message;
+    $("generate").disabled = false;
+    return;
   }
-  $("generate").disabled = false;
+
+  // Poll until the draft appears, changes, or we give up.
+  let waited = 0;
+  stopWatching();
+  watching = setInterval(async () => {
+    waited += 3;
+
+    const { data: d } = await db.from("feedback_drafts")
+      .select("*").eq("registration_id", reg.id).maybeSingle();
+
+    const changed = d && (d.generated_at !== before || d.status === "failed");
+    if (!changed) {
+      if (waited >= 180) {
+        stopWatching();
+        msg.className = "msg err";
+        msg.textContent = "This is taking longer than expected. Check back in a minute.";
+        $("generate").disabled = false;
+      }
+      return;
+    }
+
+    stopWatching();
+    current.draft = d;
+    drafts[reg.id] = d;
+    $("generate").disabled = false;
+
+    if (d.status === "failed") {
+      msg.className = "msg err";
+      msg.textContent = d.gen_error || "The draft could not be written.";
+    } else {
+      msg.className = "msg ok";
+      msg.textContent = d.gen_error
+        ? d.gen_error
+        : "Written. Read it through before marking it checked.";
+    }
+    renderDraft();
+  }, 3000);
 }
 
-$("generate").addEventListener("click", generate);
-$("regen").addEventListener("click", () => {
-  if (!window.confirm("Rewrite this from the notes? Your edits will be lost.")) return;
+$("generate").addEventListener("click", () => {
+  if (current.draft?.body &&
+      !window.confirm("Rewrite this from the notes? Your edits will be lost.")) return;
   generate();
 });
+
+/* ---------------- saving ---------------- */
 
 async function saveDraft(patch, note) {
   const msg = $("d-msg");
@@ -584,11 +634,22 @@ $("sendall").addEventListener("click", async () => {
   msg.textContent = "Sending…";
 
   try {
-    const r = await callFn("feedback-send", { courseId: course.id });
+    const { data: { session } } = await db.auth.getSession();
+    const res = await fetch("/.netlify/functions/feedback-send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + session.access_token,
+      },
+      body: JSON.stringify({ courseId: course.id }),
+    });
+    const r = await res.json();
+    if (!res.ok || r.error) throw new Error(r.error || "That did not work.");
+
     msg.className = r.failed ? "msg err" : "msg ok";
     msg.textContent = r.failed
       ? `${r.sent} sent, ${r.failed} failed. The failures are marked in the list.`
-      : `${r.sent} email${r.sent === 1 ? "" : "s"} sent.`;
+      : `${r.sent} email${r.sent === 1 ? "" : "s"} sent as ${r.sentAs || "you"}.`;
     await openCourse(course);
   } catch (err) {
     msg.className = "msg err";
