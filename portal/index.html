@@ -16,7 +16,7 @@
     --good:   #1f8a54;
     --warn:   #b4610f;
     --bad:    #b3261e;
-    --flag:   #d9b310;   /* needs attention, but not a problem */
+    --flag:   #d9b310;
   }
 
   *, *::before, *::after { box-sizing: border-box; }
@@ -44,7 +44,7 @@
     font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9;
     white-space: nowrap;
   }
-  .bar .right { display: flex; align-items: center; gap: 0.8rem; }
+  .bar .right { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end; }
   .bar .who { font-size: 0.85rem; color: #cfd4d9; white-space: nowrap; }
   .bar button, .bar a.linkbtn {
     font: inherit; font-size: 0.8rem; background: none; color: #cfd4d9;
@@ -102,10 +102,7 @@
   }
   .tab:hover { color: var(--ink); }
   .tab.on { color: var(--ink); border-bottom-color: var(--ink); }
-  .tab .n {
-    font-size: 0.72rem; font-weight: 650; color: var(--muted);
-    margin-left: 0.3rem;
-  }
+  .tab .n { font-size: 0.72rem; font-weight: 650; color: var(--muted); margin-left: 0.3rem; }
 
   a.back, .textlink {
     display: inline-block; font-size: 0.85rem; color: var(--accent);
@@ -115,7 +112,6 @@
   a.back { margin-bottom: 1rem; }
   a.back:hover, .textlink:hover { text-decoration: underline; }
 
-  /* something that needs a decision, called out above the list */
   .alert {
     background: #fff8f0; border: 1px solid #efd6b8; border-left: 3px solid var(--warn);
     border-radius: 6px; padding: 0.9rem 1.05rem; margin-bottom: 1rem;
@@ -123,9 +119,7 @@
   }
   .alert b { display: block; margin-bottom: 0.2rem; }
   .alert ul { margin: 0.4rem 0 0; padding-left: 1.1rem; color: var(--muted); }
-  .alert.flag {
-    background: #fffbe8; border-color: #eddfa4; border-left-color: var(--flag);
-  }
+  .alert.flag { background: #fffbe8; border-color: #eddfa4; border-left-color: var(--flag); }
 
   /* ---------------- login ---------------- */
   .login {
@@ -160,9 +154,7 @@
   .btn:hover { background: #000; }
   .btn[disabled] { opacity: 0.5; cursor: default; }
   .btn.wide { width: 100%; }
-  .btn.ghost {
-    background: none; color: var(--ink); border: 1px solid var(--rule); font-weight: 500;
-  }
+  .btn.ghost { background: none; color: var(--ink); border: 1px solid var(--rule); font-weight: 500; }
   .btn.ghost:hover { background: #fff; border-color: var(--muted); }
   .btn.small { font-size: 0.82rem; padding: 0.4rem 0.8rem; }
   .btn.tiny { font-size: 0.78rem; padding: 0.3rem 0.65rem; }
@@ -181,15 +173,13 @@
   .card {
     background: var(--card); border: 1px solid var(--rule);
     border-radius: 6px; margin-bottom: 0.7rem; overflow: hidden;
-    display: flex; align-items: stretch;
-    border-left: 3px solid var(--rule);
+    display: flex; align-items: stretch; border-left: 3px solid var(--rule);
   }
   .card.is-archived { opacity: 0.65; }
   .course {
     display: grid; grid-template-columns: 44px 1fr; gap: 0.9rem;
     flex: 1 1 auto; min-width: 0; text-align: left; font: inherit;
-    background: none; border: 0;
-    padding: 0.95rem 1.05rem; cursor: pointer;
+    background: none; border: 0; padding: 0.95rem 1.05rem; cursor: pointer;
   }
   .course:hover { background: #faf9f7; }
   .course:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -207,7 +197,6 @@
   .course .line { font-size: 0.85rem; color: var(--muted); margin-top: 0.1rem; }
   .course .flags { margin-top: 0.4rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
 
-  /* quick share, sits to the right of every course */
   .copy {
     flex: none; width: 3.4rem; font: inherit; font-size: 0.68rem;
     letter-spacing: 0.06em; text-transform: uppercase; font-weight: 650;
@@ -217,7 +206,6 @@
   .copy:hover { background: #faf9f7; color: var(--ink); }
   .copy.done { color: var(--good); }
 
-  /* restore and delete, only on an archived or cancelled course */
   .rowbtn {
     flex: none; width: 2.9rem; background: none; cursor: pointer;
     border: 0; border-left: 1px solid var(--rule);
@@ -245,17 +233,12 @@
   .pill.on   { border-color: var(--good); color: var(--good); }
   .pill.low  { background: var(--warn); border-color: var(--warn); color: #fff; font-weight: 700; }
   .pill.lead { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 700; }
-  /* yellow reads as "needs doing", distinct from the amber warnings
-     and from TCC blue once that brand arrives */
   .pill.nolead { border-color: #c9a227; color: #85670a; }
-  .pill.nolead.due {
-    background: #f3cf3d; border-color: #d9b310; color: #33280a; font-weight: 700;
-  }
+  .pill.nolead.due { background: #f3cf3d; border-color: #d9b310; color: #33280a; font-weight: 700; }
 
   /* ---------------- delete dialog ---------------- */
   .overlay {
-    position: fixed; inset: 0; z-index: 60;
-    background: rgba(13,14,16,0.55);
+    position: fixed; inset: 0; z-index: 60; background: rgba(13,14,16,0.55);
     display: grid; place-items: center; padding: 1.25rem;
   }
   .dialog {
@@ -266,13 +249,10 @@
   .dialog p { margin: 0 0 0.8rem; font-size: 0.9rem; line-height: 1.55; }
   .dialog .loses {
     background: #fdf4f3; border: 1px solid #e6c9c7; border-radius: 5px;
-    padding: 0.7rem 0.85rem; font-size: 0.86rem; color: var(--bad);
-    margin: 0 0 1rem;
+    padding: 0.7rem 0.85rem; font-size: 0.86rem; color: var(--bad); margin: 0 0 1rem;
   }
   .dialog .loses ul { margin: 0.35rem 0 0; padding-left: 1.1rem; }
-  .dialog input {
-    letter-spacing: 0.12em; font-weight: 650; text-transform: uppercase;
-  }
+  .dialog input { letter-spacing: 0.12em; font-weight: 650; text-transform: uppercase; }
   .dialog .row { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1.1rem; }
 
   /* ---------------- attendees ---------------- */
@@ -280,8 +260,9 @@
   .attendee:last-child { border-bottom: 0; }
   .attendee.chase { border-left: 3px solid var(--bad); }
   .attendee .row1 {
-    display: flex; align-items: center; gap: 0.75rem; justify-content: space-between;
+    display: flex; align-items: flex-start; gap: 0.85rem; justify-content: space-between;
   }
+  .attendee .person { display: flex; gap: 0.75rem; align-items: flex-start; min-width: 0; }
   .attendee .name { font-weight: 650; }
   .attendee .contact { font-size: 0.84rem; color: var(--muted); word-break: break-all; }
   .attendee .money { font-size: 0.82rem; color: var(--muted); margin-top: 0.3rem; }
@@ -290,6 +271,24 @@
   .check input { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); }
   .saved { font-size: 0.75rem; color: var(--good); margin-left: 0.5rem; }
 
+  /* participant photo, taken at the registration desk */
+  .shot { flex: none; width: 54px; }
+  .shot .frame {
+    width: 54px; height: 54px; border-radius: 5px; overflow: hidden;
+    border: 1px solid var(--rule); background: #f0eeea;
+    display: grid; place-items: center; cursor: pointer;
+  }
+  .shot .frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .shot .frame svg { width: 20px; height: 20px; color: var(--muted); }
+  .shot .frame:hover { border-color: var(--accent); }
+  .shot .cap {
+    display: block; text-align: center; font-size: 0.66rem; color: var(--muted);
+    margin-top: 0.2rem; cursor: pointer;
+  }
+  .shot input[type=file] { display: none; }
+  .shot .cap.busy { color: var(--accent); }
+  .shot .cap.err { color: var(--bad); }
+
   /* ---------------- notes ---------------- */
   .notes { margin-top: 0.7rem; }
   .notes .head {
@@ -297,10 +296,7 @@
     font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
     color: var(--muted); font-weight: 600; margin-bottom: 0.4rem;
   }
-  .note {
-    border-left: 2px solid var(--rule); padding: 0.15rem 0 0.15rem 0.7rem;
-    margin-bottom: 0.6rem;
-  }
+  .note { border-left: 2px solid var(--rule); padding: 0.15rem 0 0.15rem 0.7rem; margin-bottom: 0.6rem; }
   .note.mine { border-left-color: var(--accent); }
   .note .meta {
     font-size: 0.75rem; color: var(--muted); margin-bottom: 0.15rem;
@@ -323,7 +319,6 @@
     border-radius: 6px; overflow: hidden;
   }
 
-  /* admin-only actions on a single course */
   .admin-panel {
     background: var(--card); border: 1px solid var(--rule);
     border-radius: 6px; padding: 1.25rem; margin-top: 1.5rem;
@@ -333,9 +328,7 @@
     color: var(--muted); margin: 0 0 1rem; font-weight: 600;
   }
   .admin-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
-  .admin-row .why {
-    font-size: 0.82rem; color: var(--muted); flex: 1 1 12rem; min-width: 0;
-  }
+  .admin-row .why { font-size: 0.82rem; color: var(--muted); flex: 1 1 12rem; min-width: 0; }
   .sep { height: 1px; background: var(--rule); margin: 1.25rem 0; }
 
   .empty {
@@ -345,7 +338,6 @@
   .counts { font-size: 0.85rem; color: var(--muted); margin-bottom: 1rem; }
   .counts .chase { color: var(--bad); font-weight: 650; }
 
-  /* ---------------- form ---------------- */
   .panel {
     background: var(--card); border: 1px solid var(--rule);
     border-radius: 6px; padding: 1.25rem; margin-bottom: 1rem;
@@ -355,7 +347,6 @@
     color: var(--muted); margin: 0 0 1rem; font-weight: 600;
   }
 
-  /* who is on the course, and in what capacity */
   .coachlist { display: grid; gap: 0.35rem; max-height: 18rem; overflow-y: auto; }
   .coachrow {
     display: flex; align-items: center; gap: 0.75rem;
@@ -374,12 +365,9 @@
     padding: 1.15rem; margin-bottom: 1rem;
   }
   .result h3 { margin: 0 0 0.5rem; font-size: 1rem; letter-spacing: -0.01em; }
-  .linkbox {
-    display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.75rem; flex-wrap: wrap;
-  }
+  .linkbox { display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.75rem; flex-wrap: wrap; }
   .linkbox input {
-    flex: 1 1 16rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.82rem;
+    flex: 1 1 16rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem;
   }
   .thumb {
     margin-top: 0.6rem; max-width: 100%; border-radius: 4px; border: 1px solid var(--rule);
@@ -396,6 +384,7 @@
     <span class="brandname">Coach Portal</span>
   </span>
   <span class="right">
+    <a class="linkbtn hidden" id="feedbacklink" href="/portal/feedback/">Feedback</a>
     <a class="linkbtn hidden" id="codeslink" href="/portal/codes/">Discount codes</a>
     <span class="who" id="who"></span>
     <button id="signout" class="hidden" type="button">Sign out</button>
@@ -763,14 +752,14 @@ const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
 const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-// When to worry about a course: fewer than this many paid places,
-// this many days out.
 const LOW_NUMBERS = 5;
 const LOW_DAYS_OUT = 24;
-
-// A course far out does not need a lead coach yet — staff move, have
-// families, run their own gyms. Inside this window it does.
 const LEAD_DAYS_OUT = 90;
+
+// Photos are for identifying a face while writing feedback, nothing
+// more, so they are shrunk hard before they ever leave the device.
+const PHOTO_MAX_PX = 900;
+const PHOTO_QUALITY = 0.82;
 
 const BRAND = {
   birdbox: { icon: "/brand/birdBox.png", colour: "#2f7fd0", label: "BirdBox", slug: "bb"  },
@@ -780,12 +769,10 @@ const BRAND = {
   twc:     { icon: "/brand/twc.png",     colour: "#e8a317", label: "TWC",     slug: "twc" },
 };
 
-// One tag per course, so a coach can tell L1 from L2 from a workshop
-// at a glance. TGC stays in the red family; other brands keep theirs.
 const TAG_COLOUR = {
-  "tgc:1":        "#6d101a",  // dark burgundy
-  "tgc:2":        "#b02a33",  // brighter red
-  "tgc:workshop": "#e23b32",  // lighter, electric
+  "tgc:1":        "#6d101a",
+  "tgc:2":        "#b02a33",
+  "tgc:workshop": "#e23b32",
 };
 
 const BIN_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -797,15 +784,18 @@ const RESTORE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>`;
 
+const CAMERA_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+  <circle cx="12" cy="13" r="4"/></svg>`;
+
 function tagFor(course) {
   const b = BRAND[course.brand] || BRAND.birdbox;
   const lvl = String(course.level || "").replace(/\D/g, "");
   const isWorkshop = course.type === "workshop";
-
   const text = isWorkshop
     ? `${b.label} Workshop`
     : lvl ? `${b.label} L${lvl}` : b.label;
-
   const key = isWorkshop ? `${course.brand}:workshop` : `${course.brand}:${lvl}`;
   return { text, colour: TAG_COLOUR[key] || b.colour };
 }
@@ -823,15 +813,10 @@ const show = (n) =>
 let me = null;
 let staffList = [];
 let tab = "live";
-
-// What I am on each course I am assigned to: lead_coach or assistant.
 let myRoles = {};
 
 const isAdmin = () => me && me.role === "admin";
 const amLeadOn = (courseId) => isAdmin() || myRoles[courseId] === "lead_coach";
-
-// A course is "past" once it is archived, cancelled or complete.
-// Everything else is live, whether on sale, full or still a draft.
 const isPast = (c) => !!c.archived || c.status === "cancelled" || c.status === "complete";
 
 /* ---------------- auth ---------------- */
@@ -864,6 +849,7 @@ $("signout").addEventListener("click", async () => {
   $("who").textContent = "";
   $("signout").classList.add("hidden");
   $("codeslink").classList.add("hidden");
+  $("feedbacklink").classList.add("hidden");
   $("password").value = "";
   show("login");
 });
@@ -918,8 +904,7 @@ const money = (cents, currency) =>
     style: "currency", currency: currency || "EUR", maximumFractionDigits: 0,
   }).format((cents || 0) / 100);
 
-const daysUntil = (iso) =>
-  Math.ceil((new Date(iso) - new Date()) / 86400000);
+const daysUntil = (iso) => Math.ceil((new Date(iso) - new Date()) / 86400000);
 
 $("newcourse").addEventListener("click", openForm);
 $("back").addEventListener("click", loadCourses);
@@ -946,8 +931,7 @@ async function loadCourses() {
 
   let all = [];
   if (isAdmin()) {
-    const { data, error } = await db.from("courses")
-      .select(cols)
+    const { data, error } = await db.from("courses").select(cols)
       .order("starts_at", { ascending: true });
     if (error) { list.innerHTML = '<p class="empty">Could not load courses.</p>'; return; }
     all = data || [];
@@ -966,13 +950,18 @@ async function loadCourses() {
     $("courses-sub").textContent = "Courses you are allocated to.";
   }
 
+  // Feedback is a lead coach's job, so the link only shows if they
+  // actually lead something.
+  const leadsSomething = isAdmin() ||
+    Object.values(myRoles).some((r) => r === "lead_coach");
+  $("feedbacklink").classList.toggle("hidden", !leadsSomething);
+
   const liveOnes = all.filter((c) => !isPast(c));
   const pastOnes = all.filter(isPast);
 
   $("n-live").textContent = liveOnes.length ? liveOnes.length : "";
   $("n-past").textContent = pastOnes.length ? pastOnes.length : "";
 
-  // Past courses read newest first — you are looking back, not forward.
   const courses = tab === "past"
     ? pastOnes.slice().sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at))
     : liveOnes;
@@ -984,7 +973,6 @@ async function loadCourses() {
     return;
   }
 
-  // How many places are actually taken on each course.
   const booked = {};
   const { data: regs } = await db.from("registrations")
     .select("course_id, payment_status")
@@ -994,8 +982,6 @@ async function loadCourses() {
     booked[r.course_id] = (booked[r.course_id] || 0) + 1;
   }
 
-  // Which courses have a lead coach. Admin needs this to plan; a
-  // coach already knows what they are on.
   const hasLead = {};
   if (isAdmin()) {
     const { data: leads } = await db.from("course_staff")
@@ -1005,8 +991,6 @@ async function loadCourses() {
     for (const l of leads || []) hasLead[l.course_id] = true;
   }
 
-  // Anything close and quiet gets called out at the top, so it is a
-  // decision rather than something noticed too late.
   const struggling = tab === "live"
     ? courses.filter((c) => {
         if (c.status === "draft") return false;
@@ -1033,8 +1017,6 @@ async function loadCourses() {
     alertBox.append(el);
   }
 
-  // Courses coming up without anyone running them. Far-off dates are
-  // left alone deliberately — that allocation happens later.
   const needLead = (isAdmin() && tab === "live")
     ? courses.filter((c) => {
         if (c.status === "draft" || hasLead[c.id]) return false;
@@ -1092,7 +1074,6 @@ async function loadCourses() {
       [c.city, c.country].filter(Boolean).join(", ") || "Location to be confirmed";
 
     const flags = el.querySelector(".flags");
-
     const tagEl = document.createElement("span");
     tagEl.className = "tag";
     tagEl.style.background = t.colour;
@@ -1104,19 +1085,14 @@ async function loadCourses() {
       s.className = "pill " + cls; s.textContent = text; flags.append(s);
     };
 
-    // A coach should see at a glance whether this one is theirs to run.
     if (!isAdmin() && myRoles[c.id]) {
       add(myRoles[c.id] === "lead_coach" ? "you: lead" : "you: assist",
           myRoles[c.id] === "lead_coach" ? "lead" : "");
     }
-
-    // Admin sees where a lead is still to be decided. Quiet when the
-    // date is far off, insistent once it is close.
     if (isAdmin() && !isPast(c) && !hasLead[c.id] && c.status !== "draft") {
       const due = days >= 0 && days <= LEAD_DAYS_OUT;
       add("no lead", due ? "nolead due" : "nolead");
     }
-
     if (isLow) add(`${taken} booked · ${days}d away`, "low");
     if (c.status === "complete") add("completed", "draft");
     else if (c.status === "cancelled") add("cancelled", "bad");
@@ -1135,7 +1111,6 @@ async function loadCourses() {
         copyBtn.classList.add("done");
         copyBtn.innerHTML = "Copied";
       } catch {
-        // clipboard blocked — show the link so it can be copied by hand
         window.prompt("Copy this link", url);
       }
       setTimeout(() => {
@@ -1144,8 +1119,6 @@ async function loadCourses() {
       }, 1800);
     });
 
-    // Restore and permanent delete live only where they belong: an
-    // admin, looking at something already archived or cancelled.
     if (isAdmin() && isPast(c)) {
       const restore = document.createElement("button");
       restore.className = "rowbtn restore";
@@ -1153,10 +1126,7 @@ async function loadCourses() {
       restore.title = "Restore as a draft";
       restore.setAttribute("aria-label", "Restore " + c.title);
       restore.innerHTML = RESTORE_SVG;
-      restore.addEventListener("click", (e) => {
-        e.stopPropagation();
-        restoreCourse(c);
-      });
+      restore.addEventListener("click", (e) => { e.stopPropagation(); restoreCourse(c); });
       el.append(restore);
 
       const bin = document.createElement("button");
@@ -1165,10 +1135,7 @@ async function loadCourses() {
       bin.title = "Delete permanently";
       bin.setAttribute("aria-label", "Delete " + c.title + " permanently");
       bin.innerHTML = BIN_SVG;
-      bin.addEventListener("click", (e) => {
-        e.stopPropagation();
-        askToDelete(c);
-      });
+      bin.addEventListener("click", (e) => { e.stopPropagation(); askToDelete(c); });
       el.append(bin);
     }
 
@@ -1178,8 +1145,6 @@ async function loadCourses() {
 
 /* ---------------- restore ---------------- */
 
-// Always back as a draft, never straight back on sale — an accidental
-// archive should not put a course back in front of buyers by itself.
 async function restoreCourse(course) {
   if (!window.confirm(
     `Restore "${course.title}"?\n\n` +
@@ -1187,13 +1152,9 @@ async function restoreCourse(course) {
   )) return;
 
   const { error } = await db.from("courses")
-    .update({ archived: false, status: "draft" })
-    .eq("id", course.id);
+    .update({ archived: false, status: "draft" }).eq("id", course.id);
 
-  if (error) {
-    window.alert("Could not restore: " + error.message);
-    return;
-  }
+  if (error) { window.alert("Could not restore: " + error.message); return; }
   tab = "live";
   $("tab-live").classList.add("on");
   $("tab-past").classList.remove("on");
@@ -1221,7 +1182,7 @@ async function askToDelete(course) {
     loses.innerHTML =
       `<strong>This course has ${regCount} registration${regCount === 1 ? "" : "s"}.</strong>` +
       `<ul>
-         <li>Participant names, emails and waiver records</li>
+         <li>Participant names, emails, photos and waiver records</li>
          <li>Payment records and every coach note</li>
        </ul>
        Stripe keeps its own record of any money taken, but yours will be gone.`;
@@ -1242,9 +1203,7 @@ function closeDelete() {
 }
 
 $("del-cancel").addEventListener("click", closeDelete);
-$("delwrap").addEventListener("click", (e) => {
-  if (e.target === $("delwrap")) closeDelete();
-});
+$("delwrap").addEventListener("click", (e) => { if (e.target === $("delwrap")) closeDelete(); });
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !$("delwrap").classList.contains("hidden")) closeDelete();
 });
@@ -1263,12 +1222,16 @@ $("del-go").addEventListener("click", async () => {
   msg.textContent = "Deleting…";
 
   try {
-    // Children first, so nothing is left pointing at a course that
-    // no longer exists.
     const { data: regs } = await db.from("registrations")
-      .select("id").eq("course_id", course.id);
+      .select("id, photo_path").eq("course_id", course.id);
 
     const ids = (regs || []).map((r) => r.id);
+    const photos = (regs || []).map((r) => r.photo_path).filter(Boolean);
+
+    if (photos.length) {
+      await db.storage.from("participant-photos").remove(photos);
+    }
+
     if (ids.length) {
       const { error: payErr } = await db.from("payments")
         .delete().in("registration_id", ids);
@@ -1279,8 +1242,6 @@ $("del-go").addEventListener("click", async () => {
       if (regErr) throw regErr;
     }
 
-    // Notes cascade from the course, but clear them explicitly so a
-    // failure here is visible rather than silent.
     await db.from("participant_notes").delete().eq("course_id", course.id);
 
     const { error: csErr } = await db.from("course_staff")
@@ -1333,7 +1294,7 @@ async function openCourse(course) {
   box.innerHTML = '<p class="empty">Loading…</p>';
 
   const { data, error } = await db.from("registrations")
-    .select("id, first_name, last_name, email, phone, payment_status, attended, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents")
+    .select("id, first_name, last_name, email, phone, payment_status, attended, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at")
     .eq("course_id", course.id)
     .order("last_name", { ascending: true });
 
@@ -1348,7 +1309,6 @@ async function openCourse(course) {
 
   if (!regs.length) { box.innerHTML = '<p class="empty">No registrations yet.</p>'; return; }
 
-  // Instalments, so we can show what is still owed and what has failed.
   const byReg = {};
   const { data: pays } = await db.from("payments")
     .select("registration_id, sequence, amount_cents, due_date, status, last_error")
@@ -1357,7 +1317,6 @@ async function openCourse(course) {
     (byReg[p.registration_id] = byReg[p.registration_id] || []).push(p);
   }
 
-  // Every note on this course, from every coach, in one go.
   const notesByReg = await loadNotes(course.id);
 
   let paid = 0, owing = 0, chasing = 0;
@@ -1378,9 +1337,12 @@ async function openCourse(course) {
     el.className = "attendee" + (needsChasing ? " chase" : "");
     el.innerHTML = `
       <div class="row1">
-        <div>
-          <div class="name"></div>
-          <div class="contact"></div>
+        <div class="person">
+          <div class="shot"></div>
+          <div>
+            <div class="name"></div>
+            <div class="contact"></div>
+          </div>
         </div>
         <label class="check"><input type="checkbox"> Attended</label>
       </div>
@@ -1390,6 +1352,8 @@ async function openCourse(course) {
 
     el.querySelector(".name").textContent = `${r.first_name} ${r.last_name}`;
     el.querySelector(".contact").textContent = [r.email, r.phone].filter(Boolean).join(" · ");
+
+    renderShot(el.querySelector(".shot"), course, r);
 
     const flags = el.querySelector(".flags");
     const addPill = (text, cls = "") => {
@@ -1407,7 +1371,6 @@ async function openCourse(course) {
     if (failed.length) addPill("balance failed", "bad");
     if (!r.waiver_signed_at) addPill("no waiver", "warn");
 
-    // What is still owed, and when it will be taken.
     const line = el.querySelector(".money");
     const bits = [];
     if (owed > 0) {
@@ -1457,6 +1420,102 @@ async function openCourse(course) {
   }
 }
 
+/* ---------------- participant photo ---------------- */
+
+// Taken at the desk while they show their registration. It exists so
+// the coach can put a face to a name when writing feedback, and is
+// deleted automatically once the feedback has gone out.
+function renderShot(box, course, reg) {
+  box.innerHTML = `
+    <div class="frame" title="Photo for identifying this participant">${CAMERA_SVG}</div>
+    <span class="cap">Add photo</span>
+    <input type="file" accept="image/*" capture="user">`;
+
+  const frame = box.querySelector(".frame");
+  const cap = box.querySelector(".cap");
+  const input = box.querySelector("input");
+
+  if (reg.photo_path) showExisting();
+
+  async function showExisting() {
+    const { data } = await db.storage
+      .from("participant-photos")
+      .createSignedUrl(reg.photo_path, 3600);
+    if (!data?.signedUrl) return;
+    frame.innerHTML = `<img alt="">`;
+    frame.querySelector("img").src = data.signedUrl;
+    cap.textContent = "Retake";
+    cap.className = "cap";
+  }
+
+  frame.addEventListener("click", () => input.click());
+  cap.addEventListener("click", () => input.click());
+
+  input.addEventListener("change", async () => {
+    const file = input.files[0];
+    if (!file) return;
+
+    cap.className = "cap busy";
+    cap.textContent = "Saving…";
+
+    try {
+      const blob = await shrink(file);
+      const path = `${course.id}/${reg.id}.jpg`;
+
+      const { error } = await db.storage
+        .from("participant-photos")
+        .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+      if (error) throw error;
+
+      const { error: dbErr } = await db.from("registrations")
+        .update({ photo_path: path, photo_taken_at: new Date().toISOString() })
+        .eq("id", reg.id);
+      if (dbErr) throw dbErr;
+
+      reg.photo_path = path;
+      await showExisting();
+    } catch (err) {
+      console.error("Photo failed:", err);
+      cap.className = "cap err";
+      cap.textContent = "Failed";
+      setTimeout(() => { cap.className = "cap"; cap.textContent = reg.photo_path ? "Retake" : "Add photo"; }, 2500);
+    }
+    input.value = "";
+  });
+}
+
+// Shrink on the device before uploading. A phone photo is 8 to 12MB;
+// this makes it about 100KB, which uploads instantly on gym wifi.
+function shrink(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, PHOTO_MAX_PX / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error("Could not process the photo")),
+        "image/jpeg",
+        PHOTO_QUALITY
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("That file is not an image we can read"));
+    };
+    img.src = url;
+  });
+}
+
 /* ---------------- notes ---------------- */
 
 async function loadNotes(courseId) {
@@ -1466,10 +1525,7 @@ async function loadNotes(courseId) {
     .eq("course_id", courseId)
     .order("created_at", { ascending: true });
 
-  if (error) {
-    console.error("Could not load notes:", error.message);
-    return {};
-  }
+  if (error) { console.error("Could not load notes:", error.message); return {}; }
   const byReg = {};
   for (const n of data || []) {
     (byReg[n.registration_id] = byReg[n.registration_id] || []).push(n);
@@ -1477,8 +1533,6 @@ async function loadNotes(courseId) {
   return byReg;
 }
 
-// Each note is its own row, so two coaches writing at the same time
-// never overwrite one another. The lead can edit any of them.
 function renderNotes(box, course, reg, notes) {
   const lead = amLeadOn(course.id);
   box.innerHTML = `
@@ -1505,7 +1559,6 @@ function renderNotes(box, course, reg, notes) {
 
   for (const n of notes) renderOneNote(list, n, lead);
 
-  // ---- adding ----
   const ta = box.querySelector(".addnote textarea");
   const btn = box.querySelector(".addnote button");
   const msg = box.querySelector(".addnote .note-msg");
@@ -1541,9 +1594,8 @@ function renderNotes(box, course, reg, notes) {
     renderOneNote(list, data, lead);
     ta.value = "";
     msg.textContent = "";
-    const count = box.querySelector(".count");
     const n = list.querySelectorAll(".note").length;
-    count.textContent = `${n} note${n === 1 ? "" : "s"}`;
+    box.querySelector(".count").textContent = `${n} note${n === 1 ? "" : "s"}`;
   });
 }
 
@@ -1563,21 +1615,17 @@ function renderOneNote(list, note, lead) {
     <div class="acts"></div>
     <div class="note-msg"></div>`;
 
-  // Track what we last saw, so we can tell if someone else changed it
-  // while this was open.
   let known = note.updated_at;
 
-  const author = el.querySelector(".author");
-  author.textContent = note.staff?.full_name
+  el.querySelector(".author").textContent = note.staff?.full_name
     || (note.staff_id ? "Another coach" : "Written before notes were attributed");
-
   el.querySelector(".when").textContent = fmtWhen(note.created_at);
 
   const edited = el.querySelector(".edited");
-  const wasEdited = new Date(note.updated_at) - new Date(note.created_at) > 2000;
-  edited.textContent = wasEdited ? "· edited" : "";
+  edited.textContent =
+    new Date(note.updated_at) - new Date(note.created_at) > 2000 ? "· edited" : "";
 
-  const body = el.querySelector(".body");
+  let body = el.querySelector(".body");
   body.textContent = note.body;
 
   const acts = el.querySelector(".acts");
@@ -1615,14 +1663,10 @@ function renderOneNote(list, note, lead) {
         div.className = "body";
         div.textContent = text;
         ta.replaceWith(div);
+        body = div;
         acts.innerHTML = "";
         acts.append(editBtn);
-        if (updatedAt) {
-          known = updatedAt;
-          edited.textContent = "· edited";
-        }
-        // rebind against the new body element
-        renderNoteBinding(el, div);
+        if (updatedAt) { known = updatedAt; edited.textContent = "· edited"; }
       };
 
       cancelBtn.addEventListener("click", () => finish(note.body));
@@ -1639,7 +1683,6 @@ function renderOneNote(list, note, lead) {
         msg.className = "note-msg";
         msg.textContent = "Saving…";
 
-        // Only write if nobody has touched it since we loaded it.
         const { data, error } = await db.from("participant_notes")
           .update({ body: next, updated_at: new Date().toISOString() })
           .eq("id", note.id)
@@ -1656,16 +1699,11 @@ function renderOneNote(list, note, lead) {
         }
 
         if (!data) {
-          // Someone else saved first. Show theirs rather than
-          // silently discarding it.
           const { data: current } = await db.from("participant_notes")
             .select("body, updated_at").eq("id", note.id).maybeSingle();
           msg.className = "note-msg err";
           msg.textContent = "Someone else edited this note while you were writing. Theirs is shown below — copy anything you need and edit again.";
-          if (current) {
-            note.body = current.body;
-            finish(current.body, current.updated_at);
-          }
+          if (current) { note.body = current.body; finish(current.body, current.updated_at); }
           return;
         }
 
@@ -1696,12 +1734,6 @@ function renderOneNote(list, note, lead) {
   }
 
   list.append(el);
-}
-
-// After an edit swaps the body element out, the Edit button needs to
-// point at the new one.
-function renderNoteBinding(el, newBody) {
-  el.querySelector(".body") === newBody;
 }
 
 function flash(el, text, isError = false) {
@@ -1735,7 +1767,6 @@ async function callAdmin(payload) {
   return data;
 }
 
-// One row per staff member, with what they are on this course.
 function renderCoachPicker(box, assigned) {
   box.innerHTML = "";
   for (const s of staffList) {
@@ -1753,9 +1784,7 @@ function renderCoachPicker(box, assigned) {
     const sel = row.querySelector("select");
     sel.value = current;
     sel.dataset.staff = s.id;
-    sel.addEventListener("change", () => {
-      row.classList.toggle("on", !!sel.value);
-    });
+    sel.addEventListener("change", () => row.classList.toggle("on", !!sel.value));
     box.append(row);
   }
 }
@@ -1771,7 +1800,6 @@ async function wireAdmin(course, totalRegs, liveRegs) {
   const msg = $("admin-msg");
   panel.classList.remove("hidden");
 
-  // ---- on sale, or not ----
   const publishBtn = $("publishbtn");
   const unpublishBtn = $("unpublishbtn");
   const isDraft = !course.archived && course.status === "draft";
@@ -1800,14 +1828,12 @@ async function wireAdmin(course, totalRegs, liveRegs) {
     if (!window.confirm(`Take "${course.title}" off sale? It becomes a draft and stops selling.`)) return;
     unpublishBtn.disabled = true;
     msg.className = "msg"; msg.textContent = "Taking off sale…";
-    const { error } = await db.from("courses")
-      .update({ status: "draft" }).eq("id", course.id);
+    const { error } = await db.from("courses").update({ status: "draft" }).eq("id", course.id);
     unpublishBtn.disabled = false;
     if (error) { msg.className = "msg err"; msg.textContent = "Could not save: " + error.message; return; }
     await loadCourses();
   };
 
-  // ---- who is coaching ----
   if (!staffList.length) {
     const { data } = await db.from("staff")
       .select("id, full_name, role").eq("active", true).order("full_name");
@@ -1823,8 +1849,6 @@ async function wireAdmin(course, totalRegs, liveRegs) {
     const picked = readCoachPicker($("editcoaches"));
     const leads = picked.filter((p) => p.role === "lead_coach");
 
-    // Two leads is a mistake. No lead is a perfectly normal state for
-    // a course months out, so it saves without complaint.
     if (leads.length > 1) {
       msg.className = "msg err";
       msg.textContent = "Only one lead coach — the others should be assistants.";
@@ -1834,8 +1858,6 @@ async function wireAdmin(course, totalRegs, liveRegs) {
     $("savecoaches").disabled = true;
     msg.className = "msg"; msg.textContent = "Saving…";
 
-    // Replace the set outright — simpler and safer than working out
-    // which rows changed.
     const { error: delErr } = await db.from("course_staff")
       .delete().eq("course_id", course.id);
     if (delErr) {
@@ -1864,7 +1886,6 @@ async function wireAdmin(course, totalRegs, liveRegs) {
         : "Saved — nobody assigned yet.";
   };
 
-  // Prefill the reschedule fields with the dates it has now.
   const start = new Date(course.starts_at);
   $("r-date").value = start.toISOString().slice(0, 10);
   $("r-starttime").value = start.toTimeString().slice(0, 5);
@@ -1876,7 +1897,6 @@ async function wireAdmin(course, totalRegs, liveRegs) {
     $("r-enddate").value = "";
   }
 
-  // ---- move the date ----
   $("reschedbtn").onclick = async () => {
     const date = $("r-date").value;
     if (!date) { msg.className = "msg err"; msg.textContent = "Pick a new date."; return; }
@@ -1914,7 +1934,6 @@ async function wireAdmin(course, totalRegs, liveRegs) {
     $("reschedbtn").disabled = false;
   };
 
-  // ---- cancel and refund ----
   $("cancelwhy").textContent = liveRegs
     ? `Refunds ${liveRegs} participant${liveRegs === 1 ? "" : "s"} in full, stops any unpaid balances, emails everyone and archives the course.`
     : "Nobody has booked, so there is nothing to refund. This will archive the course.";
@@ -1950,14 +1969,13 @@ async function wireAdmin(course, totalRegs, liveRegs) {
     $("cancelbtn").disabled = false;
   };
 
-  // ---- archive, restore and delete ----
   const archiveBtn = $("archivebtn");
   const deleteBtn = $("deletebtn");
   archiveBtn.textContent = isPast(course) ? "Restore as a draft" : "Archive";
 
   deleteBtn.classList.toggle("hidden", !isPast(course));
   $("adminwhy").textContent = isPast(course)
-    ? "Restoring brings it back as a draft. Deleting removes the course, its registrations, notes and payment records for good."
+    ? "Restoring brings it back as a draft. Deleting removes the course, its registrations, notes, photos and payment records for good."
     : "Archiving hides a course and takes it off sale. Restore and delete become available once it is archived.";
 
   archiveBtn.onclick = async () => {
@@ -1973,11 +1991,7 @@ async function wireAdmin(course, totalRegs, liveRegs) {
       .update({ archived: true, status: "cancelled" }).eq("id", course.id);
     archiveBtn.disabled = false;
 
-    if (error) {
-      msg.className = "msg err";
-      msg.textContent = "Could not save: " + error.message;
-      return;
-    }
+    if (error) { msg.className = "msg err"; msg.textContent = "Could not save: " + error.message; return; }
     await loadCourses();
   };
 
@@ -2008,7 +2022,6 @@ function toggleWorkshopFields() {
 }
 $("f-type").addEventListener("change", () => { toggleWorkshopFields(); buildSlug(); });
 
-// slug follows the existing convention: tgc-l1-gold-coast-0926
 function buildSlug() {
   const brand = BRAND[$("f-brand").value]?.slug || "bb";
   const level = ($("f-level").value || "").toLowerCase();
@@ -2021,7 +2034,6 @@ function buildSlug() {
     const d = new Date(start + "T00:00");
     stamp = String(d.getMonth() + 1).padStart(2, "0") + String(d.getFullYear()).slice(-2);
   }
-  // cut the workshop name at a word boundary, never mid-word
   let wname = "";
   if ($("f-type").value === "workshop") {
     const words = ($("f-workshop").value || "").trim().toLowerCase()
@@ -2040,7 +2052,6 @@ function buildSlug() {
 );
 $("f-city").addEventListener("blur", buildSlug);
 
-// image preview
 $("f-image").addEventListener("change", () => {
   const f = $("f-image").files[0];
   const t = $("thumb");
@@ -2075,8 +2086,6 @@ async function saveCourse() {
     return;
   }
 
-  // Title: the city is shown under the date on the course page and in
-  // the venue block, so it never goes in a workshop title as well.
   const wname = $("f-workshop").value.trim();
   const level = $("f-level").value;
   const label = BRAND[brand]?.label || "BirdBox";
@@ -2088,7 +2097,6 @@ async function saveCourse() {
   msg.textContent = "Creating…";
 
   try {
-    // 1. image, if one was chosen
     let imageUrl = null;
     const file = $("f-image").files[0];
     if (file) {
@@ -2100,7 +2108,6 @@ async function saveCourse() {
       imageUrl = db.storage.from("course-images").getPublicUrl(path).data.publicUrl;
     }
 
-    // 2. the course
     const row = {
       brand, type,
       level: level || null,
@@ -2140,14 +2147,12 @@ async function saveCourse() {
       );
     }
 
-    // 3. coaches, with the role each of them holds
     if (picked.length) {
       const rows = picked.map((p) => ({ course_id: course.id, ...p }));
       const { error: csErr } = await db.from("course_staff").insert(rows);
       if (csErr) console.error("Coach assignment failed:", csErr);
     }
 
-    // 4. show the link
     const url = `${location.origin}/c/${course.slug}/`;
     $("created-title").textContent = course.title;
     $("created-link").value = url;
