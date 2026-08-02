@@ -169,6 +169,14 @@
   .msg.err { color: var(--bad); }
   .msg.ok  { color: var(--good); }
 
+  /* the line under When that says what will actually be stored */
+  .whenline {
+    font-size: 0.82rem; color: var(--muted); margin: 0.1rem 0 0;
+    line-height: 1.5;
+  }
+  .whenline.bad { color: var(--bad); }
+  .whenline b { color: var(--ink); font-weight: 650; }
+
   /* ---------------- course cards ---------------- */
   .card {
     background: var(--card); border: 1px solid var(--rule);
@@ -473,6 +481,7 @@
       <div class="sep"></div>
 
       <div id="reschedwrap">
+        <p class="whenline" id="r-tzhint" style="margin-bottom:0.7rem"></p>
         <div class="grid2">
           <div class="field">
             <label for="r-date">New start date</label>
@@ -493,7 +502,8 @@
             <input id="r-endtime" type="time" value="17:00">
           </div>
         </div>
-        <div class="admin-row">
+        <p class="whenline" id="r-preview"></p>
+        <div class="admin-row" style="margin-top:0.9rem">
           <button class="btn small" id="reschedbtn" type="button">Move the date</button>
           <span class="why">Participants and assigned coaches are emailed automatically. Any unpaid balance moves with it.</span>
         </div>
@@ -664,10 +674,52 @@
             <input id="f-endtime" type="time" value="12:00">
           </div>
         </div>
-        <div class="field">
-          <label for="f-timezone">Time zone</label>
-          <input id="f-timezone" type="text" value="Europe/Dublin">
+        <div class="field" style="margin-bottom:0.4rem">
+          <label for="f-timezone">Time zone <span class="hint">the times above are local to the course, not to you</span></label>
+          <input id="f-timezone" type="text" value="Europe/Dublin" list="tzlist"
+                 autocapitalize="off" autocorrect="off" spellcheck="false">
+          <datalist id="tzlist">
+            <option value="Europe/Dublin">Ireland</option>
+            <option value="Europe/London">United Kingdom</option>
+            <option value="Europe/Lisbon">Portugal</option>
+            <option value="Europe/Madrid">Spain</option>
+            <option value="Europe/Paris">France</option>
+            <option value="Europe/Brussels">Belgium</option>
+            <option value="Europe/Amsterdam">Netherlands</option>
+            <option value="Europe/Berlin">Germany</option>
+            <option value="Europe/Zurich">Switzerland</option>
+            <option value="Europe/Vienna">Austria</option>
+            <option value="Europe/Rome">Italy</option>
+            <option value="Europe/Copenhagen">Denmark</option>
+            <option value="Europe/Oslo">Norway</option>
+            <option value="Europe/Stockholm">Sweden</option>
+            <option value="Europe/Helsinki">Finland</option>
+            <option value="Europe/Warsaw">Poland</option>
+            <option value="Europe/Prague">Czechia</option>
+            <option value="Europe/Budapest">Hungary</option>
+            <option value="Europe/Athens">Greece</option>
+            <option value="Europe/Istanbul">Türkiye</option>
+            <option value="America/New_York">US — Eastern</option>
+            <option value="America/Chicago">US — Central</option>
+            <option value="America/Denver">US — Mountain</option>
+            <option value="America/Phoenix">US — Arizona</option>
+            <option value="America/Los_Angeles">US — Pacific</option>
+            <option value="America/Toronto">Canada — Eastern</option>
+            <option value="America/Vancouver">Canada — Pacific</option>
+            <option value="America/Sao_Paulo">Brazil — São Paulo</option>
+            <option value="Australia/Sydney">Australia — Sydney</option>
+            <option value="Australia/Brisbane">Australia — Brisbane</option>
+            <option value="Australia/Adelaide">Australia — Adelaide</option>
+            <option value="Australia/Perth">Australia — Perth</option>
+            <option value="Pacific/Auckland">New Zealand</option>
+            <option value="Asia/Tokyo">Japan</option>
+            <option value="Asia/Seoul">South Korea</option>
+            <option value="Asia/Singapore">Singapore</option>
+            <option value="Asia/Dubai">United Arab Emirates</option>
+            <option value="Africa/Johannesburg">South Africa</option>
+          </datalist>
         </div>
+        <p class="whenline" id="when-preview"></p>
       </div>
 
       <div class="panel">
@@ -774,6 +826,99 @@ const TAG_COLOUR = {
   "tgc:2":        "#b02a33",
   "tgc:workshop": "#e23b32",
 };
+
+/* ---------------- time zones ---------------- */
+
+// A course happens where it happens. Every time typed into this portal
+// is the time on the wall in that city, whatever time zone the person
+// filling the form is sitting in. Everything below exists to keep that
+// true — an admin creating a Glasgow course from Dubai would otherwise
+// store it three hours out, and nobody would notice until the
+// pre-course email told everyone the wrong start time.
+
+// Countries with a single zone. Multi-zone countries are deliberately
+// absent: guessing between Sydney and Perth would be worse than asking.
+const COUNTRY_TZ = {
+  IE: "Europe/Dublin",
+  GB: "Europe/London", UK: "Europe/London",
+  PT: "Europe/Lisbon", ES: "Europe/Madrid", FR: "Europe/Paris",
+  BE: "Europe/Brussels", NL: "Europe/Amsterdam", LU: "Europe/Luxembourg",
+  DE: "Europe/Berlin", CH: "Europe/Zurich", AT: "Europe/Vienna",
+  IT: "Europe/Rome", SI: "Europe/Ljubljana", HR: "Europe/Zagreb",
+  DK: "Europe/Copenhagen", NO: "Europe/Oslo", SE: "Europe/Stockholm",
+  FI: "Europe/Helsinki", EE: "Europe/Tallinn", LV: "Europe/Riga",
+  LT: "Europe/Vilnius", PL: "Europe/Warsaw", CZ: "Europe/Prague",
+  SK: "Europe/Bratislava", HU: "Europe/Budapest", RO: "Europe/Bucharest",
+  BG: "Europe/Sofia", GR: "Europe/Athens", TR: "Europe/Istanbul",
+  IS: "Atlantic/Reykjavik", MT: "Europe/Malta", CY: "Asia/Nicosia",
+  JP: "Asia/Tokyo", KR: "Asia/Seoul", SG: "Asia/Singapore",
+  HK: "Asia/Hong_Kong", TW: "Asia/Taipei", TH: "Asia/Bangkok",
+  MY: "Asia/Kuala_Lumpur", PH: "Asia/Manila", VN: "Asia/Ho_Chi_Minh",
+  IN: "Asia/Kolkata", AE: "Asia/Dubai", QA: "Asia/Qatar",
+  SA: "Asia/Riyadh", IL: "Asia/Jerusalem", CN: "Asia/Shanghai",
+  ZA: "Africa/Johannesburg", KE: "Africa/Nairobi", EG: "Africa/Cairo",
+  MA: "Africa/Casablanca", NG: "Africa/Lagos",
+  NZ: "Pacific/Auckland",
+  AR: "America/Argentina/Buenos_Aires", CL: "America/Santiago",
+  CO: "America/Bogota", PE: "America/Lima", UY: "America/Montevideo",
+};
+
+// These need a human to choose which zone the city is in.
+const MULTI_TZ = new Set(["US", "CA", "AU", "BR", "MX", "RU", "ID", "KZ"]);
+
+function tzIsReal(tz) {
+  if (!tz) return false;
+  try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; }
+  catch { return false; }
+}
+const safeZone = (tz) => (tzIsReal(tz) ? tz : undefined);
+
+// How far the given zone sits from UTC at that particular moment,
+// which is not a constant — it changes when the clocks do.
+function zoneOffsetAt(date, tz) {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  });
+  const p = {};
+  for (const part of dtf.formatToParts(date)) p[part.type] = part.value;
+  const asUTC = Date.UTC(
+    +p.year, +p.month - 1, +p.day,
+    p.hour === "24" ? 0 : +p.hour, +p.minute, +p.second
+  );
+  return asUTC - date.getTime();
+}
+
+// "8 Aug 2026, 09:00, Europe/London" -> the real instant to store.
+// Two passes, because the offset we need depends on the answer we are
+// working out — one iteration settles it either side of a clock change.
+function zonedToInstant(dateStr, timeStr, tz) {
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  const [h, mi] = (timeStr || "09:00").split(":").map(Number);
+  const naive = Date.UTC(y, mo - 1, d, h || 0, mi || 0, 0);
+  if (!tzIsReal(tz)) return new Date(naive);
+  let guess = new Date(naive - zoneOffsetAt(new Date(naive), tz));
+  guess = new Date(naive - zoneOffsetAt(guess, tz));
+  return guess;
+}
+
+// The reverse, for filling the date and time boxes back in.
+function instantToZoned(iso, tz) {
+  const dtf = new Intl.DateTimeFormat("en-CA", {
+    timeZone: safeZone(tz), hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+  });
+  const p = {};
+  for (const part of dtf.formatToParts(new Date(iso))) p[part.type] = part.value;
+  return {
+    date: `${p.year}-${p.month}-${p.day}`,
+    time: `${p.hour === "24" ? "00" : p.hour}:${p.minute}`,
+  };
+}
+
+const MY_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const BIN_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -885,8 +1030,13 @@ async function start() {
 
 /* ---------------- courses ---------------- */
 
-const fmtDate = (iso) => iso
-  ? new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+// Dates are shown as they read in the course's own city. A Tokyo
+// course starting Saturday morning is a Saturday course, even when
+// the person looking at the list is still on Friday evening.
+const fmtDate = (iso, tz) => iso
+  ? new Date(iso).toLocaleDateString(undefined, {
+      day: "numeric", month: "short", year: "numeric", timeZone: safeZone(tz),
+    })
   : "";
 
 const fmtDay = (d) => d
@@ -898,6 +1048,12 @@ const fmtWhen = (iso) => iso
       day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
     })
   : "";
+
+const fmtWhenIn = (date, tz) =>
+  date.toLocaleString(undefined, {
+    weekday: "short", day: "numeric", month: "short",
+    hour: "2-digit", minute: "2-digit", timeZone: safeZone(tz),
+  });
 
 const money = (cents, currency) =>
   new Intl.NumberFormat(undefined, {
@@ -927,7 +1083,7 @@ async function loadCourses() {
   alertBox.innerHTML = "";
   list.innerHTML = '<p class="empty">Loading…</p>';
 
-  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, capacity, status, slug, archived";
+  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, status, slug, archived";
 
   let all = [];
   if (isAdmin()) {
@@ -1010,7 +1166,7 @@ async function loadCourses() {
       const d = daysUntil(c.starts_at);
       const li = document.createElement("li");
       li.textContent =
-        `${c.title} — ${fmtDate(c.starts_at)}, ${booked[c.id] || 0} booked, ` +
+        `${c.title} — ${fmtDate(c.starts_at, c.timezone)}, ${booked[c.id] || 0} booked, ` +
         `${d} day${d === 1 ? "" : "s"} away`;
       ul.append(li);
     }
@@ -1035,7 +1191,7 @@ async function loadCourses() {
     for (const c of needLead) {
       const d = daysUntil(c.starts_at);
       const li = document.createElement("li");
-      li.textContent = `${c.title} — ${fmtDate(c.starts_at)}, ${d} day${d === 1 ? "" : "s"} away`;
+      li.textContent = `${c.title} — ${fmtDate(c.starts_at, c.timezone)}, ${d} day${d === 1 ? "" : "s"} away`;
       ul.append(li);
     }
     alertBox.append(el);
@@ -1069,7 +1225,7 @@ async function loadCourses() {
 
     el.querySelector(".icon img").src = b.icon;
     el.querySelector(".title").textContent = c.title;
-    el.querySelector(".when").textContent = fmtDate(c.starts_at);
+    el.querySelector(".when").textContent = fmtDate(c.starts_at, c.timezone);
     el.querySelector(".line").textContent =
       [c.city, c.country].filter(Boolean).join(", ") || "Location to be confirmed";
 
@@ -1099,6 +1255,7 @@ async function loadCourses() {
     else if (c.archived) add("archived", "draft");
     if (c.status === "full") add("full", "warn");
     if (c.status === "draft") add("draft", "draft");
+    if (c.timezone && !tzIsReal(c.timezone)) add("bad time zone", "bad");
 
     el.querySelector(".course").addEventListener("click", () => openCourse(c));
 
@@ -1277,7 +1434,7 @@ async function openCourse(course) {
 
   const myRole = isAdmin() ? null : myRoles[course.id];
   $("course-meta").textContent = [
-    fmtDate(course.starts_at),
+    fmtDate(course.starts_at, course.timezone),
     [course.city, course.country].filter(Boolean).join(", "),
     myRole === "lead_coach" ? "You are lead coach"
       : myRole === "assistant" ? "You are assisting" : null,
@@ -1886,29 +2043,73 @@ async function wireAdmin(course, totalRegs, liveRegs) {
         : "Saved — nobody assigned yet.";
   };
 
-  const start = new Date(course.starts_at);
-  $("r-date").value = start.toISOString().slice(0, 10);
-  $("r-starttime").value = start.toTimeString().slice(0, 5);
+  // The reschedule boxes read and write in the course's own time zone,
+  // not the coach's. A lead in Dubai moving a Glasgow course types
+  // Glasgow times.
+  const courseTz = course.timezone || "Europe/Dublin";
+  const tzOk = tzIsReal(courseTz);
+  const where = course.city || "the course";
+
+  const tzHint = $("r-tzhint");
+  if (!tzOk) {
+    tzHint.className = "whenline bad";
+    tzHint.textContent =
+      `This course has an unrecognised time zone (“${courseTz}”), so times cannot be trusted. ` +
+      `Fix it in the database before moving the date.`;
+  } else {
+    tzHint.className = "whenline";
+    tzHint.textContent = `Times below are local to ${where} (${courseTz}).`;
+  }
+
+  const s = instantToZoned(course.starts_at, courseTz);
+  $("r-date").value = s.date;
+  $("r-starttime").value = s.time;
   if (course.ends_at) {
-    const end = new Date(course.ends_at);
-    $("r-enddate").value = end.toISOString().slice(0, 10);
-    $("r-endtime").value = end.toTimeString().slice(0, 5);
+    const e = instantToZoned(course.ends_at, courseTz);
+    $("r-enddate").value = e.date;
+    $("r-endtime").value = e.time;
   } else {
     $("r-enddate").value = "";
   }
 
+  const reschedPreview = () => {
+    const el = $("r-preview");
+    const date = $("r-date").value;
+    if (!date || !tzOk) { el.textContent = ""; return; }
+    const when = zonedToInstant(date, $("r-starttime").value || "09:00", courseTz);
+    const there = fmtWhenIn(when, courseTz);
+    const mine = fmtWhenIn(when, MY_ZONE);
+    el.className = "whenline";
+    el.innerHTML = "";
+    el.append(document.createTextNode("Would start "));
+    const b = document.createElement("b");
+    b.textContent = there;
+    el.append(b, document.createTextNode(
+      ` in ${where}` + (there === mine ? "." : ` — ${mine} where you are now.`)
+    ));
+  };
+  for (const id of ["r-date", "r-starttime", "r-enddate", "r-endtime"]) {
+    $(id).oninput = reschedPreview;
+  }
+  reschedPreview();
+
   $("reschedbtn").onclick = async () => {
     const date = $("r-date").value;
     if (!date) { msg.className = "msg err"; msg.textContent = "Pick a new date."; return; }
+    if (!tzOk) {
+      msg.className = "msg err";
+      msg.textContent = "This course has an invalid time zone. Fix that first, or the emails will tell people the wrong time.";
+      return;
+    }
 
-    const newStart = new Date(date + "T" + ($("r-starttime").value || "09:00"));
+    const newStart = zonedToInstant(date, $("r-starttime").value || "09:00", courseTz);
     const newEnd = $("r-endtime").value
-      ? new Date(($("r-enddate").value || date) + "T" + $("r-endtime").value)
+      ? zonedToInstant($("r-enddate").value || date, $("r-endtime").value, courseTz)
       : null;
 
     const who = liveRegs === 1 ? "1 participant" : `${liveRegs} participants`;
     if (!window.confirm(
-      `Move "${course.title}" to ${newStart.toLocaleDateString()}?\n\n` +
+      `Move "${course.title}" to ${fmtWhenIn(newStart, courseTz)} local time in ${where}?\n\n` +
       `${who} and any assigned coaches will be emailed.`
     )) return;
 
@@ -2006,6 +2207,7 @@ async function openForm() {
   $("form").classList.remove("hidden");
   $("form-msg").textContent = "";
   toggleWorkshopFields();
+  updateWhenPreview();
 
   if (!staffList.length) {
     const { data } = await db.from("staff")
@@ -2021,6 +2223,46 @@ function toggleWorkshopFields() {
   $("wrap-movements").classList.toggle("hidden", !isWorkshop);
 }
 $("f-type").addEventListener("change", () => { toggleWorkshopFields(); buildSlug(); });
+
+// Says out loud what is about to be stored, so a wrong zone is caught
+// here rather than six weeks later in a pre-course email.
+function updateWhenPreview() {
+  const el = $("when-preview");
+  const tz = $("f-timezone").value.trim();
+  const date = $("f-date").value;
+  const time = $("f-starttime").value || "09:00";
+  const city = $("f-city").value.trim();
+
+  if (!tz) { el.className = "whenline"; el.textContent = ""; return; }
+
+  if (!tzIsReal(tz)) {
+    el.className = "whenline bad";
+    el.textContent =
+      `“${tz}” is not a time zone. Pick one from the list — Glasgow, for instance, is Europe/London.`;
+    return;
+  }
+  if (!date) {
+    el.className = "whenline";
+    el.textContent = "Add a date and this will show you exactly what gets stored.";
+    return;
+  }
+
+  const when = zonedToInstant(date, time, tz);
+  const there = fmtWhenIn(when, tz);
+  const mine = fmtWhenIn(when, MY_ZONE);
+
+  el.className = "whenline";
+  el.innerHTML = "";
+  el.append(document.createTextNode("Starts "));
+  const b = document.createElement("b");
+  b.textContent = there;
+  el.append(b, document.createTextNode(
+    city ? ` in ${city}` : " local to the course"
+  ));
+  el.append(document.createTextNode(
+    there === mine ? "." : ` — that is ${mine} where you are now.`
+  ));
+}
 
 function buildSlug() {
   const brand = BRAND[$("f-brand").value]?.slug || "bb";
@@ -2051,6 +2293,27 @@ function buildSlug() {
   $(id).addEventListener("change", buildSlug)
 );
 $("f-city").addEventListener("blur", buildSlug);
+$("f-city").addEventListener("input", updateWhenPreview);
+
+// The country usually settles the time zone. Where it does not — the
+// US, Australia, Canada, Brazil — it says so and leaves it alone.
+$("f-country").addEventListener("input", () => {
+  const cc = $("f-country").value.trim().toUpperCase();
+  if (COUNTRY_TZ[cc]) {
+    $("f-timezone").value = COUNTRY_TZ[cc];
+  } else if (MULTI_TZ.has(cc)) {
+    const el = $("when-preview");
+    el.className = "whenline";
+    el.textContent = `${cc} spans several time zones — choose the one for this city from the list.`;
+    return;
+  }
+  updateWhenPreview();
+});
+
+for (const id of ["f-date", "f-starttime", "f-enddate", "f-endtime", "f-timezone"]) {
+  $(id).addEventListener("input", updateWhenPreview);
+  $(id).addEventListener("change", updateWhenPreview);
+}
 
 $("f-image").addEventListener("change", () => {
   const f = $("f-image").files[0];
@@ -2072,10 +2335,16 @@ async function saveCourse() {
   const city  = $("f-city").value.trim();
   const start = $("f-date").value;
   const price = $("f-price").value;
+  const tz    = $("f-timezone").value.trim();
   let slug    = $("f-slug").value.trim();
 
   if (!start)  { msg.className = "msg err"; msg.textContent = "Add a date."; return; }
   if (!price)  { msg.className = "msg err"; msg.textContent = "Add a price."; return; }
+  if (!tzIsReal(tz)) {
+    msg.className = "msg err";
+    msg.textContent = `“${tz || "blank"}” is not a time zone, so the course would be stored at the wrong hour. Pick one from the list.`;
+    return;
+  }
   if (!slug)   { buildSlug(); slug = $("f-slug").value.trim(); }
   if (!slug)   { msg.className = "msg err"; msg.textContent = "Add a link."; return; }
 
@@ -2121,11 +2390,11 @@ async function saveCourse() {
       address: $("f-address").value.trim() || null,
       city: city || null,
       country: $("f-country").value.trim().toUpperCase() || null,
-      starts_at: new Date(start + "T" + ($("f-starttime").value || "09:00")).toISOString(),
+      starts_at: zonedToInstant(start, $("f-starttime").value || "09:00", tz).toISOString(),
       ends_at: $("f-endtime").value
-        ? new Date(($("f-enddate").value || start) + "T" + $("f-endtime").value).toISOString()
+        ? zonedToInstant($("f-enddate").value || start, $("f-endtime").value, tz).toISOString()
         : null,
-      timezone: $("f-timezone").value.trim() || "Europe/Dublin",
+      timezone: tz,
       capacity: parseInt($("f-capacity").value, 10) || 15,
       price_cents: Math.round(parseFloat(price) * 100),
       deposit_cents: $("f-deposit").value ? Math.round(parseFloat($("f-deposit").value) * 100) : null,
