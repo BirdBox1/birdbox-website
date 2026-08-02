@@ -18,28 +18,22 @@
     padding:0.9rem 1rem;margin-top:0.8rem;font-weight:650;cursor:pointer}
   label.pickrow span{display:block;font-weight:400;font-size:0.82rem;color:#6c7178}
   input[type=file]{display:none}
-  img{max-width:200px;border-radius:6px;margin-top:0.8rem;display:block}
+  img{max-width:180px;border-radius:6px;margin-top:0.8rem;display:block}
 </style>
 </head>
 <body>
 
 <h1>Participant photo — diagnostic</h1>
 <p style="font-size:0.9rem;color:#6c7178;margin:0 0 1rem">
-  Try the camera one. That is what the portal uses.
+  This now runs every step the portal runs, including saving the path
+  against the registration.
 </p>
 
 <div id="out"></div>
 
-<label class="pickrow" id="row-cam">
+<label class="pickrow">
   Take a photo with the camera
-  <span>Same as the portal — this is the one that fails</span>
-  <input type="file" accept="image/*" capture="user" id="pick-cam" disabled>
-</label>
-
-<label class="pickrow" id="row-lib">
-  Choose from the photo library
-  <span>This is what worked last time</span>
-  <input type="file" accept="image/*" id="pick-lib" disabled>
+  <input type="file" accept="image/*" capture="user" id="pick" disabled>
 </label>
 
 <script type="module">
@@ -51,7 +45,9 @@ const db = createClient(
 );
 
 const out = document.getElementById("out");
+const pick = document.getElementById("pick");
 let target = null;
+let me = null;
 
 function say(label, ok, detail) {
   const el = document.createElement("div");
@@ -70,44 +66,44 @@ function say(label, ok, detail) {
   const { data: { session } } = await db.auth.getSession();
   if (!session) return say("Signed in", false, "No session — sign into /portal/ first.");
 
+  const { data: staff } = await db.from("staff")
+    .select("id, full_name, role").eq("id", session.user.id).maybeSingle();
+  me = staff;
+  say("Signed in", true, `${staff?.full_name} — role: ${staff?.role}`);
+
   const { data: regs, error } = await db.from("registrations")
-    .select("id, first_name, last_name, course_id").limit(1);
+    .select("id, first_name, last_name, course_id, photo_path").limit(1);
 
   if (error) return say("Read registrations", false, error);
-  if (!regs || !regs.length) return say("Read registrations", false, "No registrations visible.");
+  if (!regs?.length) return say("Read registrations", false, "No registrations visible.");
 
   target = regs[0];
-  say("Ready", true, `Testing with ${target.first_name} ${target.last_name}`);
-  document.getElementById("pick-cam").disabled = false;
-  document.getElementById("pick-lib").disabled = false;
+  say("Participant to test with", true,
+    `${target.first_name} ${target.last_name}\ncourse: ${target.course_id}\nregistration: ${target.id}`);
+
+  // Can this account see the course through the same rule the policy uses?
+  const { data: seen, error: seeErr } = await db.rpc("can_see_course", {
+    course_id: target.course_id,
+  });
+  if (seeErr) say("can_see_course() check", false, seeErr);
+  else say("can_see_course() returns", seen === true, String(seen));
+
+  pick.disabled = false;
 })();
 
-for (const id of ["pick-cam", "pick-lib"]) {
-  document.getElementById(id).addEventListener("change", (e) => run(e.target, id === "pick-cam"));
-}
-
-async function run(input, fromCamera) {
-  const file = input.files[0];
+pick.addEventListener("change", async () => {
+  const file = pick.files[0];
   if (!file || !target) return;
-
   out.innerHTML = "";
-  say(fromCamera ? "Camera used" : "Library used", true,
-    `${file.name || "(no name)"}\ntype: ${file.type || "EMPTY — this is the problem"}\n${Math.round(file.size / 1024)} KB`);
+
+  say("Photo taken", true, `${file.type} · ${Math.round(file.size / 1024)} KB`);
 
   let blob;
   try {
     blob = await shrink(file);
-    say("Shrunk on device", true, `${Math.round(blob.size / 1024)} KB jpeg`);
+    say("Shrunk", true, `${Math.round(blob.size / 1024)} KB`);
   } catch (err) {
-    say("Shrunk on device", false, err.message || String(err));
-    // Try the modern decoder, which handles more formats than <img>.
-    try {
-      blob = await shrinkModern(file);
-      say("Shrunk using createImageBitmap instead", true,
-        `${Math.round(blob.size / 1024)} KB jpeg — this is the fix`);
-    } catch (err2) {
-      return say("Shrunk using createImageBitmap instead", false, err2.message || String(err2));
-    }
+    return say("Shrunk", false, err.message || String(err));
   }
 
   const img = document.createElement("img");
@@ -115,14 +111,44 @@ async function run(input, fromCamera) {
   out.append(img);
 
   const path = `${target.course_id}/${target.id}.jpg`;
+
   const { error: upErr } = await db.storage
     .from("participant-photos")
     .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+  if (upErr) return say("Uploaded to storage", false, upErr);
+  say("Uploaded to storage", true, path);
 
-  if (upErr) return say("Uploaded", false, upErr);
-  say("Uploaded", true, "Everything worked.");
-  input.value = "";
-}
+  // ---- the step the portal does that the last test did not ----
+  const { data: updated, error: dbErr } = await db.from("registrations")
+    .update({ photo_path: path, photo_taken_at: new Date().toISOString() })
+    .eq("id", target.id)
+    .select();
+
+  if (dbErr) {
+    return say("Saved path on the registration", false, {
+      message: dbErr.message,
+      code: dbErr.code,
+      details: dbErr.details,
+      hint: dbErr.hint,
+    });
+  }
+
+  if (!updated || !updated.length) {
+    return say("Saved path on the registration", false,
+      "No error, but no row came back. The update policy is silently blocking it.");
+  }
+  say("Saved path on the registration", true, `photo_path = ${updated[0].photo_path}`);
+
+  const { data: signed, error: signErr } = await db.storage
+    .from("participant-photos").createSignedUrl(path, 600);
+  if (signErr) return say("Signed link", false, signErr);
+  say("Signed link", true, "Everything worked.");
+
+  const back = document.createElement("img");
+  back.src = signed.signedUrl;
+  out.append(back);
+  pick.value = "";
+});
 
 function shrink(file) {
   return new Promise((resolve, reject) => {
@@ -130,33 +156,20 @@ function shrink(file) {
     const url = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(url);
-      draw(img, img.width, img.height, resolve, reject);
+      const scale = Math.min(1, 900 / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (b) => b ? resolve(b) : reject(new Error("toBlob returned nothing")),
+        "image/jpeg", 0.82
+      );
     };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("<img> could not decode this file"));
-    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Could not decode")); };
     img.src = url;
   });
-}
-
-async function shrinkModern(file) {
-  const bitmap = await createImageBitmap(file);
-  return new Promise((resolve, reject) =>
-    draw(bitmap, bitmap.width, bitmap.height, resolve, reject));
-}
-
-function draw(source, iw, ih, resolve, reject) {
-  const scale = Math.min(1, 900 / Math.max(iw, ih));
-  const w = Math.round(iw * scale);
-  const h = Math.round(ih * scale);
-  const canvas = document.createElement("canvas");
-  canvas.width = w; canvas.height = h;
-  canvas.getContext("2d").drawImage(source, 0, 0, w, h);
-  canvas.toBlob(
-    (b) => b ? resolve(b) : reject(new Error("canvas.toBlob returned nothing")),
-    "image/jpeg", 0.82
-  );
 }
 </script>
 
