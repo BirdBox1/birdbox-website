@@ -422,4 +422,261 @@
       <span class="bb-card__veil"></span>
       <span class="bb-card__logo"><img src="brand/tec-mark.png" alt="The Endurance Course"></span>
       <span class="bb-card__rule"></span>
-      
+      <h2 class="bb-card__name">The Endurance Course</h2>
+      <p class="bb-card__desc">Coach endurance with a proven, science-backed system for real-world results.</p>
+      <span class="bb-card__cta">Explore Endurance &rarr;</span>
+    </a>
+
+    <a class="bb-card" href="/twc"
+       style="--cardAccent: var(--twc); --cardLine: rgba(217,165,39,0.45); --veil: linear-gradient(180deg, rgba(217,165,39,0.40), rgba(217,165,39,0.28));">
+      <span class="bb-card__bg" style="background-image: url('card-twc.jpeg');"></span>
+      <span class="bb-card__veil"></span>
+      <span class="bb-card__logo"><img src="brand/twc-mark.png" alt="The Weightlifting Course"></span>
+      <span class="bb-card__rule"></span>
+      <h2 class="bb-card__name">The Weightlifting Course</h2>
+      <p class="bb-card__desc">Develop strength, power, and confidence through Olympic weightlifting education.</p>
+      <span class="bb-card__cta">Explore Weightlifting &rarr;</span>
+    </a>
+
+  </section>
+
+  <section class="bb-row3" aria-label="About BirdBox">
+
+    <!-- PLACEHOLDER TESTIMONIALS - replace before go-live -->
+    <div class="bb-panel">
+      <h2 class="bb-panel__title">Coaches Love BirdBox</h2>
+      <div class="bb-stars" aria-label="Five stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <p class="bb-quote" id="bb-quote">&ldquo;The best coaching education I&rsquo;ve ever experienced. It completely changed the way I coach.&rdquo;</p>
+      <div class="bb-person">
+        <span class="bb-person__initials" id="bb-quote-initials">JW</span>
+        <span>
+          <span class="bb-person__name" id="bb-quote-name">James W.</span><br>
+          <span class="bb-person__role" id="bb-quote-role">Coach, Australia</span>
+        </span>
+        <span class="bb-dots" id="bb-dots"></span>
+      </div>
+    </div>
+
+    <div class="bb-panel bb-panel--centre">
+      <h2 class="bb-panel__title">The BirdBox Ecosystem</h2>
+      <div class="bb-eco">
+        <div class="bb-eco__item">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h7a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H3z"/><path d="M21 5h-7a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h7z"/></svg>
+          <span class="bb-eco__label">Education</span>
+        </div>
+        <div class="bb-eco__item">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="9" r="3"/><circle cx="17" cy="7" r="2"/><path d="M3 19a5 5 0 0 1 10 0"/><path d="M15 19a4 4 0 0 1 6-3.4"/></svg>
+          <span class="bb-eco__label">Mentorship</span>
+        </div>
+        <div class="bb-eco__item">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16a3.2 3.2 0 0 1 6 0"/><path d="M14 10h4M14 14h4"/></svg>
+          <span class="bb-eco__label">Trainer Directory</span>
+        </div>
+        <div class="bb-eco__item">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="9" r="2.4"/><circle cx="12" cy="7" r="2.4"/><circle cx="17" cy="9" r="2.4"/><path d="M2.5 18a4.5 4.5 0 0 1 9 0"/><path d="M12.5 18a4.5 4.5 0 0 1 9 0"/></svg>
+          <span class="bb-eco__label">Community</span>
+        </div>
+        <div class="bb-eco__item">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="13" rx="2"/><path d="M8 21h8"/><path d="M10.5 9.2v4.1l3.6-2z"/></svg>
+          <span class="bb-eco__label">Online Learning</span>
+        </div>
+      </div>
+      <p class="bb-eco__line">One philosophy. Every resource you need to grow.</p>
+    </div>
+
+    <div class="bb-panel">
+      <h2 class="bb-panel__title">Upcoming Seminars</h2>
+      <div class="bb-sem" id="bb-sem">
+        <p class="bb-sem__state">Loading&hellip;</p>
+      </div>
+      <a class="bb-sem__all" href="/seminars">View All Seminars &rarr;</a>
+    </div>
+
+  </section>
+
+  <section class="bb-signup" aria-label="Newsletter signup">
+    <span class="bb-signup__title">Join Coaches Worldwide</span>
+    <span class="bb-signup__sub">Get updates, resources, and exclusive offers.</span>
+    <span class="bb-signup__field">
+      <input id="bb-email" type="email" placeholder="Enter your email" aria-label="Email address">
+      <button type="button" id="bb-signup-btn">Sign Up</button>
+    </span>
+    <span class="bb-signup__note" id="bb-signup-note"></span>
+  </section>
+
+</main>
+
+<footer class="bb-footer">
+  &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
+  <a class="bb-footer__staff" href="/portal/">Staff Login</a>
+</footer>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const supabase = createClient(
+    "https://yvdmazpxtpuvidlcifnq.supabase.co",
+    "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+  );
+
+  const MARKS = {
+    tcc: "brand/tcc-mark.png",
+    tgc: "brand/tgc-mark.png",
+    tec: "brand/tec-mark.png",
+    twc: "brand/twc-mark.png",
+    birdbox: "brand/birdbox-mark.png"
+  };
+  const BRAND_NAME = {
+    tcc: "The Coaches Course",
+    tgc: "The Gymnastics Course",
+    tec: "The Endurance Course",
+    twc: "The Weightlifting Course",
+    birdbox: "BirdBox Coaching"
+  };
+
+  const box = document.getElementById("bb-sem");
+
+  // Dates render in the course's own zone, so a Tokyo seminar reads as its
+  // local date rather than the visitor's.
+  function formatWhen(startsAt, endsAt, tz) {
+    const zone = tz || "UTC";
+    const day = { timeZone: zone, day: "numeric", month: "short" };
+    const start = new Date(startsAt);
+    const year = new Intl.DateTimeFormat("en-GB", { timeZone: zone, year: "numeric" }).format(start);
+    const startTxt = new Intl.DateTimeFormat("en-GB", day).format(start);
+    if (!endsAt) return `${startTxt} ${year}`;
+    const endTxt = new Intl.DateTimeFormat("en-GB", day).format(new Date(endsAt));
+    return startTxt === endTxt ? `${startTxt} ${year}` : `${startTxt}\u2013${endTxt} ${year}`;
+  }
+
+  function levelLine(course) {
+    if (course.type === "workshop") return course.title || "Workshop";
+    if (course.level) return `Level ${String(course.level).replace(/[^0-9]/g, "") || course.level}`;
+    return course.title || BRAND_NAME[course.brand] || "Seminar";
+  }
+
+  async function loadSeminars() {
+    const { data, error } = await supabase
+      .from("courses")
+      .select("slug, brand, type, level, title, city, country, starts_at, ends_at, timezone, status")
+      .in("status", ["published", "full"])
+      .in("type", ["live_seminar", "workshop"])
+      .eq("archived", false)
+      .gte("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(3);
+
+    if (error) {
+      console.error("Upcoming seminars failed:", error);
+      box.innerHTML = '<p class="bb-sem__state">Dates unavailable right now.</p>';
+      return;
+    }
+    if (!data || data.length === 0) {
+      box.innerHTML = '<p class="bb-sem__state">No seminars scheduled just now.</p>';
+      return;
+    }
+
+    box.textContent = "";
+    for (const course of data) {
+      const row = document.createElement("a");
+      row.className = "bb-sem__row";
+      row.href = `/c/${course.slug}/`;
+
+      const markWrap = document.createElement("span");
+      markWrap.className = "bb-sem__mark";
+      const mark = document.createElement("img");
+      mark.src = MARKS[course.brand] || MARKS.birdbox;
+      mark.alt = BRAND_NAME[course.brand] || "BirdBox";
+      markWrap.append(mark);
+
+      const main = document.createElement("span");
+      main.className = "bb-sem__main";
+
+      const level = document.createElement("span");
+      level.className = "bb-sem__level";
+      level.style.display = "block";
+      level.textContent = levelLine(course);
+
+      const meta = document.createElement("span");
+      meta.className = "bb-sem__meta";
+      meta.style.display = "block";
+      const where = [course.city, course.country].filter(Boolean).join(", ");
+      const when = formatWhen(course.starts_at, course.ends_at, course.timezone);
+      meta.textContent = where ? `${where} \u2022 ${when}` : when;
+
+      main.append(level, meta);
+
+      const chev = document.createElement("span");
+      chev.className = "bb-sem__chev";
+      chev.textContent = "\u203A";
+
+      row.append(markWrap, main, chev);
+      box.append(row);
+    }
+  }
+
+  // PLACEHOLDER TESTIMONIALS - replace before go-live
+  const QUOTES = [
+    { text: "The best coaching education I\u2019ve ever experienced. It completely changed the way I coach.", name: "James W.", role: "Coach, Australia" },
+    { text: "Two days that reshaped how I teach movement. My members noticed the difference immediately.", name: "Marta S.", role: "Gym Owner, Spain" },
+    { text: "Practical, precise, and genuinely useful on the gym floor the very next morning.", name: "Tom H.", role: "Coach, Ireland" }
+  ];
+
+  const quoteEl = document.getElementById("bb-quote");
+  const nameEl = document.getElementById("bb-quote-name");
+  const roleEl = document.getElementById("bb-quote-role");
+  const initEl = document.getElementById("bb-quote-initials");
+  const dotsEl = document.getElementById("bb-dots");
+
+  function showQuote(i) {
+    const q = QUOTES[i];
+    quoteEl.textContent = `\u201C${q.text}\u201D`;
+    nameEl.textContent = q.name;
+    roleEl.textContent = q.role;
+    initEl.textContent = q.name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+    for (const [j, dot] of [...dotsEl.children].entries()) {
+      dot.setAttribute("aria-current", j === i ? "true" : "false");
+    }
+  }
+
+  let quoteIndex = 0;
+  let quoteTimer = null;
+
+  function startQuoteTimer() {
+    clearInterval(quoteTimer);
+    quoteTimer = setInterval(() => {
+      quoteIndex = (quoteIndex + 1) % QUOTES.length;
+      showQuote(quoteIndex);
+    }, 12000);
+  }
+
+  QUOTES.forEach((q, i) => {
+    const dot = document.createElement("button");
+    dot.className = "bb-dot";
+    dot.type = "button";
+    dot.setAttribute("aria-label", `Testimonial ${i + 1}`);
+    // A manual tap wins, and the clock restarts so it doesn't jump a second later.
+    dot.addEventListener("click", () => {
+      quoteIndex = i;
+      showQuote(i);
+      startQuoteTimer();
+    });
+    dotsEl.append(dot);
+  });
+  showQuote(0);
+  startQuoteTimer();
+
+  // Signup is not wired to Mailchimp yet, so say so rather than pretend.
+  const note = document.getElementById("bb-signup-note");
+  document.getElementById("bb-signup-btn").addEventListener("click", () => {
+    const value = document.getElementById("bb-email").value.trim();
+    note.textContent = value.includes("@")
+      ? "Thanks \u2014 the mailing list isn\u2019t connected yet, so nothing has been saved."
+      : "Please enter a valid email address.";
+  });
+
+  loadSeminars();
+</script>
+
+</body>
+</html>
