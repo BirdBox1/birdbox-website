@@ -474,6 +474,9 @@
     transition: background 0.2s ease, color 0.2s ease;
   }
   .l1-tier__btn:hover { background: var(--tcc); color: #ffffff; }
+  /* Tier 1 is the one you can buy today, so its button is filled. */
+  a.l1-tier__btn { background: var(--tcc); color: #ffffff; }
+  a.l1-tier__btn:hover { background: transparent; color: var(--accentText); }
 
   .l1-form {
     border: 1px solid var(--line); background: var(--panel);
