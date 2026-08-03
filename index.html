@@ -3,354 +3,512 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BirdBox Coaching | Choose Your Path</title>
+<title>BirdBox Coaching | Develop Better Coaches</title>
 <meta name="description" content="BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course &mdash; coaching education and seminars.">
 <style>
+  :root {
+    --paper: #14100F;
+    --panel: #1C1719;
+    --ink: #F2EFEF;
+    --muted: #8A8385;
+    --line: #342F31;
+    --tcc: #4FA8DE;
+    --tgc: #861619;
+    --tec: #428F63;
+    --twc: #D9A527;
+    --accentText: #6FB9E8;
+  }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: #1C1719; }
+  html, body { margin: 0; background: var(--paper); }
   body {
     font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
-    color: #F2EFEF;
-    min-height: 100vh;
-    background-image:
-      linear-gradient(180deg,
-        rgba(28,23,25,0.90) 0%,
-        rgba(28,23,25,0.84) 45%,
-        rgba(28,23,25,0.96) 100%),
-      url("home-bg.jpeg");
-    background-size: cover;
-    background-position: center 45%;
-    background-repeat: no-repeat;
-    background-attachment: scroll;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
   }
-  @media (max-width: 680px) {
-    /* Text spans the full width on a phone, so darken evenly */
-    body {
-      background-image:
-        linear-gradient(rgba(28,23,25,0.88), rgba(28,23,25,0.88)),
-        url("home-bg.jpeg");
-    }
-  }
+  img { display: block; }
+  .bb-wrap { max-width: 1320px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- top bar ---------- */
   .bb-topbar {
     display: flex;
     justify-content: center;
+    flex-wrap: wrap;
     gap: 28px;
     padding: 16px 24px;
-    border-bottom: 1px solid #342F31;
+    border-bottom: 1px solid var(--line);
     font-size: 13px;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+    position: relative;
+    z-index: 3;
   }
   .bb-topbar a { color: #ADA6A8; text-decoration: none; }
   .bb-topbar a:hover { color: #ffffff; }
+
+  /* ---------- hero ---------- */
   .bb-hero {
-    text-align: center;
-    padding: 56px 24px 8px;
-    max-width: 720px;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+  }
+  .bb-hero__photo {
+    position: absolute;
+    inset: 0 0 0 38%;
+    background-image: url("home-bg.jpeg");
+    background-size: cover;
+    background-position: center 40%;
+    background-repeat: no-repeat;
+  }
+  .bb-hero__photo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+      rgba(20,16,15,1) 0%,
+      rgba(20,16,15,0.92) 18%,
+      rgba(20,16,15,0.45) 62%,
+      rgba(20,16,15,0.55) 100%);
+  }
+  .bb-hero__inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    padding: 54px 24px 60px;
+    max-width: 1320px;
     margin: 0 auto;
   }
-  .bb-hero p {
-    font-size: 17px;
-    color: #C7C1C3;
-    line-height: 1.5;
+  .bb-hero__mark { flex: 0 0 auto; }
+  .bb-hero__mark img { max-height: 168px; width: auto; filter: brightness(1.28); }
+  .bb-hero__copy { flex: 1 1 auto; min-width: 0; }
+  .bb-hero__title {
+    font-size: clamp(30px, 4.6vw, 62px);
+    line-height: 1.04;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    text-transform: uppercase;
+    margin: 0 0 20px;
+    text-shadow: 0 2px 18px rgba(0,0,0,0.55);
   }
+  .bb-hero__title em { font-style: normal; color: var(--accentText); }
+  .bb-hero__sub {
+    font-size: 17px;
+    line-height: 1.55;
+    color: #DCD7D8;
+    margin: 0;
+    max-width: 46ch;
+    text-shadow: 0 1px 10px rgba(0,0,0,0.5);
+  }
+
+  /* ---------- brand cards ---------- */
+  .bb-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    padding: 44px 0 8px;
+  }
+  .bb-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 430px;
+    padding: 26px 24px 28px;
+    text-decoration: none;
+    color: var(--ink);
+    border: 1px solid var(--cardLine, var(--line));
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .bb-card__bg {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .bb-card__veil {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(180deg, rgba(20,16,15,0.18) 0%, rgba(20,16,15,0.86) 62%, rgba(20,16,15,0.96) 100%),
+      var(--veil);
+    transition: opacity 0.25s ease;
+  }
+  .bb-card:hover .bb-card__veil { opacity: 0.82; }
+  .bb-card__logo {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    right: 24px;
+    height: 74px;
+    display: flex;
+    align-items: flex-start;
+  }
+  .bb-card__logo img { max-height: 100%; max-width: 200px; width: auto; }
+  .bb-card__rule {
+    width: 42px;
+    height: 3px;
+    background: var(--cardAccent);
+    margin-bottom: 14px;
+  }
+  .bb-card__name {
+    font-size: 19px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+  }
+  .bb-card__desc {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #C9C4C5;
+    margin: 0 0 16px;
+  }
+  .bb-card__cta {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cardAccent);
+  }
+  .bb-card--soon { cursor: default; }
+  .bb-card--soon .bb-card__cta { color: var(--muted); }
+
+  /* ---------- three panel row ---------- */
+  .bb-row3 {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr 1fr;
+    gap: 16px;
+    padding: 40px 0 8px;
+    align-items: stretch;
+  }
+  .bb-panel {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    padding: 24px 24px 26px;
+    display: flex;
+    flex-direction: column;
+  }
+  .bb-panel__title {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 0 0 18px;
+    color: var(--ink);
+  }
+  .bb-panel--centre .bb-panel__title { text-align: center; }
+
+  /* testimonials */
+  .bb-stars { color: var(--tcc); letter-spacing: 3px; margin-bottom: 12px; font-size: 15px; }
+  .bb-quote {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #D6D1D2;
+    font-style: italic;
+    margin: 0 0 18px;
+  }
+  .bb-person { display: flex; align-items: center; gap: 12px; margin-top: auto; }
+  .bb-person__initials {
+    width: 42px; height: 42px;
+    flex: 0 0 42px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line);
+    background: #241E20;
+    font-size: 14px; font-weight: 800; color: #ADA6A8;
+  }
+  .bb-person__name { font-size: 14px; font-weight: 700; }
+  .bb-person__role { font-size: 13px; color: var(--muted); }
+  .bb-dots { display: flex; gap: 7px; margin-left: auto; }
+  .bb-dot { width: 7px; height: 7px; border-radius: 50%; background: #3C3639; border: none; padding: 0; cursor: pointer; }
+  .bb-dot[aria-current="true"] { background: var(--tcc); }
+
+  /* ecosystem */
+  .bb-eco {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .bb-eco__item { color: var(--muted); }
+  .bb-eco__item svg { width: 34px; height: 34px; stroke: var(--tcc); fill: none; stroke-width: 1.6; margin: 0 auto 10px; display: block; }
+  .bb-eco__label {
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    line-height: 1.35;
+    color: #C0BABC;
+  }
+  .bb-eco__line {
+    text-align: center;
+    font-size: 14px;
+    color: #C9C4C5;
+    margin: auto 0 0;
+    padding-top: 6px;
+  }
+
+  /* seminars */
+  .bb-sem { display: flex; flex-direction: column; gap: 2px; }
+  .bb-sem__row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+    color: var(--ink);
+  }
+  .bb-sem__row:hover .bb-sem__level { color: var(--accentText); }
+  .bb-sem__mark { flex: 0 0 58px; height: 40px; display: flex; align-items: center; }
+  .bb-sem__mark img { max-height: 100%; max-width: 100%; width: auto; }
+  .bb-sem__main { flex: 1 1 auto; min-width: 0; }
+  .bb-sem__level { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+  .bb-sem__meta { font-size: 13px; color: var(--muted); }
+  .bb-sem__chev { flex: 0 0 auto; color: var(--muted); font-size: 18px; }
+  .bb-sem__state { padding: 14px 0; color: var(--muted); font-size: 14px; }
+  .bb-sem__all {
+    display: inline-block;
+    margin-top: 16px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accentText);
+    text-decoration: none;
+  }
+
+  /* ---------- signup ---------- */
+  .bb-signup {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 18px;
+    border: 1px solid var(--twc);
+    padding: 20px 26px;
+    margin: 34px 0 10px;
+  }
+  .bb-signup__title {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .bb-signup__sub { font-size: 14px; color: var(--muted); flex: 1 1 auto; }
+  .bb-signup__field { display: flex; }
+  .bb-signup input {
+    border: 1px solid #3A4A5C;
+    background: #171F27;
+    color: var(--ink);
+    padding: 12px 16px;
+    font-size: 14px;
+    min-width: 220px;
+    font-family: inherit;
+  }
+  .bb-signup button {
+    border: 1px solid var(--tcc);
+    background: var(--tcc);
+    color: #0C1116;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 12px 22px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .bb-signup__note { font-size: 13px; color: var(--muted); width: 100%; }
+
   .bb-footer {
     text-align: center;
-    padding: 40px 24px 60px;
+    padding: 34px 24px 54px;
     font-size: 13px;
     color: #756F71;
-    border-top: 1px solid #342F31;
-    margin-top: 24px;
+    border-top: 1px solid var(--line);
+    margin-top: 30px;
+    line-height: 1.7;
+  }
+  .bb-footer a { color: #8A8385; text-decoration: none; }
+  .bb-footer__staff {
+    display: block;
+    margin-top: 10px;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 1080px) {
+    .bb-cards { grid-template-columns: repeat(2, 1fr); }
+    .bb-row3 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 780px) {
+    .bb-hero__photo { inset: 0; }
+    .bb-hero__photo::after {
+      background: linear-gradient(180deg, rgba(20,16,15,0.86) 0%, rgba(20,16,15,0.92) 100%);
+    }
+    .bb-hero__inner { flex-direction: column; align-items: flex-start; gap: 20px; padding: 40px 24px 46px; }
+    .bb-hero__mark img { max-height: 120px; }
+    .bb-cards { grid-template-columns: 1fr; }
+    .bb-card { min-height: 380px; }
+    .bb-eco { grid-template-columns: repeat(3, 1fr); row-gap: 18px; }
+    .bb-signup__sub { flex: 1 1 100%; }
   }
 </style>
 </head>
 <body>
 
-  <nav class="bb-topbar">
-    <a href="/merch">Merch Store</a>
-    <a href="/blog">Blog</a>
-    <a href="/trainer-directory">Trainer Directory</a>
-    <a href="/account">My Account</a>
-    <a href="/about">About</a>
-  </nav>
+<nav class="bb-topbar">
+  <a href="/merch">Merch Store</a>
+  <a href="/blog">Blog</a>
+  <a href="/trainer-directory">Trainer Directory</a>
+  <a href="/account">My Account</a>
+  <a href="/about">About</a>
+</nav>
 
-<section class="bb-paths" aria-label="Choose your path">
-  <style>
-    .bb-paths {
-      --ink: #F2EFEF;
-      --paper: #1C1719;
-      --line: #342F31;
-      --muted: #8A8385;
-      --tcc: #4FA8DE;
-      --tgc: #861619;
-      --tec: #428F63;
-      --twc: #D9A527;
-      font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
-      color: var(--ink);
-      background: transparent;
-      padding: 48px 24px 80px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    .bb-paths__head {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    .bb-paths__logo {
-      max-height: 190px;
-      width: auto;
-      margin-bottom: 20px;
-      filter: brightness(1.28);
-    }
-    .bb-paths__title {
-      font-size: clamp(24px, 3.4vw, 36px);
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin: 0;
-      color: #D8D3D4;
-    }
-    .bb-paths__tagline {
-      font-size: 17px;
-      color: #EAE6E7;
-      line-height: 1.5;
-      margin: 4px 0 20px;
-    }
-    .bb-paths__grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 2px;
-      background: var(--line);
-      border: 1px solid var(--line);
-    }
-    @media (max-width: 720px) {
-      .bb-paths__grid { grid-template-columns: 1fr; }
-    }
-    .bb-tile {
-      position: relative;
-      background: var(--paper);
-      padding: 36px 32px 40px;
-      min-height: 260px;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      overflow: hidden;
-      text-decoration: none;
-      color: var(--ink);
-      border-top: 4px solid var(--accent, var(--line));
-      transition: background 0.2s ease, color 0.2s ease;
-    }
-    .bb-tile:hover {
-      background: var(--accent, var(--ink));
-      color: #ffffff;
-    }
-    .bb-tile:hover .bb-tile__desc { color: rgba(255,255,255,0.88); }
-    .bb-tile:hover .bb-tile__label { color: rgba(255,255,255,0.78); }
-    .bb-tile:hover .bb-tile__logo-wrap img {
-      filter: brightness(0) invert(1);
-    }
-    .bb-tile__logo-wrap {
-      height: 64px;
-      display: flex;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    .bb-tile__logo-wrap img {
-      max-height: 100%;
-      max-width: 230px;
-      width: auto;
-      object-fit: contain;
-    }
-    .bb-tile__label {
-      font-size: 12px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-    .bb-tile__name {
-      font-size: 22px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: -0.01em;
-      margin: 0 0 10px;
-    }
-    .bb-tile__desc {
-      font-size: 15px;
-      line-height: 1.5;
-      color: #B7B1B3;
-      max-width: 34ch;
-      margin: 0 0 18px;
-      transition: color 0.2s ease;
-    }
-    .bb-tile__cta {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      margin-top: auto;
-    }
-    .bb-tile--soon {
-      cursor: default;
-      background: #171214;
-    }
-    .bb-tile--soon .bb-tile__logo-wrap { opacity: 0.7; }
-    .bb-tile--soon .bb-tile__name,
-    .bb-tile--soon .bb-tile__label { color: var(--muted); }
-    .bb-tile--soon .bb-tile__desc { color: var(--muted); }
-    .bb-tile--soon:hover .bb-tile__logo-wrap { opacity: 1; }
-  </style>
-
-  <div class="bb-paths__head">
-    <img class="bb-paths__logo" alt="BirdBox Coaching" src="brand/birdbox-mark.png">
-    <p class="bb-paths__tagline">World-class coaching education, built for real gyms.</p>
-    <h2 class="bb-paths__title">Choose Your Path</h2>
-  </div>
-
-  <div class="bb-paths__grid">
-    <a class="bb-tile" href="/tcc" style="--accent: var(--tcc);">
-      <span class="bb-tile__logo-wrap" style="height: 93px;"><img alt="BirdBox Coaching Development" style="max-height: 100%;" src="brand/tcc-mark.png"></span>
-      <span class="bb-tile__label">Coach Development</span>
-      <h3 class="bb-tile__name">The Coaches Course</h3>
-      <p class="bb-tile__desc">Sharpen your coaching craft &mdash; seminars, online learning, and mentorship for coaches at every stage.</p>
-      <span class="bb-tile__cta">Explore Coaching &rarr;</span>
-    </a>
-
-    <a class="bb-tile" href="/tgc" style="--accent: var(--tgc);">
-      <span class="bb-tile__logo-wrap" style="height: 107px;"><img alt="The Gymnastics Course" style="max-height: 100%;" src="brand/tgc-mark.png"></span>
-      <span class="bb-tile__label">Gymnastics</span>
-      <h3 class="bb-tile__name">The Gymnastics Course</h3>
-      <p class="bb-tile__desc">Teach and progress bodyweight movement with confidence &mdash; seminars, online learning, and team workshops.</p>
-      <span class="bb-tile__cta">Explore Gymnastics &rarr;</span>
-    </a>
-
-    <a class="bb-tile" href="/tec" style="--accent: var(--tec);">
-      <span class="bb-tile__logo-wrap" style="height: 96px;"><img alt="The Endurance Course" style="max-height: 100%;" src="brand/tec-mark.png"></span>
-      <span class="bb-tile__label">Endurance</span>
-      <h3 class="bb-tile__name">The Endurance Course</h3>
-      <p class="bb-tile__desc">Coach endurance with a proven, science-backed system &mdash; seminars and online learning.</p>
-      <span class="bb-tile__cta">Explore Endurance &rarr;</span>
-    </a>
-
-    <div class="bb-tile bb-tile--soon" aria-disabled="true" style="--accent: var(--twc);">
-      <span class="bb-tile__logo-wrap" style="height: 87px;"><img alt="The Weightlifting Course" style="max-height: 100%;" src="brand/twc-mark.png"></span>
-      <span class="bb-tile__label">Coming Soon</span>
-      <h3 class="bb-tile__name">The Weightlifting Course</h3>
-      <p class="bb-tile__desc">A new pathway for weightlifting coaches and athletes &mdash; launching soon.</p>
-      <span class="bb-tile__cta">Notify Me &rarr;</span>
+<header class="bb-hero">
+  <div class="bb-hero__photo" aria-hidden="true"></div>
+  <div class="bb-hero__inner">
+    <div class="bb-hero__mark">
+      <img src="brand/birdbox-mark.png" alt="BirdBox Coaching">
+    </div>
+    <div class="bb-hero__copy">
+      <h1 class="bb-hero__title">
+        Develop <em>better</em> coaches.<br>
+        Build <em>better</em> athletes.<br>
+        Create <em>better</em> communities.
+      </h1>
+      <p class="bb-hero__sub">
+        World-class coaching education, built for real gyms.<br>
+        Trusted by coaches around the world.
+      </p>
     </div>
   </div>
-</section>
+</header>
 
-<section class="bb-upcoming" aria-label="Upcoming seminars">
-  <style>
-    .bb-upcoming {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 24px 72px;
-      font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
-    }
-    .bb-upcoming__title {
-      font-size: clamp(20px, 2.6vw, 28px);
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #D8D3D4;
-      margin: 0 0 18px;
-      text-align: center;
-    }
-    .bb-upcoming__list {
-      border: 1px solid #342F31;
-      background: rgba(23,18,20,0.86);
-    }
-    .bb-upcoming__row {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      padding: 18px 22px;
-      border-top: 1px solid #342F31;
-      text-decoration: none;
-      color: #F2EFEF;
-      transition: background 0.2s ease;
-    }
-    .bb-upcoming__row:first-child { border-top: none; }
-    .bb-upcoming__row:hover { background: rgba(52,47,49,0.45); }
-    .bb-upcoming__flag {
-      width: 4px;
-      align-self: stretch;
-      min-height: 42px;
-      background: var(--accent, #342F31);
-      flex: 0 0 4px;
-    }
-    .bb-upcoming__main { flex: 1 1 auto; min-width: 0; }
-    .bb-upcoming__brand {
-      font-size: 11px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--accent, #8A8385);
-      margin-bottom: 3px;
-    }
-    .bb-upcoming__name {
-      font-size: 17px;
-      font-weight: 700;
-      margin: 0 0 3px;
-      line-height: 1.3;
-    }
-    .bb-upcoming__where {
-      font-size: 14px;
-      color: #B7B1B3;
-    }
-    .bb-upcoming__when {
-      flex: 0 0 auto;
-      text-align: right;
-      font-size: 14px;
-      color: #D8D3D4;
-      white-space: nowrap;
-    }
-    .bb-upcoming__full {
-      display: inline-block;
-      margin-top: 4px;
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #8A8385;
-      border: 1px solid #342F31;
-      padding: 2px 7px;
-    }
-    .bb-upcoming__state {
-      padding: 22px;
-      margin: 0;
-      text-align: center;
-      color: #8A8385;
-      font-size: 15px;
-    }
-    .bb-upcoming__all {
-      display: block;
-      text-align: center;
-      margin-top: 16px;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: #ADA6A8;
-      text-decoration: none;
-    }
-    .bb-upcoming__all:hover { color: #ffffff; }
-    @media (max-width: 600px) {
-      .bb-upcoming__row { flex-wrap: wrap; gap: 12px; }
-      .bb-upcoming__when { text-align: left; flex-basis: 100%; }
-    }
-  </style>
+<main class="bb-wrap">
 
-  <h2 class="bb-upcoming__title">Upcoming Seminars</h2>
-  <div id="bb-upcoming-list" class="bb-upcoming__list">
-    <p class="bb-upcoming__state">Loading seminars&hellip;</p>
-  </div>
-</section>
+  <section class="bb-cards" id="courses" aria-label="Our courses">
 
-  <footer class="bb-footer">
-    &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
-  </footer>
+    <a class="bb-card" href="/tcc"
+       style="--cardAccent: var(--tcc); --cardLine: rgba(79,168,222,0.45); --veil: linear-gradient(180deg, rgba(79,168,222,0.42), rgba(79,168,222,0.30));">
+      <span class="bb-card__bg" style="background-image: url('card-tcc.jpeg');"></span>
+      <span class="bb-card__veil"></span>
+      <span class="bb-card__logo"><img src="brand/tcc-mark.png" alt="The Coaches Course"></span>
+      <span class="bb-card__rule"></span>
+      <h2 class="bb-card__name">The Coaches Course</h2>
+      <p class="bb-card__desc">Sharpen your coaching craft with world-class education, mentorship, and real-world practice.</p>
+      <span class="bb-card__cta">Explore Coaching &rarr;</span>
+    </a>
+
+    <a class="bb-card" href="/tgc"
+       style="--cardAccent: #D8393D; --cardLine: rgba(178,33,37,0.45); --veil: linear-gradient(180deg, rgba(134,22,25,0.52), rgba(134,22,25,0.38));">
+      <span class="bb-card__bg" style="background-image: url('card-tgc.jpeg');"></span>
+      <span class="bb-card__veil"></span>
+      <span class="bb-card__logo"><img src="brand/tgc-mark.png" alt="The Gymnastics Course"></span>
+      <span class="bb-card__rule"></span>
+      <h2 class="bb-card__name">The Gymnastics Course</h2>
+      <p class="bb-card__desc">Teach and progress bodyweight movement with confidence and clarity.</p>
+      <span class="bb-card__cta">Explore Gymnastics &rarr;</span>
+    </a>
+
+    <a class="bb-card" href="/tec"
+       style="--cardAccent: #5FBE8A; --cardLine: rgba(66,143,99,0.45); --veil: linear-gradient(180deg, rgba(66,143,99,0.46), rgba(66,143,99,0.34));">
+      <span class="bb-card__bg" style="background-image: url('card-tec.jpeg');"></span>
+      <span class="bb-card__veil"></span>
+      <span class="bb-card__logo"><img src="brand/tec-mark.png" alt="The Endurance Course"></span>
+      <span class="bb-card__rule"></span>
+      <h2 class="bb-card__name">The Endurance Course</h2>
+      <p class="bb-card__desc">Coach endurance with a proven, science-backed system for real-world results.</p>
+      <span class="bb-card__cta">Explore Endurance &rarr;</span>
+    </a>
+
+    <div class="bb-card bb-card--soon" aria-disabled="true"
+         style="--cardAccent: var(--twc); --cardLine: rgba(217,165,39,0.45); --veil: linear-gradient(180deg, rgba(217,165,39,0.40), rgba(217,165,39,0.28));">
+      <span class="bb-card__bg" style="background-image: url('card-twc.jpeg');"></span>
+      <span class="bb-card__veil"></span>
+      <span class="bb-card__logo"><img src="brand/twc-mark.png" alt="The Weightlifting Course"></span>
+      <span class="bb-card__rule"></span>
+      <h2 class="bb-card__name">The Weightlifting Course</h2>
+      <p class="bb-card__desc">Develop strength, power, and confidence through Olympic weightlifting education.</p>
+      <span class="bb-card__cta">Coming Soon</span>
+    </div>
+
+  </section>
+
+  <section class="bb-row3" aria-label="About BirdBox">
+
+    <!-- PLACEHOLDER TESTIMONIALS - replace before go-live -->
+    <div class="bb-panel">
+      <h2 class="bb-panel__title">Coaches Love BirdBox</h2>
+      <div class="bb-stars" aria-label="Five stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <p class="bb-quote" id="bb-quote">&ldquo;The best coaching education I&rsquo;ve ever experienced. It completely changed the way I coach.&rdquo;</p>
+      <div class="bb-person">
+        <span class="bb-person__initials" id="bb-quote-initials">JW</span>
+        <span>
+          <span class="bb-person__name" id="bb-quote-name">James W.</span><br>
+          <span class="bb-person__role" id="bb-quote-role">Coach, Australia</span>
+        </span>
+        <span class="bb-dots" id="bb-dots"></span>
+      </div>
+    </div>
+
+    <div class="bb-panel bb-panel--centre">
+      <h2 class="bb-panel__title">The BirdBox Ecosystem</h2>
+      <div class="bb-eco">
+        <div class="bb-eco__item">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h7a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H3z"/><path d="M21 5h-7a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h7z"/></svg>
+          <span class="bb-eco__label">Education</span>
+        </div>
+        <div class="bb-eco__item">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="9" r="3"/><circle cx="17" cy="7" r="2"/><path d="M3 19a5 5 0 0 1 10 0"/><path d="M15 19a4 4 0 0 1 6-3.4"/></svg>
+          <span class="bb-eco__label">Mentorship</span>
+        </div>
+        <div class="bb-eco__item">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16a3.2 3.2 0 0 1 6 0"/><path d="M14 10h4M14 14h4"/></svg>
+          <span class="bb-eco__label">Trainer Directory</span>
+        </div>
+        <div class="bb-eco__item">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="9" r="2.4"/><circle cx="12" cy="7" r="2.4"/><circle cx="17" cy="9" r="2.4"/><path d="M2.5 18a4.5 4.5 0 0 1 9 0"/><path d="M12.5 18a4.5 4.5 0 0 1 9 0"/></svg>
+          <span class="bb-eco__label">Community</span>
+        </div>
+        <div class="bb-eco__item">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="13" rx="2"/><path d="M8 21h8"/><path d="M10.5 9.2v4.1l3.6-2z"/></svg>
+          <span class="bb-eco__label">Online Learning</span>
+        </div>
+      </div>
+      <p class="bb-eco__line">One philosophy. Every resource you need to grow.</p>
+    </div>
+
+    <div class="bb-panel">
+      <h2 class="bb-panel__title">Upcoming Seminars</h2>
+      <div class="bb-sem" id="bb-sem">
+        <p class="bb-sem__state">Loading&hellip;</p>
+      </div>
+      <a class="bb-sem__all" href="/seminars">View All Seminars &rarr;</a>
+    </div>
+
+  </section>
+
+  <section class="bb-signup" aria-label="Newsletter signup">
+    <span class="bb-signup__title">Join Coaches Worldwide</span>
+    <span class="bb-signup__sub">Get updates, resources, and exclusive offers.</span>
+    <span class="bb-signup__field">
+      <input id="bb-email" type="email" placeholder="Enter your email" aria-label="Email address">
+      <button type="button" id="bb-signup-btn">Sign Up</button>
+    </span>
+    <span class="bb-signup__note" id="bb-signup-note"></span>
+  </section>
+
+</main>
+
+<footer class="bb-footer">
+  &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
+  <a class="bb-footer__staff" href="/portal/">Staff Login</a>
+</footer>
 
 <script type="module">
   import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -360,18 +518,25 @@
     "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
   );
 
-  const BRANDS = {
-    tcc:     { label: "The Coaches Course",       colour: "#4FA8DE" },
-    tgc:     { label: "The Gymnastics Course",    colour: "#B22125" },
-    tec:     { label: "The Endurance Course",     colour: "#428F63" },
-    twc:     { label: "The Weightlifting Course", colour: "#D9A527" },
-    birdbox: { label: "BirdBox Coaching",         colour: "#8A8385" }
+  const MARKS = {
+    tcc: "brand/tcc-mark.png",
+    tgc: "brand/tgc-mark.png",
+    tec: "brand/tec-mark.png",
+    twc: "brand/twc-mark.png",
+    birdbox: "brand/birdbox-mark.png"
+  };
+  const BRAND_NAME = {
+    tcc: "The Coaches Course",
+    tgc: "The Gymnastics Course",
+    tec: "The Endurance Course",
+    twc: "The Weightlifting Course",
+    birdbox: "BirdBox Coaching"
   };
 
-  const box = document.getElementById("bb-upcoming-list");
+  const box = document.getElementById("bb-sem");
 
-  // Dates are shown in the course's own zone, so a Tokyo seminar reads as
-  // its local date rather than the visitor's.
+  // Dates render in the course's own zone, so a Tokyo seminar reads as its
+  // local date rather than the visitor's.
   function formatWhen(startsAt, endsAt, tz) {
     const zone = tz || "UTC";
     const day = { timeZone: zone, day: "numeric", month: "short" };
@@ -380,86 +545,120 @@
     const startTxt = new Intl.DateTimeFormat("en-GB", day).format(start);
     if (!endsAt) return `${startTxt} ${year}`;
     const endTxt = new Intl.DateTimeFormat("en-GB", day).format(new Date(endsAt));
-    return startTxt === endTxt ? `${startTxt} ${year}` : `${startTxt} \u2013 ${endTxt} ${year}`;
+    return startTxt === endTxt ? `${startTxt} ${year}` : `${startTxt}\u2013${endTxt} ${year}`;
   }
 
-  function place(course) {
-    return [course.city, course.country].filter(Boolean).join(", ");
+  function levelLine(course) {
+    if (course.type === "workshop") return course.title || "Workshop";
+    if (course.level) return `Level ${String(course.level).replace(/[^0-9]/g, "") || course.level}`;
+    return course.title || BRAND_NAME[course.brand] || "Seminar";
   }
 
-  function state(message) {
-    box.innerHTML = '<p class="bb-upcoming__state"></p>';
-    box.firstChild.textContent = message;
-  }
-
-  async function load() {
+  async function loadSeminars() {
     const { data, error } = await supabase
       .from("courses")
-      .select("slug, brand, title, city, country, starts_at, ends_at, timezone, status")
+      .select("slug, brand, type, level, title, city, country, starts_at, ends_at, timezone, status")
       .in("status", ["published", "full"])
       .in("type", ["live_seminar", "workshop"])
       .eq("archived", false)
       .gte("starts_at", new Date().toISOString())
       .order("starts_at", { ascending: true })
-      .limit(6);
+      .limit(3);
 
     if (error) {
       console.error("Upcoming seminars failed:", error);
-      state("Seminar dates are unavailable right now.");
+      box.innerHTML = '<p class="bb-sem__state">Dates unavailable right now.</p>';
       return;
     }
     if (!data || data.length === 0) {
-      state("No seminars scheduled just now \u2014 new dates are added regularly.");
+      box.innerHTML = '<p class="bb-sem__state">No seminars scheduled just now.</p>';
       return;
     }
 
     box.textContent = "";
     for (const course of data) {
-      const brand = BRANDS[course.brand] || BRANDS.birdbox;
-
       const row = document.createElement("a");
-      row.className = "bb-upcoming__row";
+      row.className = "bb-sem__row";
       row.href = `/c/${course.slug}/`;
-      row.style.setProperty("--accent", brand.colour);
 
-      const flag = document.createElement("span");
-      flag.className = "bb-upcoming__flag";
+      const markWrap = document.createElement("span");
+      markWrap.className = "bb-sem__mark";
+      const mark = document.createElement("img");
+      mark.src = MARKS[course.brand] || MARKS.birdbox;
+      mark.alt = BRAND_NAME[course.brand] || "BirdBox";
+      markWrap.append(mark);
 
       const main = document.createElement("span");
-      main.className = "bb-upcoming__main";
+      main.className = "bb-sem__main";
 
-      const label = document.createElement("span");
-      label.className = "bb-upcoming__brand";
-      label.textContent = brand.label;
+      const level = document.createElement("span");
+      level.className = "bb-sem__level";
+      level.style.display = "block";
+      level.textContent = levelLine(course);
 
-      const name = document.createElement("span");
-      name.className = "bb-upcoming__name";
-      name.textContent = course.title || brand.label;
+      const meta = document.createElement("span");
+      meta.className = "bb-sem__meta";
+      meta.style.display = "block";
+      const where = [course.city, course.country].filter(Boolean).join(", ");
+      const when = formatWhen(course.starts_at, course.ends_at, course.timezone);
+      meta.textContent = where ? `${where} \u2022 ${when}` : when;
 
-      const where = document.createElement("span");
-      where.className = "bb-upcoming__where";
-      where.textContent = place(course);
+      main.append(level, meta);
 
-      main.append(label, name, where);
-      for (const el of [label, name, where]) el.style.display = "block";
+      const chev = document.createElement("span");
+      chev.className = "bb-sem__chev";
+      chev.textContent = "\u203A";
 
-      const when = document.createElement("span");
-      when.className = "bb-upcoming__when";
-      when.textContent = formatWhen(course.starts_at, course.ends_at, course.timezone);
-
-      if (course.status === "full") {
-        const tag = document.createElement("span");
-        tag.className = "bb-upcoming__full";
-        tag.textContent = "Full";
-        when.append(document.createElement("br"), tag);
-      }
-
-      row.append(flag, main, when);
+      row.append(markWrap, main, chev);
       box.append(row);
     }
   }
 
-  load();
+  // PLACEHOLDER TESTIMONIALS - replace before go-live
+  const QUOTES = [
+    { text: "The best coaching education I\u2019ve ever experienced. It completely changed the way I coach.", name: "James W.", role: "Coach, Australia" },
+    { text: "Two days that reshaped how I teach movement. My members noticed the difference immediately.", name: "Marta S.", role: "Gym Owner, Spain" },
+    { text: "Practical, precise, and genuinely useful on the gym floor the very next morning.", name: "Tom H.", role: "Coach, Ireland" }
+  ];
+
+  const quoteEl = document.getElementById("bb-quote");
+  const nameEl = document.getElementById("bb-quote-name");
+  const roleEl = document.getElementById("bb-quote-role");
+  const initEl = document.getElementById("bb-quote-initials");
+  const dotsEl = document.getElementById("bb-dots");
+
+  function showQuote(i) {
+    const q = QUOTES[i];
+    quoteEl.textContent = `\u201C${q.text}\u201D`;
+    nameEl.textContent = q.name;
+    roleEl.textContent = q.role;
+    initEl.textContent = q.name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+    for (const [j, dot] of [...dotsEl.children].entries()) {
+      dot.setAttribute("aria-current", j === i ? "true" : "false");
+    }
+  }
+
+  QUOTES.forEach((q, i) => {
+    const dot = document.createElement("button");
+    dot.className = "bb-dot";
+    dot.type = "button";
+    dot.setAttribute("aria-label", `Testimonial ${i + 1}`);
+    dot.addEventListener("click", () => showQuote(i));
+    dotsEl.append(dot);
+  });
+  showQuote(0);
+
+  // Signup is not wired to Mailchimp yet, so say so rather than pretend.
+  const note = document.getElementById("bb-signup-note");
+  document.getElementById("bb-signup-btn").addEventListener("click", () => {
+    const value = document.getElementById("bb-email").value.trim();
+    note.textContent = value.includes("@")
+      ? "Thanks \u2014 the mailing list isn\u2019t connected yet, so nothing has been saved."
+      : "Please enter a valid email address.";
+  });
+
+  loadSeminars();
 </script>
+
 </body>
 </html>
