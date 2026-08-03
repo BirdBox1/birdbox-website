@@ -334,6 +334,20 @@
   .l1-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
   .l1-grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
   .l1-grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  /* Prose-only sections look thin at 70ch, so run them in two columns. */
+  .l1-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px; }
+  .l1-two .l1-lede { max-width: none; margin-bottom: 0; }
+  .l1-pull {
+    border-left: 3px solid var(--tcc);
+    padding: 4px 0 4px 20px;
+    margin-top: 22px;
+  }
+  .l1-pull h3 {
+    font-size: 18px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: -0.01em; margin: 0 0 8px;
+  }
+  .l1-pull p { font-size: 15px; line-height: 1.6; color: #C9C4C5; margin: 0; max-width: 62ch; }
+  @media (max-width: 820px) { .l1-two { grid-template-columns: 1fr; } }
   .l1-card { border: 1px solid var(--line); background: var(--panel); padding: 20px 22px; }
   .l1-card__title {
     font-size: 15px; font-weight: 800; text-transform: uppercase;
@@ -501,15 +515,33 @@
   <section class="l1-section">
     <p class="l1-label">The Problem</p>
     <h2 class="l1-h2">Guesswork Isn&rsquo;t A System</h2>
-    <p class="l1-lede">Random cues and recycled drills don&rsquo;t create consistent results. Coaches are left second-guessing, members plateau, and classes lose momentum. Everyone deserves a proven framework for progress &mdash; every session, every member.</p>
-    <p class="l1-lede">We&rsquo;ve coached at every level and built Level 1 to remove the confusion. Practical, science-backed, and made for real gym floors.</p>
+    <div class="l1-grid3">
+      <div class="l1-card">
+        <h3 class="l1-card__title">Inconsistent Results</h3>
+        <p class="l1-card__text">Random cues and recycled drills don&rsquo;t create consistent results.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Lost Momentum</h3>
+        <p class="l1-card__text">Coaches are left second-guessing, members plateau, and classes lose momentum.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">No Framework</h3>
+        <p class="l1-card__text">Everyone deserves a proven framework for progress &mdash; every session, every member.</p>
+      </div>
+    </div>
+    <div class="l1-pull">
+      <h3>A Clear, Coach-Tested Framework</h3>
+      <p>We&rsquo;ve coached at every level and built Level 1 to remove the confusion. Practical, science-backed, and made for real gym floors.</p>
+    </div>
   </section>
 
   <section class="l1-section">
     <p class="l1-label">Why Learn With BirdBox</p>
     <h2 class="l1-h2">Four Areas Every Coach Can Develop</h2>
-    <p class="l1-lede">Your coaching potential is an endlessly increasing path. There are four key areas in which we can evolve our practice: physical, technical, tactical and psychosocial.</p>
-    <p class="l1-lede">If you&rsquo;re delivering a training methodology such as CrossFit&reg;, that&rsquo;s a good step forward in best practice. But coaches also need a coaching philosophy, and a clear strategy for how to implement that methodology. Level 1 gives you both, meeting you at your current level of professionalism.</p>
+    <div class="l1-two">
+      <p class="l1-lede">Your coaching potential is an endlessly increasing path. There are four key areas in which we can evolve our practice: physical, technical, tactical and psychosocial.</p>
+      <p class="l1-lede">If you&rsquo;re delivering a training methodology such as CrossFit&reg;, that&rsquo;s a good step forward in best practice. But coaches also need a coaching philosophy, and a clear strategy for how to implement that methodology. Level 1 gives you both, meeting you at your current level of professionalism.</p>
+    </div>
   </section>
 
   <section class="l1-section">
