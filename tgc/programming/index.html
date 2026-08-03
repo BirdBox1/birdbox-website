@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TGC Programming | The Gymnastics Course</title>
+<meta name="description" content="Daily gymnastics programming to supplement your CrossFit training. Structured progressions, coaching demonstrations, and scalable sessions. from &euro;35 a month.">
+<style>
+  :root {
+    --paper: #14100F;
+    --panel: #1C1719;
+    --ink: #F2EFEF;
+    --muted: #8A8385;
+    --line: #342F31;
+    --tcc: #D8393D;
+    --accentText: #F0797D;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  img { display: block; }
+  .bb-wrap { max-width: 1320px; margin: 0 auto; padding: 0 24px; }
+
+  .bb-topbar {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 28px;
+    padding: 16px 24px; border-bottom: 1px solid var(--line);
+    font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase;
+    position: relative; z-index: 3;
+  }
+  .bb-topbar a { color: #ADA6A8; text-decoration: none; }
+  .bb-topbar a:hover { color: #ffffff; }
+
+  .bb-backbar { padding: 14px 24px 0; max-width: 1320px; margin: 0 auto; width: 100%; }
+  .bb-back {
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 8px 16px; border: 1px solid var(--line); color: #ADA6A8;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; text-decoration: none;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  .bb-back:hover { color: #ffffff; border-color: var(--tcc); }
+
+  /* ---------- hero ---------- */
+  .tcc-hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
+  .tcc-hero__photo {
+    position: absolute; inset: 0 0 0 34%;
+    background-image: url("../ng6346.jpeg");
+    background-size: cover; background-position: center 40%; background-repeat: no-repeat;
+  }
+  .tcc-hero__photo::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg,
+      rgba(20,16,15,1) 0%, rgba(20,16,15,0.93) 20%,
+      rgba(20,16,15,0.42) 66%, rgba(20,16,15,0.52) 100%);
+  }
+  .tcc-hero__inner {
+    position: relative; max-width: 1320px; margin: 0 auto;
+    padding: 40px 24px 52px;
+  }
+  .tcc-hero__mark { max-height: 118px; width: auto; margin-bottom: 26px;
+    filter: drop-shadow(0 2px 10px rgba(0,0,0,0.9)); }
+  .tcc-hero__title {
+    font-size: clamp(26px, 3.6vw, 46px); line-height: 1.06; font-weight: 800;
+    letter-spacing: -0.015em; text-transform: uppercase; margin: 0 0 16px;
+    text-shadow: 0 2px 18px rgba(0,0,0,0.6);
+  }
+  .tcc-hero__title em { font-style: normal; color: var(--accentText); display: block; }
+  .tcc-hero__lede {
+    font-size: 16px; line-height: 1.6; color: #DCD7D8; margin: 0 0 26px;
+    max-width: 38ch; text-shadow: 0 1px 10px rgba(0,0,0,0.55);
+  }
+  .tcc-cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 13px 26px; background: var(--tcc); color: #FFFFFF;
+    font-size: 13px; font-weight: 800; letter-spacing: 0.08em;
+    text-transform: uppercase; text-decoration: none; border: 1px solid var(--tcc);
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .tcc-cta:hover { background: transparent; color: var(--accentText); }
+
+  /* ---------- pathway strip ---------- */
+  .tcc-pathway { padding: 46px 0 8px; text-align: center; }
+  .tcc-h2 {
+    font-size: clamp(20px, 2.6vw, 30px); font-weight: 800; letter-spacing: 0.06em;
+    text-transform: uppercase; margin: 0 0 8px;
+  }
+  .tcc-sub { font-size: 15px; color: var(--muted); margin: 0 0 30px; }
+  .tcc-steps {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;
+    border: 1px solid var(--line); background: var(--panel); padding: 22px 18px;
+  }
+  .tcc-step { display: flex; flex-direction: column; align-items: center; gap: 7px; position: relative; }
+  .tcc-step::after {
+    content: ""; position: absolute; top: 17px; left: calc(50% + 22px); right: calc(-50% + 22px);
+    height: 1px; background: var(--line);
+  }
+  .tcc-step:last-child::after { display: none; }
+  .tcc-step__dot {
+    width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: #ADA6A8; background: var(--paper);
+    position: relative; z-index: 1;
+  }
+  .tcc-step:first-child .tcc-step__dot { border-color: var(--tcc); color: var(--tcc); }
+  .tcc-step__kind { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+  .tcc-step:first-child .tcc-step__kind { color: var(--tcc); }
+  .tcc-step__what { font-size: 12px; color: var(--muted); line-height: 1.35; }
+
+  /* ---------- offering rows ---------- */
+  .tcc-rows { display: flex; flex-direction: column; gap: 14px; padding: 34px 0 8px; }
+  .tcc-row {
+    display: grid; grid-template-columns: 320px 1fr 300px; gap: 0;
+    border: 1px solid var(--line); background: var(--panel); overflow: hidden;
+  }
+  .tcc-row__media { position: relative; min-height: 240px; }
+  .tcc-row__photo {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center; background-repeat: no-repeat;
+  }
+  .tcc-row__media::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, rgba(20,16,15,0.62) 0%, rgba(20,16,15,0.30) 55%, rgba(28,23,25,0.95) 100%);
+  }
+  .tcc-row__badge {
+    position: absolute; top: 22px; left: 22px; height: 132px; width: auto; z-index: 1;
+    filter: drop-shadow(0 3px 12px rgba(0,0,0,0.85));
+  }
+  .tcc-row__badge--second { top: 168px; }
+  .tcc-row__badge--mark { height: 96px; }
+  /* Two stacked badges need more height than a single one. */
+  .tcc-row__media--tall { min-height: 322px; }
+  .tcc-row__body { padding: 26px 28px; }
+  .tcc-row__kind {
+    display: flex; align-items: baseline; gap: 12px;
+    font-size: 12px; font-weight: 800; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted); margin: 0 0 4px;
+  }
+  .tcc-row__num { font-size: 26px; font-weight: 800; color: var(--tcc); letter-spacing: -0.01em; }
+  .tcc-row__eyebrow {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accentText); margin: 0 0 6px;
+  }
+  .tcc-row__name {
+    font-size: 21px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: -0.01em; margin: 0 0 10px;
+  }
+  .tcc-row__blurb { font-size: 15px; line-height: 1.55; color: #C9C4C5; margin: 0 0 18px; max-width: 46ch; }
+  .tcc-facts { display: flex; flex-wrap: wrap; gap: 10px; }
+  .tcc-fact {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #ADA6A8; border: 1px solid var(--line); padding: 7px 12px;
+  }
+  .tcc-row__side { padding: 26px 26px; border-left: 1px solid var(--line); display: flex; flex-direction: column; }
+  .tcc-side__title {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); margin: 0 0 10px;
+  }
+  .tcc-side__title--second { margin-top: 14px; }
+  .tcc-list { list-style: none; margin: 0 0 16px; padding: 0; }
+  .tcc-list li { font-size: 14px; color: #C9C4C5; padding: 4px 0 4px 22px; position: relative; }
+  .tcc-list li::before {
+    content: "\2713"; position: absolute; left: 0; top: 4px;
+    color: var(--tcc); font-size: 13px; font-weight: 700;
+  }
+  .tcc-btn {
+    display: block; text-align: center; margin-top: auto;
+    border: 1px solid var(--tcc); color: var(--accentText);
+    font-size: 12px; font-weight: 800; letter-spacing: 0.07em;
+    text-transform: uppercase; text-decoration: none; padding: 11px 14px;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .tcc-btn:hover { background: var(--tcc); color: #FFFFFF; }
+  .tcc-btn--ghost { border-color: var(--line); color: #ADA6A8; margin-top: 0; margin-bottom: 4px; }
+  .tcc-btn--ghost:hover { background: transparent; border-color: var(--tcc); color: var(--accentText); }
+
+  .tcc-cross {
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 18px 22px; margin: 14px 0 0; text-align: center;
+  }
+  .tcc-cross__label {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+  }
+  .tcc-cross__links { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px 26px; }
+  .tcc-cross__links a {
+    font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+    color: #C9C4C5; text-decoration: none;
+  }
+  .tcc-cross__links a:hover { color: var(--accentText); }
+
+  /* ---------- bottom three ---------- */
+  .tcc-bottom { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 14px; padding: 26px 0 8px; }
+  .tcc-panel { border: 1px solid var(--line); background: var(--panel); padding: 20px 22px; }
+  .tcc-panel__title {
+    font-size: 13px; font-weight: 800; letter-spacing: 0.12em;
+    text-transform: uppercase; margin: 0 0 16px;
+  }
+  .tcc-panel--centre .tcc-panel__title { text-align: center; }
+  .tcc-includes { list-style: none; margin: 0; padding: 0; }
+  .tcc-includes li {
+    font-size: 14px; color: #C9C4C5; padding: 9px 0 9px 24px;
+    position: relative; border-bottom: 1px solid var(--line);
+  }
+  .tcc-includes li:last-child { border-bottom: none; }
+  .tcc-includes li::before {
+    content: "\2713"; position: absolute; left: 0; top: 9px; color: var(--tcc); font-weight: 700;
+  }
+  table.tcc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tcc-table th, .tcc-table td {
+    border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: center;
+  }
+  .tcc-table thead th {
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); font-weight: 800;
+  }
+  .tcc-table tbody th {
+    text-align: left; font-weight: 600; color: #C9C4C5; font-size: 13px;
+  }
+  .tcc-tick { color: var(--tcc); font-weight: 700; }
+  .tcc-dash { color: #4A4446; }
+
+  .tcc-quote { font-size: 14px; line-height: 1.55; color: #D6D1D2; font-style: italic; margin: 0 0 10px; }
+  .tcc-stars { color: var(--tcc); letter-spacing: 3px; font-size: 13px; margin-bottom: 6px; }
+  .tcc-person { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
+  .tcc-person__initials {
+    width: 36px; height: 36px; flex: 0 0 36px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line); background: #241E20;
+    font-size: 13px; font-weight: 800; color: #ADA6A8;
+  }
+  .tcc-person__name { font-size: 13px; font-weight: 700; }
+  .tcc-person__role { font-size: 12px; color: var(--muted); }
+
+  /* ---------- signup ---------- */
+  .bb-signup {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px;
+    border: 1px solid var(--line); padding: 12px 18px; margin: 22px 0 8px;
+  }
+  .bb-signup__title { font-size: 14px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+  .bb-signup__sub { font-size: 14px; color: var(--muted); flex: 1 1 auto; }
+  .bb-signup__field { display: flex; }
+  .bb-signup input {
+    border: 1px solid var(--line); background: #171214; color: var(--ink);
+    padding: 9px 14px; font-size: 14px; min-width: 200px; font-family: inherit;
+  }
+  .bb-signup button {
+    border: 1px solid var(--tcc); background: var(--tcc); color: #FFFFFF;
+    font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 9px 20px; cursor: pointer; font-family: inherit;
+  }
+  .bb-signup__note { font-size: 13px; color: var(--muted); width: 100%; margin: 0; }
+
+  .bb-footer {
+    text-align: center; padding: 32px 24px 50px; font-size: 13px; color: #756F71;
+    border-top: 1px solid var(--line); margin-top: 26px; line-height: 1.7;
+  }
+  .bb-footer a { color: #8A8385; text-decoration: none; }
+  .bb-footer__staff {
+    display: block; margin-top: 10px; font-size: 12px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+
+  @media (max-width: 1080px) {
+    .tcc-row { grid-template-columns: 240px 1fr; }
+    .tcc-row__side { grid-column: 1 / -1; border-left: none; border-top: 1px solid var(--line); }
+    .tcc-bottom { grid-template-columns: 1fr; }
+    .tcc-steps { grid-template-columns: repeat(3, 1fr); row-gap: 22px; }
+    .tcc-step::after { display: none; }
+  }
+  @media (max-width: 720px) {
+    .tcc-hero__photo { inset: 0; }
+    .tcc-hero__photo::after {
+      background: linear-gradient(180deg, rgba(20,16,15,0.86) 0%, rgba(20,16,15,0.93) 100%);
+    }
+    .tcc-row { grid-template-columns: 1fr; }
+    .tcc-row__media { min-height: 200px; }
+    .tcc-steps { grid-template-columns: repeat(2, 1fr); }
+    .bb-signup__sub { flex: 1 1 100%; }
+  }
+</style>
+<style>
+  /* ---------- Level 1 page ---------- */
+  .l1-chips {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 18px 20px; margin-top: 22px;
+  }
+  .l1-chip { text-align: center; }
+  .l1-chip__big {
+    font-size: 20px; font-weight: 800; color: var(--accentText); margin-bottom: 3px;
+  }
+  .l1-chip__small {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+  }
+
+  .l1-section { padding: 40px 0 8px; }
+  /* A photo band sits behind a section, dark enough for text to stay legible. */
+  .l1-band {
+    position: relative;
+    border: 1px solid var(--line);
+    padding: 8px 26px 26px;
+    margin-top: 40px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .l1-band > .l1-section:first-child { padding-top: 30px; }
+  .l1-band--inside {
+    background-image:
+      linear-gradient(180deg, rgba(20,16,15,0.90) 0%, rgba(20,16,15,0.94) 100%),
+      url("band-inside.jpeg");
+  }
+  .l1-band--kit {
+    background-image:
+      linear-gradient(180deg, rgba(20,16,15,0.90) 0%, rgba(20,16,15,0.94) 100%),
+      url("band-kit.jpeg");
+  }
+  @media (max-width: 620px) { .l1-band { padding: 4px 16px 18px; } }
+  .l1-label {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accentText); margin: 0 0 8px;
+  }
+  .l1-h2 {
+    font-size: clamp(20px, 2.6vw, 30px); font-weight: 800;
+    letter-spacing: -0.01em; margin: 0 0 12px;
+  }
+  .l1-lede { font-size: 16px; line-height: 1.6; color: #C9C4C5; margin: 0 0 22px; max-width: 70ch; }
+
+  .l1-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .l1-grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .l1-grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .l1-card { border: 1px solid var(--line); background: var(--panel); padding: 20px 22px; }
+  .l1-card__title {
+    font-size: 15px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.04em; margin: 0 0 8px;
+  }
+  .l1-card__text { font-size: 14px; line-height: 1.55; color: #C9C4C5; margin: 0; }
+
+  .l1-rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .l1-rule {
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 14px 16px; font-size: 14px; color: #DCD7D8;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .l1-rule::before {
+    content: "\2713"; color: var(--accentText); font-weight: 700; flex: 0 0 auto;
+  }
+
+  .l1-topics { border: 1px solid var(--line); background: var(--panel); }
+  .l1-topic { padding: 16px 20px; border-bottom: 1px solid var(--line); }
+  .l1-topic:last-child { border-bottom: none; }
+  .l1-topic__name {
+    font-size: 14px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--accentText); margin: 0 0 4px;
+  }
+  .l1-topic__text { font-size: 14px; line-height: 1.55; color: #C9C4C5; margin: 0; }
+
+  /* video facade */
+  .l1-video {
+    position: relative; border: 1px solid var(--line); background: #0E0B0C;
+    aspect-ratio: 16 / 9; overflow: hidden; cursor: pointer; width: 100%;
+  }
+  .l1-video__poster {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55;
+  }
+  .l1-video__play {
+    position: absolute; inset: 0; display: flex; align-items: center;
+    justify-content: center; flex-direction: column; gap: 12px;
+  }
+  .l1-video__ring {
+    width: 74px; height: 74px; border-radius: 50%;
+    border: 2px solid var(--accentText); display: flex;
+    align-items: center; justify-content: center;
+    background: rgba(20,16,15,0.55);
+  }
+  .l1-video__ring::after {
+    content: ""; border-left: 20px solid var(--accentText);
+    border-top: 12px solid transparent; border-bottom: 12px solid transparent;
+    margin-left: 5px;
+  }
+  .l1-video__label {
+    font-size: 12px; font-weight: 800; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink);
+  }
+  .l1-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+  /* pricing */
+  .l1-prices { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 18px; }
+  .l1-price {
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 16px 12px; text-align: center;
+  }
+  .l1-price__cur {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+  }
+  .l1-price__amt { font-size: 21px; font-weight: 800; }
+  .l1-price__vat { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .l1-policy { font-size: 13px; line-height: 1.65; color: #B7B1B3; margin: 0 0 10px; }
+  .l1-policy a { color: var(--accentText); }
+
+  /* faq */
+  .l1-faq { border: 1px solid var(--line); background: var(--panel); }
+  .l1-faq details { border-bottom: 1px solid var(--line); }
+  .l1-faq details:last-child { border-bottom: none; }
+  .l1-faq summary {
+    padding: 15px 20px; cursor: pointer; font-size: 15px; font-weight: 700;
+    list-style: none; display: flex; justify-content: space-between; gap: 16px;
+  }
+  .l1-faq summary::-webkit-details-marker { display: none; }
+  .l1-faq summary::after { content: "+"; color: var(--accentText); font-weight: 800; }
+  .l1-faq details[open] summary::after { content: "\2212"; }
+  .l1-faq p { margin: 0; padding: 0 20px 16px; font-size: 14px; line-height: 1.6; color: #C9C4C5; }
+
+  /* closing band */
+  .l1-close {
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 34px 24px; text-align: center; margin-top: 28px;
+  }
+  .l1-close h2 {
+    font-size: clamp(22px, 3vw, 32px); font-weight: 800;
+    text-transform: uppercase; margin: 0 0 10px;
+  }
+  .l1-close p { font-size: 15px; color: #C9C4C5; margin: 0 0 20px; }
+
+  @media (max-width: 1000px) {
+    .l1-grid4, .l1-rules, .l1-prices { grid-template-columns: repeat(2, 1fr); }
+    .l1-grid3 { grid-template-columns: 1fr; }
+    .l1-chips { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 620px) {
+    .l1-grid2, .l1-grid4, .l1-rules, .l1-prices { grid-template-columns: 1fr; }
+    }
+</style>
+<style>
+  .l1-tiers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .l1-tier {
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 20px 18px 22px; display: flex; flex-direction: column;
+  }
+  .l1-tier--bespoke { border-color: rgba(216,57,61,0.45); }
+  .l1-tier__name {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); margin: 0 0 8px;
+  }
+  .l1-tier__what {
+    font-size: 15px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: -0.01em; margin: 0 0 10px; min-height: 2.4em;
+  }
+  .l1-tier__price { font-size: 28px; font-weight: 800; line-height: 1; }
+  .l1-tier__per { font-size: 12px; color: var(--muted); margin: 4px 0 14px; }
+  .l1-tier__list { list-style: none; margin: 0 0 16px; padding: 0; }
+  .l1-tier__list li {
+    font-size: 13px; line-height: 1.45; color: #C9C4C5;
+    padding: 6px 0 6px 18px; position: relative; border-top: 1px solid var(--line);
+  }
+  .l1-tier__list li:first-child { border-top: none; }
+  .l1-tier__list li::before {
+    content: "\2713"; position: absolute; left: 0; top: 6px;
+    color: var(--accentText); font-size: 12px; font-weight: 700;
+  }
+  .l1-tier__list li.is-off { color: #6E686A; }
+  .l1-tier__list li.is-off::before { content: "\2013"; color: #4A4446; }
+  .l1-tier__btn {
+    display: block; text-align: center; margin-top: auto;
+    border: 1px solid var(--tcc); color: var(--accentText);
+    font-size: 11px; font-weight: 800; letter-spacing: 0.07em;
+    text-transform: uppercase; text-decoration: none; padding: 10px 8px;
+    background: none; font-family: inherit; cursor: pointer; width: 100%;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .l1-tier__btn:hover { background: var(--tcc); color: #ffffff; }
+
+  .l1-form {
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 22px 24px 24px; max-width: 640px;
+  }
+  .l1-field { margin-bottom: 13px; }
+  .l1-field label {
+    display: block; font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 5px;
+  }
+  .l1-field input, .l1-field select, .l1-field textarea {
+    width: 100%; border: 1px solid var(--line); background: #171214;
+    color: var(--ink); padding: 10px 13px; font-size: 15px; font-family: inherit;
+  }
+  .l1-field textarea { min-height: 92px; resize: vertical; }
+  .l1-field input:focus, .l1-field select:focus, .l1-field textarea:focus {
+    outline: none; border-color: var(--tcc);
+  }
+  .l1-form__note { font-size: 13px; line-height: 1.5; margin: 12px 0 0; min-height: 20px; color: var(--muted); }
+  .l1-form__note--ok { color: var(--accentText); }
+  @media (max-width: 1000px) { .l1-tiers { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .l1-tiers { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<nav class="bb-topbar">
+  <a href="/merch">Merch Store</a>
+  <a href="/blog">Blog</a>
+  <a href="/trainer-directory">Trainer Directory</a>
+  <a href="/account">My Account</a>
+  <a href="/about">About</a>
+</nav>
+
+<div class="bb-backbar">
+  <a class="bb-back" href="/tgc">&larr; The Gymnastics Course</a>
+</div>
+
+<header class="tcc-hero">
+  <div class="tcc-hero__photo" aria-hidden="true"></div>
+  <div class="tcc-hero__inner">
+    <img class="tcc-hero__mark" src="../../brand/tgc-mark.png" alt="The Gymnastics Course">
+    <p class="tcc-row__eyebrow">Programming</p>
+    <h1 class="tcc-hero__title">Gymnastics programming,<em>done for you.</em></h1>
+    <p class="tcc-hero__lede">A structured gymnastics development system designed to complement your existing CrossFit&reg; training &mdash; built by the TGC coaching team on the same methodology we teach in seminars.</p>
+    <a class="tcc-cta" href="#tiers">See The Tiers &rarr;</a>
+  </div>
+</header>
+
+<main class="bb-wrap">
+
+  <div class="l1-chips">
+    <div class="l1-chip"><div class="l1-chip__big">From &euro;35</div><div class="l1-chip__small">Per Month</div></div>
+    <div class="l1-chip"><div class="l1-chip__big">None</div><div class="l1-chip__small">Prerequisites</div></div>
+    <div class="l1-chip"><div class="l1-chip__big">App-Based</div><div class="l1-chip__small">Train Anywhere</div></div>
+    <div class="l1-chip"><div class="l1-chip__big">Scalable</div><div class="l1-chip__small">Every Ability</div></div>
+  </div>
+
+  <section class="l1-section">
+    <p class="l1-label">Overview</p>
+    <h2 class="l1-h2">Built To Complement, Not Replace</h2>
+    <p class="l1-lede">Rather than replacing your current programming, TGC provides targeted gymnastics training to help develop the strength, shapes, body awareness and movement competency that are often difficult to build through regular class programming alone.</p>
+    <p class="l1-lede">Built by The Gymnastics Course coaching team, the programme uses the same core methodology and coaching principles taught throughout our Level 1 seminar. Combining years of coaching experience across CrossFit&reg;, gymnastics and strength and conditioning, it follows a progression-based approach to long-term athletic development.</p>
+    <p class="l1-lede">Each training block is scalable across a wide range of abilities, whether you&rsquo;re working toward your first strict pull-up and handstand or refining higher-level skills for competition. Expect structured progressions, clear coaching intent, and programming that prioritises movement quality, technical understanding and sustainable progress.</p>
+  </section>
+
+  <div class="l1-band l1-band--inside">
+    <section class="l1-section">
+      <p class="l1-label">Inside TGC Programming</p>
+      <h2 class="l1-h2">What You Get Each Week</h2>
+    <div class="l1-grid3">
+      <div class="l1-card">
+        <h3 class="l1-card__title">Structured Training Through The App</h3>
+        <p class="l1-card__text">Access your programming, demonstrations and progressions from anywhere, through your personal TGC account.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Coaching Demonstrations Every Session</h3>
+        <p class="l1-card__text">Movement videos and coaching notes help you understand the intent behind each session, not just the reps.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Built By The TGC Coaching Team</h3>
+        <p class="l1-card__text">Developed by our coaches using the same principles they teach in seminars around the world every weekend.</p>
+      </div>
+    </div>
+    </section>
+  </div>
+
+  <div class="l1-band l1-band--kit">
+    <section class="l1-section">
+      <p class="l1-label">What You&rsquo;ll Need</p>
+      <h2 class="l1-h2">Train In Any Functional Gym</h2>
+      <p class="l1-lede">All sessions can be completed in a CrossFit&reg; gym or functional fitness facility. You will need access to:</p>
+      <div class="l1-rules">
+        <div class="l1-rule">Pull-up bar</div>
+        <div class="l1-rule">Rings</div>
+        <div class="l1-rule">Plyo box</div>
+        <div class="l1-rule">Floor space</div>
+      </div>
+      <p class="l1-lede" style="margin-top: 18px;">We may occasionally use additional kit such as parallettes, but those sessions can be adapted if you don&rsquo;t have access to certain equipment.</p>
+    </section>
+  </div>
+
+  <section class="l1-section">
+    <p class="l1-label">Prerequisites</p>
+    <h2 class="l1-h2">Open To Everyone</h2>
+    <p class="l1-lede">No previous gymnastics experience required. Sessions are designed with scalable progressions suitable for a wide range of ability levels.</p>
+  </section>
+
+  <section class="l1-section" id="tiers">
+    <p class="l1-label">Pricing</p>
+    <h2 class="l1-h2">Five Ways To Train With Us</h2>
+    <p class="l1-lede">From self-guided blog programming through to a fully bespoke one-to-one plan. All prices are monthly and include VAT.</p>
+    <div class="l1-tiers">
+      <div class="l1-tier">
+        <p class="l1-tier__name">Tier 1</p>
+        <h3 class="l1-tier__what">Blog</h3>
+        <div class="l1-tier__price">&euro;35</div>
+        <div class="l1-tier__per">per month, VAT included</div>
+        <ul class="l1-tier__list">
+          <li>Blog programme</li>
+          <li>Free community</li>
+          <li class="is-off">Weekly call</li>
+          <li class="is-off">Coaching feedback</li>
+        </ul>
+        <a class="l1-tier__btn" href="https://dashboard.coachrx.app/programs/sales/303577">Join Now &rarr;</a>
+      </div>
+      <div class="l1-tier">
+        <p class="l1-tier__name">Tier 2</p>
+        <h3 class="l1-tier__what">Blog + Community</h3>
+        <div class="l1-tier__price">&euro;60</div>
+        <div class="l1-tier__per">per month, VAT included</div>
+        <ul class="l1-tier__list">
+          <li>Blog programme</li>
+          <li>Premium community</li>
+          <li>Group call</li>
+          <li>Feedback via community</li>
+        </ul>
+        <button class="l1-tier__btn" type="button" data-tier="tier-2">Apply &rarr;</button>
+      </div>
+      <div class="l1-tier">
+        <p class="l1-tier__name">Tier 3</p>
+        <h3 class="l1-tier__what">Blog + 1:1 Feedback</h3>
+        <div class="l1-tier__price">&euro;120</div>
+        <div class="l1-tier__per">per month, VAT included</div>
+        <ul class="l1-tier__list">
+          <li>Blog programme</li>
+          <li>Premium community</li>
+          <li>Group call</li>
+          <li>Written feedback</li>
+        </ul>
+        <button class="l1-tier__btn" type="button" data-tier="tier-3">Apply &rarr;</button>
+      </div>
+      <div class="l1-tier l1-tier--bespoke">
+        <p class="l1-tier__name">Tier 4</p>
+        <h3 class="l1-tier__what">Bespoke 1:1, Skill Only</h3>
+        <div class="l1-tier__price">&euro;250</div>
+        <div class="l1-tier__per">per month, VAT included</div>
+        <ul class="l1-tier__list">
+          <li>Bespoke programme</li>
+          <li>Premium community</li>
+          <li>1:1 coach call</li>
+          <li>Written, Loom or DM</li>
+        </ul>
+        <button class="l1-tier__btn" type="button" data-tier="tier-4">Apply &rarr;</button>
+      </div>
+      <div class="l1-tier l1-tier--bespoke">
+        <p class="l1-tier__name">Tier 5</p>
+        <h3 class="l1-tier__what">Full CF Programme, 1:1</h3>
+        <div class="l1-tier__price">&euro;500</div>
+        <div class="l1-tier__per">per month, VAT included</div>
+        <ul class="l1-tier__list">
+          <li>Bespoke programme</li>
+          <li>Premium community</li>
+          <li>1:1 coach call</li>
+          <li>Written, Loom or DM</li>
+        </ul>
+        <button class="l1-tier__btn" type="button" data-tier="tier-5">Apply &rarr;</button>
+      </div>
+    </div>
+    <p class="l1-policy" style="margin-top:18px;">Tier 1 is self-serve and you can start today. Tiers 2 to 5 involve a coach, so places are limited and we ask you to apply &mdash; we&rsquo;ll come back to you to confirm the fit before anything is charged.</p>
+  </section>
+
+  <section class="l1-section" id="apply">
+    <p class="l1-label">Apply</p>
+    <h2 class="l1-h2">Tell Us What You&rsquo;re Working Towards</h2>
+    <p class="l1-lede">For Tiers 2 to 5. Takes a minute, and a coach will come back to you.</p>
+    <div class="l1-form">
+      <div class="l1-field">
+        <label for="ap-tier">Which tier</label>
+        <select id="ap-tier">
+          <option value="tier-2">Tier 2 &mdash; Blog + Community, &euro;60</option>
+          <option value="tier-3">Tier 3 &mdash; Blog + 1:1 Feedback, &euro;120</option>
+          <option value="tier-4">Tier 4 &mdash; Bespoke 1:1, Skill Only, &euro;250</option>
+          <option value="tier-5">Tier 5 &mdash; Full CF Programme 1:1, &euro;500</option>
+        </select>
+      </div>
+      <div class="l1-field">
+        <label for="ap-name">Name</label>
+        <input id="ap-name" type="text" autocomplete="name">
+      </div>
+      <div class="l1-field">
+        <label for="ap-email">Email</label>
+        <input id="ap-email" type="email" autocomplete="email" required>
+      </div>
+      <div class="l1-field">
+        <label for="ap-country">Country</label>
+        <input id="ap-country" type="text" autocomplete="country-name">
+      </div>
+      <div class="l1-field">
+        <label for="ap-goals">What are you working towards?</label>
+        <textarea id="ap-goals" placeholder="Current level, the skills you want, anything we should know."></textarea>
+      </div>
+      <button class="tcc-cta" type="button" id="ap-submit" style="width:100%; justify-content:center;">Send Application &rarr;</button>
+      <p class="l1-form__note" id="ap-note" role="status"></p>
+    </div>
+  </section>
+
+  <section class="l1-section">
+    <p class="l1-label">Questions</p>
+    <h2 class="l1-h2">Frequently Asked Questions</h2>
+    <div class="l1-faq">
+      <details>
+        <summary>Do I need gymnastics experience?</summary>
+        <p>None. Sessions are designed with scalable progressions suitable for a wide range of ability levels.</p>
+      </details>
+      <details>
+        <summary>Will this replace my current programming?</summary>
+        <p>No. TGC Programming is built to complement your existing CrossFit&reg; training, not replace it.</p>
+      </details>
+      <details>
+        <summary>Where do I train?</summary>
+        <p>Any CrossFit&reg; gym or functional fitness facility with a pull-up bar, rings, a plyo box and floor space.</p>
+      </details>
+      <details>
+        <summary>What if I don&rsquo;t have all the kit?</summary>
+        <p>We occasionally use additional equipment such as parallettes. Those sessions can be adapted if you don&rsquo;t have access.</p>
+      </details>
+      <details>
+        <summary>How is it delivered?</summary>
+        <p>Through the athlete app, with your programming, movement demonstrations and coaching notes in one place.</p>
+      </details>
+      <details>
+        <summary>How long are the blocks?</summary>
+        <p>Each training block follows a progression-based approach to long-term development, and is scalable across abilities.</p>
+      </details>
+      <details>
+        <summary>Can I cancel?</summary>
+        <p>All tiers are monthly, so you can stop when it no longer suits your training.</p>
+      </details>
+    </div>
+  </section>
+
+  <div class="l1-close">
+    <h2>Start Training Gymnastics Properly</h2>
+    <p>Structured progressions, coaching demonstrations, and a plan that fits around your existing training.</p>
+    <a class="tcc-cta" href="#tiers">See The Tiers &rarr;</a>
+  </div>
+
+  <div class="tcc-cross">
+    <div class="tcc-cross__label">Explore Other Pathways</div>
+    <div class="tcc-cross__links">
+      <a href="/tgc">The Gymnastics Course</a>
+      <a href="/tcc">The Coaches Course</a>
+      <a href="/tec">The Endurance Course</a>
+      <a href="/twc">The Weightlifting Course</a>
+    </div>
+  </div>
+
+</main>
+
+<footer class="bb-footer">
+  &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
+  <a class="bb-footer__staff" href="/portal/">Staff Login</a>
+</footer>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const supabase = createClient(
+    "https://yvdmazpxtpuvidlcifnq.supabase.co",
+    "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+  );
+
+  const tierEl = document.getElementById("ap-tier");
+  const note = document.getElementById("ap-note");
+  const btn = document.getElementById("ap-submit");
+
+  // Clicking Apply on a tier card preselects that tier and jumps to the form.
+  for (const b of document.querySelectorAll("[data-tier]")) {
+    b.addEventListener("click", () => {
+      tierEl.value = b.dataset.tier;
+      document.getElementById("apply").scrollIntoView({ behavior: "smooth" });
+      document.getElementById("ap-name").focus({ preventScroll: true });
+    });
+  }
+
+  function say(message, ok) {
+    note.textContent = message;
+    note.className = ok ? "l1-form__note l1-form__note--ok" : "l1-form__note";
+  }
+
+  btn.addEventListener("click", async () => {
+    const name = document.getElementById("ap-name").value.trim();
+    const email = document.getElementById("ap-email").value.trim();
+    if (!name) { say("Please add your name.", false); return; }
+    if (!email || !email.includes("@") || email.startsWith("@") || email.endsWith("@")) {
+      say("Please enter a valid email address.", false); return;
+    }
+
+    btn.disabled = true;
+    say("Sending\u2026", false);
+
+    const { error } = await supabase.from("programming_applications").insert({
+      brand: "tgc",
+      tier: tierEl.value,
+      name: name,
+      email: email,
+      country: document.getElementById("ap-country").value.trim() || null,
+      goals: document.getElementById("ap-goals").value.trim() || null,
+      source: window.location.pathname
+    });
+
+    if (error) {
+      console.error("Programming application failed:", error);
+      say("Something went wrong. Please try again in a moment.", false);
+      btn.disabled = false;
+      return;
+    }
+
+    say("Thanks \u2014 your application is in. A coach will come back to you.", true);
+    for (const id of ["ap-name", "ap-email", "ap-country", "ap-goals"]) {
+      document.getElementById(id).value = "";
+    }
+  });
+</script>
+
+</body>
+</html>
