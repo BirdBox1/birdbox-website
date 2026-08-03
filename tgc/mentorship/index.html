@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TGC Mentorship | Coming Soon</title>
+<meta name="description" content="TGC Mentorship by The Gymnastics Course - coming soon. Register your interest.">
+<style>
+  :root {
+    --paper: #14100F;
+    --ink: #F2EFEF;
+    --muted: #8A8385;
+    --line: #342F31;
+    --accent: #D8393D;
+    --accentText: #F0797D;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-image:
+      radial-gradient(120% 80% at 50% 0%, rgba(216,57,61,0.18) 0%, rgba(20,16,15,0) 62%);
+    background-repeat: no-repeat;
+  }
+  img { display: block; }
+
+  .bb-topbar {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 28px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .bb-topbar a { color: #ADA6A8; text-decoration: none; }
+  .bb-topbar a:hover { color: #ffffff; }
+
+  .bb-main {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 56px 24px 64px;
+    max-width: 640px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .bb-mark { max-height: 220px; width: auto; max-width: 100%; margin-bottom: 30px; }
+  .bb-eyebrow {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accentText);
+    margin: 0 0 12px;
+  }
+  .bb-title {
+    font-size: clamp(26px, 4.4vw, 40px);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    margin: 0 0 14px;
+  }
+  .bb-lede {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #C9C4C5;
+    margin: 0 0 32px;
+  }
+
+  .bb-form {
+    width: 100%;
+    max-width: 420px;
+    text-align: left;
+    border: 1px solid var(--line);
+    padding: 20px;
+    background: rgba(28,23,25,0.72);
+  }
+  .bb-form__title {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 0 0 14px;
+    text-align: center;
+  }
+  .bb-field { margin-bottom: 12px; }
+  .bb-field label {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+  .bb-field input {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: #171214;
+    color: var(--ink);
+    padding: 10px 13px;
+    font-size: 15px;
+    font-family: inherit;
+  }
+  .bb-field input:focus { outline: none; border-color: var(--accent); }
+  .bb-submit {
+    width: 100%;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 12px 20px;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 4px;
+  }
+  .bb-submit:disabled { opacity: 0.55; cursor: default; }
+  .bb-note {
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0 0;
+    min-height: 20px;
+    color: var(--muted);
+  }
+  .bb-note--ok { color: var(--accentText); }
+  .bb-small {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 14px 0 0;
+    text-align: center;
+  }
+
+  .bb-footer {
+    text-align: center;
+    padding: 30px 24px 46px;
+    font-size: 13px;
+    color: #756F71;
+    border-top: 1px solid var(--line);
+    line-height: 1.7;
+  }
+  .bb-footer a { color: #8A8385; text-decoration: none; }
+  .bb-footer__staff {
+    display: block;
+    margin-top: 10px;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  @media (max-width: 600px) {
+    .bb-mark { max-height: 165px; }
+    .bb-main { padding: 40px 24px 48px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="bb-topbar">
+  <a href="/">Home</a>
+  <a href="/merch">Merch Store</a>
+  <a href="/blog">Blog</a>
+  <a href="/trainer-directory">Trainer Directory</a>
+  <a href="/account">My Account</a>
+  <a href="/about">About</a>
+</nav>
+
+<main class="bb-main">
+  <img class="bb-mark" src="/tgc/badge-tgc-mentorship.png" alt="TGC Mentorship">
+  <p class="bb-eyebrow">Coming Soon</p>
+  <h1 class="bb-title">TGC Mentorship</h1>
+  <p class="bb-lede">Ongoing one-to-one support for your gymnastics coaching &mdash; video feedback on your athletes and regular calls with a TGC coach. We are finalising the details now.</p>
+
+  <section class="bb-form" aria-label="Register your interest">
+    <h2 class="bb-form__title">Register Your Interest</h2>
+
+    <div class="bb-field">
+      <label for="bb-name">Name</label>
+      <input id="bb-name" type="text" autocomplete="name">
+    </div>
+    <div class="bb-field">
+      <label for="bb-email">Email</label>
+      <input id="bb-email" type="email" autocomplete="email" required>
+    </div>
+    <div class="bb-field">
+      <label for="bb-country">Country</label>
+      <input id="bb-country" type="text" autocomplete="country-name">
+    </div>
+
+    <button class="bb-submit" type="button" id="bb-submit">Notify Me</button>
+    <p class="bb-note" id="bb-note" role="status"></p>
+    <p class="bb-small">We will only email you about TGC Mentorship. No newsletters, no sharing.</p>
+  </section>
+</main>
+
+<footer class="bb-footer">
+  &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
+  <a class="bb-footer__staff" href="/portal/">Staff Login</a>
+</footer>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const supabase = createClient(
+    "https://yvdmazpxtpuvidlcifnq.supabase.co",
+    "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+  );
+
+  const BRAND = "tgc";
+
+  const btn = document.getElementById("bb-submit");
+  const note = document.getElementById("bb-note");
+  const emailEl = document.getElementById("bb-email");
+  const nameEl = document.getElementById("bb-name");
+  const countryEl = document.getElementById("bb-country");
+
+  function say(message, ok) {
+    note.textContent = message;
+    note.className = ok ? "bb-note bb-note--ok" : "bb-note";
+  }
+
+  async function submit() {
+    const email = emailEl.value.trim();
+    if (!email || !email.includes("@") || email.startsWith("@") || email.endsWith("@")) {
+      say("Please enter a valid email address.", false);
+      emailEl.focus();
+      return;
+    }
+
+    btn.disabled = true;
+    say("Sending\u2026", false);
+
+    const { error } = await supabase.from("interest_signups").insert({
+      brand: BRAND,
+      email: email,
+      name: nameEl.value.trim() || null,
+      country: countryEl.value.trim() || null,
+      source: window.location.pathname
+    });
+
+    if (error) {
+      // 23505 is the unique index on (brand, lower(email)) - already on the list.
+      if (error.code === "23505") {
+        say("You are already on the list \u2014 we will be in touch.", true);
+        btn.disabled = true;
+        return;
+      }
+      console.error("Interest signup failed:", error);
+      say("Something went wrong. Please try again in a moment.", false);
+      btn.disabled = false;
+      return;
+    }
+
+    say("Thanks \u2014 you are on the list. We will email you as soon as it opens.", true);
+    nameEl.value = "";
+    emailEl.value = "";
+    countryEl.value = "";
+  }
+
+  btn.addEventListener("click", submit);
+  for (const el of [nameEl, emailEl, countryEl]) {
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+  }
+</script>
+
+</body>
+</html>
