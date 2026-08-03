@@ -129,8 +129,9 @@
     position: absolute; top: 22px; left: 22px; height: 132px; width: auto; z-index: 1;
     filter: drop-shadow(0 3px 12px rgba(0,0,0,0.85));
   }
-  .tcc-row__badge--pair { height: 108px; }
-  .tcc-row__badge--second { left: 96px; top: 46px; }
+  .tcc-row__badge--second { top: 168px; }
+  /* Two stacked badges need more height than a single one. */
+  .tcc-row__media--tall { min-height: 322px; }
   .tcc-row__body { padding: 26px 28px; }
   .tcc-row__kind {
     display: flex; align-items: baseline; gap: 12px;
@@ -432,10 +433,10 @@
         </div>
       </article>
       <article class="tcc-row">
-        <div class="tcc-row__media">
+        <div class="tcc-row__media tcc-row__media--tall">
           <span class="tcc-row__photo" style="background-image: url('ng6905.jpeg'); background-position: 15% center;"></span>
-          <img class="tcc-row__badge tcc-row__badge--pair" src="badge-mentorship-essential.png" alt="">
-          <img class="tcc-row__badge tcc-row__badge--pair tcc-row__badge--second" src="badge-mentorship-premium.png" alt="">
+          <img class="tcc-row__badge" src="badge-mentorship-essential.png" alt="">
+          <img class="tcc-row__badge tcc-row__badge--second" src="badge-mentorship-premium.png" alt="">
         </div>
         <div class="tcc-row__body">
           <p class="tcc-row__kind"><span class="tcc-row__num">04</span>Grow</p>
