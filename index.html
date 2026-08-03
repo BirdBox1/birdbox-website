@@ -97,7 +97,7 @@
       margin-bottom: 40px;
     }
     .bb-paths__logo {
-      max-height: 160px;
+      max-height: 190px;
       width: auto;
       margin-bottom: 20px;
       filter: brightness(1.28);
@@ -242,9 +242,224 @@
   </div>
 </section>
 
+<section class="bb-upcoming" aria-label="Upcoming seminars">
+  <style>
+    .bb-upcoming {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 72px;
+      font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    }
+    .bb-upcoming__title {
+      font-size: clamp(20px, 2.6vw, 28px);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #D8D3D4;
+      margin: 0 0 18px;
+      text-align: center;
+    }
+    .bb-upcoming__list {
+      border: 1px solid #342F31;
+      background: rgba(23,18,20,0.86);
+    }
+    .bb-upcoming__row {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 18px 22px;
+      border-top: 1px solid #342F31;
+      text-decoration: none;
+      color: #F2EFEF;
+      transition: background 0.2s ease;
+    }
+    .bb-upcoming__row:first-child { border-top: none; }
+    .bb-upcoming__row:hover { background: rgba(52,47,49,0.45); }
+    .bb-upcoming__flag {
+      width: 4px;
+      align-self: stretch;
+      min-height: 42px;
+      background: var(--accent, #342F31);
+      flex: 0 0 4px;
+    }
+    .bb-upcoming__main { flex: 1 1 auto; min-width: 0; }
+    .bb-upcoming__brand {
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent, #8A8385);
+      margin-bottom: 3px;
+    }
+    .bb-upcoming__name {
+      font-size: 17px;
+      font-weight: 700;
+      margin: 0 0 3px;
+      line-height: 1.3;
+    }
+    .bb-upcoming__where {
+      font-size: 14px;
+      color: #B7B1B3;
+    }
+    .bb-upcoming__when {
+      flex: 0 0 auto;
+      text-align: right;
+      font-size: 14px;
+      color: #D8D3D4;
+      white-space: nowrap;
+    }
+    .bb-upcoming__full {
+      display: inline-block;
+      margin-top: 4px;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #8A8385;
+      border: 1px solid #342F31;
+      padding: 2px 7px;
+    }
+    .bb-upcoming__state {
+      padding: 22px;
+      margin: 0;
+      text-align: center;
+      color: #8A8385;
+      font-size: 15px;
+    }
+    .bb-upcoming__all {
+      display: block;
+      text-align: center;
+      margin-top: 16px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #ADA6A8;
+      text-decoration: none;
+    }
+    .bb-upcoming__all:hover { color: #ffffff; }
+    @media (max-width: 600px) {
+      .bb-upcoming__row { flex-wrap: wrap; gap: 12px; }
+      .bb-upcoming__when { text-align: left; flex-basis: 100%; }
+    }
+  </style>
+
+  <h2 class="bb-upcoming__title">Upcoming Seminars</h2>
+  <div id="bb-upcoming-list" class="bb-upcoming__list">
+    <p class="bb-upcoming__state">Loading seminars&hellip;</p>
+  </div>
+</section>
 
   <footer class="bb-footer">
     &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
   </footer>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const supabase = createClient(
+    "https://yvdmazpxtpuvidlcifnq.supabase.co",
+    "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+  );
+
+  const BRANDS = {
+    tcc:     { label: "The Coaches Course",       colour: "#4FA8DE" },
+    tgc:     { label: "The Gymnastics Course",    colour: "#B22125" },
+    tec:     { label: "The Endurance Course",     colour: "#428F63" },
+    twc:     { label: "The Weightlifting Course", colour: "#D9A527" },
+    birdbox: { label: "BirdBox Coaching",         colour: "#8A8385" }
+  };
+
+  const box = document.getElementById("bb-upcoming-list");
+
+  // Dates are shown in the course's own zone, so a Tokyo seminar reads as
+  // its local date rather than the visitor's.
+  function formatWhen(startsAt, endsAt, tz) {
+    const zone = tz || "UTC";
+    const day = { timeZone: zone, day: "numeric", month: "short" };
+    const start = new Date(startsAt);
+    const year = new Intl.DateTimeFormat("en-GB", { timeZone: zone, year: "numeric" }).format(start);
+    const startTxt = new Intl.DateTimeFormat("en-GB", day).format(start);
+    if (!endsAt) return `${startTxt} ${year}`;
+    const endTxt = new Intl.DateTimeFormat("en-GB", day).format(new Date(endsAt));
+    return startTxt === endTxt ? `${startTxt} ${year}` : `${startTxt} \u2013 ${endTxt} ${year}`;
+  }
+
+  function place(course) {
+    return [course.city, course.country].filter(Boolean).join(", ");
+  }
+
+  function state(message) {
+    box.innerHTML = '<p class="bb-upcoming__state"></p>';
+    box.firstChild.textContent = message;
+  }
+
+  async function load() {
+    const { data, error } = await supabase
+      .from("courses")
+      .select("slug, brand, title, city, country, starts_at, ends_at, timezone, status")
+      .in("status", ["published", "full"])
+      .in("type", ["live_seminar", "workshop"])
+      .eq("archived", false)
+      .gte("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(6);
+
+    if (error) {
+      console.error("Upcoming seminars failed:", error);
+      state("Seminar dates are unavailable right now.");
+      return;
+    }
+    if (!data || data.length === 0) {
+      state("No seminars scheduled just now \u2014 new dates are added regularly.");
+      return;
+    }
+
+    box.textContent = "";
+    for (const course of data) {
+      const brand = BRANDS[course.brand] || BRANDS.birdbox;
+
+      const row = document.createElement("a");
+      row.className = "bb-upcoming__row";
+      row.href = `/c/${course.slug}/`;
+      row.style.setProperty("--accent", brand.colour);
+
+      const flag = document.createElement("span");
+      flag.className = "bb-upcoming__flag";
+
+      const main = document.createElement("span");
+      main.className = "bb-upcoming__main";
+
+      const label = document.createElement("span");
+      label.className = "bb-upcoming__brand";
+      label.textContent = brand.label;
+
+      const name = document.createElement("span");
+      name.className = "bb-upcoming__name";
+      name.textContent = course.title || brand.label;
+
+      const where = document.createElement("span");
+      where.className = "bb-upcoming__where";
+      where.textContent = place(course);
+
+      main.append(label, name, where);
+      for (const el of [label, name, where]) el.style.display = "block";
+
+      const when = document.createElement("span");
+      when.className = "bb-upcoming__when";
+      when.textContent = formatWhen(course.starts_at, course.ends_at, course.timezone);
+
+      if (course.status === "full") {
+        const tag = document.createElement("span");
+        tag.className = "bb-upcoming__full";
+        tag.textContent = "Full";
+        when.append(document.createElement("br"), tag);
+      }
+
+      row.append(flag, main, when);
+      box.append(row);
+    }
+  }
+
+  load();
+</script>
 </body>
 </html>
