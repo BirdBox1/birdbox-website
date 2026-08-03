@@ -74,25 +74,25 @@
     display: flex;
     align-items: center;
     gap: 40px;
-    padding: 54px 24px 60px;
+    padding: 34px 24px 38px;
     max-width: 1320px;
     margin: 0 auto;
   }
   .bb-hero__mark { flex: 0 0 auto; }
-  .bb-hero__mark img { max-height: 168px; width: auto; filter: brightness(1.28); }
+  .bb-hero__mark img { max-height: 215px; width: auto; filter: brightness(1.28); }
   .bb-hero__copy { flex: 1 1 auto; min-width: 0; }
   .bb-hero__title {
-    font-size: clamp(30px, 4.6vw, 62px);
-    line-height: 1.04;
+    font-size: clamp(24px, 3.3vw, 44px);
+    line-height: 1.08;
     font-weight: 800;
     letter-spacing: -0.015em;
     text-transform: uppercase;
-    margin: 0 0 20px;
+    margin: 0 0 16px;
     text-shadow: 0 2px 18px rgba(0,0,0,0.55);
   }
   .bb-hero__title em { font-style: normal; color: var(--accentText); }
   .bb-hero__sub {
-    font-size: 17px;
+    font-size: 16px;
     line-height: 1.55;
     color: #DCD7D8;
     margin: 0;
@@ -105,15 +105,15 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
-    padding: 44px 0 8px;
+    padding: 22px 0 8px;
   }
   .bb-card {
     position: relative;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    min-height: 430px;
-    padding: 26px 24px 28px;
+    min-height: 372px;
+    padding: 22px 22px 24px;
     text-decoration: none;
     color: var(--ink);
     border: 1px solid var(--cardLine, var(--line));
@@ -140,10 +140,10 @@
   .bb-card:hover .bb-card__veil { opacity: 0.82; }
   .bb-card__logo {
     position: absolute;
-    top: 24px;
-    left: 24px;
-    right: 24px;
-    height: 74px;
+    top: 20px;
+    left: 22px;
+    right: 22px;
+    height: 66px;
     display: flex;
     align-items: flex-start;
   }
@@ -174,8 +174,6 @@
     text-transform: uppercase;
     color: var(--cardAccent);
   }
-  .bb-card--soon { cursor: default; }
-  .bb-card--soon .bb-card__cta { color: var(--muted); }
 
   /* ---------- three panel row ---------- */
   .bb-row3 {
@@ -211,7 +209,7 @@
     font-style: italic;
     margin: 0 0 12px;
   }
-  .bb-person { display: flex; align-items: center; gap: 12px; margin-top: 0; }
+  .bb-person { display: flex; align-items: center; gap: 12px; margin-top: auto; padding-top: 14px; }
   .bb-person__initials {
     width: 38px; height: 38px;
     flex: 0 0 38px;
@@ -231,9 +229,12 @@
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 8px 22px;
+    gap: 16px 26px;
     text-align: center;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+    max-width: 312px;
+    margin-left: auto;
+    margin-right: auto;
   }
   .bb-eco__item { color: var(--muted); flex: 0 0 auto; width: 82px; }
   .bb-eco__item svg { width: 30px; height: 30px; stroke: var(--tcc); fill: none; stroke-width: 1.6; margin: 0 auto 8px; display: block; }
@@ -352,9 +353,9 @@
       background: linear-gradient(180deg, rgba(20,16,15,0.86) 0%, rgba(20,16,15,0.92) 100%);
     }
     .bb-hero__inner { flex-direction: column; align-items: flex-start; gap: 20px; padding: 40px 24px 46px; }
-    .bb-hero__mark img { max-height: 120px; }
+    .bb-hero__mark img { max-height: 140px; }
     .bb-cards { grid-template-columns: 1fr; }
-    .bb-card { min-height: 380px; }
+    .bb-card { min-height: 340px; }
     .bb-signup__sub { flex: 1 1 100%; }
   }
 </style>
@@ -426,16 +427,16 @@
       <span class="bb-card__cta">Explore Endurance &rarr;</span>
     </a>
 
-    <div class="bb-card bb-card--soon" aria-disabled="true"
-         style="--cardAccent: var(--twc); --cardLine: rgba(217,165,39,0.45); --veil: linear-gradient(180deg, rgba(217,165,39,0.40), rgba(217,165,39,0.28));">
+    <a class="bb-card" href="/twc"
+       style="--cardAccent: var(--twc); --cardLine: rgba(217,165,39,0.45); --veil: linear-gradient(180deg, rgba(217,165,39,0.40), rgba(217,165,39,0.28));">
       <span class="bb-card__bg" style="background-image: url('card-twc.jpeg');"></span>
       <span class="bb-card__veil"></span>
       <span class="bb-card__logo"><img src="brand/twc-mark.png" alt="The Weightlifting Course"></span>
       <span class="bb-card__rule"></span>
       <h2 class="bb-card__name">The Weightlifting Course</h2>
       <p class="bb-card__desc">Develop strength, power, and confidence through Olympic weightlifting education.</p>
-      <span class="bb-card__cta">Coming Soon</span>
-    </div>
+      <span class="bb-card__cta">Explore Weightlifting &rarr;</span>
+    </a>
 
   </section>
 
