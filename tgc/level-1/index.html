@@ -49,7 +49,7 @@
   .tcc-hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
   .tcc-hero__photo {
     position: absolute; inset: 0 0 0 34%;
-    background-image: url("../ng3855.jpeg");
+    background-image: url("hero-tgc-l1.jpeg");
     background-size: cover; background-position: center 35%; background-repeat: no-repeat;
   }
   .tcc-hero__photo::after {
@@ -300,6 +300,28 @@
   }
 
   .l1-section { padding: 40px 0 8px; }
+  /* A photo band sits behind a section, dark enough for text to stay legible. */
+  .l1-band {
+    position: relative;
+    border: 1px solid var(--line);
+    padding: 8px 26px 26px;
+    margin-top: 40px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .l1-band > .l1-section:first-child { padding-top: 30px; }
+  .l1-band--rules {
+    background-image:
+      linear-gradient(180deg, rgba(20,16,15,0.90) 0%, rgba(20,16,15,0.93) 100%),
+      url("band-included.jpeg");
+  }
+  .l1-band--outcome {
+    background-image:
+      linear-gradient(180deg, rgba(20,16,15,0.90) 0%, rgba(20,16,15,0.94) 100%),
+      url("NG-2386.jpg");
+  }
+  @media (max-width: 620px) { .l1-band { padding: 4px 16px 18px; } }
   .l1-label {
     font-size: 11px; font-weight: 800; letter-spacing: 0.18em;
     text-transform: uppercase; color: var(--accentText); margin: 0 0 8px;
@@ -465,7 +487,7 @@
     <div class="l1-chip"><div class="l1-chip__big">2 Days</div><div class="l1-chip__small">In Person</div></div>
     <div class="l1-chip"><div class="l1-chip__big">14 CEUs</div><div class="l1-chip__small">CrossFit&reg; Approved</div></div>
     <div class="l1-chip"><div class="l1-chip__big">None</div><div class="l1-chip__small">Prerequisites</div></div>
-    <div class="l1-chip"><div class="l1-chip__big">70+ Pages</div><div class="l1-chip__small">Seminar Guide</div></div>
+    <div class="l1-chip"><div class="l1-chip__big">35+ Pages</div><div class="l1-chip__small">Seminar Guide</div></div>
   </div>
 
   <section class="l1-section" id="map">
@@ -501,6 +523,7 @@
     </div>
   </section>
 
+  <div class="l1-band l1-band--rules">
   <section class="l1-section">
     <p class="l1-label">Rules and Laws</p>
     <h2 class="l1-h2">Principles You Can Coach By</h2>
@@ -517,6 +540,7 @@
       <div class="l1-rule">The principle of force</div>
     </div>
   </section>
+  </div>
 
   <section class="l1-section">
     <p class="l1-label">What You&rsquo;ll Learn</p>
@@ -609,7 +633,7 @@
   <section class="l1-section">
     <p class="l1-label">Seminar Format</p>
     <h2 class="l1-h2">Lecture, Demo, Practice, Feedback</h2>
-    <p class="l1-lede">Our two-day seminar is a blend of lecture, demo, practice, feedback, and collaborative drills. You&rsquo;ll leave with a coaching and training model you can use the very next morning. Includes a 70+ page seminar guide, exclusive discounts on online course access, and certification upon completion.</p>
+    <p class="l1-lede">Our two-day seminar is a blend of lecture, demo, practice, feedback, and collaborative drills. You&rsquo;ll leave with a coaching and training model you can use the very next morning. Includes a 35+ page seminar guide, exclusive discounts on online course access, and certification upon completion.</p>
     <div class="l1-grid4">
       <div class="l1-card"><h3 class="l1-card__title">Duration</h3><p class="l1-card__text">Two full days</p></div>
       <div class="l1-card"><h3 class="l1-card__title">Location</h3><p class="l1-card__text">Multiple various international locations</p></div>
@@ -618,6 +642,7 @@
     </div>
   </section>
 
+  <div class="l1-band l1-band--outcome">
   <section class="l1-section">
     <p class="l1-label">The Outcome</p>
     <h2 class="l1-h2">What You&rsquo;ll Walk Away With</h2>
@@ -639,6 +664,7 @@
       <div class="l1-rule">Snacks and fluids, plus a meal if you do not plan to go off site during the lunch break</div>
     </div>
   </section>
+  </div>
 
   <section class="l1-section">
     <p class="l1-label">Pricing</p>
