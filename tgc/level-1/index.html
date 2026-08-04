@@ -812,7 +812,7 @@
       .select("slug, title, city, country, starts_at, ends_at, timezone, status, latitude, longitude")
       .eq("brand", "tgc")
       .eq("type", "live_seminar")
-      .eq("level", "1")
+      .in("level", ["1","L1","l1","Level 1"])
       .in("status", ["published", "full"])
       .eq("archived", false)
       .gte("starts_at", new Date().toISOString())
