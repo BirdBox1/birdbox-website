@@ -444,7 +444,7 @@
   .sm-list { border: 1px solid var(--line); background: var(--panel); }
   .sm-row {
     display: grid;
-    grid-template-columns: 74px 1fr auto auto;
+    grid-template-columns: 66px 1fr auto auto;
     gap: 18px;
     align-items: center;
     padding: 16px 20px;
@@ -455,7 +455,7 @@
   }
   .sm-row:first-child { border-top: none; }
   .sm-row:hover { background: rgba(52,47,49,0.4); }
-  .sm-row__mark { height: 38px; display: flex; align-items: center; }
+  .sm-row__mark { height: 62px; display: flex; align-items: center; justify-content: center; }
   .sm-row__mark img { max-height: 100%; max-width: 100%; width: auto; }
   .sm-row__main { min-width: 0; }
   .sm-row__title { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
@@ -478,7 +478,7 @@
   }
   @media (max-width: 620px) {
     .sm-filters { grid-template-columns: 1fr; }
-    .sm-row { grid-template-columns: 54px 1fr; row-gap: 8px; }
+    .sm-row { grid-template-columns: 52px 1fr; row-gap: 8px; }
     .sm-row__when { grid-column: 2; text-align: left; }
     .sm-row__go { display: none; }
   }
@@ -576,6 +576,24 @@
     birdbox: "BirdBox Coaching"
   };
 
+  // Each course type has its own badge; anything unmatched falls back to
+  // the brand wordmark rather than showing nothing.
+  const BADGES = {
+    "tgc|live_seminar|1": "/tgc/badge-tgc-l1-seminar.png",
+    "tgc|live_seminar|2": "/tgc/badge-tgc-l2.png",
+    "tgc|workshop|":      "/tgc/badge-tgc-workshops.png",
+    "tcc|live_seminar|1": "/tcc/badge-l1-seminar.png",
+    "tcc|live_seminar|2": "/tcc/badge-l2.png",
+  };
+
+  function badgeFor(c) {
+    const lvl = (c.level || "").toString().replace(/[^0-9]/g, "");
+    return BADGES[`${c.brand}|${c.type}|${lvl}`]
+        || BADGES[`${c.brand}|${c.type}|`]
+        || MARKS[c.brand]
+        || MARKS.birdbox;
+  }
+
   const listEl = document.getElementById("sm-list");
   const countEl = document.getElementById("sm-count");
   const brandEl = document.getElementById("f-brand");
@@ -661,8 +679,12 @@
       const markWrap = document.createElement("span");
       markWrap.className = "sm-row__mark";
       const img = document.createElement("img");
-      img.src = MARKS[course.brand] || MARKS.birdbox;
+      img.src = badgeFor(course);
       img.alt = BRAND_NAME[course.brand] || "BirdBox";
+      // A missing badge falls back to the wordmark rather than a broken image.
+      img.addEventListener("error", () => {
+        img.src = MARKS[course.brand] || MARKS.birdbox;
+      }, { once: true });
       markWrap.append(img);
 
       const main = document.createElement("span");
