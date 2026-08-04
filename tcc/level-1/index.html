@@ -82,6 +82,11 @@
     transition: background 0.2s ease, color 0.2s ease;
   }
   .tcc-cta:hover { background: transparent; color: var(--accentText); }
+  .tcc-cta--ghost {
+    background: transparent; color: var(--accentText); border-color: var(--line); margin-left: 10px;
+  }
+  .tcc-cta--ghost:hover { border-color: var(--tcc); color: #ffffff; background: transparent; }
+  @media (max-width: 620px) { .tcc-cta--ghost { margin-left: 0; margin-top: 10px; } }
 
   /* ---------- pathway strip ---------- */
   .tcc-pathway { padding: 46px 0 8px; text-align: center; }
@@ -492,6 +497,7 @@
     <h1 class="tcc-hero__title">Take your coaching<em>to the next level.</em></h1>
     <p class="tcc-hero__lede">Lead classes with confidence, purpose and lasting impact. Level 1 gives you the tools to help every member progress.</p>
     <a class="tcc-cta" href="#map">View Dates and Book Your Spot &rarr;</a>
+    <a class="tcc-cta tcc-cta--ghost" href="https://form.jotform.com/252381762881363">Take the Free Coaching Self-Assessment &rarr;</a>
   </div>
 </header>
 
