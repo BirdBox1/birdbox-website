@@ -210,6 +210,10 @@
     margin: 0 0 12px;
   }
   .bb-person { display: flex; align-items: center; gap: 12px; margin-top: auto; padding-top: 14px; }
+  .bb-person__photo {
+    width: 38px; height: 38px; flex: 0 0 38px;
+    object-fit: cover; border: 1px solid var(--line);
+  }
   .bb-person__initials {
     width: 38px; height: 38px;
     flex: 0 0 38px;
@@ -442,16 +446,15 @@
 
   <section class="bb-row3" aria-label="About BirdBox">
 
-    <!-- PLACEHOLDER TESTIMONIALS - replace before go-live -->
     <div class="bb-panel">
       <h2 class="bb-panel__title">Coaches Love BirdBox</h2>
       <div class="bb-stars" aria-label="Five stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-      <p class="bb-quote" id="bb-quote">&ldquo;The best coaching education I&rsquo;ve ever experienced. It completely changed the way I coach.&rdquo;</p>
+      <p class="bb-quote" id="bb-quote">&nbsp;</p>
       <div class="bb-person">
-        <span class="bb-person__initials" id="bb-quote-initials">JW</span>
+        <span id="bb-quote-avatar"><span class="bb-person__initials">&nbsp;</span></span>
         <span>
-          <span class="bb-person__name" id="bb-quote-name">James W.</span><br>
-          <span class="bb-person__role" id="bb-quote-role">Coach, Australia</span>
+          <span class="bb-person__name" id="bb-quote-name"></span><br>
+          <span class="bb-person__role" id="bb-quote-role"></span>
         </span>
         <span class="bb-dots" id="bb-dots"></span>
       </div>
@@ -615,56 +618,104 @@
     }
   }
 
-  // PLACEHOLDER TESTIMONIALS - replace before go-live
-  const QUOTES = [
-    { text: "The best coaching education I\u2019ve ever experienced. It completely changed the way I coach.", name: "James W.", role: "Coach, Australia" },
-    { text: "Two days that reshaped how I teach movement. My members noticed the difference immediately.", name: "Marta S.", role: "Gym Owner, Spain" },
-    { text: "Practical, precise, and genuinely useful on the gym floor the very next morning.", name: "Tom H.", role: "Coach, Ireland" }
-  ];
-
+  /* ---------- testimonials ---------- */
   const quoteEl = document.getElementById("bb-quote");
   const nameEl = document.getElementById("bb-quote-name");
   const roleEl = document.getElementById("bb-quote-role");
-  const initEl = document.getElementById("bb-quote-initials");
+  const avatarEl = document.getElementById("bb-quote-avatar");
   const dotsEl = document.getElementById("bb-dots");
 
+  let quotes = [];
+  let quoteIndex = 0;
+  let quoteTimer = null;
+
+  function initials(name) {
+    return name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+  }
+
+  function credit(t) {
+    return [t.role, t.country].filter(Boolean).join(", ");
+  }
+
   function showQuote(i) {
-    const q = QUOTES[i];
-    quoteEl.textContent = `\u201C${q.text}\u201D`;
-    nameEl.textContent = q.name;
-    roleEl.textContent = q.role;
-    initEl.textContent = q.name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+    const t = quotes[i];
+    if (!t) return;
+    quoteEl.textContent = `\u201C${t.quote_short || t.quote}\u201D`;
+    nameEl.textContent = t.name;
+    roleEl.textContent = credit(t);
+
+    avatarEl.textContent = "";
+    if (t.photo) {
+      const img = document.createElement("img");
+      img.className = "bb-person__photo";
+      img.src = t.photo;
+      img.alt = "";
+      // A missing file falls back to initials rather than a broken image.
+      img.addEventListener("error", () => {
+        avatarEl.textContent = "";
+        const span = document.createElement("span");
+        span.className = "bb-person__initials";
+        span.textContent = initials(t.name);
+        avatarEl.append(span);
+      });
+      avatarEl.append(img);
+    } else {
+      const span = document.createElement("span");
+      span.className = "bb-person__initials";
+      span.textContent = initials(t.name);
+      avatarEl.append(span);
+    }
+
     for (const [j, dot] of [...dotsEl.children].entries()) {
       dot.setAttribute("aria-current", j === i ? "true" : "false");
     }
   }
 
-  let quoteIndex = 0;
-  let quoteTimer = null;
-
   function startQuoteTimer() {
     clearInterval(quoteTimer);
+    if (quotes.length < 2) return;
     quoteTimer = setInterval(() => {
-      quoteIndex = (quoteIndex + 1) % QUOTES.length;
+      quoteIndex = (quoteIndex + 1) % quotes.length;
       showQuote(quoteIndex);
     }, 12000);
   }
 
-  QUOTES.forEach((q, i) => {
-    const dot = document.createElement("button");
-    dot.className = "bb-dot";
-    dot.type = "button";
-    dot.setAttribute("aria-label", `Testimonial ${i + 1}`);
-    // A manual tap wins, and the clock restarts so it doesn't jump a second later.
-    dot.addEventListener("click", () => {
-      quoteIndex = i;
-      showQuote(i);
-      startQuoteTimer();
+  async function loadQuotes() {
+    const { data, error } = await supabase
+      .from("testimonials")
+      .select("quote, quote_short, name, role, country, photo, rating")
+      .eq("approved", true)
+      .eq("featured", true)
+      .order("sort_order", { ascending: true });
+
+    if (error || !data || !data.length) {
+      if (error) console.error("Testimonials failed:", error);
+      // Nothing approved yet, so hide the panel rather than show an empty box.
+      const panel = quoteEl.closest(".bb-panel");
+      if (panel) panel.style.display = "none";
+      return;
+    }
+
+    quotes = data;
+    dotsEl.textContent = "";
+    quotes.forEach((q, i) => {
+      const dot = document.createElement("button");
+      dot.className = "bb-dot";
+      dot.type = "button";
+      dot.setAttribute("aria-label", `Testimonial ${i + 1}`);
+      // A manual tap wins, and the clock restarts so it doesn't jump a second later.
+      dot.addEventListener("click", () => {
+        quoteIndex = i;
+        showQuote(i);
+        startQuoteTimer();
+      });
+      dotsEl.append(dot);
     });
-    dotsEl.append(dot);
-  });
-  showQuote(0);
-  startQuoteTimer();
+    showQuote(0);
+    startQuoteTimer();
+  }
+
+  loadQuotes();
 
   // Signup is not wired to Mailchimp yet, so say so rather than pretend.
   const note = document.getElementById("bb-signup-note");
