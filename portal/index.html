@@ -393,6 +393,15 @@
 .acts .btn{font-size:.72rem;padding:.3rem .6rem}
 .attendee.inactive{opacity:.55}
 .pill.gone{border-color:#6b4a1f;color:#d8a657}
+.wk{border:1px solid #342F31;border-radius:.4rem;margin-bottom:.5rem;overflow:hidden}
+.wk__head{display:flex;align-items:center;gap:.7rem;padding:.6rem .8rem;cursor:pointer;background:rgba(255,255,255,.02)}
+.wk__n{font-weight:700;font-size:.8rem;min-width:4.2rem;color:#ADA6A8}
+.wk__subj{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.9rem}
+.wk__state{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:#756F71}
+.wk__state.done{color:#5FBE8A}
+.wk__body{padding:.9rem;border-top:1px solid #342F31}
+.wk__body textarea{min-height:16rem;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem}
+.seqbar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-top:.6rem}
 .sigwrap{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:1rem;z-index:60}
 .sigbox{background:#1C1719;border:1px solid #342F31;border-radius:.5rem;padding:1.1rem;max-width:640px;width:100%}
 .sigbox h3{margin:0 0 .3rem}
@@ -437,6 +446,25 @@
   </div>
 </section>
 
+<section id="view-emails" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back-emails">&larr; All courses</a>
+    <h2>Follow-up emails</h2>
+    <p class="sub">The year of weekly emails a participant receives after finishing a course. Each course type has its own.</p>
+
+    <div class="field" style="max-width:26rem">
+      <label for="seq-pick">Course</label>
+      <select id="seq-pick"></select>
+    </div>
+
+    <div class="admin-row" style="margin:.4rem 0 1rem">
+      <span class="why" id="seq-summary"></span>
+    </div>
+
+    <div id="seq-weeks"></div>
+  </div>
+</section>
+
 <!-- ============ COURSES ============ -->
 <section id="view-courses" class="hidden">
   <div class="wrap">
@@ -454,7 +482,10 @@
         <h1>Courses</h1>
         <p class="sub" id="courses-sub" style="margin:0"></p>
       </div>
-      <button class="btn hidden" id="newcourse" type="button">New course</button>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn ghost hidden" id="emailsbtn" type="button">Follow-up emails</button>
+        <button class="btn hidden" id="newcourse" type="button">New course</button>
+      </div>
     </div>
 
     <div class="tabs">
@@ -1104,6 +1135,7 @@ const views = {
   courses: $("view-courses"),
   course:  $("view-course"),
   newc:    $("view-new"),
+  emails:  $("view-emails"),
 };
 const show = (n) =>
   Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== n));
@@ -1176,6 +1208,7 @@ async function start() {
   $("hello").textContent = `Welcome back, ${staff.full_name.split(" ")[0]}`;
   $("myrole").textContent = staff.role.replace(/_/g, " ");
   $("newcourse").classList.toggle("hidden", !admin);
+  $("emailsbtn").classList.toggle("hidden", !admin);
   $("codeslink").classList.toggle("hidden", !admin);
 
   await loadCourses();
@@ -2122,6 +2155,122 @@ function readCoachPicker(box) {
     .filter((s) => s.value)
     .map((s) => ({ staff_id: s.dataset.staff, role: s.value }));
 }
+
+/* ============ FOLLOW-UP EMAIL SEQUENCES ============ */
+const WEEKS = 52;
+let sequences = [];
+let seqSteps = {};   /* week number -> row */
+let seqOpen = null;  /* which week is expanded */
+
+/* What a writer can drop into a subject or body. */
+const MERGE_HELP = "{{first_name}} {{course_title}} {{city}} {{coach}} {{unsubscribe}}";
+
+async function openEmails() {
+  show("emails");
+  if (!sequences.length) {
+    const { data, error } = await db.from("email_sequences")
+      .select("id, key, name, brand, active").eq("active", true).order("name");
+    if (error) { window.alert("Could not load sequences: " + error.message); return; }
+    sequences = data || [];
+    const pick = $("seq-pick");
+    pick.innerHTML = "";
+    for (const q of sequences) {
+      const o = document.createElement("option");
+      o.value = q.id;
+      o.textContent = q.name;
+      pick.append(o);
+    }
+  }
+  if (!sequences.length) {
+    $("seq-weeks").innerHTML = '<p class="empty">No sequences set up yet.</p>';
+    return;
+  }
+  await loadSequence($("seq-pick").value || sequences[0].id);
+}
+
+async function loadSequence(sequenceId) {
+  $("seq-weeks").innerHTML = '<p class="empty">Loading…</p>';
+  const { data, error } = await db.from("email_sequence_steps")
+    .select("id, week_number, subject, body_html, active")
+    .eq("sequence_id", sequenceId).order("week_number");
+  if (error) { $("seq-weeks").innerHTML = '<p class="empty">Could not load: ' + error.message + "</p>"; return; }
+
+  seqSteps = {};
+  for (const row of data || []) seqSteps[row.week_number] = row;
+
+  const written = Object.values(seqSteps).filter((r) => r.subject && r.body_html).length;
+  $("seq-summary").textContent = `${written} of ${WEEKS} weeks written.`;
+
+  const box = $("seq-weeks");
+  box.innerHTML = "";
+  for (let w = 1; w <= WEEKS; w++) {
+    const row = seqSteps[w];
+    const done = !!(row && row.subject && row.body_html);
+
+    const wrap = document.createElement("div");
+    wrap.className = "wk";
+
+    const head = document.createElement("div");
+    head.className = "wk__head";
+    head.innerHTML =
+      `<span class="wk__n">Week ${w}</span>` +
+      `<span class="wk__subj"></span>` +
+      `<span class="wk__state${done ? " done" : ""}">${done ? "written" : "empty"}</span>`;
+    head.querySelector(".wk__subj").textContent = row && row.subject ? row.subject : "—";
+    head.onclick = () => { seqOpen = seqOpen === w ? null : w; loadSequence(sequenceId); };
+    wrap.append(head);
+
+    if (seqOpen === w) {
+      const body = document.createElement("div");
+      body.className = "wk__body";
+      body.innerHTML = `
+        <div class="field">
+          <label>Subject</label>
+          <input type="text" class="wk-subject">
+        </div>
+        <div class="field">
+          <label>Body <span class="hint">HTML. Merge fields: ${MERGE_HELP}</span></label>
+          <textarea class="wk-body"></textarea>
+        </div>
+        <div class="seqbar">
+          <button class="btn small wk-save" type="button">Save week ${w}</button>
+          <button class="btn ghost small wk-close" type="button">Close</button>
+          <span class="why wk-msg"></span>
+        </div>`;
+      body.querySelector(".wk-subject").value = row ? row.subject || "" : "";
+      body.querySelector(".wk-body").value = row ? row.body_html || "" : "";
+      body.querySelector(".wk-close").onclick = () => { seqOpen = null; loadSequence(sequenceId); };
+      body.querySelector(".wk-save").onclick = async (e) => {
+        const btn = e.target;
+        const subject = body.querySelector(".wk-subject").value.trim();
+        const html = body.querySelector(".wk-body").value.trim();
+        const msg = body.querySelector(".wk-msg");
+        if (!subject || !html) { msg.textContent = "Both a subject and a body are needed."; return; }
+        btn.disabled = true;
+        msg.textContent = "Saving…";
+        const payload = {
+          sequence_id: sequenceId,
+          week_number: w,
+          subject,
+          body_html: html,
+          updated_at: new Date().toISOString(),
+        };
+        const { error: sErr } = await db.from("email_sequence_steps")
+          .upsert(payload, { onConflict: "sequence_id,week_number" });
+        btn.disabled = false;
+        if (sErr) { msg.textContent = "Could not save: " + sErr.message; return; }
+        seqOpen = null;
+        loadSequence(sequenceId);
+      };
+      wrap.append(body);
+    }
+    box.append(wrap);
+  }
+}
+
+$("seq-pick").addEventListener("change", () => { seqOpen = null; loadSequence($("seq-pick").value); });
+$("emailsbtn").addEventListener("click", openEmails);
+$("back-emails").addEventListener("click", () => show("courses"));
 
 /* ---------- map pin ---------- */
 let editingCourse = null;
