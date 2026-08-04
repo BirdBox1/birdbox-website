@@ -465,6 +465,15 @@
     #l1-map { height: 380px; }
   }
 </style>
+<style>
+  /* Self-hosted video. preload="metadata" so the file isn't pulled until played. */
+  .l1-vid {
+    width: 100%;
+    display: block;
+    background: #0E0B0C;
+    border: 1px solid var(--line);
+  }
+</style>
 </head>
 <body>
 
@@ -550,13 +559,10 @@
   <section class="l1-section">
     <p class="l1-label">Watch</p>
     <h2 class="l1-h2">Inside a TGC Level 2 Seminar</h2>
-    <div class="l1-video" id="l1-video" role="button" tabindex="0" aria-label="Play the seminar video">
-      <img class="l1-video__poster" src="band-topics.jpeg" alt="">
-      <div class="l1-video__play">
-        <span class="l1-video__ring"></span>
-        <span class="l1-video__label">Watch the Seminar</span>
-      </div>
-    </div>
+    <video class="l1-vid" controls preload="metadata" playsinline poster="band-topics.jpeg">
+      <source src="TGC%20LVL%202%20website.mp4" type="video/mp4">
+      Your browser cannot play this video.
+    </video>
   </section>
 
   <section class="l1-section">
@@ -754,29 +760,11 @@
 <script type="module">
   import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-  // New video lands Wednesday - change this one line.
-  const VIDEO_ID = "yVFidTRAdV4";
 
   const supabase = createClient(
     "https://yvdmazpxtpuvidlcifnq.supabase.co",
     "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
   );
-
-  /* ---------- video facade ---------- */
-  const facade = document.getElementById("l1-video");
-  function playVideo() {
-    const frame = document.createElement("iframe");
-    frame.src = `https://www.youtube-nocookie.com/embed/${VIDEO_ID}?autoplay=1&rel=0`;
-    frame.allow = "accelerometer; autoplay; encrypted-media; picture-in-picture";
-    frame.allowFullscreen = true;
-    frame.title = "TGC Level 1 seminar";
-    facade.textContent = "";
-    facade.append(frame);
-  }
-  facade.addEventListener("click", playVideo);
-  facade.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); playVideo(); }
-  });
 
   /* ---------- seminar map ---------- */
   const note = document.getElementById("l1-map-note");
