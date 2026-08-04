@@ -382,6 +382,17 @@
     display: none;
   }
   .hidden { display: none !important; }
+
+/* participant management */
+.pm-bar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:0 0 .8rem}
+.pm-form{border:1px solid #342F31;border-radius:.4rem;padding:1rem;margin:0 0 1rem;background:rgba(255,255,255,.02)}
+.pm-form .grid2{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+@media(max-width:640px){.pm-form .grid2{grid-template-columns:1fr}}
+.pm-check{display:flex;align-items:center;gap:.45rem;font-size:.9rem;margin:.5rem 0}
+.acts{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.6rem}
+.acts .btn{font-size:.72rem;padding:.3rem .6rem}
+.attendee.inactive{opacity:.55}
+.pill.gone{border-color:#6b4a1f;color:#d8a657}
 </style>
 </head>
 <body>
@@ -458,6 +469,55 @@
     <h2 id="course-title"></h2>
     <p class="sub" id="course-meta"></p>
     <p class="counts" id="counts"></p>
+    <div class="pm-bar hidden" id="pm-bar">
+      <button class="btn small" id="pm-add" type="button">Add participant</button>
+      <label class="pm-check"><input type="checkbox" id="pm-showall"> Show archived and cancelled</label>
+    </div>
+
+    <div class="pm-form hidden" id="pm-form">
+      <div class="grid2">
+        <div class="field">
+          <label for="pm-first">First name</label>
+          <input id="pm-first" type="text" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="pm-last">Last name</label>
+          <input id="pm-last" type="text" autocomplete="off">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="pm-email">Email</label>
+          <input id="pm-email" type="email" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="pm-phone">Phone <span class="hint">optional</span></label>
+          <input id="pm-phone" type="text" autocomplete="off">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="pm-source">Where did this booking come from?</label>
+          <select id="pm-source">
+            <option value="manual">Added by hand</option>
+            <option value="regfox">RegFox / Webconnex</option>
+            <option value="transfer">Transferred from another course</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pm-note">Note <span class="hint">optional, staff only</span></label>
+          <input id="pm-note" type="text" placeholder="e.g. paid RegFox Jan 2026">
+        </div>
+      </div>
+      <label class="pm-check"><input type="checkbox" id="pm-paid" checked> Mark as paid in full</label>
+      <label class="pm-check"><input type="checkbox" id="pm-email-send"> Send them the registration confirmation email now</label>
+      <div class="admin-row" style="margin-top:.8rem">
+        <button class="btn small" id="pm-save" type="button">Add participant</button>
+        <button class="btn ghost small" id="pm-cancel" type="button">Cancel</button>
+        <span class="why" id="pm-msg"></span>
+      </div>
+    </div>
+
     <div class="attendees-card" id="attendees"></div>
 
     <div class="admin-panel hidden" id="adminpanel">
@@ -470,6 +530,15 @@
       </div>
 
       <div class="sep" id="salessep"></div>
+
+      <h3>Capacity</h3>
+      <div class="admin-row">
+        <input id="cap-input" type="number" min="0" step="1" style="max-width:7rem">
+        <button class="btn small" id="cap-save" type="button">Save capacity</button>
+        <span class="why" id="cap-why"></span>
+      </div>
+
+      <div class="sep"></div>
 
       <h3>Coaches on this course</h3>
       <div class="coachlist" id="editcoaches"></div>
@@ -1451,20 +1520,30 @@ async function openCourse(course) {
   box.innerHTML = '<p class="empty">Loading…</p>';
 
   const { data, error } = await db.from("registrations")
-    .select("id, first_name, last_name, email, phone, payment_status, attended, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at")
+    .select("id, first_name, last_name, email, phone, payment_status, attended, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note")
     .eq("course_id", course.id)
     .order("last_name", { ascending: true });
 
   if (error) { box.innerHTML = '<p class="empty">Could not load registrations.</p>'; return; }
 
-  const regs = data || [];
+  const allRegs = data || [];
+  currentCourse = course;
+  allRegistrations = allRegs;
+  const showAll = $("pm-showall").checked;
+  const regs = showAll ? allRegs : allRegs.filter((r) => (r.status || "active") === "active");
   const live = regs.filter(
     (r) => r.payment_status !== "refunded" && r.payment_status !== "failed"
   );
 
   if (isAdmin()) wireAdmin(course, regs.length, live.length);
+  $("pm-bar").classList.toggle("hidden", !isAdmin());
 
-  if (!regs.length) { box.innerHTML = '<p class="empty">No registrations yet.</p>'; return; }
+  if (!regs.length) {
+    box.innerHTML = '<p class="empty">' +
+      (allRegs.length ? "No active registrations. Tick the box above to see archived and cancelled." : "No registrations yet.") +
+      "</p>";
+    return;
+  }
 
   const byReg = {};
   const { data: pays } = await db.from("payments")
@@ -1505,9 +1584,13 @@ async function openCourse(course) {
       </div>
       <div class="flags" style="margin-top:0.35rem;display:flex;gap:0.35rem;flex-wrap:wrap"></div>
       <div class="money"></div>
+      <div class="acts"></div>
       <div class="notes"></div>`;
+    const regStatus = r.status || "active";
+    if (regStatus !== "active") el.classList.add("inactive");
 
     el.querySelector(".name").textContent = `${r.first_name} ${r.last_name}`;
+    if (isAdmin()) buildActions(el.querySelector(".acts"), course, r, regStatus);
     el.querySelector(".contact").textContent = [r.email, r.phone].filter(Boolean).join(" · ");
 
     renderShot(el.querySelector(".shot"), course, r);
@@ -1952,10 +2035,224 @@ function readCoachPicker(box) {
     .map((s) => ({ staff_id: s.dataset.staff, role: s.value }));
 }
 
+/* ============ PARTICIPANT MANAGEMENT ============ */
+let currentCourse = null;
+let allRegistrations = [];
+
+const REG_STATUS_LABEL = {
+  active: "", cancelled: "Cancelled", no_show: "No show", archived: "Archived",
+};
+
+function pmMsg(text, isError = false) {
+  const el = $("pm-msg");
+  el.textContent = text;
+  el.style.color = isError ? "#e5766f" : "";
+}
+
+/* Active registrations are the ones that occupy a place. */
+function activeCount(regs) {
+  return regs.filter((r) => (r.status || "active") === "active").length;
+}
+
+function buildActions(box, course, reg, status) {
+  box.innerHTML = "";
+  const add = (label, cls, fn) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn " + cls;
+    b.textContent = label;
+    b.onclick = () => fn(b);
+    box.append(b);
+    return b;
+  };
+
+  if (status !== "active") {
+    const pill = document.createElement("span");
+    pill.className = "pill gone";
+    pill.textContent = REG_STATUS_LABEL[status] || status;
+    box.append(pill);
+    add("Restore", "ghost small", (b) => setRegStatus(reg, "active", b));
+  } else {
+    add("Transfer", "ghost small", (b) => transferParticipant(course, reg, b));
+    add("Archive", "ghost small", (b) => setRegStatus(reg, "archived", b));
+    add("Cancelled", "ghost small", (b) => setRegStatus(reg, "cancelled", b));
+    add("No show", "ghost small", (b) => setRegStatus(reg, "no_show", b));
+  }
+  add("Delete", "ghost small", (b) => deleteParticipant(reg, b));
+}
+
+async function setRegStatus(reg, status, btn) {
+  const who = `${reg.first_name} ${reg.last_name}`;
+  const wording = {
+    archived: `Archive ${who}? They keep their record and history, but stop counting toward capacity.`,
+    cancelled: `Mark ${who} as cancelled? Their place is freed.`,
+    no_show: `Mark ${who} as a no show?`,
+    active: `Restore ${who} to the active list? They will count toward capacity again.`,
+  }[status];
+  if (!window.confirm(wording)) return;
+
+  btn.disabled = true;
+  const patch = { status };
+  patch.archived_at = status === "archived" ? new Date().toISOString() : null;
+  const { error } = await db.from("registrations").update(patch).eq("id", reg.id);
+  btn.disabled = false;
+  if (error) { window.alert("That did not work: " + error.message); return; }
+  openCourse(currentCourse);
+}
+
+async function deleteParticipant(reg, btn) {
+  const who = `${reg.first_name} ${reg.last_name}`;
+  if (!window.confirm(
+    `Permanently delete ${who}?\n\nThis removes the registration, their payments, notes and photo record. It cannot be undone.\n\nUse Archive instead if you want to keep the history.`
+  )) return;
+  if (!window.confirm(`Last check — delete ${who} for good?`)) return;
+
+  btn.disabled = true;
+  // Children first, in case the foreign keys don't cascade.
+  for (const table of ["payments", "participant_notes", "feedback_drafts", "course_emails"]) {
+    await db.from(table).delete().eq("registration_id", reg.id);
+  }
+  const { error } = await db.from("registrations").delete().eq("id", reg.id);
+  btn.disabled = false;
+  if (error) { window.alert("Could not delete: " + error.message); return; }
+  openCourse(currentCourse);
+}
+
+async function transferParticipant(course, reg, btn) {
+  const { data: options, error } = await db.from("courses")
+    .select("id, title, city, country, starts_at, timezone, capacity, status")
+    .eq("archived", false)
+    .in("status", ["published", "draft", "full"])
+    .gte("starts_at", new Date().toISOString())
+    .neq("id", course.id)
+    .order("starts_at", { ascending: true });
+  if (error) { window.alert("Could not load courses: " + error.message); return; }
+  if (!options || !options.length) { window.alert("There are no other upcoming courses to move them to."); return; }
+
+  const lines = options.map((c, i) =>
+    `${i + 1}. ${c.title} — ${[c.city, c.country].filter(Boolean).join(", ")} — ${fmtDate(c.starts_at, c.timezone)}`
+  ).join("\n");
+  const pick = window.prompt(
+    `Move ${reg.first_name} ${reg.last_name} to which course?\n\n${lines}\n\nType the number:`
+  );
+  if (!pick) return;
+  const target = options[parseInt(pick, 10) - 1];
+  if (!target) { window.alert("That was not one of the numbers listed."); return; }
+
+  // Check the destination has room before moving anyone into it.
+  const { data: existing, error: cErr } = await db.from("registrations")
+    .select("id, status").eq("course_id", target.id);
+  if (cErr) { window.alert("Could not check capacity: " + cErr.message); return; }
+  const taken = activeCount(existing || []);
+  if (target.capacity != null && taken >= target.capacity) {
+    window.alert(`"${target.title}" is full — ${taken} of ${target.capacity} places taken.\n\nRaise its capacity first, then transfer.`);
+    return;
+  }
+
+  if (!window.confirm(`Move ${reg.first_name} ${reg.last_name} to "${target.title}"?\n\nThey are not emailed automatically.`)) return;
+
+  btn.disabled = true;
+  const { error: uErr } = await db.from("registrations").update({
+    course_id: target.id,
+    transferred_from_course_id: course.id,
+    source: "transfer",
+  }).eq("id", reg.id);
+  btn.disabled = false;
+  if (uErr) { window.alert("Transfer failed: " + uErr.message); return; }
+  window.alert(`Moved to "${target.title}".`);
+  openCourse(currentCourse);
+}
+
+function wireParticipantControls() {
+  $("pm-showall").onchange = () => { if (currentCourse) openCourse(currentCourse); };
+
+  $("pm-add").onclick = () => {
+    $("pm-form").classList.remove("hidden");
+    pmMsg("");
+    for (const id of ["pm-first", "pm-last", "pm-email", "pm-phone", "pm-note"]) $(id).value = "";
+    $("pm-paid").checked = true;
+    $("pm-email-send").checked = false;
+    $("pm-first").focus();
+  };
+  $("pm-cancel").onclick = () => { $("pm-form").classList.add("hidden"); pmMsg(""); };
+
+  $("pm-save").onclick = async () => {
+    if (!currentCourse) return;
+    const first = $("pm-first").value.trim();
+    const last = $("pm-last").value.trim();
+    const email = $("pm-email").value.trim();
+    if (!first || !last) { pmMsg("First and last name are both needed — certificates use them.", true); return; }
+    if (!email || !email.includes("@") || email.startsWith("@") || email.endsWith("@")) {
+      pmMsg("A valid email is needed.", true); return;
+    }
+
+    const taken = activeCount(allRegistrations);
+    if (currentCourse.capacity != null && taken >= currentCourse.capacity) {
+      if (!window.confirm(`This course is full — ${taken} of ${currentCourse.capacity}.\n\nAdd them anyway and go over capacity?`)) return;
+    }
+
+    $("pm-save").disabled = true;
+    pmMsg("Adding…");
+
+    const { data: staffRow } = await db.auth.getUser();
+    const row = {
+      course_id: currentCourse.id,
+      first_name: first,
+      last_name: last,
+      email: email,
+      phone: $("pm-phone").value.trim() || null,
+      status: "active",
+      source: $("pm-source").value,
+      source_note: $("pm-note").value.trim() || null,
+      payment_status: $("pm-paid").checked ? "paid_in_full" : "unpaid",
+      added_by: staffRow && staffRow.user ? staffRow.user.id : null,
+    };
+
+    const { data: created, error } = await db.from("registrations").insert(row).select("id").single();
+    $("pm-save").disabled = false;
+    if (error) { pmMsg("Could not add them: " + error.message, true); return; }
+
+    if ($("pm-email-send").checked) {
+      try {
+        await callAdmin({ action: "send_registration_email", registration_id: created.id });
+        pmMsg("Added, and the confirmation email has gone out.");
+      } catch (e) {
+        pmMsg("Added — but the confirmation email did not send: " + e.message, true);
+      }
+    } else {
+      pmMsg("Added. No email was sent.");
+    }
+
+    $("pm-form").classList.add("hidden");
+    openCourse(currentCourse);
+  };
+
+  $("cap-save").onclick = async () => {
+    if (!currentCourse) return;
+    const raw = $("cap-input").value.trim();
+    const cap = raw === "" ? null : parseInt(raw, 10);
+    if (raw !== "" && (isNaN(cap) || cap < 0)) { flash($("cap-why"), "Capacity must be a whole number.", true); return; }
+
+    const taken = activeCount(allRegistrations);
+    if (cap != null && cap < taken) {
+      if (!window.confirm(`There are already ${taken} active registrations. Setting capacity to ${cap} leaves the course over capacity.\n\nSet it anyway?`)) return;
+    }
+
+    $("cap-save").disabled = true;
+    const { error } = await db.from("courses").update({ capacity: cap }).eq("id", currentCourse.id);
+    $("cap-save").disabled = false;
+    if (error) { flash($("cap-why"), "Could not save: " + error.message, true); return; }
+    currentCourse.capacity = cap;
+    flash($("cap-why"), "Capacity saved.");
+  };
+}
+
 async function wireAdmin(course, totalRegs, liveRegs) {
   const panel = $("adminpanel");
   const msg = $("admin-msg");
   panel.classList.remove("hidden");
+  $("cap-input").value = course.capacity == null ? "" : course.capacity;
+  $("cap-why").textContent = `${activeCount(allRegistrations)} active registrations.`;
 
   const publishBtn = $("publishbtn");
   const unpublishBtn = $("unpublishbtn");
@@ -2457,6 +2754,7 @@ $("another").addEventListener("click", () => {
 });
 
 /* ---------------- go ---------------- */
+wireParticipantControls();
 start();
 </script>
 
