@@ -445,6 +445,15 @@
     .l1-grid2, .l1-grid4, .l1-rules, .l1-prices { grid-template-columns: 1fr; }
     }
 </style>
+<style>
+  /* Self-hosted video. preload="metadata" so the file isn't pulled until played. */
+  .l1-vid {
+    width: 100%;
+    display: block;
+    background: #0E0B0C;
+    border: 1px solid var(--line);
+  }
+</style>
 </head>
 <body>
 
@@ -503,13 +512,10 @@
   <section class="l1-section">
     <p class="l1-label">Preview</p>
     <h2 class="l1-h2">See How The Course Works</h2>
-    <div class="l1-video" id="l1-video" role="button" tabindex="0" aria-label="Play the course preview">
-      <img class="l1-video__poster" src="IMG_0043.jpeg" alt="">
-      <div class="l1-video__play">
-        <span class="l1-video__ring"></span>
-        <span class="l1-video__label">Preview The Course</span>
-      </div>
-    </div>
+    <video class="l1-vid" controls preload="metadata" playsinline poster="IMG_0043.jpeg">
+      <source src="Online%20Course%20BB.mp4" type="video/mp4">
+      Your browser cannot play this video.
+    </video>
   </section>
 
   <section class="l1-section">
@@ -764,23 +770,6 @@
   <a class="bb-footer__staff" href="/portal/">Staff Login</a>
 </footer>
 
-<script>
-  var VIDEO_ID = "p7tp5ucuu1o";
-  var facade = document.getElementById("l1-video");
-  function playVideo() {
-    var frame = document.createElement("iframe");
-    frame.src = "https://www.youtube-nocookie.com/embed/" + VIDEO_ID + "?autoplay=1&rel=0";
-    frame.allow = "accelerometer; autoplay; encrypted-media; picture-in-picture";
-    frame.allowFullscreen = true;
-    frame.title = "BirdBox Level 1 online course preview";
-    facade.textContent = "";
-    facade.appendChild(frame);
-  }
-  facade.addEventListener("click", playVideo);
-  facade.addEventListener("keydown", function (e) {
-    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); playVideo(); }
-  });
-</script>
 
 </body>
 </html>
