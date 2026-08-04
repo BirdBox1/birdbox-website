@@ -587,6 +587,13 @@
 
       <div class="sep" id="salessep"></div>
 
+      <div class="admin-row">
+        <button class="btn small" id="editcoursebtn" type="button">Edit course details</button>
+        <span class="why">Venue, address, map pin, dates, price and description.</span>
+      </div>
+
+      <div class="sep"></div>
+
       <h3>Capacity</h3>
       <div class="admin-row">
         <input id="cap-input" type="number" min="0" step="1" style="max-width:7rem">
@@ -662,8 +669,8 @@
 <section id="view-new" class="hidden">
   <div class="wrap">
     <a class="back" id="back2">← All courses</a>
-    <h2>New course</h2>
-    <p class="sub">Fill this in and the course goes live. You will get a link to paste into Community Box.</p>
+    <h2 id="form-title">New course</h2>
+    <p class="sub" id="form-sub">Fill this in and the course goes live. You will get a link to paste into Community Box.</p>
 
     <div id="created" class="result hidden">
       <h3>Course created</h3>
@@ -770,6 +777,27 @@
             <input id="f-country" type="text" maxlength="2" placeholder="IE" style="text-transform:uppercase">
           </div>
         </div>
+        <div class="field">
+          <label>Map pin <span class="hint">puts this course on the seminar maps</span></label>
+          <div class="admin-row" style="margin-bottom:.5rem">
+            <button class="btn ghost small" id="f-lookup" type="button">Look up from address</button>
+            <span class="why" id="f-geo-msg"></span>
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <label for="f-lat">Latitude</label>
+              <input id="f-lat" type="text" inputmode="decimal" placeholder="48.183987">
+            </div>
+            <div class="field">
+              <label for="f-lng">Longitude</label>
+              <input id="f-lng" type="text" inputmode="decimal" placeholder="11.467969">
+            </div>
+          </div>
+          <p class="hint" style="margin:.35rem 0 0">
+            Or right-click the venue in Google Maps and paste both numbers into Latitude &mdash; they split automatically.
+          </p>
+        </div>
+
         <div class="field">
           <label for="f-image">Host gym photo <span class="hint">optional</span></label>
           <input id="f-image" type="file" accept="image/*">
@@ -1187,7 +1215,11 @@ const money = (cents, currency) =>
 
 const daysUntil = (iso) => Math.ceil((new Date(iso) - new Date()) / 86400000);
 
-$("newcourse").addEventListener("click", openForm);
+$("newcourse").addEventListener("click", () => { editingCourse = null; openForm(); });
+$("editcoursebtn").addEventListener("click", () => {
+  if (currentCourse) openEditCourse(currentCourse);
+});
+$("back2").addEventListener("click", () => { editingCourse = null; });
 $("back").addEventListener("click", loadCourses);
 $("back2").addEventListener("click", loadCourses);
 $("tocourses").addEventListener("click", loadCourses);
@@ -2091,6 +2123,96 @@ function readCoachPicker(box) {
     .map((s) => ({ staff_id: s.dataset.staff, role: s.value }));
 }
 
+/* ---------- map pin ---------- */
+let editingCourse = null;
+
+/* A pasted "48.18, 11.46" splits itself across the two boxes. */
+$("f-lat").addEventListener("input", () => {
+  const v = $("f-lat").value;
+  if (v.includes(",")) {
+    const [a, b] = v.split(",").map((x) => x.trim());
+    $("f-lat").value = a;
+    if (b) $("f-lng").value = b;
+  }
+});
+
+async function lookupCoords() {
+  const msg = $("f-geo-msg");
+  const parts = [
+    $("f-venue").value.trim(),
+    $("f-address").value.trim(),
+    $("f-city").value.trim(),
+    $("f-country").value.trim(),
+  ].filter(Boolean);
+  if (!parts.length) { msg.textContent = "Add an address or city first."; return; }
+
+  $("f-lookup").disabled = true;
+  msg.textContent = "Looking up…";
+  try {
+    const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
+      encodeURIComponent(parts.join(", "));
+    const res = await fetch(url, { headers: { "Accept": "application/json" } });
+    const hits = await res.json();
+    if (!hits || !hits.length) {
+      msg.textContent = "Nothing found. Try just the city, or paste the numbers from Google Maps.";
+      return;
+    }
+    const hit = hits[0];
+    $("f-lat").value = parseFloat(hit.lat).toFixed(6);
+    $("f-lng").value = parseFloat(hit.lon).toFixed(6);
+    // Always show what was matched — geocoders guess, and a wrong pin is
+    // worse than no pin.
+    msg.textContent = "Found: " + (hit.display_name || "").split(",").slice(0, 4).join(", ") +
+      " — check this is the right place.";
+  } catch (e) {
+    msg.textContent = "Lookup failed. Paste the numbers from Google Maps instead.";
+  } finally {
+    $("f-lookup").disabled = false;
+  }
+}
+$("f-lookup").addEventListener("click", lookupCoords);
+
+function fillForm(c) {
+  const set = (id, v) => { $(id).value = v == null ? "" : v; };
+  set("f-brand", c.brand); set("f-type", c.type); set("f-level", c.level || "");
+  set("f-workshop", c.workshop_focus); set("f-movements", c.movements);
+  set("f-summary", c.summary); set("f-description", c.description);
+  set("f-venue", c.venue_name); set("f-address", c.address);
+  set("f-city", c.city); set("f-country", c.country);
+  set("f-lat", c.latitude); set("f-lng", c.longitude);
+  set("f-timezone", c.timezone); set("f-slug", c.slug);
+  set("f-capacity", c.capacity); set("f-currency", c.currency);
+  set("f-language", c.language); set("f-status", c.status);
+  set("f-adminnotes", c.admin_notes);
+  set("f-price", c.price_cents == null ? "" : (c.price_cents / 100).toFixed(2));
+  set("f-deposit", c.deposit_cents == null ? "" : (c.deposit_cents / 100).toFixed(2));
+
+  const start = instantToZoned(c.starts_at, c.timezone);
+  set("f-date", start.date); set("f-starttime", start.time);
+  if (c.ends_at) {
+    const end = instantToZoned(c.ends_at, c.timezone);
+    set("f-enddate", end.date); set("f-endtime", end.time);
+  } else { set("f-enddate", ""); set("f-endtime", ""); }
+}
+
+async function openEditCourse(course) {
+  const { data: full, error } = await db.from("courses").select("*").eq("id", course.id).single();
+  if (error) { window.alert("Could not load the course: " + error.message); return; }
+  editingCourse = full;
+  await openForm();
+  fillForm(full);
+  toggleWorkshopFields();
+  updateWhenPreview();
+  $("form-title").textContent = "Edit course";
+  $("form-sub").textContent = "Changes appear on the course page, the seminar list and every map straight away.";
+  $("save").textContent = "Save changes";
+  const { data: assignedRows } = await db.from("course_staff")
+    .select("staff_id, role").eq("course_id", full.id);
+  const assigned = {};
+  for (const r of assignedRows || []) assigned[r.staff_id] = r.role;
+  renderCoachPicker($("coachlist"), assigned);
+}
+
 /* ---------- participant agreement signature ---------- */
 const WAIVER_VERSION = "2026-08-v1";
 let sigReg = null, sigCtx = null, sigDrawn = false;
@@ -2709,6 +2831,11 @@ async function wireAdmin(course, totalRegs, liveRegs) {
 
 async function openForm() {
   show("newc");
+  if (!editingCourse) {
+    $("form-title").textContent = "New course";
+    $("form-sub").textContent = "Fill this in and the course goes live. You will get a link to paste into Community Box.";
+    $("save").textContent = "Create course";
+  }
   $("created").classList.add("hidden");
   $("form").classList.remove("hidden");
   $("form-msg").textContent = "";
@@ -2869,7 +2996,7 @@ async function saveCourse() {
     : `${label}${level ? " " + level.replace("L", "Level ") : ""}${city ? " — " + city : ""}`;
 
   $("save").disabled = true;
-  msg.textContent = "Creating…";
+  msg.textContent = editingCourse ? "Saving…" : "Creating…";
 
   try {
     let imageUrl = null;
@@ -2907,12 +3034,16 @@ async function saveCourse() {
       currency: $("f-currency").value,
       language: $("f-language").value,
       status: $("f-status").value,
-      image_url: imageUrl,
+      latitude: $("f-lat").value.trim() === "" ? null : parseFloat($("f-lat").value),
+      longitude: $("f-lng").value.trim() === "" ? null : parseFloat($("f-lng").value),
       admin_notes: $("f-adminnotes").value.trim() || null,
     };
+    // On an edit, only overwrite the photo when a new one was chosen.
+    if (imageUrl || !editingCourse) row.image_url = imageUrl;
 
-    const { data: course, error } = await db
-      .from("courses").insert(row).select("id, title, slug").single();
+    const { data: course, error } = editingCourse
+      ? await db.from("courses").update(row).eq("id", editingCourse.id).select("id, title, slug").single()
+      : await db.from("courses").insert(row).select("id, title, slug").single();
 
     if (error) {
       throw new Error(
@@ -2922,10 +3053,21 @@ async function saveCourse() {
       );
     }
 
+    if (editingCourse) {
+      await db.from("course_staff").delete().eq("course_id", course.id);
+    }
     if (picked.length) {
       const rows = picked.map((p) => ({ course_id: course.id, ...p }));
       const { error: csErr } = await db.from("course_staff").insert(rows);
       if (csErr) console.error("Coach assignment failed:", csErr);
+    }
+    if (editingCourse) {
+      editingCourse = null;
+      msg.className = "msg";
+      msg.textContent = "Saved. The seminar maps and listings update straight away.";
+      $("save").disabled = false;
+      await loadCourses();
+      return;
     }
 
     const url = `${location.origin}/c/${course.slug}/`;
