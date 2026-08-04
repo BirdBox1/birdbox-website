@@ -591,7 +591,7 @@
   <section class="l1-section">
     <p class="l1-label">Watch</p>
     <h2 class="l1-h2">Inside A BirdBox Level 2 Weekend</h2>
-    <video class="l1-vid" controls preload="metadata" playsinline>
+    <video class="l1-vid" id="l2-promo" controls preload="metadata" playsinline>
       <source src="LVL%202%20promo%20website.mp4" type="video/mp4">
       Your browser cannot play this video.
     </video>
@@ -684,7 +684,7 @@
         <p class="l1-policy">Can&rsquo;t find a suitable location? Email <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a> with your area &mdash; we plan the calendar around where coaches are waiting.</p>
       </div>
       <div>
-        <video class="l1-vid" controls preload="metadata" playsinline>
+        <video class="l1-vid" id="l2-testimonial" controls preload="metadata" playsinline>
           <source src="Niels%20feedback%20BB%20website.mp4" type="video/mp4">
           Your browser cannot play this video.
         </video>
@@ -750,6 +750,22 @@
   &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
   <a class="bb-footer__staff" href="/portal/">Staff Login</a>
 </footer>
+
+<script>
+  // The promo is mixed hotter than the testimonial. Volume is settable on
+  // desktop and Android; iOS ignores it and defers to the hardware buttons.
+  (function () {
+    var levels = { "l2-promo": 0.55, "l2-testimonial": 1.0 };
+    Object.keys(levels).forEach(function (id) {
+      var v = document.getElementById(id);
+      if (!v) return;
+      var set = function () { try { v.volume = levels[id]; } catch (e) {} };
+      set();
+      v.addEventListener("loadedmetadata", set);
+      v.addEventListener("play", set);
+    });
+  })();
+</script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
