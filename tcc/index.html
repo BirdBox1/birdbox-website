@@ -225,6 +225,10 @@
   .tcc-quote { font-size: 14px; line-height: 1.55; color: #D6D1D2; font-style: italic; margin: 0 0 10px; }
   .tcc-stars { color: var(--tcc); letter-spacing: 3px; font-size: 13px; margin-bottom: 6px; }
   .tcc-person { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
+  .tcc-person__photo {
+    width: 36px; height: 36px; flex: 0 0 36px;
+    object-fit: cover; border: 1px solid var(--line);
+  }
   .tcc-person__initials {
     width: 36px; height: 36px; flex: 0 0 36px;
     display: flex; align-items: center; justify-content: center;
@@ -569,7 +573,7 @@
           <tr>
             <th scope="row">CEUs</th>
             <td>14</td>
-            <td>14</td>
+            <td>44</td>
             <td>24</td>
             <td><span class="tcc-dash">&ndash;</span></td>
             <td><span class="tcc-dash">&ndash;</span></td>
@@ -610,30 +614,9 @@
       </table>
     </div>
 
-    <!-- PLACEHOLDER TESTIMONIALS - replace before go-live -->
     <div class="tcc-panel">
       <h2 class="tcc-panel__title">Coaches Love TCC</h2>
-
-      <div class="tcc-stars" aria-label="Five stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-      <p class="tcc-quote">&ldquo;I stopped chasing tricks and started coaching principles. My athletes move better than ever.&rdquo;</p>
-      <div class="tcc-person">
-        <span class="tcc-person__initials">AP</span>
-        <span><span class="tcc-person__name">Alex P.</span><br><span class="tcc-person__role">CF-L2 Coach</span></span>
-      </div>
-
-      <div class="tcc-stars" aria-label="Five stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-      <p class="tcc-quote">&ldquo;Our staff finally shares a common language. Member results and retention are up.&rdquo;</p>
-      <div class="tcc-person">
-        <span class="tcc-person__initials">JR</span>
-        <span><span class="tcc-person__name">Jamie R.</span><br><span class="tcc-person__role">Affiliate Owner</span></span>
-      </div>
-
-      <div class="tcc-stars" aria-label="Five stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-      <p class="tcc-quote">&ldquo;BBL1 was a paradigm shift for my coaching. Clear, practical, and immediately usable.&rdquo;</p>
-      <div class="tcc-person">
-        <span class="tcc-person__initials">DK</span>
-        <span><span class="tcc-person__name">Dana K.</span><br><span class="tcc-person__role">S&amp;C Coach</span></span>
-      </div>
+      <div id="tcc-quotes"></div>
     </div>
 
   </section>
@@ -673,6 +656,88 @@
       ? "Thanks \u2014 the mailing list isn\u2019t connected yet, so nothing has been saved."
       : "Please enter a valid email address.";
   });
+</script>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const supabase = createClient(
+    "https://yvdmazpxtpuvidlcifnq.supabase.co",
+    "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+  );
+
+  const BRAND = "tcc";
+  const box = document.getElementById("tcc-quotes");
+
+  function initials(name) {
+    return name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+  }
+
+  function avatar(t) {
+    if (t.photo) {
+      const img = document.createElement("img");
+      img.className = "tcc-person__photo";
+      img.src = t.photo;
+      img.alt = "";
+      img.addEventListener("error", () => {
+        const span = document.createElement("span");
+        span.className = "tcc-person__initials";
+        span.textContent = initials(t.name);
+        img.replaceWith(span);
+      });
+      return img;
+    }
+    const span = document.createElement("span");
+    span.className = "tcc-person__initials";
+    span.textContent = initials(t.name);
+    return span;
+  }
+
+  async function load() {
+    const { data, error } = await supabase
+      .from("testimonials")
+      .select("quote, quote_short, name, role, country, photo, rating")
+      .eq("approved", true)
+      .eq("brand", BRAND)
+      .order("sort_order", { ascending: true })
+      .limit(3);
+
+    if (error || !data || !data.length) {
+      if (error) console.error("Testimonials failed:", error);
+      // Nothing approved yet, so hide the panel rather than show an empty box.
+      const panel = box.closest(".tcc-panel");
+      if (panel) panel.style.display = "none";
+      return;
+    }
+
+    box.textContent = "";
+    for (const t of data) {
+      const stars = document.createElement("div");
+      stars.className = "tcc-stars";
+      stars.setAttribute("aria-label", `${t.rating || 5} stars`);
+      stars.textContent = "\u2605".repeat(t.rating || 5);
+
+      const quote = document.createElement("p");
+      quote.className = "tcc-quote";
+      quote.textContent = `\u201C${t.quote_short || t.quote}\u201D`;
+
+      const person = document.createElement("div");
+      person.className = "tcc-person";
+      const who = document.createElement("span");
+      const name = document.createElement("span");
+      name.className = "tcc-person__name";
+      name.textContent = t.name;
+      const role = document.createElement("span");
+      role.className = "tcc-person__role";
+      role.textContent = [t.role, t.country].filter(Boolean).join(", ");
+      who.append(name, document.createElement("br"), role);
+      person.append(avatar(t), who);
+
+      box.append(stars, quote, person);
+    }
+  }
+
+  load();
 </script>
 
 </body>
