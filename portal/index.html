@@ -393,6 +393,15 @@
 .acts .btn{font-size:.72rem;padding:.3rem .6rem}
 .attendee.inactive{opacity:.55}
 .pill.gone{border-color:#6b4a1f;color:#d8a657}
+.sigwrap{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:1rem;z-index:60}
+.sigbox{background:#1C1719;border:1px solid #342F31;border-radius:.5rem;padding:1.1rem;max-width:640px;width:100%}
+.sigbox h3{margin:0 0 .3rem}
+.sigbox .sub{margin:0 0 .8rem}
+.sigpad{width:100%;height:220px;background:#fff;border:1px solid #342F31;border-radius:.35rem;touch-action:none;display:block}
+.sigrow{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-top:.8rem}
+.sigview{width:100%;background:#fff;border:1px solid #342F31;border-radius:.35rem}
+.editgrid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+@media(max-width:640px){.editgrid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -461,6 +470,53 @@
     <div id="courses-list"></div>
   </div>
 </section>
+
+<div class="sigwrap hidden" id="sigwrap">
+  <div class="sigbox">
+    <h3 id="sig-h">Sign the participant agreement</h3>
+    <p class="sub" id="sig-sub"></p>
+    <canvas class="sigpad" id="sigpad"></canvas>
+    <img class="sigview hidden" id="sigview" alt="Signature">
+    <div class="sigrow">
+      <button class="btn small" id="sig-save" type="button">Save signature</button>
+      <button class="btn ghost small" id="sig-clear" type="button">Clear</button>
+      <button class="btn ghost small" id="sig-close" type="button">Close</button>
+      <span class="why" id="sig-msg"></span>
+    </div>
+  </div>
+</div>
+
+<div class="sigwrap hidden" id="editwrap">
+  <div class="sigbox">
+    <h3>Edit participant</h3>
+    <p class="sub">Certificates use these exact spellings.</p>
+    <div class="editgrid">
+      <div class="field">
+        <label for="ed-first">First name</label>
+        <input id="ed-first" type="text">
+      </div>
+      <div class="field">
+        <label for="ed-last">Last name</label>
+        <input id="ed-last" type="text">
+      </div>
+    </div>
+    <div class="editgrid">
+      <div class="field">
+        <label for="ed-email">Email</label>
+        <input id="ed-email" type="email">
+      </div>
+      <div class="field">
+        <label for="ed-phone">Phone <span class="hint">optional</span></label>
+        <input id="ed-phone" type="text">
+      </div>
+    </div>
+    <div class="sigrow">
+      <button class="btn small" id="ed-save" type="button">Save changes</button>
+      <button class="btn ghost small" id="ed-close" type="button">Cancel</button>
+      <span class="why" id="ed-msg"></span>
+    </div>
+  </div>
+</div>
 
 <!-- ============ ATTENDEES ============ -->
 <section id="view-course" class="hidden">
@@ -1520,7 +1576,7 @@ async function openCourse(course) {
   box.innerHTML = '<p class="empty">Loading…</p>';
 
   const { data, error } = await db.from("registrations")
-    .select("id, first_name, last_name, email, phone, payment_status, attended, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note")
+    .select("id, first_name, last_name, email, phone, payment_status, attended, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name")
     .eq("course_id", course.id)
     .order("last_name", { ascending: true });
 
@@ -2035,6 +2091,156 @@ function readCoachPicker(box) {
     .map((s) => ({ staff_id: s.dataset.staff, role: s.value }));
 }
 
+/* ---------- participant agreement signature ---------- */
+const WAIVER_VERSION = "2026-08-v1";
+let sigReg = null, sigCtx = null, sigDrawn = false;
+
+function sigSetup() {
+  const pad = $("sigpad");
+  // Match the backing store to the CSS size so the line isn't blurred or offset.
+  const ratio = window.devicePixelRatio || 1;
+  const rect = pad.getBoundingClientRect();
+  pad.width = Math.round(rect.width * ratio);
+  pad.height = Math.round(rect.height * ratio);
+  sigCtx = pad.getContext("2d");
+  sigCtx.scale(ratio, ratio);
+  sigCtx.lineWidth = 2.2;
+  sigCtx.lineCap = "round";
+  sigCtx.lineJoin = "round";
+  sigCtx.strokeStyle = "#111";
+  sigCtx.clearRect(0, 0, rect.width, rect.height);
+  sigDrawn = false;
+}
+
+function sigPoint(e) {
+  const rect = $("sigpad").getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function openSignature(reg) {
+  sigReg = reg;
+  const signed = !!reg.waiver_signed_at;
+  $("sig-h").textContent = signed ? "Participant agreement" : "Sign the participant agreement";
+  $("sig-sub").textContent = signed
+    ? `${reg.first_name} ${reg.last_name} signed on ${new Date(reg.waiver_signed_at).toLocaleDateString("en-GB")}` +
+      (reg.waiver_version ? ` — version ${reg.waiver_version}` : "")
+    : `${reg.first_name} ${reg.last_name} — sign below with a finger or stylus.`;
+  $("sig-msg").textContent = "";
+  $("sigwrap").classList.remove("hidden");
+
+  const view = $("sigview"), pad = $("sigpad");
+  if (signed && reg.waiver_signature) {
+    view.src = reg.waiver_signature;
+    view.classList.remove("hidden");
+    pad.classList.add("hidden");
+    $("sig-save").classList.add("hidden");
+    $("sig-clear").textContent = "Sign again";
+  } else {
+    view.classList.add("hidden");
+    pad.classList.remove("hidden");
+    $("sig-save").classList.remove("hidden");
+    $("sig-clear").textContent = "Clear";
+    sigSetup();
+  }
+}
+
+function wireSignature() {
+  const pad = $("sigpad");
+  let drawing = false;
+
+  pad.addEventListener("pointerdown", (e) => {
+    drawing = true;
+    pad.setPointerCapture(e.pointerId);
+    const p = sigPoint(e);
+    sigCtx.beginPath();
+    sigCtx.moveTo(p.x, p.y);
+    e.preventDefault();
+  });
+  pad.addEventListener("pointermove", (e) => {
+    if (!drawing) return;
+    const p = sigPoint(e);
+    sigCtx.lineTo(p.x, p.y);
+    sigCtx.stroke();
+    sigDrawn = true;
+    e.preventDefault();
+  });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) {
+    pad.addEventListener(ev, () => { drawing = false; });
+  }
+
+  $("sig-clear").onclick = () => {
+    $("sigview").classList.add("hidden");
+    pad.classList.remove("hidden");
+    $("sig-save").classList.remove("hidden");
+    $("sig-clear").textContent = "Clear";
+    sigSetup();
+  };
+
+  $("sig-close").onclick = () => {
+    $("sigwrap").classList.add("hidden");
+    sigReg = null;
+  };
+
+  $("sig-save").onclick = async () => {
+    if (!sigReg) return;
+    if (!sigDrawn) { $("sig-msg").textContent = "Nothing has been drawn yet."; return; }
+    $("sig-save").disabled = true;
+    $("sig-msg").textContent = "Saving…";
+    const dataUrl = $("sigpad").toDataURL("image/png");
+    const { error } = await db.from("registrations").update({
+      waiver_signature: dataUrl,
+      waiver_signed_at: new Date().toISOString(),
+      waiver_version: WAIVER_VERSION,
+      waiver_signed_name: `${sigReg.first_name} ${sigReg.last_name}`,
+    }).eq("id", sigReg.id);
+    $("sig-save").disabled = false;
+    if (error) { $("sig-msg").textContent = "Could not save: " + error.message; return; }
+    $("sigwrap").classList.add("hidden");
+    sigReg = null;
+    openCourse(currentCourse);
+  };
+}
+
+/* ---------- edit a participant ---------- */
+let editReg = null;
+
+function openEdit(reg) {
+  editReg = reg;
+  $("ed-first").value = reg.first_name || "";
+  $("ed-last").value = reg.last_name || "";
+  $("ed-email").value = reg.email || "";
+  $("ed-phone").value = reg.phone || "";
+  $("ed-msg").textContent = "";
+  $("editwrap").classList.remove("hidden");
+  $("ed-first").focus();
+}
+
+function wireEdit() {
+  $("ed-close").onclick = () => { $("editwrap").classList.add("hidden"); editReg = null; };
+
+  $("ed-save").onclick = async () => {
+    if (!editReg) return;
+    const first = $("ed-first").value.trim();
+    const last = $("ed-last").value.trim();
+    const email = $("ed-email").value.trim();
+    if (!first || !last) { $("ed-msg").textContent = "First and last name are both needed."; return; }
+    if (!email || !email.includes("@") || email.startsWith("@") || email.endsWith("@")) {
+      $("ed-msg").textContent = "A valid email is needed."; return;
+    }
+    $("ed-save").disabled = true;
+    $("ed-msg").textContent = "Saving…";
+    const { error } = await db.from("registrations").update({
+      first_name: first, last_name: last, email: email,
+      phone: $("ed-phone").value.trim() || null,
+    }).eq("id", editReg.id);
+    $("ed-save").disabled = false;
+    if (error) { $("ed-msg").textContent = "Could not save: " + error.message; return; }
+    $("editwrap").classList.add("hidden");
+    editReg = null;
+    openCourse(currentCourse);
+  };
+}
+
 /* ============ PARTICIPANT MANAGEMENT ============ */
 let currentCourse = null;
 let allRegistrations = [];
@@ -2065,6 +2271,9 @@ function buildActions(box, course, reg, status) {
     box.append(b);
     return b;
   };
+
+  add("Edit", "ghost small", () => openEdit(reg));
+  add(reg.waiver_signed_at ? "Agreement" : "Sign agreement", "ghost small", () => openSignature(reg));
 
   if (status !== "active") {
     const pill = document.createElement("span");
@@ -2755,6 +2964,8 @@ $("another").addEventListener("click", () => {
 
 /* ---------------- go ---------------- */
 wireParticipantControls();
+wireSignature();
+wireEdit();
 start();
 </script>
 
