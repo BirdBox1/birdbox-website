@@ -799,7 +799,7 @@
         </div>
 
         <div class="field">
-          <label for="f-image">Host gym photo <span class="hint">optional</span></label>
+          <label for="f-image">Host gym photo <span class="hint" id="f-image-hint">optional</span></label>
           <input id="f-image" type="file" accept="image/*">
           <img class="thumb" id="thumb" alt="">
         </div>
@@ -2203,6 +2203,11 @@ async function openEditCourse(course) {
   fillForm(full);
   toggleWorkshopFields();
   updateWhenPreview();
+  if (full.image_url) {
+    $("thumb").src = full.image_url;
+    $("thumb").style.display = "block";
+    $("f-image-hint").textContent = "current photo — only choose a file if you want to replace it";
+  }
   $("form-title").textContent = "Edit course";
   $("form-sub").textContent = "Changes appear on the course page, the seminar list and every map straight away.";
   $("save").textContent = "Save changes";
@@ -2831,6 +2836,9 @@ async function wireAdmin(course, totalRegs, liveRegs) {
 
 async function openForm() {
   show("newc");
+  $("f-image").value = "";
+  $("thumb").style.display = "none";
+  $("f-image-hint").textContent = "optional";
   if (!editingCourse) {
     $("form-title").textContent = "New course";
     $("form-sub").textContent = "Fill this in and the course goes live. You will get a link to paste into Community Box.";
