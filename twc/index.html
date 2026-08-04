@@ -43,28 +43,6 @@
   .bb-topbar a { color: #ADA6A8; text-decoration: none; }
   .bb-topbar a:hover { color: #ffffff; }
 
-  .bb-backbar {
-    padding: 14px 24px 0;
-    max-width: 1320px;
-    margin: 0 auto;
-    width: 100%;
-  }
-  .bb-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    padding: 8px 16px;
-    border: 1px solid var(--line);
-    color: #ADA6A8;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    text-decoration: none;
-    transition: border-color 0.2s ease, color 0.2s ease;
-  }
-  .bb-back:hover { color: #ffffff; border-color: var(--accent); }
-
   .bb-main {
     flex: 1 1 auto;
     display: flex;
@@ -72,7 +50,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 40px 24px 64px;
+    padding: 56px 24px 64px;
     max-width: 640px;
     margin: 0 auto;
     width: 100%;
@@ -183,7 +161,7 @@
   }
   @media (max-width: 600px) {
     .bb-mark { max-height: 140px; }
-    .bb-main { padding: 28px 24px 48px; }
+    .bb-main { padding: 40px 24px 48px; }
   }
 </style>
 </head>
@@ -194,13 +172,8 @@
   <a href="/merch">Merch Store</a>
   <a href="/blog">Blog</a>
   <a href="/trainer-directory">Trainer Directory</a>
-  <a href="/account">My Account</a>
   <a href="/about">About</a>
 </nav>
-
-<div class="bb-backbar">
-  <a class="bb-back" href="/">&larr; All Pathways</a>
-</div>
 
 <main class="bb-main">
   <img class="bb-mark" src="/brand/twc-mark.png" alt="The Weightlifting Course">
