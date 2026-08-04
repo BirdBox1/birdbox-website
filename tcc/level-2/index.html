@@ -478,6 +478,24 @@
     #l1-map { height: 380px; }
   }
 </style>
+<style>
+  /* Self-hosted video. preload="metadata" so the file isn't pulled until played. */
+  .l1-vid {
+    width: 100%;
+    display: block;
+    background: #0E0B0C;
+    border: 1px solid var(--line);
+  }
+  .l1-vid__cap { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+  .l1-split {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 16px 34px;
+    align-items: start;
+  }
+  .l1-split .l1-lede { max-width: none; }
+  @media (max-width: 900px) { .l1-split { grid-template-columns: 1fr; } }
+</style>
 </head>
 <body>
 
@@ -570,6 +588,15 @@
     </div>
   </section>
 
+  <section class="l1-section">
+    <p class="l1-label">Watch</p>
+    <h2 class="l1-h2">Inside A BirdBox Level 2 Weekend</h2>
+    <video class="l1-vid" controls preload="metadata" playsinline>
+      <source src="LVL%202%20promo%20website.mp4" type="video/mp4">
+      Your browser cannot play this video.
+    </video>
+  </section>
+
   <div class="l1-band l1-band--objectives">
     <section class="l1-section">
       <p class="l1-label">Course Objectives</p>
@@ -649,10 +676,21 @@
   <section class="l1-section">
     <p class="l1-label">Pricing</p>
     <h2 class="l1-h2">The Investment to Register</h2>
-    <p class="l1-lede">Seminars are priced in the local currency of the location, so the exact figure for the seminar you want is shown on its pin above and on its registration page.</p>
-    <p class="l1-policy">VAT is charged according to the location of the course, not the country you are paying from. Some courses are set in local currency, with the exchange rate fixed at the time the course is created. Instalment and deposit options are available at checkout.</p>
-    <p class="l1-policy"><strong>Refunds.</strong> Due to the travel and planning involved in running international courses, courses are non-refundable. We can provide a credit toward a future course, or a change of dates or location.</p>
-    <p class="l1-policy">Can&rsquo;t find a suitable location? Email <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a> with your area &mdash; we plan the calendar around where coaches are waiting.</p>
+    <div class="l1-split">
+      <div>
+        <p class="l1-lede">Seminars are priced in the local currency of the location, so the exact figure for the seminar you want is shown on its pin above and on its registration page.</p>
+        <p class="l1-policy">VAT is charged according to the location of the course, not the country you are paying from. Some courses are set in local currency, with the exchange rate fixed at the time the course is created. Instalment and deposit options are available at checkout.</p>
+        <p class="l1-policy"><strong>Refunds.</strong> Due to the travel and planning involved in running international courses, courses are non-refundable. We can provide a credit toward a future course, or a change of dates or location.</p>
+        <p class="l1-policy">Can&rsquo;t find a suitable location? Email <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a> with your area &mdash; we plan the calendar around where coaches are waiting.</p>
+      </div>
+      <div>
+        <video class="l1-vid" controls preload="metadata" playsinline>
+          <source src="Niels%20feedback%20BB%20website.mp4" type="video/mp4">
+          Your browser cannot play this video.
+        </video>
+        <p class="l1-vid__cap">Niels Stolker &mdash; Owner, CrossFit Tiel, Netherlands</p>
+      </div>
+    </div>
   </section>
 
   <section class="l1-section">
