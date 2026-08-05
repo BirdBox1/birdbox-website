@@ -566,6 +566,11 @@
       <span class="why" id="pc-state"></span>
     </div>
 
+    <div class="admin-row hidden" id="cert-bar" style="margin:0 0 1rem">
+      <button class="btn small go" id="cert-open" type="button">Complete and submit seminar</button>
+      <span class="why" id="cert-state"></span>
+    </div>
+
     <div class="pm-form hidden" id="pm-form">
       <div class="grid2">
         <div class="field">
@@ -875,46 +880,9 @@
           <label for="f-timezone">Time zone <span class="hint">the times above are local to the course, not to you</span></label>
           <input id="f-timezone" type="text" value="Europe/Dublin" list="tzlist"
                  autocapitalize="off" autocorrect="off" spellcheck="false">
-          <datalist id="tzlist">
-            <option value="Europe/Dublin">Ireland</option>
-            <option value="Europe/London">United Kingdom</option>
-            <option value="Europe/Lisbon">Portugal</option>
-            <option value="Europe/Madrid">Spain</option>
-            <option value="Europe/Paris">France</option>
-            <option value="Europe/Brussels">Belgium</option>
-            <option value="Europe/Amsterdam">Netherlands</option>
-            <option value="Europe/Berlin">Germany</option>
-            <option value="Europe/Zurich">Switzerland</option>
-            <option value="Europe/Vienna">Austria</option>
-            <option value="Europe/Rome">Italy</option>
-            <option value="Europe/Copenhagen">Denmark</option>
-            <option value="Europe/Oslo">Norway</option>
-            <option value="Europe/Stockholm">Sweden</option>
-            <option value="Europe/Helsinki">Finland</option>
-            <option value="Europe/Warsaw">Poland</option>
-            <option value="Europe/Prague">Czechia</option>
-            <option value="Europe/Budapest">Hungary</option>
-            <option value="Europe/Athens">Greece</option>
-            <option value="Europe/Istanbul">Türkiye</option>
-            <option value="America/New_York">US — Eastern</option>
-            <option value="America/Chicago">US — Central</option>
-            <option value="America/Denver">US — Mountain</option>
-            <option value="America/Phoenix">US — Arizona</option>
-            <option value="America/Los_Angeles">US — Pacific</option>
-            <option value="America/Toronto">Canada — Eastern</option>
-            <option value="America/Vancouver">Canada — Pacific</option>
-            <option value="America/Sao_Paulo">Brazil — São Paulo</option>
-            <option value="Australia/Sydney">Australia — Sydney</option>
-            <option value="Australia/Brisbane">Australia — Brisbane</option>
-            <option value="Australia/Adelaide">Australia — Adelaide</option>
-            <option value="Australia/Perth">Australia — Perth</option>
-            <option value="Pacific/Auckland">New Zealand</option>
-            <option value="Asia/Tokyo">Japan</option>
-            <option value="Asia/Seoul">South Korea</option>
-            <option value="Asia/Singapore">Singapore</option>
-            <option value="Asia/Dubai">United Arab Emirates</option>
-            <option value="Africa/Johannesburg">South Africa</option>
-          </datalist>
+          <!-- Filled from the browser's own list of every IANA zone, so
+               nothing here needs maintaining as zones are added. -->
+          <datalist id="tzlist"></datalist>
         </div>
         <p class="whenline" id="when-preview"></p>
       </div>
@@ -1028,6 +996,22 @@
       <button class="btn ghost" id="pc-rebuild" type="button">Reset from template</button>
       <button class="btn ghost" id="pc-close" type="button">Cancel</button>
       <button class="btn" id="pc-send" type="button">Send to everyone</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ COMPLETE AND SUBMIT ============ -->
+<div class="overlay hidden" id="certwrap">
+  <div class="dialog" style="max-width:34rem" role="dialog" aria-modal="true" aria-labelledby="cert-h">
+    <h3 id="cert-h">Complete and submit seminar</h3>
+    <p id="cert-what"></p>
+    <div class="loses hidden" id="cert-warn"></div>
+    <div id="cert-who" style="font-size:0.88rem;max-height:12rem;overflow-y:auto;
+         border:1px solid var(--rule);border-radius:5px;padding:0.7rem 0.85rem;margin:0 0 1rem"></div>
+    <p class="msg" id="cert-msg"></p>
+    <div class="row">
+      <button class="btn ghost" id="cert-close" type="button">Cancel</button>
+      <button class="btn go" id="cert-go" type="button">Send certificates</button>
     </div>
   </div>
 </div>
@@ -1265,35 +1249,123 @@ function applyStandardPrice() {
 // store it three hours out, and nobody would notice until the
 // pre-course email told everyone the wrong start time.
 
-// Countries with a single zone. Multi-zone countries are deliberately
-// absent: guessing between Sydney and Perth would be worse than asking.
+// Countries that sit in one time zone. Kept complete rather than
+// partial: a country missing from here used to leave the zone silently
+// on Europe/Dublin, which stored a Kuwait seminar three hours out.
+//
+// Multi-zone countries are deliberately absent — guessing between
+// Sydney and Perth would be worse than asking.
 const COUNTRY_TZ = {
-  IE: "Europe/Dublin",
-  GB: "Europe/London", UK: "Europe/London",
-  PT: "Europe/Lisbon", ES: "Europe/Madrid", FR: "Europe/Paris",
-  BE: "Europe/Brussels", NL: "Europe/Amsterdam", LU: "Europe/Luxembourg",
-  DE: "Europe/Berlin", CH: "Europe/Zurich", AT: "Europe/Vienna",
-  IT: "Europe/Rome", SI: "Europe/Ljubljana", HR: "Europe/Zagreb",
-  DK: "Europe/Copenhagen", NO: "Europe/Oslo", SE: "Europe/Stockholm",
-  FI: "Europe/Helsinki", EE: "Europe/Tallinn", LV: "Europe/Riga",
-  LT: "Europe/Vilnius", PL: "Europe/Warsaw", CZ: "Europe/Prague",
-  SK: "Europe/Bratislava", HU: "Europe/Budapest", RO: "Europe/Bucharest",
-  BG: "Europe/Sofia", GR: "Europe/Athens", TR: "Europe/Istanbul",
-  IS: "Atlantic/Reykjavik", MT: "Europe/Malta", CY: "Asia/Nicosia",
-  JP: "Asia/Tokyo", KR: "Asia/Seoul", SG: "Asia/Singapore",
-  HK: "Asia/Hong_Kong", TW: "Asia/Taipei", TH: "Asia/Bangkok",
-  MY: "Asia/Kuala_Lumpur", PH: "Asia/Manila", VN: "Asia/Ho_Chi_Minh",
-  IN: "Asia/Kolkata", AE: "Asia/Dubai", QA: "Asia/Qatar",
-  SA: "Asia/Riyadh", IL: "Asia/Jerusalem", CN: "Asia/Shanghai",
-  ZA: "Africa/Johannesburg", KE: "Africa/Nairobi", EG: "Africa/Cairo",
-  MA: "Africa/Casablanca", NG: "Africa/Lagos",
-  NZ: "Pacific/Auckland",
-  AR: "America/Argentina/Buenos_Aires", CL: "America/Santiago",
-  CO: "America/Bogota", PE: "America/Lima", UY: "America/Montevideo",
+  AD: "Europe/Andorra", AE: "Asia/Dubai", AF: "Asia/Kabul",
+  AG: "America/Antigua", AI: "America/Anguilla", AL: "Europe/Tirane",
+  AM: "Asia/Yerevan", AO: "Africa/Luanda", AT: "Europe/Vienna",
+  AW: "America/Aruba", AZ: "Asia/Baku",
+  BA: "Europe/Sarajevo", BB: "America/Barbados", BD: "Asia/Dhaka",
+  BE: "Europe/Brussels", BF: "Africa/Ouagadougou", BG: "Europe/Sofia",
+  BH: "Asia/Bahrain", BI: "Africa/Bujumbura", BJ: "Africa/Porto-Novo",
+  BM: "Atlantic/Bermuda", BN: "Asia/Brunei", BO: "America/La_Paz",
+  BS: "America/Nassau", BT: "Asia/Thimphu", BW: "Africa/Gaborone",
+  BY: "Europe/Minsk", BZ: "America/Belize",
+  CD: "Africa/Kinshasa", CF: "Africa/Bangui", CG: "Africa/Brazzaville",
+  CH: "Europe/Zurich", CI: "Africa/Abidjan", CK: "Pacific/Rarotonga",
+  CL: "America/Santiago", CM: "Africa/Douala", CN: "Asia/Shanghai",
+  CO: "America/Bogota", CR: "America/Costa_Rica", CU: "America/Havana",
+  CV: "Atlantic/Cape_Verde", CW: "America/Curacao", CY: "Asia/Nicosia",
+  CZ: "Europe/Prague",
+  DE: "Europe/Berlin", DJ: "Africa/Djibouti", DK: "Europe/Copenhagen",
+  DM: "America/Dominica", DO: "America/Santo_Domingo", DZ: "Africa/Algiers",
+  EE: "Europe/Tallinn", EG: "Africa/Cairo", ER: "Africa/Asmara",
+  ES: "Europe/Madrid", ET: "Africa/Addis_Ababa",
+  FI: "Europe/Helsinki", FJ: "Pacific/Fiji", FK: "Atlantic/Stanley",
+  FO: "Atlantic/Faroe", FR: "Europe/Paris",
+  GA: "Africa/Libreville", GB: "Europe/London", GD: "America/Grenada",
+  GE: "Asia/Tbilisi", GG: "Europe/Guernsey", GH: "Africa/Accra",
+  GI: "Europe/Gibraltar", GM: "Africa/Banjul", GN: "Africa/Conakry",
+  GQ: "Africa/Malabo", GR: "Europe/Athens", GT: "America/Guatemala",
+  GU: "Pacific/Guam", GW: "Africa/Bissau", GY: "America/Guyana",
+  HK: "Asia/Hong_Kong", HN: "America/Tegucigalpa", HR: "Europe/Zagreb",
+  HT: "America/Port-au-Prince", HU: "Europe/Budapest",
+  IE: "Europe/Dublin", IL: "Asia/Jerusalem", IM: "Europe/Isle_of_Man",
+  IN: "Asia/Kolkata", IQ: "Asia/Baghdad", IR: "Asia/Tehran",
+  IS: "Atlantic/Reykjavik", IT: "Europe/Rome",
+  JE: "Europe/Jersey", JM: "America/Jamaica", JO: "Asia/Amman",
+  JP: "Asia/Tokyo",
+  KE: "Africa/Nairobi", KG: "Asia/Bishkek", KH: "Asia/Phnom_Penh",
+  KM: "Indian/Comoro", KN: "America/St_Kitts", KP: "Asia/Pyongyang",
+  KR: "Asia/Seoul", KW: "Asia/Kuwait", KY: "America/Cayman",
+  LA: "Asia/Vientiane", LB: "Asia/Beirut", LC: "America/St_Lucia",
+  LI: "Europe/Vaduz", LK: "Asia/Colombo", LR: "Africa/Monrovia",
+  LS: "Africa/Maseru", LT: "Europe/Vilnius", LU: "Europe/Luxembourg",
+  LV: "Europe/Riga", LY: "Africa/Tripoli",
+  MA: "Africa/Casablanca", MC: "Europe/Monaco", MD: "Europe/Chisinau",
+  ME: "Europe/Podgorica", MG: "Indian/Antananarivo", MK: "Europe/Skopje",
+  ML: "Africa/Bamako", MM: "Asia/Yangon", MO: "Asia/Macau",
+  MQ: "America/Martinique", MR: "Africa/Nouakchott", MT: "Europe/Malta",
+  MU: "Indian/Mauritius", MV: "Indian/Maldives", MW: "Africa/Blantyre",
+  MY: "Asia/Kuala_Lumpur", MZ: "Africa/Maputo",
+  NA: "Africa/Windhoek", NC: "Pacific/Noumea", NE: "Africa/Niamey",
+  NG: "Africa/Lagos", NI: "America/Managua", NL: "Europe/Amsterdam",
+  NO: "Europe/Oslo", NP: "Asia/Kathmandu", NR: "Pacific/Nauru",
+  NU: "Pacific/Niue", NZ: "Pacific/Auckland",
+  OM: "Asia/Muscat",
+  PA: "America/Panama", PE: "America/Lima", PG: "Pacific/Port_Moresby",
+  PH: "Asia/Manila", PK: "Asia/Karachi", PL: "Europe/Warsaw",
+  PR: "America/Puerto_Rico", PS: "Asia/Gaza", PT: "Europe/Lisbon",
+  PW: "Pacific/Palau", PY: "America/Asuncion",
+  QA: "Asia/Qatar",
+  RE: "Indian/Reunion", RO: "Europe/Bucharest", RS: "Europe/Belgrade",
+  RW: "Africa/Kigali",
+  SA: "Asia/Riyadh", SB: "Pacific/Guadalcanal", SC: "Indian/Mahe",
+  SD: "Africa/Khartoum", SE: "Europe/Stockholm", SG: "Asia/Singapore",
+  SI: "Europe/Ljubljana", SK: "Europe/Bratislava", SL: "Africa/Freetown",
+  SM: "Europe/San_Marino", SN: "Africa/Dakar", SO: "Africa/Mogadishu",
+  SR: "America/Paramaribo", SS: "Africa/Juba", SV: "America/El_Salvador",
+  SY: "Asia/Damascus", SZ: "Africa/Mbabane",
+  TC: "America/Grand_Turk", TD: "Africa/Ndjamena", TG: "Africa/Lome",
+  TH: "Asia/Bangkok", TJ: "Asia/Dushanbe", TL: "Asia/Dili",
+  TM: "Asia/Ashgabat", TN: "Africa/Tunis", TO: "Pacific/Tongatapu",
+  TR: "Europe/Istanbul", TT: "America/Port_of_Spain", TV: "Pacific/Funafuti",
+  TW: "Asia/Taipei", TZ: "Africa/Dar_es_Salaam",
+  UA: "Europe/Kyiv", UG: "Africa/Kampala", UY: "America/Montevideo",
+  UZ: "Asia/Tashkent",
+  VA: "Europe/Vatican", VC: "America/St_Vincent", VE: "America/Caracas",
+  VG: "America/Tortola", VI: "America/St_Thomas", VN: "Asia/Ho_Chi_Minh",
+  VU: "Pacific/Efate",
+  WS: "Pacific/Apia",
+  YE: "Asia/Aden",
+  ZA: "Africa/Johannesburg", ZM: "Africa/Lusaka", ZW: "Africa/Harare",
+  ST: "Africa/Sao_Tome",
+  UK: "Europe/London",
 };
 
-// These need a human to choose which zone the city is in.
-const MULTI_TZ = new Set(["US", "CA", "AU", "BR", "MX", "RU", "ID", "KZ"]);
+// These genuinely span more than one zone, so a human picks.
+const MULTI_TZ = new Set(["US", "CA", "AU", "BR", "MX", "RU", "ID", "KZ", "AR", "CD", "GL", "EC", "FM", "PF", "PG", "MN", "KI", "MH"]);
+
+// Argentina, Ecuador and the rest above are in MULTI_TZ, so their
+// single-zone entries are not listed. Everything else in the country
+// dropdown resolves to exactly one zone.
+
+// Every zone the browser knows about, so the picker is never missing
+// the one a course actually needs.
+function buildTimezoneList() {
+  const list = document.getElementById("tzlist");
+  if (!list) return;
+  let zones = [];
+  try {
+    zones = Intl.supportedValuesOf("timeZone");
+  } catch (e) {
+    // Older browsers do not expose the list; fall back to the zones
+    // the countries above resolve to, which covers every country in
+    // the dropdown.
+    zones = [...new Set(Object.values(COUNTRY_TZ))].sort();
+  }
+  list.innerHTML = "";
+  for (const z of zones) {
+    const o = document.createElement("option");
+    o.value = z;
+    list.append(o);
+  }
+}
 
 function tzIsReal(tz) {
   if (!tz) return false;
@@ -1518,7 +1590,7 @@ async function loadCourses() {
   alertBox.innerHTML = "";
   list.innerHTML = '<p class="empty">Loading…</p>';
 
-  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, status, slug, archived, grants_online_course";
+  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, status, slug, archived, grants_online_course, completed_at";
 
   let all = [];
   if (isAdmin()) {
@@ -1886,7 +1958,7 @@ async function openCourse(course) {
   box.innerHTML = '<p class="empty">Loading…</p>';
 
   const { data, error } = await db.from("registrations")
-    .select("id, first_name, last_name, email, phone, payment_status, attended, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name, learnworlds_language, learnworlds_status, learnworlds_user_id, learnworlds_enrolled_at, learnworlds_error")
+    .select("id, first_name, last_name, email, phone, payment_status, attended, certificate_sent_at, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name, learnworlds_language, learnworlds_status, learnworlds_user_id, learnworlds_enrolled_at, learnworlds_error")
     .eq("course_id", course.id)
     .order("last_name", { ascending: true });
 
@@ -1907,6 +1979,7 @@ async function openCourse(course) {
   await loadWelcomes(course.id);
   await loadPrecourse(course.id);
   showPrecourseBar(course);
+  showCertBar(course);
 
   if (!regs.length) {
     box.innerHTML = '<p class="empty">' +
@@ -2038,7 +2111,12 @@ async function openCourse(course) {
         .update({ attended: cb.checked }).eq("id", r.id);
       cb.disabled = false;
       if (error) { cb.checked = !cb.checked; flash(el, "Could not save", true); }
-      else flash(el, "Saved");
+      else {
+        flash(el, "Saved");
+        // The submit bar counts who is ticked, so it follows along.
+        r.attended = cb.checked;
+        showCertBar(currentCourse);
+      }
     });
 
     renderNotes(el.querySelector(".notes"), course, r, notesByReg[r.id] || []);
@@ -3215,6 +3293,157 @@ function showPrecourseBar(course) {
         : `Due by the end of Wednesday ${fmtDate(w.closesAt.toISOString(), course.timezone)}.`;
 }
 
+/* ---------- complete and submit the seminar ---------- */
+
+// One deliberate action at the end of a course: check the attendance
+// list, then send everyone their certificate. Not automatic, because a
+// certificate says someone completed the course — that needs a human
+// to confirm.
+
+function showCertBar(course) {
+  const bar = $("cert-bar");
+  const canSee = (isAdmin() || amLeadOn(course.id)) &&
+                 course.type !== "online_course" &&
+                 new Date(course.starts_at) <= new Date();
+
+  bar.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  const active = allRegistrations.filter((r) => (r.status || "active") === "active");
+  const attended = active.filter((r) => r.attended);
+  const done = attended.filter((r) => r.certificate_sent_at);
+
+  const btn = $("cert-open");
+  const state = $("cert-state");
+
+  if (course.completed_at && done.length === attended.length && attended.length) {
+    btn.disabled = true;
+    btn.textContent = "Seminar submitted";
+    state.textContent =
+      `Submitted ${fmtWhen(course.completed_at)} — ${done.length} certificate` +
+      `${done.length === 1 ? "" : "s"} sent.`;
+    return;
+  }
+
+  btn.disabled = attended.length === 0;
+  btn.textContent = done.length ? "Send remaining certificates" : "Complete and submit seminar";
+  state.textContent = attended.length === 0
+    ? "Tick who attended first — certificates go to those people."
+    : done.length
+      ? `${attended.length - done.length} of ${attended.length} still to receive theirs.`
+      : `${attended.length} of ${active.length} marked as attended.`;
+}
+
+function openCertDialog(course) {
+  const active = allRegistrations.filter((r) => (r.status || "active") === "active");
+  const attended = active.filter((r) => r.attended);
+  const todo = attended.filter((r) => !r.certificate_sent_at);
+  const missing = active.filter((r) => !r.attended);
+
+  $("cert-what").innerHTML = "";
+  $("cert-what").append(document.createTextNode(
+    `${todo.length} certificate${todo.length === 1 ? "" : "s"} will be generated and emailed. ` +
+    "Each one carries a unique reference and cannot be unsent."
+  ));
+
+  // Anyone unticked is about to be left out, which is the mistake worth
+  // catching before the button is pressed rather than after.
+  const warn = $("cert-warn");
+  if (missing.length) {
+    warn.classList.remove("hidden");
+    warn.innerHTML = `<strong>${missing.length} person${missing.length === 1 ? " is" : "s are"} not ticked as attended</strong>` +
+      "<ul></ul>They will not get a certificate. Close this and tick them if they were there.";
+    const ul = warn.querySelector("ul");
+    for (const r of missing) {
+      const li = document.createElement("li");
+      li.textContent = `${r.first_name} ${r.last_name}`;
+      ul.append(li);
+    }
+  } else {
+    warn.classList.add("hidden");
+  }
+
+  // Names print exactly as they appear here, so this is the last chance
+  // to spot a lowercase surname or a typo.
+  const who = $("cert-who");
+  who.innerHTML = "";
+  if (!todo.length) {
+    who.textContent = "Everyone who attended already has their certificate.";
+  } else {
+    const head = document.createElement("div");
+    head.style.cssText = "font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem";
+    head.textContent = "Certificates will read";
+    who.append(head);
+    for (const r of todo) {
+      const line = document.createElement("div");
+      line.textContent = `${r.first_name} ${r.last_name}`;
+      line.style.padding = "0.1rem 0";
+      who.append(line);
+    }
+    const note = document.createElement("div");
+    note.style.cssText = "color:var(--muted);margin-top:0.5rem;font-size:0.82rem";
+    note.textContent = "Spelling is printed exactly as shown. Cancel and use Edit to correct anything.";
+    who.append(note);
+  }
+
+  $("cert-msg").textContent = "";
+  $("cert-msg").className = "msg";
+  $("cert-go").disabled = todo.length === 0;
+  $("certwrap").classList.remove("hidden");
+}
+
+function wireCertificates() {
+  $("cert-open").onclick = () => { if (currentCourse) openCertDialog(currentCourse); };
+  $("cert-close").onclick = () => { $("certwrap").classList.add("hidden"); };
+  $("certwrap").addEventListener("click", (e) => {
+    if (e.target === $("certwrap")) $("certwrap").classList.add("hidden");
+  });
+
+  $("cert-go").onclick = async () => {
+    if (!currentCourse) return;
+    const msg = $("cert-msg");
+
+    if (!window.confirm(
+      `Send certificates for "${currentCourse.title}"?\n\n` +
+      "This emails each person their certificate as a PDF. It cannot be undone."
+    )) return;
+
+    $("cert-go").disabled = true;
+    msg.className = "msg";
+    msg.textContent = "Generating and sending — this can take a moment…";
+
+    try {
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+
+      const res = await fetch("/.netlify/functions/certificates-send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        body: JSON.stringify({ courseId: currentCourse.id }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      msg.className = out.failed ? "msg err" : "msg ok";
+      msg.textContent = out.failed
+        ? `${out.sent} sent, ${out.failed} failed: ${(out.failures || []).join(", ")}.`
+        : `${out.sent} certificate${out.sent === 1 ? "" : "s"} sent.`;
+
+      setTimeout(() => {
+        $("certwrap").classList.add("hidden");
+        openCourse(currentCourse);
+      }, out.failed ? 4000 : 1800);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+      $("cert-go").disabled = false;
+    }
+  };
+}
+
 /* ---------- the lead coach's welcome email ---------- */
 
 // Which participants have already had one. Read from course_emails,
@@ -3843,6 +4072,7 @@ async function openForm() {
   // never out of step with what checkout will charge.
   await loadVatRates();
   buildCountryOptions();
+  buildTimezoneList();
   await loadPriceTable();
   if (!editingCourse) applyStandardPrice();
 
@@ -3963,10 +4193,16 @@ $("f-country").addEventListener("change", () => {
 
   if (COUNTRY_TZ[cc]) {
     $("f-timezone").value = COUNTRY_TZ[cc];
-  } else if (MULTI_TZ.has(cc)) {
+  } else if (cc) {
+    // Either a country that spans zones, or one not in the list. Both
+    // need a human to choose — and both must say so, because silently
+    // leaving the previous zone is how a Kuwait course ends up stored
+    // on Irish time.
     const el = $("when-preview");
-    el.className = "whenline";
-    el.textContent = `${countryName(cc)} spans several time zones — choose the one for this city from the list.`;
+    el.className = "whenline bad";
+    el.textContent = MULTI_TZ.has(cc)
+      ? `${countryName(cc)} spans several time zones — choose the one for this city from the list.`
+      : `Choose the time zone for ${countryName(cc)} from the list — it has not been set automatically.`;
     return;
   }
   updateWhenPreview();
@@ -4139,6 +4375,7 @@ wireSignature();
 wireEdit();
 wireWelcome();
 wirePrecourse();
+wireCertificates();
 start();
 </script>
 
