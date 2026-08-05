@@ -784,6 +784,8 @@
           </div>
         </div>
 
+        <p class="whenline hidden" id="f-cert-note" style="margin:-0.4rem 0 1rem"></p>
+
         <div class="field" id="wrap-workshop">
           <label for="f-workshop">Workshop name <span class="hint">shown at point of sale</span></label>
           <input id="f-workshop" type="text" placeholder="Rings: forward and backward rolls">
@@ -4297,10 +4299,36 @@ async function openForm() {
   renderCoachPicker($("coachlist"), {});
 }
 
+// Where the certificate comes from the online course rather than the
+// seminar. Set at creation so nobody has to remember: a TCC Level 2
+// created next year behaves the same as the ones created today.
+function issuesCertificate(brand, type, level) {
+  const lvl = String(level == null ? "" : level).replace(/\D/g, "");
+  // TCC Level 2 includes an online course, and the certificate follows
+  // the exam. Everything else issues one from the seminar.
+  if (brand === "tcc" && lvl === "2") return false;
+  return true;
+}
+
 function toggleWorkshopFields() {
   const isWorkshop = $("f-type").value === "workshop";
   $("wrap-workshop").classList.toggle("hidden", !isWorkshop);
   $("wrap-movements").classList.toggle("hidden", !isWorkshop);
+  showCertificateNote();
+}
+
+// Visible while the course is being created, rather than discovered at
+// the end of it when the button reads differently than expected.
+function showCertificateNote() {
+  const note = $("f-cert-note");
+  if (!note) return;
+  const issues = issuesCertificate($("f-brand").value, $("f-type").value, $("f-level").value);
+  note.classList.toggle("hidden", issues);
+  if (!issues) {
+    note.textContent =
+      "This course does not issue a certificate from the seminar — " +
+      "it comes from the online course once the exam is passed.";
+  }
 }
 $("f-type").addEventListener("change", () => {
   toggleWorkshopFields();
@@ -4382,6 +4410,9 @@ $("f-city").addEventListener("input", updateWhenPreview);
 // Brand, level and currency all change which standard price applies.
 for (const id of ["f-brand", "f-level", "f-currency"]) {
   $(id).addEventListener("change", applyStandardPrice);
+}
+for (const id of ["f-brand", "f-level"]) {
+  $(id).addEventListener("change", showCertificateNote);
 }
 
 // The country settles three things at once: the time zone, the
@@ -4537,6 +4568,7 @@ async function saveCourse() {
       latitude: $("f-lat").value.trim() === "" ? null : parseFloat($("f-lat").value),
       longitude: $("f-lng").value.trim() === "" ? null : parseFloat($("f-lng").value),
       admin_notes: $("f-adminnotes").value.trim() || null,
+      issues_certificate: issuesCertificate(brand, type, level),
     };
     // On an edit, only overwrite the photo when a new one was chosen.
     if (imageUrl || !editingCourse) row.image_url = imageUrl;
