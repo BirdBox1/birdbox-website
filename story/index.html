@@ -56,6 +56,15 @@
 
   /* the overlay, shown on a checkerboard so the transparency is
      obvious before they download it */
+  .invite {
+    font-size: 15px;
+    line-height: 1.65;
+    color: #C9C4C5;
+    margin: 0 0 20px;
+    padding: 16px 18px;
+    border-left: 3px solid var(--tcc);
+    background: var(--panel);
+  }
   .preview {
     border: 1px solid var(--line);
     background-color: #6b6b6b;
@@ -122,6 +131,12 @@
   <div id="state" class="state">Finding your course&hellip;</div>
 
   <div id="tool" class="hidden">
+    <p class="invite">
+      Grab a photo with the people you met this weekend, the friends you came
+      with, your coaches, or anything from the course — then put this on top
+      of it.
+    </p>
+
     <div class="preview">
       <img id="shot" alt="Your story overlay">
     </div>
