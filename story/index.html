@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Share your seminar | BirdBox Coaching</title>
+<meta name="description" content="Download a transparent overlay for your Instagram story to share the course you have just completed.">
+<meta name="robots" content="noindex">
+<style>
+  :root {
+    --paper: #14100F;
+    --panel: #1C1719;
+    --ink: #F2EFEF;
+    --muted: #8A8385;
+    --line: #342F31;
+    --tcc: #4FA8DE;
+    --accentText: #6FB9E8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 20px 64px;
+  }
+  .wrap { max-width: 620px; margin: 0 auto; }
+
+  .mark { height: 56px; width: auto; display: block; margin: 0 auto 28px; }
+
+  h1 {
+    font-size: clamp(24px, 6vw, 34px);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    margin: 0 0 10px;
+    text-align: center;
+  }
+  .lede {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #C9C4C5;
+    margin: 0 0 26px;
+    text-align: center;
+  }
+
+  .state {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    padding: 22px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 15px;
+  }
+
+  /* the overlay, shown on a checkerboard so the transparency is
+     obvious before they download it */
+  .preview {
+    border: 1px solid var(--line);
+    background-color: #6b6b6b;
+    background-image:
+      linear-gradient(45deg, #555 25%, transparent 25%),
+      linear-gradient(-45deg, #555 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #555 75%),
+      linear-gradient(-45deg, transparent 75%, #555 75%);
+    background-size: 22px 22px;
+    background-position: 0 0, 0 11px, 11px -11px, -11px 0;
+    padding: 10px;
+  }
+  .preview img { width: 100%; height: auto; display: block; }
+
+  .choice {
+    display: flex;
+    gap: 10px;
+    margin: 18px 0 14px;
+  }
+  .choice button {
+    flex: 1 1 0;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 13px 10px;
+    background: none;
+    color: #ADA6A8;
+    border: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .choice button.on {
+    border-color: var(--tcc);
+    color: #ffffff;
+  }
+
+  .save {
+    display: block;
+    width: 100%;
+    text-align: center;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 16px;
+    background: var(--tcc);
+    color: #0C1116;
+    border: 1px solid var(--tcc);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .how {
+    font-size: 14px;
+    line-height: 1.65;
+    color: #B7B1B3;
+    margin: 22px 0 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+  .how b { color: var(--ink); font-weight: 650; }
+  .how ol { margin: 10px 0 0; padding-left: 20px; }
+  .how li { margin-bottom: 6px; }
+
+  .foot {
+    text-align: center;
+    font-size: 13px;
+    color: #756F71;
+    margin-top: 34px;
+  }
+  .foot a { color: #8A8385; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <img class="mark" src="/brand/birdbox-mark.png" alt="BirdBox Coaching">
+
+  <h1 id="head">Share your course</h1>
+  <p class="lede" id="lede">Loading&hellip;</p>
+
+  <div id="state" class="state">Finding your course&hellip;</div>
+
+  <div id="tool" class="hidden">
+    <div class="preview">
+      <img id="shot" alt="Your story overlay">
+    </div>
+
+    <div class="choice">
+      <button type="button" id="pick-light" class="on">For a dark photo</button>
+      <button type="button" id="pick-dark">For a light photo</button>
+    </div>
+
+    <a class="save" id="save" download="birdbox-story.png">Save the image</a>
+
+    <div class="how">
+      <b>How to use it</b>
+      <ol>
+        <li>Save the image — it has a transparent background.</li>
+        <li>Open Instagram and start a story with your own photo.</li>
+        <li>Add this image as a sticker on top, and size it to fit.</li>
+      </ol>
+      Pick the version that suits your photo. Light text sits well on a dark
+      gym; dark text works better on a bright one.
+    </div>
+  </div>
+
+  <p class="foot">
+    <a href="/">BirdBox Coaching</a>
+  </p>
+</div>
+
+<canvas id="canvas" width="1080" height="1920" style="display:none"></canvas>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const supabase = createClient(
+    "https://yvdmazpxtpuvidlcifnq.supabase.co",
+    "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+  );
+
+  const BRAND_NAME = {
+    tcc: "The Coaches Course",
+    tgc: "The Gymnastics Course",
+    tec: "The Endurance Course",
+    twc: "The Weightlifting Course",
+    birdbox: "BirdBox Coaching",
+  };
+
+  // Nothing on this overlay is personal — course, place and, for a
+  // workshop, its name. All of it is already public, so the page needs
+  // no login and the same link works for everyone on the course.
+  const REGION = (() => {
+    try { return new Intl.DisplayNames(["en"], { type: "region" }); }
+    catch (e) { return null; }
+  })();
+
+  function countryName(value) {
+    const raw = String(value == null ? "" : value).trim();
+    if (!raw) return "";
+    const iso = raw.toUpperCase() === "UK" ? "GB" : raw.toUpperCase();
+    if (!/^[A-Z]{2}$/.test(iso) || !REGION) return raw;
+    try {
+      const n = REGION.of(iso);
+      return n && n !== iso ? n : iso;
+    } catch (e) { return iso; }
+  }
+
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  let lines = [];
+  let logos = [];
+  let mode = "light";
+
+  function loadImage(src) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
+
+  // Course titles run long, so the value shrinks until it fits rather
+  // than spilling off the edge of the story.
+  function fitFont(text, weight, start, min, maxWidth) {
+    let size = start;
+    for (;;) {
+      ctx.font = `${weight} ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      if (ctx.measureText(text).width <= maxWidth || size <= min) return size;
+      size -= 2;
+    }
+  }
+
+  function draw() {
+    const W = canvas.width;
+    const light = mode === "light";
+    const valueColour = light ? "#ffffff" : "#101010";
+    const labelColour = light ? "rgba(255,255,255,0.72)" : "rgba(16,16,16,0.62)";
+
+    ctx.clearRect(0, 0, W, canvas.height);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+
+    // A soft shadow means the text survives a photo that is busier or
+    // brighter than expected, without putting a panel behind it.
+    ctx.shadowColor = light ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.65)";
+    ctx.shadowBlur = 26;
+    ctx.shadowOffsetY = light ? 2 : 0;
+
+    let y = 700;
+    for (const line of lines) {
+      if (line.label) {
+        ctx.fillStyle = labelColour;
+        ctx.font = '600 40px "Helvetica Neue", Helvetica, Arial, sans-serif';
+        ctx.fillText(line.label, W / 2, y);
+        y += 86;
+      }
+      ctx.fillStyle = valueColour;
+      const size = fitFont(line.value, 700, 96, 46, W - 140);
+      ctx.font = `700 ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      ctx.fillText(line.value, W / 2, y);
+      y += 150;
+    }
+
+    // Logos are dark lettering, so on the light version they get the
+    // same white halo the text does and stay readable on a dark photo.
+    const usable = logos.filter(Boolean);
+    if (usable.length) {
+      ctx.shadowColor = light ? "rgba(255,255,255,0.75)" : "rgba(0,0,0,0.28)";
+      ctx.shadowBlur = light ? 30 : 18;
+      ctx.shadowOffsetY = 0;
+
+      const H = usable.length === 1 ? 130 : 108;
+      const gap = 56;
+      const widths = usable.map((img) => (img.width / img.height) * H);
+      const total = widths.reduce((a, b) => a + b, 0) + gap * (usable.length - 1);
+      let x = (W - total) / 2;
+      const top = y + 40;
+      usable.forEach((img, i) => {
+        ctx.drawImage(img, x, top, widths[i], H);
+        x += widths[i] + gap;
+      });
+    }
+
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+
+    const url = canvas.toDataURL("image/png");
+    document.getElementById("shot").src = url;
+    document.getElementById("save").href = url;
+  }
+
+  function fail(text) {
+    document.getElementById("state").textContent = text;
+    document.getElementById("lede").textContent = "";
+  }
+
+  async function load() {
+    const slug = new URLSearchParams(location.search).get("c");
+    if (!slug) return fail("This link is missing its course. Use the link from your email.");
+
+    const { data: course, error } = await supabase
+      .from("courses")
+      .select("brand, type, level, title, city, country, workshop_focus, starts_at")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (error || !course) {
+      return fail("We could not find that course. Use the link from your email, or contact us.");
+    }
+
+    const isWorkshop = course.type === "workshop";
+    const brand = String(course.brand || "").toLowerCase();
+    const levelDigits = String(course.level == null ? "" : course.level).replace(/\D/g, "");
+
+    const courseName = isWorkshop
+      ? `${(BRAND_NAME[brand] || "BirdBox").split(" ").map((w) => w[0]).join("")} Workshop`
+      : (BRAND_NAME[brand] || "BirdBox Coaching") +
+        (levelDigits ? ` — Level ${levelDigits}` : "");
+
+    const place = [course.city, countryName(course.country)].filter(Boolean).join(", ");
+    const third = isWorkshop ? (course.workshop_focus || "Workshop") : "Completed";
+
+    lines = [
+      { label: "Course", value: courseName },
+      { label: "Location", value: place || "\u2014" },
+      { label: "", value: third },
+    ];
+
+    logos = isWorkshop
+      ? [await loadImage(`/brand/${brand}-workshops.png`)]
+      : [
+          await loadImage(`/brand/${brand}-mark.png`),
+          await loadImage("/brand/ceu-approved.png"),
+        ];
+
+    document.getElementById("head").textContent = "Share your course";
+    document.getElementById("lede").textContent =
+      `${courseName}${place ? " · " + place : ""}`;
+    document.getElementById("state").classList.add("hidden");
+    document.getElementById("tool").classList.remove("hidden");
+
+    document.getElementById("save").setAttribute(
+      "download",
+      `birdbox-${slug}.png`
+    );
+
+    draw();
+  }
+
+  for (const [id, value] of [["pick-light", "light"], ["pick-dark", "dark"]]) {
+    document.getElementById(id).addEventListener("click", () => {
+      mode = value;
+      document.getElementById("pick-light").classList.toggle("on", mode === "light");
+      document.getElementById("pick-dark").classList.toggle("on", mode === "dark");
+      draw();
+    });
+  }
+
+  load();
+</script>
+
+</body>
+</html>
