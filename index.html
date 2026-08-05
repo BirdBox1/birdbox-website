@@ -538,6 +538,37 @@
 
   const box = document.getElementById("bb-sem");
 
+  /* ---------- country codes ----------
+     courses.country stores an ISO code so the VAT lookup can match it.
+     Visitors should never see "DE" or "GB", so the code is turned into
+     a name for display only. Intl.DisplayNames is built into the
+     browser and covers every country, so there is no list to maintain.
+     Anything that is not a two-letter code is passed through unchanged,
+     which covers older rows that still hold a full name. */
+  const REGION_NAMES = (() => {
+    try {
+      return new Intl.DisplayNames(["en"], { type: "region" });
+    } catch (e) {
+      return null;
+    }
+  })();
+
+  function countryName(value) {
+    const raw = String(value == null ? "" : value).trim();
+    if (!raw) return "";
+    const upper = raw.toUpperCase();
+    // UK is not an ISO code; GB is. Old rows may still say UK.
+    const iso = upper === "UK" ? "GB" : upper;
+    if (!/^[A-Z]{2}$/.test(iso)) return raw;
+    if (!REGION_NAMES) return iso;
+    try {
+      const name = REGION_NAMES.of(iso);
+      return name && name !== iso ? name : iso;
+    } catch (e) {
+      return iso;
+    }
+  }
+
   // Dates render in the course's own zone, so a Tokyo seminar reads as its
   // local date rather than the visitor's.
   function formatWhen(startsAt, endsAt, tz) {
@@ -602,7 +633,7 @@
       const meta = document.createElement("span");
       meta.className = "bb-sem__meta";
       meta.style.display = "block";
-      const where = [course.city, course.country].filter(Boolean).join(", ");
+      const where = [course.city, countryName(course.country)].filter(Boolean).join(", ");
       const when = formatWhen(course.starts_at, course.ends_at, course.timezone);
       meta.textContent = where ? `${where} \u2022 ${when}` : when;
 
@@ -633,7 +664,7 @@
   }
 
   function credit(t) {
-    return [t.role, t.country].filter(Boolean).join(", ");
+    return [t.role, countryName(t.country)].filter(Boolean).join(", ");
   }
 
   function showQuote(i) {
