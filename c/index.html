@@ -51,6 +51,19 @@
 
   .wrap { max-width: 44rem; margin: 0 auto; padding: 0 1.25rem 5rem; }
 
+  /* Somewhere to go that is not the browser's back button. People
+     arrive here from Community Box or an email, so "back" has to mean
+     the page for this level rather than wherever they came from. */
+  .back {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    margin: 1.4rem 0 0; padding: 0.5rem 0.9rem;
+    border: 1px solid var(--rule); border-radius: 5px;
+    font-size: 0.8rem; font-weight: 650; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted); text-decoration: none;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .back:hover { color: var(--ink); border-color: rgba(255,255,255,0.32); }
+
   .head { padding: 2.4rem 0 0; }
 
   .badge {
@@ -264,6 +277,8 @@
   </div>
 
   <main id="course" class="hidden">
+    <a class="back hidden" id="back" href="/"></a>
+
     <div class="head" id="head">
       <img class="lockup hidden" id="lockup" alt="">
       <span class="badge hidden" id="badge"><img id="badgeicon" alt=""><span id="badgetext"></span></span>
@@ -416,6 +431,33 @@ const state = {
 
 load();
 
+// Where the back link goes. Worked out from the course record rather
+// than the URL, because a slug does not always carry the level. A
+// workshop always returns to the workshops page whatever its level,
+// and anything without a level page falls back to the brand hub.
+function backTo(course) {
+  const brand = String(course.brand || "").toLowerCase();
+  const label = (BRAND[brand] || BRAND.birdbox).label;
+  const digits = String(course.level == null ? "" : course.level).replace(/\D/g, "");
+
+  if (course.type === "workshop") {
+    // Only TGC runs workshops today; anything else has no page to
+    // return to, so it goes to the brand instead of a dead link.
+    return brand === "tgc"
+      ? { href: "/tgc/workshops/", text: "TGC Workshops" }
+      : { href: `/${brand}/`, text: label };
+  }
+
+  if ((brand === "tcc" || brand === "tgc") && (digits === "1" || digits === "2")) {
+    return {
+      href: `/${brand}/level-${digits}/`,
+      text: `${label}, Level ${digits}`,
+    };
+  }
+
+  return { href: `/${brand}/`, text: label };
+}
+
 async function load() {
   if (!slug) return notFound();
 
@@ -451,6 +493,11 @@ async function load() {
   }
 
   document.title = course.title + " — BirdBox Coaching";
+
+  const back = backTo(course);
+  $("back").href = back.href;
+  $("back").textContent = "← " + back.text;
+  $("back").classList.remove("hidden");
 
   // A template lockup replaces the brand chip where there is one.
   if (tpl && tpl.logo_url) {
@@ -603,6 +650,8 @@ async function load() {
 
   // A workshop is sold on what it is, not on the brand — so the
   // running order becomes lockup, what it is, the facts, then price.
+  // The back link is not in this list, so it stays where it is: at the
+  // top of the page, on both layouts.
   if (isWorkshop) {
     const main = $("course");
     ["head", "info", "specwrap", "buy", "venuewrap", "videowrap", "includedwrap", "foot"]
