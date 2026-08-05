@@ -1025,6 +1025,18 @@ const REGION_NAMES = (() => {
   catch (e) { return null; }
 })();
 
+// Language codes are stored; people read names. Same approach as the
+// country list — the browser knows the names, so there is no list to
+// keep up to date as more languages are added.
+function langLabel(code) {
+  const raw = String(code == null ? "" : code).trim();
+  if (!raw) return "not chosen";
+  try {
+    const n = new Intl.DisplayNames(["en"], { type: "language" }).of(raw);
+    return n ? n.charAt(0).toUpperCase() + n.slice(1) : raw;
+  } catch (e) { return raw; }
+}
+
 function countryName(value) {
   const raw = String(value == null ? "" : value).trim();
   if (!raw) return "";
@@ -1430,7 +1442,7 @@ async function loadCourses() {
   alertBox.innerHTML = "";
   list.innerHTML = '<p class="empty">Loading…</p>';
 
-  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, status, slug, archived";
+  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, status, slug, archived, grants_online_course";
 
   let all = [];
   if (isAdmin()) {
@@ -1798,7 +1810,7 @@ async function openCourse(course) {
   box.innerHTML = '<p class="empty">Loading…</p>';
 
   const { data, error } = await db.from("registrations")
-    .select("id, first_name, last_name, email, phone, payment_status, attended, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name")
+    .select("id, first_name, last_name, email, phone, payment_status, attended, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name, learnworlds_language, learnworlds_status, learnworlds_user_id, learnworlds_enrolled_at, learnworlds_error")
     .eq("course_id", course.id)
     .order("last_name", { ascending: true });
 
@@ -1888,6 +1900,25 @@ async function openCourse(course) {
     );
     if (failed.length) addPill("balance failed", "bad");
     if (!r.waiver_signed_at) addPill("no waiver", "warn");
+
+    // Free online course, on courses that grant one. A failure has to
+    // be visible here — nobody would otherwise find out until the
+    // participant said they could not get in.
+    if (course.grants_online_course) {
+      if (r.learnworlds_status === "enrolled") {
+        addPill("online: " + langLabel(r.learnworlds_language), "on");
+      } else if (r.learnworlds_status === "failed") {
+        const s = document.createElement("span");
+        s.className = "pill bad";
+        s.textContent = "online access failed";
+        // The reason is long and technical, so it sits behind a hover
+        // rather than cluttering the row.
+        if (r.learnworlds_error) s.title = r.learnworlds_error;
+        flags.append(s);
+      } else {
+        addPill("online access pending", "warn");
+      }
+    }
 
     const line = el.querySelector(".money");
     const bits = [];
