@@ -1389,6 +1389,40 @@ const STATES = {
     ["PE","Prince Edward Island","America/Halifax"], ["QC","Quebec","America/Toronto"],
     ["SK","Saskatchewan","America/Regina"], ["YT","Yukon","America/Whitehorse"],
   ],
+  BR: [
+    ["AC","Acre","America/Rio_Branco"], ["AL","Alagoas","America/Maceio"],
+    ["AP","Amapá","America/Belem"], ["AM","Amazonas","America/Manaus"],
+    ["BA","Bahia","America/Bahia"], ["CE","Ceará","America/Fortaleza"],
+    ["DF","Distrito Federal","America/Sao_Paulo"], ["ES","Espírito Santo","America/Sao_Paulo"],
+    ["GO","Goiás","America/Sao_Paulo"], ["MA","Maranhão","America/Fortaleza"],
+    ["MT","Mato Grosso","America/Cuiaba"], ["MS","Mato Grosso do Sul","America/Campo_Grande"],
+    ["MG","Minas Gerais","America/Sao_Paulo"], ["PA","Pará","America/Belem"],
+    ["PB","Paraíba","America/Fortaleza"], ["PR","Paraná","America/Sao_Paulo"],
+    ["PE","Pernambuco","America/Recife"], ["PI","Piauí","America/Fortaleza"],
+    ["RJ","Rio de Janeiro","America/Sao_Paulo"], ["RN","Rio Grande do Norte","America/Fortaleza"],
+    ["RS","Rio Grande do Sul","America/Sao_Paulo"], ["RO","Rondônia","America/Porto_Velho"],
+    ["RR","Roraima","America/Boa_Vista"], ["SC","Santa Catarina","America/Sao_Paulo"],
+    ["SP","São Paulo","America/Sao_Paulo"], ["SE","Sergipe","America/Maceio"],
+    ["TO","Tocantins","America/Araguaina"],
+  ],
+  MX: [
+    ["AGU","Aguascalientes","America/Mexico_City"], ["BCN","Baja California","America/Tijuana"],
+    ["BCS","Baja California Sur","America/Mazatlan"], ["CAM","Campeche","America/Merida"],
+    ["CHP","Chiapas","America/Mexico_City"], ["CHH","Chihuahua","America/Chihuahua"],
+    ["CMX","Ciudad de México","America/Mexico_City"], ["COA","Coahuila","America/Monterrey"],
+    ["COL","Colima","America/Mexico_City"], ["DUR","Durango","America/Monterrey"],
+    ["GUA","Guanajuato","America/Mexico_City"], ["GRO","Guerrero","America/Mexico_City"],
+    ["HID","Hidalgo","America/Mexico_City"], ["JAL","Jalisco","America/Mexico_City"],
+    ["MEX","México","America/Mexico_City"], ["MIC","Michoacán","America/Mexico_City"],
+    ["MOR","Morelos","America/Mexico_City"], ["NAY","Nayarit","America/Mazatlan"],
+    ["NLE","Nuevo León","America/Monterrey"], ["OAX","Oaxaca","America/Mexico_City"],
+    ["PUE","Puebla","America/Mexico_City"], ["QUE","Querétaro","America/Mexico_City"],
+    ["ROO","Quintana Roo","America/Cancun"], ["SLP","San Luis Potosí","America/Mexico_City"],
+    ["SIN","Sinaloa","America/Mazatlan"], ["SON","Sonora","America/Hermosillo"],
+    ["TAB","Tabasco","America/Mexico_City"], ["TAM","Tamaulipas","America/Matamoros"],
+    ["TLA","Tlaxcala","America/Mexico_City"], ["VER","Veracruz","America/Mexico_City"],
+    ["YUC","Yucatán","America/Merida"], ["ZAC","Zacatecas","America/Mexico_City"],
+  ],
   AU: [
     ["ACT","Australian Capital Territory","Australia/Sydney"],
     ["NSW","New South Wales","Australia/Sydney"],
@@ -1404,7 +1438,10 @@ const STATES = {
 // Texas and Florida both have a second zone in their far corners, and
 // Indiana has several. The listed zone covers where the population is;
 // the picker is still there to override it.
-const STATE_LABEL = { US: "State", CA: "Province or territory", AU: "State or territory" };
+const STATE_LABEL = {
+  US: "State", CA: "Province or territory", AU: "State or territory",
+  BR: "State", MX: "State",
+};
 
 function buildStateOptions(cc) {
   const wrap = document.getElementById("wrap-state");
@@ -1435,8 +1472,28 @@ function zoneForState(cc, state) {
   return hit ? hit[2] : null;
 }
 
-// These genuinely span more than one zone, so a human picks.
-const MULTI_TZ = new Set(["US", "CA", "AU", "BR", "MX", "RU", "ID", "KZ", "AR", "CD", "GL", "EC", "FM", "PF", "PG", "MN", "KI", "MH"]);
+// Countries where more than one zone exists on paper but everywhere
+// anyone lives keeps the same time. Asking would be pedantic, so these
+// resolve like any other single-zone country.
+const NOMINALLY_MULTI = {
+  AR: "America/Argentina/Buenos_Aires",  // every zone is UTC-3
+  KZ: "Asia/Almaty",                     // unified to one zone in 2024
+  MN: "Asia/Ulaanbaatar",                // the western zones are near-empty
+  EC: "America/Guayaquil",               // mainland; only the Galápagos differ
+  GL: "America/Nuuk",                    // where the population is
+  PG: "Pacific/Port_Moresby",
+  CD: "Africa/Kinshasa",
+  FM: "Pacific/Chuuk",
+  PF: "Pacific/Tahiti",
+  KI: "Pacific/Tarawa",
+  MH: "Pacific/Majuro",
+};
+Object.assign(COUNTRY_TZ, NOMINALLY_MULTI);
+
+// What is left genuinely needs a human: either a state picker below,
+// or the zone typed directly. Indonesia and Russia stay here because
+// Bali and Jakarta really are different times.
+const MULTI_TZ = new Set(["US", "CA", "AU", "BR", "MX", "RU", "ID"]);
 
 // Argentina, Ecuador and the rest above are in MULTI_TZ, so their
 // single-zone entries are not listed. Everything else in the country
@@ -4301,6 +4358,9 @@ $("f-country").addEventListener("change", () => {
   // A state picker where one settles the zone, hidden everywhere else.
   buildStateOptions(cc);
   if (STATES[cc]) {
+    // Cleared, so a zone left over from the last country cannot be
+    // mistaken for one that belongs to this course.
+    $("f-timezone").value = "";
     const el = $("when-preview");
     el.className = "whenline";
     el.textContent = `Choose the ${(STATE_LABEL[cc] || "state").toLowerCase()} — it sets the time zone.`;
@@ -4314,7 +4374,8 @@ $("f-country").addEventListener("change", () => {
     // Either a country that spans zones, or one not in the list. Both
     // need a human to choose — and both must say so, because silently
     // leaving the previous zone is how a Kuwait course ends up stored
-    // on Irish time.
+    // on Irish time. Clearing it makes that impossible to miss.
+    $("f-timezone").value = "";
     const el = $("when-preview");
     el.className = "whenline bad";
     el.textContent = MULTI_TZ.has(cc)
