@@ -287,24 +287,42 @@ export default async (request) => {
 
 // ---------------------------------------------------------------
 
-// certificates/tcc-1.jpg, tgc-2.jpg, tgc-workshop.jpg and so on.
-function templatePath(course) {
+// certificates/tcc-1, tgc-2, tgc-workshop and so on. Either extension
+// works, so whoever uploads the artwork does not have to think about it.
+function templateBase(course) {
   const brand = String(course.brand || "").toLowerCase();
-  if (course.type === "workshop") return `/certificates/${brand}-workshop.jpg`;
+  if (course.type === "workshop") return `/certificates/${brand}-workshop`;
   const level = String(course.level == null ? "" : course.level).replace(/\D/g, "");
-  return `/certificates/${brand}-${level || "1"}.jpg`;
+  return `/certificates/${brand}-${level || "1"}`;
+}
+
+function templatePath(course) {
+  return templateBase(course) + ".jpg or .png";
+}
+
+// A JPEG starts FF D8 FF; a PNG starts with an eight-byte signature.
+// Reading the bytes rather than trusting the extension means a file
+// saved with the wrong one still works.
+function isPng(bytes) {
+  return bytes.length > 8 &&
+    bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
 }
 
 async function loadArtwork(course) {
-  const url = SITE_URL + templatePath(course);
-  try {
-    const res = await fetch(url);
-    if (!res.ok) { console.error("Artwork missing:", url, res.status); return null; }
-    return new Uint8Array(await res.arrayBuffer());
-  } catch (err) {
-    console.error("Could not fetch artwork:", url, err.message);
-    return null;
+  const base = SITE_URL + templateBase(course);
+  for (const ext of [".jpg", ".jpeg", ".png"]) {
+    try {
+      const res = await fetch(base + ext);
+      if (!res.ok) continue;
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      if (!bytes.length) continue;
+      return bytes;
+    } catch (err) {
+      console.error("Could not fetch artwork:", base + ext, err.message);
+    }
   }
+  console.error("No artwork found for", base);
+  return null;
 }
 
 async function loadTemplate(course) {
@@ -361,7 +379,11 @@ async function buildPdf({ artwork, layout, name, awardedText, reference, focus }
   const doc = await PDFDocument.create();
   const page = doc.addPage([PAGE.width, PAGE.height]);
 
-  const image = await doc.embedJpg(artwork);
+  // PNG artwork is embedded losslessly and makes a much larger file, so
+  // JPEG is preferable — but both are accepted rather than failing.
+  const image = isPng(artwork)
+    ? await doc.embedPng(artwork)
+    : await doc.embedJpg(artwork);
   page.drawImage(image, { x: 0, y: 0, width: PAGE.width, height: PAGE.height });
 
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
