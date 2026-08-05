@@ -804,8 +804,10 @@
             <input id="f-city" type="text" placeholder="Dublin">
           </div>
           <div class="field">
-            <label for="f-country">Country <span class="hint">two-letter code</span></label>
-            <input id="f-country" type="text" maxlength="2" placeholder="IE" style="text-transform:uppercase">
+            <label for="f-country">Country <span class="hint">sets the time zone, currency and VAT</span></label>
+            <select id="f-country">
+              <option value="">Choose a country…</option>
+            </select>
           </div>
         </div>
         <div class="field">
@@ -926,7 +928,7 @@
         </div>
         <div class="grid2">
           <div class="field">
-            <label for="f-price">Price <span class="hint">whole units, e.g. 640</span></label>
+            <label for="f-price">Price <span class="hint">whole units, excluding VAT</span></label>
             <input id="f-price" type="number" min="0" step="1" placeholder="640">
           </div>
           <div class="field">
@@ -934,6 +936,7 @@
             <input id="f-deposit" type="number" min="0" step="1" placeholder="25% of the price">
           </div>
         </div>
+        <p class="whenline" id="f-price-note"></p>
       </div>
 
       <div class="panel">
@@ -1010,6 +1013,160 @@ const TAG_COLOUR = {
   "tgc:2":        "#b02a33",
   "tgc:workshop": "#e23b32",
 };
+
+/* ---------------- countries ---------------- */
+
+// Codes are what get stored, because the VAT lookup, the time zone
+// table and the public pages all match on the code. Names are only
+// ever for reading, and come from the browser rather than a list
+// anyone has to maintain.
+const REGION_NAMES = (() => {
+  try { return new Intl.DisplayNames(["en"], { type: "region" }); }
+  catch (e) { return null; }
+})();
+
+function countryName(value) {
+  const raw = String(value == null ? "" : value).trim();
+  if (!raw) return "";
+  const upper = raw.toUpperCase();
+  const iso = upper === "UK" ? "GB" : upper;
+  if (!/^[A-Z]{2}$/.test(iso)) return raw;
+  if (!REGION_NAMES) return iso;
+  try {
+    const name = REGION_NAMES.of(iso);
+    return name && name !== iso ? name : iso;
+  } catch (e) { return iso; }
+}
+
+// Every ISO 3166-1 country. Only the codes are listed; the names are
+// looked up, so nothing here needs correcting when a name changes.
+const COUNTRY_CODES = [
+  "AD","AE","AF","AG","AI","AL","AM","AO","AR","AT","AU","AW","AZ",
+  "BA","BB","BD","BE","BF","BG","BH","BI","BJ","BM","BN","BO","BR","BS","BT","BW","BY","BZ",
+  "CA","CD","CF","CG","CH","CI","CK","CL","CM","CN","CO","CR","CU","CV","CW","CY","CZ",
+  "DE","DJ","DK","DM","DO","DZ",
+  "EC","EE","EG","ER","ES","ET",
+  "FI","FJ","FK","FM","FO","FR",
+  "GA","GB","GD","GE","GG","GH","GI","GL","GM","GN","GQ","GR","GT","GU","GW","GY",
+  "HK","HN","HR","HT","HU",
+  "ID","IE","IL","IM","IN","IQ","IR","IS","IT",
+  "JE","JM","JO","JP",
+  "KE","KG","KH","KI","KM","KN","KP","KR","KW","KY","KZ",
+  "LA","LB","LC","LI","LK","LR","LS","LT","LU","LV","LY",
+  "MA","MC","MD","ME","MG","MH","MK","ML","MM","MN","MO","MQ","MR","MT","MU","MV","MW","MX","MY","MZ",
+  "NA","NC","NE","NG","NI","NL","NO","NP","NR","NU","NZ",
+  "OM",
+  "PA","PE","PF","PG","PH","PK","PL","PR","PS","PT","PW","PY",
+  "QA",
+  "RE","RO","RS","RU","RW",
+  "SA","SB","SC","SD","SE","SG","SI","SK","SL","SM","SN","SO","SR","SS","ST","SV","SY","SZ",
+  "TC","TD","TG","TH","TJ","TL","TM","TN","TO","TR","TT","TV","TW","TZ",
+  "UA","UG","US","UY","UZ",
+  "VA","VC","VE","VG","VI","VN","VU",
+  "WS",
+  "YE",
+  "ZA","ZM","ZW",
+];
+
+// Which currency a course in that country is sold in. Anywhere not
+// listed leaves the currency alone and says so, rather than guessing
+// — a wrong currency here would put a wrong price on a live page.
+const COUNTRY_CURRENCY = {
+  GB: "GBP", US: "USD", AU: "AUD", CA: "CAD",
+  AT: "EUR", BE: "EUR", HR: "EUR", CY: "EUR", EE: "EUR", FI: "EUR",
+  FR: "EUR", DE: "EUR", GR: "EUR", IE: "EUR", IT: "EUR", LV: "EUR",
+  LT: "EUR", LU: "EUR", MT: "EUR", NL: "EUR", PT: "EUR", SK: "EUR",
+  SI: "EUR", ES: "EUR", MC: "EUR", AD: "EUR", SM: "EUR", VA: "EUR",
+  ME: "EUR",
+};
+
+// Filled from vat_rates so the dropdown can show which countries
+// carry VAT, and at what rate.
+let vatByCode = {};
+
+async function loadVatRates() {
+  if (Object.keys(vatByCode).length) return;
+  const { data, error } = await db.from("vat_rates").select("code, rate, label");
+  if (error) { console.error("Could not load VAT rates:", error.message); return; }
+  for (const r of data || []) {
+    const raw = Number(r.rate);
+    if (!Number.isFinite(raw) || raw <= 0) continue;
+    vatByCode[String(r.code || "").toUpperCase()] = raw <= 1 ? raw * 100 : raw;
+  }
+}
+
+function buildCountryOptions() {
+  const sel = $("f-country");
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Choose a country…</option>';
+
+  const rows = COUNTRY_CODES
+    .map((code) => ({ code, name: countryName(code) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  for (const r of rows) {
+    const o = document.createElement("option");
+    o.value = r.code;
+    const vat = vatByCode[r.code];
+    o.textContent = vat ? `${r.name} — VAT ${Number(vat.toFixed(2))}%` : r.name;
+    sel.append(o);
+  }
+  if (current) sel.value = current;
+}
+
+/* ---------------- standard prices ---------------- */
+
+// The price list lives in course_prices, so the portal and the public
+// pages read the same numbers. Filling it in automatically means an
+// admin never has to open the website to check what a course costs.
+let priceTable = [];
+let suppressAutoPrice = false;
+
+async function loadPriceTable() {
+  if (priceTable.length) return;
+  const { data, error } = await db.from("course_prices")
+    .select("brand, type, level, currency, price_cents, deposit_cents");
+  if (error) { console.error("Could not load prices:", error.message); return; }
+  priceTable = data || [];
+}
+
+const levelDigits = (v) => String(v == null ? "" : v).replace(/\D/g, "");
+
+function standardPrice() {
+  const brand = $("f-brand").value;
+  const type = $("f-type").value;
+  const lvl = levelDigits($("f-level").value);
+  const cur = $("f-currency").value;
+  return priceTable.find((p) =>
+    p.brand === brand && p.type === type &&
+    levelDigits(p.level) === lvl && p.currency === cur) || null;
+}
+
+// Always overwrites, so changing the currency changes the price too.
+// Anything genuinely one-off is typed over afterwards and saved as
+// normal — nothing here touches the row that gets stored.
+function applyStandardPrice() {
+  if (suppressAutoPrice) return;
+  const note = $("f-price-note");
+  const row = standardPrice();
+
+  if (!row) {
+    note.className = "whenline";
+    note.textContent = priceTable.length
+      ? "No standard price on file for this combination — type one in."
+      : "";
+    return;
+  }
+
+  const whole = row.price_cents / 100;
+  $("f-price").value = String(whole);
+  if (row.deposit_cents != null) $("f-deposit").value = String(row.deposit_cents / 100);
+
+  note.className = "whenline";
+  note.textContent =
+    `Standard price filled in: ${$("f-currency").value} ${whole}, excluding VAT. ` +
+    "Change it if this course is priced differently.";
+}
 
 /* ---------------- time zones ---------------- */
 
@@ -1417,7 +1574,7 @@ async function loadCourses() {
     el.querySelector(".title").textContent = c.title;
     el.querySelector(".when").textContent = fmtDate(c.starts_at, c.timezone);
     el.querySelector(".line").textContent =
-      [c.city, c.country].filter(Boolean).join(", ") || "Location to be confirmed";
+      [c.city, countryName(c.country)].filter(Boolean).join(", ") || "Location to be confirmed";
 
     const flags = el.querySelector(".flags");
     const tagEl = document.createElement("span");
@@ -1625,7 +1782,7 @@ async function openCourse(course) {
   const myRole = isAdmin() ? null : myRoles[course.id];
   $("course-meta").textContent = [
     fmtDate(course.starts_at, course.timezone),
-    [course.city, course.country].filter(Boolean).join(", "),
+    [course.city, countryName(course.country)].filter(Boolean).join(", "),
     myRole === "lead_coach" ? "You are lead coach"
       : myRole === "assistant" ? "You are assisting" : null,
     course.status === "complete" ? "Completed"
@@ -2291,7 +2448,7 @@ async function lookupCoords() {
     $("f-venue").value.trim(),
     $("f-address").value.trim(),
     $("f-city").value.trim(),
-    $("f-country").value.trim(),
+    countryName($("f-country").value),
   ].filter(Boolean);
   if (!parts.length) { msg.textContent = "Add an address or city first."; return; }
 
@@ -2327,7 +2484,7 @@ function fillForm(c) {
   set("f-workshop", c.workshop_focus); set("f-movements", c.movements);
   set("f-summary", c.summary); set("f-description", c.description);
   set("f-venue", c.venue_name); set("f-address", c.address);
-  set("f-city", c.city); set("f-country", c.country);
+  set("f-city", c.city); set("f-country", (c.country || "").toUpperCase());
   set("f-lat", c.latitude); set("f-lng", c.longitude);
   set("f-timezone", c.timezone); set("f-slug", c.slug);
   set("f-capacity", c.capacity); set("f-currency", c.currency);
@@ -2349,7 +2506,13 @@ async function openEditCourse(course) {
   if (error) { window.alert("Could not load the course: " + error.message); return; }
   editingCourse = full;
   await openForm();
+  // An existing course keeps the price it was sold at. Nothing is
+  // auto-filled over the top of it.
+  suppressAutoPrice = true;
   fillForm(full);
+  suppressAutoPrice = false;
+  $("f-price-note").textContent =
+    "This is the price this course was created with. Changing the currency will fill in the standard price instead.";
   toggleWorkshopFields();
   updateWhenPreview();
   if (full.image_url) {
@@ -2615,7 +2778,7 @@ async function transferParticipant(course, reg, btn) {
   if (!options || !options.length) { window.alert("There are no other upcoming courses to move them to."); return; }
 
   const lines = options.map((c, i) =>
-    `${i + 1}. ${c.title} — ${[c.city, c.country].filter(Boolean).join(", ")} — ${fmtDate(c.starts_at, c.timezone)}`
+    `${i + 1}. ${c.title} — ${[c.city, countryName(c.country)].filter(Boolean).join(", ")} — ${fmtDate(c.starts_at, c.timezone)}`
   ).join("\n");
   const pick = window.prompt(
     `Move ${reg.first_name} ${reg.last_name} to which course?\n\n${lines}\n\nType the number:`
@@ -2996,6 +3159,14 @@ async function openForm() {
   $("created").classList.add("hidden");
   $("form").classList.remove("hidden");
   $("form-msg").textContent = "";
+
+  // Countries and prices both come from the database, so the form is
+  // never out of step with what checkout will charge.
+  await loadVatRates();
+  buildCountryOptions();
+  await loadPriceTable();
+  if (!editingCourse) applyStandardPrice();
+
   toggleWorkshopFields();
   updateWhenPreview();
 
@@ -3012,7 +3183,11 @@ function toggleWorkshopFields() {
   $("wrap-workshop").classList.toggle("hidden", !isWorkshop);
   $("wrap-movements").classList.toggle("hidden", !isWorkshop);
 }
-$("f-type").addEventListener("change", () => { toggleWorkshopFields(); buildSlug(); });
+$("f-type").addEventListener("change", () => {
+  toggleWorkshopFields();
+  buildSlug();
+  applyStandardPrice();
+});
 
 // Says out loud what is about to be stored, so a wrong zone is caught
 // here rather than six weeks later in a pre-course email.
@@ -3085,16 +3260,34 @@ function buildSlug() {
 $("f-city").addEventListener("blur", buildSlug);
 $("f-city").addEventListener("input", updateWhenPreview);
 
-// The country usually settles the time zone. Where it does not — the
-// US, Australia, Canada, Brazil — it says so and leaves it alone.
-$("f-country").addEventListener("input", () => {
+// Brand, level and currency all change which standard price applies.
+for (const id of ["f-brand", "f-level", "f-currency"]) {
+  $(id).addEventListener("change", applyStandardPrice);
+}
+
+// The country settles three things at once: the time zone, the
+// currency, and the VAT rate charged at checkout. Where it cannot
+// settle the zone — the US, Australia, Canada, Brazil — it says so
+// and leaves it alone.
+$("f-country").addEventListener("change", () => {
   const cc = $("f-country").value.trim().toUpperCase();
+
+  const cur = COUNTRY_CURRENCY[cc];
+  if (cur) {
+    $("f-currency").value = cur;
+    applyStandardPrice();
+  } else if (cc) {
+    $("f-price-note").className = "whenline";
+    $("f-price-note").textContent =
+      `No standard currency set for ${countryName(cc)} — choose the currency yourself.`;
+  }
+
   if (COUNTRY_TZ[cc]) {
     $("f-timezone").value = COUNTRY_TZ[cc];
   } else if (MULTI_TZ.has(cc)) {
     const el = $("when-preview");
     el.className = "whenline";
-    el.textContent = `${cc} spans several time zones — choose the one for this city from the list.`;
+    el.textContent = `${countryName(cc)} spans several time zones — choose the one for this city from the list.`;
     return;
   }
   updateWhenPreview();
