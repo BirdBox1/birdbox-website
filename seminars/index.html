@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Upcoming Seminars | BirdBox Coaching</title>
 <meta name="description" content="Every upcoming BirdBox seminar and workshop, in date order. Filter by course, country and language to find the one that suits you.">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
   :root {
     --paper: #14100F;
@@ -413,6 +414,41 @@
     }
 </style>
 <style>
+  /* The map follows the one on the level pages — CARTO dark tiles, no
+     API key — but carries every brand at once, so the pin colour is
+     what tells them apart. */
+  .sm-map-wrap { border: 1px solid var(--line); background: var(--panel); padding: 4px; }
+  #sm-map { height: 480px; width: 100%; background: #10131A; }
+  .sm-map-note { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+
+  .sm-key {
+    display: flex; flex-wrap: wrap; gap: 8px 20px;
+    margin: 12px 0 0; padding: 0; list-style: none;
+  }
+  .sm-key li {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; letter-spacing: 0.04em; color: #B7B1B3;
+  }
+  .sm-key i {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid #F2EFEF; flex: 0 0 auto;
+  }
+
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    background: #1C1719; color: var(--ink); border: 1px solid var(--line);
+  }
+  .leaflet-popup-content { margin: 12px 14px; font-family: inherit; }
+  .sm-pin__what { font-size: 15px; font-weight: 800; margin-bottom: 2px; }
+  .sm-pin__where { font-size: 13px; color: #C9C4C5; margin-bottom: 2px; }
+  .sm-pin__when { font-size: 13px; color: #C9C4C5; margin-bottom: 8px; }
+  .sm-pin__go {
+    display: inline-block; font-size: 11px; font-weight: 800;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: #ffffff; padding: 7px 14px; text-decoration: none;
+  }
+
+  @media (max-width: 620px) { #sm-map { height: 380px; } }
+
   .sm-filters {
     display: grid;
     grid-template-columns: repeat(3, 1fr) auto;
@@ -510,6 +546,15 @@
 <main class="bb-wrap">
 
   <section class="l1-section">
+    <p class="l1-label">Where We Are</p>
+    <h2 class="l1-h2">Every Seminar and Workshop on the Map</h2>
+    <p class="l1-lede">Every upcoming date across all four courses. Select a pin for the dates and to register.</p>
+    <div class="sm-map-wrap"><div id="sm-map"></div></div>
+    <p class="sm-map-note" id="sm-map-note">Loading locations&hellip;</p>
+    <ul class="sm-key" id="sm-key"></ul>
+  </section>
+
+  <section class="l1-section">
     <p class="l1-label">Find A Course</p>
     <h2 class="l1-h2">Upcoming Dates</h2>
 
@@ -552,6 +597,7 @@
   <a class="bb-footer__staff" href="/portal/">Staff Login</a>
 </footer>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
   import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -573,6 +619,18 @@
     tec: "The Endurance Course",
     twc: "The Weightlifting Course",
     birdbox: "BirdBox Coaching"
+  };
+
+  // With four brands on one map, colour is what separates them. These
+  // are the accent colours the brand pages already use — the lifted
+  // TGC red rather than the darker brand red, which disappears on a
+  // dark map.
+  const BRAND_PIN = {
+    tcc: "#4FA8DE",
+    tgc: "#D8393D",
+    tec: "#5FBE8A",
+    twc: "#D9A527",
+    birdbox: "#8A8385"
   };
 
   // Each course type has its own badge; anything unmatched falls back to
@@ -773,7 +831,7 @@
   async function load() {
     const { data, error } = await supabase
       .from("courses")
-      .select("slug, brand, type, level, language, title, venue_name, city, country, starts_at, ends_at, timezone, status, price_cents, currency")
+      .select("slug, brand, type, level, language, title, venue_name, city, country, starts_at, ends_at, timezone, status, price_cents, currency, latitude, longitude")
       .in("status", ["published", "full"])
       .in("type", ["live_seminar", "workshop"])
       .eq("archived", false)
@@ -797,6 +855,9 @@
     fillOptions(countryEl, countryValues, countryName);
     fillOptions(langEl, uniq("language"), languageName);
 
+    // Same rows as the list, so the map can never disagree with it.
+    drawMap(courses);
+
     render();
   }
 
@@ -805,6 +866,105 @@
     brandEl.value = ""; countryEl.value = ""; langEl.value = "";
     render();
   });
+
+  /* ---------- the map ---------- */
+
+  const mapNote = document.getElementById("sm-map-note");
+  let map = null;
+
+  function pinFor(brand) {
+    const colour = BRAND_PIN[brand] || BRAND_PIN.birdbox;
+    return L.divIcon({
+      className: "",
+      html: `<span style="display:block;width:16px;height:16px;border-radius:50%;` +
+            `background:${colour};border:2px solid #F2EFEF;` +
+            `box-shadow:0 0 10px ${colour}"></span>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+    });
+  }
+
+  // What the pin says it is: the level for a seminar, the workshop's
+  // own name for a workshop.
+  function pinTitle(c) {
+    const brand = BRAND_NAME[c.brand] || "BirdBox";
+    if (c.type === "workshop") return c.title || `${brand} Workshop`;
+    const lvl = String(c.level == null ? "" : c.level).replace(/\D/g, "");
+    return brand + (lvl ? ` — Level ${lvl}` : "");
+  }
+
+  function buildKey(brands) {
+    const key = document.getElementById("sm-key");
+    key.textContent = "";
+    for (const b of brands) {
+      const li = document.createElement("li");
+      const dot = document.createElement("i");
+      dot.style.background = BRAND_PIN[b] || BRAND_PIN.birdbox;
+      const label = document.createElement("span");
+      label.textContent = BRAND_NAME[b] || b;
+      li.append(dot, label);
+      key.append(li);
+    }
+  }
+
+  function drawMap(rows) {
+    // A course with no coordinates yet simply does not get a pin. The
+    // list below the map still carries it, so nothing is hidden.
+    const placed = rows.filter((c) => c.latitude != null && c.longitude != null);
+
+    if (!placed.length) {
+      mapNote.textContent = rows.length
+        ? "Dates are listed below — map locations are being added."
+        : "No dates scheduled just now. New ones are added regularly.";
+      return;
+    }
+
+    map = L.map("sm-map", { scrollWheelZoom: false }).setView([25, 10], 2);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+      attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+      maxZoom: 18,
+    }).addTo(map);
+
+    const bounds = [];
+    for (const c of placed) {
+      const colour = BRAND_PIN[c.brand] || BRAND_PIN.birdbox;
+      const where = [c.city, countryName(c.country)].filter(Boolean).join(", ");
+      const when = formatWhen(c.starts_at, c.ends_at, c.timezone);
+      const money = formatMoney(c.price_cents, c.currency);
+      const full = c.status === "full";
+
+      L.marker([c.latitude, c.longitude], { icon: pinFor(c.brand) })
+        .addTo(map)
+        .bindPopup(
+          `<div class="sm-pin__what">${escapeHtml(pinTitle(c))}</div>` +
+          `<div class="sm-pin__where">${escapeHtml(where)}</div>` +
+          `<div class="sm-pin__when">${escapeHtml(when)}` +
+          (money ? ` &middot; ${escapeHtml(money)}` : "") +
+          (full ? " &middot; Full" : "") + `</div>` +
+          `<a class="sm-pin__go" style="background:${colour}" ` +
+          `href="/c/${encodeURIComponent(c.slug)}/">${full ? "View" : "Register"}</a>`
+        );
+
+      bounds.push([c.latitude, c.longitude]);
+    }
+
+    if (bounds.length === 1) map.setView(bounds[0], 5);
+    else map.fitBounds(bounds, { padding: [40, 40] });
+
+    buildKey([...new Set(placed.map((c) => c.brand))].sort());
+
+    const n = placed.length;
+    const missing = rows.length - n;
+    mapNote.textContent =
+      `${n} location${n === 1 ? "" : "s"} on the map` +
+      (missing ? ` — ${missing} more listed below` : "") +
+      ". Select a pin for dates and registration.";
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
 
   load();
 </script>
