@@ -827,6 +827,12 @@
             </select>
           </div>
         </div>
+        <div class="field hidden" id="wrap-state">
+          <label for="f-state">State or province <span class="hint" id="f-state-hint">sets the time zone</span></label>
+          <select id="f-state">
+            <option value="">Choose…</option>
+          </select>
+        </div>
         <div class="field">
           <label>Map pin <span class="hint">puts this course on the seminar maps</span></label>
           <div class="admin-row" style="margin-bottom:.5rem">
@@ -1338,6 +1344,96 @@ const COUNTRY_TZ = {
   ST: "Africa/Sao_Tome",
   UK: "Europe/London",
 };
+
+// Where a state settles the time zone. Only the three countries we
+// actually run courses in — anywhere else in MULTI_TZ still asks for
+// the zone directly, which is rare enough to be reasonable.
+//
+// The code is what gets stored, because "Jacksonville, FL" is what an
+// American expects to read, not "Jacksonville, United States".
+const STATES = {
+  US: [
+    ["AL","Alabama","America/Chicago"], ["AK","Alaska","America/Anchorage"],
+    ["AZ","Arizona","America/Phoenix"], ["AR","Arkansas","America/Chicago"],
+    ["CA","California","America/Los_Angeles"], ["CO","Colorado","America/Denver"],
+    ["CT","Connecticut","America/New_York"], ["DC","District of Columbia","America/New_York"],
+    ["DE","Delaware","America/New_York"], ["FL","Florida","America/New_York"],
+    ["GA","Georgia","America/New_York"], ["HI","Hawaii","Pacific/Honolulu"],
+    ["IA","Iowa","America/Chicago"], ["ID","Idaho","America/Boise"],
+    ["IL","Illinois","America/Chicago"], ["IN","Indiana","America/Indiana/Indianapolis"],
+    ["KS","Kansas","America/Chicago"], ["KY","Kentucky","America/New_York"],
+    ["LA","Louisiana","America/Chicago"], ["MA","Massachusetts","America/New_York"],
+    ["MD","Maryland","America/New_York"], ["ME","Maine","America/New_York"],
+    ["MI","Michigan","America/Detroit"], ["MN","Minnesota","America/Chicago"],
+    ["MO","Missouri","America/Chicago"], ["MS","Mississippi","America/Chicago"],
+    ["MT","Montana","America/Denver"], ["NC","North Carolina","America/New_York"],
+    ["ND","North Dakota","America/Chicago"], ["NE","Nebraska","America/Chicago"],
+    ["NH","New Hampshire","America/New_York"], ["NJ","New Jersey","America/New_York"],
+    ["NM","New Mexico","America/Denver"], ["NV","Nevada","America/Los_Angeles"],
+    ["NY","New York","America/New_York"], ["OH","Ohio","America/New_York"],
+    ["OK","Oklahoma","America/Chicago"], ["OR","Oregon","America/Los_Angeles"],
+    ["PA","Pennsylvania","America/New_York"], ["RI","Rhode Island","America/New_York"],
+    ["SC","South Carolina","America/New_York"], ["SD","South Dakota","America/Chicago"],
+    ["TN","Tennessee","America/Chicago"], ["TX","Texas","America/Chicago"],
+    ["UT","Utah","America/Denver"], ["VA","Virginia","America/New_York"],
+    ["VT","Vermont","America/New_York"], ["WA","Washington","America/Los_Angeles"],
+    ["WI","Wisconsin","America/Chicago"], ["WV","West Virginia","America/New_York"],
+    ["WY","Wyoming","America/Denver"],
+  ],
+  CA: [
+    ["AB","Alberta","America/Edmonton"], ["BC","British Columbia","America/Vancouver"],
+    ["MB","Manitoba","America/Winnipeg"], ["NB","New Brunswick","America/Moncton"],
+    ["NL","Newfoundland and Labrador","America/St_Johns"],
+    ["NS","Nova Scotia","America/Halifax"], ["NT","Northwest Territories","America/Yellowknife"],
+    ["NU","Nunavut","America/Iqaluit"], ["ON","Ontario","America/Toronto"],
+    ["PE","Prince Edward Island","America/Halifax"], ["QC","Quebec","America/Toronto"],
+    ["SK","Saskatchewan","America/Regina"], ["YT","Yukon","America/Whitehorse"],
+  ],
+  AU: [
+    ["ACT","Australian Capital Territory","Australia/Sydney"],
+    ["NSW","New South Wales","Australia/Sydney"],
+    ["NT","Northern Territory","Australia/Darwin"],
+    ["QLD","Queensland","Australia/Brisbane"],
+    ["SA","South Australia","Australia/Adelaide"],
+    ["TAS","Tasmania","Australia/Hobart"],
+    ["VIC","Victoria","Australia/Melbourne"],
+    ["WA","Western Australia","Australia/Perth"],
+  ],
+};
+
+// Texas and Florida both have a second zone in their far corners, and
+// Indiana has several. The listed zone covers where the population is;
+// the picker is still there to override it.
+const STATE_LABEL = { US: "State", CA: "Province or territory", AU: "State or territory" };
+
+function buildStateOptions(cc) {
+  const wrap = document.getElementById("wrap-state");
+  const sel = document.getElementById("f-state");
+  const rows = STATES[cc];
+
+  wrap.classList.toggle("hidden", !rows);
+  if (!rows) { sel.innerHTML = '<option value="">Choose…</option>'; return; }
+
+  document.querySelector('label[for="f-state"]').childNodes[0].nodeValue =
+    (STATE_LABEL[cc] || "State") + " ";
+
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Choose…</option>';
+  for (const [code, name] of rows) {
+    const o = document.createElement("option");
+    o.value = code;
+    o.textContent = name;
+    sel.append(o);
+  }
+  if (rows.some(([c]) => c === current)) sel.value = current;
+}
+
+function zoneForState(cc, state) {
+  const rows = STATES[cc];
+  if (!rows) return null;
+  const hit = rows.find(([c]) => c === state);
+  return hit ? hit[2] : null;
+}
 
 // These genuinely span more than one zone, so a human picks.
 const MULTI_TZ = new Set(["US", "CA", "AU", "BR", "MX", "RU", "ID", "KZ", "AR", "CD", "GL", "EC", "FM", "PF", "PG", "MN", "KI", "MH"]);
@@ -2692,6 +2788,8 @@ function fillForm(c) {
   set("f-summary", c.summary); set("f-description", c.description);
   set("f-venue", c.venue_name); set("f-address", c.address);
   set("f-city", c.city); set("f-country", (c.country || "").toUpperCase());
+  buildStateOptions((c.country || "").toUpperCase());
+  set("f-state", (c.state || "").toUpperCase());
   set("f-lat", c.latitude); set("f-lng", c.longitude);
   set("f-timezone", c.timezone); set("f-slug", c.slug);
   set("f-capacity", c.capacity); set("f-currency", c.currency);
@@ -4200,6 +4298,16 @@ $("f-country").addEventListener("change", () => {
       `No standard currency set for ${countryName(cc)} — choose the currency yourself.`;
   }
 
+  // A state picker where one settles the zone, hidden everywhere else.
+  buildStateOptions(cc);
+  if (STATES[cc]) {
+    const el = $("when-preview");
+    el.className = "whenline";
+    el.textContent = `Choose the ${(STATE_LABEL[cc] || "state").toLowerCase()} — it sets the time zone.`;
+    return;
+  }
+  $("f-state").value = "";
+
   if (COUNTRY_TZ[cc]) {
     $("f-timezone").value = COUNTRY_TZ[cc];
   } else if (cc) {
@@ -4215,6 +4323,16 @@ $("f-country").addEventListener("change", () => {
     return;
   }
   updateWhenPreview();
+});
+
+$("f-state").addEventListener("change", () => {
+  const cc = $("f-country").value.trim().toUpperCase();
+  const tz = zoneForState(cc, $("f-state").value);
+  // A handful of states straddle two zones, so this is a starting
+  // point rather than the last word — the picker stays editable.
+  if (tz) $("f-timezone").value = tz;
+  updateWhenPreview();
+  buildSlug();
 });
 
 for (const id of ["f-date", "f-starttime", "f-enddate", "f-endtime", "f-timezone"]) {
@@ -4297,6 +4415,7 @@ async function saveCourse() {
       address: $("f-address").value.trim() || null,
       city: city || null,
       country: $("f-country").value.trim().toUpperCase() || null,
+      state: $("f-state").value.trim().toUpperCase() || null,
       starts_at: zonedToInstant(start, $("f-starttime").value || "09:00", tz).toISOString(),
       ends_at: $("f-endtime").value
         ? zonedToInstant($("f-enddate").value || start, $("f-endtime").value, tz).toISOString()
@@ -4371,8 +4490,10 @@ $("copylink").addEventListener("click", async () => {
 
 $("another").addEventListener("click", () => {
   ["f-summary","f-description","f-workshop","f-movements","f-venue","f-address",
-   "f-city","f-country","f-date","f-enddate","f-price","f-deposit","f-slug","f-adminnotes"]
+   "f-city","f-country","f-state","f-date","f-enddate","f-price","f-deposit",
+   "f-slug","f-adminnotes"]
     .forEach((id) => { $(id).value = ""; });
+  $("wrap-state").classList.add("hidden");
   $("f-image").value = "";
   $("thumb").style.display = "none";
   openForm();
