@@ -259,11 +259,13 @@
         ctx.fillText(line.label, W / 2, y);
         y += 86;
       }
+      // The course is the headline, so it starts biggest. Each line
+      // shrinks only as far as it needs to in order to fit.
       ctx.fillStyle = valueColour;
-      const size = fitFont(line.value, 700, 96, 46, W - 140);
+      const size = fitFont(line.value, 700, line.size, line.min, W - 140);
       ctx.font = `700 ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
       ctx.fillText(line.value, W / 2, y);
-      y += 150;
+      y += Math.round(size * 0.62) + 96;
     }
 
     // Logos are dark lettering, so on the light version they get the
@@ -326,9 +328,9 @@
     const third = isWorkshop ? (course.workshop_focus || "Workshop") : "Completed";
 
     lines = [
-      { label: "Course", value: courseName },
-      { label: "Location", value: place || "\u2014" },
-      { label: "", value: third },
+      { label: "Course", value: courseName, size: 108, min: 56 },
+      { label: "Location", value: place || "\u2014", size: 72, min: 42 },
+      { label: "", value: third, size: 88, min: 44 },
     ];
 
     logos = isWorkshop
