@@ -2908,13 +2908,14 @@ async function loadWelcomes(courseId) {
 // The coach writes the email; this gives them somewhere to start.
 // Everything here is editable before it sends.
 function welcomeDraft(course, reg) {
-  const where = course.city ? ` in ${course.city}` : "";
+  // The title already carries the city — "TCC Level 1 — Munich" — so
+  // adding it again reads as "Munich in Munich".
   const me_ = (me && me.full_name) || "your lead coach";
   return {
     subject: `Welcome to ${course.title} — I will be your lead coach`,
     body:
       `Hey {{first_name}},\n\n` +
-      `It's great to see that you have registered for the ${course.title}${where}. ` +
+      `It's great to see that you have registered for the ${course.title}. ` +
       `My name is ${me_}, and I will be your lead coach for the seminar.\n\n` +
       `I look forward to meeting you on that weekend, and if you have any ` +
       `questions in the meantime, please feel free to reach out to me.\n\n` +
