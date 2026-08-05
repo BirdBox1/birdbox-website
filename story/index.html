@@ -110,6 +110,7 @@
     cursor: pointer;
   }
 
+  .whenline { line-height: 1.5; }
   .how {
     font-size: 14px;
     line-height: 1.65;
@@ -152,7 +153,11 @@
       <button type="button" id="pick-dark">For a light photo</button>
     </div>
 
-    <a class="save" id="save" download="birdbox-story.png">Save the image</a>
+    <button class="save" id="save" type="button">Save the image</button>
+    <p class="whenline" id="save-note"
+       style="font-size:13px;color:#8A8385;margin:10px 0 0;text-align:center">
+      If nothing happens, press and hold the image above and choose Save.
+    </p>
 
     <div class="how">
       <b>How to use it</b>
@@ -303,9 +308,38 @@
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
 
-    const url = canvas.toDataURL("image/png");
-    document.getElementById("shot").src = url;
-    document.getElementById("save").href = url;
+    document.getElementById("shot").src = canvas.toDataURL("image/png");
+  }
+
+  // iOS Safari will not save a data URL from a download link — it opens
+  // a dialog and then does nothing. The share sheet is how iOS expects
+  // an image to be saved, so that is tried first, with a real file
+  // download as the fallback on desktop.
+  function saveImage() {
+    const name = (document.getElementById("save").dataset.name || "birdbox-story") + ".png";
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      const file = new File([blob], name, { type: "image/png" });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] });
+          return;
+        } catch (err) {
+          // Cancelled, or refused — fall through to the download.
+        }
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }, "image/png");
   }
 
   function fail(text) {
@@ -360,13 +394,12 @@
     document.getElementById("state").classList.add("hidden");
     document.getElementById("tool").classList.remove("hidden");
 
-    document.getElementById("save").setAttribute(
-      "download",
-      `birdbox-${slug}.png`
-    );
+    document.getElementById("save").dataset.name = `birdbox-${slug}`;
 
     draw();
   }
+
+  document.getElementById("save").addEventListener("click", saveImage);
 
   for (const [id, value] of [["pick-light", "light"], ["pick-dark", "dark"]]) {
     document.getElementById(id).addEventListener("click", () => {
