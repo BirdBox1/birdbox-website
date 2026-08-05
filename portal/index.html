@@ -239,6 +239,7 @@
   .pill.bad  { border-color: var(--bad); color: var(--bad); font-weight: 650; }
   .pill.draft{ border-color: var(--muted); color: var(--muted); }
   .pill.on   { border-color: var(--good); color: var(--good); }
+  .pill.done { background: var(--good); border-color: var(--good); color: #fff; font-weight: 700; }
   .pill.low  { background: var(--warn); border-color: var(--warn); color: #fff; font-weight: 700; }
   .pill.lead { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 700; }
   .pill.nolead { border-color: #c9a227; color: #85670a; }
@@ -1715,7 +1716,10 @@ async function loadCourses() {
 
     const el = document.createElement("div");
     el.className = "card" + (isPast(c) ? " is-archived" : "");
-    el.style.borderLeftColor = isLow ? "#b4610f" : t.colour;
+    // A submitted course reads as finished business rather than a
+    // brand colour among the live ones.
+    el.style.borderLeftColor = c.completed_at ? "var(--good)"
+      : isLow ? "#b4610f" : t.colour;
     el.innerHTML = `
       <button class="course" type="button">
         <span class="icon"><img alt=""></span>
@@ -1757,7 +1761,10 @@ async function loadCourses() {
       add("no lead", due ? "nolead due" : "nolead");
     }
     if (isLow) add(`${taken} booked · ${days}d away`, "low");
-    if (c.status === "complete") add("completed", "draft");
+    // "Completed" means the coach pressed submit and the certificates
+    // went out — not simply that the date has passed.
+    if (c.completed_at) add("completed", "done");
+    else if (c.status === "complete") add("ran — not submitted", "warn");
     else if (c.status === "cancelled") add("cancelled", "bad");
     else if (c.archived) add("archived", "draft");
     if (c.status === "full") add("full", "warn");
@@ -1945,7 +1952,9 @@ async function openCourse(course) {
     [course.city, countryName(course.country)].filter(Boolean).join(", "),
     myRole === "lead_coach" ? "You are lead coach"
       : myRole === "assistant" ? "You are assisting" : null,
-    course.status === "complete" ? "Completed"
+    course.completed_at
+      ? "Completed — certificates sent " + fmtWhen(course.completed_at)
+      : course.status === "complete" ? "Ran — not yet submitted"
       : course.status === "cancelled" ? "Cancelled"
       : course.archived ? "Archived"
       : course.status === "draft" ? "Draft — not on sale" : null,
