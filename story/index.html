@@ -254,7 +254,7 @@
     // Instagram lays its own reply bar over roughly the bottom tenth of
     // a story, so the last line sits above that rather than flush with
     // the edge where it would be covered.
-    const BOTTOM_Y = 1690;
+    const BOTTOM_Y = 1740;
 
     let y = 700;
     for (const line of lines.filter((l) => !l.bottom)) {
@@ -273,28 +273,28 @@
       y += Math.round(size * 0.62) + 96;
     }
 
-    // Logos are dark lettering, so on the light version they get the
-    // same white halo the text does and stay readable on a dark photo.
+    // The foot of the story: logos on the bottom line, the closing word
+    // immediately above them. Built upwards from BOTTOM_Y so the two
+    // stay together whatever size the logos are.
     const usable = logos.filter(Boolean);
+    const logoH = usable.length === 1 ? 132 : 110;
+
     if (usable.length) {
       ctx.shadowColor = light ? "rgba(255,255,255,0.75)" : "rgba(0,0,0,0.28)";
       ctx.shadowBlur = light ? 30 : 18;
       ctx.shadowOffsetY = 0;
 
-      const H = usable.length === 1 ? 130 : 108;
       const gap = 56;
-      const widths = usable.map((img) => (img.width / img.height) * H);
+      const widths = usable.map((img) => (img.width / img.height) * logoH);
       const total = widths.reduce((a, b) => a + b, 0) + gap * (usable.length - 1);
       let x = (W - total) / 2;
-      const top = y + 40;
+      const top = BOTTOM_Y - logoH;
       usable.forEach((img, i) => {
-        ctx.drawImage(img, x, top, widths[i], H);
+        ctx.drawImage(img, x, top, widths[i], logoH);
         x += widths[i] + gap;
       });
     }
 
-    // The closing line is pinned to the foot of the story, well clear
-    // of the block above it.
     const last = lines.find((l) => l.bottom);
     if (last) {
       ctx.shadowColor = light ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.65)";
@@ -303,7 +303,8 @@
       ctx.fillStyle = valueColour;
       const size = fitFont(last.value, 700, last.size, last.min, W - 140);
       ctx.font = `700 ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
-      ctx.fillText(last.value, W / 2, BOTTOM_Y);
+      const above = usable.length ? BOTTOM_Y - logoH - 56 : BOTTOM_Y;
+      ctx.fillText(last.value, W / 2, above);
     }
 
     ctx.shadowColor = "transparent";
