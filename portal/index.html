@@ -1744,7 +1744,7 @@ async function loadCourses() {
   alertBox.innerHTML = "";
   list.innerHTML = '<p class="empty">Loading…</p>';
 
-  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, status, slug, archived, grants_online_course, completed_at";
+  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, status, slug, archived, grants_online_course, completed_at, issues_certificate";
 
   let all = [];
   if (isAdmin()) {
@@ -3480,12 +3480,28 @@ function showCertBar(course) {
   const btn = $("cert-open");
   const state = $("cert-state");
 
-  if (course.completed_at && done.length === attended.length && attended.length) {
+  // TCC Level 2 and anything else flagged this way issues its
+  // certificate from the online course after the exam, so this button
+  // only closes the seminar out.
+  const noCert = course.issues_certificate === false;
+
+  if (course.completed_at && (noCert || (done.length === attended.length && attended.length))) {
     btn.disabled = true;
-    btn.textContent = "Seminar submitted";
-    state.textContent =
-      `Submitted ${fmtWhen(course.completed_at)} — ${done.length} certificate` +
-      `${done.length === 1 ? "" : "s"} sent.`;
+    btn.textContent = noCert ? "Seminar completed" : "Seminar submitted";
+    state.textContent = noCert
+      ? `Completed ${fmtWhen(course.completed_at)}. Certificates are issued by the online course.`
+      : `Submitted ${fmtWhen(course.completed_at)} — ${done.length} certificate` +
+        `${done.length === 1 ? "" : "s"} sent.`;
+    return;
+  }
+
+  if (noCert) {
+    btn.disabled = attended.length === 0;
+    btn.textContent = "Complete seminar";
+    state.textContent = attended.length === 0
+      ? "Tick who attended first."
+      : `${attended.length} of ${active.length} marked as attended. ` +
+        "Certificates come from the online course after the exam.";
     return;
   }
 
@@ -3503,11 +3519,17 @@ function openCertDialog(course) {
   const attended = active.filter((r) => r.attended);
   const todo = attended.filter((r) => !r.certificate_sent_at);
   const missing = active.filter((r) => !r.attended);
+  const noCert = course.issues_certificate === false;
 
+  $("cert-h").textContent = noCert ? "Complete seminar" : "Complete and submit seminar";
   $("cert-what").innerHTML = "";
   $("cert-what").append(document.createTextNode(
-    `${todo.length} certificate${todo.length === 1 ? "" : "s"} will be generated and emailed. ` +
-    "Each one carries a unique reference and cannot be unsent."
+    noCert
+      ? `This marks the seminar complete for ${attended.length} participant` +
+        `${attended.length === 1 ? "" : "s"}. No certificate is sent from here — ` +
+        "this course issues its certificate through the online course once the exam is passed."
+      : `${todo.length} certificate${todo.length === 1 ? "" : "s"} will be generated and emailed. ` +
+        "Each one carries a unique reference and cannot be unsent."
   ));
 
   // Anyone unticked is about to be left out, which is the mistake worth
@@ -3531,6 +3553,20 @@ function openCertDialog(course) {
   // to spot a lowercase surname or a typo.
   const who = $("cert-who");
   who.innerHTML = "";
+  if (noCert) {
+    who.classList.add("hidden");
+  } else {
+    who.classList.remove("hidden");
+  }
+  if (noCert) {
+    $("cert-msg").textContent = "";
+    $("cert-msg").className = "msg";
+    $("cert-go").disabled = attended.length === 0;
+    $("cert-go").textContent = "Mark as complete";
+    $("certwrap").classList.remove("hidden");
+    return;
+  }
+  $("cert-go").textContent = "Send certificates";
   if (!todo.length) {
     who.textContent = "Everyone who attended already has their certificate.";
   } else {
@@ -3567,14 +3603,21 @@ function wireCertificates() {
     if (!currentCourse) return;
     const msg = $("cert-msg");
 
+    const noCert = currentCourse.issues_certificate === false;
+
     if (!window.confirm(
-      `Send certificates for "${currentCourse.title}"?\n\n` +
-      "This emails each person their certificate as a PDF. It cannot be undone."
+      noCert
+        ? `Mark "${currentCourse.title}" as complete?\n\n` +
+          "No certificates are sent — they come from the online course after the exam."
+        : `Send certificates for "${currentCourse.title}"?\n\n` +
+          "This emails each person their certificate as a PDF. It cannot be undone."
     )) return;
 
     $("cert-go").disabled = true;
     msg.className = "msg";
-    msg.textContent = "Generating and sending — this can take a moment…";
+    msg.textContent = noCert
+      ? "Marking complete…"
+      : "Generating and sending — this can take a moment…";
 
     try {
       const { data: { session } } = await db.auth.getSession();
@@ -3592,9 +3635,12 @@ function wireCertificates() {
       if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
 
       msg.className = out.failed ? "msg err" : "msg ok";
-      msg.textContent = out.failed
-        ? `${out.sent} sent, ${out.failed} failed: ${(out.failures || []).join(", ")}.`
-        : `${out.sent} certificate${out.sent === 1 ? "" : "s"} sent.`;
+      msg.textContent = out.completedOnly
+        ? `Seminar marked complete for ${out.attended} participant` +
+          `${out.attended === 1 ? "" : "s"}.`
+        : out.failed
+          ? `${out.sent} sent, ${out.failed} failed: ${(out.failures || []).join(", ")}.`
+          : `${out.sent} certificate${out.sent === 1 ? "" : "s"} sent.`;
 
       setTimeout(() => {
         $("certwrap").classList.add("hidden");
