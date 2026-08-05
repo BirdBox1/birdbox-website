@@ -21,13 +21,20 @@ const ROOT = BASE.replace(/\/v2$/, "");
 const CLIENT_ID = process.env.LEARNWORLDS_CLIENT_ID || "";
 const CLIENT_SECRET = process.env.LEARNWORLDS_CLIENT_SECRET || "";
 
-const clip = (s) => String(s || "").slice(0, 400);
+// Trim, and blank out any email addresses, so a log pasted into a
+// chat window cannot leak a real customer's details.
+const clip = (s) =>
+  String(s || "")
+    .replace(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi, "[email removed]")
+    .slice(0, 400);
 
 export default async (req) => {
   const url = new URL(req.url);
   const email = (url.searchParams.get("email") || "").trim();
   const product = (url.searchParams.get("product") || "").trim();
   const type = (url.searchParams.get("type") || "course").trim();
+  const first = (url.searchParams.get("first") || "").trim();
+  const last = (url.searchParams.get("last") || "").trim();
 
   if (!email || !product) {
     return json({ ok: false, error: "Add ?email=...&product=...&type=course" }, 400);
@@ -85,10 +92,13 @@ export default async (req) => {
   // ---- 1. find the user ----------------------------------------
   let userId = null;
 
+  // Path first: a 404 "User not found" rather than "Invalid object ID"
+  // suggests this is a real route. The query and search parameters are
+  // known NOT to filter — they return the whole user list — so any row
+  // they hand back is checked against the address before it is used.
   const lookups = [
-    ["lookup by query", "GET", `/users?email=${encodeURIComponent(email)}`],
     ["lookup by path", "GET", `/users/${encodeURIComponent(email)}`],
-    ["lookup by search", "GET", `/users?search=${encodeURIComponent(email)}`],
+    ["lookup by query", "GET", `/users?email=${encodeURIComponent(email)}`],
   ];
 
   for (const [label, method, path] of lookups) {
@@ -107,7 +117,9 @@ export default async (req) => {
   if (!userId) {
     const r = await attempt("create user", "POST", "/users", {
       email,
-      username: email.split("@")[0],
+      username: [first, last].filter(Boolean).join(" ") || email.split("@")[0],
+      first_name: first || undefined,
+      last_name: last || undefined,
       send_registration_email: true,
     });
     if (r.ok && r.parsed) {
@@ -126,25 +138,23 @@ export default async (req) => {
   }
 
   // ---- 3. enrol at no charge -----------------------------------
+  // Exactly these five keys and no others. A sixth key is rejected
+  // with a 422 — that is what failed the previous run.
   const enrolBody = {
     productId: product,
     productType: type,
     justification: "Included free with the TCC Level 2 live seminar",
     price: 0,
     send_enrollment_email: true,
-    sendEnrollmentEmail: true,
   };
 
-  const enrolPaths = [
-    ["enrol nested", "POST", `/users/${encodeURIComponent(userId)}/enrollment`],
-    ["enrol nested plural", "POST", `/users/${encodeURIComponent(userId)}/enrollments`],
-  ];
-
-  let enrolled = false;
-  for (const [label, method, path] of enrolPaths) {
-    const r = await attempt(label, method, path, enrolBody);
-    if (r.ok) { enrolled = true; break; }
-  }
+  const r = await attempt(
+    "enrol",
+    "POST",
+    `/users/${encodeURIComponent(userId)}/enrollment`,
+    enrolBody
+  );
+  const enrolled = r.ok;
 
   return json({
     ok: enrolled,
