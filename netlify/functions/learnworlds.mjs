@@ -160,12 +160,21 @@ export async function grantOnlineCourse(supabase, {
     const created = !userId;
     if (!userId) userId = await createUser({ email, firstName, lastName });
 
+    // A brand new account already gets LearnWorlds' password email,
+    // and setting a password triggers a confirmation after it — so a
+    // third email naming the course is noise, and lands before they
+    // can even log in.
+    //
+    // An account that already exists gets neither of those, so the
+    // enrolment email is the only thing that tells them a new course
+    // has appeared. That covers repeat customers and every manual
+    // grant made from the portal.
     const res = await call("POST", `/users/${encodeURIComponent(userId)}/enrollment`, {
       productId: product.product_id,
       productType: product.product_type || "course",
       justification: justification || "Included free with the live seminar",
       price: 0,
-      send_enrollment_email: true,
+      send_enrollment_email: !created,
     });
 
     if (!res.ok) {
