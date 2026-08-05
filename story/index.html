@@ -1,398 +1,174 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Share your seminar | BirdBox Coaching</title>
-<meta name="description" content="Download a transparent overlay for your Instagram story to share the course you have just completed.">
-<meta name="robots" content="noindex">
-<style>
-  :root {
-    --paper: #14100F;
-    --panel: #1C1719;
-    --ink: #F2EFEF;
-    --muted: #8A8385;
-    --line: #342F31;
-    --tcc: #4FA8DE;
-    --accentText: #6FB9E8;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--paper); }
-  body {
-    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
-    color: var(--ink);
-    -webkit-font-smoothing: antialiased;
-    padding: 32px 20px 64px;
-  }
-  .wrap { max-width: 620px; margin: 0 auto; }
+// netlify/functions/story-invite.mjs
+//
+// Sends each participant the link to their story overlay 30 minutes
+// before their course is due to finish, while everyone is still in
+// the room together.
+//
+// Runs every ten minutes and looks for courses inside the last half
+// hour, so a course is caught within ten minutes of its mark. The
+// window is a full 30 minutes wide, which means a run that fails is
+// picked up by the next one rather than missed entirely.
+//
+// Every send is written to course_emails with kind 'story', so nobody
+// is emailed twice and there is a record of what went out.
 
-  .mark { height: 56px; width: auto; display: block; margin: 0 auto 28px; }
+import { createClient } from "@supabase/supabase-js";
 
-  h1 {
-    font-size: clamp(24px, 6vw, 34px);
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: -0.01em;
-    line-height: 1.1;
-    margin: 0 0 10px;
-    text-align: center;
-  }
-  .lede {
-    font-size: 15px;
-    line-height: 1.6;
-    color: #C9C4C5;
-    margin: 0 0 26px;
-    text-align: center;
-  }
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  { auth: { persistSession: false } }
+);
 
-  .state {
-    border: 1px solid var(--line);
-    background: var(--panel);
-    padding: 22px;
-    text-align: center;
-    color: var(--muted);
-    font-size: 15px;
-  }
+const OFFICE = "info@birdboxcoaching.com";
+const FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
+const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.app")
+  .replace(/\/+$/, "");
 
-  /* the overlay, shown on a checkerboard so the transparency is
-     obvious before they download it */
-  .invite {
-    font-size: 15px;
-    line-height: 1.65;
-    color: #C9C4C5;
-    margin: 0 0 20px;
-    padding: 16px 18px;
-    border-left: 3px solid var(--tcc);
-    background: var(--panel);
-  }
-  .preview {
-    border: 1px solid var(--line);
-    background-color: #6b6b6b;
-    background-image:
-      linear-gradient(45deg, #555 25%, transparent 25%),
-      linear-gradient(-45deg, #555 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #555 75%),
-      linear-gradient(-45deg, transparent 75%, #555 75%);
-    background-size: 22px 22px;
-    background-position: 0 0, 0 11px, 11px -11px, -11px 0;
-    padding: 10px;
-  }
-  .preview img { width: 100%; height: auto; display: block; }
+const MINUTES_BEFORE_END = 30;
 
-  .save {
-    display: block;
-    margin-top: 18px;
-    width: 100%;
-    text-align: center;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 16px;
-    background: var(--tcc);
-    color: #0C1116;
-    border: 1px solid var(--tcc);
-    text-decoration: none;
-    cursor: pointer;
-  }
+export default async () => {
+  try {
+    const now = new Date();
+    const windowEnd = new Date(now.getTime() + MINUTES_BEFORE_END * 60000);
 
-  .whenline { line-height: 1.5; }
-  .how {
-    font-size: 14px;
-    line-height: 1.65;
-    color: #B7B1B3;
-    margin: 22px 0 0;
-    padding-top: 20px;
-    border-top: 1px solid var(--line);
-  }
-  .how b { color: var(--ink); font-weight: 650; }
-  .how ol { margin: 10px 0 0; padding-left: 20px; }
-  .how li { margin-bottom: 6px; }
-
-  .foot {
-    text-align: center;
-    font-size: 13px;
-    color: #756F71;
-    margin-top: 34px;
-  }
-  .foot a { color: #8A8385; }
-  .hidden { display: none !important; }
-</style>
-</head>
-<body>
-
-<div class="wrap">
-  <img class="mark" src="/brand/birdbox-mark.png" alt="BirdBox Coaching">
-
-  <h1 id="head">Share your course</h1>
-  <p class="lede" id="lede">Loading&hellip;</p>
-
-  <div id="state" class="state">Finding your course&hellip;</div>
-
-  <div id="tool" class="hidden">
-    <p class="invite">
-      Take a photo with friends you have made, friends you may have attended
-      with, your coaching staff, or an activity from your learning experience.
-    </p>
-
-    <div class="preview">
-      <img id="shot" alt="Your story overlay">
-    </div>
-
-    <button class="save" id="save" type="button">Save the image</button>
-    <p class="whenline" id="save-note"
-       style="font-size:13px;color:#8A8385;margin:10px 0 0;text-align:center">
-      If nothing happens, press and hold the image above and choose Save.
-    </p>
-
-    <div class="how">
-      <b>How to use it</b>
-      <ol>
-        <li>Save the image — it has a transparent background.</li>
-        <li>Open Instagram and start a story with your own photo.</li>
-        <li>Add this image as a sticker on top, and size it to fit.</li>
-      </ol>
-      The text has a soft shadow behind it, so it stays readable whether your
-      photo is dark or bright.
-    </div>
-  </div>
-
-  <p class="foot">
-    <a href="/">BirdBox Coaching</a>
-  </p>
-</div>
-
-<canvas id="canvas" width="1080" height="1920" style="display:none"></canvas>
-
-<script type="module">
-  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-  const supabase = createClient(
-    "https://yvdmazpxtpuvidlcifnq.supabase.co",
-    "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
-  );
-
-  const BRAND_NAME = {
-    tcc: "The Coaches Course",
-    tgc: "The Gymnastics Course",
-    tec: "The Endurance Course",
-    twc: "The Weightlifting Course",
-    birdbox: "BirdBox Coaching",
-  };
-
-  // Nothing on this overlay is personal — course, place and, for a
-  // workshop, its name. All of it is already public, so the page needs
-  // no login and the same link works for everyone on the course.
-  const REGION = (() => {
-    try { return new Intl.DisplayNames(["en"], { type: "region" }); }
-    catch (e) { return null; }
-  })();
-
-  function countryName(value) {
-    const raw = String(value == null ? "" : value).trim();
-    if (!raw) return "";
-    const iso = raw.toUpperCase() === "UK" ? "GB" : raw.toUpperCase();
-    if (!/^[A-Z]{2}$/.test(iso) || !REGION) return raw;
-    try {
-      const n = REGION.of(iso);
-      return n && n !== iso ? n : iso;
-    } catch (e) { return iso; }
-  }
-
-  const canvas = document.getElementById("canvas");
-  const ctx = canvas.getContext("2d");
-  let lines = [];
-  let logos = [];
-  // White text with a soft shadow, always. It reads on a dark gym and
-  // on bright sunlight alike, so a second version was one choice too
-  // many — and the dark-text one was rendering with a white
-  // background on iOS rather than a transparent one.
-  const light = true;
-
-  function loadImage(src) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = src;
-    });
-  }
-
-  // Course titles run long, so the value shrinks until it fits rather
-  // than spilling off the edge of the story.
-  function fitFont(text, weight, start, min, maxWidth) {
-    let size = start;
-    for (;;) {
-      ctx.font = `${weight} ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
-      if (ctx.measureText(text).width <= maxWidth || size <= min) return size;
-      size -= 2;
-    }
-  }
-
-  function draw() {
-    const W = canvas.width;
-    const valueColour = "#ffffff";
-
-    ctx.clearRect(0, 0, W, canvas.height);
-    ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-
-    // A soft shadow means the text survives a photo that is busier or
-    // brighter than expected, without putting a panel behind it.
-    ctx.shadowColor = light ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.65)";
-    ctx.shadowBlur = 26;
-    ctx.shadowOffsetY = light ? 2 : 0;
-
-    // Instagram lays its own reply bar over roughly the bottom tenth of
-    // a story, so the last line sits above that rather than flush with
-    // the edge where it would be covered.
-    const BOTTOM_Y = 1740;
-
-    let y = 840;
-    for (const line of lines.filter((l) => !l.bottom)) {
-      // The course is the headline, so it starts biggest. Each line
-      // shrinks only as far as it needs to in order to fit.
-      ctx.fillStyle = valueColour;
-      const size = fitFont(line.value, 700, line.size, line.min, W - 140);
-      ctx.font = `700 ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
-      ctx.fillText(line.value, W / 2, y);
-      y += Math.round(size * 0.62) + 78;
-    }
-
-    // The foot of the story: logos on the bottom line, the closing word
-    // immediately above them. Built upwards from BOTTOM_Y so the two
-    // stay together whatever size the logos are.
-    const usable = logos.filter(Boolean);
-    const logoH = usable.length === 1 ? 176 : 148;
-
-    if (usable.length) {
-      ctx.shadowColor = light ? "rgba(255,255,255,0.75)" : "rgba(0,0,0,0.28)";
-      ctx.shadowBlur = light ? 30 : 18;
-      ctx.shadowOffsetY = 0;
-
-      const gap = 56;
-      const widths = usable.map((img) => (img.width / img.height) * logoH);
-      const total = widths.reduce((a, b) => a + b, 0) + gap * (usable.length - 1);
-      let x = (W - total) / 2;
-      const top = BOTTOM_Y - logoH;
-      usable.forEach((img, i) => {
-        ctx.drawImage(img, x, top, widths[i], logoH);
-        x += widths[i] + gap;
-      });
-    }
-
-    const last = lines.find((l) => l.bottom);
-    if (last) {
-      ctx.shadowColor = light ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.65)";
-      ctx.shadowBlur = 26;
-      ctx.shadowOffsetY = light ? 2 : 0;
-      ctx.fillStyle = valueColour;
-      const size = fitFont(last.value, 700, last.size, last.min, W - 140);
-      ctx.font = `700 ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
-      const above = usable.length ? BOTTOM_Y - logoH - 56 : BOTTOM_Y;
-      ctx.fillText(last.value, W / 2, above);
-    }
-
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
-
-    document.getElementById("shot").src = canvas.toDataURL("image/png");
-  }
-
-  // iOS Safari will not save a data URL from a download link — it opens
-  // a dialog and then does nothing. The share sheet is how iOS expects
-  // an image to be saved, so that is tried first, with a real file
-  // download as the fallback on desktop.
-  function saveImage() {
-    const name = (document.getElementById("save").dataset.name || "birdbox-story") + ".png";
-
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
-      const file = new File([blob], name, { type: "image/png" });
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file] });
-          return;
-        } catch (err) {
-          // Cancelled, or refused — fall through to the download.
-        }
-      }
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-    }, "image/png");
-  }
-
-  function fail(text) {
-    document.getElementById("state").textContent = text;
-    document.getElementById("lede").textContent = "";
-  }
-
-  async function load() {
-    const slug = new URLSearchParams(location.search).get("c");
-    if (!slug) return fail("This link is missing its course. Use the link from your email.");
-
-    const { data: course, error } = await supabase
+    // Courses finishing within the next half hour, and not already
+    // finished. Anything without an end time is skipped: there is no
+    // way to know when to send.
+    const { data: courses, error: cErr } = await supabase
       .from("courses")
-      .select("brand, type, level, title, city, country, workshop_focus, starts_at")
-      .eq("slug", slug)
+      .select("id, slug, title, type, ends_at, status, archived")
+      .eq("archived", false)
+      .neq("status", "cancelled")
+      .not("ends_at", "is", null)
+      .gt("ends_at", now.toISOString())
+      .lte("ends_at", windowEnd.toISOString());
+
+    if (cErr) throw new Error("courses: " + cErr.message);
+    if (!courses || !courses.length) return done("no courses finishing shortly");
+
+    const ids = courses.map((c) => c.id);
+
+    const { data: template, error: tErr } = await supabase
+      .from("email_templates")
+      .select("subject, body")
+      .eq("kind", "story")
+      .eq("language", "en")
       .maybeSingle();
 
-    if (error || !course) {
-      return fail("We could not find that course. Use the link from your email, or contact us.");
+    if (tErr) throw new Error("template: " + tErr.message);
+    if (!template) return done("no story template set up — nothing sent");
+
+    // Anyone still on the course. Attendance is often not ticked until
+    // afterwards, so filtering on it here would send to nobody.
+    const { data: regs, error: rErr } = await supabase
+      .from("registrations")
+      .select("id, course_id, first_name, email, status, payment_status")
+      .in("course_id", ids);
+
+    if (rErr) throw new Error("registrations: " + rErr.message);
+
+    const active = (regs || []).filter(
+      (r) => (r.status || "active") === "active" &&
+             r.payment_status !== "refunded" &&
+             r.payment_status !== "failed" &&
+             r.email
+    );
+    if (!active.length) return done("nobody to send to");
+
+    // Who has had it already.
+    const { data: already, error: eErr } = await supabase
+      .from("course_emails")
+      .select("registration_id")
+      .in("course_id", ids)
+      .eq("kind", "story");
+
+    if (eErr) throw new Error("course_emails: " + eErr.message);
+    const done_ = new Set((already || []).map((r) => r.registration_id));
+
+    const byCourse = Object.fromEntries(courses.map((c) => [c.id, c]));
+
+    let sent = 0;
+    let failed = 0;
+
+    for (const r of active) {
+      if (done_.has(r.id)) continue;
+      const course = byCourse[r.course_id];
+      if (!course) continue;
+
+      const fields = {
+        first_name: r.first_name || "there",
+        course_title: course.title || "your course",
+        story_url: `${SITE_URL}/story/?c=${encodeURIComponent(course.slug)}`,
+      };
+
+      const subject = fill(template.subject || "Share your course", fields);
+      const body = fill(template.body, fields);
+
+      const ok = await sendEmail(r.email, subject, body);
+      if (ok) sent++; else failed++;
+
+      // Written whether or not it sent, so a hard failure is visible
+      // and nobody gets a second attempt at the same email.
+      const { error: insErr } = await supabase.from("course_emails").insert({
+        course_id: course.id,
+        registration_id: r.id,
+        kind: "story",
+        subject,
+        body,
+        status: ok ? "sent" : "failed",
+        sent_at: new Date().toISOString(),
+        send_error: ok ? null : "The email was rejected",
+      });
+      if (insErr) console.error("Could not record story email:", insErr.message);
     }
 
-    const isWorkshop = course.type === "workshop";
-    const brand = String(course.brand || "").toLowerCase();
-    const levelDigits = String(course.level == null ? "" : course.level).replace(/\D/g, "");
-
-    const courseName = isWorkshop
-      ? `${(BRAND_NAME[brand] || "BirdBox").split(" ").map((w) => w[0]).join("")} Workshop`
-      : (BRAND_NAME[brand] || "BirdBox Coaching") +
-        (levelDigits ? ` — Level ${levelDigits}` : "");
-
-    const place = [course.city, countryName(course.country)].filter(Boolean).join(", ");
-    const third = isWorkshop ? (course.workshop_focus || "Workshop") : "Completed";
-
-    // No labels — the course and the place speak for themselves, and
-    // the words "Course" and "Location" only crowded them.
-    lines = [
-      { value: courseName, size: 94, min: 54 },
-      { value: place || "\u2014", size: 68, min: 40 },
-      { value: third, size: 82, min: 42, bottom: true },
-    ];
-
-    logos = isWorkshop
-      ? [await loadImage(`/brand/${brand}-workshops.png`)]
-      : [
-          await loadImage(`/brand/${brand}-mark.png`),
-          await loadImage("/brand/ceu-approved.png"),
-        ];
-
-    document.getElementById("head").textContent = "Share your course";
-    document.getElementById("lede").textContent =
-      `${courseName}${place ? " · " + place : ""}`;
-    document.getElementById("state").classList.add("hidden");
-    document.getElementById("tool").classList.remove("hidden");
-
-    document.getElementById("save").dataset.name = `birdbox-${slug}`;
-
-    draw();
+    return done(`${sent} sent` + (failed ? `, ${failed} failed` : ""));
+  } catch (err) {
+    console.error("story-invite failed:", err);
+    return new Response("error", { status: 500 });
   }
+};
 
-  document.getElementById("save").addEventListener("click", saveImage);
+function fill(text, fields) {
+  let out = String(text);
+  for (const [key, value] of Object.entries(fields)) {
+    out = out.replace(new RegExp("\\{\\{\\s*" + key + "\\s*\\}\\}", "gi"), value);
+  }
+  return out;
+}
 
-  load();
-</script>
+async function sendEmail(to, subject, text) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) { console.warn("No Resend key; story link not sent to", to); return false; }
 
-</body>
-</html>
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: `BirdBox Coaching <${FROM}>`,
+        to: [to],
+        reply_to: OFFICE,
+        subject,
+        text,
+      }),
+    });
+    if (!res.ok) {
+      console.error("Resend rejected story link for", to, await res.text());
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Could not send story link to", to, err.message);
+    return false;
+  }
+}
+
+function done(note) {
+  console.log("story-invite:", note);
+  return new Response("ok", { status: 200 });
+}
+
+// Every ten minutes, so the send lands close to the half-hour mark.
+export const config = { schedule: "*/10 * * * *" };
