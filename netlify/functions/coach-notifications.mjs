@@ -29,6 +29,14 @@ const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.
 // How long a participant may wait before the coach is chased.
 const OVERDUE_DAYS = 3;
 
+// The pre-course email may be sent from six days before the course,
+// and must be gone by the end of the Wednesday before it. The coach
+// is nudged on the Monday inside that window, and chased on the
+// Wednesday if it still has not gone. Nothing on the other days.
+const PRECOURSE_OPEN_DAYS = 6;
+const MONDAY = 1;
+const WEDNESDAY = 3;
+
 export default async () => {
   try {
     const now = new Date();
@@ -154,8 +162,48 @@ export default async () => {
       }
     }
 
+    // ---- the pre-course email ---------------------------------
+    // Only on Monday and Wednesday, and only for courses whose sending
+    // window is actually open. A course three weeks out is not
+    // mentioned, because nothing can be done about it yet.
+    const weekday = now.getUTCDay();
+    if (weekday === MONDAY || weekday === WEDNESDAY) {
+      const inWindow = courses.filter((c) => {
+        if (!leadByCourse[c.id]) return false;
+        const opens = new Date(new Date(c.starts_at).getTime() - PRECOURSE_OPEN_DAYS * 86400000);
+        return now >= opens;
+      });
+
+      if (inWindow.length) {
+        const ids = inWindow.map((c) => c.id);
+        const { data: pre, error: pErr } = await supabase
+          .from("course_emails")
+          .select("course_id, status")
+          .in("course_id", ids)
+          .eq("kind", "precourse")
+          .is("registration_id", null);
+
+        if (pErr) throw new Error("precourse lookup: " + pErr.message);
+
+        const alreadySent = new Set(
+          (pre || []).filter((r) => r.status === "sent").map((r) => r.course_id)
+        );
+
+        for (const c of inWindow) {
+          if (alreadySent.has(c.id)) continue;
+          const coach = leadByCourse[c.id];
+          const bucket = (perCoach[coach.id] = perCoach[coach.id] || {
+            coach, due: [], overdue: [], rows: [],
+          });
+          (bucket.precourse = bucket.precourse || []).push({
+            course: c, urgent: weekday === WEDNESDAY,
+          });
+        }
+      }
+    }
+
     const coaches = Object.values(perCoach);
-    if (!coaches.length) return done("every registration is up to date");
+    if (!coaches.length) return done("nothing to report");
 
     // ---- one digest each --------------------------------------
     let sent = 0;
@@ -215,19 +263,41 @@ function line(item) {
     (w ? `, ${w}` : "") + `, ${fmtDate(c.starts_at, c.timezone)}`;
 }
 
-async function sendDigest({ coach, due, overdue }) {
+async function sendDigest({ coach, due, overdue, precourse }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("No Resend key; digest not sent to", coach.full_name);
     return false;
   }
 
+  precourse = precourse || [];
+  const urgent = precourse.filter((p) => p.urgent);
   const total = due.length + overdue.length;
-  const subject = overdue.length
-    ? `${overdue.length} participant${overdue.length === 1 ? " is" : "s are"} still waiting to hear from you`
-    : `${total} new registration${total === 1 ? "" : "s"} on your courses`;
+
+  // Whatever is most pressing goes in the subject line.
+  const subject = urgent.length
+    ? `Pre-course email due today — ${urgent[0].course.title}`
+    : precourse.length
+      ? `Pre-course email due by Wednesday — ${precourse[0].course.title}`
+      : overdue.length
+        ? `${overdue.length} participant${overdue.length === 1 ? " is" : "s are"} still waiting to hear from you`
+        : `${total} new registration${total === 1 ? "" : "s"} on your courses`;
 
   const parts = [`Hi ${coach.full_name.split(" ")[0]},`, ""];
+
+  for (const p of precourse) {
+    const c = p.course;
+    const w = where(c);
+    parts.push(
+      p.urgent
+        ? `The pre-course email for ${c.title} has still not gone out, and is due by the end of today.`
+        : `${c.title}${w ? `, ${w}` : ""} runs on ${fmtDate(c.starts_at, c.timezone)}.`,
+      p.urgent
+        ? ""
+        : "The pre-course email is due by the end of Wednesday. You can send it any time before then.",
+      ""
+    );
+  }
 
   if (overdue.length) {
     parts.push(
@@ -247,14 +317,21 @@ async function sendDigest({ coach, due, overdue }) {
     );
   }
 
-  parts.push(
-    "You can send each of them a welcome from the portal — open the course,",
-    "find them in the list, and use Send welcome.",
-    "",
-    SITE_URL + "/portal/",
-    "",
-    "BirdBox Coaching"
-  );
+  if (total) {
+    parts.push(
+      "You can send each of them a welcome from the portal — open the course,",
+      "find them in the list, and use Send welcome.",
+      ""
+    );
+  }
+  if (precourse.length) {
+    parts.push(
+      "The pre-course email is the button at the top of the course.",
+      ""
+    );
+  }
+
+  parts.push(SITE_URL + "/portal/", "", "BirdBox Coaching");
 
   try {
     const res = await fetch("https://api.resend.com/emails", {
