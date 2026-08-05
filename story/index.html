@@ -70,31 +70,9 @@
   }
   .preview img { width: 100%; height: auto; display: block; }
 
-  .choice {
-    display: flex;
-    gap: 10px;
-    margin: 18px 0 14px;
-  }
-  .choice button {
-    flex: 1 1 0;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 13px 10px;
-    background: none;
-    color: #ADA6A8;
-    border: 1px solid var(--line);
-    cursor: pointer;
-  }
-  .choice button.on {
-    border-color: var(--tcc);
-    color: #ffffff;
-  }
-
   .save {
     display: block;
+    margin-top: 18px;
     width: 100%;
     text-align: center;
     font: inherit;
@@ -148,11 +126,6 @@
       <img id="shot" alt="Your story overlay">
     </div>
 
-    <div class="choice">
-      <button type="button" id="pick-light" class="on">For a dark photo</button>
-      <button type="button" id="pick-dark">For a light photo</button>
-    </div>
-
     <button class="save" id="save" type="button">Save the image</button>
     <p class="whenline" id="save-note"
        style="font-size:13px;color:#8A8385;margin:10px 0 0;text-align:center">
@@ -166,8 +139,8 @@
         <li>Open Instagram and start a story with your own photo.</li>
         <li>Add this image as a sticker on top, and size it to fit.</li>
       </ol>
-      Pick the version that suits your photo. Light text sits well on a dark
-      gym; dark text works better on a bright one.
+      The text has a soft shadow behind it, so it stays readable whether your
+      photo is dark or bright.
     </div>
   </div>
 
@@ -217,7 +190,11 @@
   const ctx = canvas.getContext("2d");
   let lines = [];
   let logos = [];
-  let mode = "light";
+  // White text with a soft shadow, always. It reads on a dark gym and
+  // on bright sunlight alike, so a second version was one choice too
+  // many — and the dark-text one was rendering with a white
+  // background on iOS rather than a transparent one.
+  const light = true;
 
   function loadImage(src) {
     return new Promise((resolve) => {
@@ -242,8 +219,7 @@
 
   function draw() {
     const W = canvas.width;
-    const light = mode === "light";
-    const valueColour = light ? "#ffffff" : "#101010";
+    const valueColour = "#ffffff";
 
     ctx.clearRect(0, 0, W, canvas.height);
     ctx.textAlign = "center";
@@ -400,15 +376,6 @@
   }
 
   document.getElementById("save").addEventListener("click", saveImage);
-
-  for (const [id, value] of [["pick-light", "light"], ["pick-dark", "dark"]]) {
-    document.getElementById(id).addEventListener("click", () => {
-      mode = value;
-      document.getElementById("pick-light").classList.toggle("on", mode === "light");
-      document.getElementById("pick-dark").classList.toggle("on", mode === "dark");
-      draw();
-    });
-  }
 
   load();
 </script>
