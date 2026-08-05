@@ -78,7 +78,7 @@ export default async (request) => {
     // ---- the course -------------------------------------------
     const { data: course, error: cErr } = await supabase
       .from("courses")
-      .select("id, brand, type, level, title, starts_at, ends_at, timezone, completed_at")
+      .select("id, brand, type, level, title, starts_at, ends_at, timezone, completed_at, issues_certificate")
       .eq("id", courseId)
       .single();
 
@@ -86,6 +86,44 @@ export default async (request) => {
 
     if (new Date(course.starts_at) > new Date()) {
       return json({ error: "This course has not run yet." }, 400);
+    }
+
+    // Some courses do not issue a certificate here. TCC Level 2 is the
+    // case: it includes an online course, and the certificate is issued
+    // by LearnWorlds once the exam is passed. The seminar still needs
+    // closing out, so the button still works — it just records the
+    // completion rather than generating anything.
+    if (course.issues_certificate === false) {
+      const { data: regs } = await supabase
+        .from("registrations")
+        .select("id, attended, status")
+        .eq("course_id", courseId);
+
+      const attended = (regs || []).filter(
+        (r) => r.attended === true && (r.status || "active") === "active"
+      );
+
+      if (!attended.length) {
+        return json({
+          error: "Nobody is marked as attended yet. Tick attendance first, then submit.",
+        }, 400);
+      }
+
+      if (!course.completed_at) {
+        await supabase
+          .from("courses")
+          .update({ completed_at: new Date().toISOString(), completed_by: me.id })
+          .eq("id", course.id);
+      }
+
+      return json({
+        sent: 0,
+        failed: 0,
+        failures: [],
+        skipped: 0,
+        completedOnly: true,
+        attended: attended.length,
+      });
     }
 
     // ---- who attended -----------------------------------------
