@@ -14,9 +14,14 @@
 // sends nothing, because the schedule and kit list below are only
 // true for those two. Widen SENDS_CONFIRMATION when the copy for the
 // others exists, not before.
+//
+// Where a course grants a free online course, the participant is
+// also enrolled in LearnWorlds before the confirmation goes out, so
+// the LearnWorlds emails land first and ours can refer to them.
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { grantOnlineCourse } from "./learnworlds.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -34,6 +39,9 @@ const SITE_URL = process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.a
 
 // Brands whose confirmation copy has been written and approved.
 const SENDS_CONFIRMATION = ["tcc", "tgc"];
+
+// Where participants log in to their online courses.
+const LMS_URL = "https://www.birdboxacademy.com";
 
 // Must match the BRAND table in c/index.html. The email is branded
 // to the course, not to whichever brand was written first.
@@ -102,9 +110,16 @@ async function onCheckoutCompleted(session) {
   const field = (key) =>
     full.custom_fields?.find((f) => f.key === key)?.text?.value?.trim();
 
+  // Dropdown answers live somewhere different from text answers.
+  const choice = (key) =>
+    full.custom_fields?.find((f) => f.key === key)?.dropdown?.value || null;
+
   const [billingFirst, ...billingRest] = (details.name || "").trim().split(" ");
   const firstName = field("firstname") || billingFirst || "—";
   const lastName = field("lastname") || billingRest.join(" ") || "—";
+
+  // Which language they chose for their free online course.
+  const onlineLanguage = choice("lwlanguage");
 
   // Stripe reports the consent tick back on the session.
   const accepted = full.consent?.terms_of_service === "accepted";
@@ -136,6 +151,7 @@ async function onCheckoutCompleted(session) {
       stripe_session_id: full.id,
       discount_code: discountCode,
       discount_cents: discountCents,
+      learnworlds_language: onlineLanguage,
     })
     .select("id")
     .single();
@@ -190,6 +206,20 @@ async function onCheckoutCompleted(session) {
     console.warn("Registration created without waiver acceptance", full.id);
   }
 
+  // ---- the free online course, where the course grants one ------
+  // Runs before the confirmation email so the LearnWorlds password
+  // and enrolment emails arrive first. Like everything else after
+  // the money is taken, a failure is recorded and flagged rather
+  // than thrown.
+  const online = await maybeEnrol({
+    registrationId: registration.id,
+    meta,
+    email: details.email,
+    firstName,
+    lastName,
+    language: onlineLanguage,
+  });
+
   // ---- the confirmation email ----------------------------------
   // Never allowed to break the webhook: the seat is already booked
   // and the money is taken, so a failed send is logged and flagged,
@@ -200,6 +230,7 @@ async function onCheckoutCompleted(session) {
     firstName,
     option,
     balanceCents,
+    online,
   });
 
   // ---- the balance, if this was a deposit ----------------------
@@ -266,6 +297,72 @@ async function onCheckoutCompleted(session) {
       `It will need setting up by hand. Error: ${err.message}`
     );
   }
+}
+
+// ---------------------------------------------------------------
+// the free online course
+// ---------------------------------------------------------------
+// Returns null when this course grants nothing, so the confirmation
+// email can leave the section out entirely.
+async function maybeEnrol({ registrationId, meta, email, firstName, lastName, language }) {
+  if (meta.grants_online_course !== "yes") return null;
+
+  const { data: course } = await supabase
+    .from("courses")
+    .select("brand, level, title")
+    .eq("id", meta.course_id)
+    .single();
+
+  if (!course) return null;
+
+  // They should never reach payment without choosing, since the
+  // dropdown is mandatory — but if the field were ever removed, this
+  // records the gap rather than silently enrolling them in English.
+  if (!language) {
+    await supabase.from("registrations").update({
+      learnworlds_status: "failed",
+      learnworlds_error: "No language was chosen at checkout",
+    }).eq("id", registrationId);
+
+    await alert(
+      "Online course not granted — no language chosen",
+      `${firstName} ${lastName} (${email}) registered for ${meta.course_slug} ` +
+      `but no language came through, so they have not been enrolled. ` +
+      `Grant it by hand from the portal.`
+    );
+    return { status: "failed" };
+  }
+
+  const result = await grantOnlineCourse(supabase, {
+    email,
+    firstName,
+    lastName,
+    brand: course.brand,
+    level: course.level,
+    language,
+    justification: `Included free with ${course.title}`,
+  });
+
+  await supabase.from("registrations").update({
+    learnworlds_status: result.status,
+    learnworlds_user_id: result.userId || null,
+    learnworlds_enrolled_at: result.status === "enrolled" ? new Date().toISOString() : null,
+    learnworlds_error: result.error || null,
+  }).eq("id", registrationId);
+
+  if (result.status !== "enrolled") {
+    console.error("LearnWorlds enrolment failed", registrationId, result.error);
+    await alert(
+      "Online course access not granted",
+      `${firstName} ${lastName} (${email}) paid for ${meta.course_slug} and ` +
+      `is owed free access to the online course, but the enrolment failed.\n\n` +
+      `Reason: ${result.error}\n\n` +
+      `They are registered for the seminar and their payment is fine. ` +
+      `Grant the online course by hand from the portal.`
+    );
+  }
+
+  return result;
 }
 
 // ---------------------------------------------------------------
@@ -344,7 +441,7 @@ async function onInvoiceGivenUp(invoice) {
 // ---------------------------------------------------------------
 // the participant's confirmation
 // ---------------------------------------------------------------
-async function sendConfirmation({ courseId, email, firstName, option, balanceCents }) {
+async function sendConfirmation({ courseId, email, firstName, option, balanceCents, online }) {
   if (!email) return;
 
   try {
@@ -390,6 +487,12 @@ async function sendConfirmation({ courseId, email, firstName, option, balanceCen
       ? SITE_URL + "/manuals/" + brandKey + "-l1/"
       : null;
 
+    // Only mentioned when the enrolment actually worked. Promising
+    // access that failed would be worse than saying nothing, and the
+    // alert email means somebody is already fixing it.
+    const onlineOk = online && online.status === "enrolled";
+    const onlineName = onlineOk && online.label ? online.label : null;
+
     const bring = [
       "This confirmation email, printed or on your phone",
       "Government-issued photo ID",
@@ -424,6 +527,13 @@ async function sendConfirmation({ courseId, email, firstName, option, balanceCen
       manualUrl ? manualUrl : null,
       manualUrl ? "Choose your language on that page." : null,
       manualUrl ? "" : null,
+      onlineOk ? "YOUR FREE ONLINE COURSE" : null,
+      onlineOk ? "Included with this seminar at no extra cost" +
+        (onlineName ? " (" + onlineName + ")" : "") + "." : null,
+      onlineOk ? "You will receive two separate emails from BirdBox Academy: one to set your password, and one confirming your access." : null,
+      onlineOk ? "In the academy it is listed as BirdBox Coaching Development Level " + levelDigits + " — this is the same course." : null,
+      onlineOk ? LMS_URL : null,
+      onlineOk ? "" : null,
       "WHAT TO BRING",
       ...bring.map((b) => "- " + b),
       "",
@@ -458,6 +568,15 @@ async function sendConfirmation({ courseId, email, firstName, option, balanceCen
     <a href="${manualUrl}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Open your course manual</a>
   </p>
   <p style="color:#666;font-size:14px;margin:10px 0 0;">Choose your language on that page. Digital is fine, or print it if you prefer.</p>
+  ` : ""}
+
+  ${onlineOk ? `
+  <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Your free online course</h3>
+  <p style="margin:0 0 12px;">Included with this seminar at no extra cost${onlineName ? ` (${esc(onlineName)})` : ""}. You will receive two more emails from BirdBox Academy — one to set your password, and one confirming your access.</p>
+  <p style="margin:0;">
+    <a href="${LMS_URL}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Go to BirdBox Academy</a>
+  </p>
+  <p style="color:#666;font-size:14px;margin:10px 0 0;">In the academy it is listed as <strong>BirdBox Coaching Development Level ${esc(levelDigits)}</strong> — this is the same course.</p>
   ` : ""}
 
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">What to bring</h3>
