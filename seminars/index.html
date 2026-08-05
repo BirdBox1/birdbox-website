@@ -418,7 +418,7 @@
      API key — but carries every brand at once, so the pin colour is
      what tells them apart. */
   .sm-map-wrap { border: 1px solid var(--line); background: var(--panel); padding: 4px; }
-  #sm-map { height: 480px; width: 100%; background: #10131A; }
+  #sm-map { height: 400px; width: 100%; background: #10131A; }
   .sm-map-note { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
 
   .sm-key {
@@ -447,7 +447,7 @@
     color: #ffffff; padding: 7px 14px; text-decoration: none;
   }
 
-  @media (max-width: 620px) { #sm-map { height: 380px; } }
+  @media (max-width: 620px) { #sm-map { height: 320px; } }
 
   .sm-filters {
     display: grid;
@@ -621,17 +621,53 @@
     birdbox: "BirdBox Coaching"
   };
 
-  // With four brands on one map, colour is what separates them. These
-  // are the accent colours the brand pages already use — the lifted
-  // TGC red rather than the darker brand red, which disappears on a
-  // dark map.
-  const BRAND_PIN = {
-    tcc: "#4FA8DE",
-    tgc: "#D8393D",
-    tec: "#5FBE8A",
-    twc: "#D9A527",
-    birdbox: "#8A8385"
+  // Colour separates the brands, and tone separates the levels within
+  // a brand — the same idea as the tags in the portal.
+  //
+  // The portal's darkest tones are lifted here. TGC Level 1 is #6d101a
+  // on the portal's white background, which all but disappears against
+  // dark map tiles. The hue and the ordering are kept; only the
+  // lightness is raised so all three read at pin size.
+  const PIN_COLOUR = {
+    "tcc:1": "#2F7FD0",
+    "tcc:2": "#6FC2F0",
+    "tcc:workshop": "#A8DBF7",
+    "tgc:1": "#B0242B",
+    "tgc:2": "#D8393D",
+    "tgc:workshop": "#F2696C",
+    "tec:1": "#2E8B57",
+    "tec:2": "#5FBE8A",
+    "tec:workshop": "#8FD9AE",
+    "twc:1": "#BE8A12",
+    "twc:2": "#D9A527",
+    "twc:workshop": "#EFC55E",
   };
+
+  const BRAND_FALLBACK = {
+    tcc: "#4FA8DE", tgc: "#D8393D", tec: "#5FBE8A",
+    twc: "#D9A527", birdbox: "#8A8385",
+  };
+
+  // brand:level, or brand:workshop — the key both the pin and the
+  // legend are built from.
+  function pinKey(c) {
+    const brand = String(c.brand || "").toLowerCase();
+    if (c.type === "workshop") return `${brand}:workshop`;
+    const lvl = String(c.level == null ? "" : c.level).replace(/\D/g, "");
+    return lvl ? `${brand}:${lvl}` : brand;
+  }
+
+  function pinColour(c) {
+    const brand = String(c.brand || "").toLowerCase();
+    return PIN_COLOUR[pinKey(c)] || BRAND_FALLBACK[brand] || BRAND_FALLBACK.birdbox;
+  }
+
+  function keyLabel(key) {
+    const [brand, part] = key.split(":");
+    const name = BRAND_NAME[brand] || brand;
+    if (part === "workshop") return `${name} — Workshops`;
+    return part ? `${name} — Level ${part}` : name;
+  }
 
   // Each course type has its own badge; anything unmatched falls back to
   // the brand wordmark rather than showing nothing.
@@ -872,8 +908,8 @@
   const mapNote = document.getElementById("sm-map-note");
   let map = null;
 
-  function pinFor(brand) {
-    const colour = BRAND_PIN[brand] || BRAND_PIN.birdbox;
+  function pinFor(course) {
+    const colour = pinColour(course);
     return L.divIcon({
       className: "",
       html: `<span style="display:block;width:16px;height:16px;border-radius:50%;` +
@@ -893,15 +929,24 @@
     return brand + (lvl ? ` — Level ${lvl}` : "");
   }
 
-  function buildKey(brands) {
+  // Only what is actually on the map, so the key never lists a colour
+  // the reader cannot find.
+  function buildKey(rows) {
     const key = document.getElementById("sm-key");
     key.textContent = "";
-    for (const b of brands) {
+
+    const seen = new Map();
+    for (const c of rows) {
+      const k = pinKey(c);
+      if (!seen.has(k)) seen.set(k, pinColour(c));
+    }
+
+    for (const k of [...seen.keys()].sort()) {
       const li = document.createElement("li");
       const dot = document.createElement("i");
-      dot.style.background = BRAND_PIN[b] || BRAND_PIN.birdbox;
+      dot.style.background = seen.get(k);
       const label = document.createElement("span");
-      label.textContent = BRAND_NAME[b] || b;
+      label.textContent = keyLabel(k);
       li.append(dot, label);
       key.append(li);
     }
@@ -927,13 +972,13 @@
 
     const bounds = [];
     for (const c of placed) {
-      const colour = BRAND_PIN[c.brand] || BRAND_PIN.birdbox;
+      const colour = pinColour(c);
       const where = [c.city, countryName(c.country)].filter(Boolean).join(", ");
       const when = formatWhen(c.starts_at, c.ends_at, c.timezone);
       const money = formatMoney(c.price_cents, c.currency);
       const full = c.status === "full";
 
-      L.marker([c.latitude, c.longitude], { icon: pinFor(c.brand) })
+      L.marker([c.latitude, c.longitude], { icon: pinFor(c) })
         .addTo(map)
         .bindPopup(
           `<div class="sm-pin__what">${escapeHtml(pinTitle(c))}</div>` +
@@ -951,7 +996,7 @@
     if (bounds.length === 1) map.setView(bounds[0], 5);
     else map.fitBounds(bounds, { padding: [40, 40] });
 
-    buildKey([...new Set(placed.map((c) => c.brand))].sort());
+    buildKey(placed);
 
     const n = placed.length;
     const missing = rows.length - n;
