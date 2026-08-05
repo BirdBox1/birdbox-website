@@ -561,6 +561,11 @@
       <label class="pm-check"><input type="checkbox" id="pm-showall"> Show archived and cancelled</label>
     </div>
 
+    <div class="admin-row hidden" id="pc-bar" style="margin:0 0 1rem">
+      <button class="btn small" id="pc-open" type="button">Pre-course email</button>
+      <span class="why" id="pc-state"></span>
+    </div>
+
     <div class="pm-form hidden" id="pm-form">
       <div class="grid2">
         <div class="field">
@@ -986,6 +991,43 @@
     <div class="row">
       <button class="btn ghost" id="del-cancel" type="button">Cancel</button>
       <button class="btn solid-danger" id="del-go" type="button" disabled>Delete permanently</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PRE-COURSE EMAIL ============ -->
+<div class="overlay hidden" id="pcwrap">
+  <div class="dialog" style="max-width:44rem" role="dialog" aria-modal="true" aria-labelledby="pc-h">
+    <h3 id="pc-h">Pre-course email</h3>
+    <p class="sub" id="pc-sub" style="margin-bottom:1rem"></p>
+
+    <div class="field">
+      <label for="pc-subject">Subject</label>
+      <input id="pc-subject" type="text">
+    </div>
+
+    <div class="field">
+      <label for="pc-note">Your personal message
+        <span class="hint">goes at the top, in your own words</span>
+      </label>
+      <textarea id="pc-note" style="min-height:7rem"
+        placeholder="This is Nathan, your lead coach for the weekend. I am looking forward to seeing you…"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="pc-body">The email as it will send
+        <span class="hint">edit anything here; {{first_name}} becomes each person's name</span>
+      </label>
+      <textarea id="pc-body" style="min-height:18rem"></textarea>
+    </div>
+
+    <p class="whenline" id="pc-note2"></p>
+    <p class="msg" id="pc-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="pc-rebuild" type="button">Reset from template</button>
+      <button class="btn ghost" id="pc-close" type="button">Cancel</button>
+      <button class="btn" id="pc-send" type="button">Send to everyone</button>
     </div>
   </div>
 </div>
@@ -1863,6 +1905,8 @@ async function openCourse(course) {
   $("pm-bar").classList.toggle("hidden", !isAdmin());
   await loadOnlineLanguages(course);
   await loadWelcomes(course.id);
+  await loadPrecourse(course.id);
+  showPrecourseBar(course);
 
   if (!regs.length) {
     box.innerHTML = '<p class="empty">' +
@@ -2884,6 +2928,293 @@ async function askAndGrant(reg, btn) {
   openCourse(currentCourse);
 }
 
+/* ---------- the pre-course email, to everyone ---------- */
+
+// Opens six days before the course starts, closes at the end of the
+// Wednesday before it. Both are worked out in the COURSE's time zone,
+// not the coach's — a lead in Dubai sending to a Glasgow course works
+// to Glasgow's clock.
+const PRECOURSE_OPEN_DAYS = 6;
+
+let precourseRow = null;   // the sent row, if there is one
+let pcCourse = null;       // the full course record
+let pcTemplate = null;
+let pcBodyTouched = false;
+
+async function loadPrecourse(courseId) {
+  precourseRow = null;
+  const { data, error } = await db
+    .from("course_emails")
+    .select("id, status, sent_at, subject")
+    .eq("course_id", courseId)
+    .eq("kind", "precourse")
+    .is("registration_id", null)
+    .order("sent_at", { ascending: false })
+    .limit(1);
+
+  if (error) { console.error("Could not load pre-course email:", error.message); return; }
+  precourseRow = (data && data[0]) || null;
+}
+
+// The Wednesday immediately before the course, at the very end of that
+// day. A course that starts on a Wednesday has no Wednesday inside the
+// six-day window, which the caller reports rather than hiding.
+function precourseWindow(course) {
+  const tz = course.timezone || "UTC";
+  const start = new Date(course.starts_at);
+  const opensAt = new Date(start.getTime() - PRECOURSE_OPEN_DAYS * 86400000);
+
+  const local = instantToZoned(course.starts_at, tz);
+  const [y, m, d] = local.date.split("-").map(Number);
+  // Midday avoids any daylight-saving edge while stepping back days.
+  const cursor = new Date(Date.UTC(y, m - 1, d, 12));
+  do {
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  } while (cursor.getUTCDay() !== 3);
+
+  const wed = cursor.toISOString().slice(0, 10);
+  const closesAt = zonedToInstant(wed, "23:59", tz);
+
+  return { opensAt, closesAt, wednesday: wed, noWednesday: closesAt < opensAt };
+}
+
+// Everything the template needs, read from the course record so the
+// email can never contradict the confirmation email.
+function precourseFields(course, coachName) {
+  const tz = course.timezone || "UTC";
+  const isWorkshop = course.type === "workshop";
+  const arriveMins = isWorkshop ? 15 : 30;
+
+  const start = new Date(course.starts_at);
+  const end = course.ends_at ? new Date(course.ends_at) : null;
+
+  const hhmm = (date) => instantToZoned(date.toISOString(), tz).time;
+  const dayName = (date) => date.toLocaleDateString("en-GB", {
+    weekday: "long", day: "numeric", month: "long", timeZone: safeZone(tz),
+  });
+
+  const arrive = new Date(start.getTime() - arriveMins * 60000);
+  const day2Arrive = new Date(start.getTime() - 15 * 60000);
+
+  return {
+    course_title: course.title || "",
+    venue: course.venue_name || "the host gym",
+    address: addressLine(course),
+    day1_date: dayName(start),
+    day2_date: end ? dayName(end) : "",
+    arrive_time: hhmm(arrive),
+    day2_arrive_time: hhmm(day2Arrive),
+    start_time: hhmm(start),
+    finish_time: end ? hhmm(end) : "",
+    coach_name: coachName || "",
+  };
+}
+
+// The address is typed from Google Maps and often already contains the
+// city, so only what is missing gets added.
+function addressLine(course) {
+  const address = String(course.address || "").trim();
+  const seen = address.toLowerCase();
+  const parts = address ? [address] : [];
+  for (const bit of [course.city, countryName(course.country)]) {
+    const value = String(bit || "").trim();
+    if (!value) continue;
+    if (seen.includes(value.toLowerCase())) continue;
+    parts.push(value);
+  }
+  return parts.join(", ");
+}
+
+function fillTemplate(body, fields, personalNote) {
+  let out = String(body).replace(/\{\{\s*personal_note\s*\}\}/gi,
+    (personalNote || "").trim());
+  for (const [key, value] of Object.entries(fields)) {
+    out = out.replace(new RegExp("\\{\\{\\s*" + key + "\\s*\\}\\}", "gi"), value);
+  }
+  // Two blank lines where an empty personal note was.
+  return out.replace(/\n{3,}/g, "\n\n").trim();
+}
+
+async function openPrecourse(course) {
+  const msg = $("pc-msg");
+  msg.className = "msg"; msg.textContent = "";
+  pcBodyTouched = false;
+
+  // The list view does not carry the venue or address, so read the
+  // full row rather than emailing people an incomplete address.
+  const { data: full, error } = await db.from("courses")
+    .select("*").eq("id", course.id).single();
+  if (error) { window.alert("Could not load the course: " + error.message); return; }
+  pcCourse = full;
+
+  const { data: tpl, error: tErr } = await db.from("email_templates")
+    .select("subject, body")
+    .eq("kind", "precourse")
+    .eq("type", full.type)
+    .eq("language", "en")
+    .maybeSingle();
+
+  if (tErr || !tpl) {
+    window.alert(
+      "No pre-course template is set up for this course type yet.\n\n" +
+      "Add a row to email_templates with kind 'precourse' and type '" + full.type + "'."
+    );
+    return;
+  }
+  pcTemplate = tpl;
+
+  const w = precourseWindow(full);
+  const now = new Date();
+
+  if (w.noWednesday) {
+    $("pc-note2").className = "whenline bad";
+    $("pc-note2").textContent =
+      "This course starts too soon after a Wednesday for the usual window. " +
+      "Send it when you judge best.";
+  } else if (now > w.closesAt) {
+    $("pc-note2").className = "whenline bad";
+    $("pc-note2").textContent =
+      "This is late — it should have gone by the end of Wednesday " +
+      fmtDate(w.closesAt.toISOString(), full.timezone) + ". Send it now.";
+  } else {
+    $("pc-note2").className = "whenline";
+    $("pc-note2").textContent =
+      "Due by the end of Wednesday " +
+      fmtDate(w.closesAt.toISOString(), full.timezone) +
+      ", local to " + (full.city || "the course") + ".";
+  }
+
+  const fields = precourseFields(full, me && me.full_name);
+  $("pc-h").textContent = "Pre-course email — " + full.title;
+  $("pc-sub").textContent = precourseRow && precourseRow.status === "sent"
+    ? `Already sent ${fmtWhen(precourseRow.sent_at)}. Sending again writes a second email to everyone.`
+    : "Goes to everyone still on the course, one at a time, from your own address.";
+
+  $("pc-subject").value = fillTemplate(tpl.subject || "", fields, "");
+  $("pc-note").value = "";
+  $("pc-body").value = fillTemplate(tpl.body, fields, "");
+
+  $("pcwrap").classList.remove("hidden");
+}
+
+function wirePrecourse() {
+  const rebuild = () => {
+    if (!pcTemplate || !pcCourse) return;
+    const fields = precourseFields(pcCourse, me && me.full_name);
+    $("pc-body").value = fillTemplate(pcTemplate.body, fields, $("pc-note").value);
+  };
+
+  // The body follows the personal note until the coach edits the body
+  // themselves — after that it is theirs, and nothing overwrites it.
+  $("pc-note").addEventListener("input", () => { if (!pcBodyTouched) rebuild(); });
+  $("pc-body").addEventListener("input", () => { pcBodyTouched = true; });
+
+  $("pc-rebuild").onclick = () => {
+    if (pcBodyTouched && !window.confirm(
+      "Rebuild from the template? Your edits to the email will be lost."
+    )) return;
+    pcBodyTouched = false;
+    rebuild();
+  };
+
+  $("pc-close").onclick = () => { $("pcwrap").classList.add("hidden"); };
+  $("pcwrap").addEventListener("click", (e) => {
+    if (e.target === $("pcwrap")) $("pcwrap").classList.add("hidden");
+  });
+
+  $("pc-send").onclick = async () => {
+    if (!pcCourse) return;
+    const subject = $("pc-subject").value.trim();
+    const body = $("pc-body").value.trim();
+    const msg = $("pc-msg");
+
+    if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return; }
+    if (!body) { msg.className = "msg err"; msg.textContent = "There is nothing to send."; return; }
+    if (body.includes("{{personal_note}}")) {
+      msg.className = "msg err";
+      msg.textContent = "The personal message placeholder is still in the email. Write one, or delete that line.";
+      return;
+    }
+
+    const count = activeCount(allRegistrations);
+    if (!window.confirm(
+      `Send this to ${count} participant${count === 1 ? "" : "s"} on "${pcCourse.title}"?\n\n` +
+      "Each person gets their own copy. This cannot be unsent."
+    )) return;
+
+    $("pc-send").disabled = true;
+    msg.className = "msg"; msg.textContent = "Sending…";
+
+    try {
+      const { data: row, error } = await db.from("course_emails").insert({
+        course_id: pcCourse.id,
+        registration_id: null,
+        kind: "precourse",
+        subject,
+        body,
+        personal_note: $("pc-note").value.trim() || null,
+        status: "draft",
+      }).select("id").single();
+
+      if (error) throw new Error(error.message);
+
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+
+      const res = await fetch("/.netlify/functions/course-email-send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        body: JSON.stringify({ emailId: row.id }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      msg.className = "msg ok";
+      msg.textContent = `Sent to ${out.sent}` +
+        (out.failed ? `, ${out.failed} failed` : "") + `, as ${out.sentAs}.`;
+      setTimeout(() => {
+        $("pcwrap").classList.add("hidden");
+        openCourse(currentCourse);
+      }, 1600);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("pc-send").disabled = false;
+  };
+
+  $("pc-open").onclick = () => { if (currentCourse) openPrecourse(currentCourse); };
+}
+
+// Shown to the lead coach and to admin. Blocked before the window
+// opens: nobody should send "this weekend" a fortnight early.
+function showPrecourseBar(course) {
+  const bar = $("pc-bar");
+  const canSee = (isAdmin() || amLeadOn(course.id)) &&
+                 course.type !== "online_course" && !isPast(course);
+  bar.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  const w = precourseWindow(course);
+  const now = new Date();
+  const sent = precourseRow && precourseRow.status === "sent";
+  const tooEarly = !w.noWednesday && now < w.opensAt;
+
+  $("pc-open").disabled = tooEarly;
+  $("pc-open").textContent = sent ? "Pre-course email sent" : "Pre-course email";
+
+  $("pc-state").textContent = sent
+    ? `Sent ${fmtWhen(precourseRow.sent_at)}.`
+    : tooEarly
+      ? `Opens ${fmtDate(w.opensAt.toISOString(), course.timezone)} — six days before the course.`
+      : now > w.closesAt
+        ? "Overdue — this should have gone by the end of Wednesday."
+        : `Due by the end of Wednesday ${fmtDate(w.closesAt.toISOString(), course.timezone)}.`;
+}
+
 /* ---------- the lead coach's welcome email ---------- */
 
 // Which participants have already had one. Read from course_emails,
@@ -3807,6 +4138,7 @@ wireParticipantControls();
 wireSignature();
 wireEdit();
 wireWelcome();
+wirePrecourse();
 start();
 </script>
 
