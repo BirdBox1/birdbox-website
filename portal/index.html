@@ -990,6 +990,34 @@
   </div>
 </div>
 
+<!-- ============ WELCOME EMAIL ============ -->
+<div class="overlay hidden" id="wcwrap">
+  <div class="dialog" style="max-width:40rem" role="dialog" aria-modal="true" aria-labelledby="wc-h">
+    <h3 id="wc-h">Welcome email</h3>
+    <p class="sub" id="wc-sub" style="margin-bottom:1rem"></p>
+
+    <div class="field">
+      <label for="wc-subject">Subject</label>
+      <input id="wc-subject" type="text">
+    </div>
+
+    <div class="field">
+      <label for="wc-body">Message
+        <span class="hint">{{first_name}} becomes their first name when it sends</span>
+      </label>
+      <textarea id="wc-body" style="min-height:15rem"></textarea>
+    </div>
+
+    <p class="whenline" id="wc-note"></p>
+    <p class="msg" id="wc-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="wc-close" type="button">Cancel</button>
+      <button class="btn" id="wc-send" type="button">Send it</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -1834,6 +1862,7 @@ async function openCourse(course) {
   if (isAdmin()) wireAdmin(course, regs.length, live.length);
   $("pm-bar").classList.toggle("hidden", !isAdmin());
   await loadOnlineLanguages(course);
+  await loadWelcomes(course.id);
 
   if (!regs.length) {
     box.innerHTML = '<p class="empty">' +
@@ -1887,7 +1916,7 @@ async function openCourse(course) {
     if (regStatus !== "active") el.classList.add("inactive");
 
     el.querySelector(".name").textContent = `${r.first_name} ${r.last_name}`;
-    if (isAdmin()) buildActions(el.querySelector(".acts"), course, r, regStatus);
+    buildActions(el.querySelector(".acts"), course, r, regStatus);
     el.querySelector(".contact").textContent = [r.email, r.phone].filter(Boolean).join(" · ");
 
     renderShot(el.querySelector(".shot"), course, r);
@@ -1907,6 +1936,15 @@ async function openCourse(course) {
     );
     if (failed.length) addPill("balance failed", "bad");
     if (!r.waiver_signed_at) addPill("no waiver", "warn");
+
+    // Whether the lead coach has introduced themselves yet. Visible to
+    // the coach and to admin, so an outstanding one cannot hide.
+    if (regStatus === "active") {
+      const w = welcomeByReg[r.id];
+      if (w && w.status === "sent") addPill("welcome sent", "on");
+      else if (w) addPill("welcome draft", "warn");
+      else addPill("no welcome yet", "warn");
+    }
 
     // Free online course, on courses that grant one. A failure has to
     // be visible here — nobody would otherwise find out until the
@@ -2846,6 +2884,132 @@ async function askAndGrant(reg, btn) {
   openCourse(currentCourse);
 }
 
+/* ---------- the lead coach's welcome email ---------- */
+
+// Which participants have already had one. Read from course_emails,
+// which is also what the sending function writes to, so the pill can
+// never disagree with what actually went out.
+let welcomeByReg = {};
+
+async function loadWelcomes(courseId) {
+  welcomeByReg = {};
+  const { data, error } = await db
+    .from("course_emails")
+    .select("id, registration_id, status, sent_at, subject")
+    .eq("course_id", courseId)
+    .eq("kind", "welcome");
+
+  if (error) { console.error("Could not load welcome emails:", error.message); return; }
+  for (const row of data || []) {
+    if (row.registration_id) welcomeByReg[row.registration_id] = row;
+  }
+}
+
+// The coach writes the email; this gives them somewhere to start.
+// Everything here is editable before it sends.
+function welcomeDraft(course, reg) {
+  const where = course.city ? ` in ${course.city}` : "";
+  const me_ = (me && me.full_name) || "your lead coach";
+  return {
+    subject: `Welcome to ${course.title} — I will be your lead coach`,
+    body:
+      `Hey {{first_name}},\n\n` +
+      `It's great to see that you have registered for the ${course.title}${where}. ` +
+      `My name is ${me_}, and I will be your lead coach for the seminar.\n\n` +
+      `I look forward to meeting you on that weekend, and if you have any ` +
+      `questions in the meantime, please feel free to reach out to me.\n\n` +
+      `Many thanks\n` +
+      `${me_}`,
+  };
+}
+
+let wcReg = null;
+
+function openWelcome(course, reg) {
+  wcReg = reg;
+  const already = welcomeByReg[reg.id];
+
+  $("wc-h").textContent = already && already.status === "sent"
+    ? "Welcome email — already sent"
+    : `Welcome email to ${reg.first_name} ${reg.last_name}`;
+
+  $("wc-sub").textContent = already && already.status === "sent"
+    ? `Sent ${fmtWhen(already.sent_at)}. Sending again writes a second email.`
+    : `Goes to ${reg.email}, from your own address, with info@ copied in.`;
+
+  const draft = welcomeDraft(course, reg);
+  $("wc-subject").value = already ? (already.subject || draft.subject) : draft.subject;
+  $("wc-body").value = draft.body;
+
+  $("wc-note").textContent =
+    "Write it in your own words — this is only a starting point.";
+  $("wc-msg").textContent = "";
+  $("wc-msg").className = "msg";
+  $("wcwrap").classList.remove("hidden");
+}
+
+function wireWelcome() {
+  $("wc-close").onclick = () => { $("wcwrap").classList.add("hidden"); wcReg = null; };
+  $("wcwrap").addEventListener("click", (e) => {
+    if (e.target === $("wcwrap")) { $("wcwrap").classList.add("hidden"); wcReg = null; }
+  });
+
+  $("wc-send").onclick = async () => {
+    if (!wcReg || !currentCourse) return;
+    const subject = $("wc-subject").value.trim();
+    const body = $("wc-body").value.trim();
+    const msg = $("wc-msg");
+
+    if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return; }
+    if (!body) { msg.className = "msg err"; msg.textContent = "There is nothing to send."; return; }
+
+    $("wc-send").disabled = true;
+    msg.className = "msg"; msg.textContent = "Sending…";
+
+    try {
+      // The row is written first, then sent. That is the same order the
+      // pre-course email uses, so a send that fails leaves a draft
+      // rather than nothing at all.
+      const { data: row, error } = await db.from("course_emails").insert({
+        course_id: currentCourse.id,
+        registration_id: wcReg.id,
+        kind: "welcome",
+        subject,
+        body,
+        status: "draft",
+      }).select("id").single();
+
+      if (error) throw new Error(error.message);
+
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+
+      const res = await fetch("/.netlify/functions/course-email-send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        body: JSON.stringify({ emailId: row.id }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      msg.className = "msg ok";
+      msg.textContent = `Sent as ${out.sentAs}.`;
+      setTimeout(() => {
+        $("wcwrap").classList.add("hidden");
+        wcReg = null;
+        openCourse(currentCourse);
+      }, 1200);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("wc-send").disabled = false;
+  };
+}
+
 function buildActions(box, course, reg, status) {
   box.innerHTML = "";
   const add = (label, cls, fn) => {
@@ -2857,6 +3021,17 @@ function buildActions(box, course, reg, status) {
     box.append(b);
     return b;
   };
+
+  // The welcome email is the lead coach's job, so this one button is
+  // theirs as well as the admin's. Everything else stays admin-only.
+  const canWelcome = isAdmin() || amLeadOn(course.id);
+  if (canWelcome && status === "active") {
+    const sent = welcomeByReg[reg.id] && welcomeByReg[reg.id].status === "sent";
+    add(sent ? "Welcome sent" : "Send welcome", sent ? "ghost small" : "small",
+        () => openWelcome(course, reg));
+  }
+
+  if (!isAdmin()) return;
 
   add("Edit", "ghost small", () => openEdit(reg));
   add(reg.waiver_signed_at ? "Agreement" : "Sign agreement", "ghost small", () => openSignature(reg));
@@ -3630,6 +3805,7 @@ $("another").addEventListener("click", () => {
 wireParticipantControls();
 wireSignature();
 wireEdit();
+wireWelcome();
 start();
 </script>
 
