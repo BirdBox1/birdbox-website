@@ -26,20 +26,38 @@ const FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
 const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.app")
   .replace(/\/+$/, "");
 
-// The templates are all 2480 x 1753, A4 landscape proportions. These
-// positions were measured from the artwork: the rule under the name
-// sits 42% down, the rule under "AWARDED ON" 75% down.
-const ART = { width: 2480, height: 1753 };
+// Each design has its own artwork and its own positions, measured from
+// the file itself. Positions are in artwork pixels so they can be read
+// straight off the design; the page is A4 landscape either way, and the
+// image is scaled to fill it.
+//
+// A new design means new numbers here, not new code.
 const PAGE = { width: 841.89, height: 595.28 };   // A4 landscape, points
-const SCALE = PAGE.width / ART.width;
 
-const LAYOUT = {
-  name:      { centreX: 1236, baselineY: 700,  maxWidth: 1050, size: 108, min: 52 },
-  awardedOn: { centreX: 1752, baselineY: 1274, maxWidth: 480,  size: 46,  min: 26 },
-  // Bottom right, on clean paper. The bottom-left corner is crossed by
-  // the blue graphic, which swallowed the first version of this.
-  reference: { rightX: 2200,   baselineY: 1660, size: 22 },
+const LAYOUTS = {
+  // The seminar certificates: name on a rule, date above "Awarded on".
+  seminar: {
+    art: { width: 2480, height: 1753 },
+    name:      { centreX: 1236, baselineY: 700,  maxWidth: 1050, size: 108, min: 52 },
+    awardedOn: { centreX: 1752, baselineY: 1274, maxWidth: 480,  size: 46,  min: 26 },
+    reference: { rightX: 2200,  baselineY: 1660, size: 22 },
+  },
+
+  // The workshop certificate is a different design: a name rule at 58%,
+  // a box for what was coached, and a date rule at the foot.
+  workshop: {
+    art: { width: 2000, height: 1414 },
+    name:      { centreX: 1015, baselineY: 800,  maxWidth: 1450, size: 92, min: 44 },
+    // Inside the box, which runs y 946-1069.
+    focus:     { centreX: 1014, baselineY: 1027, maxWidth: 1200, size: 54, min: 26 },
+    awardedOn: { centreX: 1683, baselineY: 1225, maxWidth: 560,  size: 40, min: 22 },
+    reference: { rightX: 700,   baselineY: 1350, size: 20 },
+  },
 };
+
+function layoutFor(course) {
+  return course.type === "workshop" ? LAYOUTS.workshop : LAYOUTS.seminar;
+}
 
 export default async (request) => {
   if (request.method !== "POST") return json({ error: "Use POST" }, 405);
@@ -78,7 +96,7 @@ export default async (request) => {
     // ---- the course -------------------------------------------
     const { data: course, error: cErr } = await supabase
       .from("courses")
-      .select("id, brand, type, level, title, starts_at, ends_at, timezone, completed_at, issues_certificate")
+      .select("id, brand, type, level, title, workshop_focus, starts_at, ends_at, timezone, completed_at, issues_certificate")
       .eq("id", courseId)
       .single();
 
@@ -167,6 +185,15 @@ export default async (request) => {
       }, 400);
     }
 
+    const layout = layoutFor(course);
+
+    // The workshop design has a box for what was actually coached.
+    const focusText = course.type === "workshop"
+      ? (course.workshop_focus ||
+         String(course.title || "").replace(/^.*?Workshop\s*[\u2014-]\s*/i, "") ||
+         "")
+      : "";
+
     const awardedOn = new Date(course.ends_at || course.starts_at);
     const awardedText = awardedOn.toLocaleDateString("en-GB", {
       day: "numeric", month: "long", year: "numeric",
@@ -186,9 +213,11 @@ export default async (request) => {
 
         const pdf = await buildPdf({
           artwork,
+          layout,
           name,
           awardedText,
           reference,
+          focus: focusText,
         });
 
         const fields = {
@@ -328,7 +357,7 @@ async function nextReference(course) {
   throw new Error("Could not allocate a certificate reference");
 }
 
-async function buildPdf({ artwork, name, awardedText, reference }) {
+async function buildPdf({ artwork, layout, name, awardedText, reference, focus }) {
   const doc = await PDFDocument.create();
   const page = doc.addPage([PAGE.width, PAGE.height]);
 
@@ -338,44 +367,34 @@ async function buildPdf({ artwork, name, awardedText, reference }) {
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const plain = await doc.embedFont(StandardFonts.Helvetica);
 
-  // Positions are in artwork pixels, converted here — so the numbers
-  // above can be read straight off the design.
-  const toX = (px) => px * SCALE;
-  const toY = (pxFromTop) => PAGE.height - pxFromTop * SCALE;
+  // Positions are in artwork pixels, converted here — so the numbers in
+  // LAYOUTS can be read straight off the design.
+  const scale = PAGE.width / layout.art.width;
+  const toX = (px) => px * scale;
+  const toY = (pxFromTop) => PAGE.height - pxFromTop * scale;
 
-  // The name shrinks until it fits between the ends of the rule.
-  const n = LAYOUT.name;
-  let size = n.size * SCALE;
-  const maxWidth = n.maxWidth * SCALE;
-  while (bold.widthOfTextAtSize(name, size) > maxWidth && size > n.min * SCALE) {
-    size -= 1;
-  }
-  page.drawText(name, {
-    x: toX(n.centreX) - bold.widthOfTextAtSize(name, size) / 2,
-    y: toY(n.baselineY),
-    size,
-    font: bold,
-    color: rgb(0.05, 0.05, 0.05),
-  });
+  // Shrinks until it fits, rather than running past the rule it sits on.
+  const put = (text, spec, font, colour) => {
+    if (!text || !spec) return;
+    let size = spec.size * scale;
+    const maxWidth = spec.maxWidth * scale;
+    while (font.widthOfTextAtSize(text, size) > maxWidth && size > spec.min * scale) {
+      size -= 1;
+    }
+    const width = font.widthOfTextAtSize(text, size);
+    const x = spec.centreX != null
+      ? toX(spec.centreX) - width / 2
+      : toX(spec.rightX) - width;
+    page.drawText(text, { x, y: toY(spec.baselineY), size, font, color: colour });
+  };
 
-  const a = LAYOUT.awardedOn;
-  let dateSize = a.size * SCALE;
-  while (plain.widthOfTextAtSize(awardedText, dateSize) > a.maxWidth * SCALE &&
-         dateSize > a.min * SCALE) {
-    dateSize -= 1;
-  }
-  page.drawText(awardedText, {
-    x: toX(a.centreX) - plain.widthOfTextAtSize(awardedText, dateSize) / 2,
-    y: toY(a.baselineY),
-    size: dateSize,
-    font: plain,
-    color: rgb(0.1, 0.1, 0.1),
-  });
+  put(name, layout.name, bold, rgb(0.05, 0.05, 0.05));
+  put(focus, layout.focus, plain, rgb(0.1, 0.1, 0.1));
+  put(awardedText, layout.awardedOn, plain, rgb(0.1, 0.1, 0.1));
 
-  // Discreet, right-aligned so it ends at a fixed point whatever the
-  // reference length.
-  const r = LAYOUT.reference;
-  const refSize = r.size * SCALE;
+  // Discreet, and clear of the corner graphics on both designs.
+  const r = layout.reference;
+  const refSize = r.size * scale;
   page.drawText(reference, {
     x: toX(r.rightX) - plain.widthOfTextAtSize(reference, refSize),
     y: toY(r.baselineY),
