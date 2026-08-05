@@ -21,6 +21,21 @@ const VERIFIED_DOMAINS = ["birdboxcoaching.com"];
 const FALLBACK_FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
 const OFFICE = "info@birdboxcoaching.com";
 
+// Logos have to be absolute URLs — an email client has no idea what
+// site the message came from. Change this one line if the custom
+// domain goes live.
+const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.app")
+  .replace(/\/+$/, "");
+
+// The brand the participant actually registered for, so the email
+// carries the right identity. Filenames are case-sensitive on Netlify.
+const BRAND_LOGO = {
+  tcc: { file: "tcc.png", alt: "The Coaches Course" },
+  tgc: { file: "tgc.png", alt: "The Gymnastics Course" },
+  tec: { file: "tec.png", alt: "The Endurance Course" },
+  twc: { file: "twc.png", alt: "The Weightlifting Course" },
+};
+
 export default async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
@@ -49,7 +64,7 @@ export default async (req) => {
 
     const { data: course } = await supabase
       .from("courses")
-      .select("id, title, city, country, starts_at")
+      .select("id, brand, title, city, country, starts_at")
       .eq("id", email.course_id)
       .single();
 
@@ -75,6 +90,7 @@ export default async (req) => {
     if (!people.length) return json({ error: "There is nobody to send to." }, 409);
 
     const sender = senderFor(staff);
+    const brand = BRAND_LOGO[String(course.brand || "").toLowerCase()] || null;
     const subject = (email.subject || "").trim() ||
       (email.kind === "welcome"
         ? `Looking forward to seeing you at ${course.title}`
@@ -99,6 +115,7 @@ export default async (req) => {
         sender,
         subject,
         text,
+        brand,
       });
 
       if (ok) sent++;
@@ -186,7 +203,7 @@ function personalise(body, person) {
 // email
 // ---------------------------------------------------------------
 
-function template(text) {
+function template(text, brand) {
   const paras = String(text)
     .split(/\n{2,}/)
     .map((p) => p.trim())
@@ -198,6 +215,15 @@ function template(text) {
     )
     .join("");
 
+  // The brand logo sits on its own white band under the black bar.
+  // The marks are dark lettering, so they would disappear on black.
+  const logoBand = brand
+    ? `<tr><td style="padding:18px 28px 14px;border-bottom:1px solid #e0ddd7;background:#ffffff">
+          <img src="${SITE_URL}/brand/${brand.file}" alt="${escapeHtml(brand.alt)}"
+               height="44" style="height:44px;width:auto;display:block;border:0">
+        </td></tr>`
+    : "";
+
   return `<!DOCTYPE html>
 <html><body style="margin:0;padding:0;background:#f4f3f0">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3f0">
@@ -208,6 +234,7 @@ function template(text) {
           <span style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#9aa1a9;
                        font-family:Helvetica,Arial,sans-serif">BirdBox Coaching</span>
         </td></tr>
+        ${logoBand}
         <tr><td style="padding:28px;font-family:Helvetica,Arial,sans-serif">${paras}</td></tr>
         <tr><td style="padding:18px 28px;border-top:1px solid #e0ddd7;
                        font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6c7178">
@@ -224,7 +251,7 @@ function escapeHtml(s) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
-async function sendEmail({ to, sender, subject, text }) {
+async function sendEmail({ to, sender, subject, text, brand }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) { console.warn("No Resend key; not sending to", to); return false; }
 
@@ -239,7 +266,7 @@ async function sendEmail({ to, sender, subject, text }) {
         reply_to: sender.replyTo,
         subject,
         text,
-        html: template(text),
+        html: template(text, brand),
       }),
     });
     if (!res.ok) {
