@@ -281,8 +281,16 @@
     .tcc-steps { grid-template-columns: repeat(3, 1fr); row-gap: 22px; }
     .tcc-step::after { display: none; }
   }
+  /* This block was left open and empty, which silently dropped every
+     phone rule below it. Closed, with the same rules the other pages
+     carry. */
   @media (max-width: 720px) {
-  </style>
+    .tcc-row { grid-template-columns: 1fr; }
+    .tcc-row__media { min-height: 200px; }
+    .tcc-steps { grid-template-columns: repeat(2, 1fr); }
+    .bb-signup__sub { flex: 1 1 100%; }
+  }
+</style>
 <style>
   /* ---------- Level 1 page ---------- */
   .l1-chips {
@@ -379,6 +387,66 @@
     display: inline-block; font-size: 11px; font-weight: 800;
     letter-spacing: 0.08em; text-transform: uppercase;
     background: var(--tcc); color: #ffffff; padding: 7px 14px; text-decoration: none;
+  }
+
+  /* ---------- workshop list under the map ----------
+     Each row is a different workshop, so the movements lead and the
+     place, language and venue sit on the line beneath. One line each,
+     so a full catalogue does not become a long scroll. */
+  .l1-dates { margin-top: 26px; }
+  .l1-dates__bar {
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px;
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 12px 14px; margin-bottom: 10px;
+  }
+  .l1-dates__field { flex: 1 1 11rem; min-width: 0; }
+  .l1-dates__field label {
+    display: block; font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
+  }
+  .l1-dates__field select {
+    width: 100%; border: 1px solid var(--line); background: #171214;
+    color: var(--ink); padding: 8px 10px; font-size: 14px; font-family: inherit;
+  }
+  .l1-dates__field select:focus { outline: none; border-color: var(--tcc); }
+  .l1-dates__clear {
+    border: 1px solid var(--line); background: none; color: #ADA6A8;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 9px 14px; cursor: pointer;
+    font-family: inherit; white-space: nowrap;
+  }
+  .l1-dates__clear:hover { color: #ffffff; border-color: var(--tcc); }
+
+  .l1-dates__count { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+
+  .l1-dates__list { border: 1px solid var(--line); background: var(--panel); }
+  .l1-date {
+    display: grid; grid-template-columns: 1fr auto auto;
+    align-items: center; gap: 14px;
+    padding: 11px 14px; border-top: 1px solid var(--line);
+    text-decoration: none; color: var(--ink);
+    transition: background 0.15s ease;
+  }
+  .l1-date:first-child { border-top: none; }
+  .l1-date:hover { background: rgba(255,255,255,0.03); }
+  .l1-date__where { font-size: 15px; font-weight: 700; }
+  .l1-date__meta { font-size: 12px; color: #B7B1B3; margin-top: 1px; }
+  .l1-date__meta span + span::before { content: " \00b7 "; color: #5A5456; }
+  .l1-date__when { font-size: 13px; white-space: nowrap; text-align: right; }
+  .l1-date__price { font-size: 12px; color: var(--accentText); margin-top: 1px; }
+  .l1-date__go { color: var(--muted); font-size: 17px; }
+  .l1-date__tag {
+    display: inline-block; font-size: 9px; font-weight: 800;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    border: 1px solid var(--line); color: var(--muted);
+    padding: 1px 5px; margin-left: 7px; vertical-align: middle;
+  }
+  .l1-dates__state { padding: 18px 14px; text-align: center; color: var(--muted); font-size: 14px; }
+
+  @media (max-width: 620px) {
+    .l1-date { grid-template-columns: 1fr auto; row-gap: 4px; }
+    .l1-date__when { grid-column: 2; }
+    .l1-date__go { display: none; }
   }
 
   /* video facade */
@@ -518,6 +586,25 @@
     <p class="l1-lede">Every upcoming workshop is pinned on the map. Select a location to see the movements, the date and the price &mdash; and register from there.</p>
     <div class="l1-map-wrap"><div id="l1-map"></div></div>
     <p class="l1-map-note" id="l1-map-note">Loading workshop locations&hellip;</p>
+
+    <div class="l1-dates">
+      <div class="l1-dates__bar">
+        <div class="l1-dates__field">
+          <label for="l1-f-country">Country</label>
+          <select id="l1-f-country"><option value="">All countries</option></select>
+        </div>
+        <div class="l1-dates__field">
+          <label for="l1-f-language">Language</label>
+          <select id="l1-f-language"><option value="">All languages</option></select>
+        </div>
+        <button class="l1-dates__clear" type="button" id="l1-f-clear">Clear</button>
+      </div>
+
+      <p class="l1-dates__count" id="l1-dates-count"></p>
+      <div class="l1-dates__list" id="l1-dates-list">
+        <p class="l1-dates__state">Loading workshops&hellip;</p>
+      </div>
+    </div>
   </section>
 
   <div class="l1-band l1-band--coached">
@@ -608,6 +695,11 @@
         <div class="l1-price__amt">$190</div>
         <div class="l1-price__vat">+ VAT</div>
       </div>
+      <div class="l1-price">
+        <div class="l1-price__cur">CAD</div>
+        <div class="l1-price__amt">$180</div>
+        <div class="l1-price__vat">+ VAT</div>
+      </div>
     </div>
     <p class="l1-policy">VAT is charged according to the location of the workshop, not the country you are paying from. Some workshops are set in local currency, with the exchange rate fixed at the time the workshop is created.</p>
     <p class="l1-policy"><strong>Refunds.</strong> Workshops are non-refundable. If your plans change we can issue a credit, and that credit transfers to any BirdBox offering &mdash; another workshop, a seminar, or an online course.</p>
@@ -685,8 +777,14 @@
     "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
   );
 
-  /* ---------- workshop map ---------- */
+  /* ---------- workshop map and list ---------- */
   const note = document.getElementById("l1-map-note");
+  const listEl = document.getElementById("l1-dates-list");
+  const countEl = document.getElementById("l1-dates-count");
+  const countryEl = document.getElementById("l1-f-country");
+  const langEl = document.getElementById("l1-f-language");
+
+  let courses = [];
 
   function formatWhen(startsAt, endsAt, tz) {
     const zone = tz || "UTC";
@@ -697,6 +795,53 @@
     if (!endsAt) return `${s} ${year}`;
     const e = new Intl.DateTimeFormat("en-GB", day).format(new Date(endsAt));
     return s === e ? `${s} ${year}` : `${s} \u2013 ${e} ${year}`;
+  }
+
+  // courses.country holds an ISO code so the VAT lookup can match it.
+  // Nobody reading the page should ever see "GB".
+  const REGION = (() => {
+    try { return new Intl.DisplayNames(["en"], { type: "region" }); }
+    catch (e) { return null; }
+  })();
+
+  function countryName(value) {
+    const raw = String(value == null ? "" : value).trim();
+    if (!raw) return "";
+    const iso = raw.toUpperCase() === "UK" ? "GB" : raw.toUpperCase();
+    if (!/^[A-Z]{2}$/.test(iso) || !REGION) return raw;
+    try {
+      const n = REGION.of(iso);
+      return n && n !== iso ? n : iso;
+    } catch (e) { return iso; }
+  }
+
+  function languageName(code) {
+    if (!code) return "";
+    try {
+      const n = new Intl.DisplayNames(["en"], { type: "language" }).of(code);
+      return n ? n.charAt(0).toUpperCase() + n.slice(1) : code;
+    } catch (e) { return code; }
+  }
+
+  function formatMoney(cents, currency) {
+    if (cents == null || !currency) return "";
+    try {
+      return new Intl.NumberFormat("en-GB", {
+        style: "currency", currency: currency.toUpperCase(), maximumFractionDigits: 0,
+      }).format(cents / 100);
+    } catch (e) { return ""; }
+  }
+
+  // The page already says these are TGC workshops, so a row shows just
+  // the movements rather than repeating the prefix on every line.
+  function workshopName(c) {
+    if (c.workshop_focus) return c.workshop_focus;
+    return String(c.title || "Workshop").replace(/^.*?Workshop\s*[\u2014-]\s*/i, "");
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, (ch) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
   }
 
   const map = L.map("l1-map", { scrollWheelZoom: false }).setView([25, 10], 2);
@@ -712,42 +857,119 @@
     iconAnchor: [8, 8]
   });
 
-  async function loadPins() {
-    const { data, error } = await supabase
-      .from("courses")
-      .select("slug, title, workshop_focus, city, country, starts_at, ends_at, timezone, status, latitude, longitude")
-      .eq("brand", "tgc")
-      .eq("type", "workshop")
-        .in("status", ["published", "full"])
-      .eq("archived", false)
-      .gte("starts_at", new Date().toISOString())
-      .order("starts_at", { ascending: true });
+  // Options are built from the workshops themselves, so nothing is
+  // offered that would return an empty list.
+  function fillOptions(select, values, labeller) {
+    const current = select.value;
+    for (const opt of [...select.options].slice(1)) opt.remove();
+    for (const v of values) {
+      const o = document.createElement("option");
+      o.value = v;
+      o.textContent = labeller ? labeller(v) : v;
+      select.append(o);
+    }
+    if (values.includes(current)) select.value = current;
+  }
 
-    if (error) {
-      console.error("Seminar map failed:", error);
-      note.textContent = "Seminar locations are unavailable right now.";
+  // Each row is a different workshop, so the movements lead.
+  function renderList() {
+    const c = countryEl.value;
+    const l = langEl.value;
+    const shown = courses.filter((x) =>
+      (!c || x.country === c) && (!l || x.language === l));
+
+    listEl.textContent = "";
+
+    if (!shown.length) {
+      const p = document.createElement("p");
+      p.className = "l1-dates__state";
+      p.textContent = courses.length
+        ? "No workshops match those filters."
+        : "No workshops scheduled just now. New dates are added regularly.";
+      listEl.append(p);
+      countEl.textContent = "";
       return;
     }
 
-    // A course with no coordinates yet simply doesn't get a pin.
-    const placed = (data || []).filter(c => c.latitude != null && c.longitude != null);
+    countEl.textContent =
+      `${shown.length} upcoming ${shown.length === 1 ? "workshop" : "workshops"}`;
+
+    for (const course of shown) {
+      const row = document.createElement("a");
+      row.className = "l1-date";
+      row.href = `/c/${course.slug}/`;
+
+      const main = document.createElement("span");
+
+      const where = document.createElement("span");
+      where.className = "l1-date__where";
+      where.style.display = "block";
+      where.textContent = workshopName(course);
+      if (course.status === "full") {
+        const tag = document.createElement("span");
+        tag.className = "l1-date__tag";
+        tag.textContent = "Full";
+        where.append(tag);
+      }
+
+      const meta = document.createElement("span");
+      meta.className = "l1-date__meta";
+      meta.style.display = "block";
+      const place = [course.city, countryName(course.country)].filter(Boolean).join(", ");
+      for (const bit of [place, languageName(course.language), course.venue_name]) {
+        if (!bit) continue;
+        const sp = document.createElement("span");
+        sp.textContent = bit;
+        meta.append(sp);
+      }
+
+      main.append(where, meta);
+
+      const when = document.createElement("span");
+      when.className = "l1-date__when";
+      const d = document.createElement("span");
+      d.style.display = "block";
+      d.textContent = formatWhen(course.starts_at, course.ends_at, course.timezone);
+      when.append(d);
+      const money = formatMoney(course.price_cents, course.currency);
+      if (money) {
+        const m = document.createElement("span");
+        m.className = "l1-date__price";
+        m.style.display = "block";
+        m.textContent = money;
+        when.append(m);
+      }
+
+      const go = document.createElement("span");
+      go.className = "l1-date__go";
+      go.textContent = "\u203A";
+
+      row.append(main, when, go);
+      listEl.append(row);
+    }
+  }
+
+  function drawPins() {
+    // A workshop with no coordinates yet simply doesn't get a pin. It
+    // is still in the list below, so nothing is ever hidden.
+    const placed = courses.filter(c => c.latitude != null && c.longitude != null);
 
     if (!placed.length) {
-      note.textContent = (data && data.length)
-        ? "Dates are listed below \u2014 map locations are being added."
+      note.textContent = courses.length
+        ? "Workshops are listed below \u2014 map locations are being added."
         : "No workshops scheduled just now. New dates are added regularly.";
       return;
     }
 
     const bounds = [];
     for (const c of placed) {
-      const where = [c.city, c.country].filter(Boolean).join(", ");
+      const where = [c.city, countryName(c.country)].filter(Boolean).join(", ");
       const when = formatWhen(c.starts_at, c.ends_at, c.timezone);
       const full = c.status === "full";
       const marker = L.marker([c.latitude, c.longitude], { icon: pin }).addTo(map);
       marker.bindPopup(
-        `<div class="l1-pin__city">${where}</div>` +
-        (c.workshop_focus ? `<div class="l1-pin__when">${c.workshop_focus}</div>` : "") +
+        `<div class="l1-pin__city">${escapeHtml(workshopName(c))}</div>` +
+        `<div class="l1-pin__when">${escapeHtml(where)}</div>` +
         `<div class="l1-pin__when">${when}${full ? " &middot; Full" : ""}</div>` +
         `<a class="l1-pin__go" href="/c/${c.slug}/">${full ? "View" : "Register"}</a>`
       );
@@ -758,10 +980,52 @@
     else map.fitBounds(bounds, { padding: [40, 40] });
 
     const n = placed.length;
-    note.textContent = `${n} upcoming ${n === 1 ? "workshop" : "workshops"} \u2014 select a pin for movements, dates and registration.`;
+    const missing = courses.length - n;
+    note.textContent =
+      `${n} upcoming ${n === 1 ? "workshop" : "workshops"} on the map` +
+      (missing ? ` \u2014 ${missing} more listed below` : "") +
+      " \u2014 select a pin for movements, dates and registration.";
   }
 
-  loadPins();
+  async function load() {
+    const { data, error } = await supabase
+      .from("courses")
+      .select("slug, title, workshop_focus, city, country, language, venue_name, starts_at, ends_at, timezone, status, price_cents, currency, latitude, longitude")
+      .eq("brand", "tgc")
+      .eq("type", "workshop")
+      .in("status", ["published", "full"])
+      .eq("archived", false)
+      .gte("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: true });
+
+    if (error) {
+      console.error("Workshops failed to load:", error);
+      note.textContent = "Workshop locations are unavailable right now.";
+      listEl.innerHTML = '<p class="l1-dates__state">Workshops are unavailable right now.</p>';
+      return;
+    }
+
+    courses = data || [];
+
+    const uniq = (key) => [...new Set(courses.map(c => c[key]).filter(Boolean))];
+    fillOptions(
+      countryEl,
+      uniq("country").sort((a, b) => countryName(a).localeCompare(countryName(b))),
+      countryName
+    );
+    fillOptions(langEl, uniq("language").sort(), languageName);
+
+    drawPins();
+    renderList();
+  }
+
+  for (const el of [countryEl, langEl]) el.addEventListener("change", renderList);
+  document.getElementById("l1-f-clear").addEventListener("click", () => {
+    countryEl.value = ""; langEl.value = "";
+    renderList();
+  });
+
+  load();
 </script>
 
 </body>
