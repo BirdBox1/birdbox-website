@@ -143,8 +143,10 @@ export default async (req) => {
       notes.push(`Code ${appliedCode} applied — ${money(discountCents)} off.`);
     }
     // Prices are quoted "+ VAT" on the site, so say what is being added.
+    // Built from the rate, not from vat_rates.label — the labels
+    // already read "VAT 19%", which would double the percentage.
     if (vat) {
-      notes.push(`${vat.label} at ${vat.percentText} is added at checkout.`);
+      notes.push(`VAT at ${vat.percentText} is added at checkout.`);
     }
     if (!notes.length && course.summary) notes.push(course.summary);
 
