@@ -176,6 +176,23 @@
 
   .seats { font-size: 0.9rem; color: var(--warn); font-weight: 600; margin: 0.9rem 0 0; }
 
+  /* Shown once a course has finished. It replaces the price and the
+     buttons entirely — a Register button on a course that has already
+     run is worse than no page at all. */
+  .over { text-align: center; padding: 0.4rem 0 0.2rem; }
+  .over h2 {
+    font-size: 1.15rem; font-weight: 650; color: var(--ink);
+    text-transform: none; letter-spacing: -0.01em; margin: 0 0 0.5rem;
+  }
+  .over p { font-size: 0.95rem; color: var(--muted); margin: 0 0 1.1rem; }
+  .over a {
+    display: inline-block; font-size: 0.8rem; font-weight: 650;
+    letter-spacing: 0.06em; text-transform: uppercase; text-decoration: none;
+    padding: 0.75rem 1.4rem;
+    background: var(--brandcolour, var(--accent)); color: #fff;
+  }
+  .over a:hover { filter: brightness(1.12); }
+
   h2 {
     font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
     color: var(--muted); font-weight: 600; margin: 2rem 0 0.6rem;
@@ -421,6 +438,7 @@ const slug = parts[parts.length - 1] === "c" ? null : parts[parts.length - 1];
 const state = {
   course: null,
   isFull: false,
+  finished: false,
   klarnaOk: false,
   code: null,
   total: 0,
@@ -550,6 +568,10 @@ async function load() {
   const left = Math.max(0, course.capacity - (count || 0));
 
   state.course = course;
+  // A course stays bookable right up to its finish, so somebody can
+  // register on the morning of day one. After that the page stays up
+  // — links get shared and indexed — but it stops selling.
+  state.finished = new Date(course.ends_at || course.starts_at) < new Date();
   state.isFull = course.status === "full" || left === 0;
   state.klarnaOk = KLARNA_COUNTRIES.includes(
     String(course.country || "").trim().toLowerCase()
@@ -561,7 +583,9 @@ async function load() {
   // balance chase — pay in full, or use Klarna.
   if (isWorkshop) state.deposit = state.total;
 
-  if (state.isFull) {
+  if (state.finished) {
+    $("promo").classList.add("hidden");
+  } else if (state.isFull) {
     $("seats").textContent = "This course is full. Email us to join the waiting list.";
     $("seats").classList.remove("hidden");
     $("promo").classList.add("hidden");
@@ -665,6 +689,29 @@ async function load() {
 function renderBuyBox() {
   const { course, money, total, deposit, discount, isFull } = state;
   const balance = total - deposit;
+
+  // Once it has run, the whole box is replaced. Showing a price and a
+  // greyed-out button would only invite someone to try.
+  if (state.finished) {
+    const back = backTo(course);
+    $("price").innerHTML = "";
+    $("options").innerHTML = "";
+
+    const box = document.createElement("div");
+    box.className = "over";
+
+    const h = document.createElement("h2");
+    h.textContent = "This course has finished";
+    const p = document.createElement("p");
+    p.textContent = "Registration is closed. New dates are added regularly.";
+    const a = document.createElement("a");
+    a.href = back.href;
+    a.textContent = "See upcoming dates";
+
+    box.append(h, p, a);
+    $("options").append(box);
+    return;
+  }
 
   // ---- price -----------------------------------------------------
   $("price").innerHTML = "";
