@@ -815,6 +815,19 @@
     } catch (e) { return iso; }
   }
 
+
+  // "Jacksonville, FL" rather than "Jacksonville, United States" — the
+  // state is what an American reads as the location. Everywhere else
+  // still shows the country, because "Munich, BY" would mean nothing.
+  const STATE_COUNTRIES = new Set(["US", "CA", "AU", "BR", "MX"]);
+
+  function placeName(c) {
+    const country = String(c.country == null ? "" : c.country).trim().toUpperCase();
+    const state = String(c.state == null ? "" : c.state).trim().toUpperCase();
+    const tail = (state && STATE_COUNTRIES.has(country)) ? state : countryName(country);
+    return [c.city, tail].filter(Boolean).join(", ");
+  }
+
   function languageName(code) {
     if (!code) return "";
     try {
@@ -915,7 +928,7 @@
       const meta = document.createElement("span");
       meta.className = "l1-date__meta";
       meta.style.display = "block";
-      const place = [course.city, countryName(course.country)].filter(Boolean).join(", ");
+      const place = placeName(course);
       for (const bit of [place, languageName(course.language), course.venue_name]) {
         if (!bit) continue;
         const sp = document.createElement("span");
@@ -963,7 +976,7 @@
 
     const bounds = [];
     for (const c of placed) {
-      const where = [c.city, countryName(c.country)].filter(Boolean).join(", ");
+      const where = placeName(c);
       const when = formatWhen(c.starts_at, c.ends_at, c.timezone);
       const full = c.status === "full";
       const marker = L.marker([c.latitude, c.longitude], { icon: pin }).addTo(map);
@@ -990,7 +1003,7 @@
   async function load() {
     const { data, error } = await supabase
       .from("courses")
-      .select("slug, title, workshop_focus, city, country, language, venue_name, starts_at, ends_at, timezone, status, price_cents, currency, latitude, longitude")
+      .select("slug, title, workshop_focus, city, country, state, language, venue_name, starts_at, ends_at, timezone, status, price_cents, currency, latitude, longitude")
       .eq("brand", "tgc")
       .eq("type", "workshop")
       .in("status", ["published", "full"])
