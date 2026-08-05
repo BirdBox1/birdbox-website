@@ -36,7 +36,9 @@ const SCALE = PAGE.width / ART.width;
 const LAYOUT = {
   name:      { centreX: 1236, baselineY: 700,  maxWidth: 1050, size: 108, min: 52 },
   awardedOn: { centreX: 1752, baselineY: 1274, maxWidth: 480,  size: 46,  min: 26 },
-  reference: { x: 150,        baselineY: 1660, size: 22 },
+  // Bottom right, on clean paper. The bottom-left corner is crossed by
+  // the blue graphic, which swallowed the first version of this.
+  reference: { rightX: 2200,   baselineY: 1660, size: 22 },
 };
 
 export default async (request) => {
@@ -332,12 +334,14 @@ async function buildPdf({ artwork, name, awardedText, reference }) {
     color: rgb(0.1, 0.1, 0.1),
   });
 
-  // Discreet, bottom left, out of the way of the design.
+  // Discreet, right-aligned so it ends at a fixed point whatever the
+  // reference length.
   const r = LAYOUT.reference;
+  const refSize = r.size * SCALE;
   page.drawText(reference, {
-    x: toX(r.x),
+    x: toX(r.rightX) - plain.widthOfTextAtSize(reference, refSize),
     y: toY(r.baselineY),
-    size: r.size * SCALE,
+    size: refSize,
     font: plain,
     color: rgb(0.55, 0.55, 0.55),
   });
