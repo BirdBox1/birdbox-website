@@ -756,6 +756,19 @@
     return c.title || BRAND_NAME[c.brand] || "Seminar";
   }
 
+
+  // "Jacksonville, FL" rather than "Jacksonville, United States" — the
+  // state is what an American reads as the location. Everywhere else
+  // still shows the country, because "Munich, BY" would mean nothing.
+  const STATE_COUNTRIES = new Set(["US", "CA", "AU", "BR", "MX"]);
+
+  function placeName(c) {
+    const country = String(c.country == null ? "" : c.country).trim().toUpperCase();
+    const state = String(c.state == null ? "" : c.state).trim().toUpperCase();
+    const tail = (state && STATE_COUNTRIES.has(country)) ? state : countryName(country);
+    return [c.city, tail].filter(Boolean).join(", ");
+  }
+
   function languageName(code) {
     if (!code) return "";
     try {
@@ -830,7 +843,7 @@
       const meta = document.createElement("span");
       meta.className = "sm-row__meta";
       meta.style.display = "block";
-      const where = [course.city, countryName(course.country)].filter(Boolean).join(", ");
+      const where = placeName(course);
       for (const bit of [where, languageName(course.language), course.venue_name]) {
         if (!bit) continue;
         const sp = document.createElement("span");
@@ -867,7 +880,7 @@
   async function load() {
     const { data, error } = await supabase
       .from("courses")
-      .select("slug, brand, type, level, language, title, venue_name, city, country, starts_at, ends_at, timezone, status, price_cents, currency, latitude, longitude")
+      .select("slug, brand, type, level, language, title, venue_name, city, country, state, starts_at, ends_at, timezone, status, price_cents, currency, latitude, longitude")
       .in("status", ["published", "full"])
       .in("type", ["live_seminar", "workshop"])
       .eq("archived", false)
@@ -982,7 +995,7 @@
     const bounds = [];
     for (const c of placed) {
       const colour = pinColour(c);
-      const where = [c.city, countryName(c.country)].filter(Boolean).join(", ");
+      const where = placeName(c);
       const when = formatWhen(c.starts_at, c.ends_at, c.timezone);
       const money = formatMoney(c.price_cents, c.currency);
       const full = c.status === "full";
