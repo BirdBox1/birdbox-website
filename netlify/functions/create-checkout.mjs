@@ -58,7 +58,7 @@ export default async (req) => {
     // ---- look up the course ------------------------------------
     const { data: course, error } = await supabase
       .from("courses")
-      .select("id, brand, type, level, language, title, summary, slug, price_cents, deposit_cents, currency, capacity, status, starts_at, city, country")
+      .select("id, brand, type, level, language, title, summary, slug, price_cents, deposit_cents, currency, capacity, status, starts_at, city, country, grants_online_course")
       .eq("slug", slug)
       .single();
 
@@ -79,10 +79,16 @@ export default async (req) => {
       return json({ error: "This course is full" }, 409);
     }
 
-    // ---- does this course have a prerequisite? ------------------
-    // Taken from the template so it works for any level 2 course,
-    // not just TGC.
-    const prerequisite = await prerequisiteFor(course);
+    // ---- what the third checkout question should be -------------
+    // Stripe allows three custom fields and two are already spoken
+    // for by the participant's name. So a course that gives away an
+    // online course asks which language they want it in; every other
+    // course keeps asking about the prerequisite.
+    const languages = course.grants_online_course
+      ? await languagesFor(course)
+      : [];
+
+    const prerequisite = languages.length ? null : await prerequisiteFor(course);
 
     // ---- VAT for the venue's country ---------------------------
     const vat = await vatForCourse(course);
@@ -168,9 +174,30 @@ export default async (req) => {
       },
     ];
 
+    // Which language they want their free online course in. No option
+    // is pre-selected — a default here would be clicked past, and the
+    // wrong language means unenrolling and losing their progress.
+    if (languages.length) {
+      customFields.push({
+        key: "lwlanguage",
+        label: {
+          type: "custom",
+          custom: clip("Language for your free online course"),
+        },
+        type: "dropdown",
+        optional: false,
+        dropdown: {
+          options: languages.map((l) => ({
+            label: clip(l.label || l.language),
+            value: l.language,
+          })),
+        },
+      });
+    }
+
     // A prerequisite cannot be enforced, but it can be declared —
     // which gives us a record and flags anyone who needs approving.
-    // Stripe allows three custom fields, and this is the third.
+    // Only asked where the language question is not.
     if (prerequisite) {
       customFields.push({
         key: "prereq",
@@ -257,6 +284,11 @@ export default async (req) => {
         discount_cents: String(discountCents),
         prerequisite: prerequisite || "",
 
+        // The webhook reads this to decide whether to enrol anyone in
+        // LearnWorlds. Blank means no free online course.
+        grants_online_course: course.grants_online_course ? "yes" : "",
+        online_languages: languages.map((l) => l.language).join(","),
+
         // VAT is recorded on the session so the registration row and
         // any later balance charge can reuse exactly the same rate.
         vat_country: vat ? vat.code : "",
@@ -319,6 +351,30 @@ async function vatForCourse(course) {
     percentText: `${Number(percent.toFixed(2))}%`,
     label: data.label || "VAT",
   };
+}
+
+// The languages the free online course is available in, for this
+// brand and level. Returns an empty list if nothing is set up, which
+// means no question is asked and nothing is given away — a missing
+// row should never block a sale.
+async function languagesFor(course) {
+  const lvl = String(course.level == null ? "" : course.level).replace(/\D/g, "");
+  if (!lvl) return [];
+
+  const { data, error } = await supabase
+    .from("learnworlds_products")
+    .select("language, label, product_id, active, level, brand")
+    .eq("brand", course.brand)
+    .eq("active", true);
+
+  if (error) {
+    console.error("Could not load online course languages:", error.message);
+    return [];
+  }
+
+  return (data || [])
+    .filter((r) => String(r.level || "").replace(/\D/g, "") === lvl && r.product_id)
+    .sort((a, b) => String(a.label || a.language).localeCompare(String(b.label || b.language)));
 }
 
 // Matches the same loose level/language rules the course page uses.
