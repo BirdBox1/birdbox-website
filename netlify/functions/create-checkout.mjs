@@ -6,6 +6,13 @@
 // Runs server-side only. The service key never reaches the browser,
 // and the discounted price is recalculated here — never trusted from
 // the page, which only ever sends the code itself.
+//
+// VAT: admission to a physical event is taxed where the VENUE is, not
+// where the buyer is. So we look the course's country up in vat_rates
+// and attach that fixed Stripe tax rate to the line item. We do NOT
+// use automatic_tax, which would tax the buyer's country instead, and
+// which cannot be combined with tax_rates anyway.
+// Courses in countries with no vat_rates row are charged no tax.
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
@@ -77,6 +84,9 @@ export default async (req) => {
     // not just TGC.
     const prerequisite = await prerequisiteFor(course);
 
+    // ---- VAT for the venue's country ---------------------------
+    const vat = await vatForCourse(course);
+
     // ---- price, after any discount -----------------------------
     let full = course.price_cents;
     let discountCents = 0;
@@ -132,6 +142,10 @@ export default async (req) => {
     if (appliedCode) {
       notes.push(`Code ${appliedCode} applied — ${money(discountCents)} off.`);
     }
+    // Prices are quoted "+ VAT" on the site, so say what is being added.
+    if (vat) {
+      notes.push(`${vat.label} at ${vat.percentText} is added at checkout.`);
+    }
     if (!notes.length && course.summary) notes.push(course.summary);
 
     const origin = req.headers.get("origin") || process.env.SITE_URL;
@@ -173,6 +187,26 @@ export default async (req) => {
       });
     }
 
+    // ---- the line item, with the venue's tax rate if we have one -
+    const lineItem = {
+      quantity: 1,
+      price_data: {
+        currency,
+        unit_amount: payingNow,
+        product_data: {
+          name: lineName,
+          description: notes.join(" ") || undefined,
+        },
+      },
+    };
+
+    // Fixed tax rate, exclusive — added on top of the quoted price.
+    // Omitted entirely outside the EU and UK, which is deliberate:
+    // Australia and Canada are unresolved and stay untaxed for now.
+    if (vat) {
+      lineItem.tax_rates = [vat.stripe_tax_rate_id];
+    }
+
     // ---- build the Checkout session ----------------------------
     const session = {
       mode: "payment",
@@ -197,19 +231,7 @@ export default async (req) => {
 
       custom_fields: customFields,
 
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency,
-            unit_amount: payingNow,
-            product_data: {
-              name: lineName,
-              description: notes.join(" ") || undefined,
-            },
-          },
-        },
-      ],
+      line_items: [lineItem],
 
       payment_intent_data: {
         description: `${course.brand.toUpperCase()} — ${course.title}`,
@@ -232,6 +254,12 @@ export default async (req) => {
         discount_code: appliedCode || "",
         discount_cents: String(discountCents),
         prerequisite: prerequisite || "",
+
+        // VAT is recorded on the session so the registration row and
+        // any later balance charge can reuse exactly the same rate.
+        vat_country: vat ? vat.code : "",
+        vat_rate_id: vat ? vat.stripe_tax_rate_id : "",
+        vat_percent: vat ? String(vat.percent) : "",
       },
 
       success_url: `${origin}/registration-complete/?session_id={CHECKOUT_SESSION_ID}`,
@@ -244,8 +272,9 @@ export default async (req) => {
     }
 
     if (option === "deposit") {
+      const plusVat = vat ? " plus VAT" : "";
       session.custom_text.submit = {
-        message: `You are paying a deposit of ${money(deposit)}. The remaining ${money(balance)} will be charged to this card ${BALANCE_DAYS_BEFORE} days before the course starts.`,
+        message: `You are paying a deposit of ${money(deposit)}${plusVat}. The remaining ${money(balance)}${plusVat} will be charged to this card ${BALANCE_DAYS_BEFORE} days before the course starts.`,
       };
     }
 
@@ -258,6 +287,37 @@ export default async (req) => {
     return json({ error: err.message || "Could not start checkout" }, 500);
   }
 };
+
+// Place of supply for admission to a physical event is the venue's
+// country. Returns null when we have no rate for it, which means no
+// tax is charged — the current behaviour everywhere outside EU/UK.
+async function vatForCourse(course) {
+  const code = (course.country || "").trim().toUpperCase();
+  if (!code) return null;
+
+  const { data, error } = await supabase
+    .from("vat_rates")
+    .select("country, code, rate, stripe_tax_rate_id, label")
+    .eq("code", code)
+    .maybeSingle();
+
+  if (error || !data || !data.stripe_tax_rate_id) return null;
+
+  // rate may be stored as 19 or as 0.19 — treat anything at or below
+  // 1 as a fraction so both spellings give 19%.
+  const raw = Number(data.rate);
+  if (!Number.isFinite(raw) || raw <= 0) return null;
+  const percent = raw <= 1 ? raw * 100 : raw;
+
+  return {
+    code: data.code,
+    country: data.country,
+    stripe_tax_rate_id: data.stripe_tax_rate_id,
+    percent,
+    percentText: `${Number(percent.toFixed(2))}%`,
+    label: data.label || "VAT",
+  };
+}
 
 // Matches the same loose level/language rules the course page uses.
 async function prerequisiteFor(course) {
