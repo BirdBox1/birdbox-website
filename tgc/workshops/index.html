@@ -995,7 +995,10 @@
       .eq("type", "workshop")
       .in("status", ["published", "full"])
       .eq("archived", false)
-      .gte("starts_at", new Date().toISOString())
+      // Wide enough to catch anything still running. The exact cut-off
+      // is applied below, because it depends on the end time and the
+      // database cannot compare against a missing one.
+      .gte("starts_at", new Date(Date.now() - 30 * 86400000).toISOString())
       .order("starts_at", { ascending: true });
 
     if (error) {
@@ -1005,7 +1008,13 @@
       return;
     }
 
-    courses = data || [];
+    // A course stays listed until it actually finishes, so somebody can
+    // still register on the morning of day one. Anything without an end
+    // time falls back to its start.
+    const now = Date.now();
+    courses = (data || []).filter(
+      (c) => new Date(c.ends_at || c.starts_at).getTime() >= now
+    );
 
     const uniq = (key) => [...new Set(courses.map(c => c[key]).filter(Boolean))];
     fillOptions(
