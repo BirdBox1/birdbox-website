@@ -239,7 +239,6 @@
     const W = canvas.width;
     const light = mode === "light";
     const valueColour = light ? "#ffffff" : "#101010";
-    const labelColour = light ? "rgba(255,255,255,0.72)" : "rgba(16,16,16,0.62)";
 
     ctx.clearRect(0, 0, W, canvas.height);
     ctx.textAlign = "center";
@@ -256,21 +255,15 @@
     // the edge where it would be covered.
     const BOTTOM_Y = 1740;
 
-    let y = 700;
+    let y = 840;
     for (const line of lines.filter((l) => !l.bottom)) {
-      if (line.label) {
-        ctx.fillStyle = labelColour;
-        ctx.font = '600 40px "Helvetica Neue", Helvetica, Arial, sans-serif';
-        ctx.fillText(line.label, W / 2, y);
-        y += 86;
-      }
       // The course is the headline, so it starts biggest. Each line
       // shrinks only as far as it needs to in order to fit.
       ctx.fillStyle = valueColour;
       const size = fitFont(line.value, 700, line.size, line.min, W - 140);
       ctx.font = `700 ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
       ctx.fillText(line.value, W / 2, y);
-      y += Math.round(size * 0.62) + 96;
+      y += Math.round(size * 0.62) + 78;
     }
 
     // The foot of the story: logos on the bottom line, the closing word
@@ -346,10 +339,12 @@
     const place = [course.city, countryName(course.country)].filter(Boolean).join(", ");
     const third = isWorkshop ? (course.workshop_focus || "Workshop") : "Completed";
 
+    // No labels — the course and the place speak for themselves, and
+    // the words "Course" and "Location" only crowded them.
     lines = [
-      { label: "Course", value: courseName, size: 108, min: 56 },
-      { label: "Location", value: place || "\u2014", size: 72, min: 42 },
-      { label: "", value: third, size: 88, min: 44, bottom: true },
+      { value: courseName, size: 94, min: 54 },
+      { value: place || "\u2014", size: 68, min: 40 },
+      { value: third, size: 82, min: 42, bottom: true },
     ];
 
     logos = isWorkshop
