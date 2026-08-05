@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TGC Level 1 Live Seminar | The Gymnastics Course</title>
-<meta name="description" content="Understand gymnastics, fix movement, and coach with confidence. A hands-on two-day seminar for coaches and athletes. 14 CEUs, no prerequisites.">
+<title>BirdBox Level 1 Live Seminar | The Coaches Course</title>
+<meta name="description" content="Lead classes with confidence, purpose and lasting impact. A two-day coaching development seminar covering psychosocial, physical and technical coaching. 14 CEUs, no prerequisites.">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
   :root {
@@ -13,8 +13,8 @@
     --ink: #F2EFEF;
     --muted: #8A8385;
     --line: #342F31;
-    --tcc: #D8393D;
-    --accentText: #F0797D;
+    --tcc: #4FA8DE;
+    --accentText: #6FB9E8;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--paper); }
@@ -49,8 +49,8 @@
   .tcc-hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
   .tcc-hero__photo {
     position: absolute; inset: 0 0 0 34%;
-    background-image: url("hero-tgc-l1.jpeg");
-    background-size: cover; background-position: center 35%; background-repeat: no-repeat;
+    background-image: url("../ng6510.jpeg");
+    background-size: cover; background-position: center 38%; background-repeat: no-repeat;
   }
   .tcc-hero__photo::after {
     content: ""; position: absolute; inset: 0;
@@ -76,12 +76,17 @@
   }
   .tcc-cta {
     display: inline-flex; align-items: center; gap: 10px;
-    padding: 13px 26px; background: var(--tcc); color: #FFFFFF;
+    padding: 13px 26px; background: var(--tcc); color: #0C1116;
     font-size: 13px; font-weight: 800; letter-spacing: 0.08em;
     text-transform: uppercase; text-decoration: none; border: 1px solid var(--tcc);
     transition: background 0.2s ease, color 0.2s ease;
   }
   .tcc-cta:hover { background: transparent; color: var(--accentText); }
+  .tcc-cta--ghost {
+    background: transparent; color: var(--accentText); border-color: var(--line); margin-left: 10px;
+  }
+  .tcc-cta--ghost:hover { border-color: var(--tcc); color: #ffffff; background: transparent; }
+  @media (max-width: 620px) { .tcc-cta--ghost { margin-left: 0; margin-top: 10px; } }
 
   /* ---------- pathway strip ---------- */
   .tcc-pathway { padding: 46px 0 8px; text-align: center; }
@@ -174,7 +179,7 @@
     text-transform: uppercase; text-decoration: none; padding: 11px 14px;
     transition: background 0.2s ease, color 0.2s ease;
   }
-  .tcc-btn:hover { background: var(--tcc); color: #FFFFFF; }
+  .tcc-btn:hover { background: var(--tcc); color: #0C1116; }
   .tcc-btn--ghost { border-color: var(--line); color: #ADA6A8; margin-top: 0; margin-bottom: 4px; }
   .tcc-btn--ghost:hover { background: transparent; border-color: var(--tcc); color: var(--accentText); }
 
@@ -249,7 +254,7 @@
     padding: 9px 14px; font-size: 14px; min-width: 200px; font-family: inherit;
   }
   .bb-signup button {
-    border: 1px solid var(--tcc); background: var(--tcc); color: #FFFFFF;
+    border: 1px solid var(--tcc); background: var(--tcc); color: #0C1116;
     font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
     padding: 9px 20px; cursor: pointer; font-family: inherit;
   }
@@ -283,7 +288,6 @@
     .bb-signup__sub { flex: 1 1 100%; }
   }
 </style>
-
 <style>
   /* ---------- Level 1 page ---------- */
   .l1-chips {
@@ -311,15 +315,15 @@
     background-repeat: no-repeat;
   }
   .l1-band > .l1-section:first-child { padding-top: 30px; }
-  .l1-band--rules {
+  .l1-band--learn {
     background-image:
-      linear-gradient(180deg, rgba(20,16,15,0.90) 0%, rgba(20,16,15,0.93) 100%),
-      url("band-included.jpeg");
+      linear-gradient(180deg, rgba(20,16,15,0.90) 0%, rgba(20,16,15,0.94) 100%),
+      url("NG-6445.jpg");
   }
   .l1-band--outcome {
     background-image:
       linear-gradient(180deg, rgba(20,16,15,0.90) 0%, rgba(20,16,15,0.94) 100%),
-      url("NG-2386.jpg");
+      url("NG-6333.jpg");
   }
   @media (max-width: 620px) { .l1-band { padding: 4px 16px 18px; } }
   .l1-label {
@@ -335,6 +339,20 @@
   .l1-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
   .l1-grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
   .l1-grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  /* Prose-only sections look thin at 70ch, so run them in two columns. */
+  .l1-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px; }
+  .l1-two .l1-lede { max-width: none; margin-bottom: 0; }
+  .l1-pull {
+    border-left: 3px solid var(--tcc);
+    padding: 4px 0 4px 20px;
+    margin-top: 22px;
+  }
+  .l1-pull h3 {
+    font-size: 18px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: -0.01em; margin: 0 0 8px;
+  }
+  .l1-pull p { font-size: 15px; line-height: 1.6; color: #C9C4C5; margin: 0; max-width: 62ch; }
+  @media (max-width: 820px) { .l1-two { grid-template-columns: 1fr; } }
   .l1-card { border: 1px solid var(--line); background: var(--panel); padding: 20px 22px; }
   .l1-card__title {
     font-size: 15px; font-weight: 800; text-transform: uppercase;
@@ -370,7 +388,8 @@
   }
   .leaflet-popup-content { margin: 12px 14px; font-family: inherit; }
   .l1-pin__city { font-size: 15px; font-weight: 800; margin-bottom: 2px; }
-  .l1-pin__when { font-size: 13px; color: #C9C4C5; margin-bottom: 8px; }
+  .l1-pin__when { font-size: 13px; color: #C9C4C5; margin-bottom: 4px; }
+  .l1-pin__price { font-size: 15px; font-weight: 800; color: var(--accentText); margin-bottom: 8px; }
   .l1-pin__go {
     display: inline-block; font-size: 11px; font-weight: 800;
     letter-spacing: 0.08em; text-transform: uppercase;
@@ -523,6 +542,15 @@
     background: #0E0B0C;
     border: 1px solid var(--line);
   }
+  .l1-vid__cap { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+  .l1-split {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 16px 34px;
+    align-items: start;
+  }
+  .l1-split .l1-lede { max-width: none; }
+  @media (max-width: 900px) { .l1-split { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -535,17 +563,18 @@
 </nav>
 
 <div class="bb-backbar">
-  <a class="bb-back" href="/tgc">&larr; The Gymnastics Course</a>
+  <a class="bb-back" href="/tcc">&larr; The Coaches Course</a>
 </div>
 
 <header class="tcc-hero">
   <div class="tcc-hero__photo" aria-hidden="true"></div>
   <div class="tcc-hero__inner">
-    <img class="tcc-hero__mark" src="../../brand/tgc-mark.png" alt="The Gymnastics Course">
+    <img class="tcc-hero__mark" src="../../brand/tcc-mark.png" alt="The Coaches Course">
     <p class="tcc-row__eyebrow">Level 1 &middot; Live Seminar</p>
-    <h1 class="tcc-hero__title">Understand gymnastics.<em>Coach with confidence.</em></h1>
-    <p class="tcc-hero__lede">A hands-on, immersive weekend for coaches and athletes ready to understand gymnastics, fix movement, and coach with confidence.</p>
+    <h1 class="tcc-hero__title">Take your coaching<em>to the next level.</em></h1>
+    <p class="tcc-hero__lede">Lead classes with confidence, purpose and lasting impact. Level 1 gives you the tools to help every member progress.</p>
     <a class="tcc-cta" href="#map">View Dates and Book Your Spot &rarr;</a>
+    <a class="tcc-cta tcc-cta--ghost" href="https://form.jotform.com/252381762881363">Take the Free Coaching Self-Assessment &rarr;</a>
   </div>
 </header>
 
@@ -555,13 +584,13 @@
     <div class="l1-chip"><div class="l1-chip__big">2 Days</div><div class="l1-chip__small">In Person</div></div>
     <div class="l1-chip"><div class="l1-chip__big">14 CEUs</div><div class="l1-chip__small">CrossFit&reg; Approved</div></div>
     <div class="l1-chip"><div class="l1-chip__big">None</div><div class="l1-chip__small">Prerequisites</div></div>
-    <div class="l1-chip"><div class="l1-chip__big">35+ Pages</div><div class="l1-chip__small">Seminar Guide</div></div>
+    <div class="l1-chip"><div class="l1-chip__big">Written</div><div class="l1-chip__small">Feedback After</div></div>
   </div>
 
   <section class="l1-section" id="map">
-    <p class="l1-label">Upcoming Seminars</p>
-    <h2 class="l1-h2">Find a TGC Level 1 Seminar Near You</h2>
-    <p class="l1-lede">Spaces are limited to ensure quality and interaction. Select a pin to see dates and register.</p>
+    <p class="l1-label">Find A Seminar Near You</p>
+    <h2 class="l1-h2">See What&rsquo;s Coming Up</h2>
+    <p class="l1-lede">Spaces are limited to keep the group interactive. Select a pin to see dates and register.</p>
     <div class="l1-map-wrap"><div id="l1-map"></div></div>
     <p class="l1-map-note" id="l1-map-note">Loading seminar locations&hellip;</p>
 
@@ -587,202 +616,176 @@
 
   <section class="l1-section">
     <p class="l1-label">The Problem</p>
-    <h2 class="l1-h2">Still Coaching Without a System?</h2>
-    <p class="l1-lede">Most coaches feel unsure when teaching gymnastics. You&rsquo;ve relied on Instagram clips, old drills, or trial and error. This seminar changes that.</p>
-  </section>
-
-  <section class="l1-section">
-    <p class="l1-label">What You&rsquo;ll Get at the Seminar</p>
-    <h2 class="l1-h2">A Real Coaching System</h2>
+    <h2 class="l1-h2">Guesswork Isn&rsquo;t A System</h2>
     <div class="l1-grid3">
       <div class="l1-card">
-        <h3 class="l1-card__title">Movement Diagnostics</h3>
-        <p class="l1-card__text">Learn how to identify faults in bodyweight movement and coach them effectively.</p>
+        <h3 class="l1-card__title">Inconsistent Results</h3>
+        <p class="l1-card__text">Random cues and recycled drills don&rsquo;t create consistent results.</p>
       </div>
       <div class="l1-card">
-        <h3 class="l1-card__title">Clear Progressions</h3>
-        <p class="l1-card__text">Master the "static before dynamic, strict before kipping" framework with real-life coaching applications.</p>
+        <h3 class="l1-card__title">Lost Momentum</h3>
+        <p class="l1-card__text">Coaches are left second-guessing, members plateau, and classes lose momentum.</p>
       </div>
       <div class="l1-card">
-        <h3 class="l1-card__title">Coaching Interventions</h3>
-        <p class="l1-card__text">Use cues, constraints, and interventions to create meaningful movement change on the spot.</p>
+        <h3 class="l1-card__title">No Framework</h3>
+        <p class="l1-card__text">Everyone deserves a proven framework for progress &mdash; every session, every member.</p>
       </div>
+    </div>
+    <div class="l1-pull">
+      <h3>A Clear, Coach-Tested Framework</h3>
+      <p>We&rsquo;ve coached at every level and built Level 1 to remove the confusion. Practical, science-backed, and made for real gym floors.</p>
     </div>
   </section>
 
-  <div class="l1-band l1-band--rules">
   <section class="l1-section">
-    <p class="l1-label">Rules and Laws</p>
-    <h2 class="l1-h2">Principles You Can Coach By</h2>
-    <p class="l1-lede">You will be given training rules and laws to apply to your coaching or training. They have evolved from an understanding of sports science and physics, and they become truly guiding and unquestionable.</p>
-    <div class="l1-rules">
-      <div class="l1-rule">Static before dynamic</div>
-      <div class="l1-rule">Strict before kipping</div>
-      <div class="l1-rule">Build an isometric base</div>
-      <div class="l1-rule">Eccentric loading for positional and strength development</div>
-      <div class="l1-rule">Every force has an equal and opposite reaction</div>
-      <div class="l1-rule">The principle of the SSC</div>
-      <div class="l1-rule">The principle of torque</div>
-      <div class="l1-rule">The principle of adaptations</div>
-      <div class="l1-rule">The principle of force</div>
-    </div>
-  </section>
-  </div>
-
-  <section class="l1-section">
-    <p class="l1-label">What You&rsquo;ll Learn</p>
-    <h2 class="l1-h2">Four Things That Change How You Coach</h2>
-    <div class="l1-grid2">
-      <div class="l1-card">
-        <h3 class="l1-card__title">Understanding Gymnastics Movement</h3>
-        <p class="l1-card__text">Gymnastics is purely bodyweight movement, and the human body is infinitely complex. We will teach you to understand it differently.</p>
-      </div>
-      <div class="l1-card">
-        <h3 class="l1-card__title">Movement Assessment</h3>
-        <p class="l1-card__text">The essence of gymnastics is coordination &mdash; recruiting the proper musculature for the right task. Simple in concept, increasingly complex as movement becomes compound. We will teach you to see and correct movement more simply.</p>
-      </div>
-      <div class="l1-card">
-        <h3 class="l1-card__title">How to Spot and Self-Spot</h3>
-        <p class="l1-card__text">Any coach's goal is to help an athlete progress as quickly and safely as possible. There is no faster route to gymnastic success than spotting and self-spotting.</p>
-      </div>
-      <div class="l1-card">
-        <h3 class="l1-card__title">Programming and Scaling</h3>
-        <p class="l1-card__text">Gymnastics programming doesn't need to be hard. It just needs to be often. We will teach you to program gymnastics regularly to support skill development and responsible intensity.</p>
-      </div>
+    <p class="l1-label">Why Learn With BirdBox</p>
+    <h2 class="l1-h2">Four Areas Every Coach Can Develop</h2>
+    <div class="l1-two">
+      <p class="l1-lede">Your coaching potential is an endlessly increasing path. There are four key areas in which we can evolve our practice: physical, technical, tactical and psychosocial. Learning can take place in informal and formal situations. Learning through coaching practice, but eventually we all need formal learning to make greater advanced steps.</p>
+      <p class="l1-lede">If you&rsquo;re delivering a training methodology such as CrossFit&reg;, that&rsquo;s a good step forward in best practice. But coaches also need a coaching philosophy, and a clear strategy for how to implement that methodology. Level 1 gives you both, meeting you at your current level of professionalism.</p>
     </div>
   </section>
 
   <section class="l1-section">
     <p class="l1-label">Watch</p>
-    <h2 class="l1-h2">Inside a TGC Level 1 Seminar</h2>
-    <video class="l1-vid" controls preload="metadata" playsinline poster="../ng5643.jpeg">
-      <source src="TGC%20LVL%201%20website.mp4" type="video/mp4">
+    <h2 class="l1-h2">Inside A BirdBox Level 1 Seminar</h2>
+    <video class="l1-vid" id="l1-promo" controls preload="metadata" playsinline poster="NG-7916.jpg">
+      <source src="LVL%201%20promo%20website.mp4" type="video/mp4">
       Your browser cannot play this video.
     </video>
   </section>
 
-  <section class="l1-section">
-    <p class="l1-label">Who Should Attend?</p>
-    <h2 class="l1-h2">Built for Coaches and Athletes</h2>
-    <p class="l1-lede">Whether you&rsquo;re a CrossFit coach, part-time trainer, gym owner, or competitive athlete, this seminar is built for you. If you want a rock-solid understanding of gymnastics and how to coach it, you belong in the room.</p>
-  </section>
+  <div class="l1-band l1-band--learn">
+    <section class="l1-section">
+      <p class="l1-label">What You&rsquo;ll Learn</p>
+      <h2 class="l1-h2">The Core Of The Weekend</h2>
+    <div class="l1-grid3">
+      <div class="l1-card">
+        <h3 class="l1-card__title">Methodology Mastery</h3>
+        <p class="l1-card__text">Coaching definitions, the coach hierarchy of needs, and areas for development &mdash; the material you shape your personal coaching philosophy from.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Know Yourself</h3>
+        <p class="l1-card__text">Understand your personality, traits and behaviours, and how they change your coaching effectiveness and interpersonal connections.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Coach-Athlete Relationship</h3>
+        <p class="l1-card__text">Foundational concepts and academic models showing why cultivating strong relationships is the work, not a side effect of it.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Psychosocial Coaching</h3>
+        <p class="l1-card__text">Communication, motivation, conflict resolution and leadership &mdash; the skills that create a positive training environment.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Transformational Coaching</h3>
+        <p class="l1-card__text">Inspire and motivate athletes using Bass&rsquo;s transformational leadership model.</p>
+      </div>
+    </div>
+    </section>
+
+    <section class="l1-section">
+      <p class="l1-label">Going Deeper</p>
+      <h2 class="l1-h2">Beyond The Fundamentals</h2>
+    <div class="l1-grid2">
+      <div class="l1-card">
+        <h3 class="l1-card__title">Biomechanics For Coaches</h3>
+        <p class="l1-card__text">The ten key principles that improve performance &mdash; force, impulse, stability and more &mdash; plus muscle origins and insertions to sharpen movement quality.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Structured Thinking Like A Coach</h3>
+        <p class="l1-card__text">A systematic approach to decision-making, covering mechanics, intensity and targeted interventions.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Reflect And Grow</h3>
+        <p class="l1-card__text">Reflection and observation as tools to continually assess and improve your effectiveness.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Sensory Coaching Techniques</h3>
+        <p class="l1-card__text">Contact, balance, breath and tension &mdash; helping athletes build a deeper connection with their movement.</p>
+      </div>
+    </div>
+    </section>
+  </div>
 
   <section class="l1-section">
-    <p class="l1-label">Topics Covered</p>
-    <h2 class="l1-h2">Gymnastics Coaching Methodology &amp; Hierarchy of Development</h2>
-    <div class="l1-topics">
-      <div class="l1-topic">
-        <p class="l1-topic__name">Methodology &amp; Rules</p>
-        <p class="l1-topic__text">The coaching methodology, rules, and laws that govern safe, effective gymnastics training.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Warm-Ups &amp; Movement Assessment</p>
-        <p class="l1-topic__text">Warm-up design, identifying movement limitations, coaching approaches, and training interventions.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Foundational Shapes</p>
-        <p class="l1-topic__text">Hollow, arch, hollow rocks, arch rocks, L-sits, V-sits, pelvis tilt and ribcage control.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Hanging &amp; Grip</p>
-        <p class="l1-topic__text">Hang in hollow, lat compression, and grip development.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Pulling, From First Rep to Mastery</p>
-        <p class="l1-topic__text">Strict pull-up and toes-to-bar progressions through beat swings, kipping pull-ups, kipping toes-to-bar, butterfly pull-ups, pull-overs, and bar muscle-ups.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Squatting &amp; Pressing</p>
-        <p class="l1-topic__text">Air squat biomechanics and coaching approaches, pistols, and push-ups.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Rings</p>
-        <p class="l1-topic__text">Ring push-ups and low ring training accessories, strict ring muscle-ups, dynamic ring swings, and kipping ring muscle-ups.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Inversions</p>
-        <p class="l1-topic__text">Headstand, handstand, and strict and kipping handstand push-ups.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Coaching Mindset</p>
-        <p class="l1-topic__text">Coaching styles and a growth mindset toward training and coaching gymnastics.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Programming</p>
-        <p class="l1-topic__text">A programming lecture and clear next steps for training and coaching.</p>
-      </div>
+    <p class="l1-label">Our Mission</p>
+    <h2 class="l1-h2">What We&rsquo;re Trying To Do</h2>
+    <div class="l1-rules">
+      <div class="l1-rule">Offer coaches of all levels the chance to further their professional development with athletes and gym members</div>
+      <div class="l1-rule">Help coaches become more self-aware, guide them toward self-discovery, and give them protocols to improve their practice</div>
+      <div class="l1-rule">Provide usable academic information in a way novice, intermediate and experienced coaches can all apply</div>
+      <div class="l1-rule">Be more than a learning resource &mdash; the coach-athlete relationship, coaching psychology and sociology, strength and conditioning, injury prevention and movement development</div>
     </div>
   </section>
 
   <section class="l1-section">
-    <p class="l1-label">Seminar Format</p>
-    <h2 class="l1-h2">Lecture, Demo, Practice, Feedback</h2>
-    <p class="l1-lede">Our two-day seminar is a blend of lecture, demo, practice, feedback, and collaborative drills. You&rsquo;ll leave with a coaching and training model you can use the very next morning. Includes a 35+ page seminar guide, exclusive discounts on online course access, and certification upon completion.</p>
-    <div class="l1-grid4">
-      <div class="l1-card"><h3 class="l1-card__title">Duration</h3><p class="l1-card__text">Two full days</p></div>
-      <div class="l1-card"><h3 class="l1-card__title">Location</h3><p class="l1-card__text">Multiple various international locations</p></div>
-      <div class="l1-card"><h3 class="l1-card__title">Prerequisite</h3><p class="l1-card__text">None</p></div>
-      <div class="l1-card"><h3 class="l1-card__title">CEUs</h3><p class="l1-card__text">14 toward CrossFit&reg; continuing education</p></div>
+    <p class="l1-label">Who Should Attend?</p>
+    <h2 class="l1-h2">Coaches, Trainers, Practitioners And Leaders</h2>
+    <div class="l1-two">
+      <p class="l1-lede">A CrossFit&reg;-approved two-day course that expands understanding and applies coaching principles for coaches, personal trainers, practitioners and leaders. Our Level 1 is an applied literature review of everything we believe a coach should know to be transformational.</p>
+      <p class="l1-lede">There are no prerequisites. We welcome trainers with all levels of experience, whether you&rsquo;re starting your coaching career or have many years behind you. We know that taking the step at any level can be daunting, but we really are here to help you every step of the way.</p>
     </div>
   </section>
 
   <div class="l1-band l1-band--outcome">
-  <section class="l1-section">
-    <p class="l1-label">The Outcome</p>
-    <h2 class="l1-h2">What You&rsquo;ll Walk Away With</h2>
-    <div class="l1-rules">
-      <div class="l1-rule">A clear, repeatable system for teaching and training gymnastics</div>
-      <div class="l1-rule">Confidence to coach and to perform high-skill movements safely</div>
-      <div class="l1-rule">A structured eye to spot and fix faults &mdash; in your athletes and in yourself</div>
-      <div class="l1-rule">A seminar manual and certificate of completion</div>
+    <section class="l1-section">
+      <p class="l1-label">The Outcome</p>
+      <h2 class="l1-h2">What Success Looks Like After Level 1</h2>
+    <div class="l1-grid3">
+      <div class="l1-card">
+        <h3 class="l1-card__title">Clear Structure</h3>
+        <p class="l1-card__text">Run classes with a repeatable system that works for every member.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Better Results</h3>
+        <p class="l1-card__text">Members move better, progress faster, and stay longer.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Coach Confidence</h3>
+        <p class="l1-card__text">Lead with purpose, communicate clearly, and solve problems quickly.</p>
+      </div>
     </div>
-  </section>
+    </section>
 
-  <section class="l1-section">
-    <p class="l1-label">Preparation</p>
-    <h2 class="l1-h2">What to Bring</h2>
-    <div class="l1-rules">
-      <div class="l1-rule">Government-issued photo ID</div>
-      <div class="l1-rule">The Gymnastics Course seminar guide with pen or pencil</div>
-      <div class="l1-rule">Suitable clothes for working out</div>
-      <div class="l1-rule">Snacks and fluids, plus a meal if you do not plan to go off site during the lunch break</div>
+    <section class="l1-section">
+      <p class="l1-label">Payment Options</p>
+      <h2 class="l1-h2">Flexible Ways To Secure Your Spot</h2>
+      <p class="l1-lede">Choose the option that fits your budget &mdash; start now, spread the cost, or pay a deposit and settle the rest later.</p>
+    <div class="l1-grid3">
+      <div class="l1-card">
+        <h3 class="l1-card__title">Pay In Full</h3>
+        <p class="l1-card__text">Secure your place instantly.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Payment Plan</h3>
+        <p class="l1-card__text">Split the cost into two to six instalments.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Deposit &amp; Balance</h3>
+        <p class="l1-card__text">Pay a deposit now, the remainder two weeks before the course.</p>
+      </div>
     </div>
-  </section>
+    </section>
   </div>
 
   <section class="l1-section">
     <p class="l1-label">Pricing</p>
     <h2 class="l1-h2">The Investment to Register</h2>
-    <div class="l1-prices">
-      <div class="l1-price">
-        <div class="l1-price__cur">USD</div>
-        <div class="l1-price__amt">$710</div>
-        <div class="l1-price__vat">&nbsp;</div>
+    <div class="l1-split">
+      <div>
+        <p class="l1-lede">Seminars are priced in the local currency of the location, so the exact figure for the seminar you want is shown on its pin above and on its registration page.</p>
+    <p class="l1-policy">VAT is charged according to the location of the course, not the country you are paying from. Some courses are set in local currency, with the exchange rate fixed at the time the course is created. Instalment and deposit options are available at checkout.</p>
+    <p class="l1-policy"><strong>Discounts.</strong> Available for active duty or retired military and law enforcement personnel, and for groups of five or more. Email <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a> with your desired seminar location and proof of status.</p>
+    <p class="l1-policy"><strong>Refunds.</strong> Due to the travel and planning involved in running international courses, courses are non-refundable. We can provide a credit toward a future course, a change of dates or location, or a transfer to the online course.</p>
       </div>
-      <div class="l1-price">
-        <div class="l1-price__cur">GBP</div>
-        <div class="l1-price__amt">&pound;560</div>
-        <div class="l1-price__vat">+ VAT</div>
-      </div>
-      <div class="l1-price">
-        <div class="l1-price__cur">EUR</div>
-        <div class="l1-price__amt">&euro;600</div>
-        <div class="l1-price__vat">+ VAT</div>
-      </div>
-      <div class="l1-price">
-        <div class="l1-price__cur">AUD</div>
-        <div class="l1-price__amt">$975</div>
-        <div class="l1-price__vat">+ VAT</div>
-      </div>
-      <div class="l1-price">
-        <div class="l1-price__cur">CAD</div>
-        <div class="l1-price__amt">$940</div>
-        <div class="l1-price__vat">+ VAT</div>
+      <div>
+        <video class="l1-vid" id="l1-testimonial" controls preload="metadata" playsinline poster="142A4002.jpg">
+          <source src="Oregon%20feedback%20BB%20website.mp4" type="video/mp4">
+          Your browser cannot play this video.
+        </video>
+        <p class="l1-vid__cap">Chausse Lauer &mdash; Gresham, Oregon</p>
       </div>
     </div>
-    <p class="l1-policy">VAT is charged according to the location of the course, not the country you are paying from. Some courses are set in local currency, with the exchange rate fixed at the time the course is created. Pricing is applicable at the time registration opens.</p>
-    <p class="l1-policy"><strong>Discounts.</strong> Available for first responders, full-time school teachers, and active duty or veteran military personnel. Groups of five or more receive 25%. If you attended our course after 2015 and want to re-attend, you receive 50%. Email <a href="mailto:info@thegymnasticscourse.education">info@thegymnasticscourse.education</a> with your desired seminar location and proof of status or your original certificate.</p>
-    <p class="l1-policy"><strong>Refunds.</strong> Due to the travel and planning involved in running international courses, courses are non-refundable. We can provide a credit toward a future course, a change of dates or location, or a transfer to the online course.</p>
   </section>
 
   <section class="l1-section">
@@ -791,52 +794,52 @@
     <div class="l1-faq">
       <details>
         <summary>Do I need coaching experience?</summary>
-        <p>No. Level 1 is designed for coaches and athletes at any stage.</p>
-      </details>
-      <details>
-        <summary>How fit do I need to be?</summary>
-        <p>You don&rsquo;t need to be an athlete &mdash; just someone who wants to understand, perform or even coach movement better.</p>
-      </details>
-      <details>
-        <summary>Do I need to coach gymnastics already?</summary>
-        <p>No. Many coaches from other sports attend and benefit.</p>
+        <p>No. There are no prerequisites and we welcome trainers with all levels of experience, from your first month coaching to many years in.</p>
       </details>
       <details>
         <summary>Do I receive CEUs?</summary>
-        <p>Yes. You may claim 14 CEUs toward your continuing CrossFit&reg; education upon successful completion.</p>
+        <p>Yes. You may claim 14 CEUs toward your continuing CrossFit&reg; education on successful completion.</p>
+      </details>
+      <details>
+        <summary>Is this only for CrossFit&reg; coaches?</summary>
+        <p>No. Strength and conditioning coaches, personal trainers, practitioners, gym owners and leaders all attend. If you coach people, it applies.</p>
+      </details>
+      <details>
+        <summary>What does the weekend actually cover?</summary>
+        <p>Psychosocial, physical and technical coaching development, delivered through lectures, strength and conditioning coaching, and hands-on practice.</p>
+      </details>
+      <details>
+        <summary>Do I get feedback?</summary>
+        <p>Yes. Real-time feedback on the floor across the weekend, and written feedback after the course.</p>
+      </details>
+      <details>
+        <summary>Can I split the payment?</summary>
+        <p>Yes. Pay in full, split into two to six instalments, or pay a deposit now with the balance two weeks before.</p>
       </details>
       <details>
         <summary>What language is the seminar in?</summary>
         <p>Language varies by location and is stated on each seminar listing. Check the course page before you register.</p>
       </details>
       <details>
-        <summary>Can I attend alone?</summary>
-        <p>Absolutely. Most coaches do, and you will feel welcome.</p>
-      </details>
-      <details>
-        <summary>Can I split the payment?</summary>
-        <p>Yes &mdash; instalment options are available at checkout on the registration page.</p>
-      </details>
-      <details>
-        <summary>What should I bring?</summary>
-        <p>Photo ID, your seminar guide, training clothes, and food and fluids for the day.</p>
+        <summary>What if I want to learn online instead?</summary>
+        <p>The Level 1 online course covers the core principles at your own pace and carries 44 CEUs.</p>
       </details>
     </div>
   </section>
 
   <div class="l1-close">
-    <h2>Ready to Coach Gymnastics Properly?</h2>
-    <p>Join coaches around the world who have completed TGC Level 1.</p>
+    <h2>Ready To Lead With Confidence?</h2>
+    <p>Join the next BirdBox Level 1 weekend and transform your coaching.</p>
     <a class="tcc-cta" href="#map">View Dates and Book Your Spot &rarr;</a>
   </div>
 
   <div class="tcc-cross">
     <div class="tcc-cross__label">Explore Other Pathways</div>
     <div class="tcc-cross__links">
-      <a href="/tgc">The Gymnastics Course</a>
+      <a href="/tcc/online-level-1">Level 1 Online Course</a>
+      <a href="/tcc/level-2">TCC Level 2</a>
       <a href="/tcc">The Coaches Course</a>
-      <a href="/tec">The Endurance Course</a>
-      <a href="/twc">The Weightlifting Course</a>
+      <a href="/tgc">The Gymnastics Course</a>
     </div>
   </div>
 
@@ -846,6 +849,22 @@
   &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
   <a class="bb-footer__staff" href="/portal/">Staff Login</a>
 </footer>
+
+<script>
+  // The promo is mixed hotter than the testimonial. Volume is settable on
+  // desktop and Android; iOS ignores it and defers to the hardware buttons.
+  (function () {
+    var levels = { "l1-promo": 0.55, "l1-testimonial": 1.0 };
+    Object.keys(levels).forEach(function (id) {
+      var v = document.getElementById(id);
+      if (!v) return;
+      var set = function () { try { v.volume = levels[id]; } catch (e) {} };
+      set();
+      v.addEventListener("loadedmetadata", set);
+      v.addEventListener("play", set);
+    });
+  })();
+</script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
@@ -865,6 +884,19 @@
   const langEl = document.getElementById("l1-f-language");
 
   let courses = [];
+
+  function formatMoney(cents, currency) {
+    if (cents == null || !currency) return "";
+    try {
+      return new Intl.NumberFormat("en-GB", {
+        style: "currency",
+        currency: currency.toUpperCase(),
+        maximumFractionDigits: 0
+      }).format(cents / 100);
+    } catch (e) {
+      return "";
+    }
+  }
 
   function formatWhen(startsAt, endsAt, tz) {
     const zone = tz || "UTC";
@@ -916,15 +948,6 @@
     } catch (e) { return code; }
   }
 
-  function formatMoney(cents, currency) {
-    if (cents == null || !currency) return "";
-    try {
-      return new Intl.NumberFormat("en-GB", {
-        style: "currency", currency: currency.toUpperCase(), maximumFractionDigits: 0,
-      }).format(cents / 100);
-    } catch (e) { return ""; }
-  }
-
   const map = L.map("l1-map", { scrollWheelZoom: false }).setView([25, 10], 2);
   L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
     attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
@@ -933,7 +956,7 @@
 
   const pin = L.divIcon({
     className: "",
-    html: '<span style="display:block;width:16px;height:16px;border-radius:50%;background:#D8393D;border:2px solid #F2EFEF;box-shadow:0 0 10px rgba(216,57,61,0.9)"></span>',
+    html: '<span style="display:block;width:16px;height:16px;border-radius:50%;background:#4FA8DE;border:2px solid #F2EFEF;box-shadow:0 0 10px rgba(79,168,222,0.9)"></span>',
     iconSize: [16, 16],
     iconAnchor: [8, 8]
   });
@@ -1049,9 +1072,11 @@
       const when = formatWhen(c.starts_at, c.ends_at, c.timezone);
       const full = c.status === "full";
       const marker = L.marker([c.latitude, c.longitude], { icon: pin }).addTo(map);
+      const money = formatMoney(c.price_cents, c.currency);
       marker.bindPopup(
         `<div class="l1-pin__city">${where}</div>` +
         `<div class="l1-pin__when">${when}${full ? " &middot; Full" : ""}</div>` +
+        (money ? `<div class="l1-pin__price">${money}</div>` : "") +
         `<a class="l1-pin__go" href="/c/${c.slug}/">${full ? "View" : "Register"}</a>`
       );
       bounds.push([c.latitude, c.longitude]);
@@ -1071,8 +1096,8 @@
   async function load() {
     const { data, error } = await supabase
       .from("courses")
-      .select("slug, title, city, country, state, language, venue_name, starts_at, ends_at, timezone, status, price_cents, currency, latitude, longitude")
-      .eq("brand", "tgc")
+      .select("slug, title, city, country, state, language, venue_name, starts_at, ends_at, timezone, status, latitude, longitude, price_cents, currency")
+      .eq("brand", "tcc")
       .eq("type", "live_seminar")
       .in("level", ["1","L1","l1","Level 1"])
       .in("status", ["published", "full"])
