@@ -200,6 +200,19 @@
     } catch (e) { return iso; }
   }
 
+
+  // "Jacksonville, FL" rather than "Jacksonville, United States" — the
+  // state is what an American reads as the location. Everywhere else
+  // still shows the country, because "Munich, BY" would mean nothing.
+  const STATE_COUNTRIES = new Set(["US", "CA", "AU", "BR", "MX"]);
+
+  function placeName(c) {
+    const country = String(c.country == null ? "" : c.country).trim().toUpperCase();
+    const state = String(c.state == null ? "" : c.state).trim().toUpperCase();
+    const tail = (state && STATE_COUNTRIES.has(country)) ? state : countryName(country);
+    return [c.city, tail].filter(Boolean).join(", ");
+  }
+
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
   let lines = [];
@@ -343,7 +356,7 @@
 
     const { data: course, error } = await supabase
       .from("courses")
-      .select("brand, type, level, title, city, country, workshop_focus, starts_at")
+      .select("brand, type, level, title, city, country, state, workshop_focus, starts_at")
       .eq("slug", slug)
       .maybeSingle();
 
@@ -360,7 +373,7 @@
       : (BRAND_NAME[brand] || "BirdBox Coaching") +
         (levelDigits ? ` — Level ${levelDigits}` : "");
 
-    const place = [course.city, countryName(course.country)].filter(Boolean).join(", ");
+    const place = placeName(course);
     const third = isWorkshop ? (course.workshop_focus || "Workshop") : "Completed";
 
     // No labels — the course and the place speak for themselves, and
