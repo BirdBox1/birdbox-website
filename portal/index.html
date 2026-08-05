@@ -596,6 +596,12 @@
           <input id="pm-note" type="text" placeholder="e.g. paid RegFox Jan 2026">
         </div>
       </div>
+      <div class="field hidden" id="pm-online-wrap">
+        <label for="pm-online">Free online course <span class="hint">this seminar includes one</span></label>
+        <select id="pm-online">
+          <option value="">Do not give online access</option>
+        </select>
+      </div>
       <label class="pm-check"><input type="checkbox" id="pm-paid" checked> Mark as paid in full</label>
       <label class="pm-check"><input type="checkbox" id="pm-email-send"> Send them the registration confirmation email now</label>
       <div class="admin-row" style="margin-top:.8rem">
@@ -1827,6 +1833,7 @@ async function openCourse(course) {
 
   if (isAdmin()) wireAdmin(course, regs.length, live.length);
   $("pm-bar").classList.toggle("hidden", !isAdmin());
+  await loadOnlineLanguages(course);
 
   if (!regs.length) {
     box.innerHTML = '<p class="empty">' +
@@ -2730,6 +2737,115 @@ function activeCount(regs) {
   return regs.filter((r) => (r.status || "active") === "active").length;
 }
 
+/* ---------- free online course, granted by hand ---------- */
+
+// The languages this course's online course exists in. Read straight
+// from the same table the checkout uses, so the portal can never
+// offer a language that would then fail to enrol.
+let onlineLanguages = [];
+
+async function loadOnlineLanguages(course) {
+  onlineLanguages = [];
+  if (!course || !course.grants_online_course) return;
+
+  const digits = String(course.level == null ? "" : course.level).replace(/\D/g, "");
+  const { data, error } = await db
+    .from("learnworlds_products")
+    .select("language, label, level, brand, active")
+    .eq("brand", course.brand)
+    .eq("active", true);
+
+  if (error) { console.error("Could not load online languages:", error.message); return; }
+
+  onlineLanguages = (data || [])
+    .filter((r) => String(r.level || "").replace(/\D/g, "") === digits)
+    .sort((a, b) => String(a.label || a.language).localeCompare(String(b.label || b.language)));
+}
+
+function fillOnlineSelect() {
+  const wrap = $("pm-online-wrap");
+  const sel = $("pm-online");
+  const show = onlineLanguages.length > 0;
+  wrap.classList.toggle("hidden", !show);
+  if (!show) return;
+
+  sel.innerHTML = '<option value="">Do not give online access</option>';
+  for (const l of onlineLanguages) {
+    const o = document.createElement("option");
+    o.value = l.language;
+    o.textContent = l.label || langLabel(l.language);
+    sel.append(o);
+  }
+}
+
+// Runs server-side: the LearnWorlds secret never reaches the browser.
+async function grantOnline(registrationId, language) {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) throw new Error("Your session has expired — sign in again.");
+
+  const res = await fetch("/.netlify/functions/grant-online-course", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + session.access_token,
+    },
+    body: JSON.stringify({ registration_id: registrationId, language }),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || "That did not work.");
+  return data;
+}
+
+// Asks which language, then grants it. Used for cash payers added by
+// hand, registrations that predate the automatic enrolment, and
+// retries after a failure.
+async function askAndGrant(reg, btn) {
+  if (!onlineLanguages.length) {
+    window.alert("No online course is set up for this brand and level.");
+    return;
+  }
+
+  const lines = onlineLanguages
+    .map((l, i) => `${i + 1}. ${l.label || langLabel(l.language)}`)
+    .join("\n");
+  const pick = window.prompt(
+    `Give ${reg.first_name} ${reg.last_name} free access to the online course.\n\n` +
+    `Which language?\n\n${lines}\n\nType the number:`
+  );
+  if (!pick) return;
+
+  const chosen = onlineLanguages[parseInt(pick, 10) - 1];
+  if (!chosen) { window.alert("That was not one of the numbers listed."); return; }
+
+  if (reg.learnworlds_status === "enrolled" &&
+      !window.confirm(
+        `${reg.first_name} already has access in ` +
+        `${langLabel(reg.learnworlds_language)}.\n\n` +
+        `Granting ${chosen.label || langLabel(chosen.language)} adds a second ` +
+        `course rather than replacing the first. Continue?`
+      )) return;
+
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = "Granting…";
+
+  try {
+    const r = await grantOnline(reg.id, chosen.language);
+    window.alert(
+      `Done — ${reg.first_name} now has the online course in ${r.label}.\n\n` +
+      (r.userWasCreated
+        ? "A new academy account was created, and they have been emailed a link to set their password."
+        : "They already had an academy account, and have been emailed to say the course has been added.")
+    );
+  } catch (err) {
+    window.alert("Could not grant access: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+  openCourse(currentCourse);
+}
+
 function buildActions(box, course, reg, status) {
   box.innerHTML = "";
   const add = (label, cls, fn) => {
@@ -2757,6 +2873,16 @@ function buildActions(box, course, reg, status) {
     add("Cancelled", "ghost small", (b) => setRegStatus(reg, "cancelled", b));
     add("No show", "ghost small", (b) => setRegStatus(reg, "no_show", b));
   }
+  // Only where the course actually includes an online course, so the
+  // button cannot appear somewhere it would be meaningless.
+  if (course.grants_online_course && status === "active") {
+    add(
+      reg.learnworlds_status === "enrolled" ? "Online access" : "Grant online access",
+      "ghost small",
+      (b) => askAndGrant(reg, b)
+    );
+  }
+
   add("Delete", "ghost small", (b) => deleteParticipant(reg, b));
 }
 
@@ -2851,6 +2977,7 @@ function wireParticipantControls() {
     for (const id of ["pm-first", "pm-last", "pm-email", "pm-phone", "pm-note"]) $(id).value = "";
     $("pm-paid").checked = true;
     $("pm-email-send").checked = false;
+    fillOnlineSelect();
     $("pm-first").focus();
   };
   $("pm-cancel").onclick = () => { $("pm-form").classList.add("hidden"); pmMsg(""); };
@@ -2891,16 +3018,30 @@ function wireParticipantControls() {
     $("pm-save").disabled = false;
     if (error) { pmMsg("Could not add them: " + error.message, true); return; }
 
+    const notes = [];
+
     if ($("pm-email-send").checked) {
       try {
         await callAdmin({ action: "send_registration_email", registration_id: created.id });
-        pmMsg("Added, and the confirmation email has gone out.");
+        notes.push("the confirmation email has gone out");
       } catch (e) {
-        pmMsg("Added — but the confirmation email did not send: " + e.message, true);
+        notes.push("but the confirmation email did not send: " + e.message);
       }
-    } else {
-      pmMsg("Added. No email was sent.");
     }
+
+    // The online course is granted after the registration exists, so a
+    // LearnWorlds problem can never cost you the registration itself.
+    const wantOnline = $("pm-online").value;
+    if (wantOnline) {
+      try {
+        const r = await grantOnline(created.id, wantOnline);
+        notes.push("online access granted in " + r.label);
+      } catch (e) {
+        notes.push("but online access failed: " + e.message);
+      }
+    }
+
+    pmMsg(notes.length ? "Added — " + notes.join(", ") + "." : "Added. No email was sent.");
 
     $("pm-form").classList.add("hidden");
     openCourse(currentCourse);
