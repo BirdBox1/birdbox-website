@@ -1009,6 +1009,23 @@
   </div>
 </div>
 
+<!-- ============ CANCEL AND REFUND ============ -->
+<div class="overlay hidden" id="cxwrap">
+  <div class="dialog" style="max-width:38rem" role="dialog" aria-modal="true" aria-labelledby="cx-h">
+    <h3 id="cx-h">Cancel and refund everyone</h3>
+    <p id="cx-what"></p>
+    <div class="loses hidden" id="cx-warn"></div>
+    <div id="cx-list" style="font-size:0.88rem;max-height:14rem;overflow-y:auto;
+         border:1px solid var(--rule);border-radius:5px;margin:0 0 1rem"></div>
+    <p class="whenline" id="cx-total"></p>
+    <p class="msg" id="cx-msg"></p>
+    <div class="row">
+      <button class="btn ghost" id="cx-close" type="button">Cancel</button>
+      <button class="btn solid-danger" id="cx-go" type="button">Refund and cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ COMPLETE AND SUBMIT ============ -->
 <div class="overlay hidden" id="certwrap">
   <div class="dialog" style="max-width:34rem" role="dialog" aria-modal="true" aria-labelledby="cert-h">
@@ -3459,6 +3476,122 @@ function showPrecourseBar(course) {
         : `Due by the end of Wednesday ${fmtDate(w.closesAt.toISOString(), course.timezone)}.`;
 }
 
+/* ---------- cancelling a course ---------- */
+
+// Clause 1.5 of the terms: if we cancel and cannot offer a suitable
+// alternative, the participant is refunded in full. No administration
+// fee — that is only for refunds they ask for.
+let cancelPlan = null;
+
+function openCancelPreview(course, p) {
+  cancelPlan = { courseId: course.id, ...p };
+
+  const money = (cents) => new Intl.NumberFormat(undefined, {
+    style: "currency", currency: p.currency || "EUR", maximumFractionDigits: 2,
+  }).format((cents || 0) / 100);
+
+  $("cx-h").textContent = "Cancel " + course.title;
+
+  $("cx-what").textContent = p.people.length
+    ? `${p.people.length} participant${p.people.length === 1 ? "" : "s"} will be refunded in full and emailed. ` +
+      "The course is then archived. Refunds cannot be undone."
+    : "Nobody has booked, so there is nothing to refund. The course will be archived.";
+
+  // Money we cannot move automatically has to be visible, not buried.
+  const warn = $("cx-warn");
+  if (p.totalStuck) {
+    warn.classList.remove("hidden");
+    warn.innerHTML =
+      `<strong>${money(p.totalStuck)} cannot be refunded automatically</strong>` +
+      "No Stripe payment reference was recorded against it. Refund that by hand in Stripe.";
+  } else {
+    warn.classList.add("hidden");
+  }
+
+  const list = $("cx-list");
+  list.innerHTML = "";
+  for (const person of p.people) {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;justify-content:space-between;gap:1rem;padding:0.5rem 0.75rem;border-bottom:1px solid var(--rule)";
+    const who = document.createElement("span");
+    who.textContent = person.name || person.email;
+    const what = document.createElement("span");
+    what.style.whiteSpace = "nowrap";
+    const bits = [];
+    if (person.refundCents) bits.push("refund " + money(person.refundCents));
+    if (person.cancelCents) bits.push("stop " + money(person.cancelCents));
+    if (person.stuckCents) bits.push("by hand " + money(person.stuckCents));
+    what.textContent = bits.length ? bits.join(" · ") : "nothing taken";
+    row.append(who, what);
+    list.append(row);
+  }
+  if (!p.people.length) list.classList.add("hidden");
+  else list.classList.remove("hidden");
+
+  $("cx-total").textContent = p.people.length
+    ? `${money(p.totalRefund)} refunded` +
+      (p.totalCancel ? `, ${money(p.totalCancel)} of scheduled payments stopped.` : ".")
+    : "";
+
+  $("cx-msg").textContent = "";
+  $("cx-msg").className = "msg";
+  $("cx-go").disabled = p.alreadyCancelled;
+  $("cx-go").textContent = p.people.length ? "Refund and cancel" : "Cancel the course";
+  if (p.alreadyCancelled) {
+    $("cx-msg").className = "msg err";
+    $("cx-msg").textContent = "This course has already been cancelled.";
+  }
+
+  $("cxwrap").classList.remove("hidden");
+}
+
+function wireCancel() {
+  $("cx-close").onclick = () => { $("cxwrap").classList.add("hidden"); cancelPlan = null; };
+  $("cxwrap").addEventListener("click", (e) => {
+    if (e.target === $("cxwrap")) { $("cxwrap").classList.add("hidden"); cancelPlan = null; }
+  });
+
+  $("cx-go").onclick = async () => {
+    if (!cancelPlan) return;
+    const msg = $("cx-msg");
+
+    if (!window.confirm(
+      cancelPlan.people.length
+        ? `Refund ${cancelPlan.people.length} participant${cancelPlan.people.length === 1 ? "" : "s"} and cancel this course?\n\n` +
+          "This moves real money and cannot be undone."
+        : "Cancel and archive this course?"
+    )) return;
+
+    $("cx-go").disabled = true;
+    msg.className = "msg";
+    msg.textContent = "Refunding and emailing — this can take a moment…";
+
+    try {
+      const r = await callAdmin({
+        action: "cancel",
+        courseId: cancelPlan.courseId,
+        reason: $("c-reason").value.trim() || null,
+      });
+
+      const problems = (r.problems || []).length;
+      msg.className = problems ? "msg err" : "msg ok";
+      msg.textContent = problems
+        ? `Cancelled, but ${problems} did not go through: ${(r.problems || []).join("; ")}`
+        : `Cancelled. ${r.emailed} participant${r.emailed === 1 ? "" : "s"} refunded and emailed.`;
+
+      setTimeout(() => {
+        $("cxwrap").classList.add("hidden");
+        cancelPlan = null;
+        loadCourses();
+      }, problems ? 6000 : 2500);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+      $("cx-go").disabled = false;
+    }
+  };
+}
+
 /* ---------- complete and submit the seminar ---------- */
 
 // One deliberate action at the end of a course: check the attendance
@@ -4204,30 +4337,17 @@ async function wireAdmin(course, totalRegs, liveRegs) {
     ? `Refunds ${liveRegs} participant${liveRegs === 1 ? "" : "s"} in full, stops any unpaid balances, emails everyone and archives the course.`
     : "Nobody has booked, so there is nothing to refund. This will archive the course.";
 
+  // Cancelling shows what would happen before any of it does. Refunds
+  // cannot be taken back, so the numbers are on screen first.
   $("cancelbtn").onclick = async () => {
-    if (!window.confirm(
-      `Cancel "${course.title}"?\n\n` +
-      (liveRegs
-        ? `${liveRegs} participant${liveRegs === 1 ? " will be" : "s will be"} refunded in full and emailed.`
-        : "Nobody has booked.")
-    )) return;
-    if (liveRegs && !window.confirm("Last check — this issues real refunds. Go ahead?")) return;
-
+    msg.className = "msg";
+    msg.textContent = "Working out what would be refunded…";
     $("cancelbtn").disabled = true;
-    msg.className = "msg"; msg.textContent = "Cancelling, refunding and sending emails…";
 
     try {
-      const r = await callAdmin({
-        action: "cancel",
-        courseId: course.id,
-        reason: $("c-reason").value.trim() || null,
-      });
-      const problems = (r.problems || []).length;
-      msg.className = problems ? "msg err" : "msg ok";
-      msg.textContent = problems
-        ? `Cancelled, but ${problems} refund${problems === 1 ? "" : "s"} did not go through — check your email for details.`
-        : `Cancelled. ${r.emailed} participant${r.emailed === 1 ? "" : "s"} refunded and emailed.`;
-      setTimeout(loadCourses, 3000);
+      const p = await callAdmin({ action: "cancel_preview", courseId: course.id });
+      msg.textContent = "";
+      openCancelPreview(course, p);
     } catch (err) {
       msg.className = "msg err";
       msg.textContent = err.message;
@@ -4645,6 +4765,7 @@ wireEdit();
 wireWelcome();
 wirePrecourse();
 wireCertificates();
+wireCancel();
 start();
 </script>
 
