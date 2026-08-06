@@ -245,7 +245,7 @@ async function cancelPlan(courseId) {
 
   const { data: pays, error: pErr } = await supabase
     .from("payments")
-    .select("id, registration_id, sequence, amount_cents, status, stripe_payment_intent_id, refunded_at")
+    .select("id, registration_id, sequence, amount_cents, status, charged_at, stripe_payment_intent_id, refunded_at")
     .in("registration_id", active.map((r) => r.id));
 
   if (pErr) throw new Error("payments: " + pErr.message);
@@ -256,23 +256,26 @@ async function cancelPlan(courseId) {
   return active.map((r) => {
     const rows = byReg[r.id] || [];
 
-    // Taken and not yet given back. A payment already refunded is left
-    // alone, so pressing the button twice cannot refund twice.
-    const toRefund = rows.filter(
-      (p) => p.status === "paid" && !p.refunded_at && p.stripe_payment_intent_id
-    );
+    // Whether money actually moved is answered by charged_at, not by
+    // the status label. An earlier version of this filtered on a status
+    // value that does not exist in the enum, so nothing matched and
+    // four charged payments were marked cancelled instead of refunded.
+    // charged_at is a fact about what happened; status is a label that
+    // can be wrong.
+    const wasTaken = (p) => !!p.charged_at && p.status !== "refunded" && !p.refunded_at;
 
-    // Scheduled and not yet taken. These are stopped rather than
-    // refunded — nobody has paid them.
+    // Taken, and not yet given back.
+    const toRefund = rows.filter((p) => wasTaken(p) && p.stripe_payment_intent_id);
+
+    // Never taken, so there is nothing to give back — these are simply
+    // stopped so nobody is charged for a course that is not happening.
     const toCancel = rows.filter(
-      (p) => p.status !== "paid" && p.status !== "refunded" && p.status !== "cancelled"
+      (p) => !p.charged_at && p.status !== "refunded" && p.status !== "cancelled"
     );
 
-    // Money taken that we cannot refund automatically, because no
-    // payment intent was recorded. Flagged rather than hidden.
-    const stuck = rows.filter(
-      (p) => p.status === "paid" && !p.refunded_at && !p.stripe_payment_intent_id
-    );
+    // Taken, but with no Stripe reference recorded, so it cannot be
+    // refunded automatically. Flagged rather than quietly skipped.
+    const stuck = rows.filter((p) => wasTaken(p) && !p.stripe_payment_intent_id);
 
     return {
       registration_id: r.id,
@@ -335,13 +338,15 @@ async function cancel({ courseId, reason }, me) {
     for (const paymentId of person.refundIds) {
       const { data: pay } = await supabase
         .from("payments")
-        .select("id, amount_cents, stripe_payment_intent_id, refunded_at")
+        .select("id, amount_cents, status, charged_at, stripe_payment_intent_id, refunded_at")
         .eq("id", paymentId)
         .single();
 
       // Checked again here, not just in the plan: two admins pressing
-      // at once must not both issue the same refund.
-      if (!pay || pay.refunded_at) continue;
+      // at once must not both issue the same refund, and a payment that
+      // was never charged must never be refunded.
+      if (!pay || pay.refunded_at || pay.status === "refunded") continue;
+      if (!pay.charged_at || !pay.stripe_payment_intent_id) continue;
 
       try {
         const refund = await stripe.refunds.create({
