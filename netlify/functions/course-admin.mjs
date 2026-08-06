@@ -9,6 +9,7 @@
 // pretending to have done it.
 
 import { createClient } from "@supabase/supabase-js";
+import Stripe from "stripe";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -20,6 +21,8 @@ const OFFICE = "info@birdboxcoaching.com";
 const FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
 const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.app")
   .replace(/\/+$/, "");
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async (request) => {
   if (request.method !== "POST") return json({ error: "Use POST" }, 405);
@@ -45,7 +48,8 @@ export default async (request) => {
     switch (body.action) {
       case "reschedule":            return await reschedule(body, me);
       case "send_registration_email": return await sendRegistrationEmail(body);
-      case "cancel":                return await cancel(body);
+      case "cancel_preview":        return await cancelPreview(body);
+      case "cancel":                return await cancel(body, me);
       default:
         return json({ error: `Unknown action "${body.action}".` }, 400);
     }
@@ -220,29 +224,228 @@ ${SITE_URL}/c/${course.slug}/`,
 }
 
 // ---------------------------------------------------------------
-// Cancelling means real refunds, so it is not automated yet. Saying so
-// is better than a button that appears to have refunded twelve people
-// and has not.
+// Cancelling a course. Clause 1.5 of the terms: if we cancel and cannot
+// offer a suitable alternative, the participant gets a full refund. No
+// administration fee — that is clause 1.4, for refunds they ask for.
+//
+// Two steps on purpose. The preview shows exactly what would move
+// before any of it does, because a refund cannot be taken back.
 
-async function cancel({ courseId }) {
+// What each person paid, and what would happen to them.
+async function cancelPlan(courseId) {
+  const { data: regs, error } = await supabase
+    .from("registrations")
+    .select("id, first_name, last_name, email, status, payment_status, currency")
+    .eq("course_id", courseId);
+
+  if (error) throw new Error("registrations: " + error.message);
+
+  const active = (regs || []).filter((r) => (r.status || "active") === "active");
+  if (!active.length) return [];
+
+  const { data: pays, error: pErr } = await supabase
+    .from("payments")
+    .select("id, registration_id, sequence, amount_cents, status, stripe_payment_intent_id, refunded_at")
+    .in("registration_id", active.map((r) => r.id));
+
+  if (pErr) throw new Error("payments: " + pErr.message);
+
+  const byReg = {};
+  for (const p of pays || []) (byReg[p.registration_id] = byReg[p.registration_id] || []).push(p);
+
+  return active.map((r) => {
+    const rows = byReg[r.id] || [];
+
+    // Taken and not yet given back. A payment already refunded is left
+    // alone, so pressing the button twice cannot refund twice.
+    const toRefund = rows.filter(
+      (p) => p.status === "paid" && !p.refunded_at && p.stripe_payment_intent_id
+    );
+
+    // Scheduled and not yet taken. These are stopped rather than
+    // refunded — nobody has paid them.
+    const toCancel = rows.filter(
+      (p) => p.status !== "paid" && p.status !== "refunded" && p.status !== "cancelled"
+    );
+
+    // Money taken that we cannot refund automatically, because no
+    // payment intent was recorded. Flagged rather than hidden.
+    const stuck = rows.filter(
+      (p) => p.status === "paid" && !p.refunded_at && !p.stripe_payment_intent_id
+    );
+
+    return {
+      registration_id: r.id,
+      name: [r.first_name, r.last_name].filter(Boolean).join(" ").trim(),
+      email: r.email,
+      currency: r.currency || "EUR",
+      refundCents: toRefund.reduce((n, p) => n + (p.amount_cents || 0), 0),
+      cancelCents: toCancel.reduce((n, p) => n + (p.amount_cents || 0), 0),
+      stuckCents: stuck.reduce((n, p) => n + (p.amount_cents || 0), 0),
+      refundIds: toRefund.map((p) => p.id),
+      cancelIds: toCancel.map((p) => p.id),
+    };
+  });
+}
+
+async function cancelPreview({ courseId }) {
+  if (!courseId) return json({ error: "No course given." }, 400);
+
   const { data: course } = await supabase
     .from("courses")
-    .select("id, title")
+    .select("id, title, starts_at, timezone, cancelled_at")
     .eq("id", courseId)
     .maybeSingle();
 
-  const { count } = await supabase
-    .from("registrations")
-    .select("id", { count: "exact", head: true })
-    .eq("course_id", courseId)
-    .eq("status", "active");
+  if (!course) return json({ error: "Course not found" }, 404);
+
+  const plan = await cancelPlan(courseId);
 
   return json({
-    error:
-      "Cancelling is not automated yet, because it would issue real refunds.\n\n" +
-      `To cancel "${(course && course.title) || "this course"}": archive it here, ` +
-      `then refund ${count || 0} participant${count === 1 ? "" : "s"} in Stripe and email them.`,
-  }, 400);
+    preview: true,
+    title: course.title,
+    alreadyCancelled: !!course.cancelled_at,
+    people: plan,
+    totalRefund: plan.reduce((n, p) => n + p.refundCents, 0),
+    totalCancel: plan.reduce((n, p) => n + p.cancelCents, 0),
+    totalStuck: plan.reduce((n, p) => n + p.stuckCents, 0),
+    currency: plan.length ? plan[0].currency : "EUR",
+  });
+}
+
+async function cancel({ courseId, reason }, me) {
+  if (!courseId) return json({ error: "No course given." }, 400);
+
+  const { data: course } = await supabase
+    .from("courses")
+    .select("id, title, starts_at, timezone, city, cancelled_at")
+    .eq("id", courseId)
+    .maybeSingle();
+
+  if (!course) return json({ error: "Course not found" }, 404);
+
+  const plan = await cancelPlan(courseId);
+
+  let refunded = 0;
+  let emailed = 0;
+  const problems = [];
+
+  for (const person of plan) {
+    // ---- refund what was taken ----------------------------
+    for (const paymentId of person.refundIds) {
+      const { data: pay } = await supabase
+        .from("payments")
+        .select("id, amount_cents, stripe_payment_intent_id, refunded_at")
+        .eq("id", paymentId)
+        .single();
+
+      // Checked again here, not just in the plan: two admins pressing
+      // at once must not both issue the same refund.
+      if (!pay || pay.refunded_at) continue;
+
+      try {
+        const refund = await stripe.refunds.create({
+          payment_intent: pay.stripe_payment_intent_id,
+          reason: "requested_by_customer",
+        });
+
+        await supabase.from("payments").update({
+          status: "refunded",
+          refunded_at: new Date().toISOString(),
+          refunded_cents: pay.amount_cents,
+          stripe_refund_id: refund.id,
+        }).eq("id", pay.id);
+
+        refunded += pay.amount_cents;
+      } catch (err) {
+        console.error("Refund failed for", person.name, err.message);
+        problems.push(`${person.name}: ${err.message}`);
+      }
+    }
+
+    // ---- stop what was still to come ----------------------
+    if (person.cancelIds.length) {
+      const { error } = await supabase
+        .from("payments")
+        .update({ status: "cancelled" })
+        .in("id", person.cancelIds);
+      if (error) problems.push(`${person.name}: could not stop the balance — ${error.message}`);
+    }
+
+    await supabase
+      .from("registrations")
+      .update({ status: "cancelled", payment_status: person.refundCents ? "refunded" : "pending" })
+      .eq("id", person.registration_id);
+  }
+
+  // ---- tell everybody -------------------------------------
+  const tz = safeZone(course.timezone);
+  const when = longDate(course.starts_at, tz);
+
+  for (const person of plan) {
+    if (!person.email) continue;
+    const money = person.refundCents
+      ? `${formatMoney(person.refundCents, person.currency)} has been refunded to the card you paid with. It usually appears within five to ten working days.`
+      : "Nothing was taken from your card, so there is nothing to refund.";
+
+    const ok = await send({
+      to: person.email,
+      subject: `${course.title} has been cancelled`,
+      text:
+`Hello ${(person.name || "there").split(" ")[0]},
+
+I am sorry to say that ${course.title}, due to run on ${when}, has been cancelled.
+
+${reason ? reason + "\n\n" : ""}${money}
+
+${person.cancelCents ? "Any payment still scheduled has been stopped, so nothing further will be taken.\n\n" : ""}If you would like to join another date instead, reply to this email and we will arrange it.
+
+We are sorry for the disruption, and for any travel or accommodation you may have booked.
+
+BirdBox Coaching
+${OFFICE}`,
+    });
+    if (ok) emailed++;
+  }
+
+  // ---- and the coaches ------------------------------------
+  const { data: staffRows } = await supabase
+    .from("course_staff")
+    .select("staff ( full_name, email, active )")
+    .eq("course_id", courseId);
+
+  for (const row of staffRows || []) {
+    const c = row.staff;
+    if (!c || !c.active || !c.email) continue;
+    await send({
+      to: c.email,
+      subject: `Cancelled: ${course.title}`,
+      text:
+`Hi ${(c.full_name || "there").split(" ")[0]},
+
+${course.title} on ${when} has been cancelled by ${me.full_name}.
+
+${plan.length} participant${plan.length === 1 ? " has" : "s have"} been emailed and refunded.
+
+${SITE_URL}/portal/`,
+    });
+  }
+
+  await supabase.from("courses").update({
+    status: "cancelled",
+    archived: true,
+    cancelled_at: new Date().toISOString(),
+    cancelled_by: me.id,
+    cancel_reason: reason || null,
+  }).eq("id", courseId);
+
+  return json({
+    cancelled: true,
+    emailed,
+    refundedCents: refunded,
+    people: plan.length,
+    problems,
+  });
 }
 
 // ---------------------------------------------------------------
@@ -257,6 +460,15 @@ function shortTime(iso, tz) {
   return new Date(iso).toLocaleTimeString("en-GB", {
     hour: "2-digit", minute: "2-digit", timeZone: tz,
   });
+}
+
+function formatMoney(cents, currency) {
+  try {
+    return new Intl.NumberFormat("en-GB", {
+      style: "currency", currency: (currency || "EUR").toUpperCase(),
+      maximumFractionDigits: 2,
+    }).format((cents || 0) / 100);
+  } catch (e) { return ((cents || 0) / 100).toFixed(2); }
 }
 
 function safeZone(tz) {
