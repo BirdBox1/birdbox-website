@@ -50,7 +50,10 @@ const LAYOUTS = {
     name:      { centreX: 1015, baselineY: 800,  maxWidth: 1450, size: 92, min: 44 },
     // Inside the box, which runs y 946-1069.
     focus:     { centreX: 1014, baselineY: 1027, maxWidth: 1200, size: 54, min: 26 },
-    awardedOn: { centreX: 1683, baselineY: 1225, maxWidth: 560,  size: 40, min: 22 },
+    // The rule runs x 1376-1655, so its centre is 1515. Measured
+    // ignoring the red corner graphic, which is dark enough to have
+    // been mistaken for part of the rule the first time.
+    awardedOn: { centreX: 1515, baselineY: 1220, maxWidth: 265,  size: 36, min: 20 },
     reference: { rightX: 700,   baselineY: 1350, size: 20 },
   },
 };
