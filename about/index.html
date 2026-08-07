@@ -89,13 +89,15 @@
   }
 
   /* ---------- hero copy bar ----------
-     Two columns so the whole bar sits on one screen with the photo. */
+     Two columns. The right column is pushed down so its first line
+     sits level with the headline rather than with the eyebrow above it. */
   .tcc-hero { border-bottom: 1px solid var(--line); margin-top: -1px; }
   .tcc-hero__inner {
     max-width: 1320px; margin: 0 auto; padding: 4px 24px 34px;
     display: grid; grid-template-columns: 1.05fr 1fr; gap: 10px 48px;
     align-items: start;
   }
+  .tcc-hero__copy { padding-top: 30px; }
   .tcc-hero__title {
     font-size: clamp(25px, 3.3vw, 42px); line-height: 1.05; font-weight: 800;
     letter-spacing: -0.015em; text-transform: uppercase; margin: 0;
@@ -123,6 +125,7 @@
 
   @media (max-width: 900px) {
     .tcc-hero__inner { grid-template-columns: 1fr; gap: 14px; padding-bottom: 30px; }
+    .tcc-hero__copy { padding-top: 0; }
     .ab-shot { aspect-ratio: 2.2 / 1; max-height: none; }
     .ab-shot__mark { height: 58px; top: 14px; left: 16px; }
   }
@@ -134,20 +137,8 @@
   }
 
   /* ---------- shared section furniture ---------- */
-  .l1-chips {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
-    border: 1px solid var(--line); background: var(--panel);
-    padding: 18px 20px; margin-top: 22px;
-  }
-  .l1-chip { text-align: center; }
-  .l1-chip__big {
-    font-size: 20px; font-weight: 800; color: var(--accentText); margin-bottom: 3px;
-  }
-  .l1-chip__small {
-    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
-  }
-
   .l1-section { padding: 40px 0 8px; }
+  .l1-section:first-child { padding-top: 34px; }
   .l1-label {
     font-size: 11px; font-weight: 800; letter-spacing: 0.18em;
     text-transform: uppercase; color: var(--accentText); margin: 0 0 8px;
@@ -339,7 +330,6 @@
 
   @media (max-width: 1000px) {
     .l1-grid3 { grid-template-columns: 1fr; }
-    .l1-chips { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
@@ -367,7 +357,7 @@
       <p class="l1-label">About BirdBox Coaching</p>
       <h1 class="tcc-hero__title">Raising the standard<em>of coaching.</em></h1>
     </div>
-    <div>
+    <div class="tcc-hero__copy">
       <p class="tcc-hero__lede">BirdBox Coaching exists for one reason: to increase the professional standard of coaching through world-class education, practical experience and lifelong development.</p>
       <p class="tcc-hero__strap">Better coaches. Better athletes. Better world.</p>
       <div>
@@ -379,13 +369,6 @@
 </header>
 
 <main class="bb-wrap">
-
-  <div class="l1-chips">
-    <div class="l1-chip"><div class="l1-chip__big">Four</div><div class="l1-chip__small">Coaching Brands</div></div>
-    <div class="l1-chip"><div class="l1-chip__big">70+</div><div class="l1-chip__small">Countries Delivered In</div></div>
-    <div class="l1-chip"><div class="l1-chip__big">28</div><div class="l1-chip__small">Educators Worldwide</div></div>
-    <div class="l1-chip"><div class="l1-chip__big">One</div><div class="l1-chip__small">Mission</div></div>
-  </div>
 
   <section class="l1-section" id="story">
     <p class="l1-label">Our Story</p>
@@ -560,7 +543,6 @@
 
 <footer class="bb-footer">
   &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
-  <a class="bb-founder-photo-guard"></a>
   <a class="bb-footer__staff" href="/portal/">Staff Login</a>
 </footer>
 
