@@ -122,19 +122,28 @@ export default async (req) => {
         currency: course.currency,
         discount_code: priced.row.code,
         discount_cents: priced.discount,
-        source: "host_code",
-        source_note: `Free place — ${priced.row.label || priced.row.code}`,
+        // registrations_source_check allows only stripe, manual, regfox
+        // and transfer. The detail belongs in source_note, which is
+        // free text — inventing a fifth value here failed the insert
+        // and, worse, reported it as the course being full.
+        source: "manual",
+        source_note: `Free place, code ${priced.row.code}` +
+          (priced.row.label ? ` — ${priced.row.label}` : ""),
       })
       .select("id")
       .single();
 
     if (rErr) {
-      // 23514 is the capacity trigger. Anything else is unexpected and
-      // worth knowing about, because nobody has paid and nobody has a
-      // place either.
       console.error("Free registration failed", { slug, email, error: rErr });
+
+      // A check constraint could be the capacity trigger or something
+      // else entirely, so only say "full" when the seats agree. Saying
+      // it wrongly sends somebody away from a course with room on it.
+      const reallyFull =
+        course.capacity != null && count !== null && count >= course.capacity;
+
       return json({
-        error: rErr.code === "23514"
+        error: reallyFull
           ? "This course is full"
           : "Something went wrong registering you. Email " + OFFICE + " and we will sort it.",
       }, 409);
