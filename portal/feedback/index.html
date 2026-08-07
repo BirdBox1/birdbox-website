@@ -217,6 +217,40 @@ let photoUrls = {};
 let current = null;
 let watching = null;
 
+// Which brand, type and level combinations have a feedback manual.
+// The same table the drafting function reads, so a course cannot
+// appear here and then fail the moment somebody presses the button.
+// TCC Level 2 has no row: its certificate follows the online exam and
+// no feedback email is written for it.
+let manualKeys = new Set();
+
+const manualKey = (c) =>
+  `${c.brand}:${c.type}:${String(c.level || "").replace(/\D/g, "")}`;
+
+const hasManual = (c) => manualKeys.has(manualKey(c));
+
+async function loadManualKeys() {
+  const { data, error } = await db
+    .from("feedback_manuals")
+    .select("brand, type, level, active")
+    .eq("active", true);
+
+  if (error) {
+    console.error("Could not load feedback manuals:", error.message);
+    // Better to show everything than to empty the page on a lookup
+    // failure — the drafting function refuses on its own anyway.
+    manualKeys = null;
+    return;
+  }
+
+  manualKeys = new Set(
+    (data || []).map((r) => `${r.brand}:${r.type}:${String(r.level || "").replace(/\D/g, "")}`)
+  );
+}
+
+// A null set means the lookup failed, so nothing is filtered out.
+const feedbackApplies = (c) => manualKeys === null || hasManual(c);
+
 const fmtDate = (iso) => iso
   ? new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
   : "";
@@ -234,6 +268,8 @@ async function start() {
   if (!staff || !staff.active) { location.href = "/portal/"; return; }
   me = staff;
 
+  await loadManualKeys();
+
   // Arriving from a course in the portal: open that course straight
   // away rather than making somebody find it again in a list they
   // have just come from.
@@ -244,13 +280,14 @@ async function start() {
 }
 
 // Returns true if it opened. Anything that does not resolve — a bad
-// id, a course this person does not lead — falls back to the list
-// rather than showing an error, because the list is where they were
-// going anyway.
+// id, a course this person does not lead, a course type that does not
+// do feedback — falls back to the list rather than showing an error,
+// because the list is where they were going anyway.
 async function openCourseById(id) {
   const { data: c } = await db.from("courses")
     .select(COURSE_COLS).eq("id", id).maybeSingle();
   if (!c) return false;
+  if (!feedbackApplies(c)) return false;
 
   if (me.role !== "admin") {
     const { data: role } = await db.from("course_staff")
@@ -287,6 +324,12 @@ async function loadCourses() {
     rows = (data || []).map((r) => r.courses).filter(Boolean);
     rows.sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at));
   }
+
+  // Only course types that actually have a manual. Listing one that
+  // does not would offer a button that could only ever fail.
+  const skipped = rows.length;
+  rows = rows.filter(feedbackApplies);
+  const hidden = skipped - rows.length;
 
   if (!rows.length) {
     list.innerHTML = '<p class="empty">No courses to write feedback for.</p>';
@@ -325,6 +368,18 @@ async function loadCourses() {
 
     el.querySelector(".row").addEventListener("click", () => openCourse(c));
     list.append(el);
+  }
+
+  // Said plainly, so a course missing from the list reads as a
+  // decision rather than a bug worth chasing.
+  if (hidden) {
+    const note = document.createElement("p");
+    note.className = "sub";
+    note.style.marginTop = "1rem";
+    note.textContent =
+      `${hidden} course${hidden === 1 ? " is" : "s are"} not shown — ` +
+      "those course types do not have feedback emails.";
+    list.append(note);
   }
 }
 
