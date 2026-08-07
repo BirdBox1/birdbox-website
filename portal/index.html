@@ -7120,16 +7120,44 @@ async function saveCourse() {
     // On an edit, only overwrite the photo when a new one was chosen.
     if (imageUrl || !editingCourse) row.image_url = imageUrl;
 
-    const { data: course, error } = editingCourse
-      ? await db.from("courses").update(row).eq("id", editingCourse.id).select("id, title, slug").single()
-      : await db.from("courses").insert(row).select("id, title, slug").single();
+    // We go back to the same gyms, so the same brand, level, city and
+    // month comes round again — and an archived course still holds
+    // its link. Rather than refuse, take the next one free. Deleting
+    // the old course to free the link would lose its history.
+    let course = null;
+    let error = null;
+    let usedSlug = row.slug;
 
-    if (error) {
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const tryRow = attempt === 0
+        ? row
+        : { ...row, slug: `${row.slug}-${attempt + 1}` };
+
+      const result = editingCourse
+        ? await db.from("courses").update(tryRow).eq("id", editingCourse.id)
+            .select("id, title, slug").single()
+        : await db.from("courses").insert(tryRow).select("id, title, slug").single();
+
+      if (!result.error) { course = result.data; usedSlug = tryRow.slug; break; }
+
+      // Only a clash is worth retrying. Anything else is a real error
+      // and retrying it nineteen more times would just be slow.
+      if (result.error.code !== "23505") { error = result.error; break; }
+      error = result.error;
+    }
+
+    if (!course) {
       throw new Error(
-        error.code === "23505"
-          ? "That link is already used by another course. Change it and try again."
-          : error.message
+        error && error.code === "23505"
+          ? "That link is taken, and so are the next nineteen variations of it. Edit the link by hand."
+          : (error ? error.message : "Could not save the course.")
       );
+    }
+
+    // Say so, because the link they were shown a moment ago is not the
+    // one that got saved.
+    if (usedSlug !== row.slug) {
+      $("f-slug").value = usedSlug;
     }
 
     if (editingCourse) {
