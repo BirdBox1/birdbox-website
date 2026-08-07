@@ -539,6 +539,62 @@
   </div>
 </section>
 
+<!-- ============ HOST EMAIL ============ -->
+<div class="overlay hidden" id="hostwrap">
+  <div class="dialog" style="max-width:44rem" role="dialog" aria-modal="true" aria-labelledby="host-h">
+    <h3 id="host-h">Send the host email</h3>
+    <p class="sub" id="host-sub" style="margin-bottom:1rem"></p>
+
+    <div class="grid2">
+      <div class="field">
+        <label for="host-code">Host code <span class="hint">free spots</span></label>
+        <input id="host-code" type="text" spellcheck="false" autocapitalize="characters">
+      </div>
+      <div class="field">
+        <label for="host-uses">How many spots</label>
+        <input id="host-uses" type="number" min="0" max="4">
+      </div>
+    </div>
+
+    <div class="grid2" id="host-prepaid-wrap">
+      <div class="field">
+        <label for="host-comm">Prepaid code <span class="hint">spots they paid for upfront</span></label>
+        <input id="host-comm" type="text" spellcheck="false" autocapitalize="characters">
+      </div>
+      <div class="field">
+        <label for="host-comm-uses">How many</label>
+        <input id="host-comm-uses" type="number" min="0" max="15">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="host-eb">Early bird code <span class="hint" id="host-eb-hint"></span></label>
+      <input id="host-eb" type="text" spellcheck="false" autocapitalize="characters" value="EB10">
+    </div>
+
+    <div class="field">
+      <label for="host-subject">Subject</label>
+      <input id="host-subject" type="text">
+    </div>
+
+    <div class="field">
+      <label for="host-body">The email as it will send
+        <span class="hint">edit anything here</span>
+      </label>
+      <textarea id="host-body" style="min-height:22rem"></textarea>
+    </div>
+
+    <p class="whenline" id="host-note"></p>
+    <p class="msg" id="host-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="host-rebuild" type="button">Rebuild</button>
+      <button class="btn ghost" id="host-close" type="button">Cancel</button>
+      <button class="btn go" id="host-send" type="button">Create codes and send</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ DIRECT MESSAGES ============ -->
 <section id="view-messages" class="hidden">
   <div class="wrap">
@@ -934,6 +990,14 @@
 
       <div class="sep"></div>
 
+      <h3>Host</h3>
+      <div class="admin-row">
+        <button class="btn small" id="host-open" type="button">Send the host email</button>
+        <span class="why" id="host-state"></span>
+      </div>
+
+      <div class="sep"></div>
+
       <h3>Coach invoices</h3>
       <div id="inv-admin"></div>
 
@@ -1151,6 +1215,28 @@
           <p class="hint" style="margin:.35rem 0 0">
             Or right-click the venue in Google Maps and paste both numbers into Latitude &mdash; they split automatically.
           </p>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label for="f-hostname">Host contact <span class="hint">the person we deal with</span></label>
+            <input id="f-hostname" type="text" placeholder="Babette Moenig">
+          </div>
+          <div class="field">
+            <label for="f-hostemail">Host email <span class="hint">where the host email goes</span></label>
+            <input id="f-hostemail" type="email" placeholder="babette@thegym.com">
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label for="f-hostspots">Free host spots <span class="hint">usually 2</span></label>
+            <input id="f-hostspots" type="number" min="0" max="4" value="2">
+          </div>
+          <div class="field">
+            <label for="f-prepaid">Prepaid spots <span class="hint">0 unless they paid upfront</span></label>
+            <input id="f-prepaid" type="number" min="0" max="15" value="0">
+          </div>
         </div>
 
         <div class="field">
@@ -3437,6 +3523,9 @@ function fillForm(c) {
   set("f-workshop", c.workshop_focus); set("f-movements", c.movements);
   set("f-summary", c.summary); set("f-description", c.description);
   set("f-venue", c.venue_name); set("f-address", c.address);
+  set("f-hostname", c.host_name); set("f-hostemail", c.host_email);
+  set("f-hostspots", c.host_spots == null ? 2 : c.host_spots);
+  set("f-prepaid", c.prepaid_spots || 0);
   set("f-city", c.city); set("f-country", (c.country || "").toUpperCase());
   buildStateOptions((c.country || "").toUpperCase());
   set("f-state", (c.state || "").toUpperCase());
@@ -4164,6 +4253,276 @@ function wireCancel() {
       $("cx-go").disabled = false;
     }
   };
+}
+
+/* ---------- the host email ---------- */
+
+// The email an admin currently writes by hand for every seminar. It
+// carries three codes, and assembling those by hand is where the time
+// goes and where the mistakes are.
+
+const BRAND_LETTER = { tcc: "C", tgc: "G", tec: "E", twc: "W", birdbox: "B" };
+
+// HCCMDEC1 — host code, CrossFit Munich, Germany, TCC, Level 1.
+// Initials of the gym rather than its full name, so the code stays
+// short enough to read down a phone.
+function codeStem(course) {
+  const gym = String(course.venue_name || course.city || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z ]/g, " ")
+    .split(/\s+/).filter(Boolean)
+    .filter((w) => !["the", "of", "and", "crossfit", "cf"].includes(w.toLowerCase()));
+
+  // CrossFit is dropped above because half the gyms we visit start
+  // with it — leaving it in would make most codes look alike.
+  const initials = (gym.length ? gym : [String(course.venue_name || "X")])
+    .slice(0, 3).map((w) => w[0].toUpperCase()).join("");
+
+  const country = String(course.country || "").toUpperCase().slice(0, 2);
+  const brand = BRAND_LETTER[course.brand] || "B";
+  const level = String(course.level == null ? "" : course.level).replace(/\D/g, "");
+
+  return `${initials}${country}${brand}${level}`;
+}
+
+// Same gym, same brand, same level, twice in a year would collide.
+// Rather than refuse, add a number — and say nothing, because the
+// admin can see the code in front of them either way.
+async function uniqueCode(base) {
+  for (let n = 0; n < 20; n++) {
+    const attempt = n === 0 ? base : `${base}${n + 1}`;
+    const { data } = await db.from("discount_codes")
+      .select("id").ilike("code", attempt).limit(1);
+    if (!data || !data.length) return attempt;
+  }
+  return `${base}${Date.now().toString().slice(-4)}`;
+}
+
+// Four weeks before the course starts, at the end of that day in the
+// course's own time zone — not the admin's.
+function earlyBirdEnds(course) {
+  const tz = course.timezone || "UTC";
+  const cutoff = new Date(new Date(course.starts_at).getTime() - 28 * 86400000);
+  const local = instantToZoned(cutoff.toISOString(), tz);
+  return zonedToInstant(local.date, "23:59", tz);
+}
+
+let hostCourse = null;
+
+async function openHostEmail(course) {
+  // The list view does not carry the host details or the venue, so
+  // read the full row rather than emailing somebody a half-built note.
+  const { data: full, error } = await db.from("courses")
+    .select("*").eq("id", course.id).single();
+  if (error) { window.alert("Could not load the course: " + error.message); return; }
+
+  if (!full.host_email) {
+    window.alert(
+      "There is no host email on this course.\n\n" +
+      "Add one under Edit course details, then come back."
+    );
+    return;
+  }
+
+  hostCourse = full;
+
+  const stem = codeStem(full);
+  $("host-code").value = await uniqueCode("HC" + stem);
+  $("host-uses").value = full.host_spots == null ? 2 : full.host_spots;
+
+  const prepaid = full.prepaid_spots || 0;
+  $("host-prepaid-wrap").classList.toggle("hidden", !prepaid);
+  $("host-comm").value = prepaid ? await uniqueCode(`COMM${prepaid}${stem}`) : "";
+  $("host-comm-uses").value = prepaid;
+
+  const ends = earlyBirdEnds(full);
+  $("host-eb-hint").textContent =
+    "stops " + fmtDate(ends.toISOString(), full.timezone) + ", four weeks before the course";
+
+  $("host-subject").value = `${full.title} is live — your host codes`;
+  $("host-body").value = hostEmailBody(full);
+  $("host-note").textContent =
+    "Sending creates the codes and copies Sarah, who will follow up with the media files.";
+  $("host-msg").textContent = "";
+  $("host-msg").className = "msg";
+  $("hostwrap").classList.remove("hidden");
+}
+
+function hostEmailBody(course) {
+  const link = `${location.origin}/c/${course.slug}/`;
+  const spots = course.host_spots == null ? 2 : course.host_spots;
+  const prepaid = course.prepaid_spots || 0;
+  const ends = earlyBirdEnds(course);
+  const first = String(course.host_name || "there").split(" ")[0];
+
+  const dates = course.ends_at &&
+    fmtDate(course.ends_at, course.timezone) !== fmtDate(course.starts_at, course.timezone)
+      ? `${fmtDate(course.starts_at, course.timezone)} to ${fmtDate(course.ends_at, course.timezone)}`
+      : fmtDate(course.starts_at, course.timezone);
+
+  const where = [course.venue_name, course.city, countryName(course.country)]
+    .filter(Boolean).join(", ");
+
+  const lines = [
+    `Hey ${first},`,
+    "",
+    "Thank you for the confirmation — everything is settled and the seminar is now live.",
+    "",
+    `${course.title} at ${where} runs on ${dates}.`,
+    "",
+    "To make registering easy for anyone interested, please share this direct link:",
+    link,
+    "",
+  ];
+
+  if (spots > 0) {
+    lines.push(
+      `Your host code is ${$("host-code").value}. It gives you ` +
+      `${spots} free ${spots === 1 ? "place" : "places"} on the seminar — ` +
+      "register them whenever suits you.",
+      ""
+    );
+  }
+
+  if (prepaid > 0) {
+    lines.push(
+      `For the ${prepaid} ${prepaid === 1 ? "place" : "places"} you have already paid for, ` +
+      `use ${$("host-comm").value} at registration.`,
+      ""
+    );
+  }
+
+  lines.push(
+    "PROMOTION",
+    "",
+    `There is an early bird discount of 10% for anyone registering more than four weeks ` +
+    `before the seminar. The code is ${$("host-eb").value}, and it stops working on ` +
+    `${fmtDate(ends.toISOString(), course.timezone)}.`,
+    "",
+    "Please do share it on your socials or with anyone who might be interested. Early " +
+    "registrations genuinely help — they let us book travel in good time and give us " +
+    "confidence the seminar will run.",
+    "",
+    "MINIMUM NUMBERS",
+    "",
+    "We need at least 7 paying participants for the seminar to go ahead. If we are short " +
+    "10 to 14 days before, we would have to move or cancel it — sooner where there is " +
+    "long-haul travel involved. So the earlier the sign-ups come in, the better.",
+    "",
+    "PAYING",
+    "",
+    "Participants can pay in full, or pay a 25% deposit with the balance taken " +
+    "automatically 14 days before the seminar. Klarna is also available at checkout. " +
+    "Nobody needs to email us first — it is all on the registration page.",
+    "",
+    "PROMOTIONAL MATERIAL",
+    "",
+    "Sarah is copied in and will be in touch with the artwork and social assets for this " +
+    "seminar.",
+    "",
+    "We are looking forward to it. Any questions at all, just reply to this email.",
+    "",
+    "Kind regards,",
+  );
+
+  return lines.join("\n");
+}
+
+function wireHostEmail() {
+  $("host-open").onclick = () => { if (currentCourse) openHostEmail(currentCourse); };
+  $("host-close").onclick = () => { $("hostwrap").classList.add("hidden"); hostCourse = null; };
+  $("hostwrap").addEventListener("click", (e) => {
+    if (e.target === $("hostwrap")) { $("hostwrap").classList.add("hidden"); hostCourse = null; }
+  });
+
+  // Editing a code should change the email, since the code appears in
+  // it three times over.
+  $("host-rebuild").onclick = () => {
+    if (hostCourse) $("host-body").value = hostEmailBody(hostCourse);
+  };
+
+  $("host-send").onclick = async () => {
+    if (!hostCourse) return;
+    const msg = $("host-msg");
+
+    const body = $("host-body").value.trim();
+    const subject = $("host-subject").value.trim();
+    if (!subject || !body) {
+      msg.className = "msg err";
+      msg.textContent = "The subject and the email both need filling in.";
+      return;
+    }
+
+    if (!window.confirm(
+      `Send this to ${hostCourse.host_email}?\n\n` +
+      "The codes are created at the same time and will work immediately."
+    )) return;
+
+    $("host-send").disabled = true;
+    msg.className = "msg";
+    msg.textContent = "Creating the codes and sending…";
+
+    try {
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+
+      const res = await fetch("/.netlify/functions/host-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        body: JSON.stringify({
+          courseId: hostCourse.id,
+          subject,
+          body,
+          hostCode: $("host-code").value.trim().toUpperCase(),
+          hostUses: parseInt($("host-uses").value, 10) || 0,
+          prepaidCode: $("host-comm").value.trim().toUpperCase(),
+          prepaidUses: parseInt($("host-comm-uses").value, 10) || 0,
+          earlyBirdCode: $("host-eb").value.trim().toUpperCase(),
+        }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      msg.className = "msg ok";
+      msg.textContent = `Sent to ${out.sentTo}, with ${out.copied} copied in. ` +
+        `${out.codes} code${out.codes === 1 ? "" : "s"} created.`;
+
+      setTimeout(() => {
+        $("hostwrap").classList.add("hidden");
+        hostCourse = null;
+        openCourse(currentCourse);
+      }, 2200);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+      $("host-send").disabled = false;
+    }
+  };
+}
+
+// Says whether it has gone out already, so nobody sends it twice.
+async function showHostBar(course) {
+  const state = $("host-state");
+  if (!isAdmin()) return;
+
+  if (!course.host_email) {
+    $("host-open").disabled = true;
+    state.textContent = "No host email on this course — add one under Edit course details.";
+    return;
+  }
+
+  $("host-open").disabled = false;
+
+  const { data } = await db.from("course_emails")
+    .select("sent_at").eq("course_id", course.id).eq("kind", "host")
+    .order("sent_at", { ascending: false }).limit(1);
+
+  state.textContent = data && data.length && data[0].sent_at
+    ? `Sent ${fmtWhen(data[0].sent_at)} to ${course.host_email}. Sending again creates new codes.`
+    : `Goes to ${course.host_email}, with the media team copied in.`;
 }
 
 /* ---------- direct messages ---------- */
@@ -6261,6 +6620,7 @@ async function wireAdmin(course, totalRegs, liveRegs) {
   for (const r of assignedRows || []) assigned[r.staff_id] = r.role;
   renderCoachPicker($("editcoaches"), assigned);
   renderInvoiceAdmin(course);
+  showHostBar(course);
 
   $("savecoaches").onclick = async () => {
     const picked = readCoachPicker($("editcoaches"));
@@ -6750,6 +7110,10 @@ async function saveCourse() {
       latitude: $("f-lat").value.trim() === "" ? null : parseFloat($("f-lat").value),
       longitude: $("f-lng").value.trim() === "" ? null : parseFloat($("f-lng").value),
       admin_notes: $("f-adminnotes").value.trim() || null,
+      host_name: $("f-hostname").value.trim() || null,
+      host_email: $("f-hostemail").value.trim().toLowerCase() || null,
+      host_spots: parseInt($("f-hostspots").value, 10) || 0,
+      prepaid_spots: parseInt($("f-prepaid").value, 10) || 0,
       issues_certificate: issuesCertificate(brand, type, level),
     };
     // On an edit, only overwrite the photo when a new one was chosen.
@@ -6812,7 +7176,7 @@ $("copylink").addEventListener("click", async () => {
 $("another").addEventListener("click", () => {
   ["f-summary","f-description","f-workshop","f-movements","f-venue","f-address",
    "f-city","f-country","f-state","f-date","f-enddate","f-price","f-deposit",
-   "f-slug","f-adminnotes"]
+   "f-slug","f-adminnotes","f-hostname","f-hostemail"]
     .forEach((id) => { $(id).value = ""; });
   $("wrap-state").classList.add("hidden");
   $("f-image").value = "";
@@ -6835,6 +7199,7 @@ wireProfile();
 wireTeam();
 wireChat();
 wireMessages();
+wireHostEmail();
 start();
 </script>
 
