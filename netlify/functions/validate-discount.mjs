@@ -63,8 +63,17 @@ export async function priceWithDiscount(course, code) {
     .select("*")
     .ilike("code", clean);
 
-  const row = rows && rows[0];
-  if (!row) return { error: "That code isn't recognised" };
+  if (!rows || !rows.length) return { error: "That code isn't recognised" };
+
+  // The same code now exists on many courses — every seminar carries
+  // its own EB10, each expiring 28 days before its own start date. So
+  // the row for THIS course wins, and a code with no course at all is
+  // the fallback. Taking rows[0] would hand a Munich customer the
+  // Warsaw row and then refuse it as not applying.
+  const row = rows.find((r) => r.course_id === course.id) ||
+              rows.find((r) => !r.course_id);
+
+  if (!row) return { error: "That code doesn't apply to this course" };
   if (!row.active) return { error: "That code is no longer active" };
 
   const now = new Date();
