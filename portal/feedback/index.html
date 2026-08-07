@@ -96,6 +96,9 @@
   .blocks .bt{font-weight:650}
   .blocks .bs{display:block;font-size:0.78rem;color:var(--muted)}
 
+  /* Shown when the ticks no longer match the email on screen. */
+  .stale{font-size:0.82rem;color:var(--warn);margin:0.6rem 0 0;min-height:1.1em}
+
   .notes{background:#fbfaf8;border:1px solid var(--rule);border-radius:5px;
     padding:0.8rem 0.9rem;font-size:0.88rem;max-height:16rem;overflow-y:auto}
   .notes .n{border-left:2px solid var(--rule);padding-left:0.7rem;margin-bottom:0.7rem}
@@ -184,8 +187,11 @@
       </div>
 
       <div class="field">
-        <label>Approved passages to attach <span class="hint">added at the end, word for word</span></label>
+        <label>Ground the email must cover
+          <span class="hint">written into the email where it belongs, not added at the end</span>
+        </label>
         <div class="blocks" id="d-blocks"></div>
+        <p class="stale" id="d-stale"></p>
       </div>
 
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
@@ -513,14 +519,22 @@ function renderDraft() {
     const cb = l.querySelector("input");
     cb.checked = chosen.has(b.key);
     cb.dataset.key = b.key;
+    // Ticking after the draft exists does not change the email on its
+    // own — the passage has to be written into it, which means asking
+    // for a rewrite. Saying so here stops a tick being mistaken for
+    // the thing itself.
+    cb.addEventListener("change", markStale);
     box.append(l);
   }
+
+  $("d-stale").textContent = "";
 
   const sent = d.status === "sent";
   for (const id of ["save", "approve", "d-subject", "d-body"]) $(id).disabled = sent;
   $("approve").disabled = sent || d.status === "approved";
   $("unapprove").disabled = sent || d.status !== "approved";
   $("generate").disabled = sent;
+  for (const cb of $("d-blocks").querySelectorAll("input")) cb.disabled = sent;
 
   $("d-msg").className = "msg";
   $("d-msg").textContent = sent
@@ -533,6 +547,20 @@ function chosenBlocks() {
     .map((i) => i.dataset.key);
 }
 
+// Whether what is ticked still matches what the email was written to
+// cover. Order does not matter; membership does.
+function ticksMatchDraft() {
+  const now = chosenBlocks().slice().sort();
+  const was = ((current.draft && current.draft.blocks) || []).slice().sort();
+  return now.length === was.length && now.every((k, i) => k === was[i]);
+}
+
+function markStale() {
+  $("d-stale").textContent = ticksMatchDraft()
+    ? ""
+    : "These ticks are not in the email yet. Press Rewrite from notes to have them written in.";
+}
+
 /* ---------------- writing ---------------- */
 
 function stopWatching() {
@@ -543,6 +571,11 @@ async function generate() {
   const msg = $("gen-msg");
   const reg = current.reg;
   const before = current.draft?.generated_at || null;
+
+  // What the coach wants covered whatever the notes say. On a first
+  // draft there is nothing ticked yet, so the choice is the model's
+  // alone; on a rewrite these are a floor it must clear.
+  const mustCover = current.draft ? chosenBlocks() : [];
 
   $("generate").disabled = true;
   msg.className = "msg";
@@ -558,7 +591,7 @@ async function generate() {
         "Content-Type": "application/json",
         Authorization: "Bearer " + session.access_token,
       },
-      body: JSON.stringify({ registrationId: reg.id }),
+      body: JSON.stringify({ registrationId: reg.id, blocks: mustCover }),
     });
 
     if (res.status !== 202 && !res.ok) {
@@ -608,7 +641,10 @@ async function generate() {
 
 $("generate").addEventListener("click", () => {
   if (current.draft?.body &&
-      !window.confirm("Rewrite this from the notes? Your edits will be lost.")) return;
+      !window.confirm(
+        "Rewrite this from the notes? Your edits will be lost.\n\n" +
+        "Anything ticked below is written into the new email."
+      )) return;
   generate();
 });
 
@@ -652,6 +688,14 @@ $("approve").addEventListener("click", async () => {
     $("d-msg").textContent = "There is nothing to send.";
     return;
   }
+  // A tick that has not made it into the email would go out as
+  // nothing at all, so it is worth one question before approving.
+  if (!ticksMatchDraft() && !window.confirm(
+    "Some ticked passages are not in the email yet.\n\n" +
+    "Nothing is added when it sends — the email goes exactly as written above. " +
+    "Mark it checked anyway?"
+  )) return;
+
   await saveDraft({
     status: "approved",
     approved_at: new Date().toISOString(),
