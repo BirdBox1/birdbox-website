@@ -1,16 +1,15 @@
-// netlify/functions/story-invite.mjs
+// netlify/functions/staff-invite.mjs
 //
-// Sends each participant the link to their story overlay 30 minutes
-// before their course is due to finish, while everyone is still in
-// the room together.
+// Adding somebody to the team, and taking them off it again.
 //
-// Runs every ten minutes and looks for courses inside the last half
-// hour, so a course is caught within ten minutes of its mark. The
-// window is a full 30 minutes wide, which means a run that fails is
-// picked up by the next one rather than missed entirely.
+// Creating a login needs the service role key, so it cannot happen in
+// the browser. Doing it here also keeps the two records in step: the
+// auth user and the staff row are created together, sharing an id. If
+// they ever drift apart the person can sign in but the portal will not
+// recognise them, which is a confusing thing to debug months later.
 //
-// Every send is written to course_emails with kind 'story', so nobody
-// is emailed twice and there is a record of what went out.
+// Nobody is ever emailed a password. They get a one-time link and
+// choose their own.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -25,122 +24,209 @@ const FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
 const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.app")
   .replace(/\/+$/, "");
 
-const MINUTES_BEFORE_END = 30;
+export default async (request) => {
+  if (request.method !== "POST") return json({ error: "Use POST" }, 405);
 
-export default async () => {
   try {
-    const now = new Date();
-    const windowEnd = new Date(now.getTime() + MINUTES_BEFORE_END * 60000);
+    const token = (request.headers.get("authorization") || "").replace(/^Bearer /, "");
+    if (!token) return json({ error: "Not signed in" }, 401);
 
-    // Courses finishing within the next half hour, and not already
-    // finished. Anything without an end time is skipped: there is no
-    // way to know when to send.
-    const { data: courses, error: cErr } = await supabase
-      .from("courses")
-      .select("id, slug, title, type, ends_at, status, archived")
-      .eq("archived", false)
-      .neq("status", "cancelled")
-      .not("ends_at", "is", null)
-      .gt("ends_at", now.toISOString())
-      .lte("ends_at", windowEnd.toISOString());
+    const { data: auth, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !auth || !auth.user) return json({ error: "Not signed in" }, 401);
 
-    if (cErr) throw new Error("courses: " + cErr.message);
-    if (!courses || !courses.length) return done("no courses finishing shortly");
-
-    const ids = courses.map((c) => c.id);
-
-    const { data: template, error: tErr } = await supabase
-      .from("email_templates")
-      .select("subject, body")
-      .eq("kind", "story")
-      .eq("language", "en")
+    const { data: me } = await supabase
+      .from("staff")
+      .select("id, full_name, role, active")
+      .eq("id", auth.user.id)
       .maybeSingle();
 
-    if (tErr) throw new Error("template: " + tErr.message);
-    if (!template) return done("no story template set up — nothing sent");
+    if (!me || !me.active) return json({ error: "Not a member of staff" }, 403);
+    if (me.role !== "admin") return json({ error: "Only an admin can do this" }, 403);
 
-    // Anyone still on the course. Attendance is often not ticked until
-    // afterwards, so filtering on it here would send to nobody.
-    const { data: regs, error: rErr } = await supabase
-      .from("registrations")
-      .select("id, course_id, first_name, email, status, payment_status")
-      .in("course_id", ids);
+    const body = await request.json();
 
-    if (rErr) throw new Error("registrations: " + rErr.message);
-
-    const active = (regs || []).filter(
-      (r) => (r.status || "active") === "active" &&
-             r.payment_status !== "refunded" &&
-             r.payment_status !== "failed" &&
-             r.email
-    );
-    if (!active.length) return done("nobody to send to");
-
-    // Who has had it already.
-    const { data: already, error: eErr } = await supabase
-      .from("course_emails")
-      .select("registration_id")
-      .in("course_id", ids)
-      .eq("kind", "story");
-
-    if (eErr) throw new Error("course_emails: " + eErr.message);
-    const done_ = new Set((already || []).map((r) => r.registration_id));
-
-    const byCourse = Object.fromEntries(courses.map((c) => [c.id, c]));
-
-    let sent = 0;
-    let failed = 0;
-
-    for (const r of active) {
-      if (done_.has(r.id)) continue;
-      const course = byCourse[r.course_id];
-      if (!course) continue;
-
-      const fields = {
-        first_name: r.first_name || "there",
-        course_title: course.title || "your course",
-        story_url: `${SITE_URL}/story/?c=${encodeURIComponent(course.slug)}`,
-      };
-
-      const subject = fill(template.subject || "Share your course", fields);
-      const body = fill(template.body, fields);
-
-      const ok = await sendEmail(r.email, subject, body);
-      if (ok) sent++; else failed++;
-
-      // Written whether or not it sent, so a hard failure is visible
-      // and nobody gets a second attempt at the same email.
-      const { error: insErr } = await supabase.from("course_emails").insert({
-        course_id: course.id,
-        registration_id: r.id,
-        kind: "story",
-        subject,
-        body,
-        status: ok ? "sent" : "failed",
-        sent_at: new Date().toISOString(),
-        send_error: ok ? null : "The email was rejected",
-      });
-      if (insErr) console.error("Could not record story email:", insErr.message);
+    switch (body.action) {
+      case "invite":     return await invite(body, me);
+      case "reinvite":   return await reinvite(body, me);
+      case "deactivate": return await setActive(body, false, me);
+      case "reactivate": return await setActive(body, true, me);
+      default:
+        return json({ error: `Unknown action "${body.action}".` }, 400);
     }
-
-    return done(`${sent} sent` + (failed ? `, ${failed} failed` : ""));
   } catch (err) {
-    console.error("story-invite failed:", err);
-    return new Response("error", { status: 500 });
+    console.error("staff-invite failed:", err);
+    return json({ error: err.message || "That did not work." }, 500);
   }
 };
 
-function fill(text, fields) {
-  let out = String(text);
-  for (const [key, value] of Object.entries(fields)) {
-    out = out.replace(new RegExp("\\{\\{\\s*" + key + "\\s*\\}\\}", "gi"), value);
+// ---------------------------------------------------------------
+
+async function invite({ email, fullName, role }, me) {
+  const address = String(email || "").trim().toLowerCase();
+  const name = String(fullName || "").trim();
+
+  if (!address || !address.includes("@")) return json({ error: "A valid email is needed." }, 400);
+  if (!name) return json({ error: "A name is needed." }, 400);
+  // The four values staff_role actually accepts. Checked here rather
+  // than trusted from the browser, and named explicitly so a wrong one
+  // is refused with a readable message instead of a Postgres enum error.
+  const ROLES = ["admin", "lead_coach", "assistant", "support"];
+  if (!ROLES.includes(role)) {
+    return json({ error: `Choose a role. It must be one of: ${ROLES.join(", ")}.` }, 400);
   }
-  return out;
+
+  // Somebody already on the team, perhaps deactivated rather than
+  // removed. Reviving them keeps their history on past courses.
+  const { data: existing } = await supabase
+    .from("staff")
+    .select("id, full_name, active")
+    .ilike("email", address)
+    .maybeSingle();
+
+  if (existing) {
+    return json({
+      error: existing.active
+        ? `${existing.full_name} is already on the team with that email.`
+        : `${existing.full_name} is on the team but deactivated. Reactivate them instead of inviting again.`,
+    }, 400);
+  }
+
+  // Created without a password. The invite link is how they get in.
+  const { data: created, error: cErr } = await supabase.auth.admin.createUser({
+    email: address,
+    email_confirm: true,
+    user_metadata: { full_name: name },
+  });
+
+  if (cErr) {
+    return json({
+      error: /already been registered/i.test(cErr.message)
+        ? "There is already a login with that email, but no staff record. An admin needs to sort that out in Supabase."
+        : "Could not create the login: " + cErr.message,
+    }, 400);
+  }
+
+  const userId = created.user.id;
+
+  const { error: sErr } = await supabase.from("staff").insert({
+    id: userId,
+    full_name: name,
+    email: address,
+    role,
+    active: true,
+  });
+
+  // Without this the login would exist with nothing behind it, and the
+  // person would be told they are not a member of staff.
+  if (sErr) {
+    await supabase.auth.admin.deleteUser(userId);
+    return json({ error: "Could not create the staff record: " + sErr.message }, 500);
+  }
+
+  const link = await inviteLink(address);
+  if (!link) {
+    return json({
+      warning: `${name} has been added, but the invite email could not be generated. ` +
+               "Use Send the invite again from the portal.",
+      staffId: userId,
+    });
+  }
+
+  const sent = await sendInvite({ to: address, name, link, from: me.full_name, fresh: true });
+
+  return json({
+    staffId: userId,
+    emailed: sent,
+    warning: sent ? null : "Added, but the invite email did not send. Try Send the invite again.",
+  });
 }
 
-async function sendEmail(to, subject, text) {
+async function reinvite({ staffId }, me) {
+  const { data: person } = await supabase
+    .from("staff").select("id, full_name, email, active").eq("id", staffId).maybeSingle();
+
+  if (!person) return json({ error: "That person is not on the team." }, 404);
+  if (!person.active) return json({ error: "They are deactivated. Reactivate them first." }, 400);
+
+  const link = await inviteLink(person.email);
+  if (!link) return json({ error: "Could not generate an invite link." }, 500);
+
+  const sent = await sendInvite({
+    to: person.email, name: person.full_name, link, from: me.full_name, fresh: false,
+  });
+
+  if (!sent) return json({ error: "The email was rejected." }, 502);
+  return json({ emailed: true });
+}
+
+// Deactivating leaves everything intact — past courses, notes and
+// invoices all still name them. It only stops them signing in.
+async function setActive({ staffId }, active, me) {
+  if (staffId === me.id && !active) {
+    return json({ error: "You cannot deactivate yourself." }, 400);
+  }
+
+  const { data: person } = await supabase
+    .from("staff").select("id, full_name, active").eq("id", staffId).maybeSingle();
+
+  if (!person) return json({ error: "That person is not on the team." }, 404);
+
+  if (!active) {
+    // Anything still ahead of them needs reassigning, so say so rather
+    // than leaving a course quietly without a coach.
+    const { data: upcoming } = await supabase
+      .from("course_staff")
+      .select("role, courses ( title, starts_at, archived, status )")
+      .eq("staff_id", staffId);
+
+    const live = (upcoming || [])
+      .filter((r) => r.courses && !r.courses.archived &&
+                     r.courses.status !== "cancelled" &&
+                     new Date(r.courses.starts_at) > new Date())
+      .map((r) => r.courses.title);
+
+    const { error } = await supabase
+      .from("staff").update({ active: false }).eq("id", staffId);
+    if (error) return json({ error: error.message }, 500);
+
+    return json({
+      done: true,
+      name: person.full_name,
+      stillOn: live,
+    });
+  }
+
+  const { error } = await supabase
+    .from("staff").update({ active: true }).eq("id", staffId);
+  if (error) return json({ error: error.message }, 500);
+
+  return json({ done: true, name: person.full_name });
+}
+
+// ---------------------------------------------------------------
+
+// Generated rather than sent by Supabase, so the email comes from the
+// BirdBox domain and reads like the rest of what the team receives.
+async function inviteLink(email) {
+  try {
+    const { data, error } = await supabase.auth.admin.generateLink({
+      type: "recovery",
+      email,
+      options: { redirectTo: `${SITE_URL}/portal/set-password/` },
+    });
+    if (error) { console.error("Could not generate link:", error.message); return null; }
+    return data.properties.action_link;
+  } catch (err) {
+    console.error("Could not generate link:", err.message);
+    return null;
+  }
+}
+
+async function sendInvite({ to, name, link, from, fresh }) {
   const key = process.env.RESEND_API_KEY;
-  if (!key) { console.warn("No Resend key; story link not sent to", to); return false; }
+  if (!key) { console.warn("No Resend key; invite not sent to", to); return false; }
+
+  const first = (name || "there").split(" ")[0];
 
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -150,25 +236,39 @@ async function sendEmail(to, subject, text) {
         from: `BirdBox Coaching <${FROM}>`,
         to: [to],
         reply_to: OFFICE,
-        subject,
-        text,
+        subject: fresh ? "Your BirdBox coach portal login" : "Your BirdBox portal link",
+        text:
+`Hi ${first},
+
+${fresh
+  ? `${from} has set you up on the BirdBox coach portal. It is where you will find the courses you are coaching, the participants on them, and everything you need before and after a seminar.`
+  : `Here is a fresh link to set your password for the BirdBox coach portal.`}
+
+Set your password here:
+${link}
+
+That link works once, and expires in 24 hours. If it has run out by the time you get to it, reply and we will send another.
+
+Once you are in you can add a photo and your phone number under My profile.
+
+BirdBox Coaching
+${SITE_URL}/portal/`,
       }),
     });
     if (!res.ok) {
-      console.error("Resend rejected story link for", to, await res.text());
+      console.error("Resend rejected the invite to", to, await res.text());
       return false;
     }
     return true;
   } catch (err) {
-    console.error("Could not send story link to", to, err.message);
+    console.error("Could not send the invite to", to, err.message);
     return false;
   }
 }
 
-function done(note) {
-  console.log("story-invite:", note);
-  return new Response("ok", { status: 200 });
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 }
-
-// Every ten minutes, so the send lands close to the half-hour mark.
-export const config = { schedule: "*/10 * * * *" };
