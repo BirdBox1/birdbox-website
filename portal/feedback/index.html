@@ -89,16 +89,6 @@
   textarea{min-height:24rem;resize:vertical;line-height:1.6}
   .field{margin-bottom:1rem}
 
-  .blocks{display:grid;gap:0.5rem}
-  .blocks label{display:flex;gap:0.55rem;align-items:flex-start;font-weight:400;
-    font-size:0.9rem;margin:0;cursor:pointer}
-  .blocks input{width:1.1rem;height:1.1rem;accent-color:var(--accent);margin-top:0.15rem}
-  .blocks .bt{font-weight:650}
-  .blocks .bs{display:block;font-size:0.78rem;color:var(--muted)}
-
-  /* Shown when the ticks no longer match the email on screen. */
-  .stale{font-size:0.82rem;color:var(--warn);margin:0.6rem 0 0;min-height:1.1em}
-
   .notes{background:#fbfaf8;border:1px solid var(--rule);border-radius:5px;
     padding:0.8rem 0.9rem;font-size:0.88rem;max-height:16rem;overflow-y:auto}
   .notes .n{border-left:2px solid var(--rule);padding-left:0.7rem;margin-bottom:0.7rem}
@@ -182,16 +172,10 @@
         <input id="d-subject" type="text">
       </div>
       <div class="field">
-        <label for="d-body">Body <span class="hint">edit freely — this is what gets sent</span></label>
-        <textarea id="d-body"></textarea>
-      </div>
-
-      <div class="field">
-        <label>Ground the email must cover
-          <span class="hint">written into the email where it belongs, not added at the end</span>
+        <label for="d-body">Body
+          <span class="hint">edit freely — this is exactly what gets sent, nothing is added</span>
         </label>
-        <div class="blocks" id="d-blocks"></div>
-        <p class="stale" id="d-stale"></p>
+        <textarea id="d-body"></textarea>
       </div>
 
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
@@ -221,7 +205,6 @@ const show = (n) => {
 };
 
 let me = null;
-let blocks = [];
 let course = null;
 let people = [];
 let drafts = {};
@@ -245,9 +228,6 @@ async function start() {
 
   if (!staff || !staff.active) { location.href = "/portal/"; return; }
   me = staff;
-
-  const { data: b } = await db.from("email_blocks").select("key, title, body").order("key");
-  blocks = (b || []).filter((x) => !x.key.endsWith("_us"));
 
   await loadCourses();
 }
@@ -507,58 +487,16 @@ function renderDraft() {
   $("d-subject").value = d.subject || "";
   $("d-body").value = d.body || "";
 
-  const chosen = new Set(d.blocks || []);
-  const box = $("d-blocks");
-  box.innerHTML = "";
-  for (const b of blocks) {
-    const l = document.createElement("label");
-    l.innerHTML = `<input type="checkbox"><span><span class="bt"></span>
-      <span class="bs"></span></span>`;
-    l.querySelector(".bt").textContent = b.title;
-    l.querySelector(".bs").textContent = b.body.slice(0, 90).replace(/\s+/g, " ") + "…";
-    const cb = l.querySelector("input");
-    cb.checked = chosen.has(b.key);
-    cb.dataset.key = b.key;
-    // Ticking after the draft exists does not change the email on its
-    // own — the passage has to be written into it, which means asking
-    // for a rewrite. Saying so here stops a tick being mistaken for
-    // the thing itself.
-    cb.addEventListener("change", markStale);
-    box.append(l);
-  }
-
-  $("d-stale").textContent = "";
-
   const sent = d.status === "sent";
   for (const id of ["save", "approve", "d-subject", "d-body"]) $(id).disabled = sent;
   $("approve").disabled = sent || d.status === "approved";
   $("unapprove").disabled = sent || d.status !== "approved";
   $("generate").disabled = sent;
-  for (const cb of $("d-blocks").querySelectorAll("input")) cb.disabled = sent;
 
   $("d-msg").className = "msg";
   $("d-msg").textContent = sent
     ? "This email has been sent and can no longer be changed."
     : d.status === "approved" ? "Checked and ready to send." : "";
-}
-
-function chosenBlocks() {
-  return Array.from($("d-blocks").querySelectorAll("input:checked"))
-    .map((i) => i.dataset.key);
-}
-
-// Whether what is ticked still matches what the email was written to
-// cover. Order does not matter; membership does.
-function ticksMatchDraft() {
-  const now = chosenBlocks().slice().sort();
-  const was = ((current.draft && current.draft.blocks) || []).slice().sort();
-  return now.length === was.length && now.every((k, i) => k === was[i]);
-}
-
-function markStale() {
-  $("d-stale").textContent = ticksMatchDraft()
-    ? ""
-    : "These ticks are not in the email yet. Press Rewrite from notes to have them written in.";
 }
 
 /* ---------------- writing ---------------- */
@@ -571,11 +509,6 @@ async function generate() {
   const msg = $("gen-msg");
   const reg = current.reg;
   const before = current.draft?.generated_at || null;
-
-  // What the coach wants covered whatever the notes say. On a first
-  // draft there is nothing ticked yet, so the choice is the model's
-  // alone; on a rewrite these are a floor it must clear.
-  const mustCover = current.draft ? chosenBlocks() : [];
 
   $("generate").disabled = true;
   msg.className = "msg";
@@ -591,7 +524,7 @@ async function generate() {
         "Content-Type": "application/json",
         Authorization: "Bearer " + session.access_token,
       },
-      body: JSON.stringify({ registrationId: reg.id, blocks: mustCover }),
+      body: JSON.stringify({ registrationId: reg.id }),
     });
 
     if (res.status !== 202 && !res.ok) {
@@ -641,15 +574,15 @@ async function generate() {
 
 $("generate").addEventListener("click", () => {
   if (current.draft?.body &&
-      !window.confirm(
-        "Rewrite this from the notes? Your edits will be lost.\n\n" +
-        "Anything ticked below is written into the new email."
-      )) return;
+      !window.confirm("Rewrite this from the notes? Your edits will be lost.")) return;
   generate();
 });
 
 /* ---------------- saving ---------------- */
 
+// `blocks` is deliberately not written here. It is a record of which
+// passages the drafting model covered, and the coach editing the text
+// by hand does not change what that record says.
 async function saveDraft(patch, note) {
   const msg = $("d-msg");
   msg.className = "msg";
@@ -659,7 +592,6 @@ async function saveDraft(patch, note) {
     .update({
       subject: $("d-subject").value.trim(),
       body: $("d-body").value,
-      blocks: chosenBlocks(),
       updated_at: new Date().toISOString(),
       ...patch,
     })
@@ -688,14 +620,6 @@ $("approve").addEventListener("click", async () => {
     $("d-msg").textContent = "There is nothing to send.";
     return;
   }
-  // A tick that has not made it into the email would go out as
-  // nothing at all, so it is worth one question before approving.
-  if (!ticksMatchDraft() && !window.confirm(
-    "Some ticked passages are not in the email yet.\n\n" +
-    "Nothing is added when it sends — the email goes exactly as written above. " +
-    "Mark it checked anyway?"
-  )) return;
-
   await saveDraft({
     status: "approved",
     approved_at: new Date().toISOString(),
