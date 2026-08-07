@@ -45,7 +45,7 @@ export default async (req) => {
     const staff = await requireStaff(req);
     if (!staff) return json({ error: "Not authorised" }, 401);
 
-    const { emailId } = await req.json();
+    const { emailId, attendedOnly } = await req.json();
     if (!emailId) return json({ error: "Missing email" }, 400);
 
     const { data: email } = await supabase
@@ -69,25 +69,39 @@ export default async (req) => {
       .single();
 
     // A welcome goes to one person; the pre-course email to everyone
-    // still on the course.
+    // still on the course; the follow-up only to those who turned up.
     let people = [];
     if (email.registration_id) {
       const { data } = await supabase
         .from("registrations")
-        .select("id, first_name, last_name, email, payment_status")
+        .select("id, first_name, last_name, email, payment_status, status, attended")
         .eq("id", email.registration_id);
       people = data || [];
     } else {
       const { data } = await supabase
         .from("registrations")
-        .select("id, first_name, last_name, email, payment_status")
+        .select("id, first_name, last_name, email, payment_status, status, attended")
         .eq("course_id", email.course_id)
         .not("payment_status", "in", '("refunded","failed")')
         .order("last_name");
-      people = data || [];
+
+      // Somebody cancelled or archived is no longer on the course, so
+      // they should not be hearing about it. Filtered here rather than
+      // in the query because older rows have no status at all.
+      people = (data || []).filter((r) => (r.status || "active") === "active");
+
+      // The follow-up talks about putting the weekend into practice,
+      // which reads badly to somebody who did not attend it.
+      if (attendedOnly) people = people.filter((r) => r.attended === true);
     }
 
-    if (!people.length) return json({ error: "There is nobody to send to." }, 409);
+    if (!people.length) {
+      return json({
+        error: attendedOnly
+          ? "Nobody on this course is ticked as attended."
+          : "There is nobody to send to.",
+      }, 409);
+    }
 
     const sender = senderFor(staff);
     const brand = BRAND_LOGO[String(course.brand || "").toLowerCase()] || null;
