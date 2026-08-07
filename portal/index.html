@@ -4018,6 +4018,7 @@ async function openPrecourse(course) {
   $("pc-note").value = "";
   $("pc-body").value = fillTemplate(tpl.body, fields, "");
 
+  $("pc-send").disabled = false;
   $("pcwrap").classList.remove("hidden");
 }
 
@@ -4345,6 +4346,9 @@ async function openHostEmail(course) {
     "Sending creates the codes and copies the media team, the office, and any coach already assigned to this course.";
   $("host-msg").textContent = "";
   $("host-msg").className = "msg";
+  // Opened fresh every time. Without this, one successful send leaves
+  // the button disabled for good — it is only re-enabled on failure.
+  $("host-send").disabled = false;
   $("hostwrap").classList.remove("hidden");
 }
 
@@ -5007,6 +5011,8 @@ async function openInvoice(course) {
   renderReceipts();
   $("inv-msg").textContent = "";
   $("inv-msg").className = "msg";
+  $("inv-save").disabled = false;
+  $("inv-submit").disabled = false;
   $("invwrap").classList.remove("hidden");
 }
 
@@ -6272,6 +6278,7 @@ function openWelcome(course, reg) {
     "Write it in your own words — this is only a starting point.";
   $("wc-msg").textContent = "";
   $("wc-msg").className = "msg";
+  $("wc-send").disabled = false;
   $("wcwrap").classList.remove("hidden");
 }
 
