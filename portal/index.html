@@ -421,6 +421,27 @@
     font-size: 0.68rem; font-weight: 700; display: grid; place-items: center;
   }
   .dm-thread { min-width: 0; }
+  /* Slides in at the foot when a message arrives while you are doing
+     something else. Tapping it opens the conversation. */
+  .toast {
+    position: fixed; left: 50%; bottom: 1.1rem; transform: translateX(-50%);
+    z-index: 80; max-width: min(26rem, calc(100vw - 2rem));
+    display: flex; gap: 0.7rem; align-items: center;
+    background: var(--shell); color: #fff; border-radius: 8px;
+    padding: 0.7rem 0.9rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    font: inherit; text-align: left; border: 0; cursor: pointer;
+    animation: toastin 0.18s ease-out;
+  }
+  @keyframes toastin {
+    from { opacity: 0; transform: translateX(-50%) translateY(0.5rem); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  .toast .who { font-size: 0.8rem; color: #b9c0c7; }
+  .toast .said {
+    font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; max-width: 17rem;
+  }
+
   .unread-flag {
     display: inline-grid; place-items: center; min-width: 1.1rem; height: 1.1rem;
     padding: 0 0.28rem; margin-left: 0.35rem; border-radius: 999px;
@@ -2198,6 +2219,9 @@ $("signout").addEventListener("click", async () => {
   $("signout").classList.add("hidden");
   $("profilebtn").classList.add("hidden");
   $("messagesbtn").classList.add("hidden");
+  if (dmChannel) { db.removeChannel(dmChannel); dmChannel = null; }
+  const toast = document.getElementById("dm-toast");
+  if (toast) toast.remove();
   $("codeslink").classList.add("hidden");
   $("feedbacklink").classList.add("hidden");
   $("password").value = "";
@@ -2228,6 +2252,7 @@ async function start() {
   $("profilebtn").classList.remove("hidden");
   $("messagesbtn").classList.remove("hidden");
   refreshUnreadFlag();
+  listenForMessages();
   $("hello").textContent = `Welcome back, ${staff.full_name.split(" ")[0]}`;
   $("myrole").textContent = staff.role.replace(/_/g, " ");
   $("newcourse").classList.toggle("hidden", !admin);
@@ -4721,6 +4746,91 @@ function renderThread(rows, person) {
   }
 
   list.scrollTop = list.scrollHeight;
+}
+
+// Messages arrive while you are somewhere else in the portal, so the
+// portal listens rather than waiting to be asked. Without this a
+// message only appears when the thread is reopened, which is not what
+// anybody expects of a chat.
+let dmChannel = null;
+
+function listenForMessages() {
+  if (!me || dmChannel) return;
+
+  dmChannel = db
+    .channel("dm-" + me.id)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "direct_messages",
+        filter: `recipient_id=eq.${me.id}`,
+      },
+      (payload) => onMessageArrived(payload.new)
+    )
+    .subscribe();
+}
+
+async function onMessageArrived(row) {
+  // Who it is from. The list is already loaded in almost every case;
+  // reading it fresh only for somebody added since sign-in.
+  let from = staffList.find((p) => p.id === row.sender_id);
+  if (!from) {
+    const { data } = await db.from("staff")
+      .select("id, full_name, role, photo_path").eq("id", row.sender_id).maybeSingle();
+    if (data) { from = data; staffList.push(data); }
+  }
+  if (!from) return;
+
+  const readingThem =
+    !views.messages.classList.contains("hidden") && dmWith && dmWith.id === row.sender_id;
+
+  if (readingThem) {
+    // Already looking at the conversation, so it simply appears — and
+    // reopening marks it read, which is honest because it is on screen.
+    await openThread(dmWith);
+    return;
+  }
+
+  await loadUnread();
+  await refreshUnreadFlag();
+  if (!views.messages.classList.contains("hidden")) renderPeople();
+
+  showToast(from, row.body);
+}
+
+let toastTimer = null;
+
+function showToast(from, body) {
+  const old = document.getElementById("dm-toast");
+  if (old) old.remove();
+  if (toastTimer) clearTimeout(toastTimer);
+
+  const el = document.createElement("button");
+  el.id = "dm-toast";
+  el.className = "toast";
+  el.type = "button";
+
+  const text = document.createElement("span");
+  const who = document.createElement("div");
+  who.className = "who";
+  who.textContent = from.full_name;
+  const said = document.createElement("div");
+  said.className = "said";
+  said.textContent = String(body).replace(/\s+/g, " ").trim();
+  text.append(who, said);
+
+  el.append(avatar(from, 30), text);
+
+  el.onclick = () => {
+    el.remove();
+    openMessages().then(() => openThread(from));
+  };
+
+  document.body.append(el);
+  // Long enough to read a line, short enough not to sit in the way.
+  toastTimer = setTimeout(() => el.remove(), 8000);
 }
 
 function wireMessages() {
