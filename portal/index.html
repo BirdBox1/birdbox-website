@@ -1003,6 +1003,11 @@
       <span class="why" id="cert-state"></span>
     </div>
 
+    <div class="admin-row hidden" id="fb-bar" style="margin:0 0 1rem">
+      <a class="btn small" id="fb-open" href="/portal/feedback/">Process feedback</a>
+      <span class="why" id="fb-state"></span>
+    </div>
+
     <div class="pm-form hidden" id="pm-form">
       <div class="grid2">
         <div class="field">
@@ -2986,6 +2991,7 @@ async function openCourse(course) {
   await loadPrecourse(course.id);
   showPrecourseBar(course);
   showCertBar(course);
+  showFeedbackBar(course);
   await loadFollowup(course.id);
   showFollowupBar(course);
   await loadMyInvoice(course);
@@ -3127,6 +3133,7 @@ async function openCourse(course) {
         // The submit bar counts who is ticked, so it follows along.
         r.attended = cb.checked;
         showCertBar(currentCourse);
+        showFeedbackBar(currentCourse);
       }
     });
 
@@ -6831,6 +6838,34 @@ function wireInvoicesView() {
   for (const id of ["iv-status", "iv-coach"]) {
     $(id).addEventListener("change", runInvoiceSearch);
   }
+}
+
+/* ---------- straight to this course's feedback ---------- */
+
+// The lead coach is already looking at the course. Sending them out to
+// the feedback page to find it again in a list is a step nobody needs,
+// so the link carries the course with it.
+function showFeedbackBar(course) {
+  const bar = $("fb-bar");
+
+  // Same test the feedback page itself applies, so the button can
+  // never land somebody on a page that refuses them.
+  const canSee = (isAdmin() || amLeadOn(course.id)) &&
+                 course.type !== "online_course" &&
+                 new Date(course.ends_at || course.starts_at) < new Date();
+
+  bar.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  $("fb-open").href = "/portal/feedback/?course=" + encodeURIComponent(course.id);
+
+  const attended = allRegistrations.filter(
+    (r) => (r.status || "active") === "active" && r.attended
+  ).length;
+
+  $("fb-state").textContent = attended
+    ? "Write and send each participant their coaching feedback."
+    : "Tick who attended first — feedback goes to those people.";
 }
 
 /* ---------- complete and submit the seminar ---------- */
