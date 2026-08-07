@@ -918,6 +918,11 @@
       <span class="why" id="pc-state"></span>
     </div>
 
+    <div class="admin-row hidden" id="fu-bar" style="margin:0 0 1rem">
+      <button class="btn small" id="fu-open" type="button">Follow-up email</button>
+      <span class="why" id="fu-state"></span>
+    </div>
+
     <div class="admin-row hidden" id="inv-bar" style="margin:0 0 1rem">
       <button class="btn small" id="inv-open" type="button">My invoice</button>
       <span class="why" id="inv-state"></span>
@@ -1409,6 +1414,35 @@
       <button class="btn ghost" id="pc-rebuild" type="button">Reset from template</button>
       <button class="btn ghost" id="pc-close" type="button">Cancel</button>
       <button class="btn" id="pc-send" type="button">Send to everyone</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FOLLOW-UP EMAIL ============ -->
+<div class="overlay hidden" id="fuwrap">
+  <div class="dialog" style="max-width:44rem" role="dialog" aria-modal="true" aria-labelledby="fu-h">
+    <h3 id="fu-h">Follow-up email</h3>
+    <p class="sub" id="fu-sub" style="margin-bottom:1rem"></p>
+
+    <div class="field">
+      <label for="fu-subject">Subject</label>
+      <input id="fu-subject" type="text">
+    </div>
+
+    <div class="field">
+      <label for="fu-body">The email as it will send
+        <span class="hint">edit anything here; {{first_name}} becomes each person's name</span>
+      </label>
+      <textarea id="fu-body" style="min-height:20rem"></textarea>
+    </div>
+
+    <p class="whenline" id="fu-note"></p>
+    <p class="msg" id="fu-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="fu-rebuild" type="button">Reset from template</button>
+      <button class="btn ghost" id="fu-close" type="button">Cancel</button>
+      <button class="btn" id="fu-send" type="button">Send to everyone</button>
     </div>
   </div>
 </div>
@@ -2799,6 +2833,8 @@ async function openCourse(course) {
   await loadPrecourse(course.id);
   showPrecourseBar(course);
   showCertBar(course);
+  await loadFollowup(course.id);
+  showFollowupBar(course);
   await loadMyInvoice(course);
   showInvoiceBar(course);
   await loadChat(course);
@@ -4992,6 +5028,197 @@ function wireChat() {
   $("chat-box").addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   });
+}
+
+/* ---------- the follow-up email ---------- */
+
+// Sent by the lead coach a few days after the seminar, while it is
+// still fresh. Prompted rather than automatic — the coach was there
+// and may want to say something particular to that group.
+const FOLLOWUP_DUE_DAYS = 3;
+const FOLLOWUP_LATE_DAYS = 10;
+
+let followupRow = null;
+let fuCourse = null;
+let fuTemplate = null;
+
+async function loadFollowup(courseId) {
+  followupRow = null;
+  const { data, error } = await db
+    .from("course_emails")
+    .select("id, status, sent_at, subject")
+    .eq("course_id", courseId)
+    .eq("kind", "followup")
+    .is("registration_id", null)
+    .order("sent_at", { ascending: false })
+    .limit(1);
+
+  if (error) { console.error("Could not load follow-up:", error.message); return; }
+  followupRow = (data && data[0]) || null;
+}
+
+// Only once the course has actually finished, and only to the lead
+// coach or an admin. Before that there is nothing to follow up.
+function showFollowupBar(course) {
+  const bar = $("fu-bar");
+  const canSee = (isAdmin() || amLeadOn(course.id)) &&
+                 course.type !== "online_course" &&
+                 new Date(course.ends_at || course.starts_at) < new Date();
+
+  bar.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  const sent = followupRow && followupRow.status === "sent";
+  const daysSince = Math.floor(
+    (Date.now() - new Date(course.ends_at || course.starts_at)) / 86400000
+  );
+
+  $("fu-open").textContent = sent ? "Follow-up email sent" : "Follow-up email";
+  $("fu-open").disabled = false;
+
+  $("fu-state").textContent = sent
+    ? `Sent ${fmtWhen(followupRow.sent_at)}.`
+    : daysSince < FOLLOWUP_DUE_DAYS
+      ? `Best sent in a few days, once they have had a chance to train.`
+      : daysSince > FOLLOWUP_LATE_DAYS
+        ? `The seminar was ${daysSince} days ago — worth sending today.`
+        : `Due now — it has been ${daysSince} day${daysSince === 1 ? "" : "s"}.`;
+}
+
+async function openFollowup(course) {
+  const msg = $("fu-msg");
+  msg.className = "msg"; msg.textContent = "";
+
+  const { data: full, error } = await db.from("courses")
+    .select("*").eq("id", course.id).single();
+  if (error) { window.alert("Could not load the course: " + error.message); return; }
+  fuCourse = full;
+
+  const level = String(full.level == null ? "" : full.level).replace(/\D/g, "");
+  const { data: tpl } = await db.from("email_templates")
+    .select("subject, body")
+    .eq("kind", "followup")
+    .eq("type", full.type)
+    .eq("brand", String(full.brand || "").toLowerCase())
+    .eq("level", level)
+    .eq("language", "en")
+    .maybeSingle();
+
+  if (!tpl) {
+    window.alert(
+      "No follow-up template is set up for this course yet.\n\n" +
+      `It needs a row in email_templates with kind 'followup', type '${full.type}', ` +
+      `brand '${full.brand}' and level '${level}'.`
+    );
+    return;
+  }
+  fuTemplate = tpl;
+
+  $("fu-h").textContent = "Follow-up email — " + full.title;
+  $("fu-sub").textContent = followupRow && followupRow.status === "sent"
+    ? `Already sent ${fmtWhen(followupRow.sent_at)}. Sending again writes a second email to everyone.`
+    : "Goes to everyone who attended, one at a time, from your own address.";
+
+  $("fu-subject").value = fillFollowup(tpl.subject || "", full);
+  $("fu-body").value = fillFollowup(tpl.body, full);
+  $("fu-note").textContent =
+    "Edit anything before sending — you were there, so say what is worth saying.";
+  $("fu-send").disabled = false;
+  $("fuwrap").classList.remove("hidden");
+}
+
+// {{first_name}} is deliberately left in — the sending function fills
+// it per person, so the coach can see it in the draft.
+function fillFollowup(text, course) {
+  return String(text)
+    .replace(/\{\{\s*course_title\s*\}\}/gi, course.title || "")
+    .replace(/\{\{\s*city\s*\}\}/gi, course.city || "")
+    .replace(/\{\{\s*coach_name\s*\}\}/gi, (me && me.full_name) || "");
+}
+
+function wireFollowup() {
+  $("fu-open").onclick = () => { if (currentCourse) openFollowup(currentCourse); };
+  $("fu-close").onclick = () => { $("fuwrap").classList.add("hidden"); };
+  $("fuwrap").addEventListener("click", (e) => {
+    if (e.target === $("fuwrap")) $("fuwrap").classList.add("hidden");
+  });
+
+  $("fu-rebuild").onclick = () => {
+    if (!fuTemplate || !fuCourse) return;
+    if (!window.confirm("Reset from the template? Your edits will be lost.")) return;
+    $("fu-subject").value = fillFollowup(fuTemplate.subject || "", fuCourse);
+    $("fu-body").value = fillFollowup(fuTemplate.body, fuCourse);
+  };
+
+  $("fu-send").onclick = async () => {
+    if (!fuCourse) return;
+    const subject = $("fu-subject").value.trim();
+    const body = $("fu-body").value.trim();
+    const msg = $("fu-msg");
+
+    if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return; }
+    if (!body) { msg.className = "msg err"; msg.textContent = "There is nothing to send."; return; }
+
+    // Only the people who were actually there. Somebody who booked and
+    // did not turn up has no use for "putting it into practice".
+    const attended = allRegistrations.filter(
+      (r) => (r.status || "active") === "active" && r.attended
+    );
+
+    if (!attended.length) {
+      msg.className = "msg err";
+      msg.textContent = "Nobody is ticked as attended, so there is nobody to send this to.";
+      return;
+    }
+
+    if (!window.confirm(
+      `Send this to ${attended.length} participant${attended.length === 1 ? "" : "s"} ` +
+      `who attended "${fuCourse.title}"?\n\nThis cannot be unsent.`
+    )) return;
+
+    $("fu-send").disabled = true;
+    msg.className = "msg"; msg.textContent = "Sending…";
+
+    try {
+      const { data: row, error } = await db.from("course_emails").insert({
+        course_id: fuCourse.id,
+        registration_id: null,
+        kind: "followup",
+        subject,
+        body,
+        status: "draft",
+      }).select("id").single();
+
+      if (error) throw new Error(error.message);
+
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+
+      const res = await fetch("/.netlify/functions/course-email-send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        body: JSON.stringify({ emailId: row.id, attendedOnly: true }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      msg.className = "msg ok";
+      msg.textContent = `Sent to ${out.sent}` +
+        (out.failed ? `, ${out.failed} failed` : "") + `, as ${out.sentAs}.`;
+
+      setTimeout(() => {
+        $("fuwrap").classList.add("hidden");
+        openCourse(currentCourse);
+      }, 1600);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("fu-send").disabled = false;
+  };
 }
 
 /* ---------- coach invoices ---------- */
@@ -7346,6 +7573,7 @@ wireTeam();
 wireChat();
 wireMessages();
 wireHostEmail();
+wireFollowup();
 start();
 </script>
 
