@@ -22,8 +22,11 @@ const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.
   .replace(/\/+$/, "");
 
 // Copied on every host email so the artwork follows without anybody
-// having to remember to ask.
-const MEDIA_EMAIL = process.env.MEDIA_EMAIL || "media@thegymnasticscourse.education";
+// having to remember to ask. Any coach already assigned to the course
+// is copied too — they are the ones who will hear from the host.
+const MEDIA_EMAILS = (process.env.MEDIA_EMAILS ||
+  "media@thegymnasticscourse.education,sarah@birdboxcoaching.com")
+  .split(",").map((e) => e.trim()).filter(Boolean);
 
 // Early bird stops four weeks out — after that it is not early.
 const EARLY_BIRD_DAYS = 28;
@@ -113,10 +116,29 @@ export default async (request) => {
       made.push(earlyBirdCode);
     }
 
+    // ---- who else sees it -------------------------------------
+    const { data: assigned } = await supabase
+      .from("course_staff")
+      .select("staff ( full_name, email, active )")
+      .eq("course_id", course.id);
+
+    const coachEmails = (assigned || [])
+      .map((r) => r.staff)
+      .filter((c) => c && c.active && c.email)
+      .map((c) => c.email);
+
+    // Deduplicated and lowercased, because the same person appearing
+    // twice in a cc list looks careless to a host.
+    const cc = [...new Set(
+      [...MEDIA_EMAILS, OFFICE, ...coachEmails]
+        .map((e) => String(e).trim().toLowerCase())
+        .filter((e) => e && e !== String(course.host_email).trim().toLowerCase())
+    )];
+
     // ---- send it ----------------------------------------------
     const sent = await send({
       to: course.host_email,
-      cc: [MEDIA_EMAIL, OFFICE],
+      cc,
       subject,
       text: body + `\n\n${me.full_name}\nBirdBox Coaching\n${SITE_URL}`,
     });
@@ -143,7 +165,8 @@ export default async (request) => {
     return json({
       sent: true,
       sentTo: course.host_email,
-      copied: MEDIA_EMAIL,
+      copied: cc.length,
+      coaches: coachEmails.length,
       codes: made.length,
     });
   } catch (err) {
