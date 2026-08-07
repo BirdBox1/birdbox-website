@@ -1158,7 +1158,19 @@
 
     <div class="field">
       <label>Receipts <span class="hint">one per expense — hotel, flights and so on</span></label>
-      <div id="inv-receipts" style="border:1px solid var(--rule);border-radius:5px;padding:0.3rem 0.75rem;margin-bottom:0.6rem"></div>
+      <div style="margin-bottom:0.6rem">
+        <div class="whenline" style="font-weight:650;color:var(--ink);margin-bottom:0.2rem">
+          On your invoice <span class="hint" style="font-weight:400">— you paid, we pay you back</span>
+        </div>
+        <div id="inv-receipts" style="border:1px solid var(--rule);border-radius:5px;padding:0.3rem 0.75rem"></div>
+      </div>
+
+      <div style="margin-bottom:0.6rem">
+        <div class="whenline" style="font-weight:650;color:var(--ink);margin-bottom:0.2rem">
+          On a company card <span class="hint" style="font-weight:400">— already paid by BirdBox</span>
+        </div>
+        <div id="inv-company" style="border:1px solid var(--rule);border-radius:5px;padding:0.3rem 0.75rem"></div>
+      </div>
 
       <div class="grid2">
         <div class="field" style="margin-bottom:0.5rem">
@@ -1185,6 +1197,30 @@
       <div class="field hidden" id="rc-other-wrap" style="margin-bottom:0.5rem">
         <label for="rc-other">Type what it is for</label>
         <input id="rc-other" type="text" placeholder="Equipment hire">
+      </div>
+
+      <label class="pm-check">
+        <input type="checkbox" id="rc-company">
+        Paid on a BirdBox company card
+      </label>
+
+      <div class="grid2 hidden" id="rc-amount-wrap">
+        <div class="field" style="margin-bottom:0.5rem">
+          <label for="rc-amount">What it cost
+            <span class="hint">needed — this is not on your invoice</span>
+          </label>
+          <input id="rc-amount" type="number" min="0" step="0.01" inputmode="decimal">
+        </div>
+        <div class="field" style="margin-bottom:0.5rem">
+          <label for="rc-currency">Currency</label>
+          <select id="rc-currency">
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+            <option value="USD">USD</option>
+            <option value="AUD">AUD</option>
+            <option value="CAD">CAD</option>
+          </select>
+        </div>
       </div>
 
       <div class="filebox">
@@ -3825,7 +3861,7 @@ async function loadMyInvoice(course) {
   if (myInvoice) {
     const { data: rows } = await db
       .from("coach_invoice_receipts")
-      .select("id, category, description, file_path, created_at")
+      .select("id, category, description, file_path, created_at, paid_by_company, amount_cents, currency")
       .eq("invoice_id", myInvoice.id)
       .order("created_at", { ascending: true });
     myReceipts = rows || [];
@@ -3875,7 +3911,8 @@ async function openInvoice(course) {
   // Once paid it is a record of what was settled, so nothing about it
   // moves. Everything stays visible and downloadable.
   for (const id of ["inv-file", "inv-total", "inv-currency", "inv-notes",
-                    "rc-cat", "rc-desc", "rc-other", "rc-file"]) {
+                    "rc-cat", "rc-desc", "rc-other", "rc-file",
+                    "rc-company", "rc-amount", "rc-currency"]) {
     $(id).disabled = paid;
   }
   $("rc-add").classList.toggle("hidden", paid);
@@ -3899,6 +3936,10 @@ async function openInvoice(course) {
   $("rc-other").value = "";
   $("rc-cat").value = "Hotel";
   $("rc-other-wrap").classList.add("hidden");
+  $("rc-company").checked = false;
+  $("rc-amount").value = "";
+  $("rc-currency").value = course.currency || "EUR";
+  $("rc-amount-wrap").classList.add("hidden");
   $("rc-msg").textContent = "";
 
   renderReceipts();
@@ -3908,53 +3949,75 @@ async function openInvoice(course) {
 }
 
 function renderReceipts() {
-  const box = $("inv-receipts");
-  box.innerHTML = "";
+  const paid = myInvoice && !!myInvoice.paid_at;
 
-  if (!myReceipts.length) {
-    const p = document.createElement("p");
-    p.style.cssText = "color:var(--muted);font-size:0.86rem;margin:0.5rem 0";
-    p.textContent = "No receipts yet. Coaching alone needs none.";
-    box.append(p);
-    return;
-  }
+  // Two lists, because they are two different things. What the coach
+  // paid comes back to them through their invoice. What went on a
+  // company card is already spent, and carries its own amount because
+  // no invoice records it.
+  const draw = (box, rows, empty) => {
+    box.innerHTML = "";
+    if (!rows.length) {
+      const p = document.createElement("p");
+      p.style.cssText = "color:var(--muted);font-size:0.86rem;margin:0.5rem 0";
+      p.textContent = empty;
+      box.append(p);
+      return;
+    }
 
-  for (const r of myReceipts) {
-    const row = document.createElement("div");
-    row.className = "rc-row";
+    for (const r of rows) {
+      const row = document.createElement("div");
+      row.className = "rc-row";
 
-    const cat = document.createElement("span");
-    cat.className = "cat";
-    cat.textContent = r.category;
+      const cat = document.createElement("span");
+      cat.className = "cat";
+      cat.textContent = r.category;
 
-    const desc = document.createElement("span");
-    desc.className = "desc";
-    desc.textContent = r.description || "";
+      const desc = document.createElement("span");
+      desc.className = "desc";
+      desc.textContent = r.description || "";
 
-    const view = document.createElement("button");
-    view.className = "btn ghost tiny";
-    view.type = "button";
-    view.textContent = "View";
-    view.onclick = () => openStoredFile(r.file_path);
+      row.append(cat, desc);
 
-    const del = document.createElement("button");
-    del.className = "btn ghost tiny danger";
-    del.type = "button";
-    del.textContent = "Remove";
-    if (myInvoice && myInvoice.paid_at) del.classList.add("hidden");
-    del.onclick = async () => {
-      if (!window.confirm(`Remove the ${r.category.toLowerCase()} receipt?`)) return;
-      del.disabled = true;
-      await db.storage.from("coach-invoices").remove([r.file_path]);
-      const { error } = await db.from("coach_invoice_receipts").delete().eq("id", r.id);
-      if (error) { window.alert("Could not remove it: " + error.message); del.disabled = false; return; }
-      myReceipts = myReceipts.filter((x) => x.id !== r.id);
-      renderReceipts();
-    };
+      if (r.paid_by_company && r.amount_cents != null) {
+        const amt = document.createElement("span");
+        amt.style.whiteSpace = "nowrap";
+        amt.textContent = money(r.amount_cents, r.currency);
+        row.append(amt);
+      }
 
-    row.append(cat, desc, view, del);
-    box.append(row);
-  }
+      const view = document.createElement("button");
+      view.className = "btn ghost tiny";
+      view.type = "button";
+      view.textContent = "View";
+      view.onclick = () => openStoredFile(r.file_path);
+      row.append(view);
+
+      if (!paid) {
+        const del = document.createElement("button");
+        del.className = "btn ghost tiny danger";
+        del.type = "button";
+        del.textContent = "Remove";
+        del.onclick = async () => {
+          if (!window.confirm(`Remove the ${r.category.toLowerCase()} receipt?`)) return;
+          del.disabled = true;
+          await db.storage.from("coach-invoices").remove([r.file_path]);
+          const { error } = await db.from("coach_invoice_receipts").delete().eq("id", r.id);
+          if (error) { window.alert("Could not remove it: " + error.message); del.disabled = false; return; }
+          myReceipts = myReceipts.filter((x) => x.id !== r.id);
+          renderReceipts();
+        };
+        row.append(del);
+      }
+
+      box.append(row);
+    }
+  };
+
+  draw($("inv-receipts"), myReceipts.filter((r) => !r.paid_by_company),
+       "Nothing yet. Coaching alone needs no receipt.");
+  draw($("inv-company"), myReceipts.filter((r) => r.paid_by_company),
+       "Nothing paid on a company card.");
 }
 
 // The bucket is private, so a file is reached through a short-lived
@@ -4003,6 +4066,13 @@ function wireInvoices() {
     if (e.target === $("invwrap")) { $("invwrap").classList.add("hidden"); invCourse = null; }
   });
 
+  $("rc-company").addEventListener("change", () => {
+    // A company-card expense is on no invoice, so its amount has to be
+    // captured here or the course total would be short by that much.
+    $("rc-amount-wrap").classList.toggle("hidden", !$("rc-company").checked);
+    if ($("rc-company").checked) $("rc-amount").focus();
+  });
+
   $("rc-cat").addEventListener("change", () => {
     const other = $("rc-cat").value === "__other";
     $("rc-other-wrap").classList.toggle("hidden", !other);
@@ -4024,9 +4094,15 @@ function wireInvoices() {
     const file = $("rc-file").files[0];
     const isOther = $("rc-cat").value === "__other";
     const category = isOther ? $("rc-other").value.trim() : $("rc-cat").value;
+    const company = $("rc-company").checked;
+    const amount = $("rc-amount").value.trim();
 
     if (!category) { msg.textContent = "Say what the receipt is for."; return; }
     if (!file) { msg.textContent = "Choose the receipt file."; return; }
+    if (company && !amount) {
+      msg.textContent = "Add what it cost — a company-card expense is on no invoice.";
+      return;
+    }
 
     $("rc-add").disabled = true;
     msg.textContent = "Uploading…";
@@ -4040,7 +4116,10 @@ function wireInvoices() {
         category,
         description: $("rc-desc").value.trim() || null,
         file_path: path,
-      }).select("id, category, description, file_path, created_at").single();
+        paid_by_company: company,
+        amount_cents: company && amount ? Math.round(parseFloat(amount) * 100) : null,
+        currency: company ? $("rc-currency").value : null,
+      }).select("id, category, description, file_path, created_at, paid_by_company, amount_cents, currency").single();
 
       if (error) throw new Error(error.message);
 
@@ -4050,6 +4129,7 @@ function wireInvoices() {
       $("rc-file-name").textContent = "";
       $("rc-desc").value = "";
       $("rc-other").value = "";
+      $("rc-amount").value = "";
       msg.textContent = "Added.";
       setTimeout(() => { msg.textContent = ""; }, 1800);
     } catch (err) {
@@ -4068,11 +4148,20 @@ function wireInvoices() {
       return;
     }
 
+    // A coach on salary may be claiming nothing at all — only handing in
+    // company-card receipts. That is a valid submission, so an invoice
+    // is only required where money is actually being claimed.
+    const claiming = total !== "" && parseFloat(total) > 0;
+
     if (submitting) {
-      if (!total) { msg.className = "msg err"; msg.textContent = "Add the total due."; return; }
-      if (!$("inv-file").files[0] && !(myInvoice && myInvoice.invoice_path)) {
+      if (claiming && !$("inv-file").files[0] && !(myInvoice && myInvoice.invoice_path)) {
         msg.className = "msg err";
-        msg.textContent = "Upload your invoice before submitting.";
+        msg.textContent = "Upload your invoice, or set the total to zero if you are claiming nothing.";
+        return;
+      }
+      if (!claiming && !myReceipts.length) {
+        msg.className = "msg err";
+        msg.textContent = "There is nothing here to submit — add a total, or attach a receipt.";
         return;
       }
     }
@@ -4090,7 +4179,7 @@ function wireInvoices() {
       if (file) invoicePath = await uploadTo(file, "invoice");
 
       const patch = {
-        total_cents: total === "" ? null : Math.round(parseFloat(total) * 100),
+        total_cents: total === "" ? 0 : Math.round(parseFloat(total) * 100),
         currency: $("inv-currency").value,
         notes: $("inv-notes").value.trim() || null,
         invoice_path: invoicePath,
@@ -4157,7 +4246,7 @@ async function renderInvoiceAdmin(course) {
 
   const { data: receipts } = await db
     .from("coach_invoice_receipts")
-    .select("id, invoice_id, category, description, file_path")
+    .select("id, invoice_id, category, description, file_path, paid_by_company, amount_cents, currency")
     .in("invoice_id", rows.map((r) => r.id));
 
   const byInvoice = {};
@@ -4165,6 +4254,7 @@ async function renderInvoiceAdmin(course) {
 
   box.innerHTML = "";
   let total = 0;
+  let company = 0;
 
   for (const inv of rows) {
     if (inv.status === "submitted") total += inv.total_cents || 0;
@@ -4177,8 +4267,8 @@ async function renderInvoiceAdmin(course) {
     who.textContent = (inv.staff && inv.staff.full_name) || "A coach";
 
     const state = document.createElement("span");
-    state.className = "pill " + (inv.status === "submitted" ? "on" : "warn");
-    state.textContent = inv.status === "submitted" ? "submitted" : "draft";
+    state.className = "pill " + (inv.paid_at ? "done" : inv.status === "submitted" ? "on" : "warn");
+    state.textContent = inv.paid_at ? "paid" : inv.status === "submitted" ? "submitted" : "draft";
 
     const amt = document.createElement("span");
     amt.className = "amt";
@@ -4197,13 +4287,28 @@ async function renderInvoiceAdmin(course) {
     }
 
     for (const r of byInvoice[inv.id] || []) {
+      if (r.paid_by_company) company += r.amount_cents || 0;
       const b = document.createElement("button");
       b.className = "btn ghost tiny";
       b.type = "button";
-      b.textContent = r.category;
-      b.title = r.description || r.category;
+      // Marked, so a card receipt is not mistaken for something still
+      // owed to the coach.
+      b.textContent = r.paid_by_company ? r.category + " (card)" : r.category;
+      b.title = [r.description || r.category,
+                 r.paid_by_company ? "On a company card — " + money(r.amount_cents, r.currency) : ""]
+                .filter(Boolean).join(" · ");
       b.onclick = () => openStoredFile(r.file_path);
       files.append(b);
+    }
+
+    // Only a submitted invoice can be paid — a draft is not a claim yet.
+    if (inv.status === "submitted" && !inv.paid_at) {
+      const pay = document.createElement("button");
+      pay.className = "btn tiny go";
+      pay.type = "button";
+      pay.textContent = "Mark paid";
+      pay.onclick = () => openPaid(inv, () => renderInvoiceAdmin(course));
+      files.append(pay);
     }
 
     row.append(who, state, amt, files);
@@ -4221,10 +4326,17 @@ async function renderInvoiceAdmin(course) {
   const sum = document.createElement("p");
   sum.className = "whenline";
   sum.style.marginTop = "0.6rem";
-  sum.textContent = total
-    ? `${money(total, rows[0].currency)} across ${rows.filter((r) => r.status === "submitted").length} submitted invoice(s), ` +
-      `${money(rows.filter((r) => r.paid_at).reduce((n, r) => n + (r.total_cents || 0), 0), rows[0].currency)} of it paid.`
-    : "Nothing submitted yet.";
+  const cur = rows[0].currency || "EUR";
+  const settled = rows.filter((r) => r.paid_at).reduce((n, r) => n + (r.total_cents || 0), 0);
+
+  // Owed to coaches and already spent on a card are different kinds of
+  // money, so they are two figures and a total rather than one number.
+  const parts = [];
+  if (total) parts.push(`${money(total, cur)} claimed by coaches (${money(settled, cur)} paid)`);
+  if (company) parts.push(`${money(company, cur)} already on company cards`);
+  if (total || company) parts.push(`${money(total + company, cur)} for the course in total`);
+
+  sum.textContent = parts.length ? parts.join(" · ") : "Nothing submitted yet.";
   box.append(sum);
 }
 
@@ -4358,7 +4470,7 @@ async function runInvoiceSearch() {
 
   const { data: receipts } = await db
     .from("coach_invoice_receipts")
-    .select("id, invoice_id, category, description, file_path")
+    .select("id, invoice_id, category, description, file_path, paid_by_company, amount_cents, currency")
     .in("invoice_id", rows.map((r) => r.id));
 
   const byInvoice = {};
@@ -4367,13 +4479,24 @@ async function runInvoiceSearch() {
   // Totals per currency, because a Glasgow invoice in sterling and a
   // Munich one in euro cannot be added together.
   const totals = {};
+  const cardTotals = {};
   for (const r of rows) {
     const cur = r.currency || "EUR";
     totals[cur] = (totals[cur] || 0) + (r.total_cents || 0);
   }
+  for (const r of receipts || []) {
+    if (!r.paid_by_company) continue;
+    const cur = r.currency || "EUR";
+    cardTotals[cur] = (cardTotals[cur] || 0) + (r.amount_cents || 0);
+  }
+
+  const claimed = Object.entries(totals).filter(([, c]) => c).map(([cur, c]) => money(c, cur));
+  const carded = Object.entries(cardTotals).filter(([, c]) => c).map(([cur, c]) => money(c, cur));
+
   $("iv-summary").textContent =
     `${rows.length} invoice${rows.length === 1 ? "" : "s"} — ` +
-    Object.entries(totals).map(([cur, cents]) => money(cents, cur)).join(" · ");
+    (claimed.length ? claimed.join(" · ") + " claimed" : "nothing claimed") +
+    (carded.length ? `, ${carded.join(" · ")} on company cards` : "");
 
   box.innerHTML = "";
   const card = document.createElement("div");
@@ -4416,8 +4539,10 @@ async function runInvoiceSearch() {
       const b = document.createElement("button");
       b.className = "btn ghost tiny";
       b.type = "button";
-      b.textContent = r.category;
-      b.title = r.description || r.category;
+      b.textContent = r.paid_by_company ? r.category + " (card)" : r.category;
+      b.title = [r.description || r.category,
+                 r.paid_by_company ? "On a company card — " + money(r.amount_cents, r.currency) : ""]
+                .filter(Boolean).join(" · ");
       b.onclick = () => openStoredFile(r.file_path);
       files.append(b);
     }
