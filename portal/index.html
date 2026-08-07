@@ -495,6 +495,53 @@
   </div>
 </section>
 
+<!-- ============ THE TEAM ============ -->
+<section id="view-team" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back-team">&larr; All courses</a>
+    <h2>The team</h2>
+    <p class="sub">Everyone with a portal login. Adding somebody emails them a link to set their own password.</p>
+
+    <div class="panel">
+      <h3>Add somebody</h3>
+      <div class="grid2">
+        <div class="field">
+          <label for="tm-name">Full name <span class="hint">as it should read on a course</span></label>
+          <input id="tm-name" type="text" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="tm-email">Email <span class="hint">what they sign in with</span></label>
+          <input id="tm-email" type="email" autocomplete="off">
+        </div>
+      </div>
+      <div class="field" style="max-width:16rem">
+        <label for="tm-role">Role</label>
+        <select id="tm-role">
+          <option value="coach">Coach</option>
+          <option value="admin">Admin — sees everything</option>
+        </select>
+      </div>
+      <div class="admin-row">
+        <button class="btn small" id="tm-add" type="button">Add and send the invite</button>
+        <span class="why" id="tm-msg"></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>On the team</h3>
+      <div id="tm-list"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Deactivated</h3>
+      <p class="whenline" style="margin-bottom:0.8rem">
+        They cannot sign in, but everything they did is intact — past courses, notes and invoices all still name them.
+      </p>
+      <div id="tm-gone"></div>
+    </div>
+  </div>
+</section>
+
 <!-- ============ MY PROFILE ============ -->
 <section id="view-profile" class="hidden">
   <div class="wrap">
@@ -630,6 +677,7 @@
         <p class="sub" id="courses-sub" style="margin:0"></p>
       </div>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn ghost hidden" id="teambtn" type="button">Team</button>
         <button class="btn ghost hidden" id="invoicesbtn" type="button">Invoices</button>
         <button class="btn ghost hidden" id="emailsbtn" type="button">Follow-up emails</button>
         <button class="btn hidden" id="newcourse" type="button">New course</button>
@@ -1926,6 +1974,7 @@ const views = {
   emails:  $("view-emails"),
   invoices: $("view-invoices"),
   profile:  $("view-profile"),
+  team:     $("view-team"),
 };
 const show = (n) =>
   Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== n));
@@ -2002,6 +2051,7 @@ async function start() {
   $("newcourse").classList.toggle("hidden", !admin);
   $("emailsbtn").classList.toggle("hidden", !admin);
   $("invoicesbtn").classList.toggle("hidden", !admin);
+  $("teambtn").classList.toggle("hidden", !admin);
   $("codeslink").classList.toggle("hidden", !admin);
 
   await loadCourses();
@@ -4504,6 +4554,196 @@ async function renderInvoiceAdmin(course) {
   box.append(sum);
 }
 
+/* ---------- the team ---------- */
+
+// Adding somebody creates their login and their staff record together,
+// server-side, and emails them a link to choose a password. Nobody is
+// ever sent a password, and the two records cannot drift apart.
+
+async function callStaff(payload) {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) throw new Error("Your session has expired — sign in again.");
+
+  const res = await fetch("/.netlify/functions/staff-invite", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + session.access_token,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || "That did not work.");
+  return data;
+}
+
+async function openTeam() {
+  show("team");
+  $("tm-msg").textContent = "";
+  await loadTeam();
+}
+
+async function loadTeam() {
+  const live = $("tm-list");
+  const gone = $("tm-gone");
+  live.innerHTML = '<p class="whenline">Loading…</p>';
+  gone.innerHTML = "";
+
+  const { data, error } = await db.from("staff")
+    .select("id, full_name, email, role, active, phone, photo_path")
+    .order("full_name");
+
+  if (error) { live.innerHTML = '<p class="whenline bad">Could not load the team.</p>'; return; }
+
+  staffList = (data || []).filter((p) => p.active);
+
+  const draw = (box, rows, empty) => {
+    box.innerHTML = "";
+    if (!rows.length) {
+      const p = document.createElement("p");
+      p.className = "whenline";
+      p.textContent = empty;
+      box.append(p);
+      return;
+    }
+    for (const person of rows) box.append(teamRow(person));
+  };
+
+  draw(live, (data || []).filter((p) => p.active), "Nobody yet.");
+  draw(gone, (data || []).filter((p) => !p.active), "Nobody has been deactivated.");
+}
+
+function teamRow(person) {
+  const row = document.createElement("div");
+  row.className = "inv-row";
+
+  const who = document.createElement("span");
+  who.className = "who";
+  const name = document.createElement("div");
+  name.textContent = person.full_name;
+  const sub = document.createElement("div");
+  sub.className = "whenline";
+  sub.textContent = [person.email, person.phone].filter(Boolean).join(" · ");
+  who.append(name, sub);
+
+  const role = document.createElement("span");
+  role.className = "pill " + (person.role === "admin" ? "lead" : "");
+  role.textContent = person.role;
+
+  const acts = document.createElement("span");
+  acts.className = "files";
+
+  if (person.active) {
+    const again = document.createElement("button");
+    again.className = "btn ghost tiny";
+    again.type = "button";
+    again.textContent = "Send the invite again";
+    again.onclick = async () => {
+      again.disabled = true;
+      const was = again.textContent;
+      again.textContent = "Sending…";
+      try {
+        await callStaff({ action: "reinvite", staffId: person.id });
+        again.textContent = "Sent";
+        setTimeout(() => { again.textContent = was; again.disabled = false; }, 2500);
+      } catch (err) {
+        window.alert(err.message);
+        again.textContent = was;
+        again.disabled = false;
+      }
+    };
+    acts.append(again);
+
+    // Not offered on your own row — locking yourself out of the portal
+    // would need somebody with database access to undo.
+    if (person.id !== me.id) {
+      const off = document.createElement("button");
+      off.className = "btn ghost tiny danger";
+      off.type = "button";
+      off.textContent = "Deactivate";
+      off.onclick = async () => {
+        if (!window.confirm(
+          `Deactivate ${person.full_name}?\n\n` +
+          "They will not be able to sign in. Everything they have done stays as it is."
+        )) return;
+        off.disabled = true;
+        try {
+          const r = await callStaff({ action: "deactivate", staffId: person.id });
+          if (r.stillOn && r.stillOn.length) {
+            window.alert(
+              `${r.name} is deactivated, but is still assigned to ${r.stillOn.length} ` +
+              `upcoming course${r.stillOn.length === 1 ? "" : "s"}:\n\n` +
+              r.stillOn.join("\n") +
+              "\n\nAssign somebody else to those."
+            );
+          }
+          await loadTeam();
+        } catch (err) {
+          window.alert(err.message);
+          off.disabled = false;
+        }
+      };
+      acts.append(off);
+    }
+  } else {
+    const on = document.createElement("button");
+    on.className = "btn tiny go";
+    on.type = "button";
+    on.textContent = "Reactivate";
+    on.onclick = async () => {
+      on.disabled = true;
+      try {
+        await callStaff({ action: "reactivate", staffId: person.id });
+        await loadTeam();
+      } catch (err) {
+        window.alert(err.message);
+        on.disabled = false;
+      }
+    };
+    acts.append(on);
+  }
+
+  row.append(who, role, acts);
+  return row;
+}
+
+function wireTeam() {
+  $("teambtn").onclick = openTeam;
+  $("back-team").onclick = loadCourses;
+
+  $("tm-add").onclick = async () => {
+    const msg = $("tm-msg");
+    const name = $("tm-name").value.trim();
+    const email = $("tm-email").value.trim();
+
+    if (!name) { msg.textContent = "Add their name."; return; }
+    if (!email || !email.includes("@")) { msg.textContent = "Add a valid email."; return; }
+
+    $("tm-add").disabled = true;
+    msg.textContent = "Creating the login and sending the invite…";
+
+    try {
+      const r = await callStaff({
+        action: "invite",
+        fullName: name,
+        email,
+        role: $("tm-role").value,
+      });
+
+      msg.textContent = r.warning
+        ? r.warning
+        : `${name} has been added and emailed a link to set their password.`;
+
+      $("tm-name").value = "";
+      $("tm-email").value = "";
+      await loadTeam();
+    } catch (err) {
+      msg.textContent = err.message;
+    }
+    $("tm-add").disabled = false;
+  };
+}
+
 /* ---------- my profile ---------- */
 
 // Internal only. A phone number that works on a course day, and a face
@@ -6094,6 +6334,7 @@ wireInvoices();
 wirePaid();
 wireInvoicesView();
 wireProfile();
+wireTeam();
 start();
 </script>
 
