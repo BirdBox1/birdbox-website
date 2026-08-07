@@ -664,6 +664,17 @@
       Include cancelled, archived and no-shows
     </label>
 
+    <div class="field" style="max-width:20rem;margin-top:0.6rem">
+      <label for="ex-sep">Separator
+        <span class="hint">try semicolon if everything lands in one column</span>
+      </label>
+      <select id="ex-sep">
+        <option value=",">Comma — Google Sheets, Numbers</option>
+        <option value=";">Semicolon — Excel in most of Europe</option>
+        <option value="\t">Tab</option>
+      </select>
+    </div>
+
     <p class="whenline" id="ex-note"></p>
     <p class="msg" id="ex-msg"></p>
 
@@ -4695,7 +4706,10 @@ async function runPeopleSearch() {
   const like = `%${q.replace(/[%_]/g, "")}%`;
   const { data, error } = await db
     .from("registrations")
-    .select("id, first_name, last_name, email, phone, status, attended, payment_status, created_at, course_id, courses ( id, title, city, country, starts_at, timezone, brand, level, type, status, archived, slug )")
+    // Named explicitly: registrations points at courses twice — once
+    // for the course itself and once for transferred_from_course_id —
+    // so an unqualified join cannot tell which is meant.
+    .select("id, first_name, last_name, email, phone, status, attended, payment_status, created_at, course_id, courses!registrations_course_id_fkey ( id, title, city, country, starts_at, timezone, brand, level, type, status, archived, slug )")
     .or(`first_name.ilike.${like},last_name.ilike.${like},email.ilike.${like}`)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -4848,11 +4862,17 @@ function openExport(course) {
   $("exwrap").classList.remove("hidden");
 }
 
-// Quotes anything that would otherwise break the file — a comma in an
-// address, a quote in a name, a newline in a note.
-function csvCell(value) {
+// Quotes anything that would otherwise break the file — the separator
+// itself appearing in an address, a quote in a name, a newline in a
+// note. Which character separates the columns depends on where the
+// spreadsheet thinks it is: Excel in Germany or France splits on
+// semicolons and will put a comma-separated file entirely in column A.
+function csvCell(value, sep) {
   const text = value == null ? "" : String(value);
-  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  const needsQuotes =
+    text.includes(sep) || text.includes('"') ||
+    text.includes("\n") || text.includes("\r");
+  return needsQuotes ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 function wireExport() {
@@ -4910,20 +4930,28 @@ function wireExport() {
       }
     };
 
+    const sep = $("ex-sep").value === "\\t" ? "\t" : $("ex-sep").value;
+
     const header = chosen.map((k) =>
       (EXPORT_FIELDS.find((f) => f.key === k) || { label: k }).label);
 
     const lines = [
-      header.map(csvCell).join(","),
-      ...rows.map((r) => chosen.map((k) => csvCell(value(r, k))).join(",")),
+      header.map((h) => csvCell(h, sep)).join(sep),
+      ...rows.map((r) => chosen.map((k) => csvCell(value(r, k), sep)).join(sep)),
     ];
+
+    // Excel reads this first line and splits accordingly, whatever its
+    // regional setting. Other spreadsheets ignore it, so it is only
+    // added where it helps.
+    if (sep === ";") lines.unshift("sep=;");
 
     // The byte order mark is what makes Excel open accented names
     // correctly — without it Zsolt Sóti arrives as mojibake.
     const blob = new Blob(["\ufeff" + lines.join("\r\n")],
       { type: "text/csv;charset=utf-8;" });
 
-    const name = (currentCourse.slug || "course") + "-participants.csv";
+    const ext = sep === "\t" ? ".tsv" : ".csv";
+    const name = (currentCourse.slug || "course") + "-participants" + ext;
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
