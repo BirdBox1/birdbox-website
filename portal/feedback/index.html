@@ -460,4 +460,254 @@ async function openDraft(reg) {
   $("p-meta").textContent = reg.email;
   $("gen-msg").textContent = "";
   $("gen-msg").className = "msg";
-  $("d-msg").text
+  $("d-msg").textContent = "";
+
+  // The face, so the coach knows who they are writing about.
+  const face = $("p-face");
+  const url = reg.photo_path && photoUrls[reg.photo_path];
+  face.innerHTML = url ? "" : '<span class="none">No photo</span>';
+  if (url) {
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = `${reg.first_name} ${reg.last_name}`;
+    face.append(img);
+  }
+
+  const { data: notes } = await db.from("participant_notes")
+    .select("body, created_at, staff ( full_name )")
+    .eq("registration_id", reg.id)
+    .order("created_at");
+
+  const box = $("p-notes");
+  box.innerHTML = "";
+  if (!notes || !notes.length) {
+    box.innerHTML = '<p style="margin:0;color:var(--muted)">Nothing written for this participant.</p>';
+  } else {
+    for (const n of notes) {
+      const el = document.createElement("div");
+      el.className = "n";
+      el.innerHTML = '<div class="a"></div><div class="b"></div>';
+      el.querySelector(".a").textContent = n.staff?.full_name || "Coach";
+      el.querySelector(".b").textContent = n.body;
+      box.append(el);
+    }
+  }
+
+  current = { reg, draft: drafts[reg.id] || null, notes: notes || [] };
+
+  $("generate").disabled = !(notes && notes.length);
+  $("gen-hint").textContent = notes && notes.length ? "" : "Add notes for this participant first.";
+
+  if (current.draft?.status === "failed") {
+    $("gen-msg").className = "msg err";
+    $("gen-msg").textContent = current.draft.gen_error || "The last attempt failed.";
+  } else if (current.draft?.gen_error) {
+    $("gen-msg").className = "msg";
+    $("gen-msg").textContent = current.draft.gen_error;
+  }
+
+  renderDraft();
+}
+
+function renderDraft() {
+  const d = current.draft;
+  const usable = d && d.status !== "failed" && d.body;
+  $("draftpanel").classList.toggle("hidden", !usable);
+  $("generate").textContent = usable ? "Rewrite from notes" : "Write the draft";
+  if (!usable) return;
+
+  $("d-subject").value = d.subject || "";
+  $("d-body").value = d.body || "";
+
+  const sent = d.status === "sent";
+  for (const id of ["save", "approve", "d-subject", "d-body"]) $(id).disabled = sent;
+  $("approve").disabled = sent || d.status === "approved";
+  $("unapprove").disabled = sent || d.status !== "approved";
+  $("generate").disabled = sent;
+
+  $("d-msg").className = "msg";
+  $("d-msg").textContent = sent
+    ? "This email has been sent and can no longer be changed."
+    : d.status === "approved" ? "Checked and ready to send." : "";
+}
+
+/* ---------------- writing ---------------- */
+
+function stopWatching() {
+  if (watching) { clearInterval(watching); watching = null; }
+}
+
+async function generate() {
+  const msg = $("gen-msg");
+  const reg = current.reg;
+  const before = current.draft?.generated_at || null;
+
+  $("generate").disabled = true;
+  msg.className = "msg";
+  msg.innerHTML = '<span class="spin"></span>Writing — this usually takes under a minute…';
+
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) throw new Error("Your session has expired — sign in again.");
+
+    const res = await fetch("/.netlify/functions/feedback-draft-background", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + session.access_token,
+      },
+      body: JSON.stringify({ registrationId: reg.id }),
+    });
+
+    if (res.status !== 202 && !res.ok) {
+      throw new Error("Could not start writing. Try again.");
+    }
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = err.message;
+    $("generate").disabled = false;
+    return;
+  }
+
+  let waited = 0;
+  stopWatching();
+  watching = setInterval(async () => {
+    waited += 3;
+
+    const { data: d } = await db.from("feedback_drafts")
+      .select("*").eq("registration_id", reg.id).maybeSingle();
+
+    const changed = d && (d.generated_at !== before || d.status === "failed");
+    if (!changed) {
+      if (waited >= 180) {
+        stopWatching();
+        msg.className = "msg err";
+        msg.textContent = "This is taking longer than expected. Check back in a minute.";
+        $("generate").disabled = false;
+      }
+      return;
+    }
+
+    stopWatching();
+    current.draft = d;
+    drafts[reg.id] = d;
+    $("generate").disabled = false;
+
+    if (d.status === "failed") {
+      msg.className = "msg err";
+      msg.textContent = d.gen_error || "The draft could not be written.";
+    } else {
+      msg.className = "msg ok";
+      msg.textContent = d.gen_error || "Written. Read it through before marking it checked.";
+    }
+    renderDraft();
+  }, 3000);
+}
+
+$("generate").addEventListener("click", () => {
+  if (current.draft?.body &&
+      !window.confirm("Rewrite this from the notes? Your edits will be lost.")) return;
+  generate();
+});
+
+/* ---------------- saving ---------------- */
+
+// `blocks` is deliberately not written here. It is a record of which
+// passages the drafting model covered, and the coach editing the text
+// by hand does not change what that record says.
+async function saveDraft(patch, note) {
+  const msg = $("d-msg");
+  msg.className = "msg";
+  msg.textContent = "Saving…";
+
+  const { data, error } = await db.from("feedback_drafts")
+    .update({
+      subject: $("d-subject").value.trim(),
+      body: $("d-body").value,
+      updated_at: new Date().toISOString(),
+      ...patch,
+    })
+    .eq("id", current.draft.id)
+    .select()
+    .single();
+
+  if (error) {
+    msg.className = "msg err";
+    msg.textContent = "Could not save: " + error.message;
+    return false;
+  }
+  current.draft = data;
+  drafts[current.reg.id] = data;
+  msg.className = "msg ok";
+  msg.textContent = note || "Saved.";
+  renderDraft();
+  return true;
+}
+
+$("save").addEventListener("click", () => saveDraft({}));
+
+$("approve").addEventListener("click", async () => {
+  if (!$("d-body").value.trim()) {
+    $("d-msg").className = "msg err";
+    $("d-msg").textContent = "There is nothing to send.";
+    return;
+  }
+  await saveDraft({
+    status: "approved",
+    approved_at: new Date().toISOString(),
+    approved_by: me.id,
+  }, "Checked. It will go out with the next send.");
+});
+
+$("unapprove").addEventListener("click", () =>
+  saveDraft({ status: "draft", approved_at: null, approved_by: null }, "Unmarked.")
+);
+
+$("back-courses").addEventListener("click", loadCourses);
+$("back-people").addEventListener("click", () => openCourse(course));
+
+/* ---------------- send them all ---------------- */
+
+$("sendall").addEventListener("click", async () => {
+  const ready = people.filter((r) => drafts[r.id]?.status === "approved");
+  if (!ready.length) return;
+
+  if (!window.confirm(
+    `Send ${ready.length} feedback email${ready.length === 1 ? "" : "s"}?\n\n` +
+    "Each participant receives only their own email. This cannot be undone."
+  )) return;
+
+  const btn = $("sendall");
+  const msg = $("send-msg");
+  btn.disabled = true;
+  msg.className = "msg";
+  msg.textContent = "Sending…";
+
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    const res = await fetch("/.netlify/functions/feedback-send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + session.access_token,
+      },
+      body: JSON.stringify({ courseId: course.id }),
+    });
+    const r = await res.json();
+    if (!res.ok || r.error) throw new Error(r.error || "That did not work.");
+
+    msg.className = r.failed ? "msg err" : "msg ok";
+    msg.textContent = r.failed
+      ? `${r.sent} sent, ${r.failed} failed. The failures are marked in the list.`
+      : `${r.sent} email${r.sent === 1 ? "" : "s"} sent as ${r.sentAs || "you"}.`;
+    await openCourse(course);
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = err.message;
+    btn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>
