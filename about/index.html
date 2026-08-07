@@ -75,8 +75,13 @@
     min-height: 620px; display: flex; flex-direction: column; justify-content: flex-end;
     padding: 190px 24px 48px;
   }
-  .tcc-hero__mark { max-height: 104px; width: auto; margin-bottom: 22px;
-    filter: drop-shadow(0 2px 12px rgba(0,0,0,0.95)); }
+  /* align-self keeps the mark at its natural width. Without it the flex
+     column stretches the image across the whole hero. */
+  .tcc-hero__mark {
+    align-self: flex-start;
+    max-height: 92px; width: auto; margin-bottom: 22px;
+    filter: drop-shadow(0 2px 14px rgba(0,0,0,1));
+  }
   .tcc-hero__title {
     font-size: clamp(26px, 3.6vw, 46px); line-height: 1.06; font-weight: 800;
     letter-spacing: -0.015em; text-transform: uppercase; margin: 0 0 16px;
@@ -122,6 +127,7 @@
         rgba(20,16,15,0.90) 66%,
         rgba(20,16,15,0.98) 100%);
     }
+    .tcc-hero__mark { max-height: 74px; }
     .tcc-hero__credit { position: static; margin: 18px 0 0; }
   }
 
