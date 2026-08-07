@@ -445,7 +445,10 @@ async function onInvoiceGivenUp(invoice) {
 // ---------------------------------------------------------------
 // the participant's confirmation
 // ---------------------------------------------------------------
-async function sendConfirmation({ courseId, email, firstName, option, balanceCents, online }) {
+// Exported so a free registration — a host claiming their place — gets
+// exactly the same confirmation as anyone who paid. Two copies of this
+// email would drift apart within a month.
+export async function sendConfirmation({ courseId, email, firstName, option, balanceCents, online }) {
   if (!email) return;
 
   try {
