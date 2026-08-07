@@ -170,24 +170,37 @@
   }
   .l1-pull p { font-size: 15px; line-height: 1.6; color: #C9C4C5; margin: 0; max-width: 62ch; }
 
-  /* ---------- photo band behind story and values ----------
+  /* ---------- photo bands behind sections ----------
      A dark gradient sits over the photo so text stays legible. Lower
-     the two opacity values to lighten it, raise them to darken. Below
+     the two opacity values to lighten, raise them to darken. Below
      about 0.70 the body text starts to fight the photo. */
   .ab-band {
     position: relative;
     border: 1px solid var(--line);
     padding: 8px 26px 30px;
     margin-top: 34px;
-    background-image:
-      linear-gradient(180deg, rgba(20,16,15,0.78) 0%, rgba(20,16,15,0.84) 100%),
-      url("/brand/NG-6524.jpg");
     background-size: cover;
-    background-position: center;
     background-repeat: no-repeat;
   }
   .ab-band > .l1-section:first-child { padding-top: 30px; }
   @media (max-width: 620px) { .ab-band { padding: 4px 16px 20px; } }
+
+  .ab-band--story {
+    background-image:
+      linear-gradient(180deg, rgba(20,16,15,0.78) 0%, rgba(20,16,15,0.84) 100%),
+      url("/brand/NG-6524.jpg");
+    background-position: center;
+  }
+
+  /* The 68% pushes the frame down so roughly the top sixth of the
+     photo sits above the band and is not shown. Lower the number to
+     bring more of the top back in, raise it to cut deeper. */
+  .ab-band--mission {
+    background-image:
+      linear-gradient(180deg, rgba(20,16,15,0.78) 0%, rgba(20,16,15,0.84) 100%),
+      url("/brand/NG-7332.jpg");
+    background-position: center 68%;
+  }
 
   /* ---------- big statement band ---------- */
   .ab-statement {
@@ -388,7 +401,7 @@
 
 <main class="bb-wrap">
 
-  <div class="ab-band">
+  <div class="ab-band ab-band--story">
     <section class="l1-section" id="story">
       <p class="l1-label">Our Story</p>
       <h2 class="l1-h2">We Started BirdBox Because Coaching Standards Needed To Be Better</h2>
@@ -445,65 +458,67 @@
     <p>The standard is the minimum.<br><em>Great coaches don&rsquo;t hold it &mdash; they go far beyond it.</em></p>
   </div>
 
-  <section class="l1-section" id="mission">
-    <p class="l1-label">Our Mission</p>
-    <h2 class="l1-h2">The Ripple Effect Of Better Coaching</h2>
-    <p class="l1-lede">One better coach doesn&rsquo;t just help one athlete. They improve hundreds. Those athletes influence families, gyms and communities &mdash; and some of them become coaches themselves. The impact compounds. BirdBox exists to create that ripple effect.</p>
-    <div class="ab-ripple">
-      <div class="ab-stage">
-        <div class="ab-stage__dot">1</div>
-        <h3 class="ab-stage__name">Individual</h3>
-        <p class="ab-stage__text">A coach invests in their own development.</p>
+  <div class="ab-band ab-band--mission">
+    <section class="l1-section" id="mission">
+      <p class="l1-label">Our Mission</p>
+      <h2 class="l1-h2">The Ripple Effect Of Better Coaching</h2>
+      <p class="l1-lede">One better coach doesn&rsquo;t just help one athlete. They improve hundreds. Those athletes influence families, gyms and communities &mdash; and some of them become coaches themselves. The impact compounds. BirdBox exists to create that ripple effect.</p>
+      <div class="ab-ripple">
+        <div class="ab-stage">
+          <div class="ab-stage__dot">1</div>
+          <h3 class="ab-stage__name">Individual</h3>
+          <p class="ab-stage__text">A coach invests in their own development.</p>
+        </div>
+        <div class="ab-stage">
+          <div class="ab-stage__dot">2</div>
+          <h3 class="ab-stage__name">Coach</h3>
+          <p class="ab-stage__text">They coach with more skill, confidence and purpose.</p>
+        </div>
+        <div class="ab-stage">
+          <div class="ab-stage__dot">3</div>
+          <h3 class="ab-stage__name">Community</h3>
+          <p class="ab-stage__text">More athletes thrive. Families and gyms feel the difference.</p>
+        </div>
+        <div class="ab-stage">
+          <div class="ab-stage__dot">4</div>
+          <h3 class="ab-stage__name">Global Standards</h3>
+          <p class="ab-stage__text">Coaching standards rise worldwide. The ripple continues.</p>
+        </div>
       </div>
-      <div class="ab-stage">
-        <div class="ab-stage__dot">2</div>
-        <h3 class="ab-stage__name">Coach</h3>
-        <p class="ab-stage__text">They coach with more skill, confidence and purpose.</p>
-      </div>
-      <div class="ab-stage">
-        <div class="ab-stage__dot">3</div>
-        <h3 class="ab-stage__name">Community</h3>
-        <p class="ab-stage__text">More athletes thrive. Families and gyms feel the difference.</p>
-      </div>
-      <div class="ab-stage">
-        <div class="ab-stage__dot">4</div>
-        <h3 class="ab-stage__name">Global Standards</h3>
-        <p class="ab-stage__text">Coaching standards rise worldwide. The ripple continues.</p>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="l1-section" id="ecosystem">
-    <p class="l1-label">The BirdBox Ecosystem</p>
-    <h2 class="l1-h2">Different Courses. One Mission.</h2>
-    <p class="l1-lede">Every course we build is designed to raise the professional standard of coaching. Each brand takes that mission into a different discipline.</p>
-    <div class="ab-brands">
-      <a class="ab-brand" style="--b: #4FA8DE;" href="/tcc">
-        <span class="ab-brand__code">TCC</span>
-        <span class="ab-brand__name">The Coaches Course</span>
-        <span class="ab-brand__text">Developing exceptional coaches through professional coaching education.</span>
-        <span class="ab-brand__status">Explore TCC &rarr;</span>
-      </a>
-      <a class="ab-brand" style="--b: #D8393D;" href="/tgc">
-        <span class="ab-brand__code">TGC</span>
-        <span class="ab-brand__name">The Gymnastics Course</span>
-        <span class="ab-brand__text">Helping coaches teach gymnastics with confidence, structure and progressions.</span>
-        <span class="ab-brand__status">Explore TGC &rarr;</span>
-      </a>
-      <a class="ab-brand" style="--b: #428F63;" href="/tec">
-        <span class="ab-brand__code">TEC</span>
-        <span class="ab-brand__name">The Endurance Course</span>
-        <span class="ab-brand__text">Evidence-based endurance education for functional fitness coaches.</span>
-        <span class="ab-brand__status">Coming Soon</span>
-      </a>
-      <a class="ab-brand" style="--b: #D9A527;" href="/twc">
-        <span class="ab-brand__code">TWC</span>
-        <span class="ab-brand__name">The Weightlifting Course</span>
-        <span class="ab-brand__text">The next step in developing complete coaches.</span>
-        <span class="ab-brand__status">Launching 2027</span>
-      </a>
-    </div>
-  </section>
+    <section class="l1-section" id="ecosystem">
+      <p class="l1-label">The BirdBox Ecosystem</p>
+      <h2 class="l1-h2">Different Courses. One Mission.</h2>
+      <p class="l1-lede">Every course we build is designed to raise the professional standard of coaching. Each brand takes that mission into a different discipline.</p>
+      <div class="ab-brands">
+        <a class="ab-brand" style="--b: #4FA8DE;" href="/tcc">
+          <span class="ab-brand__code">TCC</span>
+          <span class="ab-brand__name">The Coaches Course</span>
+          <span class="ab-brand__text">Developing exceptional coaches through professional coaching education.</span>
+          <span class="ab-brand__status">Explore TCC &rarr;</span>
+        </a>
+        <a class="ab-brand" style="--b: #D8393D;" href="/tgc">
+          <span class="ab-brand__code">TGC</span>
+          <span class="ab-brand__name">The Gymnastics Course</span>
+          <span class="ab-brand__text">Helping coaches teach gymnastics with confidence, structure and progressions.</span>
+          <span class="ab-brand__status">Explore TGC &rarr;</span>
+        </a>
+        <a class="ab-brand" style="--b: #428F63;" href="/tec">
+          <span class="ab-brand__code">TEC</span>
+          <span class="ab-brand__name">The Endurance Course</span>
+          <span class="ab-brand__text">Evidence-based endurance education for functional fitness coaches.</span>
+          <span class="ab-brand__status">Coming Soon</span>
+        </a>
+        <a class="ab-brand" style="--b: #D9A527;" href="/twc">
+          <span class="ab-brand__code">TWC</span>
+          <span class="ab-brand__name">The Weightlifting Course</span>
+          <span class="ab-brand__text">The next step in developing complete coaches.</span>
+          <span class="ab-brand__status">Launching 2027</span>
+        </a>
+      </div>
+    </section>
+  </div>
 
   <section class="l1-section" id="future">
     <p class="l1-label">Where We&rsquo;re Going</p>
