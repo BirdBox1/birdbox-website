@@ -2327,6 +2327,44 @@ const isAdmin = () => me && me.role === "admin";
 const amLeadOn = (courseId) => isAdmin() || myRoles[courseId] === "lead_coach";
 const isPast = (c) => !!c.archived || c.status === "cancelled" || c.status === "complete";
 
+/* ---------------- which courses have feedback ---------------- */
+
+// Read from feedback_manuals, the same table the drafting function
+// and the feedback page read, so all three agree. A course type with
+// no row does not do feedback at all — TCC Level 2 issues its
+// certificate from the online course after the exam, so no feedback
+// email is written for it.
+//
+// null means the lookup failed. Nothing is hidden in that case: an
+// unreachable table should not quietly remove a button, and the
+// drafting function refuses on its own anyway.
+let feedbackManualKeys = new Set();
+
+async function loadFeedbackManuals() {
+  const { data, error } = await db
+    .from("feedback_manuals")
+    .select("brand, type, level, active")
+    .eq("active", true);
+
+  if (error) {
+    console.error("Could not load feedback manuals:", error.message);
+    feedbackManualKeys = null;
+    return;
+  }
+
+  feedbackManualKeys = new Set(
+    (data || []).map((r) =>
+      `${r.brand}:${r.type}:${String(r.level || "").replace(/\D/g, "")}`)
+  );
+}
+
+function courseHasFeedback(course) {
+  if (feedbackManualKeys === null) return true;
+  const key = `${course.brand}:${course.type}:` +
+              String(course.level || "").replace(/\D/g, "");
+  return feedbackManualKeys.has(key);
+}
+
 /* ---------------- auth ---------------- */
 
 $("signin").addEventListener("click", signIn);
@@ -2401,6 +2439,7 @@ async function start() {
   $("peoplebtn").classList.toggle("hidden", !admin);
   $("codeslink").classList.toggle("hidden", !admin);
 
+  await loadFeedbackManuals();
   await loadCourses();
 }
 
@@ -6852,8 +6891,13 @@ function showFeedbackBar(course) {
   // so this button applies the same test and no more. Gating it on the
   // course having finished only hid it on the days you are actually
   // sitting in the gym writing notes.
+  //
+  // It does have to agree with the feedback page about which course
+  // types do feedback at all, or the button would land somebody on a
+  // page that has quietly dropped that course from its list.
   const canSee = (isAdmin() || amLeadOn(course.id)) &&
-                 course.type !== "online_course";
+                 course.type !== "online_course" &&
+                 courseHasFeedback(course);
 
   bar.classList.toggle("hidden", !canSee);
   if (!canSee) return;
