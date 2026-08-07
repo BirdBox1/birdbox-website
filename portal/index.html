@@ -400,6 +400,33 @@
   .chat-msg .meta .author { font-weight: 650; color: var(--ink); }
   .chat-none { color: var(--muted); font-size: 0.88rem; margin: 0.3rem 0; }
 
+  /* ---------------- direct messages ---------------- */
+  .dm { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 44rem) { .dm { grid-template-columns: 15rem 1fr; align-items: start; } }
+  .dm-people { display: grid; gap: 0.15rem; max-height: 26rem; overflow-y: auto; }
+  .dm-person {
+    display: flex; align-items: center; gap: 0.6rem; width: 100%;
+    font: inherit; text-align: left; background: none; border: 0;
+    border-radius: 5px; padding: 0.45rem 0.5rem; cursor: pointer;
+  }
+  .dm-person:hover { background: #faf9f7; }
+  .dm-person.on { background: #eef4fb; }
+  .dm-person .nm {
+    flex: 1 1 auto; min-width: 0; font-size: 0.9rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .dm-person .dot {
+    flex: none; min-width: 1.15rem; height: 1.15rem; padding: 0 0.3rem;
+    border-radius: 999px; background: var(--bad); color: #fff;
+    font-size: 0.68rem; font-weight: 700; display: grid; place-items: center;
+  }
+  .dm-thread { min-width: 0; }
+  .unread-flag {
+    display: inline-grid; place-items: center; min-width: 1.1rem; height: 1.1rem;
+    padding: 0 0.28rem; margin-left: 0.35rem; border-radius: 999px;
+    background: var(--bad); color: #fff; font-size: 0.66rem; font-weight: 700;
+  }
+
   /* ---------------- coach invoices ---------------- */
   .inv-row {
     display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
@@ -468,6 +495,7 @@
   <span class="right">
     <a class="linkbtn hidden" id="feedbacklink" href="/portal/feedback/">Feedback</a>
     <a class="linkbtn hidden" id="codeslink" href="/portal/codes/">Discount codes</a>
+    <button id="messagesbtn" class="hidden" type="button">Messages</button>
     <button id="profilebtn" class="hidden" type="button">My profile</button>
     <span class="who" id="who"></span>
     <button id="signout" class="hidden" type="button">Sign out</button>
@@ -508,6 +536,38 @@
     </div>
 
     <div id="seq-weeks"></div>
+  </div>
+</section>
+
+<!-- ============ DIRECT MESSAGES ============ -->
+<section id="view-messages" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back-messages">&larr; All courses</a>
+    <h2>Messages</h2>
+    <p class="sub">Between you and one other person. Nothing here is attached to a course.</p>
+
+    <div class="panel">
+      <div class="dm">
+        <div>
+          <div class="whenline" style="font-weight:650;color:var(--ink);margin-bottom:0.4rem">The team</div>
+          <div class="dm-people" id="dm-people"></div>
+        </div>
+
+        <div class="dm-thread">
+          <div class="whenline" style="font-weight:650;color:var(--ink);margin-bottom:0.4rem" id="dm-with">
+            Choose somebody to write to
+          </div>
+          <div class="chat" id="dm-list"></div>
+          <div id="dm-compose" class="hidden" style="margin-top:0.9rem">
+            <textarea id="dm-box" style="min-height:3.4rem" placeholder="Write a message…"></textarea>
+            <div class="admin-row" style="margin-top:0.5rem">
+              <button class="btn small" id="dm-send" type="button">Send</button>
+              <span class="why" id="dm-msg"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -2007,6 +2067,7 @@ const views = {
   invoices: $("view-invoices"),
   profile:  $("view-profile"),
   team:     $("view-team"),
+  messages: $("view-messages"),
 };
 const show = (n) =>
   Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== n));
@@ -2050,6 +2111,7 @@ $("signout").addEventListener("click", async () => {
   $("who").textContent = "";
   $("signout").classList.add("hidden");
   $("profilebtn").classList.add("hidden");
+  $("messagesbtn").classList.add("hidden");
   $("codeslink").classList.add("hidden");
   $("feedbacklink").classList.add("hidden");
   $("password").value = "";
@@ -2078,6 +2140,8 @@ async function start() {
   $("who").textContent = staff.full_name;
   $("signout").classList.remove("hidden");
   $("profilebtn").classList.remove("hidden");
+  $("messagesbtn").classList.remove("hidden");
+  refreshUnreadFlag();
   $("hello").textContent = `Welcome back, ${staff.full_name.split(" ")[0]}`;
   $("myrole").textContent = staff.role.replace(/_/g, " ");
   $("newcourse").classList.toggle("hidden", !admin);
@@ -4100,6 +4164,234 @@ function wireCancel() {
       $("cx-go").disabled = false;
     }
   };
+}
+
+/* ---------- direct messages ---------- */
+
+// One to one, between any two members of staff. Deliberately separate
+// from the course chat: that one is about a course and everybody on it
+// can read back, this one is a private line between two people.
+let dmWith = null;
+let dmUnread = {};
+
+async function loadUnread() {
+  dmUnread = {};
+  if (!me) return 0;
+
+  const { data, error } = await db
+    .from("direct_messages")
+    .select("sender_id")
+    .eq("recipient_id", me.id)
+    .is("read_at", null);
+
+  if (error) { console.error("Could not load unread:", error.message); return 0; }
+  for (const m of data || []) dmUnread[m.sender_id] = (dmUnread[m.sender_id] || 0) + 1;
+  return (data || []).length;
+}
+
+// A count on the Messages button, so an unread message is visible from
+// anywhere in the portal rather than only when you go looking.
+async function refreshUnreadFlag() {
+  const total = await loadUnread();
+  const btn = $("messagesbtn");
+  btn.textContent = "Messages";
+  if (total) {
+    const flag = document.createElement("span");
+    flag.className = "unread-flag";
+    flag.textContent = total > 9 ? "9+" : String(total);
+    btn.append(flag);
+  }
+}
+
+async function openMessages() {
+  show("messages");
+
+  if (!staffList.length) {
+    const { data } = await db.from("staff")
+      .select("id, full_name, role, photo_path").eq("active", true).order("full_name");
+    staffList = data || [];
+  }
+
+  await loadUnread();
+  renderPeople();
+
+  if (dmWith) await openThread(dmWith);
+}
+
+function renderPeople() {
+  const box = $("dm-people");
+  box.innerHTML = "";
+
+  // Anyone with unread messages floats to the top; the rest stay
+  // alphabetical so people are where you expect them.
+  const others = staffList
+    .filter((p) => p.id !== me.id)
+    .sort((a, b) => (dmUnread[b.id] || 0) - (dmUnread[a.id] || 0) ||
+                    a.full_name.localeCompare(b.full_name));
+
+  if (!others.length) {
+    box.innerHTML = '<p class="chat-none">Nobody else on the team yet.</p>';
+    return;
+  }
+
+  for (const person of others) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "dm-person" + (dmWith && dmWith.id === person.id ? " on" : "");
+
+    const nm = document.createElement("span");
+    nm.className = "nm";
+    nm.textContent = person.full_name;
+
+    btn.append(avatar(person, 28), nm);
+
+    if (dmUnread[person.id]) {
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      dot.textContent = String(dmUnread[person.id]);
+      btn.append(dot);
+    }
+
+    btn.onclick = () => openThread(person);
+    box.append(btn);
+  }
+}
+
+async function openThread(person) {
+  dmWith = person;
+  renderPeople();
+
+  $("dm-with").textContent = person.full_name;
+  $("dm-compose").classList.remove("hidden");
+  $("dm-msg").textContent = "";
+
+  const list = $("dm-list");
+  list.innerHTML = '<p class="chat-none">Loading…</p>';
+
+  // Both directions of the conversation. The policy already limits
+  // this to messages we are party to, so the filter is about picking
+  // the right thread rather than about access.
+  const { data, error } = await db
+    .from("direct_messages")
+    .select("id, sender_id, recipient_id, body, created_at, read_at")
+    .or(`and(sender_id.eq.${me.id},recipient_id.eq.${person.id}),` +
+        `and(sender_id.eq.${person.id},recipient_id.eq.${me.id})`)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    list.innerHTML = '<p class="chat-none">Could not load that conversation.</p>';
+    return;
+  }
+
+  renderThread(data || [], person);
+
+  // Marked read once they are on screen, which is the only honest
+  // moment to claim it.
+  const unread = (data || []).filter((m) => m.recipient_id === me.id && !m.read_at);
+  if (unread.length) {
+    await db.from("direct_messages")
+      .update({ read_at: new Date().toISOString() })
+      .in("id", unread.map((m) => m.id));
+    await loadUnread();
+    renderPeople();
+    await refreshUnreadFlag();
+  }
+}
+
+function renderThread(rows, person) {
+  const list = $("dm-list");
+  list.innerHTML = "";
+
+  if (!rows.length) {
+    const p = document.createElement("p");
+    p.className = "chat-none";
+    p.textContent = `Nothing between you and ${person.full_name.split(" ")[0]} yet.`;
+    list.append(p);
+    return;
+  }
+
+  for (const m of rows) {
+    const mine = m.sender_id === me.id;
+
+    const row = document.createElement("div");
+    row.className = "chat-msg" + (mine ? " mine" : "");
+
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "flex:1 1 auto;min-width:0";
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const author = document.createElement("span");
+    author.className = "author";
+    author.textContent = mine ? "You" : person.full_name;
+    const when = document.createElement("span");
+    when.textContent = fmtWhen(m.created_at);
+    meta.append(author, when);
+
+    if (mine) {
+      const seen = document.createElement("span");
+      seen.textContent = m.read_at ? "read" : "sent";
+      meta.append(seen);
+
+      const del = document.createElement("button");
+      del.className = "textlink";
+      del.type = "button";
+      del.style.fontSize = "0.75rem";
+      del.textContent = "delete";
+      del.onclick = async () => {
+        if (!window.confirm("Delete this message? It goes for both of you.")) return;
+        const { error } = await db.from("direct_messages").delete().eq("id", m.id);
+        if (error) { window.alert("Could not delete it: " + error.message); return; }
+        row.remove();
+      };
+      meta.append(del);
+    }
+
+    const body = document.createElement("div");
+    body.className = "body";
+    body.textContent = m.body;
+
+    wrap.append(meta, body);
+    row.append(avatar(mine ? me : person, 34), wrap);
+    list.append(row);
+  }
+
+  list.scrollTop = list.scrollHeight;
+}
+
+function wireMessages() {
+  $("messagesbtn").onclick = openMessages;
+  $("back-messages").onclick = loadCourses;
+
+  const send = async () => {
+    if (!dmWith) return;
+    const box = $("dm-box");
+    const msg = $("dm-msg");
+    const body = box.value.trim();
+    if (!body) return;
+
+    $("dm-send").disabled = true;
+    msg.textContent = "Sending…";
+
+    const { error } = await db.from("direct_messages").insert({
+      sender_id: me.id,
+      recipient_id: dmWith.id,
+      body,
+    });
+
+    $("dm-send").disabled = false;
+
+    if (error) { msg.textContent = "Could not send: " + error.message; return; }
+
+    box.value = "";
+    msg.textContent = "";
+    await openThread(dmWith);
+  };
+
+  $("dm-send").onclick = send;
+  $("dm-box").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  });
 }
 
 /* ---------- the course chat ---------- */
@@ -6542,6 +6834,7 @@ wireInvoicesView();
 wireProfile();
 wireTeam();
 wireChat();
+wireMessages();
 start();
 </script>
 
