@@ -384,6 +384,34 @@
   }
   .hidden { display: none !important; }
 
+  /* ---------------- coach invoices ---------------- */
+  .inv-row {
+    display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    padding: 0.7rem 0.85rem; border-bottom: 1px solid var(--rule);
+  }
+  .inv-row:last-child { border-bottom: 0; }
+  .inv-row .who { flex: 1 1 10rem; min-width: 0; font-weight: 650; font-size: 0.92rem; }
+  .inv-row .amt { font-size: 0.92rem; white-space: nowrap; }
+  .inv-row .files { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+  .rc-row {
+    display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+    padding: 0.5rem 0; border-bottom: 1px solid var(--rule); font-size: 0.88rem;
+  }
+  .rc-row:last-child { border-bottom: 0; }
+  .rc-row .cat {
+    font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase;
+    border: 1px solid var(--rule); border-radius: 3px; padding: 0.12rem 0.45rem;
+    color: var(--muted); white-space: nowrap;
+  }
+  .rc-row .desc { flex: 1 1 8rem; min-width: 0; color: var(--muted); }
+  .filebox {
+    border: 1px dashed var(--rule); border-radius: 5px;
+    padding: 0.8rem 0.9rem; margin-bottom: 0.8rem; background: #faf9f7;
+  }
+  .filebox .name { font-size: 0.85rem; color: var(--muted); margin-top: 0.4rem; }
+  .filebox .name.on { color: var(--good); font-weight: 600; }
+
 /* participant management */
 .pm-bar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:0 0 .8rem}
 .pm-form{border:1px solid #342F31;border-radius:.4rem;padding:1rem;margin:0 0 1rem;background:rgba(255,255,255,.02)}
@@ -567,6 +595,11 @@
       <span class="why" id="pc-state"></span>
     </div>
 
+    <div class="admin-row hidden" id="inv-bar" style="margin:0 0 1rem">
+      <button class="btn small" id="inv-open" type="button">My invoice</button>
+      <span class="why" id="inv-state"></span>
+    </div>
+
     <div class="admin-row hidden" id="cert-bar" style="margin:0 0 1rem">
       <button class="btn small go" id="cert-open" type="button">Complete and submit seminar</button>
       <span class="why" id="cert-state"></span>
@@ -639,6 +672,11 @@
         <button class="btn small" id="editcoursebtn" type="button">Edit course details</button>
         <span class="why">Venue, address, map pin, dates, price and description.</span>
       </div>
+
+      <div class="sep"></div>
+
+      <h3>Coach invoices</h3>
+      <div id="inv-admin"></div>
 
       <div class="sep"></div>
 
@@ -1022,6 +1060,93 @@
     <div class="row">
       <button class="btn ghost" id="cx-close" type="button">Cancel</button>
       <button class="btn solid-danger" id="cx-go" type="button">Refund and cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ COACH INVOICE ============ -->
+<div class="overlay hidden" id="invwrap">
+  <div class="dialog" style="max-width:40rem" role="dialog" aria-modal="true" aria-labelledby="inv-h">
+    <h3 id="inv-h">My invoice</h3>
+    <p class="sub" id="inv-sub" style="margin-bottom:1rem"></p>
+
+    <div class="filebox">
+      <label for="inv-file">Your invoice <span class="hint">PDF</span></label>
+      <input id="inv-file" type="file" accept="application/pdf,image/*">
+      <div class="name" id="inv-file-name"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label for="inv-total">Total due <span class="hint">coaching and expenses together</span></label>
+        <input id="inv-total" type="number" min="0" step="0.01" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label for="inv-currency">Currency</label>
+        <select id="inv-currency">
+          <option value="EUR">EUR</option>
+          <option value="GBP">GBP</option>
+          <option value="USD">USD</option>
+          <option value="AUD">AUD</option>
+          <option value="CAD">CAD</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Receipts <span class="hint">one per expense — hotel, flights and so on</span></label>
+      <div id="inv-receipts" style="border:1px solid var(--rule);border-radius:5px;padding:0.3rem 0.75rem;margin-bottom:0.6rem"></div>
+
+      <div class="grid2">
+        <div class="field" style="margin-bottom:0.5rem">
+          <label for="rc-cat">What is it for</label>
+          <select id="rc-cat">
+            <option value="Hotel">Hotel</option>
+            <option value="Flights">Flights</option>
+            <option value="Train">Train</option>
+            <option value="Bus">Bus</option>
+            <option value="Rental car">Rental car</option>
+            <option value="Taxi">Taxi</option>
+            <option value="Fuel">Fuel</option>
+            <option value="Parking">Parking</option>
+            <option value="Meals">Meals</option>
+            <option value="__other">Something else…</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0.5rem">
+          <label for="rc-desc">Note <span class="hint">optional</span></label>
+          <input id="rc-desc" type="text" placeholder="Two nights, Glasgow">
+        </div>
+      </div>
+
+      <div class="field hidden" id="rc-other-wrap" style="margin-bottom:0.5rem">
+        <label for="rc-other">Type what it is for</label>
+        <input id="rc-other" type="text" placeholder="Equipment hire">
+      </div>
+
+      <div class="filebox">
+        <label for="rc-file">The receipt <span class="hint">photo or PDF</span></label>
+        <input id="rc-file" type="file" accept="application/pdf,image/*">
+        <div class="name" id="rc-file-name"></div>
+      </div>
+
+      <div class="admin-row">
+        <button class="btn ghost small" id="rc-add" type="button">Add this receipt</button>
+        <span class="why" id="rc-msg"></span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="inv-notes">Anything to tell us <span class="hint">optional</span></label>
+      <textarea id="inv-notes" style="min-height:3.5rem"></textarea>
+    </div>
+
+    <p class="msg" id="inv-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="inv-close" type="button">Close</button>
+      <button class="btn ghost" id="inv-save" type="button">Save for later</button>
+      <button class="btn go" id="inv-submit" type="button">Submit invoice</button>
     </div>
   </div>
 </div>
@@ -2161,6 +2286,8 @@ async function openCourse(course) {
   await loadPrecourse(course.id);
   showPrecourseBar(course);
   showCertBar(course);
+  await loadMyInvoice(course);
+  showInvoiceBar(course);
 
   if (!regs.length) {
     box.innerHTML = '<p class="empty">' +
@@ -3592,6 +3719,413 @@ function wireCancel() {
   };
 }
 
+/* ---------- coach invoices ---------- */
+
+// The coach's own invoice, uploaded as they already produce it. BirdBox
+// collects and organises rather than generating, so there is no
+// self-billing arrangement to keep on the right side of.
+//
+// Receipts are categorised but carry no amounts: those are already
+// itemised on the coach's own invoice, and a second set of numbers
+// would eventually disagree with the first.
+
+let myInvoice = null;
+let myReceipts = [];
+let invCourse = null;
+
+async function loadMyInvoice(course) {
+  myInvoice = null;
+  myReceipts = [];
+  if (!me) return;
+
+  const { data, error } = await db
+    .from("coach_invoices")
+    .select("id, total_cents, currency, invoice_path, notes, status, submitted_at")
+    .eq("course_id", course.id)
+    .eq("staff_id", me.id)
+    .maybeSingle();
+
+  if (error) { console.error("Could not load invoice:", error.message); return; }
+  myInvoice = data || null;
+
+  if (myInvoice) {
+    const { data: rows } = await db
+      .from("coach_invoice_receipts")
+      .select("id, category, description, file_path, created_at")
+      .eq("invoice_id", myInvoice.id)
+      .order("created_at", { ascending: true });
+    myReceipts = rows || [];
+  }
+}
+
+// Coaches on the course see their own. Admin uses the panel below,
+// because an admin is usually not invoicing for the course.
+function showInvoiceBar(course) {
+  const bar = $("inv-bar");
+  const onIt = !!myRoles[course.id];
+  const canSee = onIt && new Date(course.starts_at) <= new Date();
+
+  bar.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  const sent = myInvoice && myInvoice.status === "submitted";
+  $("inv-open").textContent = sent ? "Invoice submitted" : myInvoice ? "Finish my invoice" : "My invoice";
+  $("inv-state").textContent = sent
+    ? `Sent ${fmtWhen(myInvoice.submitted_at)} — ${money(myInvoice.total_cents, myInvoice.currency)}.`
+    : myInvoice
+      ? "Saved but not submitted yet."
+      : "Upload your invoice and receipts for this course.";
+}
+
+async function openInvoice(course) {
+  invCourse = course;
+  await loadMyInvoice(course);
+
+  const submitted = myInvoice && myInvoice.status === "submitted";
+
+  $("inv-h").textContent = "Invoice — " + course.title;
+  $("inv-sub").textContent = submitted
+    ? `Submitted ${fmtWhen(myInvoice.submitted_at)}. Adding anything now submits it again.`
+    : "Upload your own invoice, attach a receipt for each expense, and give the total due.";
+
+  $("inv-total").value = myInvoice && myInvoice.total_cents != null
+    ? (myInvoice.total_cents / 100).toFixed(2) : "";
+  $("inv-currency").value = (myInvoice && myInvoice.currency) || course.currency || "EUR";
+  $("inv-notes").value = (myInvoice && myInvoice.notes) || "";
+
+  $("inv-file").value = "";
+  $("inv-file-name").textContent = myInvoice && myInvoice.invoice_path
+    ? "Uploaded. Choose a file only if you want to replace it."
+    : "";
+  $("inv-file-name").className = myInvoice && myInvoice.invoice_path ? "name on" : "name";
+
+  $("rc-file").value = "";
+  $("rc-file-name").textContent = "";
+  $("rc-desc").value = "";
+  $("rc-other").value = "";
+  $("rc-cat").value = "Hotel";
+  $("rc-other-wrap").classList.add("hidden");
+  $("rc-msg").textContent = "";
+
+  renderReceipts();
+  $("inv-msg").textContent = "";
+  $("inv-msg").className = "msg";
+  $("invwrap").classList.remove("hidden");
+}
+
+function renderReceipts() {
+  const box = $("inv-receipts");
+  box.innerHTML = "";
+
+  if (!myReceipts.length) {
+    const p = document.createElement("p");
+    p.style.cssText = "color:var(--muted);font-size:0.86rem;margin:0.5rem 0";
+    p.textContent = "No receipts yet. Coaching alone needs none.";
+    box.append(p);
+    return;
+  }
+
+  for (const r of myReceipts) {
+    const row = document.createElement("div");
+    row.className = "rc-row";
+
+    const cat = document.createElement("span");
+    cat.className = "cat";
+    cat.textContent = r.category;
+
+    const desc = document.createElement("span");
+    desc.className = "desc";
+    desc.textContent = r.description || "";
+
+    const view = document.createElement("button");
+    view.className = "btn ghost tiny";
+    view.type = "button";
+    view.textContent = "View";
+    view.onclick = () => openStoredFile(r.file_path);
+
+    const del = document.createElement("button");
+    del.className = "btn ghost tiny danger";
+    del.type = "button";
+    del.textContent = "Remove";
+    del.onclick = async () => {
+      if (!window.confirm(`Remove the ${r.category.toLowerCase()} receipt?`)) return;
+      del.disabled = true;
+      await db.storage.from("coach-invoices").remove([r.file_path]);
+      const { error } = await db.from("coach_invoice_receipts").delete().eq("id", r.id);
+      if (error) { window.alert("Could not remove it: " + error.message); del.disabled = false; return; }
+      myReceipts = myReceipts.filter((x) => x.id !== r.id);
+      renderReceipts();
+    };
+
+    row.append(cat, desc, view, del);
+    box.append(row);
+  }
+}
+
+// The bucket is private, so a file is reached through a short-lived
+// signed link rather than a public URL.
+async function openStoredFile(path) {
+  const { data, error } = await db.storage
+    .from("coach-invoices").createSignedUrl(path, 300);
+  if (error || !data?.signedUrl) {
+    window.alert("Could not open that file: " + (error ? error.message : "no link returned"));
+    return;
+  }
+  window.open(data.signedUrl, "_blank");
+}
+
+// The row has to exist before a receipt can point at it, so this is
+// called before any upload rather than only when saving.
+async function ensureInvoice() {
+  if (myInvoice) return myInvoice;
+
+  const { data, error } = await db.from("coach_invoices").insert({
+    course_id: invCourse.id,
+    staff_id: me.id,
+    currency: $("inv-currency").value || "EUR",
+    status: "draft",
+  }).select("id, total_cents, currency, invoice_path, notes, status, submitted_at").single();
+
+  if (error) throw new Error(error.message);
+  myInvoice = data;
+  return myInvoice;
+}
+
+async function uploadTo(file, prefix) {
+  const ext = (file.name.split(".").pop() || "pdf").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const path = `${invCourse.id}/${me.id}/${prefix}-${Date.now()}.${ext}`;
+  const { error } = await db.storage
+    .from("coach-invoices")
+    .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+  if (error) throw new Error(error.message);
+  return path;
+}
+
+function wireInvoices() {
+  $("inv-open").onclick = () => { if (currentCourse) openInvoice(currentCourse); };
+  $("inv-close").onclick = () => { $("invwrap").classList.add("hidden"); invCourse = null; };
+  $("invwrap").addEventListener("click", (e) => {
+    if (e.target === $("invwrap")) { $("invwrap").classList.add("hidden"); invCourse = null; }
+  });
+
+  $("rc-cat").addEventListener("change", () => {
+    const other = $("rc-cat").value === "__other";
+    $("rc-other-wrap").classList.toggle("hidden", !other);
+    if (other) $("rc-other").focus();
+  });
+
+  for (const [input, label] of [["inv-file", "inv-file-name"], ["rc-file", "rc-file-name"]]) {
+    $(input).addEventListener("change", () => {
+      const f = $(input).files[0];
+      $(label).textContent = f ? f.name : "";
+      $(label).className = f ? "name on" : "name";
+    });
+  }
+
+  // Each receipt is uploaded as it is added, so a long list is not
+  // riding on one submit that could fail at the end.
+  $("rc-add").onclick = async () => {
+    const msg = $("rc-msg");
+    const file = $("rc-file").files[0];
+    const isOther = $("rc-cat").value === "__other";
+    const category = isOther ? $("rc-other").value.trim() : $("rc-cat").value;
+
+    if (!category) { msg.textContent = "Say what the receipt is for."; return; }
+    if (!file) { msg.textContent = "Choose the receipt file."; return; }
+
+    $("rc-add").disabled = true;
+    msg.textContent = "Uploading…";
+
+    try {
+      await ensureInvoice();
+      const path = await uploadTo(file, "receipt");
+
+      const { data, error } = await db.from("coach_invoice_receipts").insert({
+        invoice_id: myInvoice.id,
+        category,
+        description: $("rc-desc").value.trim() || null,
+        file_path: path,
+      }).select("id, category, description, file_path, created_at").single();
+
+      if (error) throw new Error(error.message);
+
+      myReceipts.push(data);
+      renderReceipts();
+      $("rc-file").value = "";
+      $("rc-file-name").textContent = "";
+      $("rc-desc").value = "";
+      $("rc-other").value = "";
+      msg.textContent = "Added.";
+      setTimeout(() => { msg.textContent = ""; }, 1800);
+    } catch (err) {
+      msg.textContent = "Could not add it: " + err.message;
+    }
+    $("rc-add").disabled = false;
+  };
+
+  const saveInvoice = async (submitting) => {
+    const msg = $("inv-msg");
+    const total = $("inv-total").value.trim();
+
+    if (submitting) {
+      if (!total) { msg.className = "msg err"; msg.textContent = "Add the total due."; return; }
+      if (!$("inv-file").files[0] && !(myInvoice && myInvoice.invoice_path)) {
+        msg.className = "msg err";
+        msg.textContent = "Upload your invoice before submitting.";
+        return;
+      }
+    }
+
+    $("inv-save").disabled = true;
+    $("inv-submit").disabled = true;
+    msg.className = "msg";
+    msg.textContent = submitting ? "Submitting…" : "Saving…";
+
+    try {
+      await ensureInvoice();
+
+      let invoicePath = myInvoice.invoice_path;
+      const file = $("inv-file").files[0];
+      if (file) invoicePath = await uploadTo(file, "invoice");
+
+      const patch = {
+        total_cents: total === "" ? null : Math.round(parseFloat(total) * 100),
+        currency: $("inv-currency").value,
+        notes: $("inv-notes").value.trim() || null,
+        invoice_path: invoicePath,
+        updated_at: new Date().toISOString(),
+      };
+      if (submitting) {
+        patch.status = "submitted";
+        patch.submitted_at = new Date().toISOString();
+      }
+
+      const { data, error } = await db.from("coach_invoices")
+        .update(patch).eq("id", myInvoice.id)
+        .select("id, total_cents, currency, invoice_path, notes, status, submitted_at").single();
+
+      if (error) throw new Error(error.message);
+      myInvoice = data;
+
+      msg.className = "msg ok";
+      msg.textContent = submitting
+        ? "Submitted. Thank you — we will be in touch if anything is missing."
+        : "Saved. Come back and submit when you are ready.";
+
+      if (submitting) {
+        setTimeout(() => {
+          $("invwrap").classList.add("hidden");
+          openCourse(currentCourse);
+        }, 1600);
+      } else {
+        $("inv-file").value = "";
+        $("inv-file-name").textContent = "Uploaded. Choose a file only if you want to replace it.";
+        $("inv-file-name").className = "name on";
+      }
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+
+    $("inv-save").disabled = false;
+    $("inv-submit").disabled = false;
+  };
+
+  $("inv-save").onclick = () => saveInvoice(false);
+  $("inv-submit").onclick = () => saveInvoice(true);
+}
+
+// Everything submitted for this course, so an admin can download the
+// lot and hand it to accounting.
+async function renderInvoiceAdmin(course) {
+  const box = $("inv-admin");
+  box.innerHTML = '<p class="whenline">Loading…</p>';
+
+  const { data, error } = await db
+    .from("coach_invoices")
+    .select("id, staff_id, total_cents, currency, invoice_path, notes, status, submitted_at, staff ( full_name )")
+    .eq("course_id", course.id);
+
+  if (error) { box.innerHTML = '<p class="whenline bad">Could not load invoices.</p>'; return; }
+
+  const rows = data || [];
+  if (!rows.length) {
+    box.innerHTML = '<p class="whenline">No coach has submitted an invoice for this course yet.</p>';
+    return;
+  }
+
+  const { data: receipts } = await db
+    .from("coach_invoice_receipts")
+    .select("id, invoice_id, category, description, file_path")
+    .in("invoice_id", rows.map((r) => r.id));
+
+  const byInvoice = {};
+  for (const r of receipts || []) (byInvoice[r.invoice_id] = byInvoice[r.invoice_id] || []).push(r);
+
+  box.innerHTML = "";
+  let total = 0;
+
+  for (const inv of rows) {
+    if (inv.status === "submitted") total += inv.total_cents || 0;
+
+    const row = document.createElement("div");
+    row.className = "inv-row";
+
+    const who = document.createElement("span");
+    who.className = "who";
+    who.textContent = (inv.staff && inv.staff.full_name) || "A coach";
+
+    const state = document.createElement("span");
+    state.className = "pill " + (inv.status === "submitted" ? "on" : "warn");
+    state.textContent = inv.status === "submitted" ? "submitted" : "draft";
+
+    const amt = document.createElement("span");
+    amt.className = "amt";
+    amt.textContent = inv.total_cents != null ? money(inv.total_cents, inv.currency) : "no total yet";
+
+    const files = document.createElement("span");
+    files.className = "files";
+
+    if (inv.invoice_path) {
+      const b = document.createElement("button");
+      b.className = "btn ghost tiny";
+      b.type = "button";
+      b.textContent = "Invoice";
+      b.onclick = () => openStoredFile(inv.invoice_path);
+      files.append(b);
+    }
+
+    for (const r of byInvoice[inv.id] || []) {
+      const b = document.createElement("button");
+      b.className = "btn ghost tiny";
+      b.type = "button";
+      b.textContent = r.category;
+      b.title = r.description || r.category;
+      b.onclick = () => openStoredFile(r.file_path);
+      files.append(b);
+    }
+
+    row.append(who, state, amt, files);
+    box.append(row);
+
+    if (inv.notes) {
+      const note = document.createElement("div");
+      note.className = "whenline";
+      note.style.padding = "0 0.85rem 0.6rem";
+      note.textContent = inv.notes;
+      box.append(note);
+    }
+  }
+
+  const sum = document.createElement("p");
+  sum.className = "whenline";
+  sum.style.marginTop = "0.6rem";
+  sum.textContent = total
+    ? `${money(total, rows[0].currency)} submitted across ${rows.filter((r) => r.status === "submitted").length} invoice(s).`
+    : "Nothing submitted yet.";
+  box.append(sum);
+}
+
 /* ---------- complete and submit the seminar ---------- */
 
 // One deliberate action at the end of a course: check the attendance
@@ -4199,6 +4733,7 @@ async function wireAdmin(course, totalRegs, liveRegs) {
   const assigned = {};
   for (const r of assignedRows || []) assigned[r.staff_id] = r.role;
   renderCoachPicker($("editcoaches"), assigned);
+  renderInvoiceAdmin(course);
 
   $("savecoaches").onclick = async () => {
     const picked = readCoachPicker($("editcoaches"));
@@ -4766,6 +5301,7 @@ wireWelcome();
 wirePrecourse();
 wireCertificates();
 wireCancel();
+wireInvoices();
 start();
 </script>
 
