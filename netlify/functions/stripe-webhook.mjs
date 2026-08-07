@@ -191,11 +191,15 @@ async function onCheckoutCompleted(session) {
     stripe_payment_intent_id: intentId,
   });
 
-  // burn a redemption so single-use codes stop working
+  // Burn a redemption so single-use codes stop working. The course has
+  // to go with it: every seminar now carries its own EB10, and the old
+  // one-argument version counted a single sale against every row
+  // sharing the code — one Munich registration would have exhausted
+  // the count on all of them.
   if (discountCode) {
     const { error: bumpError } = await supabase.rpc(
       "bump_discount_redemption",
-      { p_code: discountCode }
+      { p_code: discountCode, p_course_id: meta.course_id }
     );
     if (bumpError) {
       console.error("Could not count discount redemption", discountCode, bumpError);
