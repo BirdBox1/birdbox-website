@@ -27,17 +27,17 @@
 
   .bb-topbar {
     display: flex; justify-content: center; flex-wrap: wrap; gap: 28px;
-    padding: 16px 24px; border-bottom: 1px solid var(--line);
+    padding: 14px 24px; border-bottom: 1px solid var(--line);
     font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase;
     position: relative; z-index: 3;
   }
   .bb-topbar a { color: #ADA6A8; text-decoration: none; }
   .bb-topbar a:hover { color: #ffffff; }
 
-  .bb-backbar { padding: 14px 24px 0; max-width: 1320px; margin: 0 auto; width: 100%; }
+  .bb-backbar { padding: 12px 24px 0; max-width: 1320px; margin: 0 auto; width: 100%; }
   .bb-back {
     display: inline-flex; align-items: center; gap: 9px;
-    padding: 8px 16px; border: 1px solid var(--line); color: #ADA6A8;
+    padding: 7px 15px; border: 1px solid var(--line); color: #ADA6A8;
     font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
     text-transform: uppercase; text-decoration: none;
     transition: border-color 0.2s ease, color 0.2s ease;
@@ -45,44 +45,73 @@
   .bb-back:hover { color: #ffffff; border-color: var(--tcc); }
 
   /* ---------- team photo band ----------
-     The photo keeps its own shape and is never cropped, so nobody at
-     the edges of the group is lost. Text sits underneath it, not over
-     it. max-height stops it dominating on a tall desktop window. */
+     background-size: 100% auto means the photo always spans the full
+     width, so nobody at the ends of the group is ever cropped. The
+     band height then trims it vertically to heads-and-feet only, and
+     background-position picks which slice of the photo that is. */
   .ab-shot {
     position: relative;
-    max-width: 1320px; margin: 22px auto 0; padding: 0 24px;
+    width: 100%;
+    aspect-ratio: 2.65 / 1;
+    max-height: 54vh;
+    background-color: var(--paper);
+    background-image: url("/brand/4994E1B7-60A8-4FD1-9C36-14867A8F959B.jpeg");
+    background-size: 100% auto;
+    /* Vertical crop point. Lower % shows more sky, higher shows more floor. */
+    background-position: center 58%;
+    background-repeat: no-repeat;
+    overflow: hidden;
   }
-  .ab-shot__img {
-    width: 100%; height: auto;
-    max-height: 74vh; object-fit: contain;
-    border: 1px solid var(--line);
-    background: var(--panel);
+  /* Melts the photo into the page colour underneath, and darkens the
+     top-left just enough for the mark to hold against bright sky. */
+  .ab-shot::after {
+    content: ""; position: absolute; inset: 0;
+    background:
+      linear-gradient(180deg,
+        rgba(20,16,15,0) 46%,
+        rgba(20,16,15,0.55) 78%,
+        rgba(20,16,15,0.94) 94%,
+        rgba(20,16,15,1) 100%),
+      linear-gradient(115deg,
+        rgba(20,16,15,0.62) 0%,
+        rgba(20,16,15,0.22) 22%,
+        rgba(20,16,15,0) 44%);
+  }
+  .ab-shot__mark {
+    position: absolute; top: 20px; left: 24px; z-index: 2;
+    height: 78px; width: auto;
+    filter: drop-shadow(0 2px 14px rgba(0,0,0,0.95));
   }
   .ab-shot__credit {
-    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--muted); margin: 10px 0 0; text-align: right;
+    position: absolute; right: 24px; bottom: 12px; z-index: 2;
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(242,239,239,0.5); margin: 0;
   }
 
-  /* ---------- hero copy ---------- */
-  .tcc-hero { border-bottom: 1px solid var(--line); }
-  .tcc-hero__inner { max-width: 1320px; margin: 0 auto; padding: 34px 24px 48px; }
-  .tcc-hero__mark { max-height: 92px; width: auto; margin-bottom: 24px; }
+  /* ---------- hero copy bar ----------
+     Two columns so the whole bar sits on one screen with the photo. */
+  .tcc-hero { border-bottom: 1px solid var(--line); margin-top: -1px; }
+  .tcc-hero__inner {
+    max-width: 1320px; margin: 0 auto; padding: 4px 24px 34px;
+    display: grid; grid-template-columns: 1.05fr 1fr; gap: 10px 48px;
+    align-items: start;
+  }
   .tcc-hero__title {
-    font-size: clamp(26px, 3.6vw, 46px); line-height: 1.06; font-weight: 800;
-    letter-spacing: -0.015em; text-transform: uppercase; margin: 0 0 16px;
+    font-size: clamp(25px, 3.3vw, 42px); line-height: 1.05; font-weight: 800;
+    letter-spacing: -0.015em; text-transform: uppercase; margin: 0;
   }
   .tcc-hero__title em { font-style: normal; color: var(--accentText); display: block; }
   .tcc-hero__lede {
-    font-size: 16px; line-height: 1.6; color: #DCD7D8; margin: 0 0 14px; max-width: 60ch;
+    font-size: 15px; line-height: 1.6; color: #DCD7D8; margin: 0 0 12px;
   }
   .tcc-hero__strap {
-    font-size: 13px; font-weight: 800; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--accentText); margin: 0 0 26px;
+    font-size: 12px; font-weight: 800; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accentText); margin: 0 0 20px;
   }
   .tcc-cta {
     display: inline-flex; align-items: center; gap: 10px;
-    padding: 13px 26px; background: var(--tcc); color: #0C1116;
-    font-size: 13px; font-weight: 800; letter-spacing: 0.08em;
+    padding: 12px 24px; background: var(--tcc); color: #0C1116;
+    font-size: 12px; font-weight: 800; letter-spacing: 0.08em;
     text-transform: uppercase; text-decoration: none; border: 1px solid var(--tcc);
     transition: background 0.2s ease, color 0.2s ease;
   }
@@ -91,10 +120,17 @@
     background: transparent; color: var(--accentText); border-color: var(--line); margin-left: 10px;
   }
   .tcc-cta--ghost:hover { border-color: var(--tcc); color: #ffffff; background: transparent; }
+
+  @media (max-width: 900px) {
+    .tcc-hero__inner { grid-template-columns: 1fr; gap: 14px; padding-bottom: 30px; }
+    .ab-shot { aspect-ratio: 2.2 / 1; max-height: none; }
+    .ab-shot__mark { height: 58px; top: 14px; left: 16px; }
+  }
   @media (max-width: 620px) {
     .tcc-cta--ghost { margin-left: 0; margin-top: 10px; }
-    .tcc-hero__mark { max-height: 72px; }
-    .ab-shot { padding: 0 16px; }
+    .ab-shot { aspect-ratio: 1.9 / 1; }
+    .ab-shot__mark { height: 46px; }
+    .ab-shot__credit { right: 14px; }
   }
 
   /* ---------- shared section furniture ---------- */
@@ -320,21 +356,24 @@
   <a class="bb-back" href="/">&larr; All Pathways</a>
 </div>
 
-<figure class="ab-shot">
-  <img class="ab-shot__img" src="/brand/4994E1B7-60A8-4FD1-9C36-14867A8F959B.jpeg" alt="The BirdBox Coaching team">
-  <figcaption class="ab-shot__credit">The BirdBox Coaching team</figcaption>
-</figure>
+<div class="ab-shot" role="img" aria-label="The BirdBox Coaching team">
+  <img class="ab-shot__mark" src="/brand/birdbox-mark.png" alt="BirdBox Coaching">
+  <p class="ab-shot__credit">The BirdBox Coaching team</p>
+</div>
 
 <header class="tcc-hero">
   <div class="tcc-hero__inner">
-    <img class="tcc-hero__mark" src="/brand/birdbox-mark.png" alt="BirdBox Coaching">
-    <p class="l1-label">About BirdBox Coaching</p>
-    <h1 class="tcc-hero__title">Raising the standard<em>of coaching.</em></h1>
-    <p class="tcc-hero__lede">BirdBox Coaching exists for one reason: to increase the professional standard of coaching through world-class education, practical experience and lifelong development.</p>
-    <p class="tcc-hero__strap">Better coaches. Better athletes. Better world.</p>
     <div>
-      <a class="tcc-cta" href="#mission">Our Mission &rarr;</a>
-      <a class="tcc-cta tcc-cta--ghost" href="#ecosystem">The BirdBox Ecosystem &rarr;</a>
+      <p class="l1-label">About BirdBox Coaching</p>
+      <h1 class="tcc-hero__title">Raising the standard<em>of coaching.</em></h1>
+    </div>
+    <div>
+      <p class="tcc-hero__lede">BirdBox Coaching exists for one reason: to increase the professional standard of coaching through world-class education, practical experience and lifelong development.</p>
+      <p class="tcc-hero__strap">Better coaches. Better athletes. Better world.</p>
+      <div>
+        <a class="tcc-cta" href="#mission">Our Mission &rarr;</a>
+        <a class="tcc-cta tcc-cta--ghost" href="#ecosystem">The BirdBox Ecosystem &rarr;</a>
+      </div>
     </div>
   </div>
 </header>
@@ -521,6 +560,7 @@
 
 <footer class="bb-footer">
   &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
+  <a class="bb-founder-photo-guard"></a>
   <a class="bb-footer__staff" href="/portal/">Staff Login</a>
 </footer>
 
