@@ -625,6 +625,55 @@
   </div>
 </div>
 
+<!-- ============ FIND A PARTICIPANT ============ -->
+<section id="view-people" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back-people">&larr; All courses</a>
+    <h2>Find someone</h2>
+    <p class="sub">Search by name or email. Shows every course they have been on, including ones they cancelled or that have already run.</p>
+
+    <div class="panel">
+      <div class="admin-row">
+        <input id="pp-q" type="text" placeholder="Name or email" autocomplete="off"
+               style="flex:1 1 16rem;min-width:0">
+        <button class="btn small" id="pp-go" type="button">Search</button>
+        <span class="why" id="pp-count"></span>
+      </div>
+    </div>
+
+    <div id="pp-results"></div>
+  </div>
+</section>
+
+<!-- ============ EXPORT ============ -->
+<div class="overlay hidden" id="exwrap">
+  <div class="dialog" style="max-width:34rem" role="dialog" aria-modal="true" aria-labelledby="ex-h">
+    <h3 id="ex-h">Export the list</h3>
+    <p class="sub" id="ex-sub" style="margin-bottom:1rem"></p>
+
+    <div class="admin-row" style="margin-bottom:0.7rem">
+      <button class="btn ghost tiny" id="ex-all" type="button">Select all</button>
+      <button class="btn ghost tiny" id="ex-none" type="button">Just the basics</button>
+    </div>
+
+    <div id="ex-fields" style="max-height:16rem;overflow-y:auto;border:1px solid var(--rule);
+         border-radius:5px;padding:0.6rem 0.8rem;margin-bottom:1rem"></div>
+
+    <label class="pm-check">
+      <input type="checkbox" id="ex-inactive">
+      Include cancelled, archived and no-shows
+    </label>
+
+    <p class="whenline" id="ex-note"></p>
+    <p class="msg" id="ex-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="ex-close" type="button">Cancel</button>
+      <button class="btn" id="ex-go" type="button">Download CSV</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ DIRECT MESSAGES ============ -->
 <section id="view-messages" class="hidden">
   <div class="wrap">
@@ -842,6 +891,7 @@
         <p class="sub" id="courses-sub" style="margin:0"></p>
       </div>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn ghost hidden" id="peoplebtn" type="button">Find someone</button>
         <button class="btn ghost hidden" id="teambtn" type="button">Team</button>
         <button class="btn ghost hidden" id="invoicesbtn" type="button">Invoices</button>
         <button class="btn ghost hidden" id="emailsbtn" type="button">Follow-up emails</button>
@@ -1021,6 +1071,14 @@
       <div class="admin-row">
         <button class="btn small" id="editcoursebtn" type="button">Edit course details</button>
         <span class="why">Venue, address, map pin, dates, price and description.</span>
+      </div>
+
+      <div class="sep"></div>
+
+      <h3>Export</h3>
+      <div class="admin-row">
+        <button class="btn small" id="ex-open" type="button">Export participants</button>
+        <span class="why">Choose which details you need. Downloads as a CSV.</span>
       </div>
 
       <div class="sep"></div>
@@ -2218,6 +2276,7 @@ const views = {
   profile:  $("view-profile"),
   team:     $("view-team"),
   messages: $("view-messages"),
+  people:   $("view-people"),
 };
 const show = (n) =>
   Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== n));
@@ -2302,6 +2361,7 @@ async function start() {
   $("emailsbtn").classList.toggle("hidden", !admin);
   $("invoicesbtn").classList.toggle("hidden", !admin);
   $("teambtn").classList.toggle("hidden", !admin);
+  $("peoplebtn").classList.toggle("hidden", !admin);
   $("codeslink").classList.toggle("hidden", !admin);
 
   await loadCourses();
@@ -2820,7 +2880,7 @@ async function openCourse(course) {
   box.innerHTML = '<p class="empty">Loading…</p>';
 
   const { data, error } = await db.from("registrations")
-    .select("id, first_name, last_name, email, phone, payment_status, attended, certificate_sent_at, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name, learnworlds_language, learnworlds_status, learnworlds_user_id, learnworlds_enrolled_at, learnworlds_error")
+    .select("id, first_name, last_name, email, phone, country, created_at, payment_status, attended, certificate_sent_at, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name, learnworlds_language, learnworlds_status, learnworlds_user_id, learnworlds_enrolled_at, learnworlds_error")
     .eq("course_id", course.id)
     .order("last_name", { ascending: true });
 
@@ -4603,6 +4663,279 @@ async function showHostBar(course) {
   state.textContent = alreadySent
     ? `Sent ${fmtWhen(data[0].sent_at)} to ${course.host_email}. Sending again creates new codes.`
     : `Goes to ${course.host_email}, with the media team copied in.`;
+}
+
+/* ---------- finding a participant ---------- */
+
+// Somebody rings up about a course they think they booked, and the
+// only thing you have is a name. Searches every registration, past and
+// present, rather than only the live ones.
+
+async function openPeople() {
+  show("people");
+  $("pp-q").focus();
+}
+
+async function runPeopleSearch() {
+  const q = $("pp-q").value.trim();
+  const box = $("pp-results");
+  const count = $("pp-count");
+
+  if (q.length < 2) {
+    count.textContent = "Type at least two letters.";
+    box.innerHTML = "";
+    return;
+  }
+
+  box.innerHTML = '<p class="empty">Searching…</p>';
+  count.textContent = "";
+
+  // Matched against each field separately so "bird" finds a surname
+  // and "nathan@" finds an address.
+  const like = `%${q.replace(/[%_]/g, "")}%`;
+  const { data, error } = await db
+    .from("registrations")
+    .select("id, first_name, last_name, email, phone, status, attended, payment_status, created_at, course_id, courses ( id, title, city, country, starts_at, timezone, brand, level, type, status, archived, slug )")
+    .or(`first_name.ilike.${like},last_name.ilike.${like},email.ilike.${like}`)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    box.innerHTML = '<p class="empty">Could not search: ' + error.message + "</p>";
+    return;
+  }
+
+  const rows = (data || []).filter((r) => r.courses);
+  if (!rows.length) {
+    box.innerHTML = '<p class="empty">Nobody matching that.</p>';
+    return;
+  }
+
+  // Grouped by person, because somebody who has been on four courses
+  // should read as one person with four courses, not four results.
+  const byPerson = {};
+  for (const r of rows) {
+    const key = (r.email || `${r.first_name} ${r.last_name}`).toLowerCase();
+    (byPerson[key] = byPerson[key] || []).push(r);
+  }
+
+  const people = Object.values(byPerson);
+  count.textContent =
+    `${people.length} ${people.length === 1 ? "person" : "people"}, ` +
+    `${rows.length} registration${rows.length === 1 ? "" : "s"}.`;
+
+  box.innerHTML = "";
+  for (const regs of people) {
+    const first = regs[0];
+
+    const card = document.createElement("div");
+    card.className = "panel";
+    card.style.marginBottom = "0.7rem";
+
+    const head = document.createElement("div");
+    head.style.cssText = "margin-bottom:0.6rem";
+    const name = document.createElement("div");
+    name.style.cssText = "font-weight:650;font-size:1rem";
+    name.textContent = `${first.first_name} ${first.last_name}`;
+    const contact = document.createElement("div");
+    contact.className = "whenline";
+    contact.textContent = [first.email, first.phone].filter(Boolean).join(" · ");
+    head.append(name, contact);
+    card.append(head);
+
+    for (const r of regs) {
+      const c = r.courses;
+      const row = document.createElement("div");
+      row.className = "inv-row";
+      row.style.cursor = "pointer";
+
+      const who = document.createElement("span");
+      who.className = "who";
+      const t = document.createElement("div");
+      t.textContent = c.title;
+      const when = document.createElement("div");
+      when.className = "whenline";
+      when.textContent = [
+        fmtDate(c.starts_at, c.timezone),
+        [c.city, countryName(c.country)].filter(Boolean).join(", "),
+      ].filter(Boolean).join(" · ");
+      who.append(t, when);
+
+      const flags = document.createElement("span");
+      flags.className = "files";
+      const pill = (text, cls) => {
+        const el = document.createElement("span");
+        el.className = "pill " + (cls || "");
+        el.textContent = text;
+        flags.append(el);
+      };
+
+      const regStatus = r.status || "active";
+      if (regStatus !== "active") pill(regStatus.replace(/_/g, " "), "bad");
+      else if (r.attended) pill("attended", "on");
+      pill((r.payment_status || "").replace(/_/g, " "),
+           r.payment_status === "paid_in_full" ? "on"
+             : r.payment_status === "refunded" ? "bad" : "warn");
+
+      row.append(who, flags);
+      row.onclick = () => openCourse(c);
+      card.append(row);
+    }
+
+    box.append(card);
+  }
+}
+
+function wirePeople() {
+  $("peoplebtn").onclick = openPeople;
+  $("back-people").onclick = loadCourses;
+  $("pp-go").onclick = runPeopleSearch;
+  $("pp-q").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); runPeopleSearch(); }
+  });
+}
+
+/* ---------- exporting a course list ---------- */
+
+// Everything we hold on a registration, so whoever is asking for the
+// export can take what they need and nothing more. Sending a full
+// dump every time would put phone numbers and payment details in
+// places that only wanted an email list.
+const EXPORT_FIELDS = [
+  { key: "first_name",     label: "First name",        basic: true },
+  { key: "last_name",      label: "Last name",         basic: true },
+  { key: "email",          label: "Email",             basic: true },
+  { key: "phone",          label: "Phone" },
+  { key: "country",        label: "Country" },
+  { key: "status",         label: "Registration status" },
+  { key: "attended",       label: "Attended" },
+  { key: "payment_status", label: "Payment status" },
+  { key: "amount_paid",    label: "Amount paid" },
+  { key: "currency",       label: "Currency" },
+  { key: "discount_code",  label: "Discount code" },
+  { key: "discount",       label: "Discount amount" },
+  { key: "waiver",         label: "Waiver signed" },
+  { key: "certificate",    label: "Certificate sent" },
+  { key: "online_language",label: "Online course language" },
+  { key: "source",         label: "How they booked" },
+  { key: "registered",     label: "Registered on" },
+];
+
+function openExport(course) {
+  const box = $("ex-fields");
+  box.innerHTML = "";
+
+  for (const f of EXPORT_FIELDS) {
+    const row = document.createElement("label");
+    row.className = "pm-check";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.value = f.key;
+    cb.checked = !!f.basic;
+    const span = document.createElement("span");
+    span.textContent = f.label;
+    row.append(cb, span);
+    box.append(row);
+  }
+
+  $("ex-sub").textContent = course.title;
+  $("ex-inactive").checked = false;
+  $("ex-note").textContent =
+    "The file holds people's personal details — keep it somewhere sensible and delete it when you are done with it.";
+  $("ex-msg").textContent = "";
+  $("ex-msg").className = "msg";
+  $("ex-go").disabled = false;
+  $("exwrap").classList.remove("hidden");
+}
+
+// Quotes anything that would otherwise break the file — a comma in an
+// address, a quote in a name, a newline in a note.
+function csvCell(value) {
+  const text = value == null ? "" : String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function wireExport() {
+  $("ex-open").onclick = () => { if (currentCourse) openExport(currentCourse); };
+  $("ex-close").onclick = () => { $("exwrap").classList.add("hidden"); };
+  $("exwrap").addEventListener("click", (e) => {
+    if (e.target === $("exwrap")) $("exwrap").classList.add("hidden");
+  });
+
+  $("ex-all").onclick = () => {
+    $("ex-fields").querySelectorAll("input").forEach((cb) => { cb.checked = true; });
+  };
+  $("ex-none").onclick = () => {
+    $("ex-fields").querySelectorAll("input").forEach((cb) => {
+      cb.checked = !!(EXPORT_FIELDS.find((f) => f.key === cb.value) || {}).basic;
+    });
+  };
+
+  $("ex-go").onclick = () => {
+    if (!currentCourse) return;
+    const msg = $("ex-msg");
+
+    const chosen = Array.from($("ex-fields").querySelectorAll("input"))
+      .filter((cb) => cb.checked).map((cb) => cb.value);
+
+    if (!chosen.length) {
+      msg.className = "msg err";
+      msg.textContent = "Choose at least one thing to export.";
+      return;
+    }
+
+    const wantInactive = $("ex-inactive").checked;
+    const rows = allRegistrations.filter(
+      (r) => wantInactive || (r.status || "active") === "active"
+    );
+
+    if (!rows.length) {
+      msg.className = "msg err";
+      msg.textContent = "There is nobody to export.";
+      return;
+    }
+
+    const value = (r, key) => {
+      switch (key) {
+        case "attended":        return r.attended ? "yes" : "no";
+        case "status":          return r.status || "active";
+        case "amount_paid":     return ((r.amount_paid_cents || 0) / 100).toFixed(2);
+        case "discount":        return ((r.discount_cents || 0) / 100).toFixed(2);
+        case "waiver":          return r.waiver_signed_at ? fmtWhen(r.waiver_signed_at) : "";
+        case "certificate":     return r.certificate_sent_at ? fmtWhen(r.certificate_sent_at) : "";
+        case "online_language": return r.learnworlds_language ? langLabel(r.learnworlds_language) : "";
+        case "registered":      return r.created_at ? fmtWhen(r.created_at) : "";
+        case "source":          return [r.source, r.source_note].filter(Boolean).join(" — ");
+        default:                return r[key];
+      }
+    };
+
+    const header = chosen.map((k) =>
+      (EXPORT_FIELDS.find((f) => f.key === k) || { label: k }).label);
+
+    const lines = [
+      header.map(csvCell).join(","),
+      ...rows.map((r) => chosen.map((k) => csvCell(value(r, k))).join(",")),
+    ];
+
+    // The byte order mark is what makes Excel open accented names
+    // correctly — without it Zsolt Sóti arrives as mojibake.
+    const blob = new Blob(["\ufeff" + lines.join("\r\n")],
+      { type: "text/csv;charset=utf-8;" });
+
+    const name = (currentCourse.slug || "course") + "-participants.csv";
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    msg.className = "msg ok";
+    msg.textContent = `${rows.length} row${rows.length === 1 ? "" : "s"} exported as ${name}.`;
+  };
 }
 
 /* ---------- direct messages ---------- */
@@ -7596,6 +7929,8 @@ wireChat();
 wireMessages();
 wireHostEmail();
 wireFollowup();
+wirePeople();
+wireExport();
 start();
 </script>
 
