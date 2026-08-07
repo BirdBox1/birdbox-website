@@ -4701,25 +4701,49 @@ async function runPeopleSearch() {
   box.innerHTML = '<p class="empty">Searching…</p>';
   count.textContent = "";
 
-  // Matched against each field separately so "bird" finds a surname
-  // and "nathan@" finds an address.
-  const like = `%${q.replace(/[%_]/g, "")}%`;
+  // "Nathan" has to match a first name, "Bird" a surname, and "Nathan
+  // Bird" the two together — which is what anybody types first, and
+  // what matching each column separately fails at. So a multi-word
+  // search is split and every word has to appear somewhere in the
+  // person's name.
+  const clean = q.replace(/[%_]/g, " ").trim();
+  const words = clean.split(/\s+/).filter(Boolean);
+  const like = `%${clean}%`;
+
   const { data, error } = await db
     .from("registrations")
     // Named explicitly: registrations points at courses twice — once
     // for the course itself and once for transferred_from_course_id —
     // so an unqualified join cannot tell which is meant.
     .select("id, first_name, last_name, email, phone, status, attended, payment_status, created_at, course_id, courses!registrations_course_id_fkey ( id, title, city, country, starts_at, timezone, brand, level, type, status, archived, slug )")
-    .or(`first_name.ilike.${like},last_name.ilike.${like},email.ilike.${like}`)
+    // One word: match it anywhere. More than one: fetch on the first
+    // word and narrow below, because "every word appears somewhere in
+    // the name" is not a thing a single query can ask for.
+    .or(
+      words.length > 1
+        ? `first_name.ilike.%${words[0]}%,last_name.ilike.%${words[0]}%,email.ilike.${like}`
+        : `first_name.ilike.${like},last_name.ilike.${like},email.ilike.${like}`
+    )
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(400);
 
   if (error) {
     box.innerHTML = '<p class="empty">Could not search: ' + error.message + "</p>";
     return;
   }
 
-  const rows = (data || []).filter((r) => r.courses);
+  let rows = (data || []).filter((r) => r.courses);
+
+  // Every word has to appear in the name or the address — so "Nathan
+  // Bird" finds him, and "Nathan Smith" finds nobody rather than
+  // everybody called Nathan.
+  if (words.length > 1) {
+    const lower = words.map((w) => w.toLowerCase());
+    rows = rows.filter((r) => {
+      const hay = `${r.first_name || ""} ${r.last_name || ""} ${r.email || ""}`.toLowerCase();
+      return lower.every((w) => hay.includes(w));
+    });
+  }
   if (!rows.length) {
     box.innerHTML = '<p class="empty">Nobody matching that.</p>';
     return;
