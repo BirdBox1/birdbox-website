@@ -2,12 +2,17 @@
 //
 // Writes one feedback email from a lead coach's notes.
 //
-//   POST { registrationId }
+//   POST { registrationId, blocks? }
 //
 // The name ends in -background deliberately: Netlify gives these up
 // to fifteen minutes, where an ordinary function is cut off at
 // thirty seconds. It replies straight away and the draft appears in
 // the database when it is done, so the portal watches for it there.
+//
+// The approved passages are written INTO the email, in the place
+// they belong, rather than being stapled to the end afterwards. The
+// optional `blocks` in the request are ground the coach wants
+// covered whatever the notes say; the model may add more of its own.
 
 import { createClient } from "@supabase/supabase-js";
 import { readFile } from "node:fs/promises";
@@ -42,11 +47,12 @@ export default async (req) => {
   try {
     const body = await req.json();
     registrationId = body.registrationId;
+    const mustCover = Array.isArray(body.blocks) ? body.blocks : [];
     const token = (req.headers.get("authorization") || "").replace(/^Bearer /, "");
 
     if (!registrationId || !token) return new Response("Bad request", { status: 400 });
 
-    await run(registrationId, token);
+    await run(registrationId, token, mustCover);
   } catch (err) {
     console.error("feedback-draft-background failed:", err);
     if (registrationId) await markFailed(registrationId, err.message);
@@ -55,7 +61,7 @@ export default async (req) => {
   return new Response("ok", { status: 202 });
 };
 
-async function run(registrationId, token) {
+async function run(registrationId, token, mustCover) {
   const staff = await staffFromToken(token);
   if (!staff) return markFailed(registrationId, "Your session expired. Sign in again.");
 
@@ -104,7 +110,15 @@ async function run(registrationId, token) {
     .map((n) => `--- Notes from ${n.staff?.full_name || "Coach"} ---\n${n.body}`)
     .join("\n\n");
 
-  const blocks = await loadBlocks();
+  // The full approved text, in the participant's language, so the
+  // model has the material to work with rather than only a label.
+  const blocks = await loadBlocks(course, langCode);
+
+  const passageText = blocks
+    .map((b) => `### ${b.key} — ${b.title}\n${b.body}`)
+    .join("\n\n");
+
+  const requested = mustCover.filter((k) => blocks.some((b) => b.key === k));
 
   const instruction = `
 You are writing one post-seminar feedback email for a participant.
@@ -124,11 +138,39 @@ WRITING RULES
 - Open with "${greeting} ${reg.first_name}," on its own line.
 - Follow the manual exactly, including the mandatory second paragraph.
 - Do not invent anything. Use only what the notes support.
-- Do NOT write out the conditional inserts (behavioural guidelines,
-  coaching philosophy, sensory coaching, transformational coaching,
-  charisma). They are held as approved text and are attached after
-  you finish. Just decide which are warranted.
-- End the written part with the sign-off from the manual.
+- End with the sign-off from the manual.
+
+THE APPROVED PASSAGES
+The manual describes these as passages to "attach". That wording is
+historic and it supersedes to this: they are written INTO the email,
+in the place in the argument where they belong, exactly as the sample
+emails in the manual's appendix do. Nothing is ever added after the
+sign-off.
+
+- Decide from the notes which passages are warranted. A passage is
+  warranted when the notes point at that ground, whether or not it is
+  named directly.
+${requested.length
+  ? `- The lead coach has asked that these are covered whatever the notes\n  say: ${requested.join(", ")}. Cover them in addition to any you\n  choose yourself. This is a floor, not a limit.`
+  : `- The lead coach has not asked for any specific passage, so the\n  choice is entirely yours, from the notes.`}
+- Where a passage is warranted, lead into it from your own observation
+  of the participant, then give the material in full. The reader should
+  never be able to tell where your writing stops and the approved text
+  begins.
+- Reproduce the named lists word for word. These are our terminology
+  and must not be reworded, reordered or shortened:
+  the five areas of transformational coaching, the ten areas of
+  charisma, the six sensory coaching elements, the nine behavioural
+  guidelines, the five steps of a coaching philosophy, and the NAMSET
+  expansion. The sentences around them are yours to write.
+- Never both refer to a framework and withhold it. If you write that
+  the ten areas of charisma are a useful framework, the ten areas must
+  appear. If you are not giving them, do not point at them.
+- Cover each passage once. If the ground is already made in your own
+  words earlier in the email, fold the material into that place rather
+  than making a second pass at it.
+
+${passageText}
 
 THE ROUGH NOTES
 ${noteText}
@@ -136,13 +178,12 @@ ${noteText}
 Reply with JSON only, no other text, in this exact shape:
 {
   "subject": "the email subject line",
-  "body": "the full email text, using \\n for line breaks",
-  "blocks": ["keys of any inserts that are warranted"],
+  "body": "the complete email text, passages included, using \\n for line breaks",
+  "blocks": ["keys of the passages you covered"],
   "missing": "anything the notes did not support, or an empty string"
 }
 
-The available insert keys are:
-${blocks.map((b) => `- ${b.key}: ${b.title}`).join("\n")}
+"body" is the finished email. Nothing will be added to it.
 `.trim();
 
   const result = await callClaude(found.manual, instruction);
@@ -214,7 +255,9 @@ async function callClaude(manual, instruction) {
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 4000,
+      // The passages are now part of the email rather than bolted on
+      // after it, so the written reply is a good deal longer.
+      max_tokens: 8000,
       // Cached, so a seminar of fifteen pays for the manual once.
       system: [{
         type: "text",
@@ -302,9 +345,39 @@ async function loadManual(course) {
   };
 }
 
-async function loadBlocks() {
-  const { data } = await supabase.from("email_blocks").select("key, title").order("key");
-  return (data || []).filter((b) => !b.key.endsWith("_us"));
+// The passages, resolved to the language and spelling this
+// participant will read, so approved terminology stays consistent
+// instead of an English passage landing in a German email.
+async function loadBlocks(course, langCode) {
+  const { data: rows } = await supabase
+    .from("email_blocks").select("key, title, body").order("key");
+
+  const { data: translations } = await supabase
+    .from("email_block_translations").select("key, language, body");
+
+  const byLang = {};
+  for (const t of translations || []) {
+    (byLang[t.language] = byLang[t.language] || {})[t.key] = t.body;
+  }
+
+  const base = {};
+  for (const r of rows || []) base[r.key] = r.body;
+
+  const wantsUS = US_CURRENCIES.includes(course.currency);
+
+  // The US philosophy variant is chosen automatically, so it is not
+  // something the model should be picking between.
+  return (rows || [])
+    .filter((r) => !r.key.endsWith("_us"))
+    .map((r) => {
+      let body = r.body;
+      if (wantsUS && base[r.key + "_us"]) body = base[r.key + "_us"];
+      if (langCode && langCode !== "en" && byLang[langCode]?.[r.key]) {
+        body = byLang[langCode][r.key];
+      }
+      return { key: r.key, title: r.title, body };
+    })
+    .filter((b) => b.body);
 }
 
 function greetingFor(timezone) {
