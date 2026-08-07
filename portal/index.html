@@ -2053,6 +2053,60 @@ async function loadCourses() {
     booked[r.course_id] = (booked[r.course_id] || 0) + 1;
   }
 
+  // Who owes an invoice, and who has sent one. Only worth loading for
+  // courses that have actually run — nobody invoices in advance.
+  // Only once the certificates have gone out. Before that the course
+  // is not finished, and an invoice would be early.
+  const ended = courses.filter((c) => !!c.completed_at);
+  const invoiceState = {};
+
+  if (ended.length) {
+    const ids = ended.map((c) => c.id);
+
+    const { data: invRows } = await db.from("coach_invoices")
+      .select("course_id, staff_id, status, paid_at")
+      .in("course_id", ids);
+
+    if (isAdmin()) {
+      // Every coach assigned to the course owes one.
+      const { data: assigned } = await db.from("course_staff")
+        .select("course_id, staff_id").in("course_id", ids);
+
+      const owed = {};
+      for (const a of assigned || []) {
+        (owed[a.course_id] = owed[a.course_id] || new Set()).add(a.staff_id);
+      }
+      const sent = {};
+      const paid = {};
+      for (const i of invRows || []) {
+        if (i.status !== "submitted") continue;
+        (sent[i.course_id] = sent[i.course_id] || new Set()).add(i.staff_id);
+        if (i.paid_at) (paid[i.course_id] = paid[i.course_id] || new Set()).add(i.staff_id);
+      }
+      for (const c of ended) {
+        const total = owed[c.id] ? owed[c.id].size : 0;
+        const inCount = sent[c.id] ? sent[c.id].size : 0;
+        const paidCount = paid[c.id] ? paid[c.id].size : 0;
+        if (total) invoiceState[c.id] = { total, sent: inCount, paid: paidCount };
+      }
+    } else {
+      // A coach only ever sees their own.
+      const mine = {};
+      for (const i of invRows || []) {
+        if (i.staff_id === me.id) mine[i.course_id] = i;
+      }
+      for (const c of ended) {
+        if (!myRoles[c.id]) continue;
+        const row = mine[c.id];
+        invoiceState[c.id] = {
+          total: 1,
+          sent: row && row.status === "submitted" ? 1 : 0,
+          paid: row && row.paid_at ? 1 : 0,
+        };
+      }
+    }
+  }
+
   const hasLead = {};
   if (isAdmin()) {
     const { data: leads } = await db.from("course_staff")
@@ -2174,6 +2228,21 @@ async function loadCourses() {
     else if (c.status === "complete") add("ran — not submitted", "warn");
     else if (c.status === "cancelled") add("cancelled", "bad");
     else if (c.archived) add("archived", "draft");
+    // Money owed to coaches is the thing most easily forgotten once a
+    // course is over, so it says so on the card rather than waiting to
+    // be looked for.
+    const inv = invoiceState[c.id];
+    if (inv) {
+      if (inv.paid === inv.total) add("invoices paid", "done");
+      else if (inv.sent === inv.total) {
+        add(isAdmin() && inv.total > 1 ? `${inv.sent} invoices in` : "invoice sent", "on");
+      } else if (inv.sent) {
+        add(`${inv.total - inv.sent} of ${inv.total} invoices due`, "warn");
+      } else {
+        add(isAdmin() && inv.total > 1 ? `${inv.total} invoices due` : "invoice due", "warn");
+      }
+    }
+
     if (c.status === "full") add("full", "warn");
     if (c.status === "draft") add("draft", "draft");
     if (c.timezone && !tzIsReal(c.timezone)) add("bad time zone", "bad");
@@ -3873,10 +3942,21 @@ async function loadMyInvoice(course) {
 function showInvoiceBar(course) {
   const bar = $("inv-bar");
   const onIt = !!myRoles[course.id];
-  const canSee = onIt && new Date(course.starts_at) <= new Date();
+  const ran = new Date(course.ends_at || course.starts_at) < new Date();
 
-  bar.classList.toggle("hidden", !canSee);
-  if (!canSee) return;
+  bar.classList.toggle("hidden", !onIt || !ran);
+  if (!onIt || !ran) return;
+
+  // Certificates come first. Until the seminar has been submitted, the
+  // course is not finished — and invoicing for it would be premature.
+  if (!course.completed_at) {
+    $("inv-open").disabled = true;
+    $("inv-open").textContent = "My invoice";
+    $("inv-state").textContent =
+      "Available once the seminar is completed and the certificates have gone out.";
+    return;
+  }
+  $("inv-open").disabled = false;
 
   const sent = myInvoice && myInvoice.status === "submitted";
   const paid = myInvoice && !!myInvoice.paid_at;
