@@ -7,6 +7,12 @@
 // Each participant gets one email addressed only to them, sent from
 // the lead coach with info@ copied in. Nobody is ever in a position
 // to see anyone else's feedback.
+//
+// The body is sent exactly as it stands. The approved passages are
+// written into the email while it is being drafted, in the place in
+// the argument where they belong, so there is nothing to add here.
+// This function used to staple them to the end, which read as a
+// handout bolted onto a letter.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -23,9 +29,6 @@ const VERIFIED_DOMAINS = ["birdboxcoaching.com"];
 
 const FALLBACK_FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
 const OFFICE = "info@birdboxcoaching.com";
-
-// Dollar-priced courses get the US spelling of the philosophy block.
-const US_CURRENCIES = ["USD", "CAD"];
 
 export default async (req) => {
   if (req.method !== "POST") {
@@ -54,7 +57,7 @@ export default async (req) => {
     // Only what has actually been read and checked.
     const { data: drafts } = await supabase
       .from("feedback_drafts")
-      .select("id, registration_id, subject, body, blocks, status")
+      .select("id, registration_id, subject, body, status")
       .eq("course_id", courseId)
       .eq("status", "approved");
 
@@ -64,13 +67,12 @@ export default async (req) => {
 
     const { data: regs } = await supabase
       .from("registrations")
-      .select("id, first_name, last_name, email, feedback_language")
+      .select("id, first_name, last_name, email")
       .in("id", drafts.map((d) => d.registration_id));
 
     const byId = {};
     for (const r of regs || []) byId[r.id] = r;
 
-    const blockText = await loadBlocks(course);
     const sender = senderFor(staff);
 
     let sent = 0;
@@ -87,14 +89,17 @@ export default async (req) => {
         continue;
       }
 
-      // The written part, then any approved passages, word for word.
-      const langue = reg.feedback_language || course.language || "en";
-      const parts = [d.body.trim()];
-      for (const key of d.blocks || []) {
-        const text = blockText(key, langue);
-        if (text) parts.push(text);
+      // Exactly what the coach read and checked. Nothing is added.
+      const full = String(d.body || "").trim();
+
+      if (!full) {
+        failed++;
+        problems.push(`${reg.first_name} ${reg.last_name}: the draft is empty`);
+        await supabase.from("feedback_drafts")
+          .update({ send_error: "The draft was empty, so nothing was sent." })
+          .eq("id", d.id);
+        continue;
       }
-      const full = parts.join("\n\n");
 
       const ok = await sendEmail({
         to: reg.email,
@@ -182,34 +187,6 @@ function senderFor(staff) {
       : `${staff.full_name} (BirdBox Coaching) <${FALLBACK_FROM}>`,
     replyTo: email || OFFICE,
     verified,
-  };
-}
-
-// ---------------------------------------------------------------
-// the approved passages
-// ---------------------------------------------------------------
-async function loadBlocks(course) {
-  const { data: blocks } = await supabase
-    .from("email_blocks").select("key, body");
-  const { data: translations } = await supabase
-    .from("email_block_translations").select("key, language, body");
-
-  const base = {};
-  for (const b of blocks || []) base[b.key] = b.body;
-
-  const byLang = {};
-  for (const t of translations || []) {
-    (byLang[t.language] = byLang[t.language] || {})[t.key] = t.body;
-  }
-
-  const wantsUS = US_CURRENCIES.includes(course.currency);
-
-  return (key, language) => {
-    if (language && language !== "en" && byLang[language]?.[key]) {
-      return byLang[language][key];
-    }
-    if (wantsUS && base[key + "_us"]) return base[key + "_us"];
-    return base[key] || null;
   };
 }
 
