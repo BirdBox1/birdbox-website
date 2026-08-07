@@ -452,6 +452,7 @@
   <span class="right">
     <a class="linkbtn hidden" id="feedbacklink" href="/portal/feedback/">Feedback</a>
     <a class="linkbtn hidden" id="codeslink" href="/portal/codes/">Discount codes</a>
+    <button id="profilebtn" class="hidden" type="button">My profile</button>
     <span class="who" id="who"></span>
     <button id="signout" class="hidden" type="button">Sign out</button>
   </span>
@@ -491,6 +492,79 @@
     </div>
 
     <div id="seq-weeks"></div>
+  </div>
+</section>
+
+<!-- ============ MY PROFILE ============ -->
+<section id="view-profile" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back-profile">&larr; All courses</a>
+    <h2>My profile</h2>
+    <p class="sub">Seen by the BirdBox team only — never on the website.</p>
+
+    <div class="panel">
+      <h3>Photo</h3>
+      <div style="display:flex;gap:1.1rem;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex:none">
+          <div id="pf-frame" style="width:110px;height:110px;border-radius:6px;overflow:hidden;
+               border:1px solid var(--rule);background:#f0eeea;display:grid;place-items:center;cursor:pointer">
+            <span style="color:var(--muted);font-size:0.78rem">No photo</span>
+          </div>
+          <input id="pf-file" type="file" accept="image/*" class="hidden">
+        </div>
+        <div style="flex:1 1 14rem;min-width:0">
+          <button class="btn ghost small" id="pf-choose" type="button">Choose a photo</button>
+          <p class="whenline" style="margin-top:0.5rem" id="pf-photo-msg">
+            A clear headshot. It is shrunk on your device before uploading.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Details</h3>
+      <div class="grid2">
+        <div class="field">
+          <label for="pf-name">Name</label>
+          <input id="pf-name" type="text" disabled>
+        </div>
+        <div class="field">
+          <label for="pf-email">Email</label>
+          <input id="pf-email" type="text" disabled>
+        </div>
+      </div>
+      <p class="whenline" style="margin:-0.5rem 0 1rem">
+        Ask an admin if either of those needs changing — they are what you sign in with.
+      </p>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="pf-phone">Phone <span class="hint">so we can reach you on a course day</span></label>
+          <input id="pf-phone" type="text" inputmode="tel">
+        </div>
+        <div class="field">
+          <label for="pf-country">Where you are based</label>
+          <select id="pf-country"><option value="">Choose a country…</option></select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pf-languages">Languages you can coach in
+          <span class="hint">helps when we are allocating seminars</span>
+        </label>
+        <input id="pf-languages" type="text" placeholder="English, German">
+      </div>
+
+      <div class="field">
+        <label for="pf-bio">About you <span class="hint">background, specialisms, anything useful</span></label>
+        <textarea id="pf-bio" style="min-height:7rem"></textarea>
+      </div>
+
+      <div class="admin-row">
+        <button class="btn" id="pf-save" type="button">Save</button>
+        <span class="why" id="pf-msg"></span>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1851,6 +1925,7 @@ const views = {
   newc:    $("view-new"),
   emails:  $("view-emails"),
   invoices: $("view-invoices"),
+  profile:  $("view-profile"),
 };
 const show = (n) =>
   Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== n));
@@ -1893,6 +1968,7 @@ $("signout").addEventListener("click", async () => {
   myRoles = {};
   $("who").textContent = "";
   $("signout").classList.add("hidden");
+  $("profilebtn").classList.add("hidden");
   $("codeslink").classList.add("hidden");
   $("feedbacklink").classList.add("hidden");
   $("password").value = "";
@@ -1920,6 +1996,7 @@ async function start() {
   const admin = staff.role === "admin";
   $("who").textContent = staff.full_name;
   $("signout").classList.remove("hidden");
+  $("profilebtn").classList.remove("hidden");
   $("hello").textContent = `Welcome back, ${staff.full_name.split(" ")[0]}`;
   $("myrole").textContent = staff.role.replace(/_/g, " ");
   $("newcourse").classList.toggle("hidden", !admin);
@@ -4427,6 +4504,121 @@ async function renderInvoiceAdmin(course) {
   box.append(sum);
 }
 
+/* ---------- my profile ---------- */
+
+// Internal only. A phone number that works on a course day, and a face
+// to go with a name when a course is staffed by people who have not
+// met — nothing here reaches the website.
+let profileRow = null;
+
+async function openProfile() {
+  show("profile");
+
+  await loadVatRates();
+  const sel = $("pf-country");
+  if (sel.options.length <= 1) {
+    const rows = COUNTRY_CODES
+      .map((code) => ({ code, name: countryName(code) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    for (const r of rows) {
+      const o = document.createElement("option");
+      o.value = r.code;
+      o.textContent = r.name;
+      sel.append(o);
+    }
+  }
+
+  const { data, error } = await db.from("staff")
+    .select("id, full_name, email, phone, bio, photo_path, country, languages")
+    .eq("id", me.id).single();
+
+  if (error) { $("pf-msg").textContent = "Could not load your profile."; return; }
+  profileRow = data;
+
+  $("pf-name").value = data.full_name || "";
+  $("pf-email").value = data.email || "";
+  $("pf-phone").value = data.phone || "";
+  $("pf-country").value = (data.country || "").toUpperCase();
+  $("pf-languages").value = data.languages || "";
+  $("pf-bio").value = data.bio || "";
+  $("pf-msg").textContent = "";
+
+  await showProfilePhoto();
+}
+
+async function showProfilePhoto() {
+  const frame = $("pf-frame");
+  if (!profileRow || !profileRow.photo_path) {
+    frame.innerHTML = '<span style="color:var(--muted);font-size:0.78rem">No photo</span>';
+    return;
+  }
+  const { data } = await db.storage
+    .from("staff-photos").createSignedUrl(profileRow.photo_path, 3600);
+  if (!data || !data.signedUrl) return;
+  frame.innerHTML = "";
+  const img = document.createElement("img");
+  img.src = data.signedUrl;
+  img.alt = "";
+  img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block";
+  frame.append(img);
+}
+
+function wireProfile() {
+  $("profilebtn").onclick = openProfile;
+  $("back-profile").onclick = loadCourses;
+  $("pf-choose").onclick = () => $("pf-file").click();
+  $("pf-frame").onclick = () => $("pf-file").click();
+
+  $("pf-file").addEventListener("change", async () => {
+    const file = $("pf-file").files[0];
+    if (!file) return;
+    const msg = $("pf-photo-msg");
+    msg.className = "whenline";
+    msg.textContent = "Saving…";
+
+    try {
+      // Same shrink the participant photos use — a phone headshot is
+      // ten megabytes otherwise, and gym wifi will not thank you.
+      const blob = await shrink(file);
+      const path = `${me.id}.jpg`;
+
+      const { error } = await db.storage
+        .from("staff-photos")
+        .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+      if (error) throw error;
+
+      const { error: dbErr } = await db.from("staff")
+        .update({ photo_path: path }).eq("id", me.id);
+      if (dbErr) throw dbErr;
+
+      profileRow.photo_path = path;
+      await showProfilePhoto();
+      msg.textContent = "Saved.";
+    } catch (err) {
+      msg.className = "whenline bad";
+      msg.textContent = "Could not save that photo: " + (err.message || "unknown error");
+    }
+    $("pf-file").value = "";
+  });
+
+  $("pf-save").onclick = async () => {
+    const msg = $("pf-msg");
+    $("pf-save").disabled = true;
+    msg.textContent = "Saving…";
+
+    const { error } = await db.from("staff").update({
+      phone: $("pf-phone").value.trim() || null,
+      country: $("pf-country").value.trim().toUpperCase() || null,
+      languages: $("pf-languages").value.trim() || null,
+      bio: $("pf-bio").value.trim() || null,
+    }).eq("id", me.id);
+
+    $("pf-save").disabled = false;
+    msg.textContent = error ? "Could not save: " + error.message : "Saved.";
+    if (!error) setTimeout(() => { msg.textContent = ""; }, 2000);
+  };
+}
+
 /* ---------- marking an invoice paid ---------- */
 
 // Paid is the end of the line: the coach sees it, and neither side can
@@ -5887,6 +6079,7 @@ wireCancel();
 wireInvoices();
 wirePaid();
 wireInvoicesView();
+wireProfile();
 start();
 </script>
 
