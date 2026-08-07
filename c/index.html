@@ -193,6 +193,46 @@
   }
   .over a:hover { filter: brightness(1.12); }
 
+  /* Claiming a free place — a host's own spot, or one a gym paid for
+     upfront. No card, so no Stripe: just who is coming, and the
+     agreement they would have ticked at checkout. */
+  .freebox { text-align: left; }
+  .freebox h2 {
+    font-size: 1.05rem; font-weight: 650; margin: 0 0 0.3rem;
+    text-transform: none; letter-spacing: -0.01em;
+  }
+  .freebox p.lead { font-size: 0.9rem; color: var(--muted); margin: 0 0 1rem; }
+  .freebox label {
+    display: block; font-size: 0.78rem; font-weight: 650;
+    letter-spacing: 0.02em; margin: 0 0 0.25rem;
+  }
+  .freebox input[type=text], .freebox input[type=email], .freebox input[type=tel] {
+    width: 100%; font: inherit; font-size: 0.95rem;
+    padding: 0.6rem 0.7rem; margin-bottom: 0.8rem;
+    background: rgba(255,255,255,0.06); color: #fff;
+    border: 1px solid rgba(255,255,255,0.18); border-radius: 5px;
+  }
+  .freebox input:focus-visible {
+    outline: 2px solid var(--brandcolour, var(--accent)); outline-offset: 1px;
+  }
+  .freebox .two { display: grid; gap: 0 0.7rem; grid-template-columns: 1fr 1fr; }
+  .freebox .tick {
+    display: flex; gap: 0.6rem; align-items: flex-start;
+    font-size: 0.85rem; line-height: 1.5; margin: 0.3rem 0 1rem; cursor: pointer;
+  }
+  .freebox .tick input { width: 1.1rem; height: 1.1rem; margin-top: 0.15rem; flex: none; }
+  .freebox .tick a { color: var(--brandcolour, var(--accent)); }
+  .freebox button {
+    width: 100%; font: inherit; font-weight: 650; font-size: 0.9rem;
+    letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer;
+    padding: 0.9rem 1rem; border: 0; border-radius: 5px;
+    background: var(--brandcolour, var(--accent)); color: #fff;
+  }
+  .freebox button[disabled] { opacity: 0.55; cursor: default; }
+  .freebox .said { font-size: 0.88rem; margin: 0.7rem 0 0; }
+  .freebox .said.err { color: var(--bad); }
+  .freebox .said.ok  { color: var(--good); }
+
   h2 {
     font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
     color: var(--muted); font-weight: 600; margin: 2rem 0 0.6rem;
@@ -439,6 +479,7 @@ const state = {
   course: null,
   isFull: false,
   finished: false,
+  free: false,
   klarnaOk: false,
   code: null,
   total: 0,
@@ -731,6 +772,15 @@ function renderBuyBox() {
   // ---- options ---------------------------------------------------
   $("options").innerHTML = "";
 
+  // A code covering the whole price is a free place. Stripe cannot
+  // take a zero-amount payment and there is nothing to take anyway, so
+  // the buttons are replaced by the details we would otherwise have
+  // collected at checkout.
+  if (state.free && !isFull) {
+    renderFreeForm();
+    return;
+  }
+
   if (isFull) {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -794,6 +844,128 @@ function renderBuyBox() {
   }
 }
 
+// Everything Stripe would have asked, asked here instead. The waiver
+// tick is the same commitment as the terms checkbox at checkout —
+// without it there is no record that they agreed, and the waiver is
+// the whole reason that checkbox exists.
+function renderFreeForm() {
+  const box = document.createElement("div");
+  box.className = "freebox";
+
+  box.innerHTML = `
+    <h2>Claim your free place</h2>
+    <p class="lead"></p>
+
+    <div class="two">
+      <div>
+        <label for="f-first">First name</label>
+        <input id="f-first" type="text" autocomplete="given-name">
+      </div>
+      <div>
+        <label for="f-last">Last name</label>
+        <input id="f-last" type="text" autocomplete="family-name">
+      </div>
+    </div>
+
+    <label for="f-email">Email</label>
+    <input id="f-email" type="email" autocomplete="email" inputmode="email">
+
+    <label for="f-phone">Phone <span style="font-weight:400;opacity:0.7">optional</span></label>
+    <input id="f-phone" type="tel" autocomplete="tel">
+
+    <label class="tick">
+      <input id="f-agree" type="checkbox">
+      <span>I have read and agree to the
+        <a href="/agreements/" target="_blank" rel="noopener">terms of sale and the
+        assumption of risk and waiver of liability</a>.</span>
+    </label>
+
+    <button id="f-go" type="button">Register</button>
+    <p class="said" id="f-said"></p>`;
+
+  box.querySelector(".lead").textContent =
+    `${state.code} covers the full price, so there is nothing to pay. ` +
+    "We just need to know who is coming.";
+
+  $("options").append(box);
+
+  const said = box.querySelector("#f-said");
+  const go = box.querySelector("#f-go");
+
+  go.addEventListener("click", async () => {
+    const first = box.querySelector("#f-first").value.trim();
+    const last = box.querySelector("#f-last").value.trim();
+    const email = box.querySelector("#f-email").value.trim();
+    const phone = box.querySelector("#f-phone").value.trim();
+    const agreed = box.querySelector("#f-agree").checked;
+
+    // Said plainly and one at a time, rather than reddening the whole
+    // form at once.
+    if (!first || !last) {
+      said.className = "said err";
+      said.textContent = "Both names, please — your certificate uses them.";
+      return;
+    }
+    if (!email || !email.includes("@")) {
+      said.className = "said err";
+      said.textContent = "We need an email address to send your confirmation to.";
+      return;
+    }
+    if (!agreed) {
+      said.className = "said err";
+      said.textContent = "Please tick to say you agree to the terms and the waiver.";
+      return;
+    }
+
+    go.disabled = true;
+    said.className = "said";
+    said.textContent = "Registering…";
+
+    try {
+      const res = await fetch("/.netlify/functions/free-registration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: state.course.slug,
+          code: state.code,
+          firstName: first,
+          lastName: last,
+          email,
+          phone,
+          accepted: true,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        said.className = "said err";
+        said.textContent = data.error || "That did not work. Please try again.";
+        go.disabled = false;
+        return;
+      }
+
+      // Replaced entirely rather than left showing a form they have
+      // already submitted.
+      $("options").innerHTML = "";
+      const done = document.createElement("div");
+      done.className = "over";
+      const h = document.createElement("h2");
+      h.textContent = "You are registered";
+      const p = document.createElement("p");
+      p.textContent =
+        "Your confirmation is on its way to " + email +
+        ". It has the times, the address and what to bring.";
+      done.append(h, p);
+      $("options").append(done);
+      $("promo").classList.add("hidden");
+    } catch (e) {
+      said.className = "said err";
+      said.textContent = "Could not reach us just then. Please try again.";
+      go.disabled = false;
+    }
+  });
+}
+
 function wirePromo() {
   $("promotoggle").addEventListener("click", () => {
     $("promorow").classList.toggle("hidden");
@@ -834,6 +1006,7 @@ async function applyCode() {
     state.code = data.code;
     state.discount = data.discount_cents;
     state.total = data.total_cents;
+    state.free = !!data.free;
     state.deposit = state.course.type === "workshop"
       ? data.total_cents
       : data.deposit_cents;
