@@ -384,6 +384,22 @@
   }
   .hidden { display: none !important; }
 
+  /* ---------------- course chat ---------------- */
+  .chat { display: grid; gap: 0.9rem; max-height: 26rem; overflow-y: auto; padding-right: 0.2rem; }
+  .chat-msg { display: flex; gap: 0.7rem; align-items: flex-start; }
+  .chat-msg .body {
+    background: #faf9f7; border: 1px solid var(--rule); border-radius: 6px;
+    padding: 0.55rem 0.75rem; font-size: 0.92rem; white-space: pre-wrap;
+    flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere;
+  }
+  .chat-msg.mine .body { background: #eef4fb; border-color: #cfe0f2; }
+  .chat-msg .meta {
+    display: flex; gap: 0.5rem; align-items: baseline; flex-wrap: wrap;
+    font-size: 0.75rem; color: var(--muted); margin-bottom: 0.2rem;
+  }
+  .chat-msg .meta .author { font-weight: 650; color: var(--ink); }
+  .chat-none { color: var(--muted); font-size: 0.88rem; margin: 0.3rem 0; }
+
   /* ---------------- coach invoices ---------------- */
   .inv-row {
     display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
@@ -826,6 +842,19 @@
     </div>
 
     <div class="attendees-card" id="attendees"></div>
+
+    <div class="panel hidden" id="chatpanel" style="margin-top:1.5rem">
+      <h3>Team chat <span class="hint" style="text-transform:none;letter-spacing:0">— everyone coaching this course</span></h3>
+      <div class="chat" id="chat-list"></div>
+      <div style="margin-top:0.9rem">
+        <textarea id="chat-box" style="min-height:3.4rem"
+          placeholder="Roadworks on the road to the gym — leave a bit early on Saturday."></textarea>
+        <div class="admin-row" style="margin-top:0.5rem">
+          <button class="btn small" id="chat-send" type="button">Send</button>
+          <span class="why" id="chat-msg"></span>
+        </div>
+      </div>
+    </div>
 
     <div class="admin-panel hidden" id="adminpanel">
       <h3>Admin</h3>
@@ -2597,6 +2626,7 @@ async function openCourse(course) {
   showCertBar(course);
   await loadMyInvoice(course);
   showInvoiceBar(course);
+  await loadChat(course);
 
   if (!regs.length) {
     box.innerHTML = '<p class="empty">' +
@@ -4070,6 +4100,132 @@ function wireCancel() {
       $("cx-go").disabled = false;
     }
   };
+}
+
+/* ---------- the course chat ---------- */
+
+// Coach to coach, about this course. Roadworks outside the gym, who is
+// bringing the rings, a nudge about an invoice. Attached to the course
+// rather than to people, so somebody who joins late can read back.
+
+async function loadChat(course) {
+  const panel = $("chatpanel");
+  const canSee = isAdmin() || !!myRoles[course.id];
+  panel.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  const list = $("chat-list");
+  list.innerHTML = '<p class="chat-none">Loading…</p>';
+  $("chat-msg").textContent = "";
+
+  const { data, error } = await db
+    .from("course_messages")
+    .select("id, staff_id, body, created_at, staff ( full_name, photo_path )")
+    .eq("course_id", course.id)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    list.innerHTML = '<p class="chat-none">Could not load the chat.</p>';
+    return;
+  }
+
+  renderChat(data || []);
+}
+
+function renderChat(rows) {
+  const list = $("chat-list");
+  list.innerHTML = "";
+
+  if (!rows.length) {
+    const p = document.createElement("p");
+    p.className = "chat-none";
+    p.textContent = "Nothing here yet. Anything the others should know before the day?";
+    list.append(p);
+    return;
+  }
+
+  for (const m of rows) {
+    const person = m.staff || { full_name: "A coach" };
+    const mine = m.staff_id === me.id;
+
+    const row = document.createElement("div");
+    row.className = "chat-msg" + (mine ? " mine" : "");
+
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "flex:1 1 auto;min-width:0";
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const author = document.createElement("span");
+    author.className = "author";
+    author.textContent = mine ? "You" : person.full_name;
+    const when = document.createElement("span");
+    when.textContent = fmtWhen(m.created_at);
+    meta.append(author, when);
+
+    // Only your own, and only ever your own — the policy would refuse
+    // anything else anyway.
+    if (mine) {
+      const del = document.createElement("button");
+      del.className = "textlink";
+      del.type = "button";
+      del.style.fontSize = "0.75rem";
+      del.textContent = "delete";
+      del.onclick = async () => {
+        if (!window.confirm("Delete this message?")) return;
+        const { error } = await db.from("course_messages").delete().eq("id", m.id);
+        if (error) { window.alert("Could not delete it: " + error.message); return; }
+        row.remove();
+      };
+      meta.append(del);
+    }
+
+    const body = document.createElement("div");
+    body.className = "body";
+    body.textContent = m.body;
+
+    wrap.append(meta, body);
+    row.append(avatar(person, 34), wrap);
+    list.append(row);
+  }
+
+  // Newest at the foot, which is where the eye goes.
+  list.scrollTop = list.scrollHeight;
+}
+
+function wireChat() {
+  const send = async () => {
+    if (!currentCourse) return;
+    const box = $("chat-box");
+    const msg = $("chat-msg");
+    const body = box.value.trim();
+    if (!body) return;
+
+    $("chat-send").disabled = true;
+    msg.textContent = "Sending…";
+
+    const { data, error } = await db.from("course_messages").insert({
+      course_id: currentCourse.id,
+      staff_id: me.id,
+      body,
+    }).select("id, staff_id, body, created_at, staff ( full_name, photo_path )").single();
+
+    $("chat-send").disabled = false;
+
+    if (error) { msg.textContent = "Could not send: " + error.message; return; }
+
+    box.value = "";
+    msg.textContent = "";
+    await loadChat(currentCourse);
+  };
+
+  $("chat-send").onclick = send;
+
+  // Enter sends, shift-enter starts a new line — the way every other
+  // chat behaves.
+  $("chat-box").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  });
 }
 
 /* ---------- coach invoices ---------- */
@@ -6385,6 +6541,7 @@ wirePaid();
 wireInvoicesView();
 wireProfile();
 wireTeam();
+wireChat();
 start();
 </script>
 
