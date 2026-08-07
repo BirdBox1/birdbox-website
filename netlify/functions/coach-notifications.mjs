@@ -202,6 +202,52 @@ export default async () => {
       }
     }
 
+    // ---- new messages in the course chats ---------------------
+    // Everybody on the course, not just the lead — an assistant needs
+    // to hear about roadworks as much as anyone. "New" means since
+    // yesterday's run, which is what a daily digest can honestly claim
+    // without tracking who has read what.
+    const { data: team, error: tErr } = await supabase
+      .from("course_staff")
+      .select("course_id, staff_id, staff ( id, full_name, email, active )")
+      .in("course_id", courseIds);
+
+    if (tErr) throw new Error("course_staff (chat): " + tErr.message);
+
+    const since = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
+
+    const { data: msgs, error: mErr } = await supabase
+      .from("course_messages")
+      .select("id, course_id, staff_id, body, created_at, staff ( full_name )")
+      .in("course_id", courseIds)
+      .gte("created_at", since)
+      .order("created_at", { ascending: true });
+
+    if (mErr) throw new Error("course_messages: " + mErr.message);
+
+    if ((msgs || []).length) {
+      const byCourse = {};
+      for (const m of msgs) (byCourse[m.course_id] = byCourse[m.course_id] || []).push(m);
+
+      for (const row of team || []) {
+        const person = row.staff;
+        if (!person || !person.active || !person.email) continue;
+
+        // Not your own messages back at you.
+        const theirs = (byCourse[row.course_id] || [])
+          .filter((m) => m.staff_id !== person.id);
+        if (!theirs.length) continue;
+
+        const bucket = (perCoach[person.id] = perCoach[person.id] || {
+          coach: person, due: [], overdue: [], rows: [],
+        });
+        (bucket.messages = bucket.messages || []).push({
+          course: courseById[row.course_id],
+          items: theirs,
+        });
+      }
+    }
+
     const coaches = Object.values(perCoach);
     if (!coaches.length) return done("nothing to report");
 
@@ -263,7 +309,7 @@ function line(item) {
     (w ? `, ${w}` : "") + `, ${fmtDate(c.starts_at, c.timezone)}`;
 }
 
-async function sendDigest({ coach, due, overdue, precourse }) {
+async function sendDigest({ coach, due, overdue, precourse, messages }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("No Resend key; digest not sent to", coach.full_name);
@@ -271,19 +317,37 @@ async function sendDigest({ coach, due, overdue, precourse }) {
   }
 
   precourse = precourse || [];
+  messages = messages || [];
   const urgent = precourse.filter((p) => p.urgent);
   const total = due.length + overdue.length;
+  const msgCount = messages.reduce((n, m) => n + m.items.length, 0);
 
-  // Whatever is most pressing goes in the subject line.
+  // Whatever is most pressing goes in the subject line. A message from
+  // another coach comes first: it is usually about the day itself.
   const subject = urgent.length
     ? `Pre-course email due today — ${urgent[0].course.title}`
-    : precourse.length
-      ? `Pre-course email due by Wednesday — ${precourse[0].course.title}`
-      : overdue.length
-        ? `${overdue.length} participant${overdue.length === 1 ? " is" : "s are"} still waiting to hear from you`
-        : `${total} new registration${total === 1 ? "" : "s"} on your courses`;
+    : msgCount
+      ? `${msgCount} new message${msgCount === 1 ? "" : "s"} — ${messages[0].course.title}`
+      : precourse.length
+        ? `Pre-course email due by Wednesday — ${precourse[0].course.title}`
+        : overdue.length
+          ? `${overdue.length} participant${overdue.length === 1 ? " is" : "s are"} still waiting to hear from you`
+          : `${total} new registration${total === 1 ? "" : "s"} on your courses`;
 
   const parts = [`Hi ${coach.full_name.split(" ")[0]},`, ""];
+
+  // Messages lead, because they are usually time-sensitive and the
+  // whole point of adding them here is that they get read.
+  for (const group of messages) {
+    const c = group.course;
+    parts.push(`On ${c.title}${where(c) ? `, ${where(c)}` : ""}:`);
+    for (const m of group.items) {
+      const who = (m.staff && m.staff.full_name) || "A coach";
+      const body = String(m.body).trim().replace(/\s+/g, " ");
+      parts.push(`  ${who}: ${body.length > 220 ? body.slice(0, 217) + "…" : body}`);
+    }
+    parts.push("");
+  }
 
   for (const p of precourse) {
     const c = p.course;
@@ -327,6 +391,12 @@ async function sendDigest({ coach, due, overdue, precourse }) {
   if (precourse.length) {
     parts.push(
       "The pre-course email is the button at the top of the course.",
+      ""
+    );
+  }
+  if (msgCount) {
+    parts.push(
+      "Reply in the team chat on the course itself, so everybody coaching it sees it.",
       ""
     );
   }
