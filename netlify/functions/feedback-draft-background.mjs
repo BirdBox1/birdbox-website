@@ -13,6 +13,13 @@
 // they belong, rather than being stapled to the end afterwards. The
 // optional `blocks` in the request are ground the coach wants
 // covered whatever the notes say; the model may add more of its own.
+//
+// Which course types have a feedback manual is held in the
+// feedback_manuals table rather than in this file, so the portal and
+// the feedback page can ask the same question the drafter does. A
+// course type with no row has no feedback: TCC Level 2 issues its
+// certificate from the online course after the exam, and no feedback
+// email is written for it.
 
 import { createClient } from "@supabase/supabase-js";
 import { readFile } from "node:fs/promises";
@@ -26,11 +33,6 @@ const supabase = createClient(
 );
 
 const MODEL = "claude-sonnet-4-6";
-
-// Where each course type's operating manual lives in the repo.
-const MANUALS = {
-  "tcc:live_seminar:1": "prompts/tcc-l1-feedback-manual.md",
-};
 
 const LANGUAGE_NAMES = {
   en: "English", fr: "French", es: "Spanish", de: "German", it: "Italian",
@@ -93,11 +95,12 @@ async function run(registrationId, token, mustCover) {
     return markFailed(registrationId, "There are no notes for this participant.");
   }
 
-  // Two quite different things can go wrong here, and they used to
-  // produce the same message: no manual is written for this course
-  // type yet, or one is written and the file could not be read. The
-  // first is expected and needs a person to write it; the second is
-  // a fault. They are reported separately now.
+  // Three quite different things can go wrong here, and they used to
+  // produce the same message: this course type does not do feedback
+  // at all, a manual is expected but no path is recorded, or a path
+  // is recorded and the file could not be read. The first is a
+  // deliberate setting, the second needs a row adding, the third is a
+  // fault. They are reported separately.
   const found = await loadManual(course);
   if (!found.ok) return markFailed(registrationId, found.message);
 
@@ -312,21 +315,47 @@ function candidatePaths(relative) {
   ];
 }
 
+// Which course types have a manual now lives in feedback_manuals, so
+// there is one answer to that question and the portal reads the same
+// one. A course type with no active row does not do feedback at all.
 async function loadManual(course) {
   const lvl = String(course.level || "").replace(/\D/g, "");
-  const key = `${course.brand}:${course.type}:${lvl}`;
-  const relative = MANUALS[key];
+  const label = `${course.brand.toUpperCase()}` +
+                `${course.level ? " " + course.level : ""} ` +
+                `${String(course.type || "").replace(/_/g, " ")}`;
 
-  if (!relative) {
+  const { data: row, error } = await supabase
+    .from("feedback_manuals")
+    .select("manual_path, active")
+    .eq("brand", course.brand)
+    .eq("type", course.type)
+    .eq("level", lvl)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Could not read feedback_manuals:", error.message);
     return {
       ok: false,
-      message: `No feedback manual has been written for ${course.brand.toUpperCase()}` +
-               `${course.level ? " " + course.level : ""} ${course.type.replace(/_/g, " ")} yet.`,
+      message: "Could not check which feedback manual applies. This is a fault — try again.",
+    };
+  }
+
+  if (!row || !row.active) {
+    return {
+      ok: false,
+      message: `${label} does not have feedback emails set up.`,
+    };
+  }
+
+  if (!row.manual_path) {
+    return {
+      ok: false,
+      message: `${label} is set up for feedback but no manual file is recorded against it.`,
     };
   }
 
   const tried = [];
-  for (const path of candidatePaths(relative)) {
+  for (const path of candidatePaths(row.manual_path)) {
     try {
       const manual = await readFile(path, "utf8");
       console.log("Manual loaded from:", path);
@@ -340,14 +369,21 @@ async function loadManual(course) {
   return {
     ok: false,
     message:
-      `The manual for ${key} is set up but its file could not be read on the ` +
-      `server. It is expected at ${relative}. This is a fault, not a missing manual.`,
+      `The manual for ${label} is set up but its file could not be read on the ` +
+      `server. It is expected at ${row.manual_path}. This is a fault, not a ` +
+      `missing manual.`,
   };
 }
 
 // The passages, resolved to the language and spelling this
 // participant will read, so approved terminology stays consistent
 // instead of an English passage landing in a German email.
+//
+// NOTE: email_blocks is not yet scoped by brand, so every passage is
+// offered whatever the course. That is harmless while TCC L1 is the
+// only course type with a manual, but it must be fixed before TGC
+// goes live — the passages here are TCC coaching material and have no
+// place in a gymnastics feedback email.
 async function loadBlocks(course, langCode) {
   const { data: rows } = await supabase
     .from("email_blocks").select("key, title, body").order("key");
