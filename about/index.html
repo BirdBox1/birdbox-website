@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About | BirdBox Coaching</title>
+<meta name="description" content="BirdBox Coaching exists to raise the professional standard of coaching worldwide, through world-class education, practical experience and lifelong development.">
+<style>
+  :root {
+    --paper: #14100F;
+    --panel: #1C1719;
+    --ink: #F2EFEF;
+    --muted: #8A8385;
+    --line: #342F31;
+    --tcc: #4FA8DE;
+    --accentText: #6FB9E8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  img { display: block; }
+  .bb-wrap { max-width: 1320px; margin: 0 auto; padding: 0 24px; }
+
+  .bb-topbar {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 28px;
+    padding: 16px 24px; border-bottom: 1px solid var(--line);
+    font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase;
+    position: relative; z-index: 3;
+  }
+  .bb-topbar a { color: #ADA6A8; text-decoration: none; }
+  .bb-topbar a:hover { color: #ffffff; }
+
+  .bb-backbar { padding: 14px 24px 0; max-width: 1320px; margin: 0 auto; width: 100%; }
+  .bb-back {
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 8px 16px; border: 1px solid var(--line); color: #ADA6A8;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; text-decoration: none;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  .bb-back:hover { color: #ffffff; border-color: var(--tcc); }
+
+  /* ---------- hero ---------- */
+  .tcc-hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
+  .tcc-hero__photo {
+    position: absolute; inset: 0 0 0 34%;
+    background-image: url("/home-bg.jpeg");
+    background-size: cover; background-position: center 45%; background-repeat: no-repeat;
+  }
+  .tcc-hero__photo::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg,
+      rgba(20,16,15,1) 0%, rgba(20,16,15,0.93) 20%,
+      rgba(20,16,15,0.42) 66%, rgba(20,16,15,0.52) 100%);
+  }
+  .tcc-hero__inner {
+    position: relative; max-width: 1320px; margin: 0 auto;
+    padding: 40px 24px 52px;
+  }
+  .tcc-hero__mark { max-height: 118px; width: auto; margin-bottom: 26px;
+    filter: drop-shadow(0 2px 10px rgba(0,0,0,0.9)); }
+  .tcc-hero__title {
+    font-size: clamp(26px, 3.6vw, 46px); line-height: 1.06; font-weight: 800;
+    letter-spacing: -0.015em; text-transform: uppercase; margin: 0 0 16px;
+    text-shadow: 0 2px 18px rgba(0,0,0,0.6);
+  }
+  .tcc-hero__title em { font-style: normal; color: var(--accentText); display: block; }
+  .tcc-hero__lede {
+    font-size: 16px; line-height: 1.6; color: #DCD7D8; margin: 0 0 14px;
+    max-width: 42ch; text-shadow: 0 1px 10px rgba(0,0,0,0.55);
+  }
+  .tcc-hero__strap {
+    font-size: 13px; font-weight: 800; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accentText); margin: 0 0 26px;
+  }
+  .tcc-cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 13px 26px; background: var(--tcc); color: #0C1116;
+    font-size: 13px; font-weight: 800; letter-spacing: 0.08em;
+    text-transform: uppercase; text-decoration: none; border: 1px solid var(--tcc);
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .tcc-cta:hover { background: transparent; color: var(--accentText); }
+  .tcc-cta--ghost {
+    background: transparent; color: var(--accentText); border-color: var(--line); margin-left: 10px;
+  }
+  .tcc-cta--ghost:hover { border-color: var(--tcc); color: #ffffff; background: transparent; }
+  @media (max-width: 620px) { .tcc-cta--ghost { margin-left: 0; margin-top: 10px; } }
+
+  /* ---------- shared section furniture ---------- */
+  .l1-chips {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 18px 20px; margin-top: 22px;
+  }
+  .l1-chip { text-align: center; }
+  .l1-chip__big {
+    font-size: 20px; font-weight: 800; color: var(--accentText); margin-bottom: 3px;
+  }
+  .l1-chip__small {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+  }
+
+  .l1-section { padding: 40px 0 8px; }
+  .l1-label {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accentText); margin: 0 0 8px;
+  }
+  .l1-h2 {
+    font-size: clamp(20px, 2.6vw, 30px); font-weight: 800;
+    letter-spacing: -0.01em; margin: 0 0 12px;
+  }
+  .l1-lede { font-size: 16px; line-height: 1.6; color: #C9C4C5; margin: 0 0 22px; max-width: 70ch; }
+  .l1-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px; }
+  .l1-two .l1-lede { max-width: none; margin-bottom: 0; }
+  @media (max-width: 820px) { .l1-two { grid-template-columns: 1fr; } }
+
+  .l1-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .l1-card { border: 1px solid var(--line); background: var(--panel); padding: 20px 22px; }
+  .l1-card__title {
+    font-size: 15px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.04em; margin: 0 0 8px;
+  }
+  .l1-card__text { font-size: 14px; line-height: 1.55; color: #C9C4C5; margin: 0; }
+
+  .l1-pull {
+    border-left: 3px solid var(--tcc);
+    padding: 4px 0 4px 20px;
+    margin-top: 22px;
+  }
+  .l1-pull h3 {
+    font-size: 18px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: -0.01em; margin: 0 0 8px;
+  }
+  .l1-pull p { font-size: 15px; line-height: 1.6; color: #C9C4C5; margin: 0; max-width: 62ch; }
+
+  /* ---------- big statement band ---------- */
+  .ab-statement {
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    padding: 44px 24px; margin: 44px 0 0; text-align: center;
+  }
+  .ab-statement p {
+    font-size: clamp(19px, 2.8vw, 30px); font-weight: 800; line-height: 1.3;
+    letter-spacing: -0.01em; margin: 0 auto; max-width: 24ch;
+  }
+  .ab-statement em { font-style: normal; color: var(--accentText); }
+
+  /* ---------- values ---------- */
+  .ab-values {
+    display: grid; grid-template-columns: repeat(6, 1fr);
+    border: 1px solid var(--line); background: var(--panel);
+  }
+  .ab-value {
+    padding: 22px 18px; border-left: 1px solid var(--line); text-align: center;
+  }
+  .ab-value:first-child { border-left: none; }
+  .ab-value__num {
+    font-size: 12px; font-weight: 800; letter-spacing: 0.12em;
+    color: var(--tcc); margin-bottom: 10px;
+  }
+  .ab-value__name {
+    font-size: 14px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.04em; line-height: 1.25; margin: 0 0 8px;
+  }
+  .ab-value__text { font-size: 13px; line-height: 1.5; color: #B7B1B3; margin: 0; }
+  @media (max-width: 1080px) {
+    .ab-values { grid-template-columns: repeat(3, 1fr); }
+    .ab-value:nth-child(3n + 1) { border-left: none; }
+    .ab-value:nth-child(n + 4) { border-top: 1px solid var(--line); }
+  }
+  @media (max-width: 620px) {
+    .ab-values { grid-template-columns: repeat(2, 1fr); }
+    .ab-value:nth-child(3n + 1) { border-left: 1px solid var(--line); }
+    .ab-value:nth-child(odd) { border-left: none; }
+    .ab-value:nth-child(n + 3) { border-top: 1px solid var(--line); }
+  }
+
+  /* ---------- ripple ---------- */
+  .ab-ripple {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    border: 1px solid var(--line); background: var(--panel); padding: 26px 20px;
+  }
+  .ab-stage { text-align: center; position: relative; padding: 0 6px; }
+  .ab-stage::after {
+    content: ""; position: absolute; top: 18px;
+    left: calc(50% + 26px); right: calc(-50% + 26px);
+    height: 1px; background: var(--line);
+  }
+  .ab-stage:last-child::after { display: none; }
+  .ab-stage__dot {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1px solid var(--line); background: var(--paper);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 10px; font-size: 13px; font-weight: 800; color: #ADA6A8;
+    position: relative; z-index: 1;
+  }
+  .ab-stage:last-child .ab-stage__dot { border-color: var(--tcc); color: var(--tcc); }
+  .ab-stage__name {
+    font-size: 12px; font-weight: 800; letter-spacing: 0.14em;
+    text-transform: uppercase; margin: 0 0 6px;
+  }
+  .ab-stage:last-child .ab-stage__name { color: var(--accentText); }
+  .ab-stage__text { font-size: 13px; line-height: 1.5; color: var(--muted); margin: 0; }
+  @media (max-width: 820px) {
+    .ab-ripple { grid-template-columns: repeat(2, 1fr); row-gap: 24px; }
+    .ab-stage::after { display: none; }
+  }
+
+  /* ---------- ecosystem ---------- */
+  .ab-brands { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .ab-brand {
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 22px 20px; display: flex; flex-direction: column;
+    text-decoration: none; color: var(--ink);
+    border-top: 3px solid var(--b);
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .ab-brand:hover { background: #221C1E; border-color: var(--b); border-top-color: var(--b); }
+  .ab-brand__code {
+    font-size: 30px; font-weight: 800; letter-spacing: -0.02em;
+    color: var(--b); line-height: 1; margin-bottom: 6px;
+  }
+  .ab-brand__name {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); margin: 0 0 14px;
+  }
+  .ab-brand__text { font-size: 14px; line-height: 1.55; color: #C9C4C5; margin: 0 0 18px; }
+  .ab-brand__status {
+    margin-top: auto; font-size: 11px; font-weight: 800;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--b);
+  }
+  @media (max-width: 1000px) { .ab-brands { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .ab-brands { grid-template-columns: 1fr; } }
+
+  /* ---------- founder ---------- */
+  .ab-founder {
+    display: grid; grid-template-columns: 380px 1fr; gap: 0;
+    border: 1px solid var(--line); background: var(--panel); overflow: hidden;
+  }
+  .ab-founder__photo { width: 100%; height: 100%; object-fit: cover; min-height: 340px; }
+  .ab-founder__body { padding: 28px 30px; }
+  .ab-founder__quote {
+    border-left: 3px solid var(--tcc); padding: 4px 0 4px 18px; margin: 18px 0;
+    font-size: 17px; line-height: 1.5; font-weight: 700; color: var(--accentText);
+  }
+  @media (max-width: 900px) {
+    .ab-founder { grid-template-columns: 1fr; }
+    .ab-founder__photo { min-height: 300px; max-height: 420px; }
+  }
+
+  /* ---------- closing ---------- */
+  .l1-close {
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 34px 24px; text-align: center; margin-top: 28px;
+  }
+  .l1-close h2 {
+    font-size: clamp(22px, 3vw, 32px); font-weight: 800;
+    text-transform: uppercase; margin: 0 0 10px;
+  }
+  .l1-close p { font-size: 15px; color: #C9C4C5; margin: 0 0 20px; max-width: 60ch;
+    margin-left: auto; margin-right: auto; }
+
+  .tcc-cross {
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 18px 22px; margin: 14px 0 0; text-align: center;
+  }
+  .tcc-cross__label {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+  }
+  .tcc-cross__links { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px 26px; }
+  .tcc-cross__links a {
+    font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+    color: #C9C4C5; text-decoration: none;
+  }
+  .tcc-cross__links a:hover { color: var(--accentText); }
+
+  .bb-footer {
+    text-align: center; padding: 32px 24px 50px; font-size: 13px; color: #756F71;
+    border-top: 1px solid var(--line); margin-top: 26px; line-height: 1.7;
+  }
+  .bb-footer a { color: #8A8385; text-decoration: none; }
+  .bb-footer__staff {
+    display: block; margin-top: 10px; font-size: 12px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+
+  @media (max-width: 1000px) {
+    .l1-grid3 { grid-template-columns: 1fr; }
+    .l1-chips { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 720px) {
+    .tcc-hero__photo { inset: 0; }
+    .tcc-hero__photo::after {
+      background: linear-gradient(180deg, rgba(20,16,15,0.86) 0%, rgba(20,16,15,0.93) 100%);
+    }
+  }
+</style>
+</head>
+<body>
+
+<nav class="bb-topbar">
+  <a href="/merch">Merch Store</a>
+  <a href="/blog">Blog</a>
+  <a href="/trainer-directory">Trainer Directory</a>
+  <a href="/about">About</a>
+</nav>
+
+<div class="bb-backbar">
+  <a class="bb-back" href="/">&larr; All Pathways</a>
+</div>
+
+<header class="tcc-hero">
+  <div class="tcc-hero__photo" aria-hidden="true"></div>
+  <div class="tcc-hero__inner">
+    <img class="tcc-hero__mark" src="/brand/birdbox-mark.png" alt="BirdBox Coaching">
+    <p class="tcc-row__eyebrow l1-label">About BirdBox Coaching</p>
+    <h1 class="tcc-hero__title">Raising the standard<em>of coaching.</em></h1>
+    <p class="tcc-hero__lede">BirdBox Coaching exists for one reason: to increase the professional standard of coaching through world-class education, practical experience and lifelong development.</p>
+    <p class="tcc-hero__strap">Better coaches. Better athletes. Better world.</p>
+    <a class="tcc-cta" href="#mission">Our Mission &rarr;</a>
+    <a class="tcc-cta tcc-cta--ghost" href="#ecosystem">The BirdBox Ecosystem &rarr;</a>
+  </div>
+</header>
+
+<main class="bb-wrap">
+
+  <div class="l1-chips">
+    <div class="l1-chip"><div class="l1-chip__big">Four</div><div class="l1-chip__small">Coaching Brands</div></div>
+    <div class="l1-chip"><div class="l1-chip__big">70+</div><div class="l1-chip__small">Countries Delivered In</div></div>
+    <div class="l1-chip"><div class="l1-chip__big">28</div><div class="l1-chip__small">Educators Worldwide</div></div>
+    <div class="l1-chip"><div class="l1-chip__big">One</div><div class="l1-chip__small">Mission</div></div>
+  </div>
+
+  <section class="l1-section" id="story">
+    <p class="l1-label">Our Story</p>
+    <h2 class="l1-h2">We Started BirdBox Because Coaching Standards Needed To Be Better</h2>
+    <div class="l1-two">
+      <p class="l1-lede">BirdBox Coaching wasn&rsquo;t started because the industry needed more courses. It was started because coaching standards were inconsistent. Too many coaches were passionate, but lacked structure. Too many certifications taught information without teaching people how to coach.</p>
+      <p class="l1-lede">Too many athletes were receiving advice based on opinion instead of observation, communication and evidence. We believed coaching education could be better. More practical. More honest. More applicable on Monday morning than impressive on social media.</p>
+    </div>
+    <div class="l1-pull">
+      <h3>That Belief Became BirdBox Coaching</h3>
+      <p>Everything we build serves that mission &mdash; every seminar, every online course, every piece of written feedback a coach receives after a weekend with us.</p>
+    </div>
+  </section>
+
+  <section class="l1-section" id="values">
+    <p class="l1-label">Our Values</p>
+    <h2 class="l1-h2">What We Believe</h2>
+    <p class="l1-lede">These aren&rsquo;t clich&eacute;s. They&rsquo;re principles every one of our courses can be measured against.</p>
+    <div class="ab-values">
+      <div class="ab-value">
+        <div class="ab-value__num">01</div>
+        <h3 class="ab-value__name">Coaching Is A Profession</h3>
+        <p class="ab-value__text">Not a hobby. Professional coaches continually develop.</p>
+      </div>
+      <div class="ab-value">
+        <div class="ab-value__num">02</div>
+        <h3 class="ab-value__name">Athletes Come First</h3>
+        <p class="ab-value__text">Education only matters if it improves the athlete in front of you.</p>
+      </div>
+      <div class="ab-value">
+        <div class="ab-value__num">03</div>
+        <h3 class="ab-value__name">Observation Before Prescription</h3>
+        <p class="ab-value__text">Good coaching begins with understanding.</p>
+      </div>
+      <div class="ab-value">
+        <div class="ab-value__num">04</div>
+        <h3 class="ab-value__name">Simplicity Wins</h3>
+        <p class="ab-value__text">Complexity impresses coaches. Simplicity changes lives.</p>
+      </div>
+      <div class="ab-value">
+        <div class="ab-value__num">05</div>
+        <h3 class="ab-value__name">Never Stop Learning</h3>
+        <p class="ab-value__text">Great coaches remain students forever.</p>
+      </div>
+      <div class="ab-value">
+        <div class="ab-value__num">06</div>
+        <h3 class="ab-value__name">Lead By Example</h3>
+        <p class="ab-value__text">Your behaviours teach louder than your words.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="ab-statement">
+    <p>Education doesn&rsquo;t change coaching.<br><em>Better coaching changes lives.</em></p>
+  </div>
+
+  <section class="l1-section" id="mission">
+    <p class="l1-label">Our Mission</p>
+    <h2 class="l1-h2">The Ripple Effect Of Better Coaching</h2>
+    <p class="l1-lede">One better coach doesn&rsquo;t just help one athlete. They improve hundreds. Those athletes influence families, gyms and communities &mdash; and some of them become coaches themselves. The impact compounds. BirdBox exists to create that ripple effect.</p>
+    <div class="ab-ripple">
+      <div class="ab-stage">
+        <div class="ab-stage__dot">1</div>
+        <h3 class="ab-stage__name">Individual</h3>
+        <p class="ab-stage__text">A coach invests in their own development.</p>
+      </div>
+      <div class="ab-stage">
+        <div class="ab-stage__dot">2</div>
+        <h3 class="ab-stage__name">Coach</h3>
+        <p class="ab-stage__text">They coach with more skill, confidence and purpose.</p>
+      </div>
+      <div class="ab-stage">
+        <div class="ab-stage__dot">3</div>
+        <h3 class="ab-stage__name">Community</h3>
+        <p class="ab-stage__text">More athletes thrive. Families and gyms feel the difference.</p>
+      </div>
+      <div class="ab-stage">
+        <div class="ab-stage__dot">4</div>
+        <h3 class="ab-stage__name">Global Standards</h3>
+        <p class="ab-stage__text">Coaching standards rise worldwide. The ripple continues.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="l1-section" id="ecosystem">
+    <p class="l1-label">The BirdBox Ecosystem</p>
+    <h2 class="l1-h2">Different Courses. One Mission.</h2>
+    <p class="l1-lede">Every course we build is designed to raise the professional standard of coaching. Each brand takes that mission into a different discipline.</p>
+    <div class="ab-brands">
+      <a class="ab-brand" style="--b: #4FA8DE;" href="/tcc">
+        <span class="ab-brand__code">TCC</span>
+        <span class="ab-brand__name">The Coaches Course</span>
+        <span class="ab-brand__text">Developing exceptional coaches through professional coaching education.</span>
+        <span class="ab-brand__status">Explore TCC &rarr;</span>
+      </a>
+      <a class="ab-brand" style="--b: #D8393D;" href="/tgc">
+        <span class="ab-brand__code">TGC</span>
+        <span class="ab-brand__name">The Gymnastics Course</span>
+        <span class="ab-brand__text">Helping coaches teach gymnastics with confidence, structure and progressions.</span>
+        <span class="ab-brand__status">Explore TGC &rarr;</span>
+      </a>
+      <a class="ab-brand" style="--b: #428F63;" href="/tec">
+        <span class="ab-brand__code">TEC</span>
+        <span class="ab-brand__name">The Endurance Course</span>
+        <span class="ab-brand__text">Evidence-based endurance education for functional fitness coaches.</span>
+        <span class="ab-brand__status">Coming Soon</span>
+      </a>
+      <a class="ab-brand" style="--b: #D9A527;" href="/twc">
+        <span class="ab-brand__code">TWC</span>
+        <span class="ab-brand__name">The Weightlifting Course</span>
+        <span class="ab-brand__text">The next step in developing complete coaches.</span>
+        <span class="ab-brand__status">Launching 2027</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="l1-section" id="future">
+    <p class="l1-label">Where We&rsquo;re Going</p>
+    <h2 class="l1-h2">Our Ambition Isn&rsquo;t To Be The Biggest. It&rsquo;s To Be The Most Trusted.</h2>
+    <div class="l1-two">
+      <p class="l1-lede">We are building an education ecosystem where coaches can continually develop throughout their careers. Whether you&rsquo;re learning to coach your first class or refining years of experience, BirdBox will provide a clear pathway for lifelong learning.</p>
+      <p class="l1-lede">As our course portfolio grows, our mission stays exactly the same: raise coaching standards, improve athlete experiences, and create better coaches.</p>
+    </div>
+    <div class="l1-grid3" style="margin-top: 22px;">
+      <div class="l1-card">
+        <h3 class="l1-card__title">Raise Coaching Standards</h3>
+        <p class="l1-card__text">Formal, applied education that meets coaches at their current level of professionalism.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Improve Athlete Experiences</h3>
+        <p class="l1-card__text">Better coaching decisions on the floor, session after session.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Create Better Coaches</h3>
+        <p class="l1-card__text">A clear pathway from a first seminar through to mentorship and beyond.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="l1-section" id="founder">
+    <p class="l1-label">Founded By Nathan Bird</p>
+    <h2 class="l1-h2">Meet The Founder</h2>
+    <div class="ab-founder">
+      <img class="ab-founder__photo" id="ab-founder-photo" src="/brand/nathan-bird.jpeg" alt="Nathan Bird, founder of BirdBox Coaching">
+      <div class="ab-founder__body">
+        <p class="l1-lede">Nathan Bird founded BirdBox Coaching after years of coaching athletes and mentoring coaches across CrossFit&reg;, strength and conditioning and gymnastics.</p>
+        <p class="ab-founder__quote">Education should create confident coaches, not just certified ones.</p>
+        <p class="l1-lede" style="margin-bottom: 0;">Today, BirdBox continues to develop coaching systems that combine research, practical experience and real-world application &mdash; delivered by a team of educators across Europe, the US, Australia, Japan and South Africa.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="l1-close">
+    <h2>Help Raise The Standard</h2>
+    <p>Every coach influences lives. The better the coach, the greater the impact. Join coaches worldwide who are committed to improving their craft and shaping the future of coaching.</p>
+    <a class="tcc-cta" href="/tcc">Explore Our Courses &rarr;</a>
+  </div>
+
+  <div class="tcc-cross">
+    <div class="tcc-cross__label">Explore Our Pathways</div>
+    <div class="tcc-cross__links">
+      <a href="/tcc">The Coaches Course</a>
+      <a href="/tgc">The Gymnastics Course</a>
+      <a href="/tec">The Endurance Course</a>
+      <a href="/twc">The Weightlifting Course</a>
+      <a href="/trainer-directory">Trainer Directory</a>
+    </div>
+  </div>
+
+</main>
+
+<footer class="bb-footer">
+  &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
+  <a class="bb-footer__staff" href="/portal/">Staff Login</a>
+</footer>
+
+<script>
+  // The founder photo has not been chosen yet. Until the file exists,
+  // drop the image column rather than show a broken-image icon.
+  (function () {
+    var img = document.getElementById("ab-founder-photo");
+    if (!img) return;
+    img.addEventListener("error", function () {
+      var block = img.parentNode;
+      img.remove();
+      if (block) block.style.gridTemplateColumns = "1fr";
+    });
+  })();
+</script>
+
+</body>
+</html>
