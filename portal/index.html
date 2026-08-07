@@ -1738,6 +1738,27 @@ const LOW_NUMBERS = 5;
 const LOW_DAYS_OUT = 24;
 const LEAD_DAYS_OUT = 90;
 
+// How many assistants a course needs once the numbers get there. The
+// steps are not even — 15, 24, 30, 36 — so they are listed rather than
+// worked out from a formula that would drift from what is actually
+// wanted.
+const ASSIST_STEPS = [
+  { from: 36, assists: 4 },
+  { from: 30, assists: 3 },
+  { from: 24, assists: 2 },
+  { from: 15, assists: 1 },
+];
+
+// Below this there is no point flagging it: flights and cover cannot
+// be arranged, and a course that only reaches 15 the day before is one
+// the lead will simply run alone.
+const ASSIST_NOTICE_DAYS = 7;
+
+function assistsNeeded(booked) {
+  const step = ASSIST_STEPS.find((s) => booked >= s.from);
+  return step ? step.assists : 0;
+}
+
 // Photos are for identifying a face while writing feedback, nothing
 // more, so they are shrunk hard before they ever leave the device.
 const PHOTO_MAX_PX = 900;
@@ -2556,12 +2577,52 @@ async function loadCourses() {
   }
 
   const hasLead = {};
+  const assistCount = {};
   if (isAdmin()) {
-    const { data: leads } = await db.from("course_staff")
+    const { data: staffRows } = await db.from("course_staff")
       .select("course_id, role")
-      .in("course_id", courses.map((c) => c.id))
-      .eq("role", "lead_coach");
-    for (const l of leads || []) hasLead[l.course_id] = true;
+      .in("course_id", courses.map((c) => c.id));
+    for (const row of staffRows || []) {
+      if (row.role === "lead_coach") hasLead[row.course_id] = true;
+      else if (row.role === "assistant") {
+        assistCount[row.course_id] = (assistCount[row.course_id] || 0) + 1;
+      }
+    }
+  }
+
+  // Courses that have sold enough to need another pair of hands, with
+  // time left to arrange it.
+  const understaffed = (isAdmin() && tab === "live")
+    ? courses.map((c) => {
+        if (c.status === "draft") return null;
+        const days = daysUntil(c.starts_at);
+        if (days < ASSIST_NOTICE_DAYS) return null;
+        const taken = booked[c.id] || 0;
+        const need = assistsNeeded(taken);
+        const have = assistCount[c.id] || 0;
+        return need > have ? { course: c, taken, need, have, days } : null;
+      }).filter(Boolean)
+    : [];
+
+  if (understaffed.length) {
+    const el = document.createElement("div");
+    el.className = "alert";
+    el.innerHTML =
+      `<b>${understaffed.length} course${understaffed.length === 1 ? "" : "s"} ` +
+      `need${understaffed.length === 1 ? "s" : ""} another coach</b>` +
+      "Numbers have grown past what one coach should take on their own." +
+      "<ul></ul>";
+    const ul = el.querySelector("ul");
+    for (const u of understaffed) {
+      const short = u.need - u.have;
+      const li = document.createElement("li");
+      li.textContent =
+        `${u.course.title} — ${u.taken} booked, ` +
+        `${u.have} assistant${u.have === 1 ? "" : "s"} assigned, ` +
+        `${short} more needed · ${u.days} day${u.days === 1 ? "" : "s"} away`;
+      ul.append(li);
+    }
+    alertBox.append(el);
   }
 
   const struggling = tab === "live"
@@ -2670,6 +2731,18 @@ async function loadCourses() {
       add("no lead", due ? "nolead due" : "nolead");
     }
     if (isLow) add(`${taken} booked · ${days}d away`, "low");
+
+    // Said on the card as well as in the summary above, so it is still
+    // visible once the alert has been read past.
+    if (isAdmin() && !isPast(c) && c.status !== "draft") {
+      const need = assistsNeeded(taken);
+      const have = assistCount[c.id] || 0;
+      if (need > have) {
+        const short = need - have;
+        add(`needs ${short} more assistant${short === 1 ? "" : "s"}`,
+            days >= ASSIST_NOTICE_DAYS ? "nolead due" : "nolead");
+      }
+    }
     // "Completed" means the coach pressed submit and the certificates
     // went out — not simply that the date has passed.
     if (c.completed_at) add("completed", "done");
