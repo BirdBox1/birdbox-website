@@ -546,7 +546,7 @@
     <p class="l1-label">Founded By Nathan Bird</p>
     <h2 class="l1-h2">Meet The Founder</h2>
     <div class="ab-founder">
-      <img class="ab-founder__photo" id="ab-founder-photo" src="/brand/nathan-bird.jpeg" alt="Nathan Bird, founder of BirdBox Coaching">
+      <img class="ab-founder__photo" id="ab-founder-photo" src="/birdbox-team/nathan-bird.jpeg" alt="Nathan Bird, founder of BirdBox Coaching">
       <div class="ab-founder__body">
         <p class="l1-lede">Nathan Bird founded BirdBox Coaching after two decades of sport and CrossFit&reg; coaching and more than a decade of educating coaches. His background spans rehabilitation, sport psychology and strength and conditioning.</p>
         <p class="ab-founder__quote">&ldquo;Application without knowledge can be dangerous, but knowledge without application is careless. Coach with reason and purpose, always striving for higher standards.&rdquo;</p>
@@ -581,8 +581,8 @@
 </footer>
 
 <script>
-  // The founder photo has not been chosen yet. Until the file exists,
-  // drop the image column rather than show a broken-image icon.
+  // If the founder photo is missing, drop the image column rather than
+  // show a broken-image icon.
   (function () {
     var img = document.getElementById("ab-founder-photo");
     if (!img) return;
