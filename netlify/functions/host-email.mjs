@@ -17,7 +17,12 @@ const supabase = createClient(
 );
 
 const OFFICE = "info@birdboxcoaching.com";
-const FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
+
+// The office address, not the alerts one. A host is a business
+// contact, so the email should come from where they would reply to
+// anyway — and info@ is the address the sending domain is verified
+// for, which alerts@send. may not be.
+const FROM = process.env.CONFIRM_FROM || OFFICE;
 const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.app")
   .replace(/\/+$/, "");
 
