@@ -14,6 +14,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -190,6 +191,11 @@ export default async (request) => {
 
     const layout = layoutFor(course);
 
+    // The name is set in the certificate's own face rather than a
+    // system font. Fetched once for the whole batch: a twelve-person
+    // seminar would otherwise pull it twelve times.
+    const nameFont = await loadNameFont();
+
     // The workshop design has a box for what was actually coached.
     const focusText = course.type === "workshop"
       ? (course.workshop_focus ||
@@ -217,6 +223,7 @@ export default async (request) => {
         const pdf = await buildPdf({
           artwork,
           layout,
+          nameFont,
           name,
           awardedText,
           reference,
@@ -328,6 +335,23 @@ async function loadArtwork(course) {
   return null;
 }
 
+// certificates/name-font.ttf. Missing or unreadable, the certificate
+// still generates in Helvetica Bold rather than failing — a plainer
+// certificate is better than none.
+async function loadNameFont() {
+  try {
+    const res = await fetch(SITE_URL + "/certificates/name-font.ttf");
+    if (!res.ok) {
+      console.warn("Name font not found; falling back to Helvetica Bold.");
+      return null;
+    }
+    return new Uint8Array(await res.arrayBuffer());
+  } catch (err) {
+    console.warn("Could not fetch the name font:", err.message);
+    return null;
+  }
+}
+
 async function loadTemplate(course) {
   const level = course.type === "workshop"
     ? ""
@@ -378,8 +402,9 @@ async function nextReference(course) {
   throw new Error("Could not allocate a certificate reference");
 }
 
-async function buildPdf({ artwork, layout, name, awardedText, reference, focus }) {
+async function buildPdf({ artwork, layout, nameFont, name, awardedText, reference, focus }) {
   const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
   const page = doc.addPage([PAGE.width, PAGE.height]);
 
   // PNG artwork is embedded losslessly and makes a much larger file, so
@@ -391,6 +416,17 @@ async function buildPdf({ artwork, layout, name, awardedText, reference, focus }
 
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const plain = await doc.embedFont(StandardFonts.Helvetica);
+
+  // subset: false keeps the whole character set, so an accented name
+  // like Nürnberg or São Paulo does not come out as blanks.
+  let display = bold;
+  if (nameFont) {
+    try {
+      display = await doc.embedFont(nameFont, { subset: false });
+    } catch (err) {
+      console.warn("Could not embed the name font; using Helvetica Bold.", err.message);
+    }
+  }
 
   // Positions are in artwork pixels, converted here — so the numbers in
   // LAYOUTS can be read straight off the design.
@@ -413,7 +449,7 @@ async function buildPdf({ artwork, layout, name, awardedText, reference, focus }
     page.drawText(text, { x, y: toY(spec.baselineY), size, font, color: colour });
   };
 
-  put(name, layout.name, bold, rgb(0.05, 0.05, 0.05));
+  put(name, layout.name, display, rgb(0.05, 0.05, 0.05));
   put(focus, layout.focus, plain, rgb(0.1, 0.1, 0.1));
   put(awardedText, layout.awardedOn, plain, rgb(0.1, 0.1, 0.1));
 
