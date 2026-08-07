@@ -2298,7 +2298,7 @@ async function loadCourses() {
   alertBox.innerHTML = "";
   list.innerHTML = '<p class="empty">Loading…</p>';
 
-  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, status, slug, archived, grants_online_course, completed_at, issues_certificate";
+  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, status, slug, archived, grants_online_course, completed_at, issues_certificate, host_name, host_email, host_spots, prepaid_spots";
 
   let all = [];
   if (isAdmin()) {
