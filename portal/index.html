@@ -6848,11 +6848,12 @@ function wireInvoicesView() {
 function showFeedbackBar(course) {
   const bar = $("fb-bar");
 
-  // Same test the feedback page itself applies, so the button can
-  // never land somebody on a page that refuses them.
+  // The feedback page lists every course you lead, whenever it runs,
+  // so this button applies the same test and no more. Gating it on the
+  // course having finished only hid it on the days you are actually
+  // sitting in the gym writing notes.
   const canSee = (isAdmin() || amLeadOn(course.id)) &&
-                 course.type !== "online_course" &&
-                 new Date(course.ends_at || course.starts_at) < new Date();
+                 course.type !== "online_course";
 
   bar.classList.toggle("hidden", !canSee);
   if (!canSee) return;
@@ -6864,7 +6865,8 @@ function showFeedbackBar(course) {
   ).length;
 
   $("fb-state").textContent = attended
-    ? "Write and send each participant their coaching feedback."
+    ? `Write and send coaching feedback to the ${attended} ` +
+      `${attended === 1 ? "person" : "people"} ticked as attended.`
     : "Tick who attended first — feedback goes to those people.";
 }
 
