@@ -4548,18 +4548,32 @@ async function openProfile() {
 
 async function showProfilePhoto() {
   const frame = $("pf-frame");
-  if (!profileRow || !profileRow.photo_path) {
+  const path = profileRow && profileRow.photo_path;
+
+  if (!path) {
     frame.innerHTML = '<span style="color:var(--muted);font-size:0.78rem">No photo</span>';
     return;
   }
-  const { data } = await db.storage
-    .from("staff-photos").createSignedUrl(profileRow.photo_path, 3600);
-  if (!data || !data.signedUrl) return;
+
+  // A path starting with a slash is one of the team headshots already
+  // in the repo. Anything else was uploaded, and lives in the private
+  // bucket behind a signed link.
+  let src = path;
+  if (!path.startsWith("/")) {
+    const { data } = await db.storage
+      .from("staff-photos").createSignedUrl(path, 3600);
+    if (!data || !data.signedUrl) return;
+    src = data.signedUrl;
+  }
+
   frame.innerHTML = "";
   const img = document.createElement("img");
-  img.src = data.signedUrl;
+  img.src = src;
   img.alt = "";
   img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block";
+  img.onerror = () => {
+    frame.innerHTML = '<span style="color:var(--muted);font-size:0.78rem">No photo</span>';
+  };
   frame.append(img);
 }
 
