@@ -494,6 +494,50 @@
   </div>
 </section>
 
+<!-- ============ ALL INVOICES ============ -->
+<section id="view-invoices" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back-invoices">&larr; All courses</a>
+    <h2>Coach invoices</h2>
+    <p class="sub">Everything submitted, across every course. Filter by date and hand the lot to accounting.</p>
+
+    <div class="panel">
+      <div class="grid2">
+        <div class="field">
+          <label for="iv-from">From <span class="hint">course date</span></label>
+          <input id="iv-from" type="date">
+        </div>
+        <div class="field">
+          <label for="iv-to">To</label>
+          <input id="iv-to" type="date">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="iv-status">Status</label>
+          <select id="iv-status">
+            <option value="submitted">Submitted, not yet paid</option>
+            <option value="paid">Paid</option>
+            <option value="all">Everything, including drafts</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="iv-coach">Coach</label>
+          <select id="iv-coach"><option value="">Everyone</option></select>
+        </div>
+      </div>
+      <div class="admin-row">
+        <button class="btn small" id="iv-apply" type="button">Show</button>
+        <button class="btn ghost small" id="iv-quarter" type="button">This quarter</button>
+        <button class="btn ghost small" id="iv-year" type="button">This year</button>
+        <span class="why" id="iv-summary"></span>
+      </div>
+    </div>
+
+    <div id="iv-list"></div>
+  </div>
+</section>
+
 <!-- ============ COURSES ============ -->
 <section id="view-courses" class="hidden">
   <div class="wrap">
@@ -512,6 +556,7 @@
         <p class="sub" id="courses-sub" style="margin:0"></p>
       </div>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn ghost hidden" id="invoicesbtn" type="button">Invoices</button>
         <button class="btn ghost hidden" id="emailsbtn" type="button">Follow-up emails</button>
         <button class="btn hidden" id="newcourse" type="button">New course</button>
       </div>
@@ -1060,6 +1105,24 @@
     <div class="row">
       <button class="btn ghost" id="cx-close" type="button">Cancel</button>
       <button class="btn solid-danger" id="cx-go" type="button">Refund and cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MARK AN INVOICE PAID ============ -->
+<div class="overlay hidden" id="paidwrap">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="paid-h">
+    <h3 id="paid-h">Mark as paid</h3>
+    <p id="paid-what"></p>
+    <div class="field">
+      <label for="paid-note">Reference <span class="hint">optional — bank reference, date sent</span></label>
+      <input id="paid-note" type="text" placeholder="SEPA 6 Aug">
+    </div>
+    <p class="whenline">The coach sees this marked as paid, and can no longer change the invoice.</p>
+    <p class="msg" id="paid-msg"></p>
+    <div class="row">
+      <button class="btn ghost" id="paid-close" type="button">Cancel</button>
+      <button class="btn go" id="paid-go" type="button">Mark paid</button>
     </div>
   </div>
 </div>
@@ -1751,6 +1814,7 @@ const views = {
   course:  $("view-course"),
   newc:    $("view-new"),
   emails:  $("view-emails"),
+  invoices: $("view-invoices"),
 };
 const show = (n) =>
   Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== n));
@@ -1824,6 +1888,7 @@ async function start() {
   $("myrole").textContent = staff.role.replace(/_/g, " ");
   $("newcourse").classList.toggle("hidden", !admin);
   $("emailsbtn").classList.toggle("hidden", !admin);
+  $("invoicesbtn").classList.toggle("hidden", !admin);
   $("codeslink").classList.toggle("hidden", !admin);
 
   await loadCourses();
@@ -3749,7 +3814,7 @@ async function loadMyInvoice(course) {
 
   const { data, error } = await db
     .from("coach_invoices")
-    .select("id, total_cents, currency, invoice_path, notes, status, submitted_at")
+    .select("id, total_cents, currency, invoice_path, notes, status, submitted_at, paid_at, paid_note")
     .eq("course_id", course.id)
     .eq("staff_id", me.id)
     .maybeSingle();
@@ -3778,12 +3843,19 @@ function showInvoiceBar(course) {
   if (!canSee) return;
 
   const sent = myInvoice && myInvoice.status === "submitted";
-  $("inv-open").textContent = sent ? "Invoice submitted" : myInvoice ? "Finish my invoice" : "My invoice";
-  $("inv-state").textContent = sent
-    ? `Sent ${fmtWhen(myInvoice.submitted_at)} — ${money(myInvoice.total_cents, myInvoice.currency)}.`
-    : myInvoice
-      ? "Saved but not submitted yet."
-      : "Upload your invoice and receipts for this course.";
+  const paid = myInvoice && !!myInvoice.paid_at;
+
+  $("inv-open").textContent = paid ? "Invoice paid"
+    : sent ? "Invoice submitted"
+    : myInvoice ? "Finish my invoice" : "My invoice";
+
+  $("inv-state").textContent = paid
+    ? `Paid ${fmtWhen(myInvoice.paid_at)} — ${money(myInvoice.total_cents, myInvoice.currency)}.`
+    : sent
+      ? `Sent ${fmtWhen(myInvoice.submitted_at)} — ${money(myInvoice.total_cents, myInvoice.currency)}. You can still change it.`
+      : myInvoice
+        ? "Saved but not submitted yet."
+        : "Upload your invoice and receipts for this course.";
 }
 
 async function openInvoice(course) {
@@ -3791,11 +3863,24 @@ async function openInvoice(course) {
   await loadMyInvoice(course);
 
   const submitted = myInvoice && myInvoice.status === "submitted";
+  const paid = myInvoice && !!myInvoice.paid_at;
 
   $("inv-h").textContent = "Invoice — " + course.title;
-  $("inv-sub").textContent = submitted
-    ? `Submitted ${fmtWhen(myInvoice.submitted_at)}. Adding anything now submits it again.`
-    : "Upload your own invoice, attach a receipt for each expense, and give the total due.";
+  $("inv-sub").textContent = paid
+    ? `Paid ${fmtWhen(myInvoice.paid_at)}${myInvoice.paid_note ? " — " + myInvoice.paid_note : ""}. This invoice is now fixed.`
+    : submitted
+      ? `Submitted ${fmtWhen(myInvoice.submitted_at)}. You can still change it until it is paid.`
+      : "Upload your own invoice, attach a receipt for each expense, and give the total due.";
+
+  // Once paid it is a record of what was settled, so nothing about it
+  // moves. Everything stays visible and downloadable.
+  for (const id of ["inv-file", "inv-total", "inv-currency", "inv-notes",
+                    "rc-cat", "rc-desc", "rc-other", "rc-file"]) {
+    $(id).disabled = paid;
+  }
+  $("rc-add").classList.toggle("hidden", paid);
+  $("inv-save").classList.toggle("hidden", paid);
+  $("inv-submit").classList.toggle("hidden", paid);
 
   $("inv-total").value = myInvoice && myInvoice.total_cents != null
     ? (myInvoice.total_cents / 100).toFixed(2) : "";
@@ -3856,6 +3941,7 @@ function renderReceipts() {
     del.className = "btn ghost tiny danger";
     del.type = "button";
     del.textContent = "Remove";
+    if (myInvoice && myInvoice.paid_at) del.classList.add("hidden");
     del.onclick = async () => {
       if (!window.confirm(`Remove the ${r.category.toLowerCase()} receipt?`)) return;
       del.disabled = true;
@@ -3975,6 +4061,12 @@ function wireInvoices() {
   const saveInvoice = async (submitting) => {
     const msg = $("inv-msg");
     const total = $("inv-total").value.trim();
+
+    if (myInvoice && myInvoice.paid_at) {
+      msg.className = "msg err";
+      msg.textContent = "This invoice has been paid, so it can no longer be changed.";
+      return;
+    }
 
     if (submitting) {
       if (!total) { msg.className = "msg err"; msg.textContent = "Add the total due."; return; }
@@ -4130,9 +4222,238 @@ async function renderInvoiceAdmin(course) {
   sum.className = "whenline";
   sum.style.marginTop = "0.6rem";
   sum.textContent = total
-    ? `${money(total, rows[0].currency)} submitted across ${rows.filter((r) => r.status === "submitted").length} invoice(s).`
+    ? `${money(total, rows[0].currency)} across ${rows.filter((r) => r.status === "submitted").length} submitted invoice(s), ` +
+      `${money(rows.filter((r) => r.paid_at).reduce((n, r) => n + (r.total_cents || 0), 0), rows[0].currency)} of it paid.`
     : "Nothing submitted yet.";
   box.append(sum);
+}
+
+/* ---------- marking an invoice paid ---------- */
+
+// Paid is the end of the line: the coach sees it, and neither side can
+// change the invoice afterwards. It is a record of what was settled.
+let paidInvoice = null;
+let paidThen = null;
+
+function openPaid(inv, afterwards) {
+  paidInvoice = inv;
+  paidThen = afterwards;
+  $("paid-what").textContent =
+    `${(inv.staff && inv.staff.full_name) || "This coach"} — ` +
+    `${money(inv.total_cents, inv.currency)}.`;
+  $("paid-note").value = "";
+  $("paid-msg").textContent = "";
+  $("paid-msg").className = "msg";
+  $("paid-go").disabled = false;
+  $("paidwrap").classList.remove("hidden");
+}
+
+function wirePaid() {
+  $("paid-close").onclick = () => { $("paidwrap").classList.add("hidden"); paidInvoice = null; };
+  $("paidwrap").addEventListener("click", (e) => {
+    if (e.target === $("paidwrap")) { $("paidwrap").classList.add("hidden"); paidInvoice = null; }
+  });
+
+  $("paid-go").onclick = async () => {
+    if (!paidInvoice) return;
+    const msg = $("paid-msg");
+    $("paid-go").disabled = true;
+    msg.className = "msg";
+    msg.textContent = "Saving…";
+
+    const { error } = await db.from("coach_invoices").update({
+      paid_at: new Date().toISOString(),
+      paid_by: me.id,
+      paid_note: $("paid-note").value.trim() || null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", paidInvoice.id);
+
+    if (error) {
+      msg.className = "msg err";
+      msg.textContent = "Could not save: " + error.message;
+      $("paid-go").disabled = false;
+      return;
+    }
+
+    $("paidwrap").classList.add("hidden");
+    const done = paidThen;
+    paidInvoice = null; paidThen = null;
+    if (done) done();
+  };
+}
+
+/* ---------- every invoice, across every course ---------- */
+
+async function openInvoicesView() {
+  show("invoices");
+
+  if (!staffList.length) {
+    const { data } = await db.from("staff")
+      .select("id, full_name, role").eq("active", true).order("full_name");
+    staffList = data || [];
+  }
+  const pick = $("iv-coach");
+  if (pick.options.length <= 1) {
+    for (const st of staffList) {
+      const o = document.createElement("option");
+      o.value = st.id;
+      o.textContent = st.full_name;
+      pick.append(o);
+    }
+  }
+
+  if (!$("iv-from").value && !$("iv-to").value) thisQuarter();
+  await runInvoiceSearch();
+}
+
+function setRange(from, to) {
+  $("iv-from").value = from.toISOString().slice(0, 10);
+  $("iv-to").value = to.toISOString().slice(0, 10);
+}
+
+function thisQuarter() {
+  const now = new Date();
+  const q = Math.floor(now.getMonth() / 3);
+  setRange(new Date(now.getFullYear(), q * 3, 1),
+           new Date(now.getFullYear(), q * 3 + 3, 0));
+}
+
+function thisYear() {
+  const y = new Date().getFullYear();
+  setRange(new Date(y, 0, 1), new Date(y, 11, 31));
+}
+
+// Filtered on the course date rather than when the invoice was
+// submitted, because that is how the work is accounted for — a
+// December seminar invoiced in January belongs to December.
+async function runInvoiceSearch() {
+  const box = $("iv-list");
+  box.innerHTML = '<p class="empty">Loading…</p>';
+
+  const from = $("iv-from").value;
+  const to = $("iv-to").value;
+  const status = $("iv-status").value;
+  const coach = $("iv-coach").value;
+
+  let q = db.from("coach_invoices")
+    .select("id, course_id, staff_id, total_cents, currency, invoice_path, notes, status, submitted_at, paid_at, paid_note, staff ( full_name ), courses ( title, starts_at, timezone, city, country )");
+
+  if (coach) q = q.eq("staff_id", coach);
+  if (status === "paid") q = q.not("paid_at", "is", null);
+  else if (status === "submitted") q = q.eq("status", "submitted").is("paid_at", null);
+
+  const { data, error } = await q;
+  if (error) { box.innerHTML = '<p class="empty">Could not load invoices.</p>'; return; }
+
+  let rows = (data || []).filter((r) => r.courses);
+  if (from) rows = rows.filter((r) => r.courses.starts_at >= from);
+  if (to) rows = rows.filter((r) => r.courses.starts_at <= to + "T23:59:59Z");
+  rows.sort((a, b) => new Date(a.courses.starts_at) - new Date(b.courses.starts_at));
+
+  if (!rows.length) {
+    box.innerHTML = '<p class="empty">Nothing matches those filters.</p>';
+    $("iv-summary").textContent = "";
+    return;
+  }
+
+  const { data: receipts } = await db
+    .from("coach_invoice_receipts")
+    .select("id, invoice_id, category, description, file_path")
+    .in("invoice_id", rows.map((r) => r.id));
+
+  const byInvoice = {};
+  for (const r of receipts || []) (byInvoice[r.invoice_id] = byInvoice[r.invoice_id] || []).push(r);
+
+  // Totals per currency, because a Glasgow invoice in sterling and a
+  // Munich one in euro cannot be added together.
+  const totals = {};
+  for (const r of rows) {
+    const cur = r.currency || "EUR";
+    totals[cur] = (totals[cur] || 0) + (r.total_cents || 0);
+  }
+  $("iv-summary").textContent =
+    `${rows.length} invoice${rows.length === 1 ? "" : "s"} — ` +
+    Object.entries(totals).map(([cur, cents]) => money(cents, cur)).join(" · ");
+
+  box.innerHTML = "";
+  const card = document.createElement("div");
+  card.className = "attendees-card";
+
+  for (const inv of rows) {
+    const row = document.createElement("div");
+    row.className = "inv-row";
+
+    const who = document.createElement("span");
+    who.className = "who";
+    who.innerHTML = "";
+    const name = document.createElement("div");
+    name.textContent = (inv.staff && inv.staff.full_name) || "A coach";
+    const where = document.createElement("div");
+    where.className = "whenline";
+    where.textContent = `${inv.courses.title} · ${fmtDate(inv.courses.starts_at, inv.courses.timezone)}`;
+    who.append(name, where);
+
+    const state = document.createElement("span");
+    state.className = "pill " + (inv.paid_at ? "done" : inv.status === "submitted" ? "on" : "warn");
+    state.textContent = inv.paid_at ? "paid" : inv.status === "submitted" ? "submitted" : "draft";
+
+    const amt = document.createElement("span");
+    amt.className = "amt";
+    amt.textContent = inv.total_cents != null ? money(inv.total_cents, inv.currency) : "no total";
+
+    const files = document.createElement("span");
+    files.className = "files";
+
+    if (inv.invoice_path) {
+      const b = document.createElement("button");
+      b.className = "btn ghost tiny";
+      b.type = "button";
+      b.textContent = "Invoice";
+      b.onclick = () => openStoredFile(inv.invoice_path);
+      files.append(b);
+    }
+    for (const r of byInvoice[inv.id] || []) {
+      const b = document.createElement("button");
+      b.className = "btn ghost tiny";
+      b.type = "button";
+      b.textContent = r.category;
+      b.title = r.description || r.category;
+      b.onclick = () => openStoredFile(r.file_path);
+      files.append(b);
+    }
+    if (inv.status === "submitted" && !inv.paid_at) {
+      const pay = document.createElement("button");
+      pay.className = "btn tiny go";
+      pay.type = "button";
+      pay.textContent = "Mark paid";
+      pay.onclick = () => openPaid(inv, runInvoiceSearch);
+      files.append(pay);
+    }
+
+    row.append(who, state, amt, files);
+    card.append(row);
+
+    if (inv.paid_note) {
+      const note = document.createElement("div");
+      note.className = "whenline";
+      note.style.padding = "0 0.85rem 0.6rem";
+      note.textContent = "Paid: " + inv.paid_note;
+      card.append(note);
+    }
+  }
+
+  box.append(card);
+}
+
+function wireInvoicesView() {
+  $("invoicesbtn").onclick = openInvoicesView;
+  $("back-invoices").onclick = () => show("courses");
+  $("iv-apply").onclick = runInvoiceSearch;
+  $("iv-quarter").onclick = () => { thisQuarter(); runInvoiceSearch(); };
+  $("iv-year").onclick = () => { thisYear(); runInvoiceSearch(); };
+  for (const id of ["iv-status", "iv-coach"]) {
+    $(id).addEventListener("change", runInvoiceSearch);
+  }
 }
 
 /* ---------- complete and submit the seminar ---------- */
@@ -5311,6 +5632,8 @@ wirePrecourse();
 wireCertificates();
 wireCancel();
 wireInvoices();
+wirePaid();
+wireInvoicesView();
 start();
 </script>
 
