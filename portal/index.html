@@ -165,6 +165,15 @@
   .btn.go { background: var(--good); color: #fff; }
   .btn.go:hover { background: #176e43; }
 
+  /* Every job on a course reads the same way once it is finished, so
+     the page can be scanned rather than read. Green means done; black
+     means it is still waiting for somebody. */
+  .btn.done {
+    background: var(--good); color: #fff; border-color: var(--good);
+  }
+  .btn.done[disabled] { opacity: 1; }
+  .btn.done::before { content: "✓ "; font-weight: 700; }
+
   .msg { font-size: 0.85rem; margin-top: 0.9rem; min-height: 1.2em; }
   .msg.err { color: var(--bad); }
   .msg.ok  { color: var(--good); }
@@ -929,7 +938,7 @@
     </div>
 
     <div class="admin-row hidden" id="cert-bar" style="margin:0 0 1rem">
-      <button class="btn small go" id="cert-open" type="button">Complete and submit seminar</button>
+      <button class="btn small" id="cert-open" type="button">Complete and submit seminar</button>
       <span class="why" id="cert-state"></span>
     </div>
 
@@ -4191,6 +4200,7 @@ function showPrecourseBar(course) {
 
   $("pc-open").disabled = tooEarly;
   $("pc-open").textContent = sent ? "Pre-course email sent" : "Pre-course email";
+  $("pc-open").classList.toggle("done", !!sent);
 
   $("pc-state").textContent = sent
     ? `Sent ${fmtWhen(precourseRow.sent_at)}.`
@@ -4586,7 +4596,11 @@ async function showHostBar(course) {
     .select("sent_at").eq("course_id", course.id).eq("kind", "host")
     .order("sent_at", { ascending: false }).limit(1);
 
-  state.textContent = data && data.length && data[0].sent_at
+  const alreadySent = !!(data && data.length && data[0].sent_at);
+  $("host-open").classList.toggle("done", alreadySent);
+  $("host-open").textContent = alreadySent ? "Host email sent" : "Send the host email";
+
+  state.textContent = alreadySent
     ? `Sent ${fmtWhen(data[0].sent_at)} to ${course.host_email}. Sending again creates new codes.`
     : `Goes to ${course.host_email}, with the media team copied in.`;
 }
@@ -5075,6 +5089,7 @@ function showFollowupBar(course) {
 
   $("fu-open").textContent = sent ? "Follow-up email sent" : "Follow-up email";
   $("fu-open").disabled = false;
+  $("fu-open").classList.toggle("done", !!sent);
 
   $("fu-state").textContent = sent
     ? `Sent ${fmtWhen(followupRow.sent_at)}.`
@@ -5274,6 +5289,7 @@ function showInvoiceBar(course) {
   // course is not finished — and invoicing for it would be premature.
   if (!course.completed_at) {
     $("inv-open").disabled = true;
+    $("inv-open").classList.remove("done");
     $("inv-open").textContent = "My invoice";
     $("inv-state").textContent =
       "Available once the seminar is completed and the certificates have gone out.";
@@ -5287,6 +5303,9 @@ function showInvoiceBar(course) {
   $("inv-open").textContent = paid ? "Invoice paid"
     : sent ? "Invoice submitted"
     : myInvoice ? "Finish my invoice" : "My invoice";
+  // Submitted is done as far as the coach is concerned; paid is done
+  // for everybody.
+  $("inv-open").classList.toggle("done", !!sent || !!paid);
 
   $("inv-state").textContent = paid
     ? `Paid ${fmtWhen(myInvoice.paid_at)} — ${money(myInvoice.total_cents, myInvoice.currency)}.`
@@ -6386,6 +6405,7 @@ function showCertBar(course) {
 
   if (course.completed_at && (noCert || (done.length === attended.length && attended.length))) {
     btn.disabled = true;
+    btn.classList.add("done");
     btn.textContent = noCert ? "Seminar completed" : "Seminar submitted";
     state.textContent = noCert
       ? `Completed ${fmtWhen(course.completed_at)}. Certificates are issued by the online course.`
@@ -6393,6 +6413,8 @@ function showCertBar(course) {
         `${done.length === 1 ? "" : "s"} sent.`;
     return;
   }
+
+  btn.classList.remove("done");
 
   if (noCert) {
     btn.disabled = attended.length === 0;
