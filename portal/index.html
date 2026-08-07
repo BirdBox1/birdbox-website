@@ -4342,7 +4342,7 @@ async function openHostEmail(course) {
   $("host-subject").value = `${full.title} is live — your host codes`;
   $("host-body").value = hostEmailBody(full);
   $("host-note").textContent =
-    "Sending creates the codes and copies Sarah, who will follow up with the media files.";
+    "Sending creates the codes and copies the media team, the office, and any coach already assigned to this course.";
   $("host-msg").textContent = "";
   $("host-msg").className = "msg";
   $("hostwrap").classList.remove("hidden");
@@ -4487,8 +4487,9 @@ function wireHostEmail() {
       if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
 
       msg.className = "msg ok";
-      msg.textContent = `Sent to ${out.sentTo}, with ${out.copied} copied in. ` +
-        `${out.codes} code${out.codes === 1 ? "" : "s"} created.`;
+      msg.textContent = `Sent to ${out.sentTo} — ${out.copied} copied in` +
+        (out.coaches ? `, including ${out.coaches} coach${out.coaches === 1 ? "" : "es"}` : "") +
+        `. ${out.codes} code${out.codes === 1 ? "" : "s"} created.`;
 
       setTimeout(() => {
         $("hostwrap").classList.add("hidden");
