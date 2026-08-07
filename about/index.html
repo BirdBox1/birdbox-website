@@ -44,63 +44,40 @@
   }
   .bb-back:hover { color: #ffffff; border-color: var(--tcc); }
 
-  /* ---------- hero ----------
-     A group photo, not an action shot. The fade runs bottom-up rather
-     than left-to-right so faces stay visible across the full width;
-     the copy sits in the darkened band underneath them. */
-  .tcc-hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
-  .tcc-hero__photo {
-    position: absolute; inset: 0;
-    background-image: url("/brand/4994E1B7-60A8-4FD1-9C36-14867A8F959B.jpeg");
-    background-size: cover;
-    /* Tune this if heads are cropped: lower % moves the photo down. */
-    background-position: center 28%;
-    background-repeat: no-repeat;
+  /* ---------- team photo band ----------
+     The photo keeps its own shape and is never cropped, so nobody at
+     the edges of the group is lost. Text sits underneath it, not over
+     it. max-height stops it dominating on a tall desktop window. */
+  .ab-shot {
+    position: relative;
+    max-width: 1320px; margin: 22px auto 0; padding: 0 24px;
   }
-  .tcc-hero__photo::after {
-    content: ""; position: absolute; inset: 0;
-    background:
-      linear-gradient(180deg,
-        rgba(20,16,15,0.14) 0%,
-        rgba(20,16,15,0.26) 34%,
-        rgba(20,16,15,0.84) 70%,
-        rgba(20,16,15,0.97) 100%),
-      linear-gradient(90deg,
-        rgba(20,16,15,0.55) 0%,
-        rgba(20,16,15,0.14) 44%,
-        rgba(20,16,15,0) 100%);
+  .ab-shot__img {
+    width: 100%; height: auto;
+    max-height: 74vh; object-fit: contain;
+    border: 1px solid var(--line);
+    background: var(--panel);
   }
-  .tcc-hero__inner {
-    position: relative; max-width: 1320px; margin: 0 auto;
-    min-height: 620px; display: flex; flex-direction: column; justify-content: flex-end;
-    padding: 190px 24px 48px;
+  .ab-shot__credit {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin: 10px 0 0; text-align: right;
   }
-  /* align-self keeps the mark at its natural width. Without it the flex
-     column stretches the image across the whole hero. */
-  .tcc-hero__mark {
-    align-self: flex-start;
-    max-height: 92px; width: auto; margin-bottom: 22px;
-    filter: drop-shadow(0 2px 14px rgba(0,0,0,1));
-  }
+
+  /* ---------- hero copy ---------- */
+  .tcc-hero { border-bottom: 1px solid var(--line); }
+  .tcc-hero__inner { max-width: 1320px; margin: 0 auto; padding: 34px 24px 48px; }
+  .tcc-hero__mark { max-height: 92px; width: auto; margin-bottom: 24px; }
   .tcc-hero__title {
     font-size: clamp(26px, 3.6vw, 46px); line-height: 1.06; font-weight: 800;
     letter-spacing: -0.015em; text-transform: uppercase; margin: 0 0 16px;
-    text-shadow: 0 2px 20px rgba(0,0,0,0.85);
   }
   .tcc-hero__title em { font-style: normal; color: var(--accentText); display: block; }
   .tcc-hero__lede {
-    font-size: 16px; line-height: 1.6; color: #DCD7D8; margin: 0 0 14px;
-    max-width: 42ch; text-shadow: 0 1px 12px rgba(0,0,0,0.8);
+    font-size: 16px; line-height: 1.6; color: #DCD7D8; margin: 0 0 14px; max-width: 60ch;
   }
   .tcc-hero__strap {
     font-size: 13px; font-weight: 800; letter-spacing: 0.1em;
     text-transform: uppercase; color: var(--accentText); margin: 0 0 26px;
-    text-shadow: 0 1px 12px rgba(0,0,0,0.8);
-  }
-  .tcc-hero__credit {
-    position: absolute; right: 24px; bottom: 14px;
-    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-    color: rgba(242,239,239,0.55); margin: 0;
   }
   .tcc-cta {
     display: inline-flex; align-items: center; gap: 10px;
@@ -111,24 +88,13 @@
   }
   .tcc-cta:hover { background: transparent; color: var(--accentText); }
   .tcc-cta--ghost {
-    background: rgba(20,16,15,0.5); color: var(--accentText);
-    border-color: rgba(242,239,239,0.35); margin-left: 10px;
+    background: transparent; color: var(--accentText); border-color: var(--line); margin-left: 10px;
   }
-  .tcc-cta--ghost:hover { border-color: var(--tcc); color: #ffffff; background: rgba(20,16,15,0.7); }
-  @media (max-width: 620px) { .tcc-cta--ghost { margin-left: 0; margin-top: 10px; } }
-
-  @media (max-width: 900px) {
-    .tcc-hero__inner { min-height: 540px; padding: 150px 24px 44px; }
-    .tcc-hero__photo { background-position: center 24%; }
-    .tcc-hero__photo::after {
-      background: linear-gradient(180deg,
-        rgba(20,16,15,0.22) 0%,
-        rgba(20,16,15,0.38) 30%,
-        rgba(20,16,15,0.90) 66%,
-        rgba(20,16,15,0.98) 100%);
-    }
-    .tcc-hero__mark { max-height: 74px; }
-    .tcc-hero__credit { position: static; margin: 18px 0 0; }
+  .tcc-cta--ghost:hover { border-color: var(--tcc); color: #ffffff; background: transparent; }
+  @media (max-width: 620px) {
+    .tcc-cta--ghost { margin-left: 0; margin-top: 10px; }
+    .tcc-hero__mark { max-height: 72px; }
+    .ab-shot { padding: 0 16px; }
   }
 
   /* ---------- shared section furniture ---------- */
@@ -354,8 +320,12 @@
   <a class="bb-back" href="/">&larr; All Pathways</a>
 </div>
 
+<figure class="ab-shot">
+  <img class="ab-shot__img" src="/brand/4994E1B7-60A8-4FD1-9C36-14867A8F959B.jpeg" alt="The BirdBox Coaching team">
+  <figcaption class="ab-shot__credit">The BirdBox Coaching team</figcaption>
+</figure>
+
 <header class="tcc-hero">
-  <div class="tcc-hero__photo" aria-hidden="true"></div>
   <div class="tcc-hero__inner">
     <img class="tcc-hero__mark" src="/brand/birdbox-mark.png" alt="BirdBox Coaching">
     <p class="l1-label">About BirdBox Coaching</p>
@@ -366,7 +336,6 @@
       <a class="tcc-cta" href="#mission">Our Mission &rarr;</a>
       <a class="tcc-cta tcc-cta--ghost" href="#ecosystem">The BirdBox Ecosystem &rarr;</a>
     </div>
-    <p class="tcc-hero__credit">The BirdBox Coaching team</p>
   </div>
 </header>
 
