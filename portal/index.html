@@ -3100,6 +3100,47 @@ async function callAdmin(payload) {
   return data;
 }
 
+// Signed links last an hour and are asked for once per photo, so a
+// picker of 28 coaches does not make 28 requests every time it opens.
+const photoUrls = new Map();
+
+async function coachPhotoUrl(path) {
+  if (!path) return null;
+  if (path.startsWith("/")) return path;
+  if (photoUrls.has(path)) return photoUrls.get(path);
+
+  const { data } = await db.storage
+    .from("staff-photos").createSignedUrl(path, 3600);
+  const url = data && data.signedUrl ? data.signedUrl : null;
+  photoUrls.set(path, url);
+  return url;
+}
+
+// Initials until the photo arrives, so the row does not jump about.
+function avatar(person, size = 30) {
+  const el = document.createElement("span");
+  el.style.cssText =
+    `flex:none;width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;` +
+    "background:#e6e3de;color:var(--muted);display:grid;place-items:center;" +
+    `font-size:${Math.round(size * 0.38)}px;font-weight:700;letter-spacing:0.02em`;
+
+  el.textContent = String(person.full_name || "")
+    .split(/\s+/).filter(Boolean).slice(0, 2)
+    .map((w) => w[0]).join("").toUpperCase();
+
+  coachPhotoUrl(person.photo_path).then((url) => {
+    if (!url) return;
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = "";
+    img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block";
+    img.onerror = () => {};
+    img.onload = () => { el.textContent = ""; el.append(img); };
+  });
+
+  return el;
+}
+
 function renderCoachPicker(box, assigned) {
   box.innerHTML = "";
   for (const s of staffList) {
@@ -3114,6 +3155,9 @@ function renderCoachPicker(box, assigned) {
         <option value="assistant">Assistant</option>
       </select>`;
     row.querySelector(".cname").textContent = s.full_name;
+    // A face next to the name, so coaches who have not met know who
+    // they are down to work with.
+    row.prepend(avatar(s));
     const sel = row.querySelector("select");
     sel.value = current;
     sel.dataset.staff = s.id;
@@ -4622,12 +4666,15 @@ function teamRow(person) {
 
   const who = document.createElement("span");
   who.className = "who";
+  who.style.cssText += ";display:flex;gap:0.7rem;align-items:center";
+  const text = document.createElement("span");
   const name = document.createElement("div");
   name.textContent = person.full_name;
   const sub = document.createElement("div");
   sub.className = "whenline";
   sub.textContent = [person.email, person.phone].filter(Boolean).join(" · ");
-  who.append(name, sub);
+  text.append(name, sub);
+  who.append(avatar(person, 38), text);
 
   const role = document.createElement("span");
   role.className = "pill " + (person.role === "admin" ? "lead" : "");
@@ -4971,7 +5018,7 @@ async function openInvoicesView() {
 
   if (!staffList.length) {
     const { data } = await db.from("staff")
-      .select("id, full_name, role").eq("active", true).order("full_name");
+      .select("id, full_name, role, photo_path").eq("active", true).order("full_name");
     staffList = data || [];
   }
   const pick = $("iv-coach");
@@ -5757,7 +5804,7 @@ async function wireAdmin(course, totalRegs, liveRegs) {
 
   if (!staffList.length) {
     const { data } = await db.from("staff")
-      .select("id, full_name, role").eq("active", true).order("full_name");
+      .select("id, full_name, role, photo_path").eq("active", true).order("full_name");
     staffList = data || [];
   }
   const { data: assignedRows } = await db.from("course_staff")
@@ -5980,7 +6027,7 @@ async function openForm() {
 
   if (!staffList.length) {
     const { data } = await db.from("staff")
-      .select("id, full_name, role").eq("active", true).order("full_name");
+      .select("id, full_name, role, photo_path").eq("active", true).order("full_name");
     staffList = data || [];
   }
   renderCoachPicker($("coachlist"), {});
