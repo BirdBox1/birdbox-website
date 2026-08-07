@@ -1897,6 +1897,15 @@ async function loadCourses() {
     if (error) { list.innerHTML = '<p class="empty">Could not load courses.</p>'; return; }
     all = data || [];
     $("courses-sub").textContent = "Every course across all brands.";
+
+    // An admin sees every course, but is also a coach on some of them.
+    // Without this, their own roles were never loaded, so anything that
+    // depends on being assigned — invoicing for a course you coached —
+    // simply never appeared.
+    myRoles = {};
+    const { data: mine } = await db.from("course_staff")
+      .select("course_id, role").eq("staff_id", me.id);
+    for (const r of mine || []) myRoles[r.course_id] = r.role;
   } else {
     const { data, error } = await db.from("course_staff")
       .select(`role, courses (${cols})`);
