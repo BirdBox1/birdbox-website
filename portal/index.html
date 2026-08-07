@@ -4391,6 +4391,13 @@ async function renderInvoiceAdmin(course) {
       files.append(pay);
     }
 
+    const wipe = document.createElement("button");
+    wipe.className = "btn ghost tiny danger";
+    wipe.type = "button";
+    wipe.textContent = "Delete";
+    wipe.onclick = () => deleteInvoice(inv, () => renderInvoiceAdmin(course));
+    files.append(wipe);
+
     row.append(who, state, amt, files);
     box.append(row);
 
@@ -4472,6 +4479,40 @@ function wirePaid() {
     paidInvoice = null; paidThen = null;
     if (done) done();
   };
+}
+
+// Removing an invoice entirely: the row, its receipts, and the files
+// behind them. Kept available even once paid, because the reason to
+// reach for it is usually that something landed on the wrong course —
+// or, before go-live, that it was only ever a test.
+async function deleteInvoice(inv, afterwards) {
+  const who = (inv.staff && inv.staff.full_name) || "this coach";
+
+  const { data: receipts } = await db
+    .from("coach_invoice_receipts")
+    .select("id, file_path")
+    .eq("invoice_id", inv.id);
+
+  const count = (receipts || []).length;
+
+  if (!window.confirm(
+    `Delete ${who}'s invoice?\n\n` +
+    `The invoice file${count ? ` and ${count} receipt${count === 1 ? "" : "s"}` : ""} ` +
+    `will be removed for good.` +
+    (inv.paid_at ? "\n\nThis one is marked as paid — you would lose that record." : "")
+  )) return;
+
+  const paths = [
+    ...(inv.invoice_path ? [inv.invoice_path] : []),
+    ...(receipts || []).map((r) => r.file_path).filter(Boolean),
+  ];
+  if (paths.length) await db.storage.from("coach-invoices").remove(paths);
+
+  await db.from("coach_invoice_receipts").delete().eq("invoice_id", inv.id);
+  const { error } = await db.from("coach_invoices").delete().eq("id", inv.id);
+
+  if (error) { window.alert("Could not delete it: " + error.message); return; }
+  if (afterwards) afterwards();
 }
 
 /* ---------- every invoice, across every course ---------- */
@@ -4634,6 +4675,13 @@ async function runInvoiceSearch() {
       pay.onclick = () => openPaid(inv, runInvoiceSearch);
       files.append(pay);
     }
+
+    const wipe = document.createElement("button");
+    wipe.className = "btn ghost tiny danger";
+    wipe.type = "button";
+    wipe.textContent = "Delete";
+    wipe.onclick = () => deleteInvoice(inv, runInvoiceSearch);
+    files.append(wipe);
 
     row.append(who, state, amt, files);
     card.append(row);
