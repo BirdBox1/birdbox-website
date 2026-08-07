@@ -67,7 +67,15 @@ async function invite({ email, fullName, role }, me) {
 
   if (!address || !address.includes("@")) return json({ error: "A valid email is needed." }, 400);
   if (!name) return json({ error: "A name is needed." }, 400);
-  if (!["admin", "coach"].includes(role)) return json({ error: "Choose a role." }, 400);
+  // The four values staff_role actually accepts. Checked here rather
+  // than trusted from the browser, and named explicitly so a wrong one
+  // is refused with a readable message instead of a Postgres enum error.
+  // Whether somebody leads or assists belongs to a course, not to the
+  // person — the same coach does both. That lives in course_staff.
+  const ROLES = ["admin", "coach", "support"];
+  if (!ROLES.includes(role)) {
+    return json({ error: `Choose a role. It must be one of: ${ROLES.join(", ")}.` }, 400);
+  }
 
   // Somebody already on the team, perhaps deactivated rather than
   // removed. Reviving them keeps their history on past courses.
