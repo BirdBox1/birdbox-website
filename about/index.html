@@ -171,16 +171,16 @@
   .l1-pull p { font-size: 15px; line-height: 1.6; color: #C9C4C5; margin: 0; max-width: 62ch; }
 
   /* ---------- photo band behind story and values ----------
-     Same treatment as the Level 1 pages: a dark gradient sits over the
-     photo so text stays legible. Panels inside stay opaque, so the
-     photo reads in the gaps between them. */
+     A dark gradient sits over the photo so text stays legible. Lower
+     the two opacity values to lighten it, raise them to darken. Below
+     about 0.70 the body text starts to fight the photo. */
   .ab-band {
     position: relative;
     border: 1px solid var(--line);
     padding: 8px 26px 30px;
     margin-top: 34px;
     background-image:
-      linear-gradient(180deg, rgba(20,16,15,0.90) 0%, rgba(20,16,15,0.94) 100%),
+      linear-gradient(180deg, rgba(20,16,15,0.78) 0%, rgba(20,16,15,0.84) 100%),
       url("/brand/NG-6524.jpg");
     background-size: cover;
     background-position: center;
@@ -196,7 +196,7 @@
   }
   .ab-statement p {
     font-size: clamp(19px, 2.8vw, 30px); font-weight: 800; line-height: 1.3;
-    letter-spacing: -0.01em; margin: 0 auto; max-width: 24ch;
+    letter-spacing: -0.01em; margin: 0 auto; max-width: 30ch;
   }
   .ab-statement em { font-style: normal; color: var(--accentText); }
 
@@ -442,7 +442,7 @@
   </div>
 
   <div class="ab-statement">
-    <p>Education doesn&rsquo;t change coaching.<br><em>Better coaching changes lives.</em></p>
+    <p>The standard is the minimum.<br><em>Great coaches don&rsquo;t hold it &mdash; they go far beyond it.</em></p>
   </div>
 
   <section class="l1-section" id="mission">
