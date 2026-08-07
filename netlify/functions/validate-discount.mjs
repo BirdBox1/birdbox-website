@@ -46,6 +46,7 @@ export default async (req) => {
       discount_cents: result.discount,
       total_cents: result.total,
       deposit_cents: result.deposit,
+      free: !!result.free,
     });
   } catch (err) {
     console.error("validate-discount failed:", err);
@@ -112,7 +113,16 @@ export async function priceWithDiscount(course, code) {
   if (discount > full) discount = full;
   const total = full - discount;
 
-  if (total < 100) {
+  // A code that covers the whole price is a free place — a host claiming
+  // one of theirs, or somebody a gym has paid for upfront. That is not
+  // a payment at all, so it skips Stripe entirely rather than trying to
+  // charge zero, which Stripe refuses.
+  const free = total === 0;
+
+  // Anything above zero still has to clear Stripe's minimum. A code
+  // leaving 40 cents to pay would fail at checkout with a far worse
+  // message than this one.
+  if (!free && total < 100) {
     return { error: "That code cannot be used on this course" };
   }
 
@@ -122,7 +132,7 @@ export async function priceWithDiscount(course, code) {
     ? Math.min(course.deposit_cents, total)
     : Math.round(total * DEPOSIT_RATE);
 
-  return { row, discount, total, deposit };
+  return { row, discount, total, deposit, free };
 }
 
 function json(body, status = 200) {
