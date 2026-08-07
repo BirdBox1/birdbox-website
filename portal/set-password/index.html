@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set your password — BirdBox Coaching</title>
+<style>
+  :root {
+    --ink: #16181b; --paper: #f4f3f0; --card: #fff;
+    --rule: #e0ddd7; --muted: #6c7178; --accent: #2f7fd0;
+    --good: #1f8a54; --bad: #b3261e;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+  }
+  .box {
+    max-width: 23rem; margin: 3.5rem auto; background: var(--card);
+    border: 1px solid var(--rule); border-radius: 6px; padding: 1.75rem;
+  }
+  .mark { width: 46px; height: 46px; margin-bottom: 1rem; }
+  .mark img { width: 100%; height: 100%; object-fit: contain; }
+  h1 { font-size: 1.2rem; margin: 0 0 0.3rem; font-weight: 600; letter-spacing: -0.01em; }
+  p.sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.25rem; }
+  label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .hint { font-weight: 400; color: var(--muted); font-size: 0.78rem; }
+  input[type=password] {
+    width: 100%; font: inherit; padding: 0.55rem 0.65rem;
+    border: 1px solid var(--rule); border-radius: 4px; background: #fff;
+  }
+  input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .field { margin-bottom: 1rem; }
+  .btn {
+    font: inherit; font-weight: 600; background: var(--ink); color: #fff;
+    border: 0; border-radius: 4px; padding: 0.6rem 1.1rem; cursor: pointer; width: 100%;
+  }
+  .btn:hover { background: #000; }
+  .btn[disabled] { opacity: 0.5; cursor: default; }
+  .msg { font-size: 0.85rem; margin-top: 0.9rem; min-height: 1.2em; }
+  .msg.err { color: var(--bad); }
+  .msg.ok { color: var(--good); }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="box">
+  <div class="mark"><img src="/brand/birdBox.png" alt="BirdBox"></div>
+  <h1 id="head">Set your password</h1>
+  <p class="sub" id="sub">Choose something you will remember. This is how you sign in to the coach portal from now on.</p>
+
+  <div id="form">
+    <div class="field">
+      <label for="pw">New password <span class="hint">at least 10 characters</span></label>
+      <input id="pw" type="password" autocomplete="new-password">
+    </div>
+    <div class="field">
+      <label for="pw2">Type it again</label>
+      <input id="pw2" type="password" autocomplete="new-password">
+    </div>
+    <button class="btn" id="go" type="button">Save and sign in</button>
+  </div>
+
+  <p class="msg" id="msg"></p>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient(
+  "https://yvdmazpxtpuvidlcifnq.supabase.co",
+  "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+);
+
+const $ = (id) => document.getElementById(id);
+
+// The link carries a one-time token which Supabase turns into a session
+// as the page loads. Without that session there is nothing to set a
+// password against, so the form is no use and says so.
+let ready = false;
+
+db.auth.onAuthStateChange((event, session) => {
+  if (session) {
+    ready = true;
+    $("msg").textContent = "";
+  }
+});
+
+setTimeout(async () => {
+  const { data: { session } } = await db.auth.getSession();
+  if (session) { ready = true; return; }
+
+  $("form").style.display = "none";
+  $("head").textContent = "That link has expired";
+  $("sub").textContent =
+    "Invite links work once and last 24 hours. Ask whoever set you up to send another — " +
+    "in the portal it is the Send the invite again button.";
+}, 1200);
+
+$("go").addEventListener("click", async () => {
+  const msg = $("msg");
+  const pw = $("pw").value;
+  const pw2 = $("pw2").value;
+
+  if (!ready) {
+    msg.className = "msg err";
+    msg.textContent = "This link is no longer valid. Ask for a fresh one.";
+    return;
+  }
+  if (pw.length < 10) {
+    msg.className = "msg err";
+    msg.textContent = "Use at least 10 characters — a short phrase works well.";
+    return;
+  }
+  if (pw !== pw2) {
+    msg.className = "msg err";
+    msg.textContent = "Those two do not match.";
+    return;
+  }
+
+  $("go").disabled = true;
+  msg.className = "msg";
+  msg.textContent = "Saving…";
+
+  const { error } = await db.auth.updateUser({ password: pw });
+
+  if (error) {
+    msg.className = "msg err";
+    msg.textContent = "Could not save that: " + error.message;
+    $("go").disabled = false;
+    return;
+  }
+
+  msg.className = "msg ok";
+  msg.textContent = "Saved. Taking you to the portal…";
+  setTimeout(() => { location.href = "/portal/"; }, 1200);
+});
+
+$("pw2").addEventListener("keydown", (e) => { if (e.key === "Enter") $("go").click(); });
+</script>
+
+</body>
+</html>
