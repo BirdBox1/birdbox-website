@@ -5139,7 +5139,28 @@ async function loadUnread() {
 
 // A count on the Messages button, so an unread message is visible from
 // anywhere in the portal rather than only when you go looking.
+// A red count on the Blog button when posts are waiting for review,
+// so a submission is visible from the portal rather than only once
+// somebody opens the blog. Admin only — a coach has nothing to review.
+async function refreshBlogFlag() {
+  const link = $("bloglink");
+  link.textContent = "Blog";
+  if (!isAdmin()) return;
+
+  const { count, error } = await db.from("blog_posts")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "submitted");
+
+  if (error || !count) return;
+
+  const flag = document.createElement("span");
+  flag.className = "unread-flag";
+  flag.textContent = count > 9 ? "9+" : String(count);
+  link.append(flag);
+}
+
 async function refreshUnreadFlag() {
+
   const total = await loadUnread();
   const btn = $("messagesbtn");
   btn.textContent = "Messages";
