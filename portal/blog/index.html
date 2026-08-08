@@ -1,1050 +1,385 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Blog — BirdBox Coaching</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog | BirdBox Coaching</title>
+<meta name="description" content="Coaching articles from the BirdBox Coaching team &mdash; gymnastics, methodology, programming and the craft of coaching.">
 <style>
   :root {
-    --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
-    --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0;
-    --good:#1f8a54; --warn:#b4610f; --bad:#b3261e;
+    --paper: #14100F;
+    --panel: #1C1719;
+    --ink: #F2EFEF;
+    --muted: #8A8385;
+    --line: #342F31;
+    --tcc: #4FA8DE;
+    --accentText: #6FB9E8;
   }
-  *,*::before,*::after{box-sizing:border-box}
-  body{margin:0;background:var(--paper);color:var(--ink);
-    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  img { display: block; }
+  .bb-wrap { max-width: 1320px; margin: 0 auto; padding: 0 24px; }
 
-  .bar{background:var(--shell);color:#fff;padding:0.7rem 1.25rem;
-    display:flex;align-items:center;justify-content:space-between;gap:1rem}
-  .bar .left{display:flex;align-items:center;gap:0.75rem;min-width:0}
-  .mark{width:34px;height:34px;border-radius:4px;background:#fff;
-    display:grid;place-items:center;flex:none}
-  .mark img{width:26px;height:26px;object-fit:contain;display:block}
-  .bar .brandname{font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;
-    color:#9aa1a9;white-space:nowrap}
-  .bar a{font:inherit;font-size:0.8rem;color:#cfd4d9;border:1px solid #33373c;
-    padding:0.3rem 0.7rem;border-radius:3px;text-decoration:none;white-space:nowrap}
-  .bar a:hover{color:#fff;border-color:#55595e}
+  .bb-topbar {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 28px;
+    padding: 14px 24px; border-bottom: 1px solid var(--line);
+    font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase;
+    position: relative; z-index: 3;
+  }
+  .bb-topbar a { color: #ADA6A8; text-decoration: none; }
+  .bb-topbar a:hover { color: #ffffff; }
+  .bb-topbar a.is-active { color: #ffffff; }
 
-  .wrap{max-width:56rem;margin:0 auto;padding:1.5rem 1.25rem 5rem}
-  h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0 0 0.2rem;font-weight:600}
-  .sub{color:var(--muted);font-size:0.9rem;margin:0 0 1.25rem}
-  .back{display:inline-block;font-size:0.85rem;color:var(--accent);
-    text-decoration:none;margin-bottom:1rem;cursor:pointer;background:none;border:0;
-    font-family:inherit;padding:0}
-  .back:hover{text-decoration:underline}
+  .bb-backbar { padding: 12px 24px 0; max-width: 1320px; margin: 0 auto; width: 100%; }
+  .bb-back {
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 7px 15px; border: 1px solid var(--line); color: #ADA6A8;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; text-decoration: none;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  .bb-back:hover { color: #ffffff; border-color: var(--tcc); }
 
-  .headrow{display:flex;align-items:flex-start;justify-content:space-between;
-    gap:1rem;margin-bottom:1rem;flex-wrap:wrap}
+  /* ---------- header ---------- */
+  .bl-head { padding: 40px 0 8px; }
+  .bl-eyebrow {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accentText); margin: 0 0 10px;
+  }
+  .bl-title {
+    font-size: clamp(28px, 4vw, 44px); font-weight: 800;
+    letter-spacing: -0.02em; text-transform: uppercase; margin: 0 0 14px;
+  }
+  .bl-lede {
+    font-size: 17px; line-height: 1.6; color: #C9C4C5;
+    margin: 0 0 34px; max-width: 62ch;
+  }
 
-  .tabs{display:flex;gap:0.4rem;margin-bottom:1.25rem;border-bottom:1px solid var(--rule)}
-  .tab{font:inherit;font-size:0.88rem;font-weight:600;background:none;border:0;
-    border-bottom:2px solid transparent;color:var(--muted);
-    padding:0.5rem 0.15rem;margin-right:1.1rem;cursor:pointer;white-space:nowrap}
-  .tab:hover{color:var(--ink)}
-  .tab.on{color:var(--ink);border-bottom-color:var(--ink)}
-  .tab .n{display:inline-grid;place-items:center;min-width:1.1rem;height:1.1rem;
-    padding:0 0.28rem;margin-left:0.35rem;border-radius:999px;
-    background:var(--bad);color:#fff;font-size:0.66rem;font-weight:700}
-  .tab .n:empty{display:none}
+  /* ---------- the lead article ----------
+     The newest post gets the width, because a blog with three posts
+     on it should not look like a blog with thirty. */
+  .bl-lead {
+    display: grid; grid-template-columns: 1.15fr 1fr; gap: 0;
+    border: 1px solid var(--line); background: var(--panel);
+    overflow: hidden; text-decoration: none; color: var(--ink);
+    margin-bottom: 16px;
+    transition: border-color 0.2s ease;
+  }
+  .bl-lead:hover { border-color: var(--tcc); }
+  .bl-lead__media { position: relative; min-height: 300px; background: #241E20; }
+  .bl-lead__media img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  }
+  .bl-lead__body { padding: 30px 32px; display: flex; flex-direction: column; }
+  .bl-lead__kind {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--accentText); margin: 0 0 12px;
+  }
+  .bl-lead__name {
+    font-size: clamp(21px, 2.6vw, 30px); font-weight: 800;
+    letter-spacing: -0.015em; line-height: 1.15; margin: 0 0 14px;
+  }
+  .bl-lead__stand {
+    font-size: 16px; line-height: 1.6; color: #C9C4C5; margin: 0 0 20px;
+  }
 
-  .btn{font:inherit;font-weight:600;background:var(--ink);color:#fff;border:0;
-    border-radius:4px;padding:0.6rem 1.1rem;cursor:pointer}
-  .btn:hover{background:#000}
-  .btn[disabled]{opacity:0.45;cursor:default}
-  .btn.small{font-size:0.82rem;padding:0.4rem 0.8rem}
-  .btn.tiny{font-size:0.78rem;padding:0.3rem 0.6rem}
-  .btn.ghost{background:none;color:var(--ink);border:1px solid var(--rule);font-weight:500}
-  .btn.ghost:hover{background:#fff;border-color:var(--muted)}
-  .btn.go{background:var(--good)}
-  .btn.go:hover{background:#176e43}
-  .btn.danger{background:none;color:var(--bad);border:1px solid #e6c9c7;font-weight:500}
-  .btn.danger:hover{background:#fdf4f3;border-color:var(--bad)}
+  /* ---------- the rest ---------- */
+  .bl-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    padding-bottom: 8px;
+  }
+  .bl-card {
+    display: flex; flex-direction: column;
+    border: 1px solid var(--line); background: var(--panel);
+    overflow: hidden; text-decoration: none; color: var(--ink);
+    transition: border-color 0.2s ease;
+  }
+  .bl-card:hover { border-color: var(--tcc); }
+  .bl-card__media { position: relative; aspect-ratio: 16 / 10; background: #241E20; }
+  .bl-card__media img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  }
+  .bl-card__body { padding: 20px 22px 22px; display: flex; flex-direction: column; flex: 1 1 auto; }
+  .bl-card__name {
+    font-size: 18px; font-weight: 800; letter-spacing: -0.01em;
+    line-height: 1.25; margin: 0 0 10px;
+  }
+  .bl-card__stand {
+    font-size: 14px; line-height: 1.55; color: #C9C4C5; margin: 0 0 16px;
+  }
 
-  .card{background:var(--card);border:1px solid var(--rule);border-radius:6px;
-    margin-bottom:0.7rem;overflow:hidden}
-  .row{display:flex;align-items:center;gap:0.9rem;width:100%;text-align:left;
-    font:inherit;background:none;border:0;padding:0.9rem 1.05rem;cursor:pointer}
-  .row:hover{background:#faf9f7}
-  .row .thumb{flex:none;width:56px;height:42px;border-radius:4px;overflow:hidden;
-    border:1px solid var(--rule);background:#eceae6}
-  .row .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-  .row .who{flex:1 1 auto;min-width:0}
-  .row .name{font-weight:650}
-  .row .meta{font-size:0.82rem;color:var(--muted)}
+  /* Shared by both the lead and the cards. */
+  .bl-by {
+    display: flex; align-items: center; gap: 10px; margin-top: auto;
+    padding-top: 14px; border-top: 1px solid var(--line);
+  }
+  .bl-face {
+    flex: none; width: 32px; height: 32px; border-radius: 50%;
+    overflow: hidden; background: #241E20; border: 1px solid var(--line);
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 800; color: var(--muted);
+  }
+  .bl-face img { width: 100%; height: 100%; object-fit: cover; }
+  .bl-who { font-size: 13px; font-weight: 700; }
+  .bl-when { font-size: 12px; color: var(--muted); }
 
-  .pill{display:inline-block;font-size:0.66rem;letter-spacing:0.09em;
-    text-transform:uppercase;padding:0.16rem 0.45rem;border:1px solid var(--rule);
-    border-radius:3px;color:var(--muted);white-space:nowrap}
-  .pill.draft{border-color:var(--muted);color:var(--muted)}
-  .pill.sub{border-color:var(--warn);color:var(--warn);font-weight:650}
-  .pill.ok{border-color:var(--accent);color:var(--accent);font-weight:650}
-  .pill.live{background:var(--good);border-color:var(--good);color:#fff;font-weight:700}
-  .pill.back{border-color:var(--bad);color:var(--bad);font-weight:650}
+  .bl-state {
+    border: 1px dashed var(--line); background: var(--panel);
+    padding: 60px 24px; text-align: center; color: var(--muted);
+    font-size: 15px; margin-bottom: 8px;
+  }
 
-  .panel{background:var(--card);border:1px solid var(--rule);border-radius:6px;
-    padding:1.25rem;margin-bottom:1rem}
-  .panel h3{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;
-    color:var(--muted);margin:0 0 0.9rem;font-weight:600}
+  .bl-close {
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 34px 24px; text-align: center; margin-top: 34px;
+  }
+  .bl-close h2 {
+    font-size: clamp(22px, 3vw, 30px); font-weight: 800;
+    text-transform: uppercase; margin: 0 0 10px;
+  }
+  .bl-close p {
+    font-size: 15px; color: #C9C4C5; margin: 0 auto 20px; max-width: 56ch;
+  }
+  .bb-cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 12px 24px; background: var(--tcc); color: #0C1116;
+    font-size: 12px; font-weight: 800; letter-spacing: 0.08em;
+    text-transform: uppercase; text-decoration: none; border: 1px solid var(--tcc);
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .bb-cta:hover { background: transparent; color: var(--accentText); }
 
-  label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.3rem}
-  .hint{font-weight:400;color:var(--muted);font-size:0.78rem}
-  input[type=text],input[type=url],textarea,select{width:100%;font:inherit;
-    padding:0.55rem 0.65rem;border:1px solid var(--rule);border-radius:4px;
-    background:#fff;color:var(--ink)}
-  textarea{min-height:6rem;resize:vertical;line-height:1.6}
-  .field{margin-bottom:1rem}
-  .grid2{display:grid;gap:1rem;grid-template-columns:1fr}
-  @media (min-width:34rem){.grid2{grid-template-columns:1fr 1fr}}
+  .bb-footer {
+    text-align: center; padding: 32px 24px 50px; font-size: 13px; color: #756F71;
+    border-top: 1px solid var(--line); margin-top: 34px; line-height: 1.7;
+  }
+  .bb-footer a { color: #8A8385; text-decoration: none; }
+  .bb-footer__staff {
+    display: block; margin-top: 10px; font-size: 12px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
 
-  /* ---- blocks ---- */
-  .blk{border:1px solid var(--rule);border-radius:6px;background:#fbfaf8;
-    padding:0.85rem 0.95rem;margin-bottom:0.7rem}
-  .blk__head{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem}
-  .blk__kind{font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;
-    color:var(--muted);font-weight:700;flex:1 1 auto}
-  .blk__acts{display:flex;gap:0.3rem;flex-wrap:wrap}
-  .blk input,.blk textarea{background:#fff}
-  .blk .cap{margin-top:0.5rem}
-  .blk__preview{margin-top:0.6rem;max-width:100%;border-radius:4px;
-    border:1px solid var(--rule);display:block}
-  .adder{display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.3rem}
-
-  .filebox{border:1px dashed var(--rule);border-radius:5px;padding:0.7rem 0.8rem;
-    background:#fff}
-  .filebox .name{font-size:0.82rem;color:var(--muted);margin-top:0.35rem}
-  .filebox .name.on{color:var(--good);font-weight:600}
-
-  .msg{font-size:0.85rem;margin-top:0.9rem;min-height:1.2em}
-  .msg.err{color:var(--bad)}
-  .msg.ok{color:var(--good)}
-  .empty{background:var(--card);border:1px dashed var(--rule);border-radius:6px;
-    padding:2rem 1.25rem;text-align:center;color:var(--muted);font-size:0.9rem}
-  .note{background:#fff8f0;border:1px solid #efd6b8;border-left:3px solid var(--warn);
-    border-radius:6px;padding:0.85rem 1rem;margin-bottom:1rem;font-size:0.9rem}
-  .note b{display:block;margin-bottom:0.2rem}
-
-  /* Everything that acts on the post lives here, so nothing important
-     is below the fold of a long form. */
-  .sticky{position:sticky;bottom:0;background:var(--paper);padding:0.9rem 0 1rem;
-    border-top:1px solid var(--rule);margin-top:1.25rem;
-    display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center}
-  .sticky .msg{margin:0;flex:1 1 100%}
-  .hidden{display:none!important}
+  @media (max-width: 1000px) {
+    .bl-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 780px) {
+    .bl-lead { grid-template-columns: 1fr; }
+    .bl-lead__media { min-height: 220px; }
+    .bl-lead__body { padding: 24px; }
+  }
+  @media (max-width: 620px) {
+    .bl-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
 
-<div class="bar">
-  <span class="left">
-    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
-    <span class="brandname">Blog</span>
-  </span>
-  <a href="/portal/">← Portal</a>
+<!-- Links are filled in by /nav.js so every page shares one nav. -->
+<nav class="bb-topbar"></nav>
+
+<div class="bb-backbar">
+  <a class="bb-back" href="/">&larr; Home</a>
 </div>
 
-<div class="wrap">
-  <div id="loading"><p class="sub">Loading…</p></div>
+<main class="bb-wrap">
 
-  <!-- ============ LIST ============ -->
-  <section id="view-list" class="hidden">
-    <div class="headrow">
-      <div>
-        <h1>Blog</h1>
-        <p class="sub" id="list-sub" style="margin:0"></p>
-      </div>
-      <button class="btn" id="newpost" type="button">Write a post</button>
-    </div>
+  <header class="bl-head">
+    <p class="bl-eyebrow">The BirdBox Blog</p>
+    <h1 class="bl-title">Coaching, Written Down</h1>
+    <p class="bl-lede">Articles from the BirdBox team &mdash; what we are learning on the floor, what the research says, and how to put both to work on Monday morning.</p>
+  </header>
 
-    <div class="tabs" id="tabs">
-      <button class="tab on" type="button" data-tab="mine">Mine</button>
-      <button class="tab hidden" type="button" data-tab="review" id="tab-review">
-        To review <span class="n" id="n-review"></span>
-      </button>
-      <button class="tab hidden" type="button" data-tab="all" id="tab-all">Everything</button>
-    </div>
+  <div id="bl-lead"></div>
+  <div class="bl-grid" id="bl-grid"></div>
+  <p class="bl-state" id="bl-state">Loading articles&hellip;</p>
 
-    <div id="postlist"></div>
-  </section>
+  <div class="bl-close">
+    <h2>Take It Further</h2>
+    <p>Reading is a start. Two days in a room with a coach who has done it is another thing entirely.</p>
+    <a class="bb-cta" href="/tcc">Explore Our Courses &rarr;</a>
+  </div>
 
-  <!-- ============ EDITOR ============ -->
-  <section id="view-post" class="hidden">
-    <button class="back" id="back-list" type="button">← All posts</button>
+</main>
 
-    <div class="note hidden" id="sent-back">
-      <b>Sent back for changes</b>
-      <span id="sent-back-why"></span>
-    </div>
+<footer class="bb-footer">
+  &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
+  <a class="bb-footer__staff" href="/portal/">Staff Login</a>
+</footer>
 
-    <div class="note hidden" id="locked">
-      <b>Waiting for review</b>
-      This has been submitted, so it cannot be edited until an admin either publishes it
-      or sends it back.
-    </div>
-
-    <div class="panel">
-      <h3>The post</h3>
-      <div class="field">
-        <label for="p-title">Title</label>
-        <input id="p-title" type="text" placeholder="Coaching the kipping pull-up">
-      </div>
-      <div class="field">
-        <label for="p-excerpt">Standfirst
-          <span class="hint">one or two sentences, shown on the blog list</span>
-        </label>
-        <textarea id="p-excerpt" style="min-height:4rem"></textarea>
-      </div>
-      <div class="field">
-        <label>Banner image <span class="hint">sits at the top of the post</span></label>
-        <div class="filebox">
-          <input id="p-hero-file" type="file" accept="image/*">
-          <div class="name" id="p-hero-name"></div>
-        </div>
-        <img class="blk__preview hidden" id="p-hero-preview" alt="">
-      </div>
-    </div>
-
-    <div class="panel">
-      <h3>The body</h3>
-      <p class="hint" style="margin:-0.5rem 0 0.9rem">
-        Build the post a block at a time, in the order it should read.
-      </p>
-      <div id="blocks"></div>
-      <div class="adder">
-        <button class="btn ghost tiny" type="button" data-add="heading">+ Heading</button>
-        <button class="btn ghost tiny" type="button" data-add="subheading">+ Subheading</button>
-        <button class="btn ghost tiny" type="button" data-add="text">+ Text</button>
-        <button class="btn ghost tiny" type="button" data-add="image">+ Image</button>
-        <button class="btn ghost tiny" type="button" data-add="video">+ Video</button>
-        <button class="btn ghost tiny" type="button" data-add="file">+ File or link</button>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h3>Author</h3>
-      <div class="grid2">
-        <div class="field">
-          <label for="p-author">Name</label>
-          <input id="p-author" type="text">
-        </div>
-        <div class="field">
-          <label>Photo <span class="hint">taken from your profile</span></label>
-          <div class="filebox">
-            <input id="p-authorphoto-file" type="file" accept="image/*">
-            <div class="name" id="p-authorphoto-name"></div>
-          </div>
-        </div>
-      </div>
-      <div class="field">
-        <label for="p-authorbio">About the author</label>
-        <textarea id="p-authorbio" style="min-height:5rem"></textarea>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h3>References</h3>
-      <div class="field" style="margin:0">
-        <label for="p-refs">Sources <span class="hint">optional, one per line</span></label>
-        <textarea id="p-refs" style="min-height:5rem"></textarea>
-      </div>
-    </div>
-
-    <div class="panel hidden" id="adminpanel">
-      <h3>Admin</h3>
-      <div class="field">
-        <label for="p-slug">Link
-          <span class="hint">the web address, permanent once published</span>
-        </label>
-        <input id="p-slug" type="text" spellcheck="false">
-        <p class="hint" id="p-url" style="margin:0.35rem 0 0"></p>
-      </div>
-      <div class="field">
-        <label for="p-note">Note back to the writer
-          <span class="hint">needed if you send it back — it is all they get</span>
-        </label>
-        <textarea id="p-note" style="min-height:4rem"></textarea>
-      </div>
-      <button class="btn danger small" id="delete" type="button">Delete this post</button>
-    </div>
-
-    <div class="sticky">
-      <span class="pill" id="p-status"></span>
-      <button class="btn" id="save" type="button">Save</button>
-      <button class="btn go" id="submit" type="button">Submit for approval</button>
-      <button class="btn go" id="publish" type="button">Publish</button>
-      <button class="btn ghost" id="unpublish" type="button">Take offline</button>
-      <button class="btn danger" id="sendback" type="button">Send back</button>
-      <span class="msg" id="p-msg"></span>
-    </div>
-  </section>
-</div>
+<script src="/nav.js"></script>
 
 <script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
-const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  const supabase = createClient(
+    "https://yvdmazpxtpuvidlcifnq.supabase.co",
+    "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+  );
 
-const $ = (id) => document.getElementById(id);
-const show = (n) => {
-  for (const v of ["list", "post"]) {
-    $("view-" + v).classList.toggle("hidden", v !== n);
-  }
-  $("loading").classList.add("hidden");
-  window.scrollTo({ top: 0 });
-};
+  const leadBox = document.getElementById("bl-lead");
+  const grid = document.getElementById("bl-grid");
+  const state = document.getElementById("bl-state");
 
-let me = null;
-let post = null;
-let blocks = [];
-let tab = "mine";
+  const fileUrl = (path) => path
+    ? supabase.storage.from("blog").getPublicUrl(path).data.publicUrl
+    : null;
 
-const isAdmin = () => !!(me && me.role === "admin");
+  const fmtDate = (iso) => iso
+    ? new Date(iso).toLocaleDateString("en-GB",
+        { day: "numeric", month: "long", year: "numeric" })
+    : "";
 
-const STATUS = {
-  draft:     { label: "draft",      cls: "draft" },
-  submitted: { label: "for review", cls: "sub" },
-  approved:  { label: "approved",   cls: "ok" },
-  published: { label: "live",       cls: "live" },
-  rejected:  { label: "sent back",  cls: "back" },
-};
+  const initials = (name) => String(name || "")
+    .split(/\s+/).filter(Boolean).slice(0, 2)
+    .map((w) => w[0]).join("").toUpperCase();
 
-const fmtWhen = (iso) => iso
-  ? new Date(iso).toLocaleDateString(undefined,
-      { day: "numeric", month: "short", year: "numeric" })
-  : "";
-
-// The bucket is public, because a published post is public anyway.
-const fileUrl = (path) => path
-  ? db.storage.from("blog").getPublicUrl(path).data.publicUrl
-  : null;
-
-start();
-
-async function start() {
-  const { data: { session } } = await db.auth.getSession();
-  if (!session) { location.href = "/portal/"; return; }
-
-  const { data: staff } = await db.from("staff")
-    .select("id, full_name, role, active, bio, photo_path")
-    .eq("id", session.user.id).maybeSingle();
-
-  if (!staff || !staff.active) { location.href = "/portal/"; return; }
-  me = staff;
-
-  $("tab-review").classList.toggle("hidden", !isAdmin());
-  $("tab-all").classList.toggle("hidden", !isAdmin());
-  $("list-sub").textContent = isAdmin()
-    ? "Write, review and publish."
-    : "Write a post and send it to an admin to publish.";
-
-  for (const btn of document.querySelectorAll(".tab")) {
-    btn.addEventListener("click", () => {
-      tab = btn.dataset.tab;
-      for (const b of document.querySelectorAll(".tab")) {
-        b.classList.toggle("on", b === btn);
-      }
-      loadList();
-    });
+  function face(name, path) {
+    const el = document.createElement("span");
+    el.className = "bl-face";
+    el.textContent = initials(name);
+    const url = fileUrl(path);
+    if (url) {
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "";
+      img.onload = () => { el.textContent = ""; el.append(img); };
+      img.onerror = () => {};
+    }
+    return el;
   }
 
-  await loadList();
-}
-
-/* ---------------- the list ---------------- */
-
-async function loadList() {
-  show("list");
-  const box = $("postlist");
-  box.innerHTML = '<p class="empty">Loading…</p>';
-
-  // The policies already decide what can be read. This only picks
-  // which of those to show.
-  let q = db.from("blog_posts")
-    .select("id, slug, title, excerpt, hero_path, status, author_name, created_by, updated_at, published_at")
-    .order("updated_at", { ascending: false });
-
-  if (tab === "mine") q = q.eq("created_by", me.id);
-  else if (tab === "review") q = q.in("status", ["submitted", "approved"]);
-
-  const { data, error } = await q;
-  if (error) {
-    box.innerHTML = '<p class="empty">Could not load posts: ' + error.message + "</p>";
-    return;
+  function byline(post) {
+    const by = document.createElement("span");
+    by.className = "bl-by";
+    by.append(face(post.author_name, post.author_photo_path));
+    const who = document.createElement("span");
+    const name = document.createElement("span");
+    name.className = "bl-who";
+    name.style.display = "block";
+    name.textContent = post.author_name || "BirdBox Coaching";
+    const when = document.createElement("span");
+    when.className = "bl-when";
+    when.style.display = "block";
+    when.textContent = fmtDate(post.published_at);
+    who.append(name, when);
+    by.append(who);
+    return by;
   }
 
-  const rows = data || [];
-  if (isAdmin()) await countWaiting();
+  function lead(post) {
+    const a = document.createElement("a");
+    a.className = "bl-lead";
+    a.href = "/blog/" + post.slug + "/";
 
-  if (!rows.length) {
-    box.innerHTML = '<p class="empty">' + (
-      tab === "review" ? "Nothing waiting for review."
-      : tab === "mine" ? "You have not written anything yet."
-      : "No posts yet."
-    ) + "</p>";
-    return;
-  }
-
-  box.innerHTML = "";
-  for (const r of rows) {
-    const el = document.createElement("div");
-    el.className = "card";
-    el.innerHTML = `<button class="row" type="button">
-      <span class="thumb"></span>
-      <span class="who"><span class="name"></span><span class="meta"></span></span>
-      <span class="pill"></span></button>`;
-
-    const url = fileUrl(r.hero_path);
+    const media = document.createElement("span");
+    media.className = "bl-lead__media";
+    const url = fileUrl(post.hero_path);
     if (url) {
       const img = document.createElement("img");
       img.src = url;
       img.alt = "";
       img.onerror = () => img.remove();
-      el.querySelector(".thumb").append(img);
+      media.append(img);
     }
 
-    el.querySelector(".name").textContent = r.title || "Untitled";
-    el.querySelector(".meta").textContent = [
-      r.author_name,
-      r.status === "published" ? "published " + fmtWhen(r.published_at)
-        : "edited " + fmtWhen(r.updated_at),
-    ].filter(Boolean).join(" · ");
+    const body = document.createElement("span");
+    body.className = "bl-lead__body";
 
-    const s = STATUS[r.status] || STATUS.draft;
-    const pill = el.querySelector(".pill");
-    pill.textContent = s.label;
-    pill.className = "pill " + s.cls;
+    const kind = document.createElement("span");
+    kind.className = "bl-lead__kind";
+    kind.textContent = "Latest";
 
-    el.querySelector(".row").addEventListener("click", () => openPost(r.id));
-    box.append(el);
-  }
-}
+    const name = document.createElement("span");
+    name.className = "bl-lead__name";
+    name.textContent = post.title || "Untitled";
 
-// A red count on the review tab, so a submission is visible without
-// having to go looking for it.
-async function countWaiting() {
-  const { count } = await db.from("blog_posts")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "submitted");
-  $("n-review").textContent = count ? String(count) : "";
-}
+    body.append(kind, name);
 
-/* ---------------- opening one ---------------- */
-
-$("newpost").addEventListener("click", createPost);
-$("back-list").addEventListener("click", loadList);
-
-// The row is created before anything is typed, so an image can be
-// uploaded against a real post id rather than held in the browser.
-async function createPost() {
-  const { data, error } = await db.from("blog_posts").insert({
-    title: "",
-    slug: "draft-" + Date.now(),
-    blocks: [],
-    status: "draft",
-    created_by: me.id,
-    author_staff_id: me.id,
-    author_name: me.full_name || "",
-    author_bio: me.bio || "",
-    author_photo_path: me.photo_path || null,
-  }).select("*").single();
-
-  if (error) { window.alert("Could not start a post: " + error.message); return; }
-  openRow(data);
-}
-
-async function openPost(id) {
-  const { data, error } = await db.from("blog_posts")
-    .select("*").eq("id", id).maybeSingle();
-  if (error || !data) { window.alert("Could not open that post."); return; }
-  openRow(data);
-}
-
-function openRow(row) {
-  post = row;
-  blocks = Array.isArray(row.blocks) ? row.blocks.slice() : [];
-  show("post");
-
-  $("p-title").value = row.title || "";
-  $("p-excerpt").value = row.excerpt || "";
-  $("p-author").value = row.author_name || "";
-  $("p-authorbio").value = row.author_bio || "";
-  $("p-refs").value = row.references_text || "";
-  $("p-slug").value = row.slug || "";
-  $("p-note").value = row.admin_note || "";
-  $("p-msg").textContent = "";
-  $("p-msg").className = "msg";
-
-  showHero();
-  showAuthorPhoto();
-  renderBlocks();
-  applyLock();
-  updateUrlHint();
-}
-
-// A submitted post is out of the writer's hands until it comes back.
-// Admins are never locked out.
-function locked() {
-  return !isAdmin() && (post.status === "submitted" || post.status === "published");
-}
-
-function applyLock() {
-  if (!post) return;
-  const off = locked();
-  const admin = isAdmin();
-
-  for (const id of ["p-title", "p-excerpt", "p-author", "p-authorbio", "p-refs",
-                    "p-hero-file", "p-authorphoto-file"]) {
-    $(id).disabled = off;
-  }
-  for (const b of document.querySelectorAll(".adder button")) b.disabled = off;
-  for (const el of document.querySelectorAll("#blocks input, #blocks textarea, #blocks button, #blocks select")) {
-    el.disabled = off;
-  }
-
-  const s = STATUS[post.status] || STATUS.draft;
-  $("p-status").textContent = s.label;
-  $("p-status").className = "pill " + s.cls;
-
-  $("save").classList.toggle("hidden", off);
-
-  // Submitting is a writer's action. An admin publishes instead, so
-  // showing them both would only be confusing.
-  $("submit").classList.toggle("hidden", admin || off || post.status === "published");
-
-  $("publish").classList.toggle("hidden", !admin);
-  $("publish").textContent = post.status === "published" ? "Republish" : "Publish";
-  $("unpublish").classList.toggle("hidden", !admin || post.status !== "published");
-  $("sendback").classList.toggle("hidden",
-    !admin || post.status === "draft" || post.status === "rejected");
-
-  $("locked").classList.toggle("hidden", !(off && post.status === "submitted"));
-
-  const back = post.status === "rejected" && post.admin_note;
-  $("sent-back").classList.toggle("hidden", !back);
-  if (back) $("sent-back-why").textContent = post.admin_note;
-
-  $("adminpanel").classList.toggle("hidden", !admin);
-}
-
-function updateUrlHint() {
-  const s = ($("p-slug").value || "").trim();
-  $("p-url").textContent = s ? location.origin + "/blog/" + s + "/" : "";
-}
-$("p-slug").addEventListener("input", updateUrlHint);
-
-/* ---------------- the blocks ---------------- */
-
-const BLOCK_NAME = {
-  heading: "Heading",
-  subheading: "Subheading",
-  text: "Text",
-  image: "Image",
-  video: "Video",
-  file: "File or link",
-};
-
-for (const btn of document.querySelectorAll(".adder button")) {
-  btn.addEventListener("click", () => {
-    const kind = btn.dataset.add;
-    const fresh = { type: kind };
-    if (kind === "image") fresh.width = "full";
-    if (kind === "video") fresh.kind = "embed";
-    blocks.push(fresh);
-    renderBlocks();
-    applyLock();
-    const last = $("blocks").lastElementChild;
-    if (last) last.scrollIntoView({ behavior: "smooth", block: "center" });
-  });
-}
-
-function renderBlocks() {
-  const box = $("blocks");
-  box.innerHTML = "";
-
-  if (!blocks.length) {
-    const p = document.createElement("p");
-    p.className = "hint";
-    p.textContent = "Nothing yet — add a heading or a paragraph to start.";
-    box.append(p);
-    return;
-  }
-
-  blocks.forEach((b, i) => box.append(blockEditor(b, i)));
-}
-
-function blockEditor(b, i) {
-  const el = document.createElement("div");
-  el.className = "blk";
-
-  const head = document.createElement("div");
-  head.className = "blk__head";
-  const kind = document.createElement("span");
-  kind.className = "blk__kind";
-  kind.textContent = BLOCK_NAME[b.type] || b.type;
-  const acts = document.createElement("span");
-  acts.className = "blk__acts";
-
-  const act = (label, fn, cls) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "btn " + (cls || "ghost tiny");
-    btn.textContent = label;
-    btn.onclick = fn;
-    acts.append(btn);
-  };
-
-  act("↑", () => { if (i > 0) swap(i, i - 1); });
-  act("↓", () => { if (i < blocks.length - 1) swap(i, i + 1); });
-  act("Remove", () => {
-    if (!window.confirm("Remove this block?")) return;
-    blocks.splice(i, 1);
-    renderBlocks();
-    applyLock();
-  }, "ghost tiny danger");
-
-  head.append(kind, acts);
-  el.append(head);
-
-  if (b.type === "heading" || b.type === "subheading") {
-    const input = document.createElement("input");
-    input.type = "text";
-    input.value = b.text || "";
-    input.placeholder = b.type === "heading" ? "Section heading" : "Smaller heading";
-    input.addEventListener("input", () => { b.text = input.value; });
-    el.append(input);
-  }
-
-  if (b.type === "text") {
-    const ta = document.createElement("textarea");
-    ta.value = b.text || "";
-    ta.placeholder = "Write the paragraph here. A blank line starts a new paragraph.";
-    ta.style.minHeight = "8rem";
-    ta.addEventListener("input", () => { b.text = ta.value; });
-    el.append(ta);
-  }
-
-  if (b.type === "image") {
-    const wrap = document.createElement("div");
-    wrap.className = "filebox";
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    const name = document.createElement("div");
-    name.className = "name" + (b.path ? " on" : "");
-    name.textContent = b.path ? "Uploaded." : "";
-    wrap.append(input, name);
-    el.append(wrap);
-
-    const preview = document.createElement("img");
-    preview.className = "blk__preview";
-    if (b.path) preview.src = fileUrl(b.path);
-    else preview.classList.add("hidden");
-    el.append(preview);
-
-    input.addEventListener("change", async () => {
-      const file = input.files[0];
-      if (!file) return;
-      name.className = "name";
-      name.textContent = "Uploading…";
-      try {
-        b.path = await uploadFile(file, "image");
-        name.className = "name on";
-        name.textContent = "Uploaded.";
-        preview.src = fileUrl(b.path);
-        preview.classList.remove("hidden");
-      } catch (err) {
-        name.className = "name";
-        name.textContent = "Could not upload: " + err.message;
-      }
-      input.value = "";
-    });
-
-    const size = document.createElement("div");
-    size.className = "cap";
-    size.innerHTML = "<label>Width</label>";
-    const sel = document.createElement("select");
-    for (const [v, t] of [["full", "Full width — a banner across the post"],
-                          ["inline", "Inline — sits within the text"]]) {
-      const o = document.createElement("option");
-      o.value = v; o.textContent = t;
-      sel.append(o);
+    if (post.excerpt) {
+      const stand = document.createElement("span");
+      stand.className = "bl-lead__stand";
+      stand.textContent = post.excerpt;
+      body.append(stand);
     }
-    sel.value = b.width || "full";
-    sel.addEventListener("change", () => { b.width = sel.value; });
-    size.append(sel);
-    el.append(size);
 
-    el.append(captionField(b));
+    body.append(byline(post));
+    a.append(media, body);
+    return a;
   }
 
-  if (b.type === "video") {
-    const pick = document.createElement("div");
-    pick.innerHTML = "<label>Where the video is</label>";
-    const sel = document.createElement("select");
-    for (const [v, t] of [["embed", "YouTube or Vimeo link"],
-                          ["file", "Upload a video file"]]) {
-      const o = document.createElement("option");
-      o.value = v; o.textContent = t;
-      sel.append(o);
+  function card(post) {
+    const a = document.createElement("a");
+    a.className = "bl-card";
+    a.href = "/blog/" + post.slug + "/";
+
+    const media = document.createElement("span");
+    media.className = "bl-card__media";
+    const url = fileUrl(post.hero_path);
+    if (url) {
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "";
+      img.loading = "lazy";
+      img.onerror = () => img.remove();
+      media.append(img);
     }
-    sel.value = b.kind || "embed";
-    pick.append(sel);
-    el.append(pick);
 
-    const holder = document.createElement("div");
-    holder.style.marginTop = "0.6rem";
-    el.append(holder);
+    const body = document.createElement("span");
+    body.className = "bl-card__body";
 
-    const drawInner = () => {
-      holder.innerHTML = "";
-      if (sel.value === "embed") {
-        const input = document.createElement("input");
-        input.type = "url";
-        input.placeholder = "https://www.youtube.com/watch?v=…";
-        input.value = b.url || "";
-        input.addEventListener("input", () => { b.url = input.value.trim(); });
-        holder.append(input);
-      } else {
-        const wrap = document.createElement("div");
-        wrap.className = "filebox";
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "video/*";
-        const name = document.createElement("div");
-        name.className = "name" + (b.path ? " on" : "");
-        name.textContent = b.path ? "Uploaded." : "";
-        wrap.append(input, name);
-        holder.append(wrap);
+    const name = document.createElement("span");
+    name.className = "bl-card__name";
+    name.textContent = post.title || "Untitled";
+    body.append(name);
 
-        input.addEventListener("change", async () => {
-          const file = input.files[0];
-          if (!file) return;
-          name.className = "name";
-          name.textContent = "Uploading — a video takes a while…";
-          try {
-            b.path = await uploadFile(file, "video");
-            name.className = "name on";
-            name.textContent = "Uploaded.";
-          } catch (err) {
-            name.className = "name";
-            name.textContent = "Could not upload: " + err.message;
-          }
-          input.value = "";
-        });
-      }
-    };
+    if (post.excerpt) {
+      const stand = document.createElement("span");
+      stand.className = "bl-card__stand";
+      stand.textContent = post.excerpt;
+      body.append(stand);
+    }
 
-    sel.addEventListener("change", () => { b.kind = sel.value; drawInner(); });
-    drawInner();
-
-    el.append(captionField(b));
+    body.append(byline(post));
+    a.append(media, body);
+    return a;
   }
 
-  if (b.type === "file") {
-    const lab = document.createElement("div");
-    lab.innerHTML = '<label>What it is called <span class="hint">the words people tap</span></label>';
-    const label = document.createElement("input");
-    label.type = "text";
-    label.value = b.label || "";
-    label.placeholder = "Download the progression sheet";
-    label.addEventListener("input", () => { b.label = label.value; });
-    lab.append(label);
-    el.append(lab);
+  async function load() {
+    // Only published posts are readable by an anonymous visitor, so a
+    // draft cannot appear here even by accident.
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .select("slug, title, excerpt, hero_path, author_name, author_photo_path, published_at")
+      .eq("status", "published")
+      .order("published_at", { ascending: false });
 
-    const linkWrap = document.createElement("div");
-    linkWrap.style.marginTop = "0.6rem";
-    linkWrap.innerHTML = '<label>Link <span class="hint">leave blank if you upload a file below</span></label>';
-    const link = document.createElement("input");
-    link.type = "url";
-    link.value = b.url || "";
-    link.placeholder = "https://…";
-    link.addEventListener("input", () => { b.url = link.value.trim(); });
-    linkWrap.append(link);
-    el.append(linkWrap);
+    if (error) {
+      console.error("Blog list failed:", error);
+      state.textContent = "Articles are unavailable right now.";
+      return;
+    }
 
-    const wrap = document.createElement("div");
-    wrap.className = "filebox";
-    wrap.style.marginTop = "0.6rem";
-    const input = document.createElement("input");
-    input.type = "file";
-    const name = document.createElement("div");
-    name.className = "name" + (b.path ? " on" : "");
-    name.textContent = b.path ? "Uploaded." : "";
-    wrap.append(input, name);
-    el.append(wrap);
+    const posts = data || [];
 
-    input.addEventListener("change", async () => {
-      const file = input.files[0];
-      if (!file) return;
-      name.className = "name";
-      name.textContent = "Uploading…";
-      try {
-        b.path = await uploadFile(file, "file");
-        if (!b.label) { b.label = file.name; label.value = file.name; }
-        name.className = "name on";
-        name.textContent = "Uploaded.";
-      } catch (err) {
-        name.className = "name";
-        name.textContent = "Could not upload: " + err.message;
-      }
-      input.value = "";
-    });
+    if (!posts.length) {
+      state.textContent = "Nothing published yet. Check back shortly.";
+      return;
+    }
+
+    state.style.display = "none";
+
+    // With only one post, a lead on its own reads better than a lead
+    // above an empty row.
+    leadBox.append(lead(posts[0]));
+    for (const p of posts.slice(1)) grid.append(card(p));
   }
 
-  return el;
-}
-
-function captionField(b) {
-  const wrap = document.createElement("div");
-  wrap.className = "cap";
-  wrap.innerHTML = '<label>Caption <span class="hint">optional</span></label>';
-  const input = document.createElement("input");
-  input.type = "text";
-  input.value = b.caption || "";
-  input.addEventListener("input", () => { b.caption = input.value; });
-  wrap.append(input);
-  return wrap;
-}
-
-function swap(a, c) {
-  const t = blocks[a];
-  blocks[a] = blocks[c];
-  blocks[c] = t;
-  renderBlocks();
-  applyLock();
-}
-
-/* ---------------- files ---------------- */
-
-async function uploadFile(file, prefix) {
-  const ext = (file.name.split(".").pop() || "bin")
-    .toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 6);
-  const path = `${post.id}/${prefix}-${Date.now()}.${ext}`;
-  const { error } = await db.storage.from("blog").upload(path, file, {
-    contentType: file.type || "application/octet-stream",
-    upsert: false,
-  });
-  if (error) throw new Error(error.message);
-  return path;
-}
-
-function showHero() {
-  const img = $("p-hero-preview");
-  const url = fileUrl(post.hero_path);
-  if (url) { img.src = url; img.classList.remove("hidden"); }
-  else { img.classList.add("hidden"); }
-  $("p-hero-name").textContent = post.hero_path ? "Uploaded." : "";
-  $("p-hero-name").className = post.hero_path ? "name on" : "name";
-}
-
-$("p-hero-file").addEventListener("change", async () => {
-  const file = $("p-hero-file").files[0];
-  if (!file) return;
-  const name = $("p-hero-name");
-  name.className = "name";
-  name.textContent = "Uploading…";
-  try {
-    post.hero_path = await uploadFile(file, "hero");
-    showHero();
-  } catch (err) {
-    name.textContent = "Could not upload: " + err.message;
-  }
-  $("p-hero-file").value = "";
-});
-
-function showAuthorPhoto() {
-  $("p-authorphoto-name").textContent = post.author_photo_path ? "Set." : "None yet.";
-  $("p-authorphoto-name").className = post.author_photo_path ? "name on" : "name";
-}
-
-$("p-authorphoto-file").addEventListener("change", async () => {
-  const file = $("p-authorphoto-file").files[0];
-  if (!file) return;
-  const name = $("p-authorphoto-name");
-  name.className = "name";
-  name.textContent = "Uploading…";
-  try {
-    post.author_photo_path = await uploadFile(file, "author");
-    showAuthorPhoto();
-  } catch (err) {
-    name.textContent = "Could not upload: " + err.message;
-  }
-  $("p-authorphoto-file").value = "";
-});
-
-/* ---------------- saving ---------------- */
-
-// "Coaching the Kipping Pull-Up" becomes coaching-the-kipping-pull-up.
-function slugify(text) {
-  return String(text || "").toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
-    .slice(0, 70);
-}
-
-function collect() {
-  const title = $("p-title").value.trim();
-  // Writers never see the slug. It follows the title until an admin
-  // edits it, and stops moving once the post is live — changing it
-  // then would break any link already shared.
-  let slug;
-  if (isAdmin()) slug = $("p-slug").value.trim() || slugify(title);
-  else if (post.status === "published") slug = post.slug;
-  else slug = slugify(title) || post.slug;
-
-  return {
-    title,
-    slug: slug || "post-" + Date.now(),
-    excerpt: $("p-excerpt").value.trim() || null,
-    hero_path: post.hero_path || null,
-    blocks,
-    author_name: $("p-author").value.trim() || null,
-    author_bio: $("p-authorbio").value.trim() || null,
-    author_photo_path: post.author_photo_path || null,
-    references_text: $("p-refs").value.trim() || null,
-  };
-}
-
-// The slug is unique, and two posts about the same thing is normal.
-// Rather than refuse, take the next one free.
-async function saveRow(patch, note) {
-  const msg = $("p-msg");
-  msg.className = "msg";
-  msg.textContent = "Saving…";
-
-  const base = { ...collect(), ...patch };
-  let saved = null;
-  let lastError = null;
-
-  for (let n = 0; n < 20; n++) {
-    const row = n === 0 ? base : { ...base, slug: `${base.slug}-${n + 1}` };
-    const { data, error } = await db.from("blog_posts")
-      .update(row).eq("id", post.id).select("*").single();
-
-    if (!error) { saved = data; break; }
-    lastError = error;
-    if (error.code !== "23505") break;
-  }
-
-  if (!saved) {
-    msg.className = "msg err";
-    msg.textContent = "Could not save: " + (lastError ? lastError.message : "unknown error");
-    return false;
-  }
-
-  post = saved;
-  blocks = Array.isArray(saved.blocks) ? saved.blocks.slice() : [];
-  $("p-slug").value = saved.slug;
-  updateUrlHint();
-  applyLock();
-
-  msg.className = "msg ok";
-  msg.textContent = note || "Saved.";
-  return true;
-}
-
-$("save").addEventListener("click", () => saveRow({}));
-
-$("submit").addEventListener("click", async () => {
-  if (!$("p-title").value.trim()) {
-    $("p-msg").className = "msg err";
-    $("p-msg").textContent = "Give it a title first.";
-    return;
-  }
-  if (!blocks.length) {
-    $("p-msg").className = "msg err";
-    $("p-msg").textContent = "There is nothing in the post yet.";
-    return;
-  }
-  if (!window.confirm(
-    "Send this to an admin for approval?\n\n" +
-    "You will not be able to edit it again until they publish it or send it back."
-  )) return;
-
-  const ok = await saveRow({ status: "submitted", admin_note: null },
-    "Sent for approval. An admin will take it from here.");
-  if (ok) setTimeout(loadList, 1400);
-});
-
-/* ---------------- admin ---------------- */
-
-$("publish").addEventListener("click", async () => {
-  const slug = $("p-slug").value.trim();
-  if (!slug) {
-    $("p-msg").className = "msg err";
-    $("p-msg").textContent = "It needs a link before it can go live.";
-    return;
-  }
-  if (!$("p-title").value.trim()) {
-    $("p-msg").className = "msg err";
-    $("p-msg").textContent = "It needs a title before it can go live.";
-    return;
-  }
-  if (!window.confirm(
-    `Publish this at /blog/${slug}/ ?\n\nIt becomes public immediately.`
-  )) return;
-
-  const ok = await saveRow({
-    status: "published",
-    published_at: post.published_at || new Date().toISOString(),
-    reviewed_by: me.id,
-    reviewed_at: new Date().toISOString(),
-    admin_note: null,
-  });
-
-  if (ok) {
-    $("p-msg").className = "msg ok";
-    $("p-msg").textContent = "Live at " + location.origin + "/blog/" + post.slug + "/";
-  }
-});
-
-$("unpublish").addEventListener("click", async () => {
-  if (!window.confirm("Take this offline? The page will stop working for anyone with the link.")) return;
-  await saveRow({ status: "approved" }, "Taken offline.");
-});
-
-$("sendback").addEventListener("click", async () => {
-  const note = $("p-note").value.trim();
-  if (!note) {
-    $("p-msg").className = "msg err";
-    $("p-msg").textContent = "Write a note in the Admin panel first — that note is all they get.";
-    return;
-  }
-  const ok = await saveRow({
-    status: "rejected",
-    admin_note: note,
-    reviewed_by: me.id,
-    reviewed_at: new Date().toISOString(),
-  }, "Sent back to the writer.");
-  if (ok) setTimeout(loadList, 1400);
-});
-
-$("delete").addEventListener("click", async () => {
-  if (!window.confirm(
-    `Delete "${post.title || "this post"}" for good?\n\n` +
-    "The post and its images are removed. This cannot be undone."
-  )) return;
-
-  // The files first, since the row is what points at them.
-  const paths = [
-    post.hero_path,
-    post.author_photo_path,
-    ...blocks.map((b) => b.path),
-  ].filter(Boolean);
-  if (paths.length) await db.storage.from("blog").remove(paths);
-
-  const { error } = await db.from("blog_posts").delete().eq("id", post.id);
-  if (error) {
-    $("p-msg").className = "msg err";
-    $("p-msg").textContent = "Could not delete: " + error.message;
-    return;
-  }
-  post = null;
-  await loadList();
-});
+  load();
 </script>
 
 </body>
