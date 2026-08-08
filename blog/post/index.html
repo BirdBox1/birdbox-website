@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BirdBox Coaching</title>
+<meta name="description" content="An article from BirdBox Coaching.">
+<style>
+  :root {
+    --paper: #14100F;
+    --panel: #1C1719;
+    --ink: #F2EFEF;
+    --muted: #8A8385;
+    --line: #342F31;
+    --tcc: #4FA8DE;
+    --accentText: #6FB9E8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  img { display: block; }
+  .bb-wrap { max-width: 1320px; margin: 0 auto; padding: 0 24px; }
+
+  .bb-topbar {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 28px;
+    padding: 14px 24px; border-bottom: 1px solid var(--line);
+    font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase;
+    position: relative; z-index: 3;
+  }
+  .bb-topbar a { color: #ADA6A8; text-decoration: none; }
+  .bb-topbar a:hover { color: #ffffff; }
+  .bb-topbar a.is-active { color: #ffffff; }
+
+  .bb-backbar { padding: 12px 24px 0; max-width: 1320px; margin: 0 auto; width: 100%; }
+  .bb-back {
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 7px 15px; border: 1px solid var(--line); color: #ADA6A8;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; text-decoration: none;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  .bb-back:hover { color: #ffffff; border-color: var(--tcc); }
+
+  /* ---------- the article ----------
+     Narrower than the rest of the site on purpose. Long prose at
+     1320px is unreadable; about 70 characters a line is not. */
+  .art { max-width: 46rem; margin: 0 auto; padding: 0 24px 40px; }
+
+  .art__eyebrow {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accentText); margin: 34px 0 10px;
+  }
+  .art__title {
+    font-size: clamp(28px, 4.4vw, 44px); line-height: 1.1; font-weight: 800;
+    letter-spacing: -0.02em; margin: 0 0 16px;
+  }
+  .art__standfirst {
+    font-size: 18px; line-height: 1.6; color: #DCD7D8; margin: 0 0 22px;
+  }
+  .art__byline {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 0; border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line); margin-bottom: 30px;
+  }
+  .art__face {
+    flex: none; width: 44px; height: 44px; border-radius: 50%;
+    overflow: hidden; background: #241E20; border: 1px solid var(--line);
+    display: grid; place-items: center;
+    font-size: 15px; font-weight: 800; color: var(--muted);
+  }
+  .art__face img { width: 100%; height: 100%; object-fit: cover; }
+  .art__who { font-size: 14px; font-weight: 700; }
+  .art__when { font-size: 13px; color: var(--muted); }
+
+  .art__hero { width: 100%; height: auto; border: 1px solid var(--line); margin-bottom: 34px; }
+
+  .art h2 {
+    font-size: clamp(21px, 2.8vw, 28px); font-weight: 800;
+    letter-spacing: -0.01em; margin: 40px 0 14px;
+  }
+  .art h3 {
+    font-size: clamp(17px, 2.2vw, 21px); font-weight: 800;
+    letter-spacing: 0.01em; margin: 30px 0 10px; color: var(--accentText);
+  }
+  .art p {
+    font-size: 17px; line-height: 1.7; color: #C9C4C5; margin: 0 0 20px;
+  }
+
+  figure { margin: 30px 0; }
+  /* A full-width image breaks the text column and runs the width of
+     the page. An inline one stays within it. */
+  figure.full {
+    width: 100vw; max-width: 100vw;
+    margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw);
+  }
+  figure.full img, figure.full .vid { width: 100%; }
+  figure img { width: 100%; height: auto; border: 1px solid var(--line); }
+  figcaption {
+    font-size: 13px; color: var(--muted); margin-top: 9px; line-height: 1.5;
+  }
+  figure.full figcaption { max-width: 46rem; margin: 9px auto 0; padding: 0 24px; }
+
+  .vid { width: 100%; display: block; background: #0E0B0C; border: 1px solid var(--line); }
+  .embed {
+    position: relative; width: 100%; aspect-ratio: 16 / 9;
+    border: 1px solid var(--line); background: #0E0B0C;
+  }
+  .embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+  .art__file {
+    display: inline-flex; align-items: center; gap: 10px;
+    border: 1px solid var(--tcc); color: var(--accentText);
+    font-size: 13px; font-weight: 800; letter-spacing: 0.06em;
+    text-transform: uppercase; text-decoration: none;
+    padding: 12px 22px; margin: 6px 0 26px;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .art__file:hover { background: var(--tcc); color: #0C1116; }
+
+  .art__about {
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 22px 24px; margin: 44px 0 0;
+    display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap;
+  }
+  .art__about .art__face { width: 62px; height: 62px; font-size: 19px; }
+  .art__about .body { flex: 1 1 16rem; min-width: 0; }
+  .art__about h4 {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted); margin: 0 0 6px;
+  }
+  .art__about .name { font-size: 17px; font-weight: 800; margin-bottom: 6px; }
+  .art__about p { font-size: 15px; line-height: 1.6; margin: 0; }
+
+  .art__refs {
+    border-top: 1px solid var(--line); margin-top: 34px; padding-top: 22px;
+  }
+  .art__refs h4 {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted); margin: 0 0 10px;
+  }
+  .art__refs p {
+    font-size: 14px; line-height: 1.65; color: #B7B1B3; margin: 0 0 6px;
+    overflow-wrap: anywhere;
+  }
+  .art__refs a { color: var(--accentText); }
+
+  .art__more {
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 26px 24px; margin-top: 34px; text-align: center;
+  }
+  .art__more p { font-size: 15px; color: #C9C4C5; margin: 0 0 16px; }
+  .bb-cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 12px 24px; background: var(--tcc); color: #0C1116;
+    font-size: 12px; font-weight: 800; letter-spacing: 0.08em;
+    text-transform: uppercase; text-decoration: none; border: 1px solid var(--tcc);
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .bb-cta:hover { background: transparent; color: var(--accentText); }
+
+  .state {
+    max-width: 46rem; margin: 0 auto; padding: 70px 24px;
+    text-align: center; color: var(--muted); font-size: 15px;
+  }
+
+  .bb-footer {
+    text-align: center; padding: 32px 24px 50px; font-size: 13px; color: #756F71;
+    border-top: 1px solid var(--line); margin-top: 40px; line-height: 1.7;
+  }
+  .bb-footer a { color: #8A8385; text-decoration: none; }
+  .bb-footer__staff {
+    display: block; margin-top: 10px; font-size: 12px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<!-- Links are filled in by /nav.js so every page shares one nav. -->
+<nav class="bb-topbar"></nav>
+
+<div class="bb-backbar">
+  <a class="bb-back" href="/blog/">&larr; All Articles</a>
+</div>
+
+<main>
+  <p class="state" id="state">Loading&hellip;</p>
+  <article class="art hidden" id="art"></article>
+</main>
+
+<footer class="bb-footer">
+  &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
+  <a class="bb-footer__staff" href="/portal/">Staff Login</a>
+</footer>
+
+<script src="/nav.js"></script>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const supabase = createClient(
+    "https://yvdmazpxtpuvidlcifnq.supabase.co",
+    "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+  );
+
+  const art = document.getElementById("art");
+  const state = document.getElementById("state");
+
+  // /blog/coaching-the-kipping-pull-up/ -> the slug in the middle.
+  const slug = decodeURIComponent(
+    location.pathname.replace(/^\/blog\/?/, "").replace(/\/+$/, "")
+  );
+
+  const fileUrl = (path) => path
+    ? supabase.storage.from("blog").getPublicUrl(path).data.publicUrl
+    : null;
+
+  const fmtDate = (iso) => iso
+    ? new Date(iso).toLocaleDateString("en-GB",
+        { day: "numeric", month: "long", year: "numeric" })
+    : "";
+
+  const initials = (name) => String(name || "")
+    .split(/\s+/).filter(Boolean).slice(0, 2)
+    .map((w) => w[0]).join("").toUpperCase();
+
+  // Accepts whatever a writer pastes — a watch link, a share link, an
+  // embed link — and returns the one form an iframe will play.
+  function embedUrl(raw) {
+    const url = String(raw || "").trim();
+    if (!url) return null;
+
+    const yt = url.match(
+      /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/
+    );
+    if (yt) return "https://www.youtube.com/embed/" + yt[1];
+
+    const vim = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+    if (vim) return "https://player.vimeo.com/video/" + vim[1];
+
+    return null;
+  }
+
+  function face(name, path, cls) {
+    const el = document.createElement("span");
+    el.className = "art__face" + (cls ? " " + cls : "");
+    el.textContent = initials(name);
+    const url = fileUrl(path);
+    if (url) {
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "";
+      img.onload = () => { el.textContent = ""; el.append(img); };
+      img.onerror = () => {};
+    }
+    return el;
+  }
+
+  // Blank lines become separate paragraphs, which is how anyone writing
+  // into a plain box expects it to come out.
+  function paragraphs(text) {
+    const frag = document.createDocumentFragment();
+    for (const part of String(text || "").split(/\n{2,}/)) {
+      const clean = part.trim();
+      if (!clean) continue;
+      const p = document.createElement("p");
+      // A single newline inside a paragraph is a line break, not a gap.
+      const lines = clean.split("\n");
+      lines.forEach((line, i) => {
+        if (i) p.append(document.createElement("br"));
+        p.append(document.createTextNode(line));
+      });
+      frag.append(p);
+    }
+    return frag;
+  }
+
+  function renderBlock(b) {
+    if (b.type === "heading") {
+      if (!b.text) return null;
+      const h = document.createElement("h2");
+      h.textContent = b.text;
+      return h;
+    }
+
+    if (b.type === "subheading") {
+      if (!b.text) return null;
+      const h = document.createElement("h3");
+      h.textContent = b.text;
+      return h;
+    }
+
+    if (b.type === "text") {
+      if (!b.text) return null;
+      const wrap = document.createElement("div");
+      wrap.append(paragraphs(b.text));
+      return wrap;
+    }
+
+    if (b.type === "image") {
+      const url = fileUrl(b.path);
+      if (!url) return null;
+      const fig = document.createElement("figure");
+      if (b.width === "full") fig.className = "full";
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = b.caption || "";
+      img.loading = "lazy";
+      fig.append(img);
+      if (b.caption) {
+        const cap = document.createElement("figcaption");
+        cap.textContent = b.caption;
+        fig.append(cap);
+      }
+      return fig;
+    }
+
+    if (b.type === "video") {
+      const fig = document.createElement("figure");
+      if (b.width === "full") fig.className = "full";
+
+      if (b.kind === "file") {
+        const url = fileUrl(b.path);
+        if (!url) return null;
+        const v = document.createElement("video");
+        v.className = "vid";
+        v.controls = true;
+        v.preload = "metadata";
+        v.playsInline = true;
+        const src = document.createElement("source");
+        src.src = url;
+        v.append(src);
+        fig.append(v);
+      } else {
+        const src = embedUrl(b.url);
+        if (!src) return null;
+        const box = document.createElement("div");
+        box.className = "embed";
+        const frame = document.createElement("iframe");
+        frame.src = src;
+        frame.loading = "lazy";
+        frame.allow =
+          "accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture";
+        frame.allowFullscreen = true;
+        frame.title = b.caption || "Video";
+        box.append(frame);
+        fig.append(box);
+      }
+
+      if (b.caption) {
+        const cap = document.createElement("figcaption");
+        cap.textContent = b.caption;
+        fig.append(cap);
+      }
+      return fig;
+    }
+
+    if (b.type === "file") {
+      const href = b.path ? fileUrl(b.path) : (b.url || null);
+      if (!href) return null;
+      const a = document.createElement("a");
+      a.className = "art__file";
+      a.href = href;
+      a.textContent = (b.label || "Download") + " \u2192";
+      // An uploaded file downloads; a link goes wherever it points.
+      if (b.path) a.setAttribute("download", "");
+      else { a.target = "_blank"; a.rel = "noopener"; }
+      return a;
+    }
+
+    return null;
+  }
+
+  async function load() {
+    if (!slug) {
+      state.textContent = "No article was asked for.";
+      return;
+    }
+
+    // Only published posts are readable by an anonymous visitor, so a
+    // draft simply does not exist as far as this page is concerned.
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .select("title, excerpt, hero_path, blocks, author_name, author_bio, author_photo_path, references_text, published_at")
+      .eq("slug", slug)
+      .eq("status", "published")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Blog post failed:", error);
+      state.textContent = "This article could not be loaded right now.";
+      return;
+    }
+
+    if (!data) {
+      state.innerHTML = "";
+      state.append(document.createTextNode("That article is not here. "));
+      const link = document.createElement("a");
+      link.href = "/blog/";
+      link.style.color = "var(--accentText)";
+      link.textContent = "See everything we have written.";
+      state.append(link);
+      return;
+    }
+
+    render(data);
+  }
+
+  function render(post) {
+    document.title = (post.title || "Article") + " | BirdBox Coaching";
+    if (post.excerpt) {
+      const meta = document.querySelector('meta[name="description"]');
+      if (meta) meta.setAttribute("content", post.excerpt);
+    }
+
+    art.textContent = "";
+
+    const eyebrow = document.createElement("p");
+    eyebrow.className = "art__eyebrow";
+    eyebrow.textContent = "BirdBox Coaching";
+    art.append(eyebrow);
+
+    const h1 = document.createElement("h1");
+    h1.className = "art__title";
+    h1.textContent = post.title || "Untitled";
+    art.append(h1);
+
+    if (post.excerpt) {
+      const stand = document.createElement("p");
+      stand.className = "art__standfirst";
+      stand.textContent = post.excerpt;
+      art.append(stand);
+    }
+
+    if (post.author_name || post.published_at) {
+      const by = document.createElement("div");
+      by.className = "art__byline";
+      by.append(face(post.author_name, post.author_photo_path));
+      const who = document.createElement("span");
+      const name = document.createElement("span");
+      name.className = "art__who";
+      name.style.display = "block";
+      name.textContent = post.author_name || "BirdBox Coaching";
+      const when = document.createElement("span");
+      when.className = "art__when";
+      when.style.display = "block";
+      when.textContent = fmtDate(post.published_at);
+      who.append(name, when);
+      by.append(who);
+      art.append(by);
+    }
+
+    const hero = fileUrl(post.hero_path);
+    if (hero) {
+      const img = document.createElement("img");
+      img.className = "art__hero";
+      img.src = hero;
+      img.alt = "";
+      art.append(img);
+    }
+
+    for (const b of Array.isArray(post.blocks) ? post.blocks : []) {
+      const el = renderBlock(b);
+      if (el) art.append(el);
+    }
+
+    if (post.author_bio) {
+      const about = document.createElement("div");
+      about.className = "art__about";
+      about.append(face(post.author_name, post.author_photo_path));
+      const body = document.createElement("div");
+      body.className = "body";
+      const h4 = document.createElement("h4");
+      h4.textContent = "About the author";
+      const nm = document.createElement("div");
+      nm.className = "name";
+      nm.textContent = post.author_name || "BirdBox Coaching";
+      const p = document.createElement("p");
+      p.textContent = post.author_bio;
+      body.append(h4, nm, p);
+      about.append(body);
+      art.append(about);
+    }
+
+    if (post.references_text) {
+      const refs = document.createElement("div");
+      refs.className = "art__refs";
+      const h4 = document.createElement("h4");
+      h4.textContent = "References";
+      refs.append(h4);
+      // One per line, and anything that is plainly a URL is made
+      // tappable rather than left as text to copy out by hand.
+      for (const line of post.references_text.split("\n")) {
+        const clean = line.trim();
+        if (!clean) continue;
+        const p = document.createElement("p");
+        if (/^https?:\/\/\S+$/i.test(clean)) {
+          const a = document.createElement("a");
+          a.href = clean;
+          a.textContent = clean;
+          a.target = "_blank";
+          a.rel = "noopener";
+          p.append(a);
+        } else {
+          p.textContent = clean;
+        }
+        refs.append(p);
+      }
+      art.append(refs);
+    }
+
+    const more = document.createElement("div");
+    more.className = "art__more";
+    const line = document.createElement("p");
+    line.textContent = "Want to take your coaching further?";
+    const cta = document.createElement("a");
+    cta.className = "bb-cta";
+    cta.href = "/tcc";
+    cta.textContent = "Explore Our Courses \u2192";
+    more.append(line, cta);
+    art.append(more);
+
+    state.style.display = "none";
+    art.classList.remove("hidden");
+  }
+
+  load();
+</script>
+
+</body>
+</html>
