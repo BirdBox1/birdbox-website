@@ -167,6 +167,8 @@
     text-align: center; color: var(--muted); font-size: 15px;
   }
 
+  .hidden { display: none !important; }
+
   .bb-footer {
     text-align: center; padding: 32px 24px 50px; font-size: 13px; color: #756F71;
     border-top: 1px solid var(--line); margin-top: 40px; line-height: 1.7;
@@ -519,7 +521,9 @@
     line.textContent = "Want to take your coaching further?";
     const cta = document.createElement("a");
     cta.className = "bb-cta";
-    cta.href = "/tcc";
+    // The homepage, not one brand — a gymnastics reader should not be
+    // pushed at the coaching course.
+    cta.href = "/";
     cta.textContent = "Explore Our Courses \u2192";
     more.append(line, cta);
     art.append(more);
