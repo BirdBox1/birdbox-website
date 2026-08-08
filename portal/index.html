@@ -2401,6 +2401,7 @@ $("signout").addEventListener("click", async () => {
   const toast = document.getElementById("dm-toast");
   if (toast) toast.remove();
   $("codeslink").classList.add("hidden");
+  $("bloglink").classList.add("hidden");
   $("feedbacklink").classList.add("hidden");
   $("password").value = "";
   show("login");
