@@ -33,6 +33,7 @@
   }
   .bb-topbar a { color: #ADA6A8; text-decoration: none; }
   .bb-topbar a:hover { color: #ffffff; }
+  .bb-topbar a.is-active { color: #ffffff; }
 
   .bb-backbar { padding: 14px 24px 0; max-width: 1320px; margin: 0 auto; width: 100%; }
   .bb-back {
@@ -289,12 +290,8 @@
 </head>
 <body>
 
-<nav class="bb-topbar">
-  <a href="/merch">Merch Store</a>
-  <a href="/blog">Blog</a>
-  <a href="/trainer-directory">Trainer Directory</a>
-  <a href="/about">About</a>
-</nav>
+<!-- Links are filled in by /nav.js so every page shares one nav. -->
+<nav class="bb-topbar"></nav>
 
 <div class="bb-backbar">
   <a class="bb-back" href="/">&larr; All Pathways</a>
@@ -680,6 +677,8 @@
   &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
   <a class="bb-footer__staff" href="/portal/">Staff Login</a>
 </footer>
+
+<script src="/nav.js"></script>
 
 <script>
   // Signup is not wired to Mailchimp yet, so say so rather than pretend.
