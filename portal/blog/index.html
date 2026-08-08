@@ -44,7 +44,10 @@
     padding:0.5rem 0.15rem;margin-right:1.1rem;cursor:pointer;white-space:nowrap}
   .tab:hover{color:var(--ink)}
   .tab.on{color:var(--ink);border-bottom-color:var(--ink)}
-  .tab .n{font-size:0.72rem;font-weight:650;color:var(--muted);margin-left:0.3rem}
+  .tab .n{display:inline-grid;place-items:center;min-width:1.1rem;height:1.1rem;
+    padding:0 0.28rem;margin-left:0.35rem;border-radius:999px;
+    background:var(--bad);color:#fff;font-size:0.66rem;font-weight:700}
+  .tab .n:empty{display:none}
 
   .btn{font:inherit;font-weight:600;background:var(--ink);color:#fff;border:0;
     border-radius:4px;padding:0.6rem 1.1rem;cursor:pointer}
@@ -122,9 +125,12 @@
     border-radius:6px;padding:0.85rem 1rem;margin-bottom:1rem;font-size:0.9rem}
   .note b{display:block;margin-bottom:0.2rem}
 
-  .sticky{position:sticky;bottom:0;background:var(--paper);padding:0.9rem 0;
+  /* Everything that acts on the post lives here, so nothing important
+     is below the fold of a long form. */
+  .sticky{position:sticky;bottom:0;background:var(--paper);padding:0.9rem 0 1rem;
     border-top:1px solid var(--rule);margin-top:1.25rem;
     display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center}
+  .sticky .msg{margin:0;flex:1 1 100%}
   .hidden{display:none!important}
 </style>
 </head>
@@ -152,15 +158,11 @@
     </div>
 
     <div class="tabs" id="tabs">
-      <button class="tab on" type="button" data-tab="mine">
-        Mine <span class="n" id="n-mine"></span>
-      </button>
+      <button class="tab on" type="button" data-tab="mine">Mine</button>
       <button class="tab hidden" type="button" data-tab="review" id="tab-review">
         To review <span class="n" id="n-review"></span>
       </button>
-      <button class="tab hidden" type="button" data-tab="all" id="tab-all">
-        Everything <span class="n" id="n-all"></span>
-      </button>
+      <button class="tab hidden" type="button" data-tab="all" id="tab-all">Everything</button>
     </div>
 
     <div id="postlist"></div>
@@ -259,23 +261,21 @@
       </div>
       <div class="field">
         <label for="p-note">Note back to the writer
-          <span class="hint">shown to them if you send it back</span>
+          <span class="hint">needed if you send it back — it is all they get</span>
         </label>
         <textarea id="p-note" style="min-height:4rem"></textarea>
       </div>
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-        <button class="btn go small" id="publish" type="button">Publish</button>
-        <button class="btn ghost small" id="unpublish" type="button">Take offline</button>
-        <button class="btn danger small" id="sendback" type="button">Send back</button>
-        <button class="btn danger small" id="delete" type="button">Delete</button>
-      </div>
-      <p class="msg" id="admin-msg"></p>
+      <button class="btn danger small" id="delete" type="button">Delete this post</button>
     </div>
 
     <div class="sticky">
+      <span class="pill" id="p-status"></span>
       <button class="btn" id="save" type="button">Save</button>
       <button class="btn go" id="submit" type="button">Submit for approval</button>
-      <span class="msg" id="p-msg" style="margin:0"></span>
+      <button class="btn go" id="publish" type="button">Publish</button>
+      <button class="btn ghost" id="unpublish" type="button">Take offline</button>
+      <button class="btn danger" id="sendback" type="button">Send back</button>
+      <span class="msg" id="p-msg"></span>
     </div>
   </section>
 </div>
@@ -297,18 +297,18 @@ const show = (n) => {
 };
 
 let me = null;
-let post = null;      // the row being edited
-let blocks = [];      // its body, as an array
+let post = null;
+let blocks = [];
 let tab = "mine";
 
-const isAdmin = () => me && me.role === "admin";
+const isAdmin = () => !!(me && me.role === "admin");
 
 const STATUS = {
-  draft:     { label: "draft",         cls: "draft" },
-  submitted: { label: "for review",    cls: "sub" },
-  approved:  { label: "approved",      cls: "ok" },
-  published: { label: "live",          cls: "live" },
-  rejected:  { label: "sent back",     cls: "back" },
+  draft:     { label: "draft",      cls: "draft" },
+  submitted: { label: "for review", cls: "sub" },
+  approved:  { label: "approved",   cls: "ok" },
+  published: { label: "live",       cls: "live" },
+  rejected:  { label: "sent back",  cls: "back" },
 };
 
 const fmtWhen = (iso) => iso
@@ -376,14 +376,7 @@ async function loadList() {
   }
 
   const rows = data || [];
-  const mine = rows.filter((r) => r.created_by === me.id).length;
-  $("n-mine").textContent = tab === "mine" ? (rows.length || "") : "";
-  if (isAdmin()) {
-    const waiting = rows.filter((r) => r.status === "submitted").length;
-    $("n-review").textContent = tab === "review" ? (rows.length || "") : "";
-    $("n-all").textContent = tab === "all" ? (rows.length || "") : "";
-    if (tab === "review" && waiting) $("n-review").textContent = waiting;
-  }
+  if (isAdmin()) await countWaiting();
 
   if (!rows.length) {
     box.innerHTML = '<p class="empty">' + (
@@ -427,6 +420,15 @@ async function loadList() {
     el.querySelector(".row").addEventListener("click", () => openPost(r.id));
     box.append(el);
   }
+}
+
+// A red count on the review tab, so a submission is visible without
+// having to go looking for it.
+async function countWaiting() {
+  const { count } = await db.from("blog_posts")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "submitted");
+  $("n-review").textContent = count ? String(count) : "";
 }
 
 /* ---------------- opening one ---------------- */
@@ -473,7 +475,7 @@ function openRow(row) {
   $("p-slug").value = row.slug || "";
   $("p-note").value = row.admin_note || "";
   $("p-msg").textContent = "";
-  $("admin-msg").textContent = "";
+  $("p-msg").className = "msg";
 
   showHero();
   showAuthorPhoto();
@@ -489,30 +491,42 @@ function locked() {
 }
 
 function applyLock() {
+  if (!post) return;
   const off = locked();
+  const admin = isAdmin();
 
   for (const id of ["p-title", "p-excerpt", "p-author", "p-authorbio", "p-refs",
                     "p-hero-file", "p-authorphoto-file"]) {
     $(id).disabled = off;
   }
   for (const b of document.querySelectorAll(".adder button")) b.disabled = off;
-  for (const el of document.querySelectorAll("#blocks input, #blocks textarea, #blocks button")) {
+  for (const el of document.querySelectorAll("#blocks input, #blocks textarea, #blocks button, #blocks select")) {
     el.disabled = off;
   }
 
+  const s = STATUS[post.status] || STATUS.draft;
+  $("p-status").textContent = s.label;
+  $("p-status").className = "pill " + s.cls;
+
   $("save").classList.toggle("hidden", off);
-  $("submit").classList.toggle("hidden", off || post.status === "published");
+
+  // Submitting is a writer's action. An admin publishes instead, so
+  // showing them both would only be confusing.
+  $("submit").classList.toggle("hidden", admin || off || post.status === "published");
+
+  $("publish").classList.toggle("hidden", !admin);
+  $("publish").textContent = post.status === "published" ? "Republish" : "Publish";
+  $("unpublish").classList.toggle("hidden", !admin || post.status !== "published");
+  $("sendback").classList.toggle("hidden",
+    !admin || post.status === "draft" || post.status === "rejected");
+
   $("locked").classList.toggle("hidden", !(off && post.status === "submitted"));
 
   const back = post.status === "rejected" && post.admin_note;
   $("sent-back").classList.toggle("hidden", !back);
   if (back) $("sent-back-why").textContent = post.admin_note;
 
-  $("adminpanel").classList.toggle("hidden", !isAdmin());
-  if (isAdmin()) {
-    $("publish").textContent = post.status === "published" ? "Republish" : "Publish";
-    $("unpublish").classList.toggle("hidden", post.status !== "published");
-  }
+  $("adminpanel").classList.toggle("hidden", !admin);
 }
 
 function updateUrlHint() {
@@ -540,7 +554,7 @@ for (const btn of document.querySelectorAll(".adder button")) {
     if (kind === "video") fresh.kind = "embed";
     blocks.push(fresh);
     renderBlocks();
-    // Straight to the new block, since it is at the foot of a long form.
+    applyLock();
     const last = $("blocks").lastElementChild;
     if (last) last.scrollIntoView({ behavior: "smooth", block: "center" });
   });
@@ -559,7 +573,6 @@ function renderBlocks() {
   }
 
   blocks.forEach((b, i) => box.append(blockEditor(b, i)));
-  applyLock();
 }
 
 function blockEditor(b, i) {
@@ -583,12 +596,13 @@ function blockEditor(b, i) {
     acts.append(btn);
   };
 
-  act("↑", () => { if (i > 0) { swap(i, i - 1); } });
-  act("↓", () => { if (i < blocks.length - 1) { swap(i, i + 1); } });
+  act("↑", () => { if (i > 0) swap(i, i - 1); });
+  act("↓", () => { if (i < blocks.length - 1) swap(i, i + 1); });
   act("Remove", () => {
     if (!window.confirm("Remove this block?")) return;
     blocks.splice(i, 1);
     renderBlocks();
+    applyLock();
   }, "ghost tiny danger");
 
   head.append(kind, acts);
@@ -650,7 +664,7 @@ function blockEditor(b, i) {
 
     const size = document.createElement("div");
     size.className = "cap";
-    size.innerHTML = '<label>Width</label>';
+    size.innerHTML = "<label>Width</label>";
     const sel = document.createElement("select");
     for (const [v, t] of [["full", "Full width — a banner across the post"],
                           ["inline", "Inline — sits within the text"]]) {
@@ -668,7 +682,7 @@ function blockEditor(b, i) {
 
   if (b.type === "video") {
     const pick = document.createElement("div");
-    pick.innerHTML = '<label>Where the video is</label>';
+    pick.innerHTML = "<label>Where the video is</label>";
     const sel = document.createElement("select");
     for (const [v, t] of [["embed", "YouTube or Vimeo link"],
                           ["file", "Upload a video file"]]) {
@@ -800,6 +814,7 @@ function swap(a, c) {
   blocks[a] = blocks[c];
   blocks[c] = t;
   renderBlocks();
+  applyLock();
 }
 
 /* ---------------- files ---------------- */
@@ -875,8 +890,10 @@ function collect() {
   // Writers never see the slug. It follows the title until an admin
   // edits it, and stops moving once the post is live — changing it
   // then would break any link already shared.
-  let slug = isAdmin() ? ($("p-slug").value.trim() || slugify(title)) : post.slug;
-  if (!isAdmin() && post.status !== "published") slug = slugify(title) || post.slug;
+  let slug;
+  if (isAdmin()) slug = $("p-slug").value.trim() || slugify(title);
+  else if (post.status === "published") slug = post.slug;
+  else slug = slugify(title) || post.slug;
 
   return {
     title,
@@ -947,9 +964,9 @@ $("submit").addEventListener("click", async () => {
     "You will not be able to edit it again until they publish it or send it back."
   )) return;
 
-  await saveRow({ status: "submitted", admin_note: null },
+  const ok = await saveRow({ status: "submitted", admin_note: null },
     "Sent for approval. An admin will take it from here.");
-  await loadList();
+  if (ok) setTimeout(loadList, 1400);
 });
 
 /* ---------------- admin ---------------- */
@@ -957,13 +974,17 @@ $("submit").addEventListener("click", async () => {
 $("publish").addEventListener("click", async () => {
   const slug = $("p-slug").value.trim();
   if (!slug) {
-    $("admin-msg").className = "msg err";
-    $("admin-msg").textContent = "It needs a link before it can go live.";
+    $("p-msg").className = "msg err";
+    $("p-msg").textContent = "It needs a link before it can go live.";
+    return;
+  }
+  if (!$("p-title").value.trim()) {
+    $("p-msg").className = "msg err";
+    $("p-msg").textContent = "It needs a title before it can go live.";
     return;
   }
   if (!window.confirm(
-    `Publish this at /blog/${slug}/ ?\n\n` +
-    "It becomes public immediately."
+    `Publish this at /blog/${slug}/ ?\n\nIt becomes public immediately.`
   )) return;
 
   const ok = await saveRow({
@@ -972,11 +993,11 @@ $("publish").addEventListener("click", async () => {
     reviewed_by: me.id,
     reviewed_at: new Date().toISOString(),
     admin_note: null,
-  }, "Published.");
+  });
 
   if (ok) {
-    $("admin-msg").className = "msg ok";
-    $("admin-msg").textContent = "Live at " + location.origin + "/blog/" + post.slug + "/";
+    $("p-msg").className = "msg ok";
+    $("p-msg").textContent = "Live at " + location.origin + "/blog/" + post.slug + "/";
   }
 });
 
@@ -988,17 +1009,17 @@ $("unpublish").addEventListener("click", async () => {
 $("sendback").addEventListener("click", async () => {
   const note = $("p-note").value.trim();
   if (!note) {
-    $("admin-msg").className = "msg err";
-    $("admin-msg").textContent = "Say what needs changing — that note is all they get.";
+    $("p-msg").className = "msg err";
+    $("p-msg").textContent = "Write a note in the Admin panel first — that note is all they get.";
     return;
   }
-  await saveRow({
+  const ok = await saveRow({
     status: "rejected",
     admin_note: note,
     reviewed_by: me.id,
     reviewed_at: new Date().toISOString(),
   }, "Sent back to the writer.");
-  await loadList();
+  if (ok) setTimeout(loadList, 1400);
 });
 
 $("delete").addEventListener("click", async () => {
@@ -1017,8 +1038,8 @@ $("delete").addEventListener("click", async () => {
 
   const { error } = await db.from("blog_posts").delete().eq("id", post.id);
   if (error) {
-    $("admin-msg").className = "msg err";
-    $("admin-msg").textContent = "Could not delete: " + error.message;
+    $("p-msg").className = "msg err";
+    $("p-msg").textContent = "Could not delete: " + error.message;
     return;
   }
   post = null;
