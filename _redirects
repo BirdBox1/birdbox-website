@@ -6,3 +6,8 @@
 # from the path, e.g. /manuals/tgc-l1/ so adding a new manual is a
 # database row rather than a new page.
 /manuals/*    /manuals/index.html    200
+
+# Blog posts work the same way: /blog/<slug>/ serves one page that
+# reads the slug and fetches that post. The list at /blog/ is a real
+# file, so it is matched first and never reaches this rule.
+/blog/*    /blog/post/index.html    200
