@@ -2442,6 +2442,7 @@ async function start() {
   $("codeslink").classList.toggle("hidden", !admin);
   // Every coach can write a post; admins also review and publish.
   $("bloglink").classList.remove("hidden");
+    refreshBlogFlag();
 
   await loadFeedbackManuals();
   await loadCourses();
