@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog | BirdBox Coaching</title>
+<meta name="description" content="Coaching articles from the BirdBox Coaching team &mdash; gymnastics, methodology, programming and the craft of coaching.">
+<style>
+  :root {
+    --paper: #14100F;
+    --panel: #1C1719;
+    --ink: #F2EFEF;
+    --muted: #8A8385;
+    --line: #342F31;
+    --tcc: #4FA8DE;
+    --accentText: #6FB9E8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  img { display: block; }
+  .bb-wrap { max-width: 1320px; margin: 0 auto; padding: 0 24px; }
+
+  .bb-topbar {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 28px;
+    padding: 14px 24px; border-bottom: 1px solid var(--line);
+    font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase;
+    position: relative; z-index: 3;
+  }
+  .bb-topbar a { color: #ADA6A8; text-decoration: none; }
+  .bb-topbar a:hover { color: #ffffff; }
+  .bb-topbar a.is-active { color: #ffffff; }
+
+  .bb-backbar { padding: 12px 24px 0; max-width: 1320px; margin: 0 auto; width: 100%; }
+  .bb-back {
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 7px 15px; border: 1px solid var(--line); color: #ADA6A8;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; text-decoration: none;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  .bb-back:hover { color: #ffffff; border-color: var(--tcc); }
+
+  /* ---------- header ---------- */
+  .bl-head { padding: 40px 0 8px; }
+  .bl-eyebrow {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accentText); margin: 0 0 10px;
+  }
+  .bl-title {
+    font-size: clamp(28px, 4vw, 44px); font-weight: 800;
+    letter-spacing: -0.02em; text-transform: uppercase; margin: 0 0 14px;
+  }
+  .bl-lede {
+    font-size: 17px; line-height: 1.6; color: #C9C4C5;
+    margin: 0 0 34px; max-width: 62ch;
+  }
+
+  /* ---------- the lead article ----------
+     The newest post gets the width, because a blog with three posts
+     on it should not look like a blog with thirty. */
+  .bl-lead {
+    display: grid; grid-template-columns: 1.15fr 1fr; gap: 0;
+    border: 1px solid var(--line); background: var(--panel);
+    overflow: hidden; text-decoration: none; color: var(--ink);
+    margin-bottom: 16px;
+    transition: border-color 0.2s ease;
+  }
+  .bl-lead:hover { border-color: var(--tcc); }
+  .bl-lead__media { position: relative; min-height: 300px; background: #241E20; }
+  .bl-lead__media img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  }
+  .bl-lead__body { padding: 30px 32px; display: flex; flex-direction: column; }
+  .bl-lead__kind {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--accentText); margin: 0 0 12px;
+  }
+  .bl-lead__name {
+    font-size: clamp(21px, 2.6vw, 30px); font-weight: 800;
+    letter-spacing: -0.015em; line-height: 1.15; margin: 0 0 14px;
+  }
+  .bl-lead__stand {
+    font-size: 16px; line-height: 1.6; color: #C9C4C5; margin: 0 0 20px;
+  }
+
+  /* ---------- the rest ---------- */
+  .bl-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    padding-bottom: 8px;
+  }
+  .bl-card {
+    display: flex; flex-direction: column;
+    border: 1px solid var(--line); background: var(--panel);
+    overflow: hidden; text-decoration: none; color: var(--ink);
+    transition: border-color 0.2s ease;
+  }
+  .bl-card:hover { border-color: var(--tcc); }
+  .bl-card__media { position: relative; aspect-ratio: 16 / 10; background: #241E20; }
+  .bl-card__media img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  }
+  .bl-card__body { padding: 20px 22px 22px; display: flex; flex-direction: column; flex: 1 1 auto; }
+  .bl-card__name {
+    font-size: 18px; font-weight: 800; letter-spacing: -0.01em;
+    line-height: 1.25; margin: 0 0 10px;
+  }
+  .bl-card__stand {
+    font-size: 14px; line-height: 1.55; color: #C9C4C5; margin: 0 0 16px;
+  }
+
+  /* Shared by both the lead and the cards. */
+  .bl-by {
+    display: flex; align-items: center; gap: 10px; margin-top: auto;
+    padding-top: 14px; border-top: 1px solid var(--line);
+  }
+  .bl-face {
+    flex: none; width: 32px; height: 32px; border-radius: 50%;
+    overflow: hidden; background: #241E20; border: 1px solid var(--line);
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 800; color: var(--muted);
+  }
+  .bl-face img { width: 100%; height: 100%; object-fit: cover; }
+  .bl-who { font-size: 13px; font-weight: 700; }
+  .bl-when { font-size: 12px; color: var(--muted); }
+
+  .bl-state {
+    border: 1px dashed var(--line); background: var(--panel);
+    padding: 60px 24px; text-align: center; color: var(--muted);
+    font-size: 15px; margin-bottom: 8px;
+  }
+
+  .bl-close {
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 34px 24px; text-align: center; margin-top: 34px;
+  }
+  .bl-close h2 {
+    font-size: clamp(22px, 3vw, 30px); font-weight: 800;
+    text-transform: uppercase; margin: 0 0 10px;
+  }
+  .bl-close p {
+    font-size: 15px; color: #C9C4C5; margin: 0 auto 20px; max-width: 56ch;
+  }
+  .bb-cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 12px 24px; background: var(--tcc); color: #0C1116;
+    font-size: 12px; font-weight: 800; letter-spacing: 0.08em;
+    text-transform: uppercase; text-decoration: none; border: 1px solid var(--tcc);
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .bb-cta:hover { background: transparent; color: var(--accentText); }
+
+  .bb-footer {
+    text-align: center; padding: 32px 24px 50px; font-size: 13px; color: #756F71;
+    border-top: 1px solid var(--line); margin-top: 34px; line-height: 1.7;
+  }
+  .bb-footer a { color: #8A8385; text-decoration: none; }
+  .bb-footer__staff {
+    display: block; margin-top: 10px; font-size: 12px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+
+  @media (max-width: 1000px) {
+    .bl-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 780px) {
+    .bl-lead { grid-template-columns: 1fr; }
+    .bl-lead__media { min-height: 220px; }
+    .bl-lead__body { padding: 24px; }
+  }
+  @media (max-width: 620px) {
+    .bl-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Links are filled in by /nav.js so every page shares one nav. -->
+<nav class="bb-topbar"></nav>
+
+<div class="bb-backbar">
+  <a class="bb-back" href="/">&larr; Home</a>
+</div>
+
+<main class="bb-wrap">
+
+  <header class="bl-head">
+    <p class="bl-eyebrow">The BirdBox Blog</p>
+    <h1 class="bl-title">Coaching, Written Down</h1>
+    <p class="bl-lede">Articles from the BirdBox team &mdash; what we are learning on the floor, what the research says, and how to put both to work on Monday morning.</p>
+  </header>
+
+  <div id="bl-lead"></div>
+  <div class="bl-grid" id="bl-grid"></div>
+  <p class="bl-state" id="bl-state">Loading articles&hellip;</p>
+
+  <div class="bl-close">
+    <h2>Take It Further</h2>
+    <p>Reading is a start. Two days in a room with a coach who has done it is another thing entirely.</p>
+    <a class="bb-cta" href="/tcc">Explore Our Courses &rarr;</a>
+  </div>
+
+</main>
+
+<footer class="bb-footer">
+  &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
+  <a class="bb-footer__staff" href="/portal/">Staff Login</a>
+</footer>
+
+<script src="/nav.js"></script>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const supabase = createClient(
+    "https://yvdmazpxtpuvidlcifnq.supabase.co",
+    "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+  );
+
+  const leadBox = document.getElementById("bl-lead");
+  const grid = document.getElementById("bl-grid");
+  const state = document.getElementById("bl-state");
+
+  const fileUrl = (path) => path
+    ? supabase.storage.from("blog").getPublicUrl(path).data.publicUrl
+    : null;
+
+  const fmtDate = (iso) => iso
+    ? new Date(iso).toLocaleDateString("en-GB",
+        { day: "numeric", month: "long", year: "numeric" })
+    : "";
+
+  const initials = (name) => String(name || "")
+    .split(/\s+/).filter(Boolean).slice(0, 2)
+    .map((w) => w[0]).join("").toUpperCase();
+
+  function face(name, path) {
+    const el = document.createElement("span");
+    el.className = "bl-face";
+    el.textContent = initials(name);
+    const url = fileUrl(path);
+    if (url) {
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "";
+      img.onload = () => { el.textContent = ""; el.append(img); };
+      img.onerror = () => {};
+    }
+    return el;
+  }
+
+  function byline(post) {
+    const by = document.createElement("span");
+    by.className = "bl-by";
+    by.append(face(post.author_name, post.author_photo_path));
+    const who = document.createElement("span");
+    const name = document.createElement("span");
+    name.className = "bl-who";
+    name.style.display = "block";
+    name.textContent = post.author_name || "BirdBox Coaching";
+    const when = document.createElement("span");
+    when.className = "bl-when";
+    when.style.display = "block";
+    when.textContent = fmtDate(post.published_at);
+    who.append(name, when);
+    by.append(who);
+    return by;
+  }
+
+  function lead(post) {
+    const a = document.createElement("a");
+    a.className = "bl-lead";
+    a.href = "/blog/" + post.slug + "/";
+
+    const media = document.createElement("span");
+    media.className = "bl-lead__media";
+    const url = fileUrl(post.hero_path);
+    if (url) {
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "";
+      img.onerror = () => img.remove();
+      media.append(img);
+    }
+
+    const body = document.createElement("span");
+    body.className = "bl-lead__body";
+
+    const kind = document.createElement("span");
+    kind.className = "bl-lead__kind";
+    kind.textContent = "Latest";
+
+    const name = document.createElement("span");
+    name.className = "bl-lead__name";
+    name.textContent = post.title || "Untitled";
+
+    body.append(kind, name);
+
+    if (post.excerpt) {
+      const stand = document.createElement("span");
+      stand.className = "bl-lead__stand";
+      stand.textContent = post.excerpt;
+      body.append(stand);
+    }
+
+    body.append(byline(post));
+    a.append(media, body);
+    return a;
+  }
+
+  function card(post) {
+    const a = document.createElement("a");
+    a.className = "bl-card";
+    a.href = "/blog/" + post.slug + "/";
+
+    const media = document.createElement("span");
+    media.className = "bl-card__media";
+    const url = fileUrl(post.hero_path);
+    if (url) {
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "";
+      img.loading = "lazy";
+      img.onerror = () => img.remove();
+      media.append(img);
+    }
+
+    const body = document.createElement("span");
+    body.className = "bl-card__body";
+
+    const name = document.createElement("span");
+    name.className = "bl-card__name";
+    name.textContent = post.title || "Untitled";
+    body.append(name);
+
+    if (post.excerpt) {
+      const stand = document.createElement("span");
+      stand.className = "bl-card__stand";
+      stand.textContent = post.excerpt;
+      body.append(stand);
+    }
+
+    body.append(byline(post));
+    a.append(media, body);
+    return a;
+  }
+
+  async function load() {
+    // Only published posts are readable by an anonymous visitor, so a
+    // draft cannot appear here even by accident.
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .select("slug, title, excerpt, hero_path, author_name, author_photo_path, published_at")
+      .eq("status", "published")
+      .order("published_at", { ascending: false });
+
+    if (error) {
+      console.error("Blog list failed:", error);
+      state.textContent = "Articles are unavailable right now.";
+      return;
+    }
+
+    const posts = data || [];
+
+    if (!posts.length) {
+      state.textContent = "Nothing published yet. Check back shortly.";
+      return;
+    }
+
+    state.style.display = "none";
+
+    // With only one post, a lead on its own reads better than a lead
+    // above an empty row.
+    leadBox.append(lead(posts[0]));
+    for (const p of posts.slice(1)) grid.append(card(p));
+  }
+
+  load();
+</script>
+
+</body>
+</html>
