@@ -223,7 +223,7 @@ Reply with JSON only, no other text, in this exact shape:
 "body" is the finished email. Nothing will be added to it.
 `.trim();
 
-  const result = await callClaude(found.manual, instruction);
+  const result = await callClaude(found.manual, instruction, found.reference);
 
   const { error } = await supabase.from("feedback_drafts").upsert({
     registration_id: reg.id,
@@ -282,7 +282,34 @@ async function isLeadOrAdmin(staff, courseId) {
   return data?.role === "lead_coach";
 }
 
-async function callClaude(manual, instruction) {
+async function callClaude(manual, instruction, reference) {
+  // Both blocks are cached, so a seminar of fifteen pays for the
+  // manual and the course reference once between them rather than
+  // fifteen times each.
+  const system = [{
+    type: "text",
+    text: manual,
+    cache_control: { type: "ephemeral" },
+  }];
+
+  if (reference) {
+    system.push({
+      type: "text",
+      text:
+        "COURSE REFERENCE — what is taught on this seminar.\n\n" +
+        "Use this to explain why a development priority matters: the laws and\n" +
+        "rules, the movement development tools, the biomechanics, the positions\n" +
+        "and the faults commonly observed. It gives you the seminar's own words\n" +
+        "for those ideas.\n\n" +
+        "It is NOT a source of observations. Nothing here may be used to say\n" +
+        "this participant did, showed or struggled with anything. Only the coach\n" +
+        "notes can support that. Do not recount the seminar's teaching sequence\n" +
+        "back to the participant, and do not quote the speaker script.\n\n" +
+        reference,
+      cache_control: { type: "ephemeral" },
+    });
+  }
+
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -295,12 +322,7 @@ async function callClaude(manual, instruction) {
       // The passages are now part of the email rather than bolted on
       // after it, so the written reply is a good deal longer.
       max_tokens: 8000,
-      // Cached, so a seminar of fifteen pays for the manual once.
-      system: [{
-        type: "text",
-        text: manual,
-        cache_control: { type: "ephemeral" },
-      }],
+      system,
       messages: [{ role: "user", content: instruction }],
     }),
   });
@@ -360,7 +382,7 @@ async function loadManual(course) {
 
   const { data: row, error } = await supabase
     .from("feedback_manuals")
-    .select("manual_path, active, uses_limitations")
+    .select("manual_path, active, uses_limitations, reference_path")
     .eq("brand", course.brand)
     .eq("type", course.type)
     .eq("level", lvl)
@@ -393,7 +415,12 @@ async function loadManual(course) {
     try {
       const manual = await readFile(path, "utf8");
       console.log("Manual loaded from:", path);
-      return { ok: true, manual, usesLimitations: !!row.uses_limitations };
+      return {
+        ok: true,
+        manual,
+        usesLimitations: !!row.uses_limitations,
+        reference: await loadReference(row.reference_path),
+      };
     } catch (err) {
       tried.push(`${path} (${err.code || err.message})`);
     }
@@ -409,6 +436,32 @@ async function loadManual(course) {
   };
 }
 
+// The seminar's own teaching material, where a brand has one. It
+// explains WHY a development priority matters — the laws, the rules,
+// the movement development tools, the biomechanics and the faults
+// commonly seen. It is reference only: it can never be the source of
+// an observation about this participant.
+//
+// Deliberately soft: a manual with an unreadable reference still
+// drafts. Losing the explanatory depth is worth less than losing the
+// email altogether, and the log says which happened.
+async function loadReference(relative) {
+  if (!relative) return null;
+
+  for (const path of candidatePaths(relative)) {
+    try {
+      const text = await readFile(path, "utf8");
+      console.log("Course reference loaded from:", path);
+      return text;
+    } catch (err) {
+      // keep trying
+    }
+  }
+
+  console.error("Course reference not found:", relative, "— drafting without it.");
+  return null;
+}
+
 // The passages, resolved to the language and spelling this
 // participant will read, so approved terminology stays consistent
 // instead of an English passage landing in a German email.
@@ -416,8 +469,8 @@ async function loadManual(course) {
 // Scoped to the course's brand. The passages are brand-specific
 // coaching material: TCC's charisma, philosophy and behavioural
 // guidelines belong in a TCC email and nowhere else. A brand with no
-// rows gets none, which is correct — TGC prescribes from its
-// intervention library, described in its own manual.
+// rows gets none, which is correct — TGC works from its intervention
+// library, described in its own manual.
 async function loadBlocks(course, langCode) {
   const { data: rows } = await supabase
     .from("email_blocks").select("key, title, body")
