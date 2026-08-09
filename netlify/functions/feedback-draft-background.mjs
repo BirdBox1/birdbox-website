@@ -36,7 +36,11 @@ const MODEL = "claude-sonnet-4-6";
 
 const LANGUAGE_NAMES = {
   en: "English", fr: "French", es: "Spanish", de: "German", it: "Italian",
-  ja: "Japanese", ko: "Korean", pt: "Portuguese", pl: "Polish",
+  pt: "Portuguese", nl: "Dutch", pl: "Polish", hu: "Hungarian",
+  cs: "Czech", sv: "Swedish", da: "Danish", no: "Norwegian", fi: "Finnish",
+  el: "Greek", ro: "Romanian", tr: "Turkish", uk: "Ukrainian",
+  ja: "Japanese", ko: "Korean", zh: "Chinese (Simplified)",
+  af: "Afrikaans", ar: "Arabic",
 };
 
 const US_CURRENCIES = ["USD", "CAD"];
@@ -212,7 +216,12 @@ First name: ${reg.first_name}
 WRITING RULES
 - Write the whole email in ${language}.
 - Use ${spelling} English spelling conventions where the language is English.
-- Open with "${greeting} ${reg.first_name}," on its own line.
+${langCode !== "en" ? `- The coach notes may be in any language. Read them in whatever language they
+  are written and write the email in ${language} regardless.
+- Exercise names stay exactly as the library gives them, in English, even in a
+  ${language} email. They are the linked text and the coach checks them against
+  the library before sending. Write the explanation around them in ${language}.
+` : ""}- Open with "${greeting} ${reg.first_name}," on its own line.
 
 - You ARE ${staff.full_name}. You coached this person and you are writing to
   them directly. Write in the first person throughout: "I noticed", "what I
