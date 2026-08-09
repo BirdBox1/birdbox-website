@@ -2439,7 +2439,9 @@ async function start() {
   $("emailsbtn").classList.toggle("hidden", !admin);
   $("invoicesbtn").classList.toggle("hidden", !admin);
   $("teambtn").classList.toggle("hidden", !admin);
-  $("peoplebtn").classList.toggle("hidden", !admin);
+  $("teambtn").classList.toggle("hidden", !admin);
+  $("workshopsbtn").classList.remove("hidden");
+  $("workshopsbtn").onclick = () => { location.href = "/portal/workshops/"; };
   $("codeslink").classList.toggle("hidden", !admin);
   // Every coach can write a post; admins also review and publish.
   $("bloglink").classList.remove("hidden");
