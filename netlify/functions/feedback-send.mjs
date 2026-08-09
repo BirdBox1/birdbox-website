@@ -238,7 +238,7 @@ function template(text, brand) {
     .filter(Boolean)
     .map((p) =>
       `<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#16181b">${
-        escapeHtml(p).replace(/\n/g, "<br>")
+        linkify(escapeHtml(p)).replace(/\n/g, "<br>")
       }</p>`
     )
     .join("");
@@ -275,6 +275,28 @@ function escapeHtml(s) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
+// The one piece of markdown the drafts are allowed to use: an
+// exercise name carrying its demonstration link, written
+// [Eccentric sit ups](https://...). Everywhere else the body is
+// plain text and appears exactly as written.
+//
+// Run after escaping, so the link text cannot inject markup. An
+// ampersand inside the URL has already become &amp;, which is the
+// correct form inside an href and resolves back to & in the browser.
+const MD_LINK = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g;
+
+function linkify(escaped) {
+  return escaped.replace(MD_LINK, (m, text, href) =>
+    `<a href="${href}" style="color:#2f7fd0;text-decoration:underline">${text}</a>`);
+}
+
+// The plain-text alternative cannot carry a link, so the name and the
+// URL are both shown. A client that strips HTML still gets something
+// usable rather than markdown punctuation.
+function plainText(text) {
+  return String(text).replace(MD_LINK, (m, name, href) => `${name}: ${href}`);
+}
+
 async function sendEmail({ to, sender, subject, text, brand }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) { console.warn("No Resend key; not sending to", to); return false; }
@@ -289,7 +311,7 @@ async function sendEmail({ to, sender, subject, text, brand }) {
         cc: [OFFICE],
         reply_to: sender.replyTo,
         subject,
-        text,
+        text: plainText(text),
         html: template(text, brand),
       }),
     });
