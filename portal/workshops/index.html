@@ -507,6 +507,17 @@ const COUNTRY_TZ = {
   AE:"Asia/Dubai", SG:"Asia/Singapore", MX:"", BR:"",
 };
 
+// Which currency a workshop in that country is sold in. Anywhere not
+// listed falls back to euro, which an admin changes before publishing.
+const COUNTRY_CURRENCY = {
+  GB: "GBP", US: "USD", AU: "AUD", CA: "CAD", NZ: "NZD", JP: "JPY",
+  CH: "CHF", SE: "SEK", NO: "NOK", DK: "DKK", PL: "PLN", CZ: "CZK",
+  HU: "HUF", RO: "RON", UA: "UAH", TR: "TRY", ZA: "ZAR", AE: "AED",
+  SG: "SGD", MX: "MXN", BR: "BRL", KR: "KRW",
+};
+
+const currencyFor = (cc) => COUNTRY_CURRENCY[String(cc || "").toUpperCase()] || "EUR";
+
 function buildCountryOptions() {
   const sel = $("r-country");
   const current = sel.value;
@@ -1346,6 +1357,24 @@ async function goLive() {
   msg.className = "msg";
   msg.textContent = "Creating the course…";
 
+  // price_cents and currency cannot be null on a course. Take the
+  // standard workshop price where one is on file for this currency,
+  // and otherwise create it at zero — it is a draft, and an admin
+  // sets the price before putting it on sale either way.
+  const currency = currencyFor(request.country);
+  let priceCents = 0;
+  let depositCents = null;
+
+  const { data: priced } = await db.from("course_prices")
+    .select("price_cents, deposit_cents")
+    .eq("brand", "tgc").eq("type", "workshop").eq("currency", currency)
+    .maybeSingle();
+
+  if (priced) {
+    priceCents = priced.price_cents ?? 0;
+    depositCents = priced.deposit_cents ?? null;
+  }
+
   const slug = [
     "tgc", "workshop",
     (request.city || "").toLowerCase().normalize("NFD")
@@ -1369,6 +1398,9 @@ async function goLive() {
     ends_at: request.ends_at,
     timezone: request.timezone,
     capacity: request.expected_participants || snap.max_participants || 15,
+    price_cents: priceCents,
+    deposit_cents: depositCents,
+    currency,
     status: "draft",
     language: "en",
     admin_notes:
@@ -1404,7 +1436,11 @@ async function goLive() {
   });
 
   await saveRequest({ status: "live", course_id: course.id },
-    "Course created as a draft. Open it in the portal to set the price and publish.");
+    priceCents
+      ? `Course created as a draft at ${currency} ${(priceCents / 100).toFixed(0)}. ` +
+        "Open it in the portal to check it and publish."
+      : `Course created as a draft with NO PRICE SET (${currency} 0). ` +
+        "Set the price in the portal before publishing.");
 }
 </script>
 
