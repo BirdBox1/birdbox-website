@@ -34,6 +34,13 @@ const VERIFIED_DOMAINS = ["birdboxcoaching.com"];
 const FALLBACK_FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
 const OFFICE = "info@birdboxcoaching.com";
 
+// Feedback can be drafted during the course and immediately after it,
+// but it does not go out until two hours past the finish. It gives
+// the lead coach room to read everything back once the room has
+// cleared, and stops a participant receiving their email while they
+// are still packing their bag.
+const SEND_DELAY_MINUTES = 120;
+
 // An email cannot resolve a relative path, so the brand marks need an
 // absolute origin. Set SITE_URL in Netlify to the live domain; the
 // default keeps the current deploy working until that happens.
@@ -74,11 +81,16 @@ export default async (req) => {
 
     const { data: course } = await supabase
       .from("courses")
-      .select("id, title, brand, level, city, country, starts_at, currency, language")
+      .select("id, title, brand, level, city, country, starts_at, ends_at, timezone, currency, language")
       .eq("id", courseId)
       .single();
 
     if (!course) return json({ error: "Course not found" }, 404);
+
+    const hold = sendHold(course);
+    if (hold.holding) {
+      return json({ error: hold.message, releasesAt: hold.releasesAt }, 409);
+    }
 
     // Only what has actually been read and checked.
     const { data: drafts } = await supabase
@@ -193,6 +205,42 @@ async function isLeadOrAdmin(staff, courseId) {
     .eq("staff_id", staff.id)
     .maybeSingle();
   return data?.role === "lead_coach";
+}
+
+// ---------------------------------------------------------------
+// not before two hours after the finish
+// ---------------------------------------------------------------
+
+// The comparison is between two instants, so it is correct wherever
+// the coach is sitting. Only the message is rendered in the course's
+// own time zone, because that is the clock the coach was working to.
+function sendHold(course) {
+  const finish = course.ends_at || course.starts_at;
+  if (!finish) return { holding: false };
+
+  const releases = new Date(new Date(finish).getTime() + SEND_DELAY_MINUTES * 60000);
+  if (Date.now() >= releases.getTime()) return { holding: false };
+
+  let local;
+  try {
+    local = releases.toLocaleString("en-GB", {
+      timeZone: course.timezone || "UTC",
+      weekday: "short", day: "numeric", month: "short",
+      hour: "2-digit", minute: "2-digit", hour12: false,
+    });
+  } catch {
+    local = releases.toISOString().slice(0, 16).replace("T", " ") + " UTC";
+  }
+
+  return {
+    holding: true,
+    releasesAt: releases.toISOString(),
+    message:
+      `Feedback cannot be sent until two hours after the course finishes. ` +
+      `This one opens at ${local}` +
+      (course.city ? `, local to ${course.city}.` : ".") +
+      ` Drafts can be written and checked in the meantime.`,
+  };
 }
 
 // ---------------------------------------------------------------
