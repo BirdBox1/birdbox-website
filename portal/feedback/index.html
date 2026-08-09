@@ -246,7 +246,37 @@ const show = (n) => {
 // The columns a course needs on this page, in one place so the list
 // and the direct link cannot fetch different shapes of the same row.
 const COURSE_COLS =
-  "id, brand, level, type, title, city, country, starts_at, language, currency, status, archived";
+  "id, brand, level, type, title, city, country, starts_at, ends_at, timezone, language, currency, status, archived";
+
+// Feedback can be drafted during and straight after a course, but it
+// does not send until two hours past the finish. The sending function
+// enforces this; here it only keeps the button honest so nobody sits
+// waiting on a rejection.
+const SEND_DELAY_MINUTES = 120;
+let sendTimer = null;
+
+function sendHold() {
+  if (!course) return { holding: false };
+  const finish = course.ends_at || course.starts_at;
+  if (!finish) return { holding: false };
+
+  const releases = new Date(new Date(finish).getTime() + SEND_DELAY_MINUTES * 60000);
+  const waitMs = releases.getTime() - Date.now();
+  if (waitMs <= 0) return { holding: false };
+
+  let local;
+  try {
+    local = releases.toLocaleString(undefined, {
+      timeZone: course.timezone || undefined,
+      weekday: "short", day: "numeric", month: "short",
+      hour: "2-digit", minute: "2-digit",
+    });
+  } catch {
+    local = releases.toLocaleString();
+  }
+
+  return { holding: true, waitMs, local };
+}
 
 // The limitations a coach can pick from, spelled exactly as they
 // appear in the TGC Intervention Exercise Library. The drafting
@@ -645,7 +675,34 @@ function renderPeople(noteCount) {
     `${drafted} to check · ${approved} checked · ${sent} sent` +
     (missing ? ` · ${missing} with no notes` : "");
 
+  updateSendButton(approved, sent);
+}
+
+function updateSendButton(approved, sent) {
   const btn = $("sendall");
+  const msg = $("send-msg");
+  const hold = sendHold();
+
+  if (sendTimer) { clearTimeout(sendTimer); sendTimer = null; }
+
+  if (hold.holding) {
+    btn.disabled = true;
+    btn.textContent = approved
+      ? `${approved} checked, sending opens ${hold.local}`
+      : "Sending opens " + hold.local;
+    msg.className = "msg";
+    msg.textContent =
+      "Feedback goes out two hours after the course finishes. Write and check " +
+      "the drafts now — the button opens on its own.";
+
+    // Re-enable without a reload when the two hours are up. Capped so
+    // a page left open on a future course does not hold a long timer.
+    if (hold.waitMs < 3 * 60 * 60 * 1000) {
+      sendTimer = setTimeout(() => updateSendButton(approved, sent), hold.waitMs + 1000);
+    }
+    return;
+  }
+
   btn.disabled = !approved;
   btn.textContent = approved
     ? `Send ${approved} checked email${approved === 1 ? "" : "s"}`
@@ -886,6 +943,7 @@ function renderDraft() {
 
 function stopWatching() {
   if (watching) { clearInterval(watching); watching = null; }
+  if (sendTimer) { clearTimeout(sendTimer); sendTimer = null; }
 }
 
 async function generate() {
@@ -1022,6 +1080,13 @@ $("back-people").addEventListener("click", () => openCourse(course));
 $("sendall").addEventListener("click", async () => {
   const ready = people.filter((r) => drafts[r.id]?.status === "approved");
   if (!ready.length) return;
+
+  const hold = sendHold();
+  if (hold.holding) {
+    $("send-msg").className = "msg err";
+    $("send-msg").textContent = "Sending opens " + hold.local + ".";
+    return;
+  }
 
   if (!window.confirm(
     `Send ${ready.length} feedback email${ready.length === 1 ? "" : "s"}?\n\n` +
