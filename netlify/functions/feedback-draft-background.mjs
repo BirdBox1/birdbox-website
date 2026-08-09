@@ -110,7 +110,11 @@ async function run(registrationId, token, mustCover) {
   const greeting = greetingFor(course.timezone);
 
   const noteText = notes
-    .map((n) => `--- Notes from ${n.staff?.full_name || "Coach"} ---\n${n.body}`)
+    .map((n) => {
+      const who = n.staff?.full_name || "Coach";
+      const mine = who === staff.full_name;
+      return `--- ${mine ? "Your own notes" : "Notes from " + who} ---\n${n.body}`;
+    })
     .join("\n\n");
 
   // The full approved text, in the participant's language, so the
@@ -205,9 +209,25 @@ WRITING RULES
 - Write the whole email in ${language}.
 - Use ${spelling} English spelling conventions where the language is English.
 - Open with "${greeting} ${reg.first_name}," on its own line.
+
+- You ARE ${staff.full_name}. You coached this person and you are writing to
+  them directly. Write in the first person throughout: "I noticed", "what I
+  saw", "we worked on". Where the notes are your own, they are your own
+  observations — never write "${staff.full_name} noted" or refer to yourself
+  by name in the third person. Notes written by an assisting coach can be
+  given as "we" or "the team", without naming them.
+- Plain text only. No markdown: no **bold**, no ##headings, no bullet
+  characters other than a plain hyphen. The email is sent as written, so any
+  asterisk or hash appears literally to the reader. Use a short line of its
+  own as a heading if a section needs one.
+
 - Follow the manual exactly${blocks.length ? ", including the mandatory second paragraph" : ""}.
 - Do not invent anything. Use only what the notes support.
-- End with the sign-off from the manual.
+- End with the sign-off from the manual, then the lead coach's name on its
+  own line as the last line of the email: ${staff.full_name}
+  The email comes from the person who coached them, so it is signed by that
+  person. Never sign off with a brand name, a course name, "The Team", or
+  leave the name off altogether.
 ${passagesSection}${limitationText}
 THE ROUGH NOTES
 ${noteText}
