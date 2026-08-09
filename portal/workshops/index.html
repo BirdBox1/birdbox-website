@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workshops — BirdBox Coaching</title>
+<style>
+  :root {
+    --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+    --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0;
+    --good:#1f8a54; --warn:#b4610f; --bad:#b3261e;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+
+  .bar{background:var(--shell);color:#fff;padding:0.7rem 1.25rem;
+    display:flex;align-items:center;justify-content:space-between;gap:1rem}
+  .bar .left{display:flex;align-items:center;gap:0.75rem;min-width:0}
+  .mark{width:34px;height:34px;border-radius:4px;background:#fff;
+    display:grid;place-items:center;flex:none}
+  .mark img{width:26px;height:26px;object-fit:contain;display:block}
+  .bar .brandname{font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;
+    color:#9aa1a9;white-space:nowrap}
+  .bar a{font:inherit;font-size:0.8rem;color:#cfd4d9;border:1px solid #33373c;
+    padding:0.3rem 0.7rem;border-radius:3px;text-decoration:none;white-space:nowrap}
+  .bar a:hover{color:#fff;border-color:#55595e}
+
+  .wrap{max-width:56rem;margin:0 auto;padding:1.5rem 1.25rem 5rem}
+  h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0 0 0.2rem;font-weight:600}
+  h2{font-size:1.1rem;letter-spacing:-0.015em;margin:0 0 0.2rem;font-weight:600}
+  .sub{color:var(--muted);font-size:0.9rem;margin:0 0 1.25rem}
+  .back{display:inline-block;font-size:0.85rem;color:var(--accent);
+    text-decoration:none;margin-bottom:1rem;cursor:pointer;background:none;border:0;
+    font-family:inherit;padding:0}
+  .back:hover{text-decoration:underline}
+
+  .tabs{display:flex;gap:0.4rem;margin-bottom:1.25rem;border-bottom:1px solid var(--rule)}
+  .tab{font:inherit;font-size:0.88rem;font-weight:600;background:none;border:0;
+    border-bottom:2px solid transparent;color:var(--muted);padding:0.5rem 0.15rem;
+    margin-right:1.1rem;cursor:pointer;white-space:nowrap}
+  .tab:hover{color:var(--ink)}
+  .tab.on{color:var(--ink);border-bottom-color:var(--ink)}
+  .tab .n{font-size:0.72rem;font-weight:650;color:var(--muted);margin-left:0.3rem}
+
+  .btn{font:inherit;font-weight:600;background:var(--ink);color:#fff;border:0;
+    border-radius:4px;padding:0.6rem 1.1rem;cursor:pointer}
+  .btn:hover{background:#000}
+  .btn[disabled]{opacity:0.45;cursor:default}
+  .btn.small{font-size:0.82rem;padding:0.4rem 0.8rem}
+  .btn.tiny{font-size:0.78rem;padding:0.3rem 0.65rem}
+  .btn.ghost{background:none;color:var(--ink);border:1px solid var(--rule);font-weight:500}
+  .btn.ghost:hover{background:#fff;border-color:var(--muted)}
+  .btn.go{background:var(--good)}
+  .btn.go:hover{background:#176e43}
+  .btn.danger{background:none;color:var(--bad);border:1px solid #e6c9c7;font-weight:500}
+  .btn.danger:hover{background:#fdf4f3;border-color:var(--bad)}
+  .btn.wide{width:100%}
+
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:6px;
+    margin-bottom:0.7rem;overflow:hidden}
+  .row{display:flex;align-items:center;gap:0.9rem;width:100%;text-align:left;
+    font:inherit;background:none;border:0;padding:0.9rem 1.05rem;cursor:pointer}
+  .row:hover{background:#faf9f7}
+  .row .who{flex:1 1 auto;min-width:0}
+  .row .name{font-weight:650}
+  .row .meta{font-size:0.82rem;color:var(--muted)}
+
+  .pill{display:inline-block;font-size:0.66rem;letter-spacing:0.09em;
+    text-transform:uppercase;padding:0.16rem 0.45rem;border:1px solid var(--rule);
+    border-radius:3px;color:var(--muted);white-space:nowrap}
+  .pill.draft{border-color:var(--muted);color:var(--muted)}
+  .pill.pending{border-color:var(--warn);color:var(--warn)}
+  .pill.ok{background:var(--good);border-color:var(--good);color:#fff;font-weight:700}
+  .pill.live{border-color:var(--accent);color:var(--accent);font-weight:700}
+  .pill.bad{border-color:var(--bad);color:var(--bad);font-weight:700}
+
+  .panel{background:var(--card);border:1px solid var(--rule);border-radius:6px;
+    padding:1.25rem;margin-bottom:1rem}
+  .panel h3{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 0.8rem;font-weight:600}
+
+  label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.3rem}
+  .hint{font-weight:400;color:var(--muted);font-size:0.78rem}
+  input[type=text],input[type=number],input[type=date],input[type=time],
+  select,textarea{width:100%;font:inherit;padding:0.55rem 0.65rem;
+    border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink)}
+  textarea{min-height:6rem;resize:vertical;line-height:1.6}
+  .field{margin-bottom:1rem}
+  .grid2{display:grid;gap:1rem;grid-template-columns:1fr}
+  @media (min-width:34rem){.grid2{grid-template-columns:1fr 1fr}}
+
+  .msg{font-size:0.85rem;margin-top:0.9rem;min-height:1.2em}
+  .msg.err{color:var(--bad)}
+  .msg.ok{color:var(--good)}
+  .empty{background:var(--card);border:1px dashed var(--rule);border-radius:6px;
+    padding:2rem 1.25rem;text-align:center;color:var(--muted);font-size:0.9rem}
+  .whenline{font-size:0.82rem;color:var(--muted);margin:0.1rem 0 0;line-height:1.5}
+  .whenline.bad{color:var(--bad)}
+  .whenline b{color:var(--ink);font-weight:650}
+
+  .note{background:#fff8f0;border:1px solid #efd6b8;border-left:3px solid var(--warn);
+    border-radius:6px;padding:0.9rem 1.05rem;margin-bottom:1rem;font-size:0.9rem}
+  .note b{display:block;margin-bottom:0.2rem}
+  .note.good{background:#f2f9f5;border-color:#c6e3d3;border-left-color:var(--good)}
+  .note.bad{background:#fdf4f3;border-color:#e6c9c7;border-left-color:var(--bad)}
+
+  .snap{background:#fbfaf8;border:1px solid var(--rule);border-radius:5px;
+    padding:0.8rem 0.9rem;font-size:0.88rem;white-space:pre-wrap;
+    max-height:22rem;overflow-y:auto}
+  .snap h4{font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;
+    color:var(--muted);margin:0.9rem 0 0.25rem;font-weight:650}
+  .snap h4:first-child{margin-top:0}
+
+  .acts{display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-top:0.9rem}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="left">
+    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+    <span class="brandname">Workshops</span>
+  </span>
+  <a href="/portal/">← Portal</a>
+</div>
+
+<div class="wrap">
+  <div id="loading"><p class="sub">Loading…</p></div>
+
+  <!-- ============ LISTS ============ -->
+  <section id="view-list" class="hidden">
+    <h1>Workshops</h1>
+    <p class="sub" id="list-sub"></p>
+
+    <div class="tabs">
+      <button class="tab on" id="tab-requests" type="button" data-tab="requests">
+        Requests <span class="n" id="n-requests"></span>
+      </button>
+      <button class="tab" id="tab-templates" type="button" data-tab="templates">
+        Templates <span class="n" id="n-templates"></span>
+      </button>
+    </div>
+
+    <div class="acts" style="margin:0 0 1.1rem">
+      <button class="btn" id="new-request" type="button">Request a workshop</button>
+      <button class="btn ghost" id="new-template" type="button">Write a template</button>
+    </div>
+
+    <div id="list"></div>
+  </section>
+
+  <!-- ============ TEMPLATE ============ -->
+  <section id="view-template" class="hidden">
+    <button class="back" id="back-from-template" type="button">← All workshops</button>
+    <h1 id="t-heading">Workshop template</h1>
+    <p class="sub" id="t-sub"></p>
+
+    <div id="t-review"></div>
+
+    <div class="panel">
+      <h3>The workshop</h3>
+      <div class="field">
+        <label for="t-title">Title <span class="hint">what it is called at point of sale</span></label>
+        <input id="t-title" type="text" placeholder="Strict Pull-up / Strict Toes-to-Bar / Pull-Over development">
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="t-movements">Movements covered <span class="hint">one line</span></label>
+          <input id="t-movements" type="text" placeholder="Strict pull-up, toes-to-bar, pull-over">
+        </div>
+        <div class="field">
+          <label for="t-max">Maximum participants <span class="hint">per coach</span></label>
+          <input id="t-max" type="number" min="1" max="60" value="15">
+        </div>
+      </div>
+      <div class="field">
+        <label for="t-objectives">Workshop objectives
+          <span class="hint">what participants will be coached through, and what they leave with</span>
+        </label>
+        <textarea id="t-objectives"></textarea>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>The session</h3>
+      <div class="field">
+        <label for="t-briefing">1. Briefing
+          <span class="hint">welcome, introductions, structure, objectives, terms specific to this workshop</span>
+        </label>
+        <textarea id="t-briefing"></textarea>
+      </div>
+      <div class="field">
+        <label for="t-warmup">2. Warm-up
+          <span class="hint">line drills and what each one is for</span>
+        </label>
+        <textarea id="t-warmup"></textarea>
+      </div>
+      <div class="field">
+        <label for="t-preactivation">3. Pre-activation (RAMP)
+          <span class="hint">rounds, reps and the purpose of the activation</span>
+        </label>
+        <textarea id="t-preactivation"></textarea>
+      </div>
+      <div class="field">
+        <label for="t-interventions">Possible interventions
+          <span class="hint">what you might identify on the day and what you would use for it</span>
+        </label>
+        <textarea id="t-interventions"></textarea>
+      </div>
+      <div class="field">
+        <label for="t-shape">4. Shape and positional development</label>
+        <textarea id="t-shape"></textarea>
+      </div>
+      <div class="field">
+        <label for="t-coaching">5. Coaching of movement
+          <span class="hint">the movements themselves, tests, variations and progressions</span>
+        </label>
+        <textarea id="t-coaching"></textarea>
+      </div>
+      <div class="field">
+        <label for="t-accessory">6. Optional accessory <span class="hint">if there is time</span></label>
+        <textarea id="t-accessory"></textarea>
+      </div>
+      <div class="field">
+        <label for="t-cooldown">7. Cool down, closing remarks and takeaways</label>
+        <textarea id="t-cooldown"></textarea>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Admin</h3>
+      <div id="t-adminbox"></div>
+    </div>
+
+    <div class="acts">
+      <button class="btn" id="t-save" type="button">Save</button>
+      <button class="btn go" id="t-submit" type="button">Submit for approval</button>
+      <button class="btn ghost" id="t-copy" type="button">Duplicate</button>
+      <button class="btn danger" id="t-delete" type="button">Delete</button>
+    </div>
+    <p class="msg" id="t-msg"></p>
+  </section>
+
+  <!-- ============ REQUEST ============ -->
+  <section id="view-request" class="hidden">
+    <button class="back" id="back-from-request" type="button">← All workshops</button>
+    <h1 id="r-heading">Workshop request</h1>
+    <p class="sub" id="r-sub"></p>
+
+    <div id="r-review"></div>
+
+    <div class="panel">
+      <h3>Which workshop</h3>
+      <div class="field">
+        <label for="r-template">Template
+          <span class="hint">an approved one, or one of your own</span>
+        </label>
+        <select id="r-template"></select>
+      </div>
+      <p class="whenline" id="r-template-note"></p>
+      <div id="r-snapwrap" class="hidden" style="margin-top:0.9rem">
+        <label>What this workshop contains
+          <span class="hint">taken from the template when you submit</span>
+        </label>
+        <div class="snap" id="r-snap"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>When and where</h3>
+      <div class="field">
+        <label for="r-title">Title for this one
+          <span class="hint">defaults to the template's title</span>
+        </label>
+        <input id="r-title" type="text">
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="r-venue">Host gym</label>
+          <input id="r-venue" type="text" placeholder="CrossFit Dublin">
+        </div>
+        <div class="field">
+          <label for="r-city">City</label>
+          <input id="r-city" type="text">
+        </div>
+      </div>
+      <div class="field">
+        <label for="r-address">Address <span class="hint">optional</span></label>
+        <input id="r-address" type="text">
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="r-country">Country</label>
+          <select id="r-country"><option value="">Choose a country…</option></select>
+        </div>
+        <div class="field">
+          <label for="r-timezone">Time zone
+            <span class="hint">times below are local to the venue</span>
+          </label>
+          <input id="r-timezone" type="text" list="tzlist"
+                 autocapitalize="off" autocorrect="off" spellcheck="false">
+          <datalist id="tzlist"></datalist>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="r-date">Date</label>
+          <input id="r-date" type="date">
+        </div>
+        <div class="field">
+          <label for="r-expected">Expected participants</label>
+          <input id="r-expected" type="number" min="1" max="60">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="r-start">Start time</label>
+          <input id="r-start" type="time" value="09:00">
+        </div>
+        <div class="field">
+          <label for="r-end">Finish time</label>
+          <input id="r-end" type="time" value="12:00">
+        </div>
+      </div>
+      <p class="whenline" id="r-when"></p>
+    </div>
+
+    <div class="panel">
+      <h3>Anything else</h3>
+      <div class="field">
+        <label for="r-note">Note to the office <span class="hint">optional</span></label>
+        <textarea id="r-note" style="min-height:4rem"
+          placeholder="The host has offered to cover travel. Two other coaches want to assist."></textarea>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Admin</h3>
+      <div id="r-adminbox"></div>
+    </div>
+
+    <div class="acts">
+      <button class="btn" id="r-save" type="button">Save</button>
+      <button class="btn go" id="r-submit" type="button">Submit request</button>
+      <button class="btn danger" id="r-delete" type="button">Delete</button>
+    </div>
+    <p class="msg" id="r-msg"></p>
+  </section>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const $ = (id) => document.getElementById(id);
+const show = (n) => {
+  for (const v of ["list", "template", "request"]) {
+    $("view-" + v).classList.toggle("hidden", v !== n);
+  }
+  $("loading").classList.add("hidden");
+  window.scrollTo({ top: 0 });
+};
+
+// The sections of a workshop, in the order they run. One place, so
+// the form, the snapshot and the read-only view cannot drift apart.
+const SECTIONS = [
+  ["objectives",             "Workshop objectives"],
+  ["briefing",               "1. Briefing"],
+  ["warm_up",                "2. Warm-up"],
+  ["pre_activation",         "3. Pre-activation (RAMP)"],
+  ["possible_interventions", "Possible interventions"],
+  ["shape_development",      "4. Shape and positional development"],
+  ["movement_coaching",      "5. Coaching of movement"],
+  ["optional_accessory",     "6. Optional accessory"],
+  ["cool_down",              "7. Cool down and takeaways"],
+];
+
+// Which form field holds each section.
+const FIELD = {
+  objectives: "t-objectives",
+  briefing: "t-briefing",
+  warm_up: "t-warmup",
+  pre_activation: "t-preactivation",
+  possible_interventions: "t-interventions",
+  shape_development: "t-shape",
+  movement_coaching: "t-coaching",
+  optional_accessory: "t-accessory",
+  cool_down: "t-cooldown",
+};
+
+let me = null;
+let tab = "requests";
+let templates = [];
+let requests = [];
+let template = null;   // the one being edited
+let request = null;    // the one being edited
+
+const isAdmin = () => me && me.role === "admin";
+
+const fmtDate = (iso, tz) => iso
+  ? new Date(iso).toLocaleDateString(undefined, {
+      day: "numeric", month: "short", year: "numeric", timeZone: safeZone(tz),
+    })
+  : "";
+
+const fmtWhen = (iso) => iso
+  ? new Date(iso).toLocaleString(undefined, {
+      day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+    })
+  : "";
+
+/* ---------------- time zones ---------------- */
+
+function tzIsReal(tz) {
+  if (!tz) return false;
+  try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; }
+  catch { return false; }
+}
+const safeZone = (tz) => (tzIsReal(tz) ? tz : undefined);
+
+function zoneOffsetAt(date, tz) {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  });
+  const p = {};
+  for (const part of dtf.formatToParts(date)) p[part.type] = part.value;
+  const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day,
+    p.hour === "24" ? 0 : +p.hour, +p.minute, +p.second);
+  return asUTC - date.getTime();
+}
+
+// The times a coach types are the times on the wall at the venue,
+// whatever time zone the coach is sitting in.
+function zonedToInstant(dateStr, timeStr, tz) {
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  const [h, mi] = (timeStr || "09:00").split(":").map(Number);
+  const naive = Date.UTC(y, mo - 1, d, h || 0, mi || 0, 0);
+  if (!tzIsReal(tz)) return new Date(naive);
+  let guess = new Date(naive - zoneOffsetAt(new Date(naive), tz));
+  guess = new Date(naive - zoneOffsetAt(guess, tz));
+  return guess;
+}
+
+function instantToZoned(iso, tz) {
+  const dtf = new Intl.DateTimeFormat("en-CA", {
+    timeZone: safeZone(tz), hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+  });
+  const p = {};
+  for (const part of dtf.formatToParts(new Date(iso))) p[part.type] = part.value;
+  return {
+    date: `${p.year}-${p.month}-${p.day}`,
+    time: `${p.hour === "24" ? "00" : p.hour}:${p.minute}`,
+  };
+}
+
+function buildTimezoneList() {
+  const list = $("tzlist");
+  let zones = [];
+  try { zones = Intl.supportedValuesOf("timeZone"); }
+  catch { zones = ["Europe/Dublin", "Europe/London", "Europe/Berlin", "America/New_York"]; }
+  list.innerHTML = "";
+  for (const z of zones) {
+    const o = document.createElement("option");
+    o.value = z;
+    list.append(o);
+  }
+}
+
+/* ---------------- countries ---------------- */
+
+const REGION_NAMES = (() => {
+  try { return new Intl.DisplayNames(["en"], { type: "region" }); }
+  catch (e) { return null; }
+})();
+
+function countryName(value) {
+  const raw = String(value == null ? "" : value).trim();
+  if (!raw) return "";
+  const iso = raw.toUpperCase() === "UK" ? "GB" : raw.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(iso) || !REGION_NAMES) return raw;
+  try {
+    const name = REGION_NAMES.of(iso);
+    return name && name !== iso ? name : iso;
+  } catch (e) { return iso; }
+}
+
+const COUNTRY_TZ = {
+  AT:"Europe/Vienna", AU:"", BE:"Europe/Brussels", CA:"", CH:"Europe/Zurich",
+  CZ:"Europe/Prague", DE:"Europe/Berlin", DK:"Europe/Copenhagen", EE:"Europe/Tallinn",
+  ES:"Europe/Madrid", FI:"Europe/Helsinki", FR:"Europe/Paris", GB:"Europe/London",
+  GR:"Europe/Athens", HR:"Europe/Zagreb", HU:"Europe/Budapest", IE:"Europe/Dublin",
+  IT:"Europe/Rome", JP:"Asia/Tokyo", KR:"Asia/Seoul", LT:"Europe/Vilnius",
+  LU:"Europe/Luxembourg", LV:"Europe/Riga", MT:"Europe/Malta", NL:"Europe/Amsterdam",
+  NO:"Europe/Oslo", NZ:"Pacific/Auckland", PL:"Europe/Warsaw", PT:"Europe/Lisbon",
+  RO:"Europe/Bucharest", SE:"Europe/Stockholm", SI:"Europe/Ljubljana",
+  SK:"Europe/Bratislava", UA:"Europe/Kyiv", US:"", ZA:"Africa/Johannesburg",
+  AE:"Asia/Dubai", SG:"Asia/Singapore", MX:"", BR:"",
+};
+
+function buildCountryOptions() {
+  const sel = $("r-country");
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Choose a country…</option>';
+  const rows = Object.keys(COUNTRY_TZ)
+    .map((code) => ({ code, name: countryName(code) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  for (const r of rows) {
+    const o = document.createElement("option");
+    o.value = r.code;
+    o.textContent = r.name;
+    sel.append(o);
+  }
+  if (current) sel.value = current;
+}
+
+/* ---------------- start ---------------- */
+
+start();
+
+async function start() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { location.href = "/portal/"; return; }
+
+  const { data: staff } = await db.from("staff")
+    .select("id, full_name, email, role, active")
+    .eq("id", session.user.id).maybeSingle();
+
+  if (!staff || !staff.active) { location.href = "/portal/"; return; }
+  me = staff;
+
+  buildTimezoneList();
+  buildCountryOptions();
+
+  $("list-sub").textContent = isAdmin()
+    ? "Every request and template across the team."
+    : "Your requests, and the templates you can run.";
+
+  await loadAll();
+}
+
+async function loadAll() {
+  const [t, r] = await Promise.all([
+    db.from("workshop_templates")
+      .select("*, staff:created_by ( full_name )")
+      .order("updated_at", { ascending: false }),
+    db.from("workshop_requests")
+      .select("*, staff:requested_by ( full_name )")
+      .order("created_at", { ascending: false }),
+  ]);
+
+  templates = t.data || [];
+  requests = r.data || [];
+
+  if (t.error) console.error("Could not load templates:", t.error.message);
+  if (r.error) console.error("Could not load requests:", r.error.message);
+
+  renderList();
+}
+
+/* ---------------- the lists ---------------- */
+
+for (const id of ["tab-requests", "tab-templates"]) {
+  $(id).addEventListener("click", () => {
+    tab = $(id).dataset.tab;
+    $("tab-requests").classList.toggle("on", tab === "requests");
+    $("tab-templates").classList.toggle("on", tab === "templates");
+    renderList();
+  });
+}
+
+const TEMPLATE_PILL = {
+  draft:    ["draft", "draft"],
+  pending:  ["awaiting approval", "pending"],
+  approved: ["approved", "ok"],
+  rejected: ["needs changes", "bad"],
+};
+
+const REQUEST_PILL = {
+  draft:     ["draft", "draft"],
+  submitted: ["awaiting approval", "pending"],
+  approved:  ["approved", "ok"],
+  declined:  ["declined", "bad"],
+  live:      ["live", "live"],
+};
+
+function renderList() {
+  show("list");
+
+  // Anything waiting on an admin decision, counted for the tab.
+  const waitingT = templates.filter((x) => x.status === "pending").length;
+  const waitingR = requests.filter((x) => x.status === "submitted").length;
+  $("n-templates").textContent = waitingT && isAdmin() ? waitingT : "";
+  $("n-requests").textContent = waitingR && isAdmin() ? waitingR : "";
+
+  const box = $("list");
+  box.innerHTML = "";
+
+  const rows = tab === "templates" ? templates : requests;
+  if (!rows.length) {
+    box.innerHTML = `<p class="empty">${
+      tab === "templates"
+        ? "No templates yet. Write one and submit it for approval."
+        : "No requests yet. Pick a template and a date."
+    }</p>`;
+    return;
+  }
+
+  for (const row of rows) {
+    const el = document.createElement("div");
+    el.className = "card";
+    el.innerHTML = `<button class="row" type="button">
+      <span class="who"><span class="name"></span><span class="meta"></span></span>
+      <span class="pill"></span></button>`;
+
+    el.querySelector(".name").textContent = row.title || "Untitled";
+
+    const who = row.staff?.full_name || "";
+    const meta = [];
+    if (tab === "requests") {
+      if (row.starts_at) meta.push(fmtDate(row.starts_at, row.timezone));
+      const where = [row.venue_name, row.city, countryName(row.country)]
+        .filter(Boolean).join(", ");
+      if (where) meta.push(where);
+    } else {
+      if (row.movements) meta.push(row.movements);
+    }
+    if (isAdmin() && who) meta.push(who);
+    el.querySelector(".meta").textContent = meta.join(" · ");
+
+    const map = tab === "templates" ? TEMPLATE_PILL : REQUEST_PILL;
+    const [text, cls] = map[row.status] || [row.status, ""];
+    const pill = el.querySelector(".pill");
+    pill.textContent = text;
+    pill.className = "pill " + cls;
+
+    el.querySelector(".row").addEventListener("click", () =>
+      tab === "templates" ? openTemplate(row) : openRequest(row));
+    box.append(el);
+  }
+}
+
+$("back-from-template").addEventListener("click", loadAll);
+$("back-from-request").addEventListener("click", loadAll);
+
+/* ---------------- templates ---------------- */
+
+$("new-template").addEventListener("click", () => openTemplate(null));
+
+function openTemplate(row) {
+  template = row;
+  show("template");
+  $("t-msg").textContent = "";
+  $("t-msg").className = "msg";
+
+  const mine = !row || row.created_by === me.id;
+  const locked = !!row && !mine && !isAdmin();
+
+  $("t-heading").textContent = row ? "Workshop template" : "New workshop template";
+  $("t-sub").textContent = row
+    ? `Written by ${row.staff?.full_name || "a coach"}` +
+      (row.updated_at ? ` · last changed ${fmtWhen(row.updated_at)}` : "")
+    : "Set out the session once. It can then be used for any number of workshops.";
+
+  $("t-title").value = row?.title || "";
+  $("t-movements").value = row?.movements || "";
+  $("t-max").value = row?.max_participants ?? 15;
+  for (const [key, id] of Object.entries(FIELD)) {
+    $(id).value = row?.[key] || "";
+  }
+
+  // Somebody else's approved template is readable but not editable.
+  for (const id of ["t-title", "t-movements", "t-max", ...Object.values(FIELD)]) {
+    $(id).disabled = locked;
+  }
+
+  const canSubmit = mine || isAdmin();
+  $("t-save").classList.toggle("hidden", locked);
+  $("t-submit").classList.toggle("hidden", locked || row?.status === "pending");
+  $("t-submit").textContent = row?.status === "approved"
+    ? "Resubmit for approval" : "Submit for approval";
+  $("t-copy").classList.toggle("hidden", !row);
+  $("t-delete").classList.toggle("hidden", !row || (!mine && !isAdmin()) || row.status === "approved");
+
+  renderTemplateReview();
+  renderTemplateAdmin();
+  markSeen("workshop_templates", row, row?.created_by);
+}
+
+// The badge on the portal counts decisions the coach has not looked
+// at yet. Opening the thing is what clears it — not a dismiss button,
+// because a decision nobody read is exactly what the badge is for.
+async function markSeen(table, row, ownerId) {
+  if (!row || row.seen_by_coach_at) return;
+  if (ownerId !== me.id) return;
+  const decided = ["approved", "rejected", "declined"].includes(row.status);
+  if (!decided) return;
+
+  const stamp = new Date().toISOString();
+  const { error } = await db.from(table)
+    .update({ seen_by_coach_at: stamp }).eq("id", row.id);
+  if (error) { console.error("Could not mark as seen:", error.message); return; }
+  row.seen_by_coach_at = stamp;
+}
+
+function renderTemplateReview() {
+  const box = $("t-review");
+  box.innerHTML = "";
+  if (!template) return;
+
+  if (template.status === "rejected" && template.review_note) {
+    const el = document.createElement("div");
+    el.className = "note bad";
+    el.innerHTML = "<b>Changes asked for</b>";
+    el.append(document.createTextNode(template.review_note));
+    box.append(el);
+  } else if (template.status === "approved") {
+    const el = document.createElement("div");
+    el.className = "note good";
+    el.innerHTML = "<b>Approved</b>";
+    el.append(document.createTextNode(
+      "Anyone can request a workshop using this template. Editing it will not " +
+      "change any workshop that has already been approved."
+    ));
+    box.append(el);
+  } else if (template.status === "pending") {
+    const el = document.createElement("div");
+    el.className = "note";
+    el.innerHTML = "<b>With the office</b>";
+    el.append(document.createTextNode("You can still edit it while it is waiting."));
+    box.append(el);
+  }
+}
+
+function renderTemplateAdmin() {
+  const box = $("t-adminbox");
+  box.innerHTML = "";
+
+  if (!isAdmin() || !template) {
+    box.innerHTML = '<p class="whenline">Only an admin can approve a template.</p>';
+    return;
+  }
+
+  const wrap = document.createElement("div");
+  wrap.innerHTML = `
+    <div class="field">
+      <label for="t-reviewnote">Note to the coach
+        <span class="hint">required when asking for changes</span>
+      </label>
+      <textarea id="t-reviewnote" style="min-height:4rem"></textarea>
+    </div>
+    <div class="acts" style="margin-top:0">
+      <button class="btn go small" id="t-approve" type="button">Approve</button>
+      <button class="btn danger small" id="t-reject" type="button">Ask for changes</button>
+      <span class="whenline" id="t-adminwhy"></span>
+    </div>`;
+  box.append(wrap);
+
+  $("t-reviewnote").value = template.review_note || "";
+  $("t-adminwhy").textContent = template.approved_at
+    ? `Approved ${fmtWhen(template.approved_at)}.`
+    : "Approving makes this available to every coach.";
+
+  $("t-approve").onclick = () => reviewTemplate("approved");
+  $("t-reject").onclick = () => reviewTemplate("rejected");
+}
+
+function readTemplateForm() {
+  const row = {
+    title: $("t-title").value.trim(),
+    movements: $("t-movements").value.trim() || null,
+    max_participants: parseInt($("t-max").value, 10) || 15,
+    updated_at: new Date().toISOString(),
+  };
+  for (const [key, id] of Object.entries(FIELD)) {
+    row[key] = $(id).value.trim() || null;
+  }
+  return row;
+}
+
+async function saveTemplate(patch, note) {
+  const msg = $("t-msg");
+  const row = { ...readTemplateForm(), ...patch };
+
+  if (!row.title) {
+    msg.className = "msg err";
+    msg.textContent = "Give the workshop a title.";
+    return false;
+  }
+
+  msg.className = "msg";
+  msg.textContent = "Saving…";
+
+  let result;
+  if (template) {
+    result = await db.from("workshop_templates")
+      .update(row).eq("id", template.id)
+      .select("*, staff:created_by ( full_name )").single();
+  } else {
+    result = await db.from("workshop_templates")
+      .insert({ ...row, created_by: me.id })
+      .select("*, staff:created_by ( full_name )").single();
+  }
+
+  if (result.error) {
+    msg.className = "msg err";
+    msg.textContent = "Could not save: " + result.error.message;
+    return false;
+  }
+
+  template = result.data;
+  msg.className = "msg ok";
+  msg.textContent = note || "Saved.";
+  renderTemplateReview();
+  renderTemplateAdmin();
+  $("t-submit").classList.toggle("hidden", template.status === "pending");
+  $("t-copy").classList.remove("hidden");
+  return true;
+}
+
+$("t-save").addEventListener("click", () => saveTemplate({}));
+
+$("t-submit").addEventListener("click", async () => {
+  if (!window.confirm(
+    "Submit this template for approval?\n\n" +
+    "The office reads it and either approves it or comes back with changes."
+  )) return;
+  await saveTemplate({ status: "pending", review_note: null },
+    "Submitted. The office will come back to you.");
+});
+
+$("t-copy").addEventListener("click", async () => {
+  if (!template) return;
+  if (!window.confirm(
+    `Duplicate "${template.title}"?\n\n` +
+    "You get your own copy to change and submit. The original is untouched."
+  )) return;
+
+  const row = readTemplateForm();
+  const { data, error } = await db.from("workshop_templates")
+    .insert({
+      ...row,
+      title: row.title + " (copy)",
+      status: "draft",
+      review_note: null,
+      created_by: me.id,
+    })
+    .select("*, staff:created_by ( full_name )").single();
+
+  if (error) {
+    $("t-msg").className = "msg err";
+    $("t-msg").textContent = "Could not duplicate: " + error.message;
+    return;
+  }
+  openTemplate(data);
+  $("t-msg").className = "msg ok";
+  $("t-msg").textContent = "Duplicated. This copy is yours to change.";
+});
+
+$("t-delete").addEventListener("click", async () => {
+  if (!template) return;
+  if (!window.confirm(`Delete "${template.title}"? This cannot be undone.`)) return;
+
+  const { error } = await db.from("workshop_templates").delete().eq("id", template.id);
+  if (error) {
+    $("t-msg").className = "msg err";
+    $("t-msg").textContent = "Could not delete: " + error.message;
+    return;
+  }
+  await loadAll();
+});
+
+async function reviewTemplate(status) {
+  const note = $("t-reviewnote").value.trim();
+  const msg = $("t-msg");
+
+  if (status === "rejected" && !note) {
+    msg.className = "msg err";
+    msg.textContent = "Say what needs changing before sending it back.";
+    return;
+  }
+
+  if (!window.confirm(status === "approved"
+    ? "Approve this template? Any coach will be able to request it."
+    : "Send this back to the coach with your note?")) return;
+
+  await saveTemplate({
+    status,
+    review_note: note || null,
+    approved_by: status === "approved" ? me.id : null,
+    approved_at: status === "approved" ? new Date().toISOString() : null,
+    // Cleared so the coach sees a badge for this decision, even if
+    // they had already read an earlier one.
+    seen_by_coach_at: null,
+  }, status === "approved" ? "Approved." : "Sent back with your note.");
+}
+
+/* ---------------- requests ---------------- */
+
+$("new-request").addEventListener("click", () => openRequest(null));
+
+// A coach can request any approved template, or one of their own that
+// is still being worked on.
+function usableTemplates() {
+  return templates.filter((t) =>
+    t.status === "approved" || t.created_by === me.id || isAdmin());
+}
+
+function openRequest(row) {
+  request = row;
+  show("request");
+  $("r-msg").textContent = "";
+  $("r-msg").className = "msg";
+
+  const mine = !row || row.requested_by === me.id;
+  const locked = !!row && (row.status === "live" || (!mine && !isAdmin()));
+
+  $("r-heading").textContent = row ? "Workshop request" : "Request a workshop";
+  $("r-sub").textContent = row
+    ? `Requested by ${row.staff?.full_name || "a coach"}` +
+      (row.created_at ? ` · ${fmtWhen(row.created_at)}` : "")
+    : "Pick a workshop, say when and where, and send it to the office.";
+
+  // Template picker
+  const sel = $("r-template");
+  sel.innerHTML = '<option value="">Choose a workshop…</option>';
+  for (const t of usableTemplates()) {
+    const o = document.createElement("option");
+    o.value = t.id;
+    o.textContent = t.title + (t.status === "approved" ? "" : ` (${t.status})`);
+    sel.append(o);
+  }
+  sel.value = row?.template_id || "";
+
+  $("r-title").value = row?.title || "";
+  $("r-venue").value = row?.venue_name || "";
+  $("r-address").value = row?.address || "";
+  $("r-city").value = row?.city || "";
+  $("r-country").value = (row?.country || "").toUpperCase();
+  $("r-timezone").value = row?.timezone || "";
+  $("r-expected").value = row?.expected_participants ?? "";
+  $("r-note").value = row?.coach_note || "";
+
+  if (row?.starts_at) {
+    const s = instantToZoned(row.starts_at, row.timezone);
+    $("r-date").value = s.date;
+    $("r-start").value = s.time;
+  } else {
+    $("r-date").value = "";
+    $("r-start").value = "09:00";
+  }
+  if (row?.ends_at) {
+    $("r-end").value = instantToZoned(row.ends_at, row.timezone).time;
+  } else {
+    $("r-end").value = "12:00";
+  }
+
+  for (const id of ["r-template", "r-title", "r-venue", "r-address", "r-city",
+                    "r-country", "r-timezone", "r-date", "r-start", "r-end",
+                    "r-expected", "r-note"]) {
+    $(id).disabled = locked;
+  }
+
+  $("r-save").classList.toggle("hidden", locked);
+  $("r-submit").classList.toggle("hidden", locked || row?.status === "submitted");
+  $("r-submit").textContent = row?.status === "declined"
+    ? "Resubmit request" : "Submit request";
+  $("r-delete").classList.toggle("hidden",
+    !row || (!mine && !isAdmin()) || row.status === "live");
+
+  renderSnapshot();
+  renderRequestReview();
+  renderRequestAdmin();
+  updateWhen();
+  markSeen("workshop_requests", row, row?.requested_by);
+}
+
+// While a request is being written, the picker shows the template as
+// it stands today. Once submitted, it shows what was actually agreed.
+function renderSnapshot() {
+  const wrap = $("r-snapwrap");
+  const box = $("r-snap");
+  const note = $("r-template-note");
+
+  const frozen = request?.template_snapshot;
+  const live = templates.find((t) => t.id === $("r-template").value);
+  const source = frozen || live;
+
+  if (!source) {
+    wrap.classList.add("hidden");
+    note.className = "whenline";
+    note.textContent = usableTemplates().length
+      ? "Choose a workshop to see what it contains."
+      : "No templates available yet. Write one first, or ask a colleague to share theirs.";
+    return;
+  }
+
+  wrap.classList.remove("hidden");
+  box.innerHTML = "";
+
+  if (source.movements) {
+    const h = document.createElement("h4");
+    h.textContent = "Movements";
+    const p = document.createElement("div");
+    p.textContent = source.movements;
+    box.append(h, p);
+  }
+  for (const [key, label] of SECTIONS) {
+    if (!source[key]) continue;
+    const h = document.createElement("h4");
+    h.textContent = label;
+    const p = document.createElement("div");
+    p.textContent = source[key];
+    box.append(h, p);
+  }
+  if (!box.children.length) {
+    box.textContent = "This template has no content yet.";
+  }
+
+  note.className = "whenline";
+  note.textContent = frozen
+    ? "This is the workshop as it was agreed. Later changes to the template do not affect it."
+    : "Taken from the template when you submit, so a later edit cannot change what was agreed.";
+}
+
+$("r-template").addEventListener("change", () => {
+  const t = templates.find((x) => x.id === $("r-template").value);
+  if (t && !$("r-title").value.trim()) $("r-title").value = t.title;
+  if (t && !$("r-expected").value) $("r-expected").value = t.max_participants ?? 15;
+  renderSnapshot();
+});
+
+// Country settles the time zone where it can. Where it cannot, it
+// says so rather than leaving a zone from the last country in place.
+$("r-country").addEventListener("change", () => {
+  const cc = $("r-country").value.toUpperCase();
+  const tz = COUNTRY_TZ[cc];
+  if (tz) $("r-timezone").value = tz;
+  else if (cc) $("r-timezone").value = "";
+  updateWhen();
+});
+
+for (const id of ["r-date", "r-start", "r-end", "r-timezone", "r-city"]) {
+  $(id).addEventListener("input", updateWhen);
+  $(id).addEventListener("change", updateWhen);
+}
+
+function updateWhen() {
+  const el = $("r-when");
+  const tz = $("r-timezone").value.trim();
+  const date = $("r-date").value;
+  const city = $("r-city").value.trim();
+
+  if (!tz) {
+    el.className = "whenline bad";
+    el.textContent = "Choose a time zone — the times above are local to the venue.";
+    return;
+  }
+  if (!tzIsReal(tz)) {
+    el.className = "whenline bad";
+    el.textContent = `“${tz}” is not a time zone. Pick one from the list — Glasgow, for instance, is Europe/London.`;
+    return;
+  }
+  if (!date) {
+    el.className = "whenline";
+    el.textContent = "Add a date and this will show exactly what gets stored.";
+    return;
+  }
+
+  const start = zonedToInstant(date, $("r-start").value || "09:00", tz);
+  const end = zonedToInstant(date, $("r-end").value || "12:00", tz);
+  const fmt = (d) => d.toLocaleString(undefined, {
+    weekday: "short", day: "numeric", month: "short",
+    hour: "2-digit", minute: "2-digit", timeZone: safeZone(tz),
+  });
+
+  el.className = end <= start ? "whenline bad" : "whenline";
+  el.innerHTML = "";
+  if (end <= start) {
+    el.textContent = "The finish time is not after the start time.";
+    return;
+  }
+  el.append(document.createTextNode("Runs "));
+  const b = document.createElement("b");
+  b.textContent = fmt(start);
+  el.append(b, document.createTextNode(
+    ` to ${$("r-end").value}` + (city ? `, local to ${city}.` : ".")
+  ));
+}
+
+function readRequestForm() {
+  const tz = $("r-timezone").value.trim();
+  const date = $("r-date").value;
+  return {
+    template_id: $("r-template").value || null,
+    title: $("r-title").value.trim(),
+    venue_name: $("r-venue").value.trim() || null,
+    address: $("r-address").value.trim() || null,
+    city: $("r-city").value.trim() || null,
+    country: $("r-country").value.toUpperCase() || null,
+    timezone: tz || null,
+    starts_at: date && tzIsReal(tz)
+      ? zonedToInstant(date, $("r-start").value || "09:00", tz).toISOString() : null,
+    ends_at: date && tzIsReal(tz)
+      ? zonedToInstant(date, $("r-end").value || "12:00", tz).toISOString() : null,
+    expected_participants: parseInt($("r-expected").value, 10) || null,
+    coach_note: $("r-note").value.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+async function saveRequest(patch, note) {
+  const msg = $("r-msg");
+  const row = { ...readRequestForm(), ...patch };
+
+  if (!row.title) {
+    msg.className = "msg err";
+    msg.textContent = "Give this workshop a title.";
+    return false;
+  }
+
+  msg.className = "msg";
+  msg.textContent = "Saving…";
+
+  let result;
+  if (request) {
+    result = await db.from("workshop_requests")
+      .update(row).eq("id", request.id)
+      .select("*, staff:requested_by ( full_name )").single();
+  } else {
+    result = await db.from("workshop_requests")
+      .insert({ ...row, requested_by: me.id })
+      .select("*, staff:requested_by ( full_name )").single();
+  }
+
+  if (result.error) {
+    msg.className = "msg err";
+    msg.textContent = "Could not save: " + result.error.message;
+    return false;
+  }
+
+  request = result.data;
+  msg.className = "msg ok";
+  msg.textContent = note || "Saved.";
+  renderSnapshot();
+  renderRequestReview();
+  renderRequestAdmin();
+  $("r-submit").classList.toggle("hidden", request.status === "submitted");
+  $("r-delete").classList.remove("hidden");
+  return true;
+}
+
+$("r-save").addEventListener("click", () => saveRequest({}));
+
+$("r-submit").addEventListener("click", async () => {
+  const msg = $("r-msg");
+  const form = readRequestForm();
+
+  if (!form.template_id) {
+    msg.className = "msg err";
+    msg.textContent = "Choose which workshop this is.";
+    return;
+  }
+  if (!form.starts_at) {
+    msg.className = "msg err";
+    msg.textContent = "Add a date and a valid time zone.";
+    return;
+  }
+  if (!form.city) {
+    msg.className = "msg err";
+    msg.textContent = "Add the city.";
+    return;
+  }
+  if (new Date(form.ends_at) <= new Date(form.starts_at)) {
+    msg.className = "msg err";
+    msg.textContent = "The finish time is not after the start time.";
+    return;
+  }
+
+  const chosen = templates.find((t) => t.id === form.template_id);
+  if (!chosen) {
+    msg.className = "msg err";
+    msg.textContent = "That template could not be read. Choose it again.";
+    return;
+  }
+
+  if (!window.confirm(
+    `Submit "${form.title}" for ${fmtDate(form.starts_at, form.timezone)}?\n\n` +
+    "The office will approve it or come back with changes."
+  )) return;
+
+  // Freeze the content as it stands now. A later edit to the template
+  // cannot change a workshop that has been agreed.
+  const snapshot = { title: chosen.title, movements: chosen.movements,
+                     max_participants: chosen.max_participants };
+  for (const [key] of SECTIONS) snapshot[key] = chosen[key] || null;
+
+  await saveRequest({
+    status: "submitted",
+    template_snapshot: snapshot,
+    review_note: null,
+  }, "Submitted. The office will come back to you.");
+});
+
+$("r-delete").addEventListener("click", async () => {
+  if (!request) return;
+  if (!window.confirm(`Delete this request? This cannot be undone.`)) return;
+
+  const { error } = await db.from("workshop_requests").delete().eq("id", request.id);
+  if (error) {
+    $("r-msg").className = "msg err";
+    $("r-msg").textContent = "Could not delete: " + error.message;
+    return;
+  }
+  await loadAll();
+});
+
+function renderRequestReview() {
+  const box = $("r-review");
+  box.innerHTML = "";
+  if (!request) return;
+
+  const add = (cls, head, body) => {
+    const el = document.createElement("div");
+    el.className = "note " + cls;
+    el.innerHTML = `<b>${head}</b>`;
+    el.append(document.createTextNode(body));
+    box.append(el);
+  };
+
+  if (request.status === "declined" && request.review_note) {
+    add("bad", "Not approved", request.review_note);
+  } else if (request.status === "approved") {
+    add("good", "Approved",
+      (request.review_note ? request.review_note + " " : "") +
+      "The office will put it on sale.");
+  } else if (request.status === "live") {
+    add("good", "Live",
+      "This workshop is set up and taking registrations.");
+  } else if (request.status === "submitted") {
+    add("", "With the office", "You can still edit it while it is waiting.");
+  }
+}
+
+function renderRequestAdmin() {
+  const box = $("r-adminbox");
+  box.innerHTML = "";
+
+  if (!isAdmin() || !request) {
+    box.innerHTML = '<p class="whenline">Only an admin can approve a request.</p>';
+    return;
+  }
+
+  const wrap = document.createElement("div");
+  wrap.innerHTML = `
+    <div class="field">
+      <label for="r-reviewnote">Note to the coach
+        <span class="hint">required when declining — say what would change your mind</span>
+      </label>
+      <textarea id="r-reviewnote" style="min-height:4rem"></textarea>
+    </div>
+    <div class="acts" style="margin-top:0">
+      <button class="btn go small" id="r-approve" type="button">Approve</button>
+      <button class="btn danger small" id="r-decline" type="button">Decline</button>
+    </div>
+    <div class="acts">
+      <button class="btn small" id="r-golive" type="button">Set up the course</button>
+      <span class="whenline" id="r-adminwhy"></span>
+    </div>`;
+  box.append(wrap);
+
+  $("r-reviewnote").value = request.review_note || "";
+
+  const approved = request.status === "approved";
+  $("r-approve").disabled = approved || request.status === "live";
+  $("r-decline").disabled = request.status === "live";
+  $("r-golive").disabled = !approved;
+
+  $("r-adminwhy").textContent = request.status === "live"
+    ? "The course exists. Open it in the portal to publish or edit it."
+    : approved
+      ? "Creates the course as a draft, ready for you to check and put on sale."
+      : "Approve it first. Approving and setting it up are separate on purpose.";
+
+  $("r-approve").onclick = () => reviewRequest("approved");
+  $("r-decline").onclick = () => reviewRequest("declined");
+  $("r-golive").onclick = goLive;
+}
+
+async function reviewRequest(status) {
+  const note = $("r-reviewnote").value.trim();
+  const msg = $("r-msg");
+
+  if (status === "declined" && !note) {
+    msg.className = "msg err";
+    msg.textContent =
+      "Say why, or what would need to change. A decline with no reason is not useful to the coach.";
+    return;
+  }
+
+  if (!window.confirm(status === "approved"
+    ? "Approve this workshop? It is not on sale until you set it up as a course."
+    : "Decline this request and send your note to the coach?")) return;
+
+  await saveRequest({
+    status,
+    review_note: note || null,
+    reviewed_by: me.id,
+    reviewed_at: new Date().toISOString(),
+    seen_by_coach_at: null,
+  }, status === "approved"
+    ? "Approved. Use \u201cSet up the course\u201d when you are ready to put it on sale."
+    : "Declined, with your note.");
+}
+
+// Creates the course as a DRAFT. Nothing goes on sale from this
+// button — an admin still opens it in the portal, checks the price
+// and the details, and publishes it deliberately.
+async function goLive() {
+  if (!request) return;
+  const msg = $("r-msg");
+
+  if (request.course_id) {
+    msg.className = "msg err";
+    msg.textContent = "A course has already been created for this request.";
+    return;
+  }
+
+  const snap = request.template_snapshot || {};
+
+  if (!window.confirm(
+    `Create the course for "${request.title}"?\n\n` +
+    "It is created as a draft, not on sale. Open it in the portal to set the " +
+    "price and publish it."
+  )) return;
+
+  msg.className = "msg";
+  msg.textContent = "Creating the course…";
+
+  const slug = [
+    "tgc", "workshop",
+    (request.city || "").toLowerCase().normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+    request.starts_at ? new Date(request.starts_at).toISOString().slice(2, 7).replace("-", "") : "",
+  ].filter(Boolean).join("-");
+
+  const row = {
+    brand: "tgc",
+    type: "workshop",
+    level: null,
+    title: request.title,
+    slug,
+    workshop_focus: snap.title || request.title,
+    movements: snap.movements || null,
+    venue_name: request.venue_name,
+    address: request.address,
+    city: request.city,
+    country: request.country,
+    starts_at: request.starts_at,
+    ends_at: request.ends_at,
+    timezone: request.timezone,
+    capacity: request.expected_participants || snap.max_participants || 15,
+    status: "draft",
+    language: "en",
+    admin_notes:
+      `From workshop request by ${request.staff?.full_name || "a coach"}.` +
+      (request.coach_note ? ` Coach note: ${request.coach_note}` : ""),
+  };
+
+  // The link may already exist — the same gym, the same month. Take
+  // the next one free rather than refusing.
+  let course = null;
+  let error = null;
+  for (let n = 0; n < 20; n++) {
+    const tryRow = n === 0 ? row : { ...row, slug: `${row.slug}-${n + 1}` };
+    const r = await db.from("courses").insert(tryRow).select("id, title, slug").single();
+    if (!r.error) { course = r.data; break; }
+    error = r.error;
+    if (r.error.code !== "23505") break;
+  }
+
+  if (!course) {
+    msg.className = "msg err";
+    msg.textContent = "Could not create the course: " +
+      (error ? error.message : "unknown error");
+    return;
+  }
+
+  // Put the requesting coach on it as lead, which is almost always
+  // who is running it.
+  await db.from("course_staff").insert({
+    course_id: course.id,
+    staff_id: request.requested_by,
+    role: "lead_coach",
+  });
+
+  await saveRequest({ status: "live", course_id: course.id },
+    "Course created as a draft. Open it in the portal to set the price and publish.");
+}
+</script>
+
+</body>
+</html>
