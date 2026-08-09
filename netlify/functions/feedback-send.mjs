@@ -14,8 +14,9 @@
 // This function used to staple them to the end, which read as a
 // handout bolted onto a letter.
 //
-// The banner carries the brand of the course the feedback is for: a
-// TGC seminar arrives under the TGC mark, a TCC seminar under TCC.
+// The banner carries the brand of the course the feedback is for: the
+// dark BirdBox strip, then the TGC or TCC mark on white beneath it,
+// matching the follow-up emails.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -223,10 +224,11 @@ function senderFor(staff) {
 // A feedback email is a letter, not a marketing piece — paragraphs,
 // nothing to click, nothing to distract.
 //
-// The banner is white because the brand marks are black lettering on
-// a transparent background. On the dark banner used elsewhere they
-// would simply not be visible, and recolouring them is not something
-// we do.
+// Two bands at the top, matching the follow-up emails: the dark
+// BirdBox strip, then the mark of the brand the seminar belongs to on
+// white. The marks are black lettering on transparent, so they need
+// the white band — on the dark strip they would not be visible, and
+// recolouring them is not something we do.
 function template(text, brand) {
   const mark = brandMark(brand);
 
@@ -247,10 +249,14 @@ function template(text, brand) {
     <tr><td align="center" style="padding:32px 16px">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
              style="max-width:600px;background:#ffffff;border:1px solid #e0ddd7;border-radius:6px">
-        <tr><td align="left" style="padding:22px 28px 18px;background:#ffffff;
-                   border-bottom:1px solid #e0ddd7;border-radius:5px 5px 0 0">
+        <tr><td style="padding:14px 28px;background:#0d0e10;border-radius:5px 5px 0 0">
+          <span style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#9aa1a9;
+                       font-family:Helvetica,Arial,sans-serif">BirdBox Coaching</span>
+        </td></tr>
+        <tr><td align="left" style="padding:20px 28px;background:#ffffff;
+                   border-bottom:1px solid #e0ddd7">
           <img src="${SITE_URL}/brand/${mark.file}" alt="${escapeHtml(mark.alt)}"
-               height="30" style="height:30px;width:auto;display:block;border:0;outline:none;
+               height="46" style="height:46px;width:auto;display:block;border:0;outline:none;
                text-decoration:none;-ms-interpolation-mode:bicubic">
         </td></tr>
         <tr><td style="padding:28px;font-family:Helvetica,Arial,sans-serif">${paras}</td></tr>
