@@ -113,6 +113,13 @@
     color:var(--muted);margin:0.9rem 0 0.25rem;font-weight:650}
   .snap h4:first-child{margin-top:0}
 
+  .byline{display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;
+    margin:0 0 0.7rem;font-size:0.85rem;color:var(--muted)}
+  .byline .who{display:inline-block;font-size:0.72rem;letter-spacing:0.04em;
+    padding:0.2rem 0.55rem;border-radius:999px;background:#eef4fb;
+    border:1px solid #cfe0f2;color:#1f5c9e;font-weight:650;white-space:nowrap}
+  .byline .who.mine{background:#f2f9f5;border-color:#c6e3d3;color:#176e43}
+
   .acts{display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-top:0.9rem}
   .hidden{display:none!important}
 </style>
@@ -265,6 +272,7 @@
         <label>What this workshop contains
           <span class="hint">taken from the template when you submit</span>
         </label>
+        <p class="byline hidden" id="r-byline"></p>
         <div class="snap" id="r-snap"></div>
       </div>
     </div>
@@ -1008,6 +1016,7 @@ function renderSnapshot() {
 
   if (!source) {
     wrap.classList.add("hidden");
+    $("r-byline").classList.add("hidden");
     note.className = "whenline";
     note.textContent = usableTemplates().length
       ? "Choose a workshop to see what it contains."
@@ -1017,6 +1026,8 @@ function renderSnapshot() {
 
   wrap.classList.remove("hidden");
   box.innerHTML = "";
+
+  renderByline(live, frozen);
 
   if (source.movements) {
     const h = document.createElement("h4");
@@ -1041,6 +1052,53 @@ function renderSnapshot() {
   note.textContent = frozen
     ? "This is the workshop as it was agreed. Later changes to the template do not affect it."
     : "Taken from the template when you submit, so a later edit cannot change what was agreed.";
+}
+
+// Whose workshop this is. A coach picking somebody else's template
+// should be able to see whose work they are running — and a template
+// that has been through approval is worth saying so about.
+//
+// The snapshot deliberately holds no author: it is a copy of the
+// content, and credit belongs to the template it came from.
+function renderByline(live, frozen) {
+  const el = $("r-byline");
+  const source = live || (request?.template_id
+    ? templates.find((t) => t.id === request.template_id) : null);
+
+  if (!source) { el.classList.add("hidden"); el.innerHTML = ""; return; }
+
+  const author = source.staff?.full_name;
+  const mine = source.created_by === me.id;
+
+  el.classList.remove("hidden");
+  el.innerHTML = "";
+
+  const pill = document.createElement("span");
+  pill.className = "who" + (mine ? " mine" : "");
+  pill.textContent = mine
+    ? "Your workshop"
+    : `Written by ${author || "another coach"}`;
+  el.append(pill);
+
+  const note = document.createElement("span");
+  if (source.status === "approved") {
+    note.textContent = mine
+      ? "Approved, so anyone on the team can run it."
+      : "Approved. You are running it as they wrote it — the content is not yours to change here.";
+  } else if (mine) {
+    note.textContent = `Still ${source.status}. Submit it for approval before requesting a date.`;
+  } else {
+    note.textContent = `Still ${source.status}.`;
+  }
+  el.append(note);
+
+  // A request already agreed shows the template it came from, but the
+  // content is the frozen copy, so say which is which.
+  if (frozen) {
+    const agreed = document.createElement("span");
+    agreed.textContent = "The content below is the version that was agreed.";
+    el.append(agreed);
+  }
 }
 
 $("r-template").addEventListener("change", () => {
