@@ -224,6 +224,12 @@ WRITING RULES
   characters other than a plain hyphen. The email is sent as written, so any
   asterisk or hash appears literally to the reader. Use a short line of its
   own as a heading if a section needs one.
+- One exception. An exercise carrying a demonstration link is written
+  [Exercise name](url) — square brackets around the canonical name, round
+  brackets around the URL, nothing between them. That becomes a clickable
+  exercise name in the sent email. Never print a bare URL, never write the
+  name and the URL side by side, and never use this form for anything other
+  than an approved exercise link.
 
 - Follow the manual exactly${blocks.length ? ", including the mandatory second paragraph" : ""}.
 - Do not invent anything. Use only what the notes support.
