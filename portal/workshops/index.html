@@ -1341,6 +1341,19 @@ function renderRequestAdmin() {
       <button class="btn go small" id="r-approve" type="button">Approve</button>
       <button class="btn danger small" id="r-decline" type="button">Decline</button>
     </div>
+    <div class="grid2" style="margin-top:0.9rem">
+      <div class="field" style="margin-bottom:0">
+        <label for="r-lat">Latitude
+          <span class="hint">paste both from Google Maps into here</span>
+        </label>
+        <input id="r-lat" type="text" inputmode="decimal" placeholder="48.183987">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label for="r-lng">Longitude</label>
+        <input id="r-lng" type="text" inputmode="decimal" placeholder="11.467969">
+      </div>
+    </div>
+    <p class="whenline" id="r-geowhy" style="margin-top:0.5rem"></p>
     <div class="acts">
       <button class="btn small" id="r-golive" type="button">Set up the course</button>
       <span class="whenline" id="r-adminwhy"></span>
@@ -1359,6 +1372,30 @@ function renderRequestAdmin() {
     : approved
       ? "Creates the course as a draft, ready for you to check and put on sale."
       : "Approve it first. Approving and setting it up are separate on purpose.";
+
+  $("r-lat").value = request.latitude ?? "";
+  $("r-lng").value = request.longitude ?? "";
+
+  const geowhy = $("r-geowhy");
+  geowhy.className = "whenline";
+  geowhy.textContent = request.status === "live"
+    ? "The course exists. Change the pin under Edit course details in the portal."
+    : "Without these the workshop will not appear on the seminar maps.";
+
+  for (const id of ["r-lat", "r-lng"]) {
+    $(id).disabled = request.status === "live";
+  }
+
+  // Right-click the venue in Google Maps and paste both numbers into
+  // Latitude — they split themselves, the same as the portal form.
+  $("r-lat").addEventListener("input", () => {
+    const v = $("r-lat").value;
+    if (v.includes(",")) {
+      const [a, b] = v.split(",").map((x) => x.trim());
+      $("r-lat").value = a;
+      if (b) $("r-lng").value = b;
+    }
+  });
 
   $("r-approve").onclick = () => reviewRequest("approved");
   $("r-decline").onclick = () => reviewRequest("declined");
@@ -1405,6 +1442,34 @@ async function goLive() {
   }
 
   const snap = request.template_snapshot || {};
+
+  const latRaw = $("r-lat").value.trim();
+  const lngRaw = $("r-lng").value.trim();
+  const lat = latRaw === "" ? null : parseFloat(latRaw);
+  const lng = lngRaw === "" ? null : parseFloat(lngRaw);
+
+  if ((latRaw && !Number.isFinite(lat)) || (lngRaw && !Number.isFinite(lng))) {
+    msg.className = "msg err";
+    msg.textContent = "Those coordinates are not numbers. Paste them from Google Maps.";
+    return;
+  }
+  if ((lat === null) !== (lng === null)) {
+    msg.className = "msg err";
+    msg.textContent = "Both a latitude and a longitude are needed, or neither.";
+    return;
+  }
+  if (lat !== null && (Math.abs(lat) > 90 || Math.abs(lng) > 180)) {
+    msg.className = "msg err";
+    msg.textContent = "Those coordinates are out of range. Latitude is ±90, longitude ±180.";
+    return;
+  }
+
+  // Easier to paste them now than to remember to come back, which is
+  // the whole reason the field is here rather than in the portal.
+  if (lat === null && !window.confirm(
+    "No map pin has been set, so this workshop will not appear on the " +
+    "seminar maps.\n\nCreate it anyway?"
+  )) return;
 
   if (!window.confirm(
     `Create the course for "${request.title}"?\n\n` +
@@ -1459,6 +1524,8 @@ async function goLive() {
     price_cents: priceCents,
     deposit_cents: depositCents,
     currency,
+    latitude: lat,
+    longitude: lng,
     status: "draft",
     language: "en",
     admin_notes:
@@ -1493,12 +1560,20 @@ async function goLive() {
     role: "lead_coach",
   });
 
-  await saveRequest({ status: "live", course_id: course.id },
+  await saveRequest({ status: "live", course_id: course.id,
+                     latitude: lat, longitude: lng },
     priceCents
       ? `Course created as a draft at ${currency} ${(priceCents / 100).toFixed(0)}. ` +
         "Open it in the portal to check it and publish."
       : `Course created as a draft with NO PRICE SET (${currency} 0). ` +
         "Set the price in the portal before publishing.");
+
+  if (lat === null) {
+    $("r-geowhy").className = "whenline bad";
+    $("r-geowhy").textContent =
+      "No map pin was set. Add one under Edit course details in the portal, " +
+      "or the workshop will not show on the maps.";
+  }
 }
 </script>
 
