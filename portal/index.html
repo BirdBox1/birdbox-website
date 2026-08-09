@@ -5162,7 +5162,46 @@ async function refreshBlogFlag() {
   link.append(flag);
 }
 
-async function refreshUnreadFlag() {
+// A count on the Workshops button. For an admin it is work waiting on
+// a decision; for a coach it is a decision they have not read yet.
+// Opening the thing in the workshops page clears it.
+async function refreshWorkshopFlag() {
+  const btn = $("workshopsbtn");
+  if (!btn || !me) return;
+  btn.textContent = "Workshops";
+
+  let total = 0;
+  try {
+    if (isAdmin()) {
+      const [r, t] = await Promise.all([
+        db.from("workshop_requests").select("id").eq("status", "submitted"),
+        db.from("workshop_templates").select("id").eq("status", "pending"),
+      ]);
+      total = (r.data || []).length + (t.data || []).length;
+    } else {
+      const [r, t] = await Promise.all([
+        db.from("workshop_requests").select("id")
+          .eq("requested_by", me.id).is("seen_by_coach_at", null)
+          .in("status", ["approved", "declined"]),
+        db.from("workshop_templates").select("id")
+          .eq("created_by", me.id).is("seen_by_coach_at", null)
+          .in("status", ["approved", "rejected"]),
+      ]);
+      total = (r.data || []).length + (t.data || []).length;
+    }
+  } catch (err) {
+    console.error("Could not count workshops:", err.message);
+    return;
+  }
+
+  if (!total) return;
+  const flag = document.createElement("span");
+  flag.className = "unread-flag";
+  flag.textContent = total > 9 ? "9+" : String(total);
+  btn.append(flag);
+}
+
+  async function refreshUnreadFlag() {
 
   const total = await loadUnread();
   const btn = $("messagesbtn");
