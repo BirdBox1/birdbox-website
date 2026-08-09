@@ -13,6 +13,9 @@
 // the argument where they belong, so there is nothing to add here.
 // This function used to staple them to the end, which read as a
 // handout bolted onto a letter.
+//
+// The banner carries the brand of the course the feedback is for: a
+// TGC seminar arrives under the TGC mark, a TCC seminar under TCC.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -29,6 +32,28 @@ const VERIFIED_DOMAINS = ["birdboxcoaching.com"];
 
 const FALLBACK_FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
 const OFFICE = "info@birdboxcoaching.com";
+
+// An email cannot resolve a relative path, so the brand marks need an
+// absolute origin. Set SITE_URL in Netlify to the live domain; the
+// default keeps the current deploy working until that happens.
+const SITE_URL =
+  (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.app").replace(/\/+$/, "");
+
+// The marks are black lettering on transparent, so they sit on a
+// white banner rather than the dark one used elsewhere. They are
+// never recoloured.
+const BRAND_MARKS = {
+  tcc:     { file: "tcc.png",     alt: "The Coaches Course" },
+  tgc:     { file: "tgc.png",     alt: "The Gymnastics Course" },
+  tec:     { file: "tec.png",     alt: "The Endurance Course" },
+  twc:     { file: "twc.png",     alt: "The Weightlifting Course" },
+  birdbox: { file: "birdBox.png", alt: "BirdBox Coaching" },
+};
+
+function brandMark(brand) {
+  const key = String(brand || "").toLowerCase();
+  return BRAND_MARKS[key] || BRAND_MARKS.birdbox;
+}
 
 export default async (req) => {
   if (req.method !== "POST") {
@@ -106,6 +131,7 @@ export default async (req) => {
         sender,
         subject: d.subject || `Your feedback from ${course.title}`,
         text: full,
+        brand: course.brand,
       });
 
       if (ok) {
@@ -196,7 +222,14 @@ function senderFor(staff) {
 
 // A feedback email is a letter, not a marketing piece — paragraphs,
 // nothing to click, nothing to distract.
-function template(text) {
+//
+// The banner is white because the brand marks are black lettering on
+// a transparent background. On the dark banner used elsewhere they
+// would simply not be visible, and recolouring them is not something
+// we do.
+function template(text, brand) {
+  const mark = brandMark(brand);
+
   const paras = String(text)
     .split(/\n{2,}/)
     .map((p) => p.trim())
@@ -214,9 +247,11 @@ function template(text) {
     <tr><td align="center" style="padding:32px 16px">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
              style="max-width:600px;background:#ffffff;border:1px solid #e0ddd7;border-radius:6px">
-        <tr><td style="padding:14px 28px;background:#0d0e10;border-radius:5px 5px 0 0">
-          <span style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#9aa1a9;
-                       font-family:Helvetica,Arial,sans-serif">BirdBox Coaching</span>
+        <tr><td align="left" style="padding:22px 28px 18px;background:#ffffff;
+                   border-bottom:1px solid #e0ddd7;border-radius:5px 5px 0 0">
+          <img src="${SITE_URL}/brand/${mark.file}" alt="${escapeHtml(mark.alt)}"
+               height="30" style="height:30px;width:auto;display:block;border:0;outline:none;
+               text-decoration:none;-ms-interpolation-mode:bicubic">
         </td></tr>
         <tr><td style="padding:28px;font-family:Helvetica,Arial,sans-serif">${paras}</td></tr>
         <tr><td style="padding:18px 28px;border-top:1px solid #e0ddd7;
@@ -234,7 +269,7 @@ function escapeHtml(s) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
-async function sendEmail({ to, sender, subject, text }) {
+async function sendEmail({ to, sender, subject, text, brand }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) { console.warn("No Resend key; not sending to", to); return false; }
 
@@ -249,7 +284,7 @@ async function sendEmail({ to, sender, subject, text }) {
         reply_to: sender.replyTo,
         subject,
         text,
-        html: template(text),
+        html: template(text, brand),
       }),
     });
     if (!res.ok) {
