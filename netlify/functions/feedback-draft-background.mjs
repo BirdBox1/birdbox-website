@@ -81,7 +81,7 @@ async function run(registrationId, token, mustCover) {
 
   const { data: course } = await supabase
     .from("courses")
-    .select("id, brand, type, level, title, city, country, starts_at, timezone, language, currency")
+    .select("id, brand, type, level, title, city, country, starts_at, timezone, language, currency, workshop_focus, movements")
     .eq("id", reg.course_id)
     .single();
 
@@ -200,7 +200,11 @@ COURSE
 Brand and level: ${course.brand.toUpperCase()}${course.level ? " " + course.level : ""}
 Title: ${course.title}
 Where: ${[course.city, course.country].filter(Boolean).join(", ")}
-Lead coach: ${staff.full_name}
+Lead coach: ${staff.full_name}${
+  course.workshop_focus ? `\nWorkshop: ${course.workshop_focus}` : ""
+}${
+  course.movements ? `\nMovements covered: ${course.movements}` : ""
+}
 
 PARTICIPANT
 First name: ${reg.first_name}
