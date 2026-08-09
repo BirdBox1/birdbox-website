@@ -69,7 +69,7 @@ async function run(registrationId, token, mustCover) {
 
   const { data: reg } = await supabase
     .from("registrations")
-    .select("id, course_id, first_name, last_name, feedback_language")
+    .select("id, course_id, first_name, last_name, feedback_language, primary_limitation, secondary_limitation")
     .eq("id", registrationId)
     .single();
 
@@ -115,34 +115,47 @@ async function run(registrationId, token, mustCover) {
 
   // The full approved text, in the participant's language, so the
   // model has the material to work with rather than only a label.
+  // Scoped to this course's brand: the TCC passages are TCC coaching
+  // material and have no place in a gymnastics feedback email.
   const blocks = await loadBlocks(course, langCode);
 
-  const passageText = blocks
-    .map((b) => `### ${b.key} — ${b.title}\n${b.body}`)
-    .join("\n\n");
+  const passageText = blocks.length
+    ? blocks.map((b) => `### ${b.key} — ${b.title}\n${b.body}`).join("\n\n")
+    : "";
 
   const requested = mustCover.filter((k) => blocks.some((b) => b.key === k));
 
-  const instruction = `
-You are writing one post-seminar feedback email for a participant.
+  // What the coach chose from the limitation dropdowns, where this
+  // course type uses them. The manual maps each one to its own
+  // approved intervention exercises.
+  const limitations = [
+    ["Primary limitation", reg.primary_limitation],
+    ["Secondary limitation", reg.secondary_limitation],
+  ].filter(([, v]) => v && String(v).trim());
 
-COURSE
-Brand and level: ${course.brand.toUpperCase()}${course.level ? " " + course.level : ""}
-Title: ${course.title}
-Where: ${[course.city, course.country].filter(Boolean).join(", ")}
-Lead coach: ${staff.full_name}
+  const limitationText = !found.usesLimitations
+    ? ""
+    : limitations.length
+      ? `THE RECORDED LIMITATIONS
+${limitations.map(([label, v]) => `- ${label}: ${v}`).join("\n")}
 
-PARTICIPANT
-First name: ${reg.first_name}
+Prescribe every approved intervention exercise the manual lists for each
+of these. Where the manual gives two exercises for one limitation,
+include both. A specific prescription in the notes always takes
+precedence over the library mapping.
+`
+      : `THE RECORDED LIMITATIONS
+None were recorded for this participant. Take the development
+priorities and any interventions from the coach notes alone, exactly as
+the manual describes for that case. Do not select a limitation from the
+library because the notes hint at one.
+`;
 
-WRITING RULES
-- Write the whole email in ${language}.
-- Use ${spelling} English spelling conventions where the language is English.
-- Open with "${greeting} ${reg.first_name}," on its own line.
-- Follow the manual exactly, including the mandatory second paragraph.
-- Do not invent anything. Use only what the notes support.
-- End with the sign-off from the manual.
-
+  // The passage rules below describe TCC's approved coaching text and
+  // its named lists. A brand with no passages of its own — TGC works
+  // from its intervention library instead — must not be handed them,
+  // so the whole section drops out rather than arriving empty.
+  const passagesSection = !blocks.length ? "" : `
 THE APPROVED PASSAGES
 The manual describes these as passages to "attach". That wording is
 historic and it supersedes to this: they are written INTO the email,
@@ -174,15 +187,36 @@ ${requested.length
   than making a second pass at it.
 
 ${passageText}
+`;
 
+  const instruction = `
+You are writing one post-seminar feedback email for a participant.
+
+COURSE
+Brand and level: ${course.brand.toUpperCase()}${course.level ? " " + course.level : ""}
+Title: ${course.title}
+Where: ${[course.city, course.country].filter(Boolean).join(", ")}
+Lead coach: ${staff.full_name}
+
+PARTICIPANT
+First name: ${reg.first_name}
+
+WRITING RULES
+- Write the whole email in ${language}.
+- Use ${spelling} English spelling conventions where the language is English.
+- Open with "${greeting} ${reg.first_name}," on its own line.
+- Follow the manual exactly${blocks.length ? ", including the mandatory second paragraph" : ""}.
+- Do not invent anything. Use only what the notes support.
+- End with the sign-off from the manual.
+${passagesSection}${limitationText}
 THE ROUGH NOTES
 ${noteText}
 
 Reply with JSON only, no other text, in this exact shape:
 {
   "subject": "the email subject line",
-  "body": "the complete email text, passages included, using \\n for line breaks",
-  "blocks": ["keys of the passages you covered"],
+  "body": "the complete email text, using \\n for line breaks",
+  "blocks": ${blocks.length ? '["keys of the passages you covered"]' : "[]"},
   "missing": "anything the notes did not support, or an empty string"
 }
 
@@ -326,7 +360,7 @@ async function loadManual(course) {
 
   const { data: row, error } = await supabase
     .from("feedback_manuals")
-    .select("manual_path, active")
+    .select("manual_path, active, uses_limitations")
     .eq("brand", course.brand)
     .eq("type", course.type)
     .eq("level", lvl)
@@ -359,7 +393,7 @@ async function loadManual(course) {
     try {
       const manual = await readFile(path, "utf8");
       console.log("Manual loaded from:", path);
-      return { ok: true, manual };
+      return { ok: true, manual, usesLimitations: !!row.uses_limitations };
     } catch (err) {
       tried.push(`${path} (${err.code || err.message})`);
     }
@@ -379,14 +413,16 @@ async function loadManual(course) {
 // participant will read, so approved terminology stays consistent
 // instead of an English passage landing in a German email.
 //
-// NOTE: email_blocks is not yet scoped by brand, so every passage is
-// offered whatever the course. That is harmless while TCC L1 is the
-// only course type with a manual, but it must be fixed before TGC
-// goes live — the passages here are TCC coaching material and have no
-// place in a gymnastics feedback email.
+// Scoped to the course's brand. The passages are brand-specific
+// coaching material: TCC's charisma, philosophy and behavioural
+// guidelines belong in a TCC email and nowhere else. A brand with no
+// rows gets none, which is correct — TGC prescribes from its
+// intervention library, described in its own manual.
 async function loadBlocks(course, langCode) {
   const { data: rows } = await supabase
-    .from("email_blocks").select("key, title, body").order("key");
+    .from("email_blocks").select("key, title, body")
+    .eq("brand", course.brand)
+    .order("key");
 
   const { data: translations } = await supabase
     .from("email_block_translations").select("key, language, body");
