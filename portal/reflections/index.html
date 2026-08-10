@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reflections — BirdBox Coaching</title>
+<style>
+  :root {
+    --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+    --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0;
+    --good:#1f8a54; --warn:#b4610f; --bad:#b3261e;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+
+  .bar{background:var(--shell);color:#fff;padding:0.7rem 1.25rem;
+    display:flex;align-items:center;justify-content:space-between;gap:1rem}
+  .bar .left{display:flex;align-items:center;gap:0.75rem;min-width:0}
+  .mark{width:34px;height:34px;border-radius:4px;background:#fff;
+    display:grid;place-items:center;flex:none}
+  .mark img{width:26px;height:26px;object-fit:contain;display:block}
+  .bar .brandname{font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;
+    color:#9aa1a9;white-space:nowrap}
+  .bar a{font:inherit;font-size:0.8rem;color:#cfd4d9;border:1px solid #33373c;
+    padding:0.3rem 0.7rem;border-radius:3px;text-decoration:none;white-space:nowrap}
+  .bar a:hover{color:#fff;border-color:#55595e}
+
+  .wrap{max-width:52rem;margin:0 auto;padding:1.5rem 1.25rem 5rem}
+  h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0 0 0.2rem;font-weight:600}
+  .sub{color:var(--muted);font-size:0.9rem;margin:0 0 1.25rem}
+  .back{display:inline-block;font-size:0.85rem;color:var(--accent);
+    text-decoration:none;margin-bottom:1rem;cursor:pointer;background:none;border:0;
+    font-family:inherit;padding:0}
+  .back:hover{text-decoration:underline}
+
+  .tabs{display:flex;gap:0.4rem;margin-bottom:1.25rem;border-bottom:1px solid var(--rule)}
+  .tab{font:inherit;font-size:0.88rem;font-weight:600;background:none;border:0;
+    border-bottom:2px solid transparent;color:var(--muted);padding:0.5rem 0.15rem;
+    margin-right:1.1rem;cursor:pointer;white-space:nowrap}
+  .tab:hover{color:var(--ink)}
+  .tab.on{color:var(--ink);border-bottom-color:var(--ink)}
+  .tab .n{font-size:0.72rem;font-weight:650;color:var(--muted);margin-left:0.3rem}
+
+  .btn{font:inherit;font-weight:600;background:var(--ink);color:#fff;border:0;
+    border-radius:4px;padding:0.6rem 1.1rem;cursor:pointer}
+  .btn:hover{background:#000}
+  .btn[disabled]{opacity:0.45;cursor:default}
+  .btn.small{font-size:0.82rem;padding:0.4rem 0.8rem}
+  .btn.ghost{background:none;color:var(--ink);border:1px solid var(--rule);font-weight:500}
+  .btn.ghost:hover{background:#fff;border-color:var(--muted)}
+  .btn.go{background:var(--good)}
+  .btn.go:hover{background:#176e43}
+  .btn.danger{background:none;color:var(--bad);border:1px solid #e6c9c7;font-weight:500}
+  .btn.danger:hover{background:#fdf4f3;border-color:var(--bad)}
+
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:6px;
+    margin-bottom:0.7rem;overflow:hidden}
+  .row{display:flex;align-items:center;gap:0.9rem;width:100%;text-align:left;
+    font:inherit;background:none;border:0;padding:0.9rem 1.05rem;cursor:pointer}
+  .row:hover{background:#faf9f7}
+  .row .who{flex:1 1 auto;min-width:0}
+  .row .name{font-weight:650}
+  .row .meta{font-size:0.82rem;color:var(--muted)}
+
+  .pill{display:inline-block;font-size:0.66rem;letter-spacing:0.09em;
+    text-transform:uppercase;padding:0.16rem 0.45rem;border:1px solid var(--rule);
+    border-radius:3px;color:var(--muted);white-space:nowrap}
+  .pill.draft{border-color:var(--muted);color:var(--muted)}
+  .pill.sent{border-color:var(--accent);color:var(--accent);font-weight:700}
+  .pill.ok{background:var(--good);border-color:var(--good);color:#fff;font-weight:700}
+  .pill.new{background:var(--bad);border-color:var(--bad);color:#fff;font-weight:700}
+
+  .panel{background:var(--card);border:1px solid var(--rule);border-radius:6px;
+    padding:1.25rem;margin-bottom:1rem}
+  .panel h3{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 0.3rem;font-weight:600}
+  .panel .lead{font-size:0.9rem;color:var(--muted);margin:0 0 0.9rem}
+
+  /* the six stages, numbered so the shape of the cycle is visible */
+  .stage{display:flex;gap:0.85rem;align-items:flex-start}
+  .stage .no{flex:none;width:1.9rem;height:1.9rem;border-radius:50%;
+    background:#eef4fb;border:1px solid #cfe0f2;color:#1f5c9e;
+    display:grid;place-items:center;font-size:0.82rem;font-weight:700}
+  .stage .body{flex:1 1 auto;min-width:0}
+
+  label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.3rem}
+  .hint{font-weight:400;color:var(--muted);font-size:0.78rem}
+  input[type=text],select,textarea{width:100%;font:inherit;padding:0.55rem 0.65rem;
+    border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink)}
+  textarea{min-height:7rem;resize:vertical;line-height:1.6}
+  .field{margin-bottom:1rem}
+
+  .msg{font-size:0.85rem;margin-top:0.9rem;min-height:1.2em}
+  .msg.err{color:var(--bad)}
+  .msg.ok{color:var(--good)}
+  .empty{background:var(--card);border:1px dashed var(--rule);border-radius:6px;
+    padding:2rem 1.25rem;text-align:center;color:var(--muted);font-size:0.9rem}
+  .whenline{font-size:0.82rem;color:var(--muted);margin:0.1rem 0 0;line-height:1.5}
+  .whenline.bad{color:var(--bad)}
+
+  .note{background:#fff8f0;border:1px solid #efd6b8;border-left:3px solid var(--warn);
+    border-radius:6px;padding:0.9rem 1.05rem;margin-bottom:1rem;font-size:0.9rem}
+  .note b{display:block;margin-bottom:0.2rem}
+  .note.good{background:#f2f9f5;border-color:#c6e3d3;border-left-color:var(--good)}
+  .note.quiet{background:#f7f6f4;border-color:var(--rule);border-left-color:var(--muted)}
+
+  /* the read-only view of a submitted reflection */
+  .said h4{font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;
+    color:var(--muted);margin:1.1rem 0 0.3rem;font-weight:650}
+  .said h4:first-child{margin-top:0}
+  .said p{margin:0;white-space:pre-wrap;font-size:0.95rem;line-height:1.65}
+
+  /* the conversation that follows */
+  .talk{display:grid;gap:0.9rem;margin-top:0.5rem}
+  .turn{border-left:2px solid var(--rule);padding:0.15rem 0 0.15rem 0.8rem}
+  .turn.mine{border-left-color:var(--accent)}
+  .turn .meta{display:flex;gap:0.5rem;align-items:baseline;flex-wrap:wrap;
+    font-size:0.75rem;color:var(--muted);margin-bottom:0.2rem}
+  .turn .meta .author{font-weight:650;color:var(--ink)}
+  .turn .body{white-space:pre-wrap;font-size:0.95rem;line-height:1.65}
+  .turn .drop{background:none;border:0;font:inherit;font-size:0.75rem;
+    color:var(--bad);cursor:pointer;padding:0;text-decoration:underline}
+
+  .acts{display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-top:0.9rem}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="left">
+    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+    <span class="brandname">Reflections</span>
+  </span>
+  <a href="/portal/">← Portal</a>
+</div>
+
+<div class="wrap">
+  <div id="loading"><p class="sub">Loading…</p></div>
+
+  <!-- ============ LIST ============ -->
+  <section id="view-list" class="hidden">
+    <h1>Reflections</h1>
+    <p class="sub" id="list-sub"></p>
+
+    <div class="tabs" id="tabs">
+      <button class="tab on" id="tab-mine" type="button" data-tab="mine">
+        Mine <span class="n" id="n-mine"></span>
+      </button>
+      <button class="tab hidden" id="tab-team" type="button" data-tab="team">
+        From the team <span class="n" id="n-team"></span>
+      </button>
+    </div>
+
+    <div class="acts" style="margin:0 0 1.1rem">
+      <button class="btn" id="new-reflection" type="button">Write a reflection</button>
+    </div>
+
+    <div id="list"></div>
+  </section>
+
+  <!-- ============ ONE REFLECTION ============ -->
+  <section id="view-one" class="hidden">
+    <button class="back" id="back-list" type="button">← All reflections</button>
+    <h1 id="r-heading">Reflection</h1>
+    <p class="sub" id="r-sub"></p>
+
+    <div id="r-banner"></div>
+
+    <!-- editing: only ever your own, only while it is a draft -->
+    <div id="r-edit">
+      <div class="panel">
+        <h3>What this is about</h3>
+        <div class="field">
+          <label for="r-title">Give it a name
+            <span class="hint">something you will recognise a year from now</span>
+          </label>
+          <input id="r-title" type="text" placeholder="The athlete who would not be spotted">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label for="r-course">Which course
+            <span class="hint">leave as general if it was not one seminar</span>
+          </label>
+          <select id="r-course"><option value="">General reflection</option></select>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Gibbs' reflective cycle</h3>
+        <p class="lead">
+          Six stages. The first two are what happened and how it felt; the middle
+          two are where the thinking is; the last two are what you do with it.
+          Most people write plenty for stage one and very little for stage four —
+          that is the one worth pushing on.
+        </p>
+
+        <div class="stage" style="margin-bottom:1.1rem">
+          <span class="no">1</span>
+          <div class="body">
+            <label for="r-description">Description
+              <span class="hint">what happened, plainly, without judging it yet</span>
+            </label>
+            <textarea id="r-description"></textarea>
+          </div>
+        </div>
+
+        <div class="stage" style="margin-bottom:1.1rem">
+          <span class="no">2</span>
+          <div class="body">
+            <label for="r-feelings">Feelings
+              <span class="hint">what you were thinking and feeling at the time, and afterwards</span>
+            </label>
+            <textarea id="r-feelings"></textarea>
+          </div>
+        </div>
+
+        <div class="stage" style="margin-bottom:1.1rem">
+          <span class="no">3</span>
+          <div class="body">
+            <label for="r-evaluation">Evaluation
+              <span class="hint">what went well and what did not — both, honestly</span>
+            </label>
+            <textarea id="r-evaluation"></textarea>
+          </div>
+        </div>
+
+        <div class="stage" style="margin-bottom:1.1rem">
+          <span class="no">4</span>
+          <div class="body">
+            <label for="r-analysis">Analysis
+              <span class="hint">why did it go the way it did? this is the stage that does the work</span>
+            </label>
+            <textarea id="r-analysis"></textarea>
+          </div>
+        </div>
+
+        <div class="stage" style="margin-bottom:1.1rem">
+          <span class="no">5</span>
+          <div class="body">
+            <label for="r-conclusion">Conclusion
+              <span class="hint">what else could you have done?</span>
+            </label>
+            <textarea id="r-conclusion"></textarea>
+          </div>
+        </div>
+
+        <div class="stage">
+          <span class="no">6</span>
+          <div class="body">
+            <label for="r-action">Action plan
+              <span class="hint">if it happened again tomorrow, what would you do?</span>
+            </label>
+            <textarea id="r-action"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Anything else</h3>
+        <p class="lead">
+          Anything you would like to talk through, or want a second opinion on.
+          Only read once you submit this.
+        </p>
+        <div class="field" style="margin-bottom:0">
+          <label for="r-note">A note to Nathan <span class="hint">optional</span></label>
+          <textarea id="r-note" style="min-height:5rem"></textarea>
+        </div>
+      </div>
+
+      <div class="acts">
+        <button class="btn" id="r-save" type="button">Save as a draft</button>
+        <button class="btn go" id="r-submit" type="button">Submit for discussion</button>
+        <button class="btn danger" id="r-delete" type="button">Delete</button>
+      </div>
+      <p class="msg" id="r-msg"></p>
+    </div>
+
+    <!-- reading: once submitted, by either side -->
+    <div id="r-read" class="hidden">
+      <div class="panel">
+        <h3>The reflection</h3>
+        <div class="said" id="r-said"></div>
+      </div>
+
+      <div class="panel" id="r-note-panel">
+        <h3>Note to Nathan</h3>
+        <div class="said"><p id="r-note-said"></p></div>
+      </div>
+
+      <div class="panel">
+        <h3>Discussion</h3>
+        <div class="talk" id="r-talk"></div>
+        <div style="margin-top:1rem">
+          <textarea id="r-reply" style="min-height:5rem"
+            placeholder="Write a reply…"></textarea>
+          <div class="acts" style="margin-top:0.5rem">
+            <button class="btn small" id="r-send" type="button">Send reply</button>
+            <span class="whenline" id="r-reply-msg"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const $ = (id) => document.getElementById(id);
+const show = (n) => {
+  for (const v of ["list", "one"]) {
+    $("view-" + v).classList.toggle("hidden", v !== n);
+  }
+  $("loading").classList.add("hidden");
+  window.scrollTo({ top: 0 });
+};
+
+// Gibbs' six stages, in order. One place, so the form, the read-only
+// view and the save cannot drift apart.
+const STAGES = [
+  ["description", "1. Description",  "r-description"],
+  ["feelings",    "2. Feelings",     "r-feelings"],
+  ["evaluation",  "3. Evaluation",   "r-evaluation"],
+  ["analysis",    "4. Analysis",     "r-analysis"],
+  ["conclusion",  "5. Conclusion",   "r-conclusion"],
+  ["action_plan", "6. Action plan",  "r-action"],
+];
+
+let me = null;
+let tab = "mine";
+let mine = [];
+let team = [];
+let current = null;
+let courses = [];
+
+const isAdmin = () => me && me.role === "admin";
+
+const fmtWhen = (iso) => iso
+  ? new Date(iso).toLocaleString(undefined, {
+      day: "numeric", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    })
+  : "";
+
+const fmtDate = (iso) => iso
+  ? new Date(iso).toLocaleDateString(undefined,
+      { day: "numeric", month: "short", year: "numeric" })
+  : "";
+
+start();
+
+async function start() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { location.href = "/portal/"; return; }
+
+  const { data: staff } = await db.from("staff")
+    .select("id, full_name, email, role, active")
+    .eq("id", session.user.id).maybeSingle();
+
+  if (!staff || !staff.active) { location.href = "/portal/"; return; }
+  me = staff;
+
+  $("tab-team").classList.toggle("hidden", !isAdmin());
+  $("list-sub").textContent = isAdmin()
+    ? "Your own, and everything the team has sent through."
+    : "Your own record. A draft is yours alone until you submit it.";
+
+  await loadCourses();
+  await loadAll();
+}
+
+// The courses this person could reasonably be reflecting on. Admin
+// gets everything; a coach gets what they were on.
+async function loadCourses() {
+  const cols = "id, title, city, starts_at";
+  if (isAdmin()) {
+    const { data } = await db.from("courses").select(cols)
+      .order("starts_at", { ascending: false }).limit(300);
+    courses = data || [];
+  } else {
+    const { data } = await db.from("course_staff")
+      .select(`courses (${cols})`).eq("staff_id", me.id);
+    courses = (data || []).map((r) => r.courses).filter(Boolean);
+    courses.sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at));
+  }
+
+  const sel = $("r-course");
+  sel.innerHTML = '<option value="">General reflection</option>';
+  for (const c of courses) {
+    const o = document.createElement("option");
+    o.value = c.id;
+    o.textContent = `${c.title} — ${fmtDate(c.starts_at)}` + (c.city ? `, ${c.city}` : "");
+    sel.append(o);
+  }
+}
+
+async function loadAll() {
+  const cols = "*, staff ( full_name ), courses ( title, city, starts_at )";
+
+  const { data: own, error } = await db.from("reflections")
+    .select(cols).eq("staff_id", me.id)
+    .order("updated_at", { ascending: false });
+  if (error) console.error("Could not load reflections:", error.message);
+  mine = own || [];
+
+  if (isAdmin()) {
+    const { data: all } = await db.from("reflections")
+      .select(cols).eq("status", "submitted").neq("staff_id", me.id)
+      .order("submitted_at", { ascending: false });
+    team = all || [];
+  }
+
+  renderList();
+}
+
+/* ---------------- the list ---------------- */
+
+for (const id of ["tab-mine", "tab-team"]) {
+  $(id).addEventListener("click", () => {
+    tab = $(id).dataset.tab;
+    $("tab-mine").classList.toggle("on", tab === "mine");
+    $("tab-team").classList.toggle("on", tab === "team");
+    renderList();
+  });
+}
+
+function renderList() {
+  show("list");
+
+  const unreadTeam = team.filter((r) => !r.seen_by_admin_at).length;
+  $("n-mine").textContent = mine.length ? mine.length : "";
+  $("n-team").textContent = unreadTeam ? unreadTeam : (team.length || "");
+
+  const rows = tab === "team" ? team : mine;
+  const box = $("list");
+  box.innerHTML = "";
+
+  if (!rows.length) {
+    box.innerHTML = `<p class="empty">${
+      tab === "team"
+        ? "Nothing from the team yet."
+        : "Nothing yet. A reflection is worth writing while it is still fresh — " +
+          "the detail goes first, and the detail is where the learning is."
+    }</p>`;
+    return;
+  }
+
+  for (const r of rows) {
+    const el = document.createElement("div");
+    el.className = "card";
+    el.innerHTML = `<button class="row" type="button">
+      <span class="who"><span class="name"></span><span class="meta"></span></span>
+      <span class="pill"></span></button>`;
+
+    el.querySelector(".name").textContent =
+      r.title || (r.courses ? r.courses.title : "Untitled reflection");
+
+    const bits = [];
+    if (tab === "team" && r.staff) bits.push(r.staff.full_name);
+    bits.push(r.courses
+      ? `${r.courses.title}${r.courses.city ? ", " + r.courses.city : ""}`
+      : "General");
+    bits.push(r.status === "submitted"
+      ? "sent " + fmtWhen(r.submitted_at)
+      : "saved " + fmtWhen(r.updated_at));
+    el.querySelector(".meta").textContent = bits.join(" · ");
+
+    const pill = el.querySelector(".pill");
+    if (r.status === "draft") { pill.textContent = "draft"; pill.className = "pill draft"; }
+    else if (tab === "team" && !r.seen_by_admin_at) { pill.textContent = "new"; pill.className = "pill new"; }
+    else { pill.textContent = "submitted"; pill.className = "pill sent"; }
+
+    el.querySelector(".row").addEventListener("click", () => openOne(r));
+    box.append(el);
+  }
+}
+
+$("back-list").addEventListener("click", loadAll);
+$("new-reflection").addEventListener("click", () => openOne(null));
+
+/* ---------------- one reflection ---------------- */
+
+async function openOne(row) {
+  current = row;
+  show("one");
+  $("r-msg").textContent = "";
+  $("r-msg").className = "msg";
+
+  const own = !row || row.staff_id === me.id;
+  const editing = own && (!row || row.status === "draft");
+
+  $("r-edit").classList.toggle("hidden", !editing);
+  $("r-read").classList.toggle("hidden", editing);
+
+  $("r-heading").textContent = !row ? "A new reflection"
+    : own ? (row.title || "Your reflection")
+    : (row.title || "Reflection");
+
+  $("r-sub").textContent = !row
+    ? "Nobody can read this until you submit it."
+    : own
+      ? (row.status === "draft"
+          ? `Saved ${fmtWhen(row.updated_at)}. Only you can see it.`
+          : `Submitted ${fmtWhen(row.submitted_at)}.`)
+      : `${row.staff?.full_name || "A coach"} · submitted ${fmtWhen(row.submitted_at)}`;
+
+  renderBanner(row, own, editing);
+
+  if (editing) {
+    $("r-title").value = row?.title || "";
+    $("r-course").value = row?.course_id || "";
+    for (const [key, , id] of STAGES) $(id).value = row?.[key] || "";
+    $("r-note").value = row?.note_to_admin || "";
+    $("r-delete").classList.toggle("hidden", !row);
+    return;
+  }
+
+  renderRead(row);
+  await renderTalk(row);
+  await markSeen(row, own);
+}
+
+function renderBanner(row, own, editing) {
+  const box = $("r-banner");
+  box.innerHTML = "";
+
+  const note = (cls, head, body) => {
+    const el = document.createElement("div");
+    el.className = "note " + cls;
+    el.innerHTML = `<b>${head}</b>`;
+    el.append(document.createTextNode(body));
+    box.append(el);
+  };
+
+  if (editing) {
+    note("quiet", "This is yours alone",
+      "A draft cannot be read by anyone else, including an admin. Write it " +
+      "honestly — that is the only way it is any use. Submitting it is a " +
+      "separate decision you make when you are ready.");
+    return;
+  }
+
+  if (own) {
+    note("good", "Submitted",
+      "Nathan can read this and reply below. It cannot be edited now, but " +
+      "the conversation stays here for you to look back on.");
+  }
+}
+
+function renderRead(row) {
+  const box = $("r-said");
+  box.innerHTML = "";
+
+  const meta = document.createElement("p");
+  meta.className = "whenline";
+  meta.style.marginBottom = "0.9rem";
+  meta.textContent = row.courses
+    ? `${row.courses.title}${row.courses.city ? ", " + row.courses.city : ""} · ${fmtDate(row.courses.starts_at)}`
+    : "General reflection";
+  box.append(meta);
+
+  let written = 0;
+  for (const [key, label] of STAGES) {
+    if (!row[key]) continue;
+    written++;
+    const h = document.createElement("h4");
+    h.textContent = label;
+    const p = document.createElement("p");
+    p.textContent = row[key];
+    box.append(h, p);
+  }
+  if (!written) {
+    const p = document.createElement("p");
+    p.textContent = "Nothing was written in the six stages.";
+    box.append(p);
+  }
+
+  const notePanel = $("r-note-panel");
+  notePanel.classList.toggle("hidden", !row.note_to_admin);
+  $("r-note-said").textContent = row.note_to_admin || "";
+}
+
+/* ---------------- saving ---------------- */
+
+function readForm() {
+  const row = {
+    title: $("r-title").value.trim() || null,
+    course_id: $("r-course").value || null,
+    note_to_admin: $("r-note").value.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+  for (const [key, , id] of STAGES) row[key] = $(id).value.trim() || null;
+  return row;
+}
+
+async function save(patch, note) {
+  const msg = $("r-msg");
+  const row = { ...readForm(), ...patch };
+
+  const anything = STAGES.some(([k]) => row[k]) || row.title || row.note_to_admin;
+  if (!anything) {
+    msg.className = "msg err";
+    msg.textContent = "There is nothing written yet.";
+    return false;
+  }
+
+  msg.className = "msg";
+  msg.textContent = "Saving…";
+
+  const cols = "*, staff ( full_name ), courses ( title, city, starts_at )";
+  let result;
+  if (current) {
+    result = await db.from("reflections").update(row)
+      .eq("id", current.id).select(cols).single();
+  } else {
+    result = await db.from("reflections").insert({ ...row, staff_id: me.id })
+      .select(cols).single();
+  }
+
+  if (result.error) {
+    msg.className = "msg err";
+    msg.textContent = "Could not save: " + result.error.message;
+    return false;
+  }
+
+  current = result.data;
+  msg.className = "msg ok";
+  msg.textContent = note || "Saved. Only you can see it.";
+  $("r-delete").classList.remove("hidden");
+  return true;
+}
+
+$("r-save").addEventListener("click", () => save({}));
+
+$("r-submit").addEventListener("click", async () => {
+  const row = readForm();
+
+  // Not a hard rule, because a reflection somebody wants to talk about
+  // is worth having even if it is uneven. But the middle stages are
+  // where the value is, so it is worth one question.
+  const thin = ["analysis", "conclusion", "action_plan"].filter((k) => !row[k]);
+  if (thin.length && !window.confirm(
+    "Some of the later stages are empty.\\n\\n" +
+    "The analysis and what you would do differently are usually where the " +
+    "useful part is. Submit it as it stands?"
+  )) return;
+
+  if (!window.confirm(
+    "Submit this for discussion?\\n\\n" +
+    "Nathan will be able to read it and reply. You will not be able to edit " +
+    "it afterwards, though the conversation carries on below it."
+  )) return;
+
+  const ok = await save({
+    status: "submitted",
+    submitted_at: new Date().toISOString(),
+    seen_by_admin_at: null,
+  }, "Submitted.");
+
+  if (ok) setTimeout(() => openOne(current), 900);
+});
+
+$("r-delete").addEventListener("click", async () => {
+  if (!current) return;
+  if (!window.confirm("Delete this reflection? It cannot be recovered.")) return;
+
+  const { data, error } = await db.from("reflections")
+    .delete().eq("id", current.id).select("id");
+
+  if (error) {
+    $("r-msg").className = "msg err";
+    $("r-msg").textContent = "Could not delete: " + error.message;
+    return;
+  }
+  if (!data || !data.length) {
+    $("r-msg").className = "msg err";
+    $("r-msg").textContent =
+      "That could not be deleted. Once a reflection has been submitted it stays.";
+    return;
+  }
+  await loadAll();
+});
+
+/* ---------------- the discussion ---------------- */
+
+async function renderTalk(row) {
+  const box = $("r-talk");
+  box.innerHTML = '<p class="whenline">Loading…</p>';
+
+  const { data, error } = await db.from("reflection_replies")
+    .select("id, staff_id, body, created_at, staff ( full_name )")
+    .eq("reflection_id", row.id)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    box.innerHTML = '<p class="whenline bad">Could not load the discussion.</p>';
+    return;
+  }
+
+  box.innerHTML = "";
+  if (!data || !data.length) {
+    const p = document.createElement("p");
+    p.className = "whenline";
+    p.textContent = row.staff_id === me.id
+      ? "Nothing back yet."
+      : "Nothing said yet. Anything you write here goes back to them.";
+    box.append(p);
+    return;
+  }
+
+  for (const t of data) {
+    const el = document.createElement("div");
+    el.className = "turn" + (t.staff_id === me.id ? " mine" : "");
+    el.innerHTML = `<div class="meta">
+        <span class="author"></span><span class="when"></span>
+      </div><div class="body"></div>`;
+    el.querySelector(".author").textContent =
+      t.staff_id === me.id ? "You" : (t.staff?.full_name || "A colleague");
+    el.querySelector(".when").textContent = fmtWhen(t.created_at);
+    el.querySelector(".body").textContent = t.body;
+
+    if (t.staff_id === me.id) {
+      const drop = document.createElement("button");
+      drop.className = "drop";
+      drop.type = "button";
+      drop.textContent = "delete";
+      drop.onclick = async () => {
+        if (!window.confirm("Delete this reply?")) return;
+        const { error: dErr } = await db.from("reflection_replies").delete().eq("id", t.id);
+        if (dErr) { window.alert("Could not delete it: " + dErr.message); return; }
+        el.remove();
+      };
+      el.querySelector(".meta").append(drop);
+    }
+
+    box.append(el);
+  }
+}
+
+$("r-send").addEventListener("click", async () => {
+  if (!current) return;
+  const msg = $("r-reply-msg");
+  const body = $("r-reply").value.trim();
+  if (!body) return;
+
+  $("r-send").disabled = true;
+  msg.textContent = "Sending…";
+
+  const { error } = await db.from("reflection_replies").insert({
+    reflection_id: current.id,
+    staff_id: me.id,
+    body,
+  });
+
+  $("r-send").disabled = false;
+
+  if (error) { msg.textContent = "Could not send: " + error.message; return; }
+
+  // A reply from either side is news to the other, so the badge on the
+  // portal comes back for them.
+  const patch = current.staff_id === me.id
+    ? { seen_by_admin_at: null }
+    : { seen_by_coach_at: null };
+  await db.from("reflections").update(patch).eq("id", current.id);
+
+  $("r-reply").value = "";
+  msg.textContent = "";
+  await renderTalk(current);
+});
+
+// Opening it is what clears the badge. A reflection nobody read is
+// exactly what the badge is for.
+async function markSeen(row, own) {
+  const field = own ? "seen_by_coach_at" : "seen_by_admin_at";
+  if (row[field]) return;
+  if (!own && !isAdmin()) return;
+
+  const stamp = new Date().toISOString();
+  const { error } = await db.from("reflections")
+    .update({ [field]: stamp }).eq("id", row.id);
+  if (error) { console.error("Could not mark as seen:", error.message); return; }
+  row[field] = stamp;
+}
+</script>
+
+</body>
+</html>
