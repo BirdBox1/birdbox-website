@@ -541,6 +541,7 @@
   <span class="right">
     <a class="linkbtn hidden" id="bloglink" href="/portal/blog/">Blog</a>
     <a class="linkbtn hidden" id="feedbacklink" href="/portal/feedback/">Feedback</a>
+    <a class="linkbtn hidden" id="docslink" href="/portal/documents/">My documents</a>
     <a class="linkbtn hidden" id="reflectlink" href="/portal/reflections/">Reflections</a>
     <a class="linkbtn hidden" id="codeslink" href="/portal/codes/">Discount codes</a>
     <button id="messagesbtn" class="hidden" type="button">Messages</button>
@@ -2639,6 +2640,8 @@ async function start() {
   $("reportsbtn").classList.remove("hidden");
   // Every coach keeps their own; an admin also reads what comes in.
   $("reflectlink").classList.remove("hidden");
+  // Private to whoever is signed in, so everybody gets it.
+  $("docslink").classList.remove("hidden");
   refreshReflectionFlag();
   $("teambtn").classList.toggle("hidden", !admin);
   $("workshopsbtn").classList.remove("hidden");
