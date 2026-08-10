@@ -96,6 +96,12 @@
   .lim-note{font-size:0.82rem;color:var(--muted);margin:0.8rem 0 0}
   .lim-saved{font-size:0.78rem;color:var(--good);margin-left:0.4rem}
 
+  .btn.danger{color:var(--bad);border-color:#e6c9c7}
+  .btn.danger:hover{background:#fdf4f3;border-color:var(--bad)}
+  .stale{background:#fff8f0;border:1px solid #efd6b8;border-left:3px solid var(--warn);
+    border-radius:6px;padding:0.8rem 0.95rem;margin:0 0 0.9rem;font-size:0.88rem}
+  .stale b{display:block;margin-bottom:0.15rem}
+
   .notes{background:#fbfaf8;border:1px solid var(--rule);border-radius:5px;
     padding:0.8rem 0.9rem;font-size:0.88rem;max-height:16rem;overflow-y:auto}
   .notes .n{border-left:2px solid var(--rule);padding-left:0.7rem;margin-bottom:0.7rem}
@@ -223,6 +229,46 @@
         <button class="btn ghost small" id="unapprove" type="button">Unmark</button>
       </div>
       <p class="msg" id="d-msg"></p>
+    </div>
+
+    <div class="panel hidden" id="transpanel">
+      <h3>Another language</h3>
+      <p class="lim-note" style="margin:0 0 0.9rem">
+        The email is always written in English first, so your words and the
+        approved passages read as one piece. Translating it afterwards turns
+        the whole thing over at once.
+      </p>
+
+      <div style="max-width:22rem">
+        <div class="field">
+          <label for="tr-lang">Send it in</label>
+          <select id="tr-lang"></select>
+        </div>
+      </div>
+
+      <div class="admin-row" style="margin-bottom:0.9rem">
+        <button class="btn small" id="tr-go" type="button">Translate</button>
+        <span class="why" id="tr-why"></span>
+      </div>
+
+      <div id="tr-wrap" class="hidden">
+        <div class="field">
+          <label for="tr-subject">Subject <span class="hint" id="tr-lang-label"></span></label>
+          <input id="tr-subject" type="text">
+        </div>
+        <div class="field">
+          <label for="tr-body">Body
+            <span class="hint">correct anything the translation got wrong — this is what gets sent</span>
+          </label>
+          <textarea id="tr-body"></textarea>
+        </div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+          <button class="btn small" id="tr-save" type="button">Save translation</button>
+          <button class="btn ghost small danger" id="tr-drop" type="button">Send in English instead</button>
+        </div>
+      </div>
+
+      <p class="msg" id="tr-msg"></p>
     </div>
   </section>
 </div>
@@ -407,6 +453,7 @@ async function start() {
   await loadManuals();
   buildLimitationOptions();
   buildLanguageOptions();
+  buildTranslateOptions();
 
   // Arriving from a course in the portal: open that course straight
   // away rather than making somebody find it again in a list they
@@ -415,6 +462,18 @@ async function start() {
   if (wanted && await openCourseById(wanted)) return;
 
   await loadCourses();
+}
+
+function buildTranslateOptions() {
+  const sel = $("tr-lang");
+  sel.innerHTML = "";
+  for (const [code, name] of LANGUAGES) {
+    if (code === "en") continue;   // the email is already English
+    const o = document.createElement("option");
+    o.value = code;
+    o.textContent = name;
+    sel.append(o);
+  }
 }
 
 function buildLanguageOptions() {
@@ -653,8 +712,12 @@ function renderPeople(noteCount) {
       const lims = [r.primary_limitation, r.secondary_limitation].filter(Boolean);
       bits.push(lims.length ? lims.join(" · ") : "no limitations set");
     }
-    if (r.feedback_language && r.feedback_language !== course.language) {
-      bits.push(`feedback in ${languageName(r.feedback_language)}`);
+    if (d?.translated_body && d.translated_language) {
+      bits.push(translationIsStale(d)
+        ? `${languageName(d.translated_language)} — out of date`
+        : `in ${languageName(d.translated_language)}`);
+    } else if (r.feedback_language && r.feedback_language !== "en") {
+      bits.push(`wants ${languageName(r.feedback_language)}`);
     }
     el.querySelector(".meta").textContent = bits.join(" · ");
 
@@ -937,7 +1000,180 @@ function renderDraft() {
   $("d-msg").textContent = sent
     ? "This email has been sent and can no longer be changed."
     : d.status === "approved" ? "Checked and ready to send." : "";
+
+  renderTranslation();
 }
+
+/* ---------------- translation ---------------- */
+
+// The email is drafted in English so the coach's prose and the
+// approved passages read as one piece. Translating the finished
+// article turns all of it over together, which is the only way to
+// avoid an email that is half one language and half the other.
+function translationIsStale(d) {
+  return !!(d && d.translated_from && d.translated_body &&
+            d.translated_from !== d.body);
+}
+
+function renderTranslation() {
+  const d = current.draft;
+  const panel = $("transpanel");
+  const usable = d && d.status !== "failed" && d.body;
+
+  panel.classList.toggle("hidden", !usable);
+  if (!usable) return;
+
+  const sent = d.status === "sent";
+  const has = !!(d.translated_body && d.translated_body.trim());
+  const stale = translationIsStale(d);
+
+  // Default the picker to whatever this participant reads, so the
+  // usual case is one press.
+  const wanted = d.translated_language ||
+    (current.reg.feedback_language && current.reg.feedback_language !== "en"
+      ? current.reg.feedback_language
+      : null);
+  if (wanted && LANGUAGES.some(([c]) => c === wanted)) $("tr-lang").value = wanted;
+
+  for (const id of ["tr-lang", "tr-go", "tr-subject", "tr-body", "tr-save", "tr-drop"]) {
+    $(id).disabled = sent;
+  }
+
+  $("tr-go").textContent = has ? "Translate again" : "Translate";
+  $("tr-wrap").classList.toggle("hidden", !has);
+
+  if (has) {
+    $("tr-subject").value = d.translated_subject || "";
+    $("tr-body").value = d.translated_body || "";
+    $("tr-lang-label").textContent = "in " + languageName(d.translated_language);
+  }
+
+  // A stale translation is the one thing here that could go out wrong,
+  // so it is said loudly and the send guards against it as well.
+  const old = panel.querySelector(".stale");
+  if (old) old.remove();
+  if (stale && !sent) {
+    const el = document.createElement("div");
+    el.className = "stale";
+    el.innerHTML = "<b>The English has changed since this was translated</b>";
+    el.append(document.createTextNode(
+      "Translate again, or this will go out in English rather than a " +
+      "translation of something you have since rewritten."
+    ));
+    $("tr-wrap").prepend(el);
+  }
+
+  const why = $("tr-why");
+  why.textContent = sent
+    ? "This email has been sent."
+    : stale ? "Out of date — translate again."
+    : has ? `Ready to send in ${languageName(d.translated_language)}.`
+    : "The email will go out in English unless you translate it.";
+}
+
+async function runTranslate() {
+  const msg = $("tr-msg");
+  const lang = $("tr-lang").value;
+  if (!current?.draft || !lang) return;
+
+  if (current.draft.translated_body &&
+      !window.confirm(
+        "Translate again? Any corrections you made to the translation will be lost."
+      )) return;
+
+  $("tr-go").disabled = true;
+  msg.className = "msg";
+  msg.innerHTML = '<span class="spin"></span>Translating…';
+
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) throw new Error("Your session has expired — sign in again.");
+
+    const res = await fetch("/.netlify/functions/feedback-translate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + session.access_token,
+      },
+      body: JSON.stringify({ registrationId: current.reg.id, language: lang }),
+    });
+    const out = await res.json();
+    if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+    const { data: d } = await db.from("feedback_drafts")
+      .select("*").eq("registration_id", current.reg.id).maybeSingle();
+    if (d) { current.draft = d; drafts[current.reg.id] = d; }
+
+    msg.className = "msg ok";
+    msg.textContent =
+      `Translated into ${out.languageName}. Read it through — correct anything ` +
+      "that reads oddly before sending.";
+    renderTranslation();
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = err.message;
+  }
+  $("tr-go").disabled = false;
+}
+
+async function saveTranslation() {
+  const msg = $("tr-msg");
+  msg.className = "msg";
+  msg.textContent = "Saving…";
+
+  const { data, error } = await db.from("feedback_drafts")
+    .update({
+      translated_subject: $("tr-subject").value.trim(),
+      translated_body: $("tr-body").value,
+      // Corrected by hand against the English as it stands now, so it
+      // is no longer out of date.
+      translated_from: current.draft.body,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", current.draft.id)
+    .select().single();
+
+  if (error) {
+    msg.className = "msg err";
+    msg.textContent = "Could not save: " + error.message;
+    return;
+  }
+  current.draft = data;
+  drafts[current.reg.id] = data;
+  msg.className = "msg ok";
+  msg.textContent = "Saved. This is what gets sent.";
+  renderTranslation();
+}
+
+async function dropTranslation() {
+  if (!window.confirm(
+    "Send this one in English instead?\n\nThe translation is discarded."
+  )) return;
+
+  const { data, error } = await db.from("feedback_drafts")
+    .update({
+      translated_subject: null, translated_body: null,
+      translated_language: null, translated_at: null, translated_from: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", current.draft.id)
+    .select().single();
+
+  if (error) {
+    $("tr-msg").className = "msg err";
+    $("tr-msg").textContent = "Could not do that: " + error.message;
+    return;
+  }
+  current.draft = data;
+  drafts[current.reg.id] = data;
+  $("tr-msg").className = "msg";
+  $("tr-msg").textContent = "It will go out in English.";
+  renderTranslation();
+}
+
+$("tr-go").addEventListener("click", runTranslate);
+$("tr-save").addEventListener("click", saveTranslation);
+$("tr-drop").addEventListener("click", dropTranslation);
 
 /* ---------------- writing ---------------- */
 
@@ -1053,7 +1289,12 @@ async function saveDraft(patch, note) {
   return true;
 }
 
-$("save").addEventListener("click", () => saveDraft({}));
+// The English moving on is what makes a translation stale, so the
+// panel re-renders whenever it is saved.
+$("save").addEventListener("click", async () => {
+  await saveDraft({});
+  renderTranslation();
+});
 
 $("approve").addEventListener("click", async () => {
   if (!$("d-body").value.trim()) {
@@ -1080,6 +1321,15 @@ $("back-people").addEventListener("click", () => openCourse(course));
 $("sendall").addEventListener("click", async () => {
   const ready = people.filter((r) => drafts[r.id]?.status === "approved");
   if (!ready.length) return;
+
+  // Somebody who translated an email and then rewrote the English
+  // should be asked, not quietly sent the English version.
+  const stale = ready.filter((r) => translationIsStale(drafts[r.id]));
+  if (stale.length && !window.confirm(
+    `${stale.length} email${stale.length === 1 ? " has a translation that is" : "s have translations that are"} ` +
+    "out of date — the English was changed afterwards.\n\n" +
+    `${stale.length === 1 ? "It" : "They"} will go out in English. Carry on?`
+  )) return;
 
   const hold = sendHold();
   if (hold.holding) {
