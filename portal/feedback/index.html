@@ -994,7 +994,12 @@ async function runTranslate() {
     const { data: { session } } = await db.auth.getSession();
     if (!session) throw new Error("Your session has expired — sign in again.");
 
-    const res = await fetch("/.netlify/functions/feedback-translate", {
+    // A long email takes longer than an ordinary function is allowed,
+    // so this one runs in the background and the answer lands in the
+    // database. Watch for it there.
+    const before = current.draft.translated_at || null;
+
+    const res = await fetch("/.netlify/functions/feedback-translate-background", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1003,35 +1008,74 @@ async function runTranslate() {
       body: JSON.stringify({ registrationId: current.reg.id, language: lang }),
     });
 
-    const raw = await res.text();
-    let out;
-    try {
-      out = JSON.parse(raw);
-    } catch {
+    if (res.status !== 202 && !res.ok) {
       throw new Error(
         res.status === 404
           ? "The translation service is not there. It may still be deploying — " +
             "wait for the Netlify build to finish and try again."
-          : `The translation service returned an error (${res.status}). ` +
-            "Check the Netlify function log."
+          : `Could not start the translation (${res.status}).`
       );
     }
-    if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
 
-    const { data: d } = await db.from("feedback_drafts")
-      .select("*").eq("registration_id", current.reg.id).maybeSingle();
-    if (d) { current.draft = d; drafts[current.reg.id] = d; }
-
-    msg.className = "msg ok";
-    msg.textContent =
-      `Translated into ${out.languageName}. Read it through — correct anything ` +
-      "that reads oddly before sending.";
-    renderTranslation();
+    watchTranslation(before);
+    return;
   } catch (err) {
     msg.className = "msg err";
     msg.textContent = err.message;
+    $("tr-go").disabled = false;
   }
-  $("tr-go").disabled = false;
+}
+
+let translateWatch = null;
+
+function stopWatchingTranslation() {
+  if (translateWatch) { clearInterval(translateWatch); translateWatch = null; }
+}
+
+// The answer arrives in the database rather than in a response, so
+// the page watches the row. Either a new translated_at, or an error
+// the function left behind for us.
+function watchTranslation(before) {
+  const msg = $("tr-msg");
+  let waited = 0;
+
+  stopWatchingTranslation();
+  translateWatch = setInterval(async () => {
+    waited += 3;
+
+    const { data: d } = await db.from("feedback_drafts")
+      .select("*").eq("registration_id", current.reg.id).maybeSingle();
+    if (!d) return;
+
+    const done = d.translated_at && d.translated_at !== before;
+    if (!d.translate_error && !done) {
+      if (waited >= 240) {
+        stopWatchingTranslation();
+        msg.className = "msg err";
+        msg.textContent =
+          "This is taking longer than expected. Check back in a minute — " +
+          "if it worked, the translation will be here.";
+        $("tr-go").disabled = false;
+      }
+      return;
+    }
+
+    stopWatchingTranslation();
+    current.draft = d;
+    drafts[current.reg.id] = d;
+    $("tr-go").disabled = false;
+
+    if (d.translate_error) {
+      msg.className = "msg err";
+      msg.textContent = d.translate_error;
+    } else {
+      msg.className = "msg ok";
+      msg.textContent =
+        `Translated into ${languageName(d.translated_language)}. Read it ` +
+        "through — correct anything that reads oddly before sending.";
+    }
+    renderTranslation();
+  }, 3000);
 }
 
 async function saveTranslation() {
@@ -1098,6 +1142,7 @@ $("tr-drop").addEventListener("click", dropTranslation);
 function stopWatching() {
   if (watching) { clearInterval(watching); watching = null; }
   if (sendTimer) { clearTimeout(sendTimer); sendTimer = null; }
+  stopWatchingTranslation();
 }
 
 async function generate() {
