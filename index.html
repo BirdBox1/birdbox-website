@@ -683,6 +683,58 @@
     return [t.role, countryName(t.country)].filter(Boolean).join(", ");
   }
 
+  /* Several coaches have written about more than one course, so their
+     entries sit next to each other in sort_order and the panel shows the
+     same face twice running. This groups by name, shuffles, then draws
+     one at a time from whichever name has the most left that is not the
+     one just used — which cannot place the same person twice in a row so
+     long as no single person holds more than half the entries. */
+  function orderQuotes(rows) {
+    const buckets = new Map();
+    for (const row of rows) {
+      if (!buckets.has(row.name)) buckets.set(row.name, []);
+      buckets.get(row.name).push(row);
+    }
+
+    // Shuffled within each name, so a coach's own entries vary in order too.
+    for (const list of buckets.values()) {
+      for (let i = list.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [list[i], list[j]] = [list[j], list[i]];
+      }
+    }
+
+    const out = [];
+    let last = null;
+    while (out.length < rows.length) {
+      let pick = null;
+      for (const [name, list] of buckets) {
+        if (!list.length || name === last) continue;
+        // Ties broken at random so the running order is not the same each load.
+        if (!pick || list.length > buckets.get(pick).length ||
+            (list.length === buckets.get(pick).length && Math.random() < 0.5)) {
+          pick = name;
+        }
+      }
+      // Only the last name is left, so the run has to end on it.
+      if (!pick) pick = last;
+      out.push(buckets.get(pick).shift());
+      last = pick;
+    }
+
+    // The panel loops, so the last and first are adjacent too.
+    if (out.length > 2 && out[0].name === out[out.length - 1].name) {
+      for (let i = 1; i < out.length - 2; i++) {
+        if (out[i].name !== out[0].name && out[i + 1].name !== out[out.length - 1].name) {
+          out.push(out.splice(i, 1)[0]);
+          break;
+        }
+      }
+    }
+
+    return out;
+  }
+
   function showQuote(i) {
     const t = quotes[i];
     if (!t) return;
@@ -740,7 +792,7 @@
       return;
     }
 
-    quotes = data;
+    quotes = orderQuotes(data);
     dotsEl.textContent = "";
 
     // A dot per testimonial stopped working once there were thirty of them:
