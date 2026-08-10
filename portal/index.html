@@ -944,7 +944,7 @@
       </label>
     </div>
 
-    <div class="panel">
+    <div class="panel hidden" id="rp-courses-panel">
       <h3>Courses</h3>
       <p class="whenline" style="margin-bottom:0.8rem">
         One row per course: where and when it ran, who coached it, how many
@@ -7229,7 +7229,8 @@ async function openReports() {
   show("reports");
   $("rp-sub").textContent = isAdmin()
     ? "Every course across all brands."
-    : "The courses you are allocated to.";
+    : "Participant lists for the courses you are allocated to.";
+  $("rp-courses-panel").classList.toggle("hidden", !isAdmin());
   $("rp-money-panel").classList.toggle("hidden", !isAdmin());
   $("rp-msg").textContent = "";
   for (const id of ["rp-courses-why", "rp-people-why", "rp-money-why"]) {
@@ -7398,6 +7399,7 @@ const courseLabel = (c) =>
   `${c.type === "workshop" ? " Workshop" : ""}`;
 
 async function exportCourses() {
+  if (!isAdmin()) return;
   const btn = $("rp-courses");
   const why = $("rp-courses-why");
   btn.disabled = true;
