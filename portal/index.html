@@ -854,6 +854,33 @@
         <span class="why" id="pf-msg"></span>
       </div>
     </div>
+
+    <div class="panel">
+      <h3>Coaching philosophy</h3>
+      <div id="pf-phil-nudge"></div>
+      <p class="whenline" style="margin-bottom:0.8rem">
+        What you stand for as a coach, and how you want people to experience
+        being coached by you. Seen by the BirdBox team only, never by
+        participants and never on the website.
+      </p>
+      <p class="whenline" style="margin-bottom:0.9rem">
+        If you have not written one before, the five steps are a reasonable
+        way in: know your role and your values, decide what you want the
+        people you coach to leave with, set the standards you hold yourself
+        to as well as them, work out how you will know it is working, and
+        choose the leadership style you want to grow into.
+      </p>
+      <div class="field">
+        <label for="pf-philosophy">Your coaching philosophy
+          <span class="hint">it is meant to change — come back and revise it</span>
+        </label>
+        <textarea id="pf-philosophy" style="min-height:14rem"></textarea>
+      </div>
+      <div class="admin-row">
+        <button class="btn" id="pf-phil-save" type="button">Save philosophy</button>
+        <span class="why" id="pf-phil-msg"></span>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1031,6 +1058,9 @@
       <button class="tab" id="tab-past" type="button" data-tab="past">
         Archived &amp; cancelled <span class="n" id="n-past"></span>
       </button>
+      <button class="tab hidden" id="tab-done" type="button" data-tab="done">
+        Finished <span class="n" id="n-done"></span>
+      </button>
     </div>
 
     <div id="lowalert"></div>
@@ -1120,6 +1150,11 @@
     <div class="admin-row hidden" id="fb-bar" style="margin:0 0 1rem">
       <a class="btn small" id="fb-open" href="/portal/feedback/">Process feedback</a>
       <span class="why" id="fb-state"></span>
+    </div>
+
+    <div class="admin-row hidden" id="arch-bar" style="margin:0 0 1rem">
+      <button class="btn small" id="arch-btn" type="button">Archive this course</button>
+      <span class="why" id="arch-state"></span>
     </div>
 
     <div class="pm-form hidden" id="pm-form">
@@ -2438,6 +2473,19 @@ let staffList = [];
 let tab = "live";
 let myRoles = {};
 
+// Courses this coach has put away for themselves. Nobody else's view
+// of a course changes when they do it, which is the whole point.
+let myArchived = new Set();
+
+async function loadMyArchive() {
+  myArchived = new Set();
+  if (!me) return;
+  const { data, error } = await db.from("course_archives")
+    .select("course_id").eq("staff_id", me.id);
+  if (error) { console.error("Could not load archive:", error.message); return; }
+  for (const r of data || []) myArchived.add(r.course_id);
+}
+
 const isAdmin = () => me && me.role === "admin";
 const amLeadOn = (courseId) => isAdmin() || myRoles[courseId] === "lead_coach";
 const isPast = (c) => !!c.archived || c.status === "cancelled" || c.status === "complete";
@@ -2610,11 +2658,12 @@ $("back").addEventListener("click", loadCourses);
 $("back2").addEventListener("click", loadCourses);
 $("tocourses").addEventListener("click", loadCourses);
 
-for (const id of ["tab-live", "tab-past"]) {
+for (const id of ["tab-live", "tab-past", "tab-done"]) {
   $(id).addEventListener("click", () => {
     tab = $(id).dataset.tab;
     $("tab-live").classList.toggle("on", tab === "live");
     $("tab-past").classList.toggle("on", tab === "past");
+    $("tab-done").classList.toggle("on", tab === "done");
     loadCourses();
   });
 }
@@ -2664,19 +2713,38 @@ async function loadCourses() {
     Object.values(myRoles).some((r) => r === "lead_coach");
   $("feedbacklink").classList.toggle("hidden", !leadsSomething);
 
-  const liveOnes = all.filter((c) => !isPast(c));
+  await loadMyArchive();
+
+  // A course a coach has filed comes off their live list and appears
+  // under Finished. Nothing about the course itself changes.
+  const doneOnes = all.filter((c) => !isPast(c) && myArchived.has(c.id));
+  const liveOnes = all.filter((c) => !isPast(c) && !myArchived.has(c.id));
   const pastOnes = all.filter(isPast);
 
   $("n-live").textContent = liveOnes.length ? liveOnes.length : "";
   $("n-past").textContent = pastOnes.length ? pastOnes.length : "";
+  $("n-done").textContent = doneOnes.length ? doneOnes.length : "";
+  $("tab-done").classList.toggle("hidden", !doneOnes.length);
 
-  const courses = tab === "past"
-    ? pastOnes.slice().sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at))
-    : liveOnes;
+  // The tab can vanish underneath somebody who is standing on it.
+  if (tab === "done" && !doneOnes.length) {
+    tab = "live";
+    $("tab-live").classList.add("on");
+    $("tab-done").classList.remove("on");
+  }
+
+  const byNewest = (rows) =>
+    rows.slice().sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at));
+
+  const courses = tab === "past" ? byNewest(pastOnes)
+                : tab === "done" ? byNewest(doneOnes)
+                : liveOnes;
 
   if (!courses.length) {
     list.innerHTML = `<p class="empty">${
-      tab === "past" ? "Nothing archived or cancelled." : "No live courses."
+      tab === "past" ? "Nothing archived or cancelled."
+      : tab === "done" ? "Nothing filed yet."
+      : "No live courses."
     }</p>`;
     return;
   }
@@ -2932,6 +3000,7 @@ async function loadCourses() {
       }
     }
 
+    if (myArchived.has(c.id)) add("filed", "done");
     if (c.status === "full") add("full", "warn");
     if (c.status === "draft") add("draft", "draft");
     if (c.timezone && !tzIsReal(c.timezone)) add("bad time zone", "bad");
@@ -3160,6 +3229,7 @@ async function openCourse(course) {
   showFollowupBar(course);
   await loadMyInvoice(course);
   showInvoiceBar(course);
+  showArchiveBar(course);
   await loadChat(course);
 
   if (!regs.length) {
@@ -6678,7 +6748,8 @@ async function openProfile() {
   }
 
   const { data, error } = await db.from("staff")
-    .select("id, full_name, email, phone, bio, photo_path, country, languages")
+    .select("id, full_name, email, phone, bio, photo_path, country, languages, " +
+            "coaching_philosophy, philosophy_updated_at")
     .eq("id", me.id).single();
 
   if (error) { $("pf-msg").textContent = "Could not load your profile."; return; }
@@ -6690,7 +6761,10 @@ async function openProfile() {
   $("pf-country").value = (data.country || "").toUpperCase();
   $("pf-languages").value = data.languages || "";
   $("pf-bio").value = data.bio || "";
+  $("pf-philosophy").value = data.coaching_philosophy || "";
   $("pf-msg").textContent = "";
+  $("pf-phil-msg").textContent = "";
+  showPhilosophyNudge();
 
   await showProfilePhoto();
 }
@@ -6724,6 +6798,42 @@ async function showProfilePhoto() {
     frame.innerHTML = '<span style="color:var(--muted);font-size:0.78rem">No photo</span>';
   };
   frame.append(img);
+}
+
+const PHILOSOPHY_STALE_DAYS = 365;
+
+function showPhilosophyNudge() {
+  const box = $("pf-phil-nudge");
+  box.innerHTML = "";
+  if (!profileRow) return;
+
+  const written = (profileRow.coaching_philosophy || "").trim();
+  const when = profileRow.philosophy_updated_at;
+  const months = when
+    ? Math.floor((Date.now() - new Date(when)) / 86400000 / 30)
+    : null;
+
+  const note = (cls, head, body) => {
+    const el = document.createElement("div");
+    el.className = "alert" + (cls ? " " + cls : "");
+    el.innerHTML = `<b>${head}</b>`;
+    el.append(document.createTextNode(body));
+    box.append(el);
+  };
+
+  if (!written) {
+    note("", "You have not written one yet",
+      "Every coach we work with is asked to. It is worth an hour, and it " +
+      "changes how you coach more than most things you could spend an hour on.");
+    return;
+  }
+
+  const days = when ? (Date.now() - new Date(when)) / 86400000 : Infinity;
+  if (days > PHILOSOPHY_STALE_DAYS) {
+    note("flag", "Worth revisiting",
+      `Last changed ${months} months ago. You have coached a lot of people ` +
+      "since then — read it back and see whether it still describes you.");
+  }
 }
 
 function wireProfile() {
@@ -6779,6 +6889,32 @@ function wireProfile() {
     $("pf-save").disabled = false;
     msg.textContent = error ? "Could not save: " + error.message : "Saved.";
     if (!error) setTimeout(() => { msg.textContent = ""; }, 2000);
+  };
+
+  // Saved on its own, and stamped, so the nudge can tell how long it
+  // has been sitting there untouched.
+  $("pf-phil-save").onclick = async () => {
+    const msg = $("pf-phil-msg");
+    const text = $("pf-philosophy").value.trim();
+
+    $("pf-phil-save").disabled = true;
+    msg.textContent = "Saving…";
+
+    const { error } = await db.from("staff").update({
+      coaching_philosophy: text || null,
+      philosophy_updated_at: text ? new Date().toISOString() : null,
+    }).eq("id", me.id);
+
+    $("pf-phil-save").disabled = false;
+
+    if (error) { msg.textContent = "Could not save: " + error.message; return; }
+
+    profileRow.coaching_philosophy = text || null;
+    profileRow.philosophy_updated_at = text ? new Date().toISOString() : null;
+    showPhilosophyNudge();
+
+    msg.textContent = text ? "Saved." : "Cleared.";
+    setTimeout(() => { msg.textContent = ""; }, 2000);
   };
 }
 
@@ -7170,6 +7306,112 @@ function wireInvoicesView() {
   for (const id of ["iv-status", "iv-coach"]) {
     $(id).addEventListener("change", runInvoiceSearch);
   }
+}
+
+/* ---------------- a coach putting a course away ---------------- */
+
+// Archiving means finished, not hidden. A coach can only do it once
+// the jobs that are actually theirs are done — otherwise it becomes a
+// way to lose a course that still needs work.
+//
+// Only the jobs that apply to that course type count. TCC Level 2
+// issues no certificate and has no feedback; a workshop has no
+// follow-up email. Requiring those would make some courses impossible
+// to archive at all.
+//
+// An assistant is judged on their own invoice and nothing else. The
+// feedback and the follow-up belong to the lead, and waiting on
+// somebody else's work is not a rule, it is a queue.
+function archiveBlockers(course) {
+  const out = [];
+  const ran = new Date(course.ends_at || course.starts_at) < new Date();
+  if (!ran) return ["the course has not finished yet"];
+
+  const lead = amLeadOn(course.id);
+  const online = course.type === "online_course";
+
+  // Everyone: the seminar has to have been submitted.
+  if (!online && !course.completed_at) out.push("the seminar has not been submitted");
+
+  if (lead && !online) {
+    if (courseHasFeedback(course)) {
+      const attended = allRegistrations.filter(
+        (r) => (r.status || "active") === "active" && r.attended
+      ).length;
+      const t = feedbackState || { draft: 0, approved: 0, sent: 0, failed: 0 };
+      if (attended && (t.sent < attended || t.draft || t.approved || t.failed)) {
+        out.push("feedback still to send");
+      }
+    }
+    if (!(followupRow && followupRow.status === "sent")) {
+      out.push("the follow-up email");
+    }
+  }
+
+  // Their own invoice, whether they led it or assisted.
+  if (myRoles[course.id] && !(myInvoice && myInvoice.status === "submitted")) {
+    out.push("your invoice");
+  }
+
+  return out;
+}
+
+function showArchiveBar(course) {
+  const bar = $("arch-bar");
+
+  // Admin has archiving of their own on the course, which takes it off
+  // sale for everybody. This one is personal, so it is for coaches.
+  const mine = !!myRoles[course.id];
+  const canSee = mine && !isPast(course);
+  bar.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  const already = myArchived.has(course.id);
+  const blockers = already ? [] : archiveBlockers(course);
+  const btn = $("arch-btn");
+
+  btn.textContent = already ? "Put back on my list" : "Archive this course";
+  btn.classList.toggle("ghost", already);
+  btn.classList.toggle("done", already);
+  btn.disabled = !already && blockers.length > 0;
+
+  $("arch-state").textContent = already
+    ? "Filed under Finished. This changes nothing for anybody else."
+    : blockers.length
+      ? "Waiting on: " + blockers.join(", ") + "."
+      : "Everything is done. Filing it moves it off your list — it stays exactly as it is for everybody else.";
+}
+
+async function toggleArchive() {
+  if (!currentCourse) return;
+  const id = currentCourse.id;
+  const already = myArchived.has(id);
+  const btn = $("arch-btn");
+
+  btn.disabled = true;
+
+  if (already) {
+    const { error } = await db.from("course_archives")
+      .delete().eq("staff_id", me.id).eq("course_id", id);
+    if (error) {
+      $("arch-state").textContent = "Could not do that: " + error.message;
+      btn.disabled = false;
+      return;
+    }
+    myArchived.delete(id);
+  } else {
+    const { error } = await db.from("course_archives")
+      .insert({ staff_id: me.id, course_id: id });
+    if (error) {
+      $("arch-state").textContent = "Could not do that: " + error.message;
+      btn.disabled = false;
+      return;
+    }
+    myArchived.add(id);
+  }
+
+  btn.disabled = false;
+  showArchiveBar(currentCourse);
 }
 
 /* ---------------- reports ---------------- */
@@ -7586,6 +7828,10 @@ async function exportFinances() {
     why.textContent = "Could not export: " + err.message;
   }
   btn.disabled = false;
+}
+
+function wireArchive() {
+  $("arch-btn").onclick = toggleArchive;
 }
 
 function wireReports() {
@@ -8891,6 +9137,7 @@ wireInvoices();
 wirePaid();
 wireInvoicesView();
 wireReports();
+wireArchive();
 wireProfile();
 wireTeam();
 wireChat();
