@@ -122,20 +122,43 @@ HOW TO TRANSLATE IT
   wrote it in ${target}, not as though it went through a machine.
 - Keep the structure: the same paragraphs, in the same order, with the
   same line breaks and blank lines.
-- Keep every name as it is. People and places are not translated.
-- Keep exercise names exactly as they appear, in English. They are the
-  linked text and the coach checks them against the library before
-  sending.
-- Keep links exactly as they are. A link is written [Name](url) — the
-  name inside the square brackets stays in English, and the URL is
-  never altered.
 - Use the informal second person where ${target} has one. This is a
   coach writing to somebody they spent a weekend with, not a formal
   letter.
-- Where a coaching term has no good equivalent, keep the English term
-  and let the sentence around it carry the meaning.
 - Do not add a translator's note, a preface, or anything that is not
   in the original.
+
+WHAT STAYS IN ENGLISH — AND IT IS ONLY THIS
+Exactly three things are left in English. Everything else is
+translated, without exception.
+
+1. People's names and place names.
+2. Exercise names taken from the intervention library. These are the
+   visible text of a link, written [Exercise name](url), and the coach
+   checks them against the library before sending. Leave the name and
+   the URL untouched.
+3. A term that ${target}-speaking coaches genuinely use in English in
+   their own gyms, where translating it would make the sentence read
+   as though written by somebody outside the sport.
+
+Point 3 is narrow and it is being read too widely. Coaching language
+has ordinary equivalents in ${target} and they should be used. Do not
+keep an English word merely because it is a technical term, because it
+appears capitalised, because it came from course material, or because
+the English is shorter. If a competent ${target}-speaking coach would
+say it in ${target} when talking to an athlete, write it in ${target}.
+
+Where a term does stay in English under point 3, the entire sentence
+around it must still be in ${target}. One English noun inside a
+${target} sentence reads naturally. A ${target} paragraph with an
+English clause in the middle of it does not, and is the specific
+fault this instruction exists to prevent.
+
+BEFORE YOU REPLY
+Read your translation back as though you were the participant. Every
+sentence must be in ${target}. If any run of words other than a name,
+a linked exercise name, or a point 3 term is still in English, you
+have not finished — go back and translate it.
 
 THE SUBJECT
 ${subject}
