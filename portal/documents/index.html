@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My documents — BirdBox Coaching</title>
+<style>
+  :root {
+    --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+    --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0;
+    --good:#1f8a54; --warn:#b4610f; --bad:#b3261e;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+
+  .bar{background:var(--shell);color:#fff;padding:0.7rem 1.25rem;
+    display:flex;align-items:center;justify-content:space-between;gap:1rem}
+  .bar .left{display:flex;align-items:center;gap:0.75rem;min-width:0}
+  .mark{width:34px;height:34px;border-radius:4px;background:#fff;
+    display:grid;place-items:center;flex:none}
+  .mark img{width:26px;height:26px;object-fit:contain;display:block}
+  .bar .brandname{font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;
+    color:#9aa1a9;white-space:nowrap}
+  .bar a{font:inherit;font-size:0.8rem;color:#cfd4d9;border:1px solid #33373c;
+    padding:0.3rem 0.7rem;border-radius:3px;text-decoration:none;white-space:nowrap}
+  .bar a:hover{color:#fff;border-color:#55595e}
+
+  .wrap{max-width:50rem;margin:0 auto;padding:1.5rem 1.25rem 5rem}
+  h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0 0 0.2rem;font-weight:600}
+  .sub{color:var(--muted);font-size:0.9rem;margin:0 0 1.25rem}
+
+  .btn{font:inherit;font-weight:600;background:var(--ink);color:#fff;border:0;
+    border-radius:4px;padding:0.6rem 1.1rem;cursor:pointer}
+  .btn:hover{background:#000}
+  .btn[disabled]{opacity:0.45;cursor:default}
+  .btn.small{font-size:0.82rem;padding:0.4rem 0.8rem}
+  .btn.tiny{font-size:0.78rem;padding:0.3rem 0.65rem}
+  .btn.ghost{background:none;color:var(--ink);border:1px solid var(--rule);font-weight:500}
+  .btn.ghost:hover{background:#fff;border-color:var(--muted)}
+  .btn.danger{background:none;color:var(--bad);border:1px solid #e6c9c7;font-weight:500}
+  .btn.danger:hover{background:#fdf4f3;border-color:var(--bad)}
+
+  .panel{background:var(--card);border:1px solid var(--rule);border-radius:6px;
+    padding:1.25rem;margin-bottom:1rem}
+  .panel h3{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 0.8rem;font-weight:600}
+
+  label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.3rem}
+  .hint{font-weight:400;color:var(--muted);font-size:0.78rem}
+  input[type=text],input[type=file],textarea{width:100%;font:inherit;
+    padding:0.55rem 0.65rem;border:1px solid var(--rule);border-radius:4px;
+    background:#fff;color:var(--ink)}
+  textarea{min-height:3.5rem;resize:vertical}
+  .field{margin-bottom:1rem}
+  .grid2{display:grid;gap:1rem;grid-template-columns:1fr}
+  @media (min-width:34rem){.grid2{grid-template-columns:1fr 1fr}}
+
+  .filebox{border:1px dashed var(--rule);border-radius:5px;
+    padding:0.8rem 0.9rem;background:#faf9f7}
+  .filebox .name{font-size:0.85rem;color:var(--muted);margin-top:0.4rem}
+  .filebox .name.on{color:var(--good);font-weight:600}
+  .filebox .name.bad{color:var(--bad)}
+
+  /* one row per document */
+  .doc{display:flex;gap:0.9rem;align-items:flex-start;
+    padding:0.9rem 1.05rem;border-bottom:1px solid var(--rule)}
+  .doc:last-child{border-bottom:0}
+  .doc .kind{flex:none;width:2.6rem;height:2.6rem;border-radius:5px;
+    background:#f0eeea;border:1px solid var(--rule);display:grid;place-items:center;
+    font-size:0.62rem;font-weight:700;letter-spacing:0.04em;color:var(--muted)}
+  .doc .about{flex:1 1 auto;min-width:0}
+  .doc .title{font-weight:650;overflow-wrap:anywhere}
+  .doc .note{font-size:0.88rem;color:var(--muted);white-space:pre-wrap;margin-top:0.15rem}
+  .doc .meta{font-size:0.78rem;color:var(--muted);margin-top:0.3rem}
+  .doc .acts{display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.5rem}
+  .doc.pinned{background:#fbfaf7}
+
+  .star{background:none;border:0;font:inherit;cursor:pointer;padding:0;
+    font-size:1.05rem;line-height:1;color:var(--rule)}
+  .star.on{color:#d9a527}
+  .star:hover{color:#c9a227}
+
+  .card{background:var(--card);border:1px solid var(--rule);
+    border-radius:6px;overflow:hidden;margin-bottom:1rem}
+  .msg{font-size:0.85rem;margin-top:0.9rem;min-height:1.2em}
+  .msg.err{color:var(--bad)}
+  .msg.ok{color:var(--good)}
+  .empty{background:var(--card);border:1px dashed var(--rule);border-radius:6px;
+    padding:2rem 1.25rem;text-align:center;color:var(--muted);font-size:0.9rem}
+  .whenline{font-size:0.82rem;color:var(--muted);margin:0.1rem 0 0;line-height:1.5}
+  .whenline.bad{color:var(--bad)}
+
+  .note-box{background:#f7f6f4;border:1px solid var(--rule);
+    border-left:3px solid var(--muted);border-radius:6px;
+    padding:0.9rem 1.05rem;margin-bottom:1.25rem;font-size:0.9rem}
+  .note-box b{display:block;margin-bottom:0.2rem}
+
+  .acts{display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="left">
+    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+    <span class="brandname">My documents</span>
+  </span>
+  <a href="/portal/">← Portal</a>
+</div>
+
+<div class="wrap">
+  <div id="loading"><p class="sub">Loading…</p></div>
+
+  <section id="view-docs" class="hidden">
+    <h1>My documents</h1>
+    <p class="sub">
+      Anything you want to hand on a course day. Your coaching philosophy, your
+      course flow notes, a warm-up you keep going back to.
+    </p>
+
+    <div class="note-box">
+      <b>Nobody else can see these</b>
+      Not other coaches, not an admin. They are stored against your account
+      alone. That also means nobody can get them back for you if you delete
+      one, so keep anything important somewhere else as well.
+    </div>
+
+    <div class="panel">
+      <h3>Add a document</h3>
+      <div class="grid2">
+        <div class="field">
+          <label for="d-title">What it is
+            <span class="hint">what you would search for</span>
+          </label>
+          <input id="d-title" type="text" placeholder="My coaching philosophy">
+        </div>
+        <div class="field">
+          <label for="d-note">Note <span class="hint">optional</span></label>
+          <input id="d-note" type="text" placeholder="Rewritten after Munich">
+        </div>
+      </div>
+      <div class="filebox">
+        <label for="d-file">The file
+          <span class="hint">up to 20MB — a PDF, a photo of a whiteboard, anything</span>
+        </label>
+        <input id="d-file" type="file">
+        <div class="name" id="d-file-name"></div>
+      </div>
+      <div class="acts" style="margin-top:0.9rem">
+        <button class="btn" id="d-add" type="button">Save it</button>
+        <span class="whenline" id="d-add-why"></span>
+      </div>
+      <p class="msg" id="d-msg"></p>
+    </div>
+
+    <div class="acts" style="margin:0 0 0.8rem">
+      <input id="d-search" type="text" placeholder="Search your documents"
+             autocomplete="off" style="flex:1 1 14rem;min-width:0">
+      <span class="whenline" id="d-count"></span>
+    </div>
+
+    <div class="card" id="d-list"></div>
+  </section>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const $ = (id) => document.getElementById(id);
+
+const BUCKET = "staff-documents";
+const MAX_BYTES = 20 * 1024 * 1024;
+
+// Links are short-lived because a link that lives forever is not a
+// private file. Long enough to open and read on a gym floor.
+const LINK_SECONDS = 3600;
+
+let me = null;
+let docs = [];
+
+const fmtWhen = (iso) => iso
+  ? new Date(iso).toLocaleDateString(undefined,
+      { day: "numeric", month: "short", year: "numeric" })
+  : "";
+
+function fmtSize(bytes) {
+  if (!bytes) return "";
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + " KB";
+  return (bytes / 1024 / 1024).toFixed(1) + " MB";
+}
+
+// A short label rather than a mime type, because "application/vnd.
+// openxmlformats-officedocument.wordprocessingml.document" is not
+// something anybody wants to read on a row.
+function kindOf(name, mime) {
+  const ext = String(name || "").split(".").pop().toLowerCase();
+  if (ext && ext.length <= 4 && /^[a-z0-9]+$/.test(ext)) return ext.toUpperCase();
+  const m = String(mime || "");
+  if (m.startsWith("image/")) return "IMG";
+  if (m.includes("pdf")) return "PDF";
+  return "FILE";
+}
+
+start();
+
+async function start() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { location.href = "/portal/"; return; }
+
+  const { data: staff } = await db.from("staff")
+    .select("id, full_name, role, active")
+    .eq("id", session.user.id).maybeSingle();
+
+  if (!staff || !staff.active) { location.href = "/portal/"; return; }
+  me = staff;
+
+  $("view-docs").classList.remove("hidden");
+  $("loading").classList.add("hidden");
+
+  wire();
+  await loadDocs();
+}
+
+async function loadDocs() {
+  const { data, error } = await db.from("staff_documents")
+    .select("*").eq("staff_id", me.id)
+    .order("pinned", { ascending: false })
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    $("d-list").innerHTML =
+      '<p class="empty">Could not load your documents: ' + error.message + "</p>";
+    return;
+  }
+  docs = data || [];
+  render();
+}
+
+function render() {
+  const box = $("d-list");
+  const q = $("d-search").value.trim().toLowerCase();
+
+  const rows = q
+    ? docs.filter((d) =>
+        `${d.title} ${d.note || ""} ${d.file_name || ""}`.toLowerCase().includes(q))
+    : docs;
+
+  $("d-count").textContent = docs.length
+    ? (q ? `${rows.length} of ${docs.length}` : `${docs.length} document${docs.length === 1 ? "" : "s"}`)
+    : "";
+
+  box.innerHTML = "";
+
+  if (!rows.length) {
+    box.classList.add("hidden");
+    const p = document.createElement("p");
+    p.className = "empty";
+    p.textContent = docs.length
+      ? "Nothing matches that."
+      : "Nothing saved yet. Whatever you find yourself hunting for on a course day belongs here.";
+    box.after(p);
+    // Only one of these at a time.
+    const stale = box.parentNode.querySelectorAll(".empty");
+    for (let i = 0; i < stale.length - 1; i++) stale[i].remove();
+    return;
+  }
+
+  box.classList.remove("hidden");
+  for (const p of box.parentNode.querySelectorAll(".empty")) p.remove();
+
+  for (const d of rows) box.append(docRow(d));
+}
+
+function docRow(d) {
+  const el = document.createElement("div");
+  el.className = "doc" + (d.pinned ? " pinned" : "");
+  el.innerHTML = `
+    <span class="kind"></span>
+    <span class="about">
+      <span class="title"></span>
+      <span class="note"></span>
+      <span class="meta"></span>
+      <span class="acts"></span>
+    </span>
+    <button class="star" type="button" title="Keep this at the top">★</button>`;
+
+  el.querySelector(".kind").textContent = kindOf(d.file_name, d.mime_type);
+  el.querySelector(".title").textContent = d.title;
+
+  const note = el.querySelector(".note");
+  if (d.note) note.textContent = d.note; else note.remove();
+
+  el.querySelector(".meta").textContent =
+    [d.file_name, fmtSize(d.size_bytes), "saved " + fmtWhen(d.updated_at)]
+      .filter(Boolean).join(" · ");
+
+  const star = el.querySelector(".star");
+  star.classList.toggle("on", !!d.pinned);
+  star.onclick = () => togglePin(d, star);
+
+  const acts = el.querySelector(".acts");
+  const add = (label, cls, fn) => {
+    const b = document.createElement("button");
+    b.className = "btn " + cls;
+    b.type = "button";
+    b.textContent = label;
+    b.onclick = () => fn(b);
+    acts.append(b);
+    return b;
+  };
+
+  add("Open", "small", (b) => openDoc(d, b));
+  add("Rename", "ghost tiny", () => rename(d));
+  add("Delete", "ghost tiny danger", (b) => remove(d, b));
+
+  return el;
+}
+
+/* ---------------- opening ---------------- */
+
+// The bucket is private, so a file is reached through a short-lived
+// signed link rather than a URL anybody could hold on to.
+async function openDoc(d, btn) {
+  const was = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Opening…";
+
+  const { data, error } = await db.storage
+    .from(BUCKET).createSignedUrl(d.file_path, LINK_SECONDS);
+
+  btn.disabled = false;
+  btn.textContent = was;
+
+  if (error || !data?.signedUrl) {
+    window.alert("Could not open that file: " +
+      (error ? error.message : "no link came back"));
+    return;
+  }
+  window.open(data.signedUrl, "_blank");
+}
+
+/* ---------------- adding ---------------- */
+
+function wire() {
+  $("d-file").addEventListener("change", () => {
+    const f = $("d-file").files[0];
+    const label = $("d-file-name");
+
+    if (!f) { label.textContent = ""; label.className = "name"; return; }
+
+    if (f.size > MAX_BYTES) {
+      label.className = "name bad";
+      label.textContent =
+        `${f.name} is ${fmtSize(f.size)} — the limit is 20MB. ` +
+        "A photo taken on a phone is usually smaller if you send it rather than share it full size.";
+      return;
+    }
+
+    label.className = "name on";
+    label.textContent = `${f.name} · ${fmtSize(f.size)}`;
+
+    // Save typing: a file called "coaching-philosophy.pdf" is almost
+    // certainly what the thing is called.
+    if (!$("d-title").value.trim()) {
+      $("d-title").value = f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim();
+    }
+  });
+
+  $("d-add").addEventListener("click", addDoc);
+  $("d-search").addEventListener("input", render);
+}
+
+async function addDoc() {
+  const msg = $("d-msg");
+  const file = $("d-file").files[0];
+  const title = $("d-title").value.trim();
+
+  if (!file) { msg.className = "msg err"; msg.textContent = "Choose a file."; return; }
+  if (file.size > MAX_BYTES) {
+    msg.className = "msg err";
+    msg.textContent = "That file is over the 20MB limit.";
+    return;
+  }
+  if (!title) { msg.className = "msg err"; msg.textContent = "Give it a name."; return; }
+
+  $("d-add").disabled = true;
+  msg.className = "msg";
+  msg.textContent = "Saving…";
+
+  try {
+    // Under a folder named for the owner, which is what the storage
+    // policy checks. Timestamped so two files of the same name can
+    // both exist.
+    const clean = file.name.replace(/[^\w.\-]+/g, "-").slice(-80);
+    const path = `${me.id}/${Date.now()}-${clean}`;
+
+    const { error: upErr } = await db.storage.from(BUCKET)
+      .upload(path, file, {
+        contentType: file.type || "application/octet-stream",
+        upsert: false,
+      });
+    if (upErr) throw new Error(upErr.message);
+
+    const { error } = await db.from("staff_documents").insert({
+      staff_id: me.id,
+      title,
+      note: $("d-note").value.trim() || null,
+      file_path: path,
+      file_name: file.name,
+      mime_type: file.type || null,
+      size_bytes: file.size,
+    });
+
+    // The row failed but the file is already up there. Take it back
+    // out, or the bucket fills with things nothing points at.
+    if (error) {
+      await db.storage.from(BUCKET).remove([path]);
+      throw new Error(error.message);
+    }
+
+    $("d-title").value = "";
+    $("d-note").value = "";
+    $("d-file").value = "";
+    $("d-file-name").textContent = "";
+    $("d-file-name").className = "name";
+
+    msg.className = "msg ok";
+    msg.textContent = "Saved.";
+    setTimeout(() => { msg.textContent = ""; }, 2000);
+    await loadDocs();
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = "Could not save: " + err.message;
+  }
+  $("d-add").disabled = false;
+}
+
+/* ---------------- changing ---------------- */
+
+async function togglePin(d, star) {
+  star.disabled = true;
+  const { error } = await db.from("staff_documents")
+    .update({ pinned: !d.pinned, updated_at: new Date().toISOString() })
+    .eq("id", d.id);
+  star.disabled = false;
+  if (error) { window.alert("Could not do that: " + error.message); return; }
+  await loadDocs();
+}
+
+async function rename(d) {
+  const title = window.prompt("What should this be called?", d.title);
+  if (title === null) return;
+  if (!title.trim()) { window.alert("It needs a name."); return; }
+
+  const note = window.prompt("Note (leave blank for none)", d.note || "");
+  if (note === null) return;
+
+  const { error } = await db.from("staff_documents").update({
+    title: title.trim(),
+    note: note.trim() || null,
+    updated_at: new Date().toISOString(),
+  }).eq("id", d.id);
+
+  if (error) { window.alert("Could not save: " + error.message); return; }
+  await loadDocs();
+}
+
+async function remove(d, btn) {
+  if (!window.confirm(
+    `Delete "${d.title}"?\n\n` +
+    "Nobody else has a copy of this, so it cannot be recovered."
+  )) return;
+
+  btn.disabled = true;
+
+  // The file first. A row with no file is a broken link; a file with
+  // no row is invisible and takes up space forever.
+  const { error: rmErr } = await db.storage.from(BUCKET).remove([d.file_path]);
+  if (rmErr) {
+    btn.disabled = false;
+    window.alert("Could not delete the file: " + rmErr.message);
+    return;
+  }
+
+  const { error } = await db.from("staff_documents").delete().eq("id", d.id);
+  btn.disabled = false;
+  if (error) { window.alert("Could not delete: " + error.message); return; }
+  await loadDocs();
+}
+</script>
+
+</body>
+</html>
