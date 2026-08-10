@@ -108,8 +108,14 @@ async function run(registrationId, token, mustCover) {
   const found = await loadManual(course);
   if (!found.ok) return markFailed(registrationId, found.message);
 
-  const langCode = reg.feedback_language || course.language || "en";
-  const language = LANGUAGE_NAMES[langCode] || langCode;
+  // Always English. The participant's language is applied afterwards,
+  // by translating the finished email in one pass — see
+  // feedback-translate.mjs. Writing straight into another language
+  // produced emails that were half German prose and half English
+  // approved passages, because the passages only exist in whatever
+  // languages email_block_translations happens to hold.
+  const langCode = "en";
+  const language = "English";
   const spelling = US_CURRENCIES.includes(course.currency) ? "US" : "UK";
   const greeting = greetingFor(course.timezone);
 
@@ -214,14 +220,13 @@ PARTICIPANT
 First name: ${reg.first_name}
 
 WRITING RULES
-- Write the whole email in ${language}.
-- Use ${spelling} English spelling conventions where the language is English.
-${langCode !== "en" ? `- The coach notes may be in any language. Read them in whatever language they
-  are written and write the email in ${language} regardless.
-- Exercise names stay exactly as the library gives them, in English, even in a
-  ${language} email. They are the linked text and the coach checks them against
-  the library before sending. Write the explanation around them in ${language}.
-` : ""}- Open with "${greeting} ${reg.first_name}," on its own line.
+- Write the whole email in English.
+- Use ${spelling} English spelling conventions.
+- The coach notes may be in any language. Read them in whatever language they
+  are written and write the email in English regardless. If this participant
+  reads another language, the finished email is translated afterwards as a
+  whole, so nothing here needs to anticipate that.
+- Open with "${greeting} ${reg.first_name}," on its own line.
 
 - You ARE ${staff.full_name}. You coached this person and you are writing to
   them directly. Write in the first person throughout: "I noticed", "what I
