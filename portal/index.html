@@ -301,6 +301,27 @@
   .attendee .money.chase { color: var(--bad); font-weight: 600; }
   .check { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
   .check input { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); }
+
+  /* Present or absent, both said out loud. A tick that starts unticked
+     cannot tell "did not turn up" from "not got to yet", and the
+     difference matters once certificates depend on it. */
+  .reg { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
+  .reg-btn {
+    font: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+    background: none; color: var(--muted); border: 1px solid var(--rule);
+    padding: 0.3rem 0.6rem; border-radius: 3px; white-space: nowrap;
+  }
+  .reg-btn:hover { border-color: var(--muted); color: var(--ink); }
+  .reg-btn.yes.on { background: var(--good); border-color: var(--good); color: #fff; }
+  .reg-btn.no.on  { background: var(--warn); border-color: var(--warn); color: #fff; }
+  .reg-btn[disabled] { opacity: 0.5; cursor: default; }
+  .attendee.unmarked { border-left: 3px solid var(--accent); }
+
+  .tasklead {
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; margin: 0 0 0.7rem;
+  }
+  .taskrule { border: 0; border-top: 1px solid var(--rule); margin: 0 0 1.1rem; }
   .saved { font-size: 0.75rem; color: var(--good); margin-left: 0.5rem; }
 
   /* participant photo, taken at the registration desk */
@@ -998,6 +1019,18 @@
       </div>
     </div>
 
+    <div class="panel hidden" id="rp-noshow-panel">
+      <h3>Did not attend</h3>
+      <p class="whenline" style="margin-bottom:0.8rem">
+        Everyone marked absent on the day, with the course they paid for and
+        their email address — so you can offer them a place on another one.
+      </p>
+      <div class="admin-row">
+        <button class="btn small" id="rp-noshow" type="button">Export no-shows</button>
+        <span class="why" id="rp-noshow-why"></span>
+      </div>
+    </div>
+
     <div class="panel hidden" id="rp-money-panel">
       <h3>Finances</h3>
       <p class="whenline" style="margin-bottom:0.8rem">
@@ -1129,20 +1162,7 @@
       <label class="pm-check"><input type="checkbox" id="pm-showall"> Show archived and cancelled</label>
     </div>
 
-    <div class="admin-row hidden" id="pc-bar" style="margin:0 0 1rem">
-      <button class="btn small" id="pc-open" type="button">Pre-course email</button>
-      <span class="why" id="pc-state"></span>
-    </div>
-
-    <div class="admin-row hidden" id="fu-bar" style="margin:0 0 1rem">
-      <button class="btn small" id="fu-open" type="button">Follow-up email</button>
-      <span class="why" id="fu-state"></span>
-    </div>
-
-    <div class="admin-row hidden" id="inv-bar" style="margin:0 0 1rem">
-      <button class="btn small" id="inv-open" type="button">My invoice</button>
-      <span class="why" id="inv-state"></span>
-    </div>
+    <p class="tasklead hidden" id="task-lead">To close this seminar out</p>
 
     <div class="admin-row hidden" id="cert-bar" style="margin:0 0 1rem">
       <button class="btn small" id="cert-open" type="button">Complete and submit seminar</button>
@@ -1154,6 +1174,23 @@
       <span class="why" id="fb-state"></span>
     </div>
 
+    <div class="admin-row hidden" id="inv-bar" style="margin:0 0 1rem">
+      <button class="btn small" id="inv-open" type="button">My invoice</button>
+      <span class="why" id="inv-state"></span>
+    </div>
+
+    <hr class="taskrule hidden" id="task-rule">
+
+    <div class="admin-row hidden" id="pc-bar" style="margin:0 0 1rem">
+      <button class="btn small" id="pc-open" type="button">Pre-course email</button>
+      <span class="why" id="pc-state"></span>
+    </div>
+
+    <div class="admin-row hidden" id="fu-bar" style="margin:0 0 1rem">
+      <button class="btn small" id="fu-open" type="button">Follow-up email</button>
+      <span class="why" id="fu-state"></span>
+    </div>
+
     <div class="admin-row hidden" id="ad-bar" style="margin:0 0 1rem">
       <button class="btn small" id="ad-open" type="button">Email everyone</button>
       <span class="why" id="ad-state"></span>
@@ -1163,6 +1200,7 @@
       <button class="btn small" id="arch-btn" type="button">Archive this course</button>
       <span class="why" id="arch-state"></span>
     </div>
+
 
     <div class="pm-form hidden" id="pm-form">
       <div class="grid2">
@@ -3242,7 +3280,7 @@ async function openCourse(course) {
   box.innerHTML = '<p class="empty">Loading…</p>';
 
   const { data, error } = await db.from("registrations")
-    .select("id, first_name, last_name, email, phone, country, created_at, payment_status, attended, certificate_sent_at, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name, learnworlds_language, learnworlds_status, learnworlds_user_id, learnworlds_enrolled_at, learnworlds_error")
+    .select("id, first_name, last_name, email, phone, country, created_at, payment_status, attended, certificate_sent_at, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name, learnworlds_language, learnworlds_status, learnworlds_user_id, learnworlds_enrolled_at, learnworlds_error, attendance_marked_at, attendance_marked_by")
     .eq("course_id", course.id)
     .order("last_name", { ascending: true });
 
@@ -3273,6 +3311,7 @@ async function openCourse(course) {
   showInvoiceBar(course);
   showAdhocBar(course);
   showArchiveBar(course);
+  showTaskDivider();
   await loadChat(course);
 
   if (!regs.length) {
@@ -3317,7 +3356,11 @@ async function openCourse(course) {
             <div class="contact"></div>
           </div>
         </div>
-        <label class="check"><input type="checkbox"> Attended</label>
+        <span class="reg" role="group" aria-label="Attendance">
+          <button class="reg-btn yes" type="button">Attended</button>
+          <button class="reg-btn no" type="button">Did not attend</button>
+          <span class="saved"></span>
+        </span>
       </div>
       <div class="flags" style="margin-top:0.35rem;display:flex;gap:0.35rem;flex-wrap:wrap"></div>
       <div class="money"></div>
@@ -3397,22 +3440,7 @@ async function openCourse(course) {
     line.classList.toggle("chase", needsChasing);
     if (!bits.length) line.remove();
 
-    const cb = el.querySelector("input[type=checkbox]");
-    cb.checked = !!r.attended;
-    cb.addEventListener("change", async () => {
-      cb.disabled = true;
-      const { error } = await db.from("registrations")
-        .update({ attended: cb.checked }).eq("id", r.id);
-      cb.disabled = false;
-      if (error) { cb.checked = !cb.checked; flash(el, "Could not save", true); }
-      else {
-        flash(el, "Saved");
-        // The submit bar counts who is ticked, so it follows along.
-        r.attended = cb.checked;
-        showCertBar(currentCourse);
-        showFeedbackBar(currentCourse);
-      }
-    });
+    wireRegister(el, r);
 
     renderNotes(el.querySelector(".notes"), course, r, notesByReg[r.id] || []);
 
@@ -3429,6 +3457,8 @@ async function openCourse(course) {
     s.textContent = ` · ${chasing} needs chasing`;
     counts.appendChild(s);
   }
+
+  updateRegisterCount();
 }
 
 /* ---------------- participant photo ---------------- */
@@ -3747,12 +3777,78 @@ function renderOneNote(list, note, lead) {
   list.append(el);
 }
 
+// Marked means somebody decided, either way. Until then the row is
+// flagged, because an unmarked participant is the thing that quietly
+// costs a certificate.
+const isMarked = (r) => !!r.attendance_marked_at;
+
+function wireRegister(el, r) {
+  const yes = el.querySelector(".reg-btn.yes");
+  const no = el.querySelector(".reg-btn.no");
+
+  const paint = () => {
+    const marked = isMarked(r);
+    yes.classList.toggle("on", marked && !!r.attended);
+    no.classList.toggle("on", marked && !r.attended);
+    el.classList.toggle("unmarked", !marked);
+  };
+  paint();
+
+  const set = async (attended, btn) => {
+    yes.disabled = true; no.disabled = true;
+    const stamp = new Date().toISOString();
+
+    const { error } = await db.from("registrations").update({
+      attended,
+      attendance_marked_at: stamp,
+      attendance_marked_by: me.id,
+    }).eq("id", r.id);
+
+    yes.disabled = false; no.disabled = false;
+
+    if (error) { flash(el, "Could not save", true); return; }
+
+    r.attended = attended;
+    r.attendance_marked_at = stamp;
+    r.attendance_marked_by = me.id;
+    paint();
+    flash(el, "Saved");
+
+    // Everything downstream counts who was marked present.
+    showCertBar(currentCourse);
+    showFeedbackBar(currentCourse);
+    showArchiveBar(currentCourse);
+    updateRegisterCount();
+  };
+
+  yes.onclick = () => set(true, yes);
+  no.onclick = () => set(false, no);
+}
+
+// Said above the list, because a coach on a gym floor wants to know
+// how many are left rather than to scroll looking for gaps.
+function updateRegisterCount() {
+  const el = $("counts");
+  const old = el.querySelector(".left-to-mark");
+  if (old) old.remove();
+
+  const active = allRegistrations.filter((r) => (r.status || "active") === "active");
+  const left = active.filter((x) => !isMarked(x)).length;
+  if (!left) return;
+
+  const s = document.createElement("span");
+  s.className = "chase left-to-mark";
+  s.textContent = ` · ${left} still to mark present or absent`;
+  el.appendChild(s);
+}
+
 function flash(el, text, isError = false) {
   let tag = el.querySelector(".saved");
   if (!tag) {
     tag = document.createElement("span");
     tag.className = "saved";
-    el.querySelector(".check").appendChild(tag);
+    const host = el.querySelector(".reg") || el.querySelector(".check") || el;
+    host.appendChild(tag);
   }
   tag.style.color = isError ? "var(--bad)" : "";
   tag.textContent = text;
@@ -7549,6 +7645,20 @@ function archiveBlockers(course) {
   const ran = new Date(course.ends_at || course.starts_at) < new Date();
   if (!ran) return ["the course has not finished yet"];
 
+  // The register first. Everything else counts who was present, so an
+  // unmarked participant makes every other check unreliable.
+  const active = allRegistrations.filter((r) => (r.status || "active") === "active");
+  const unmarked = active.filter((r) => !isMarked(r)).length;
+  if (unmarked) {
+    out.push(`${unmarked} still to mark present or absent`);
+  }
+
+  // And nobody who was there should still be waiting for a certificate.
+  if (course.issues_certificate !== false && course.type !== "online_course") {
+    const owed = active.filter((r) => r.attended && !r.certificate_sent_at).length;
+    if (owed) out.push(`${owed} certificate${owed === 1 ? "" : "s"} still to send`);
+  }
+
   const lead = amLeadOn(course.id);
   const online = course.type === "online_course";
 
@@ -7565,9 +7675,6 @@ function archiveBlockers(course) {
         out.push("feedback still to send");
       }
     }
-    if (!(followupRow && followupRow.status === "sent")) {
-      out.push("the follow-up email");
-    }
   }
 
   // Their own invoice, whether they led it or assisted.
@@ -7576,6 +7683,18 @@ function archiveBlockers(course) {
   }
 
   return out;
+}
+
+// The heading and the rule only make sense when the block above the
+// line is actually there.
+function showTaskDivider() {
+  const above = ["cert-bar", "fb-bar", "inv-bar"]
+    .some((id) => !$(id).classList.contains("hidden"));
+  const below = ["pc-bar", "fu-bar", "ad-bar", "arch-bar"]
+    .some((id) => !$(id).classList.contains("hidden"));
+
+  $("task-lead").classList.toggle("hidden", !above);
+  $("task-rule").classList.toggle("hidden", !(above && below));
 }
 
 function showArchiveBar(course) {
@@ -7695,9 +7814,10 @@ async function openReports() {
     ? "Every course across all brands."
     : "Participant lists for the courses you are allocated to.";
   $("rp-courses-panel").classList.toggle("hidden", !isAdmin());
+  $("rp-noshow-panel").classList.toggle("hidden", !isAdmin());
   $("rp-money-panel").classList.toggle("hidden", !isAdmin());
   $("rp-msg").textContent = "";
-  for (const id of ["rp-courses-why", "rp-people-why", "rp-money-why"]) {
+  for (const id of ["rp-courses-why", "rp-people-why", "rp-money-why", "rp-noshow-why"]) {
     $(id).textContent = "";
   }
   if (!$("rp-from").value && !$("rp-to").value) rpThisYear();
@@ -7830,9 +7950,9 @@ async function reportRegistrations(courseIds) {
     const slice = courseIds.slice(i, i + 40);
     const { data, error } = await db.from("registrations")
       .select("id, course_id, first_name, last_name, email, phone, country, " +
-              "status, attended, payment_status, amount_paid_cents, currency, " +
-              "discount_code, discount_cents, created_at, waiver_signed_at, " +
-              "certificate_sent_at, source")
+              "status, attended, attendance_marked_at, payment_status, " +
+              "amount_paid_cents, currency, discount_code, discount_cents, " +
+              "created_at, waiver_signed_at, certificate_sent_at, source")
       .in("course_id", slice);
     if (error) throw new Error(error.message);
     out.push(...(data || []));
@@ -8056,6 +8176,80 @@ function wireArchive() {
   $("arch-btn").onclick = toggleArchive;
 }
 
+// Somebody who paid and did not turn up. Worth reaching out to, and
+// impossible to find without going course by course otherwise.
+//
+// Only people a coach actually marked absent — an unmarked register
+// is not evidence anybody was missing.
+async function exportNoShows() {
+  if (!isAdmin()) return;
+  const btn = $("rp-noshow");
+  const why = $("rp-noshow-why");
+  btn.disabled = true;
+  why.textContent = "Working…";
+
+  try {
+    const courses = await reportCourses();
+    if (!courses.length) {
+      why.textContent = $("rp-course").value
+        ? "That course could not be read." : "No courses in that range.";
+      return;
+    }
+
+    const byId = {};
+    for (const c of courses) byId[c.id] = c;
+    const regs = await reportRegistrations(courses.map((c) => c.id));
+
+    const missed = regs.filter((r) =>
+      (r.status || "active") === "active" &&
+      r.attendance_marked_at && !r.attended);
+
+    if (!missed.length) {
+      why.textContent = "Nobody was marked absent in that range.";
+      return;
+    }
+
+    missed.sort((a, b) => {
+      const ca = byId[a.course_id], cb = byId[b.course_id];
+      return new Date(cb.starts_at) - new Date(ca.starts_at) ||
+             String(a.last_name).localeCompare(String(b.last_name));
+    });
+
+    const header = ["Course date", "Brand", "Course", "City", "Country",
+      "First name", "Last name", "Email", "Phone", "Paid", "Currency",
+      "Payment status", "Booked on"];
+
+    const rows = missed.map((r) => {
+      const c = byId[r.course_id];
+      return [
+        rpDate(c.starts_at, c.timezone),
+        courseLabel(c),
+        c.title,
+        c.city || "",
+        countryName(c.country),
+        r.first_name || "",
+        r.last_name || "",
+        r.email || "",
+        r.phone || "",
+        ((r.amount_paid_cents || 0) / 100).toFixed(2),
+        r.currency || c.currency || "",
+        PAY_LABEL[r.payment_status] || r.payment_status || "",
+        r.created_at ? rpDate(r.created_at) : "",
+      ];
+    });
+
+    downloadCsv(reportFileName("no-shows"), header, rows, reportSep());
+
+    const paid = missed.reduce((n, r) => n + (r.amount_paid_cents || 0), 0);
+    why.textContent =
+      `${rows.length} no-show${rows.length === 1 ? "" : "s"} exported` +
+      (paid ? ` — ${money(paid, missed[0].currency || "EUR")} paid between them.` : ".");
+  } catch (err) {
+    why.textContent = "Could not export: " + err.message;
+  }
+  btn.disabled = false;
+}
+
 function wireReports() {
   $("reportsbtn").onclick = openReports;
   $("back-reports").onclick = loadCourses;
@@ -8069,6 +8263,7 @@ function wireReports() {
   $("rp-courses").onclick = exportCourses;
   $("rp-people").onclick = exportParticipants;
   $("rp-money").onclick = exportFinances;
+  $("rp-noshow").onclick = exportNoShows;
 }
 
 /* ---------- straight to this course's feedback ---------- */
