@@ -731,7 +731,14 @@ function openTemplate(row) {
   $("t-submit").textContent = row?.status === "approved"
     ? "Resubmit for approval" : "Submit for approval";
   $("t-copy").classList.toggle("hidden", !row);
-  $("t-delete").classList.toggle("hidden", !row || (!mine && !isAdmin()) || row.status === "approved");
+
+  // A coach can remove their own draft, pending or rejected template.
+  // An approved one is something colleagues may be relying on, so only
+  // an admin can take it away. This mirrors the delete policy on the
+  // table — without the match the button would fail silently.
+  const canDeleteTemplate = !!row &&
+    (isAdmin() || (mine && row.status !== "approved"));
+  $("t-delete").classList.toggle("hidden", !canDeleteTemplate);
 
   renderTemplateReview();
   renderTemplateAdmin();
@@ -910,12 +917,28 @@ $("t-copy").addEventListener("click", async () => {
 
 $("t-delete").addEventListener("click", async () => {
   if (!template) return;
-  if (!window.confirm(`Delete "${template.title}"? This cannot be undone.`)) return;
+  const inUse = requests.filter((r) => r.template_id === template.id).length;
+  if (!window.confirm(
+    `Delete "${template.title}"?\n\n` +
+    (inUse
+      ? `${inUse} workshop request${inUse === 1 ? " uses" : "s use"} this template. ` +
+        "Those keep the content they were agreed with, so they are not affected.\n\n"
+      : "") +
+    "This cannot be undone."
+  )) return;
 
-  const { error } = await db.from("workshop_templates").delete().eq("id", template.id);
+  const { data, error } = await db.from("workshop_templates")
+    .delete().eq("id", template.id).select("id");
+
   if (error) {
     $("t-msg").className = "msg err";
     $("t-msg").textContent = "Could not delete: " + error.message;
+    return;
+  }
+  if (!data || !data.length) {
+    $("t-msg").className = "msg err";
+    $("t-msg").textContent =
+      "That could not be deleted. An approved template can only be removed by an admin.";
     return;
   }
   await loadAll();
@@ -953,8 +976,10 @@ $("new-request").addEventListener("click", () => openRequest(null));
 // A coach can request any approved template, or one of their own that
 // is still being worked on.
 function usableTemplates() {
-  return templates.filter((t) =>
-    t.status === "approved" || t.created_by === me.id || isAdmin());
+  return templates.filter((t) => {
+    if (t.status === "rejected") return false;
+    return t.status === "approved" || t.created_by === me.id || isAdmin();
+  });
 }
 
 function openRequest(row) {
@@ -1018,8 +1043,11 @@ function openRequest(row) {
   $("r-submit").classList.toggle("hidden", locked || row?.status === "submitted");
   $("r-submit").textContent = row?.status === "declined"
     ? "Resubmit request" : "Submit request";
-  $("r-delete").classList.toggle("hidden",
-    !row || (!mine && !isAdmin()) || row.status === "live");
+  // Same again for requests: a coach withdraws their own until it has
+  // been agreed, after which it belongs to the schedule.
+  const canDeleteRequest = !!row &&
+    (isAdmin() || (mine && !["approved", "live"].includes(row.status)));
+  $("r-delete").classList.toggle("hidden", !canDeleteRequest);
 
   renderSnapshot();
   renderRequestReview();
@@ -1348,10 +1376,18 @@ $("r-delete").addEventListener("click", async () => {
   if (!request) return;
   if (!window.confirm(`Delete this request? This cannot be undone.`)) return;
 
-  const { error } = await db.from("workshop_requests").delete().eq("id", request.id);
+  const { data, error } = await db.from("workshop_requests")
+    .delete().eq("id", request.id).select("id");
+
   if (error) {
     $("r-msg").className = "msg err";
     $("r-msg").textContent = "Could not delete: " + error.message;
+    return;
+  }
+  if (!data || !data.length) {
+    $("r-msg").className = "msg err";
+    $("r-msg").textContent =
+      "That could not be deleted. Once a workshop is approved only an admin can remove it.";
     return;
   }
   await loadAll();
