@@ -255,13 +255,19 @@
   .pill.nolead.due { background: #f3cf3d; border-color: #d9b310; color: #33280a; font-weight: 700; }
 
   /* ---------------- delete dialog ---------------- */
+  /* A dialog taller than the screen used to overflow with no way to
+     reach the bottom of it, so a coach who attached three receipts
+     could not get to Submit. The overlay scrolls, and the action row
+     stays pinned to the foot of the dialog. */
   .overlay {
     position: fixed; inset: 0; z-index: 60; background: rgba(13,14,16,0.55);
-    display: grid; place-items: center; padding: 1.25rem;
+    display: grid; place-items: start center; padding: 1.25rem;
+    overflow-y: auto; overscroll-behavior: contain;
   }
   .dialog {
     background: var(--card); border-radius: 8px; max-width: 27rem; width: 100%;
     padding: 1.5rem; box-shadow: 0 18px 50px rgba(0,0,0,0.25);
+    margin: auto;
   }
   .dialog h3 { margin: 0 0 0.6rem; font-size: 1.05rem; letter-spacing: -0.01em; }
   .dialog p { margin: 0 0 0.8rem; font-size: 0.9rem; line-height: 1.55; }
@@ -271,7 +277,15 @@
   }
   .dialog .loses ul { margin: 0.35rem 0 0; padding-left: 1.1rem; }
   .dialog input { letter-spacing: 0.12em; font-weight: 650; text-transform: uppercase; }
-  .dialog .row { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1.1rem; }
+  /* Full-bleed to the dialog edges so it can sit flush at the foot
+     while the content scrolls behind it. */
+  .dialog .row {
+    display: flex; gap: 0.6rem; justify-content: flex-end; flex-wrap: wrap;
+    position: sticky; bottom: -1.5rem; z-index: 1; background: var(--card);
+    margin: 1.1rem -1.5rem -1.5rem; padding: 0.9rem 1.5rem 1.5rem;
+    border-top: 1px solid var(--rule);
+    border-radius: 0 0 8px 8px;
+  }
 
   /* ---------------- attendees ---------------- */
   .attendee { padding: 0.9rem 1.05rem; border-bottom: 1px solid var(--rule); }
@@ -487,30 +501,32 @@
 
 /* participant management */
 .pm-bar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:0 0 .8rem}
-.pm-form{border:1px solid #342F31;border-radius:.4rem;padding:1rem;margin:0 0 1rem;background:rgba(255,255,255,.02)}
+.pm-form{border:1px solid var(--rule);border-radius:.4rem;padding:1rem;margin:0 0 1rem;background:#faf9f7}
 .pm-form .grid2{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
 @media(max-width:640px){.pm-form .grid2{grid-template-columns:1fr}}
 .pm-check{display:flex;align-items:center;gap:.45rem;font-size:.9rem;margin:.5rem 0}
 .acts{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.6rem}
 .acts .btn{font-size:.72rem;padding:.3rem .6rem}
 .attendee.inactive{opacity:.55}
-.pill.gone{border-color:#6b4a1f;color:#d8a657}
-.wk{border:1px solid #342F31;border-radius:.4rem;margin-bottom:.5rem;overflow:hidden}
-.wk__head{display:flex;align-items:center;gap:.7rem;padding:.6rem .8rem;cursor:pointer;background:rgba(255,255,255,.02)}
-.wk__n{font-weight:700;font-size:.8rem;min-width:4.2rem;color:#ADA6A8}
+.pill.gone{border-color:var(--warn);color:var(--warn)}
+.wk{border:1px solid var(--rule);border-radius:.4rem;margin-bottom:.5rem;overflow:hidden}
+.wk__head{display:flex;align-items:center;gap:.7rem;padding:.6rem .8rem;cursor:pointer;background:#faf9f7}
+.wk__n{font-weight:700;font-size:.8rem;min-width:4.2rem;color:var(--muted)}
 .wk__subj{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.9rem}
-.wk__state{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:#756F71}
-.wk__state.done{color:#5FBE8A}
-.wk__body{padding:.9rem;border-top:1px solid #342F31}
+.wk__state{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.wk__state.done{color:var(--good)}
+.wk__body{padding:.9rem;border-top:1px solid var(--rule)}
 .wk__body textarea{min-height:16rem;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem}
 .seqbar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-top:.6rem}
 .sigwrap{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:1rem;z-index:60}
-.sigbox{background:#1C1719;border:1px solid #342F31;border-radius:.5rem;padding:1.1rem;max-width:640px;width:100%}
+.sigbox{background:var(--card);border:1px solid var(--rule);border-radius:.5rem;
+  padding:1.25rem;max-width:640px;width:100%;max-height:calc(100vh - 2rem);
+  overflow-y:auto;box-shadow:0 18px 50px rgba(0,0,0,.25);color:var(--ink)}
 .sigbox h3{margin:0 0 .3rem}
 .sigbox .sub{margin:0 0 .8rem}
-.sigpad{width:100%;height:220px;background:#fff;border:1px solid #342F31;border-radius:.35rem;touch-action:none;display:block}
+.sigpad{width:100%;height:220px;background:#fff;border:1px solid var(--rule);border-radius:.35rem;touch-action:none;display:block}
 .sigrow{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-top:.8rem}
-.sigview{width:100%;background:#fff;border:1px solid #342F31;border-radius:.35rem}
+.sigview{width:100%;background:#fff;border:1px solid var(--rule);border-radius:.35rem}
 .editgrid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
 @media(max-width:640px){.editgrid{grid-template-columns:1fr}}
 </style>
@@ -2677,7 +2693,7 @@ async function loadCourses() {
     alertBox.append(el);
   }
 
-  const struggling = tab === "live"
+  const struggling = (isAdmin() && tab === "live")
     ? courses.filter((c) => {
         if (c.status === "draft") return false;
         const days = daysUntil(c.starts_at);
@@ -3038,6 +3054,7 @@ async function openCourse(course) {
   await loadPrecourse(course.id);
   showPrecourseBar(course);
   showCertBar(course);
+  await loadFeedbackState(course);
   showFeedbackBar(course);
   await loadFollowup(course.id);
   showFollowupBar(course);
@@ -4003,7 +4020,7 @@ const REG_STATUS_LABEL = {
 function pmMsg(text, isError = false) {
   const el = $("pm-msg");
   el.textContent = text;
-  el.style.color = isError ? "#e5766f" : "";
+  el.style.color = isError ? "var(--bad)" : "";
 }
 
 /* Active registrations are the ones that occupy a place. */
@@ -6952,6 +6969,27 @@ function wireInvoicesView() {
 // The lead coach is already looking at the course. Sending them out to
 // the feedback page to find it again in a list is a step nobody needs,
 // so the link carries the course with it.
+// How far feedback has got for this course. The button cannot say a
+// job is finished without asking, and the feedback page is where the
+// work actually happens, so the state is read from the drafts.
+let feedbackState = null;
+
+async function loadFeedbackState(course) {
+  feedbackState = null;
+  if (!courseHasFeedback(course)) return;
+
+  const { data, error } = await db.from("feedback_drafts")
+    .select("registration_id, status").eq("course_id", course.id);
+
+  if (error) { console.error("Could not load feedback state:", error.message); return; }
+
+  const tally = { draft: 0, approved: 0, sent: 0, failed: 0 };
+  for (const d of data || []) {
+    if (tally[d.status] != null) tally[d.status]++;
+  }
+  feedbackState = tally;
+}
+
 function showFeedbackBar(course) {
   const bar = $("fb-bar");
 
@@ -6976,10 +7014,26 @@ function showFeedbackBar(course) {
     (r) => (r.status || "active") === "active" && r.attended
   ).length;
 
-  $("fb-state").textContent = attended
-    ? `Write and send coaching feedback to the ${attended} ` +
-      `${attended === 1 ? "person" : "people"} ticked as attended.`
-    : "Tick who attended first — feedback goes to those people.";
+  const t = feedbackState || { draft: 0, approved: 0, sent: 0, failed: 0 };
+  const outstanding = t.draft + t.approved + t.failed;
+
+  // Green only when every person who attended has had theirs. A course
+  // where half went out is still a job in progress.
+  const finished = attended > 0 && t.sent >= attended && !outstanding;
+
+  const btn = $("fb-open");
+  btn.classList.toggle("done", finished);
+  btn.textContent = finished ? "Feedback sent" : "Process feedback";
+
+  $("fb-state").textContent =
+    !attended  ? "Tick who attended first — feedback goes to those people."
+    : finished ? `All ${t.sent} sent.`
+    : t.failed ? `${t.failed} failed to send — open the feedback page to see why.`
+    : t.sent   ? `${t.sent} of ${attended} sent, ${outstanding} still to go.`
+    : t.approved ? `${t.approved} checked and ready to send.`
+    : t.draft  ? `${t.draft} drafted, waiting to be read through.`
+    : `Write and send coaching feedback to the ${attended} ` +
+      `${attended === 1 ? "person" : "people"} ticked as attended.`;
 }
 
 /* ---------- complete and submit the seminar ---------- */
