@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merch Store | BirdBox Coaching</title>
+<meta name="description" content="Official BirdBox Coaching merchandise &mdash; apparel for The Coaches Course, The Gymnastics Course, The Endurance Course, and The Weightlifting Course.">
+<style>
+  :root {
+    --paper: #14100F;
+    --panel: #1C1719;
+    --ink: #F2EFEF;
+    --muted: #8A8385;
+    --line: #342F31;
+    --tcc: #4FA8DE;
+    --accentText: #6FB9E8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  img { display: block; }
+  .bb-wrap { max-width: 1320px; margin: 0 auto; padding: 0 24px; }
+
+  .bb-topbar {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 28px;
+    padding: 16px 24px; border-bottom: 1px solid var(--line);
+    font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase;
+    position: relative; z-index: 3;
+  }
+  .bb-topbar a { color: #ADA6A8; text-decoration: none; }
+  .bb-topbar a:hover { color: #ffffff; }
+  .bb-topbar a.is-active { color: #ffffff; }
+
+  .bb-backbar { padding: 14px 24px 0; max-width: 1320px; margin: 0 auto; width: 100%; }
+  .bb-back {
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 8px 16px; border: 1px solid var(--line); color: #ADA6A8;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; text-decoration: none;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  .bb-back:hover { color: #ffffff; border-color: var(--tcc); }
+
+  /* ---------- header ---------- */
+  .mrc-head {
+    border-bottom: 1px solid var(--line);
+    padding: 34px 0 30px;
+    margin-bottom: 4px;
+  }
+  .mrc-head__inner {
+    max-width: 1320px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; gap: 30px; flex-wrap: wrap;
+  }
+  .mrc-head__mark { flex: 0 0 auto; }
+  .mrc-head__mark img { max-height: 92px; width: auto; filter: brightness(1.28); }
+  .mrc-head__copy { flex: 1 1 320px; min-width: 0; }
+  .mrc-head__title {
+    font-size: clamp(24px, 3.2vw, 40px); line-height: 1.06; font-weight: 800;
+    letter-spacing: -0.015em; text-transform: uppercase; margin: 0 0 12px;
+  }
+  .mrc-head__title em { font-style: normal; color: var(--accentText); }
+  .mrc-head__lede {
+    font-size: 16px; line-height: 1.6; color: #DCD7D8; margin: 0; max-width: 52ch;
+  }
+
+  /* ---------- facts strip ---------- */
+  .mrc-facts {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    padding: 20px 0 4px;
+  }
+  .mrc-fact {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #ADA6A8; border: 1px solid var(--line); padding: 8px 13px;
+  }
+
+  /* ---------- store ----------
+     The Ecwid widget renders its own light storefront, so it sits on a
+     pale panel rather than fighting the dark page around it. Colours
+     inside the widget are controlled in Ecwid, not here. */
+  .mrc-store {
+    background: #FFFFFF;
+    border: 1px solid var(--line);
+    padding: 22px 20px 28px;
+    margin: 22px 0 0;
+    color: #14100F;
+    min-height: 420px;
+  }
+  .mrc-store a { color: #1A6FA8; }
+
+  .mrc-note {
+    font-size: 13px; color: var(--muted); margin: 14px 0 0; line-height: 1.6;
+  }
+
+  /* ---------- cross links ---------- */
+  .mrc-cross {
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 18px 22px; margin: 26px 0 0; text-align: center;
+  }
+  .mrc-cross__label {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+  }
+  .mrc-cross__links { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px 26px; }
+  .mrc-cross__links a {
+    font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+    color: #C9C4C5; text-decoration: none;
+  }
+  .mrc-cross__links a:hover { color: var(--accentText); }
+
+  .bb-footer {
+    text-align: center; padding: 32px 24px 50px; font-size: 13px; color: #756F71;
+    border-top: 1px solid var(--line); margin-top: 30px; line-height: 1.7;
+  }
+  .bb-footer a { color: #8A8385; text-decoration: none; }
+  .bb-footer__staff {
+    display: block; margin-top: 10px; font-size: 12px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+
+  @media (max-width: 720px) {
+    .mrc-head__inner { gap: 20px; }
+    .mrc-head__mark img { max-height: 68px; }
+    .mrc-store { padding: 16px 12px 22px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Links are filled in by /nav.js so every page shares one nav. -->
+<nav class="bb-topbar"></nav>
+
+<div class="bb-backbar">
+  <a class="bb-back" href="/">&larr; All Pathways</a>
+</div>
+
+<header class="mrc-head">
+  <div class="mrc-head__inner">
+    <div class="mrc-head__mark">
+      <img src="../brand/birdbox-mark.png" alt="BirdBox Coaching">
+    </div>
+    <div class="mrc-head__copy">
+      <h1 class="mrc-head__title">The <em>BirdBox</em> Merch Store</h1>
+      <p class="mrc-head__lede">Apparel for coaches who have done the work. Printed and shipped worldwide on demand, so everything is made when you order it.</p>
+    </div>
+  </div>
+</header>
+
+<main class="bb-wrap">
+
+  <div class="mrc-facts">
+    <span class="mrc-fact">Printed On Demand</span>
+    <span class="mrc-fact">Ships Worldwide</span>
+    <span class="mrc-fact">XS &ndash; 3XL</span>
+    <span class="mrc-fact">Secure Checkout</span>
+  </div>
+
+  <!-- Ecwid storefront. Store ID 140532633. -->
+  <section class="mrc-store" aria-label="BirdBox merchandise store">
+    <div id="my-store-140532633"></div>
+    <div>
+      <script data-cfasync="false" type="text/javascript" src="https://app.ecwid.com/script.js?140532633&data_platform=code&data_date=2026-08-10" charset="utf-8"></script>
+      <script type="text/javascript"> xProductBrowser("categoriesPerRow=3","views=grid(20,3) list(60) table(60)","categoryView=grid","searchView=list","id=my-store-140532633");</script>
+    </div>
+  </section>
+
+  <p class="mrc-note">
+    Shipping is calculated at checkout and varies by destination. Orders are fulfilled by our print partner, so delivery times differ from seminar materials.
+  </p>
+
+  <div class="mrc-cross">
+    <div class="mrc-cross__label">Explore Our Pathways</div>
+    <div class="mrc-cross__links">
+      <a href="/tcc">The Coaches Course</a>
+      <a href="/tgc">The Gymnastics Course</a>
+      <a href="/tec">The Endurance Course</a>
+      <a href="/twc">The Weightlifting Course</a>
+    </div>
+  </div>
+
+</main>
+
+<footer class="bb-footer">
+  &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
+  <a class="bb-footer__staff" href="/portal/">Staff Login</a>
+</footer>
+
+<script src="/nav.js"></script>
+
+</body>
+</html>
