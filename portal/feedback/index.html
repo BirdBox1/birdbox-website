@@ -462,6 +462,23 @@ function buildTranslateOptions() {
   }
 }
 
+function buildLimitationOptions() {
+  for (const id of ["lim-primary", "lim-secondary"]) {
+    const sel = $(id);
+    sel.innerHTML = "";
+    const none = document.createElement("option");
+    none.value = "";
+    none.textContent = "None";
+    sel.append(none);
+    for (const name of LIMITATIONS) {
+      const o = document.createElement("option");
+      o.value = name;
+      o.textContent = name;
+      sel.append(o);
+    }
+  }
+}
+
 // Returns true if it opened. Anything that does not resolve — a bad
 // id, a course this person does not lead, a course type that does not
 // do feedback — falls back to the list rather than showing an error,
