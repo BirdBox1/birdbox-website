@@ -322,6 +322,17 @@
     color: var(--muted); font-weight: 600; margin: 0 0 0.7rem;
   }
   .taskrule { border: 0; border-top: 1px solid var(--rule); margin: 0 0 1.1rem; }
+
+  /* A quiet way back out. Nobody should be hunting for it, and
+     nobody should be tripping over it either. */
+  .portal-foot {
+    margin: 2.5rem 0 0; padding-top: 1.25rem;
+    border-top: 1px solid var(--rule); text-align: center;
+  }
+  .portal-foot a {
+    font-size: 0.78rem; color: var(--muted); text-decoration: none;
+  }
+  .portal-foot a:hover { color: var(--ink); text-decoration: underline; }
   .saved { font-size: 0.75rem; color: var(--good); margin-left: 0.5rem; }
 
   /* participant photo, taken at the registration desk */
@@ -1100,6 +1111,10 @@
 
     <div id="lowalert"></div>
     <div id="courses-list"></div>
+
+    <p class="portal-foot">
+      <a href="/">Return to the website</a>
+    </p>
   </div>
 </section>
 
