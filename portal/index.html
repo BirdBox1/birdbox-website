@@ -541,6 +541,7 @@
   <span class="right">
     <a class="linkbtn hidden" id="bloglink" href="/portal/blog/">Blog</a>
     <a class="linkbtn hidden" id="feedbacklink" href="/portal/feedback/">Feedback</a>
+    <a class="linkbtn hidden" id="reflectlink" href="/portal/reflections/">Reflections</a>
     <a class="linkbtn hidden" id="codeslink" href="/portal/codes/">Discount codes</a>
     <button id="messagesbtn" class="hidden" type="button">Messages</button>
     <button id="profilebtn" class="hidden" type="button">My profile</button>
@@ -2636,6 +2637,9 @@ async function start() {
   // Every coach can export their own courses and participants. The
   // finances panel inside is admin only.
   $("reportsbtn").classList.remove("hidden");
+  // Every coach keeps their own; an admin also reads what comes in.
+  $("reflectlink").classList.remove("hidden");
+  refreshReflectionFlag();
   $("teambtn").classList.toggle("hidden", !admin);
   $("workshopsbtn").classList.remove("hidden");
   $("workshopsbtn").onclick = () => { location.href = "/portal/workshops/"; };
@@ -5388,6 +5392,39 @@ async function refreshBlogFlag() {
 // A count on the Workshops button. For an admin it is work waiting on
 // a decision; for a coach it is a decision they have not read yet.
 // Opening the thing in the workshops page clears it.
+// A count on the Reflections link. For an admin it is what the team
+// has sent that nobody has read; for a coach it is a reply they have
+// not seen. Opening it clears it.
+async function refreshReflectionFlag() {
+  const link = $("reflectlink");
+  if (!link || !me) return;
+  link.textContent = "Reflections";
+
+  let total = 0;
+  try {
+    if (isAdmin()) {
+      const { data } = await db.from("reflections").select("id")
+        .eq("status", "submitted").neq("staff_id", me.id)
+        .is("seen_by_admin_at", null);
+      total = (data || []).length;
+    } else {
+      const { data } = await db.from("reflections").select("id")
+        .eq("staff_id", me.id).eq("status", "submitted")
+        .is("seen_by_coach_at", null);
+      total = (data || []).length;
+    }
+  } catch (err) {
+    console.error("Could not count reflections:", err.message);
+    return;
+  }
+
+  if (!total) return;
+  const flag = document.createElement("span");
+  flag.className = "unread-flag";
+  flag.textContent = total > 9 ? "9+" : String(total);
+  link.append(flag);
+}
+
 async function refreshWorkshopFlag() {
   const btn = $("workshopsbtn");
   if (!btn || !me) return;
