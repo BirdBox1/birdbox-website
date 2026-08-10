@@ -910,6 +910,17 @@
     <p class="sub" id="rp-sub"></p>
 
     <div class="panel">
+      <h3>Which courses</h3>
+      <div class="field" style="margin-bottom:0.5rem">
+        <label for="rp-course">Course
+          <span class="hint">one seminar, or everything in the range below</span>
+        </label>
+        <select id="rp-course"><option value="">All courses in the date range</option></select>
+      </div>
+      <p class="whenline" id="rp-course-why"></p>
+    </div>
+
+    <div class="panel" id="rp-range-panel">
       <h3>Over what period</h3>
       <div class="grid2">
         <div class="field">
@@ -7171,6 +7182,18 @@ function wireInvoicesView() {
 // A coach exports only the courses they are on, and never any money.
 // The finances panel is not hidden from them so much as absent.
 
+// A file called birdbox-participants is no use once three are sitting
+// in a downloads folder, so a single seminar names itself.
+function reportFileName(base) {
+  const one = reportCourseList.find((c) => c.id === $("rp-course").value);
+  const stamp = new Date().toISOString().slice(0, 10);
+  if (!one) return `birdbox-${base}-${stamp}`;
+  const slug = (one.slug || one.title || "course")
+    .toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48);
+  return `${slug}-${base}`;
+}
+
 function reportSep() {
   const v = $("rp-sep").value;
   return v === "\\t" ? "\t" : v;
@@ -7198,7 +7221,11 @@ const rpDate = (iso, tz) => iso
   ? new Date(iso).toLocaleDateString("en-CA", { timeZone: safeZone(tz) })
   : "";
 
-function openReports() {
+// Every course this person could report on, held so the picker and
+// the exports work from the same list.
+let reportCourseList = [];
+
+async function openReports() {
   show("reports");
   $("rp-sub").textContent = isAdmin()
     ? "Every course across all brands."
@@ -7209,7 +7236,54 @@ function openReports() {
     $(id).textContent = "";
   }
   if (!$("rp-from").value && !$("rp-to").value) rpThisYear();
+
+  await buildCoursePicker();
   showRange();
+}
+
+async function buildCoursePicker() {
+  const sel = $("rp-course");
+  const chosen = sel.value;
+  sel.innerHTML = '<option value="">All courses in the date range</option>';
+
+  try {
+    reportCourseList = await allReportableCourses();
+  } catch (err) {
+    $("rp-course-why").className = "whenline bad";
+    $("rp-course-why").textContent = "Could not load the course list: " + err.message;
+    return;
+  }
+
+  // Newest first — a coach exporting one seminar almost always wants
+  // the one that just ran.
+  const rows = reportCourseList.slice()
+    .sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at));
+
+  for (const c of rows) {
+    const o = document.createElement("option");
+    o.value = c.id;
+    o.textContent =
+      `${c.title} — ${rpDate(c.starts_at, c.timezone)}` +
+      (c.city ? `, ${c.city}` : "") +
+      (isPast(c) ? " (archived)" : "");
+    sel.append(o);
+  }
+  if (rows.some((c) => c.id === chosen)) sel.value = chosen;
+  onCourseChosen();
+}
+
+// Picking one course makes the date range irrelevant, so it gets out
+// of the way rather than sitting there looking like it still applies.
+function onCourseChosen() {
+  const id = $("rp-course").value;
+  const one = reportCourseList.find((c) => c.id === id);
+  $("rp-range-panel").classList.toggle("hidden", !!one);
+
+  const why = $("rp-course-why");
+  why.className = "whenline";
+  why.textContent = one
+    ? `Exporting ${one.title} only. The date range does not apply.`
+    : "Leave this as it is to export everything in the date range below.";
 }
 
 function setRpRange(from, to) {
@@ -7240,27 +7314,38 @@ function showRange() {
     : `Courses running on or before ${fmtDay(to)}.`;
 }
 
-// The courses in range that this person is allowed to see. Everything
-// below builds on this, so the permission question is asked once.
-async function reportCourses() {
+// Everything this person is allowed to report on. The permission
+// question is asked here and nowhere else.
+async function allReportableCourses() {
   const cols = "id, brand, type, level, title, city, country, venue_name, " +
                "host_name, host_email, starts_at, ends_at, timezone, capacity, " +
                "price_cents, currency, status, archived, completed_at, slug";
 
-  let rows = [];
   if (isAdmin()) {
     const { data, error } = await db.from("courses").select(cols)
       .order("starts_at", { ascending: true });
     if (error) throw new Error(error.message);
-    rows = data || [];
-  } else {
-    const { data, error } = await db.from("course_staff")
-      .select(`role, courses (${cols})`).eq("staff_id", me.id);
-    if (error) throw new Error(error.message);
-    rows = (data || []).map((r) => r.courses).filter(Boolean);
-    rows.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+    return data || [];
   }
 
+  const { data, error } = await db.from("course_staff")
+    .select(`role, courses (${cols})`).eq("staff_id", me.id);
+  if (error) throw new Error(error.message);
+  const rows = (data || []).map((r) => r.courses).filter(Boolean);
+  rows.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+  return rows;
+}
+
+// What the current settings actually select. One chosen course wins
+// outright — the archived tickbox and the dates are ignored, because
+// somebody who picked a specific seminar means that one.
+async function reportCourses() {
+  const all = reportCourseList.length ? reportCourseList : await allReportableCourses();
+
+  const one = $("rp-course").value;
+  if (one) return all.filter((c) => c.id === one);
+
+  let rows = all;
   const from = $("rp-from").value;
   const to = $("rp-to").value;
   if (from) rows = rows.filter((c) => c.starts_at >= from);
@@ -7320,7 +7405,8 @@ async function exportCourses() {
 
   try {
     const courses = await reportCourses();
-    if (!courses.length) { why.textContent = "No courses in that range."; return; }
+    if (!courses.length) { why.textContent = $("rp-course").value
+      ? "That course could not be read." : "No courses in that range."; return; }
 
     const ids = courses.map((c) => c.id);
     const [regs, staffBy] = await Promise.all([
@@ -7368,7 +7454,7 @@ async function exportCourses() {
       return row;
     });
 
-    downloadCsv("birdbox-courses-" + new Date().toISOString().slice(0, 10),
+    downloadCsv(reportFileName("courses"),
                 header, rows, reportSep());
     why.textContent = `${rows.length} course${rows.length === 1 ? "" : "s"} exported.`;
   } catch (err) {
@@ -7385,7 +7471,8 @@ async function exportParticipants() {
 
   try {
     const courses = await reportCourses();
-    if (!courses.length) { why.textContent = "No courses in that range."; return; }
+    if (!courses.length) { why.textContent = $("rp-course").value
+      ? "That course could not be read." : "No courses in that range."; return; }
 
     const byId = {};
     for (const c of courses) byId[c.id] = c;
@@ -7425,7 +7512,7 @@ async function exportParticipants() {
       ];
     });
 
-    downloadCsv("birdbox-participants-" + new Date().toISOString().slice(0, 10),
+    downloadCsv(reportFileName("participants"),
                 header, rows, reportSep());
     why.textContent = `${rows.length} registration${rows.length === 1 ? "" : "s"} exported.`;
   } catch (err) {
@@ -7443,7 +7530,8 @@ async function exportFinances() {
 
   try {
     const courses = await reportCourses();
-    if (!courses.length) { why.textContent = "No courses in that range."; return; }
+    if (!courses.length) { why.textContent = $("rp-course").value
+      ? "That course could not be read." : "No courses in that range."; return; }
 
     const byId = {};
     for (const c of courses) byId[c.id] = c;
@@ -7487,7 +7575,7 @@ async function exportFinances() {
       totals[cur] = (totals[cur] || 0) + (r.amount_paid_cents || 0);
     }
 
-    downloadCsv("birdbox-finances-" + new Date().toISOString().slice(0, 10),
+    downloadCsv(reportFileName("finances"),
                 header, rows, reportSep());
     why.textContent =
       `${rows.length} row${rows.length === 1 ? "" : "s"} exported — ` +
@@ -7507,6 +7595,7 @@ function wireReports() {
   for (const id of ["rp-from", "rp-to"]) {
     $(id).addEventListener("change", showRange);
   }
+  $("rp-course").addEventListener("change", onCourseChosen);
   $("rp-courses").onclick = exportCourses;
   $("rp-people").onclick = exportParticipants;
   $("rp-money").onclick = exportFinances;
