@@ -95,7 +95,8 @@ export default async (req) => {
     // Only what has actually been read and checked.
     const { data: drafts } = await supabase
       .from("feedback_drafts")
-      .select("id, registration_id, subject, body, status")
+      .select("id, registration_id, subject, body, status, " +
+              "translated_subject, translated_body, translated_language, translated_from")
       .eq("course_id", courseId)
       .eq("status", "approved");
 
@@ -127,8 +128,28 @@ export default async (req) => {
         continue;
       }
 
-      // Exactly what the coach read and checked. Nothing is added.
-      const full = String(d.body || "").trim();
+      // A translation is what the participant reads, where one was made
+      // and checked. The English stays on the record either way.
+      //
+      // If the English moved on after translating, the translation is
+      // out of date — the portal says so before sending, but this is
+      // the last line of defence, and sending the English is safer
+      // than sending a translation of something else.
+      const stale = d.translated_from && d.translated_from !== d.body;
+      const useTranslation = !!(d.translated_body && d.translated_body.trim() && !stale);
+
+      const full = String(
+        useTranslation ? d.translated_body : d.body || ""
+      ).trim();
+      const subjectLine = useTranslation && d.translated_subject
+        ? d.translated_subject
+        : d.subject;
+
+      if (stale && d.translated_body) {
+        console.warn(
+          "Translation out of date for", d.registration_id, "— sent in English."
+        );
+      }
 
       if (!full) {
         failed++;
@@ -142,7 +163,7 @@ export default async (req) => {
       const ok = await sendEmail({
         to: reg.email,
         sender,
-        subject: d.subject || `Your feedback from ${course.title}`,
+        subject: subjectLine || `Your feedback from ${course.title}`,
         text: full,
         brand: course.brand,
       });
