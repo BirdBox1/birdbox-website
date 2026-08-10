@@ -97,6 +97,20 @@
     padding:0.9rem 1.05rem;margin-bottom:1.25rem;font-size:0.9rem}
   .note-box b{display:block;margin-bottom:0.2rem}
 
+  .overlay{position:fixed;inset:0;z-index:60;background:rgba(13,14,16,0.55);
+    display:grid;place-items:start center;padding:1.25rem;overflow-y:auto}
+  .dialog{background:var(--card);border-radius:8px;max-width:27rem;width:100%;
+    padding:1.5rem;box-shadow:0 18px 50px rgba(0,0,0,0.25);margin:auto}
+  .dialog h3{margin:0 0 0.6rem;font-size:1.05rem;letter-spacing:-0.01em;
+    text-transform:none;color:var(--ink)}
+  .dialog .row{display:flex;gap:0.6rem;justify-content:flex-end;margin-top:1.1rem}
+  select{width:100%;font:inherit;padding:0.55rem 0.65rem;
+    border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink)}
+
+  .from{display:inline-block;font-size:0.7rem;letter-spacing:0.04em;
+    padding:0.16rem 0.5rem;border-radius:999px;background:#eef4fb;
+    border:1px solid #cfe0f2;color:#1f5c9e;font-weight:650;margin-left:0.4rem}
+
   .acts{display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center}
   .hidden{display:none!important}
 </style>
@@ -166,6 +180,26 @@
   </section>
 </div>
 
+<div class="overlay hidden" id="sendwrap">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="send-h">
+    <h3 id="send-h">Send a copy</h3>
+    <p class="sub" id="send-what" style="margin-bottom:1rem"></p>
+    <div class="field">
+      <label for="send-to">Who to</label>
+      <select id="send-to"><option value="">Choose somebody…</option></select>
+    </div>
+    <p class="whenline">
+      They get their own copy, to keep or delete as they like. Yours is
+      untouched, and changing it later will not change theirs.
+    </p>
+    <p class="msg" id="send-msg"></p>
+    <div class="row">
+      <button class="btn ghost" id="send-close" type="button">Cancel</button>
+      <button class="btn" id="send-go" type="button">Send the copy</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -184,6 +218,8 @@ const LINK_SECONDS = 3600;
 
 let me = null;
 let docs = [];
+let team = [];
+let sendDoc = null;
 
 const fmtWhen = (iso) => iso
   ? new Date(iso).toLocaleDateString(undefined,
@@ -226,7 +262,24 @@ async function start() {
   $("loading").classList.add("hidden");
 
   wire();
+  await loadTeam();
   await loadDocs();
+}
+
+async function loadTeam() {
+  const { data, error } = await db.from("staff")
+    .select("id, full_name").eq("active", true).order("full_name");
+  if (error) { console.error("Could not load the team:", error.message); return; }
+  team = (data || []).filter((p) => p.id !== me.id);
+
+  const sel = $("send-to");
+  sel.innerHTML = '<option value="">Choose somebody…</option>';
+  for (const p of team) {
+    const o = document.createElement("option");
+    o.value = p.id;
+    o.textContent = p.full_name;
+    sel.append(o);
+  }
 }
 
 async function loadDocs() {
@@ -302,6 +355,16 @@ function docRow(d) {
     [d.file_name, fmtSize(d.size_bytes), "saved " + fmtWhen(d.updated_at)]
       .filter(Boolean).join(" · ");
 
+  // A document that arrived should say so, rather than appearing as
+  // though you put it there yourself.
+  if (d.received_from) {
+    const from = document.createElement("span");
+    from.className = "from";
+    const who = team.find((p) => p.id === d.received_from);
+    from.textContent = "from " + (who ? who.full_name : "a colleague");
+    el.querySelector(".title").append(from);
+  }
+
   const star = el.querySelector(".star");
   star.classList.toggle("on", !!d.pinned);
   star.onclick = () => togglePin(d, star);
@@ -318,6 +381,7 @@ function docRow(d) {
   };
 
   add("Open", "small", (b) => openDoc(d, b));
+  if (team.length) add("Send a copy", "ghost tiny", () => openSend(d));
   add("Rename", "ghost tiny", () => rename(d));
   add("Delete", "ghost tiny danger", (b) => remove(d, b));
 
@@ -376,6 +440,7 @@ function wire() {
 
   $("d-add").addEventListener("click", addDoc);
   $("d-search").addEventListener("input", render);
+  wireSend();
 }
 
 async function addDoc() {
@@ -441,6 +506,76 @@ async function addDoc() {
     msg.textContent = "Could not save: " + err.message;
   }
   $("d-add").disabled = false;
+}
+
+/* ---------------- sending a copy ---------------- */
+
+// The copy is made server-side. The storage policies only allow
+// writing into a folder named after your own id — which is what keeps
+// these private — so the browser cannot put a file in somebody else's
+// folder, and should not be able to.
+function openSend(d) {
+  sendDoc = d;
+  $("send-what").textContent =
+    `"${d.title}" goes to whoever you choose, as their own copy.`;
+  $("send-to").value = "";
+  $("send-msg").textContent = "";
+  $("send-msg").className = "msg";
+  $("send-go").disabled = false;
+  $("sendwrap").classList.remove("hidden");
+}
+
+function wireSend() {
+  const close = () => { $("sendwrap").classList.add("hidden"); sendDoc = null; };
+  $("send-close").onclick = close;
+  $("sendwrap").addEventListener("click", (e) => {
+    if (e.target === $("sendwrap")) close();
+  });
+
+  $("send-go").onclick = async () => {
+    if (!sendDoc) return;
+    const msg = $("send-msg");
+    const to = $("send-to").value;
+
+    if (!to) { msg.className = "msg err"; msg.textContent = "Choose who to send it to."; return; }
+
+    const who = team.find((p) => p.id === to);
+    if (!window.confirm(
+      `Send "${sendDoc.title}" to ${who ? who.full_name : "them"}?\n\n` +
+      "They get their own copy. Yours stays exactly as it is."
+    )) return;
+
+    $("send-go").disabled = true;
+    msg.className = "msg";
+    msg.textContent = "Sending…";
+
+    try {
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+
+      const res = await fetch("/.netlify/functions/document-share", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        body: JSON.stringify({ documentId: sendDoc.id, toStaffId: to }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      msg.className = "msg ok";
+      msg.textContent = `Sent to ${out.sentTo}.`;
+      setTimeout(() => {
+        $("sendwrap").classList.add("hidden");
+        sendDoc = null;
+      }, 1400);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("send-go").disabled = false;
+  };
 }
 
 /* ---------------- changing ---------------- */
