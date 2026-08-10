@@ -266,10 +266,18 @@ async function start() {
   await loadDocs();
 }
 
+let teamError = null;
+
 async function loadTeam() {
+  teamError = null;
   const { data, error } = await db.from("staff")
     .select("id, full_name").eq("active", true).order("full_name");
-  if (error) { console.error("Could not load the team:", error.message); return; }
+
+  if (error) {
+    console.error("Could not load the team:", error.message);
+    teamError = error.message;
+    return;
+  }
   team = (data || []).filter((p) => p.id !== me.id);
 
   const sel = $("send-to");
@@ -284,7 +292,8 @@ async function loadTeam() {
 
 async function loadDocs() {
   const { data, error } = await db.from("staff_documents")
-    .select("*").eq("staff_id", me.id)
+    .select("*, sender:staff!staff_documents_received_from_fkey ( full_name )")
+    .eq("staff_id", me.id)
     .order("pinned", { ascending: false })
     .order("updated_at", { ascending: false });
 
@@ -360,8 +369,12 @@ function docRow(d) {
   if (d.received_from) {
     const from = document.createElement("span");
     from.className = "from";
-    const who = team.find((p) => p.id === d.received_from);
-    from.textContent = "from " + (who ? who.full_name : "a colleague");
+    // The join is the reliable answer; the team list is a fallback for
+    // the moment after sending, before the page has reloaded.
+    const named = d.sender?.full_name ||
+      (team.find((p) => p.id === d.received_from) || {}).full_name;
+    from.textContent = named ? "from " + named : "from a colleague";
+    if (d.received_at) from.title = "Received " + fmtWhen(d.received_at);
     el.querySelector(".title").append(from);
   }
 
@@ -381,7 +394,18 @@ function docRow(d) {
   };
 
   add("Open", "small", (b) => openDoc(d, b));
-  if (team.length) add("Send a copy", "ghost tiny", () => openSend(d));
+
+  if (team.length) {
+    add("Send a copy", "ghost tiny", () => openSend(d));
+  } else {
+    const why = document.createElement("span");
+    why.className = "whenline";
+    why.textContent = teamError
+      ? "Sending unavailable — the team list could not be read."
+      : "Nobody else on the team to send to.";
+    acts.append(why);
+  }
+
   add("Rename", "ghost tiny", () => rename(d));
   add("Delete", "ghost tiny danger", (b) => remove(d, b));
 
