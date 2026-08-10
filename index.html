@@ -209,6 +209,8 @@
     color: #D6D1D2;
     font-style: italic;
     margin: 0 0 12px;
+    /* Holds the panel height steady as quotes of different lengths cycle. */
+    min-height: 110px;
   }
   .bb-person { display: flex; align-items: center; gap: 12px; margin-top: auto; padding-top: 14px; }
   .bb-person__photo {
@@ -223,11 +225,23 @@
     background: #241E20;
     font-size: 14px; font-weight: 800; color: #ADA6A8;
   }
+  /* Stops a long name or role being squeezed into a narrow column. */
+  .bb-person__who { flex: 1 1 auto; min-width: 0; }
   .bb-person__name { font-size: 14px; font-weight: 700; }
   .bb-person__role { font-size: 13px; color: var(--muted); }
-  .bb-dots { display: flex; gap: 7px; margin-left: auto; }
-  .bb-dot { width: 7px; height: 7px; border-radius: 50%; background: #3C3639; border: none; padding: 0; cursor: pointer; }
-  .bb-dot[aria-current="true"] { background: var(--tcc); }
+  /* Dots do not scale past a handful of entries, so this is arrows plus a
+     counter: fixed width no matter how many testimonials are approved. */
+  .bb-dots { display: flex; align-items: center; gap: 4px; margin-left: auto; flex: 0 0 auto; }
+  .bb-nav {
+    width: 26px; height: 26px; padding: 0; cursor: pointer;
+    background: transparent; border: 1px solid var(--line);
+    color: #ADA6A8; font-size: 14px; line-height: 1; font-family: inherit;
+  }
+  .bb-nav:hover { border-color: var(--tcc); color: var(--accentText); }
+  .bb-count {
+    font-size: 12px; color: var(--muted); min-width: 46px;
+    text-align: center; font-variant-numeric: tabular-nums;
+  }
 
   /* ecosystem */
   .bb-eco {
@@ -351,6 +365,8 @@
   @media (max-width: 1080px) {
     .bb-cards { grid-template-columns: repeat(2, 1fr); }
     .bb-row3 { grid-template-columns: 1fr; }
+    /* Full width panel, so the reserved height is no longer needed. */
+    .bb-quote { min-height: 0; }
   }
   @media (max-width: 780px) {
     .bb-hero__photo { inset: 0; }
@@ -448,7 +464,7 @@
       <p class="bb-quote" id="bb-quote">&nbsp;</p>
       <div class="bb-person">
         <span id="bb-quote-avatar"><span class="bb-person__initials">&nbsp;</span></span>
-        <span>
+        <span class="bb-person__who">
           <span class="bb-person__name" id="bb-quote-name"></span><br>
           <span class="bb-person__role" id="bb-quote-role"></span>
         </span>
@@ -657,6 +673,7 @@
   let quotes = [];
   let quoteIndex = 0;
   let quoteTimer = null;
+  let countEl = null;
 
   function initials(name) {
     return name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
@@ -695,9 +712,7 @@
       avatarEl.append(span);
     }
 
-    for (const [j, dot] of [...dotsEl.children].entries()) {
-      dot.setAttribute("aria-current", j === i ? "true" : "false");
-    }
+    if (countEl) countEl.textContent = `${i + 1} / ${quotes.length}`;
   }
 
   function startQuoteTimer() {
@@ -727,19 +742,36 @@
 
     quotes = data;
     dotsEl.textContent = "";
-    quotes.forEach((q, i) => {
-      const dot = document.createElement("button");
-      dot.className = "bb-dot";
-      dot.type = "button";
-      dot.setAttribute("aria-label", `Testimonial ${i + 1}`);
+
+    // A dot per testimonial stopped working once there were thirty of them:
+    // the strip pushed the name column so narrow it wrapped over six lines.
+    // Arrows and a counter stay the same width however many there are.
+    const step = (delta) => {
+      quoteIndex = (quoteIndex + delta + quotes.length) % quotes.length;
+      showQuote(quoteIndex);
       // A manual tap wins, and the clock restarts so it doesn't jump a second later.
-      dot.addEventListener("click", () => {
-        quoteIndex = i;
-        showQuote(i);
-        startQuoteTimer();
-      });
-      dotsEl.append(dot);
-    });
+      startQuoteTimer();
+    };
+
+    const prev = document.createElement("button");
+    prev.className = "bb-nav";
+    prev.type = "button";
+    prev.setAttribute("aria-label", "Previous testimonial");
+    prev.textContent = "\u2039";
+    prev.addEventListener("click", () => step(-1));
+
+    countEl = document.createElement("span");
+    countEl.className = "bb-count";
+
+    const next = document.createElement("button");
+    next.className = "bb-nav";
+    next.type = "button";
+    next.setAttribute("aria-label", "Next testimonial");
+    next.textContent = "\u203A";
+    next.addEventListener("click", () => step(1));
+
+    dotsEl.append(prev, countEl, next);
+
     showQuote(0);
     startQuoteTimer();
   }
