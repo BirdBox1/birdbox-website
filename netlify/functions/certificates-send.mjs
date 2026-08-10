@@ -1,532 +1,9612 @@
-// netlify/functions/certificates-send.mjs
-//
-// Closes out a seminar: generates a certificate for every participant
-// the coach has marked as attended, emails it to them, and records what
-// was issued.
-//
-// Called from the portal by the lead coach or an admin. Deliberately
-// not automatic — a certificate asserts that someone completed the
-// course, so it waits for a human to confirm the attendance list.
-//
-// The design is a background image with three things drawn on top:
-// the name, the date, and the reference. That means a new certificate
-// design is a file swap rather than a code change.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coach Portal — BirdBox Coaching</title>
+<style>
+  :root {
+    --ink:    #16181b;
+    --paper:  #f4f3f0;
+    --card:   #ffffff;
+    --shell:  #0d0e10;
+    --rule:   #e0ddd7;
+    --muted:  #6c7178;
+    --accent: #2f7fd0;
+    --good:   #1f8a54;
+    --warn:   #b4610f;
+    --bad:    #b3261e;
+    --flag:   #d9b310;
+  }
 
-import { createClient } from "@supabase/supabase-js";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import fontkit from "@pdf-lib/fontkit";
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  { auth: { persistSession: false } }
-);
+  /* ---------------- top bar ---------------- */
+  .bar {
+    background: var(--shell); color: #fff;
+    padding: 0.7rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  .bar .left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+  .mark {
+    width: 34px; height: 34px; border-radius: 4px; background: #fff;
+    display: grid; place-items: center; flex: none;
+  }
+  .mark img { width: 26px; height: 26px; object-fit: contain; display: block; }
+  .bar .brandname {
+    font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9;
+    white-space: nowrap;
+  }
+  .bar .right { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end; }
+  .bar .who { font-size: 0.85rem; color: #cfd4d9; white-space: nowrap; }
+  .bar button, .bar a.linkbtn {
+    font: inherit; font-size: 0.8rem; background: none; color: #cfd4d9;
+    border: 1px solid #33373c; padding: 0.3rem 0.7rem; border-radius: 3px;
+    cursor: pointer; text-decoration: none; white-space: nowrap;
+  }
+  .bar button:hover, .bar a.linkbtn:hover { color: #fff; border-color: #55595e; }
 
-const OFFICE = "info@birdboxcoaching.com";
-const FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
-const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.app")
-  .replace(/\/+$/, "");
+  .wrap { max-width: 56rem; margin: 0 auto; padding: 1.25rem 1.25rem 4rem; }
 
-// Each design has its own artwork and its own positions, measured from
-// the file itself. Positions are in artwork pixels so they can be read
-// straight off the design; the page is A4 landscape either way, and the
-// image is scaled to fill it.
-//
-// A new design means new numbers here, not new code.
-const PAGE = { width: 841.89, height: 595.28 };   // A4 landscape, points
+  /* ---------------- team banner ---------------- */
+  .banner {
+    position: relative; overflow: hidden; background: var(--shell);
+    width: 100vw; margin-left: calc(50% - 50vw);
+    margin-top: -1.25rem; margin-bottom: 1.75rem;
+    aspect-ratio: 4 / 1; min-height: 190px; max-height: 380px;
+  }
+  .banner img {
+    width: 100%; height: 100%; object-fit: cover; object-position: center 32%;
+    display: block;
+  }
+  .banner .veil {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(10,11,13,0.88) 0%, rgba(10,11,13,0.25) 55%, rgba(10,11,13,0) 100%);
+  }
+  .banner .caption {
+    position: absolute; bottom: 1.1rem; color: #fff;
+    left: max(1.25rem, calc(50vw - 28rem + 1.25rem));
+    right: 1.25rem;
+  }
+  .banner .hello { font-size: 1.5rem; font-weight: 650; letter-spacing: -0.02em; }
+  .banner .role {
+    font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: #b9c0c7;
+  }
 
-const LAYOUTS = {
-  // The seminar certificates: name on a rule, date above "Awarded on".
-  seminar: {
-    art: { width: 2480, height: 1753 },
-    name:      { centreX: 1236, baselineY: 700,  maxWidth: 1050, size: 108, min: 52 },
-    awardedOn: { centreX: 1752, baselineY: 1274, maxWidth: 480,  size: 46,  min: 26 },
-    reference: { rightX: 2200,  baselineY: 1660, size: 22 },
-  },
+  h1 { font-size: 1.4rem; letter-spacing: -0.02em; margin: 0 0 0.2rem; font-weight: 600; }
+  h2 { font-size: 1.15rem; letter-spacing: -0.015em; margin: 0 0 0.2rem; font-weight: 600; }
+  .sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.25rem; }
 
-  // The workshop certificate is a different design: a name rule at 58%,
-  // a box for what was coached, and a date rule at the foot.
-  workshop: {
-    art: { width: 2000, height: 1414 },
-    name:      { centreX: 1015, baselineY: 800,  maxWidth: 1450, size: 92, min: 44 },
-    // Inside the box, which runs y 946-1069.
-    focus:     { centreX: 1014, baselineY: 1027, maxWidth: 1200, size: 54, min: 26 },
-    // The rule runs x 1376-1655, so its centre is 1515. Measured
-    // ignoring the red corner graphic, which is dark enough to have
-    // been mistaken for part of the rule the first time.
-    awardedOn: { centreX: 1515, baselineY: 1220, maxWidth: 265,  size: 36, min: 20 },
-    reference: { rightX: 700,   baselineY: 1350, size: 20 },
-  },
-};
+  .headrow {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 1rem; margin-bottom: 1rem;
+  }
 
-function layoutFor(course) {
-  return course.type === "workshop" ? LAYOUTS.workshop : LAYOUTS.seminar;
+  /* ---------------- tabs ---------------- */
+  .tabs {
+    display: flex; gap: 0.4rem; margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .tab {
+    font: inherit; font-size: 0.88rem; font-weight: 600;
+    background: none; border: 0; border-bottom: 2px solid transparent;
+    color: var(--muted); padding: 0.5rem 0.15rem; margin-right: 1.1rem;
+    cursor: pointer; white-space: nowrap;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.on { color: var(--ink); border-bottom-color: var(--ink); }
+  .tab .n { font-size: 0.72rem; font-weight: 650; color: var(--muted); margin-left: 0.3rem; }
+
+  a.back, .textlink {
+    display: inline-block; font-size: 0.85rem; color: var(--accent);
+    background: none; border: 0; padding: 0; font-family: inherit;
+    text-decoration: none; cursor: pointer;
+  }
+  a.back { margin-bottom: 1rem; }
+  a.back:hover, .textlink:hover { text-decoration: underline; }
+
+  .alert {
+    background: #fff8f0; border: 1px solid #efd6b8; border-left: 3px solid var(--warn);
+    border-radius: 6px; padding: 0.9rem 1.05rem; margin-bottom: 1rem;
+    font-size: 0.9rem; color: var(--ink);
+  }
+  .alert b { display: block; margin-bottom: 0.2rem; }
+  .alert ul { margin: 0.4rem 0 0; padding-left: 1.1rem; color: var(--muted); }
+  .alert.flag { background: #fffbe8; border-color: #eddfa4; border-left-color: var(--flag); }
+
+  /* ---------------- login ---------------- */
+  .login {
+    max-width: 22rem; margin: 3.5rem auto; background: var(--card);
+    border: 1px solid var(--rule); border-radius: 6px; padding: 1.75rem;
+    text-align: left;
+  }
+  .login .lmark { width: 46px; height: 46px; margin-bottom: 1rem; }
+  .login .lmark img { width: 100%; height: 100%; object-fit: contain; }
+  .login h1 { font-size: 1.2rem; margin-bottom: 1.15rem; }
+
+  label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .hint { font-weight: 400; color: var(--muted); font-size: 0.78rem; }
+
+  input[type=email], input[type=password], input[type=text], input[type=number],
+  input[type=datetime-local], input[type=date], input[type=time], select, textarea {
+    width: 100%; font: inherit; padding: 0.55rem 0.65rem;
+    border: 1px solid var(--rule); border-radius: 4px; background: #fff; color: var(--ink);
+  }
+  textarea { min-height: 4.5rem; resize: vertical; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 1px;
+  }
+  .field { margin-bottom: 1rem; }
+  .grid2 { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+  @media (min-width: 34rem) { .grid2 { grid-template-columns: 1fr 1fr; } }
+
+  .btn {
+    font: inherit; font-weight: 600; background: var(--ink); color: #fff;
+    border: 0; border-radius: 4px; padding: 0.6rem 1.1rem; cursor: pointer;
+  }
+  .btn:hover { background: #000; }
+  .btn[disabled] { opacity: 0.5; cursor: default; }
+  .btn.wide { width: 100%; }
+  .btn.ghost { background: none; color: var(--ink); border: 1px solid var(--rule); font-weight: 500; }
+  .btn.ghost:hover { background: #fff; border-color: var(--muted); }
+  .btn.small { font-size: 0.82rem; padding: 0.4rem 0.8rem; }
+  .btn.tiny { font-size: 0.78rem; padding: 0.3rem 0.65rem; }
+  .btn.danger { color: var(--bad); border-color: #e6c9c7; }
+  .btn.danger:hover { background: #fdf4f3; border-color: var(--bad); }
+  .btn.solid-danger { background: var(--bad); color: #fff; }
+  .btn.solid-danger:hover { background: #8f1e17; }
+  .btn.go { background: var(--good); color: #fff; }
+  .btn.go:hover { background: #176e43; }
+
+  /* Every job on a course reads the same way once it is finished, so
+     the page can be scanned rather than read. Green means done; black
+     means it is still waiting for somebody. */
+  .btn.done {
+    background: var(--good); color: #fff; border-color: var(--good);
+  }
+  .btn.done[disabled] { opacity: 1; }
+  .btn.done::before { content: "✓ "; font-weight: 700; }
+
+  .msg { font-size: 0.85rem; margin-top: 0.9rem; min-height: 1.2em; }
+  .msg.err { color: var(--bad); }
+  .msg.ok  { color: var(--good); }
+
+  /* the line under When that says what will actually be stored */
+  .whenline {
+    font-size: 0.82rem; color: var(--muted); margin: 0.1rem 0 0;
+    line-height: 1.5;
+  }
+  .whenline.bad { color: var(--bad); }
+  .whenline b { color: var(--ink); font-weight: 650; }
+
+  /* ---------------- course cards ---------------- */
+  .card {
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: 6px; margin-bottom: 0.7rem; overflow: hidden;
+    display: flex; align-items: stretch; border-left: 3px solid var(--rule);
+  }
+  .card.is-archived { opacity: 0.65; }
+  .course {
+    display: grid; grid-template-columns: 44px 1fr; gap: 0.9rem;
+    flex: 1 1 auto; min-width: 0; text-align: left; font: inherit;
+    background: none; border: 0; padding: 0.95rem 1.05rem; cursor: pointer;
+  }
+  .course:hover { background: #faf9f7; }
+  .course:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .course .icon {
+    width: 44px; height: 44px; border-radius: 4px; background: #fff;
+    border: 1px solid var(--rule); display: grid; place-items: center; overflow: hidden;
+  }
+  .course .icon img { width: 34px; height: 34px; object-fit: contain; }
+  .course .top {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 0.75rem; flex-wrap: wrap;
+  }
+  .course .title { font-weight: 650; letter-spacing: -0.01em; }
+  .course .when { font-size: 0.82rem; color: var(--muted); white-space: nowrap; }
+  .course .line { font-size: 0.85rem; color: var(--muted); margin-top: 0.1rem; }
+  .course .flags { margin-top: 0.4rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+  .copy {
+    flex: none; width: 3.4rem; font: inherit; font-size: 0.68rem;
+    letter-spacing: 0.06em; text-transform: uppercase; font-weight: 650;
+    background: none; color: var(--muted);
+    border: 0; border-left: 1px solid var(--rule); cursor: pointer;
+  }
+  .copy:hover { background: #faf9f7; color: var(--ink); }
+  .copy.done { color: var(--good); }
+
+  .rowbtn {
+    flex: none; width: 2.9rem; background: none; cursor: pointer;
+    border: 0; border-left: 1px solid var(--rule);
+    display: grid; place-items: center;
+  }
+  .rowbtn svg { width: 17px; height: 17px; display: block; }
+  .rowbtn.restore { color: var(--accent); }
+  .rowbtn.restore:hover { background: #eef4fb; }
+  .rowbtn.bin { color: var(--bad); }
+  .rowbtn.bin:hover { background: #fdf4f3; }
+
+  .tag {
+    display: inline-block; font-size: 0.66rem; letter-spacing: 0.09em;
+    text-transform: uppercase; padding: 0.18rem 0.5rem;
+    border-radius: 3px; color: #fff; font-weight: 700;
+  }
+  .pill {
+    display: inline-block; font-size: 0.66rem; letter-spacing: 0.09em;
+    text-transform: uppercase; padding: 0.16rem 0.45rem;
+    border: 1px solid var(--rule); border-radius: 3px; color: var(--muted);
+  }
+  .pill.warn { border-color: var(--warn); color: var(--warn); }
+  .pill.bad  { border-color: var(--bad); color: var(--bad); font-weight: 650; }
+  .pill.draft{ border-color: var(--muted); color: var(--muted); }
+  .pill.on   { border-color: var(--good); color: var(--good); }
+  .pill.done { background: var(--good); border-color: var(--good); color: #fff; font-weight: 700; }
+  .pill.low  { background: var(--warn); border-color: var(--warn); color: #fff; font-weight: 700; }
+  .pill.lead { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 700; }
+  .pill.nolead { border-color: #c9a227; color: #85670a; }
+  .pill.nolead.due { background: #f3cf3d; border-color: #d9b310; color: #33280a; font-weight: 700; }
+
+  /* ---------------- delete dialog ---------------- */
+  /* A dialog taller than the screen used to overflow with no way to
+     reach the bottom of it, so a coach who attached three receipts
+     could not get to Submit. The overlay scrolls, and the action row
+     stays pinned to the foot of the dialog. */
+  .overlay {
+    position: fixed; inset: 0; z-index: 60; background: rgba(13,14,16,0.55);
+    display: grid; place-items: start center; padding: 1.25rem;
+    overflow-y: auto; overscroll-behavior: contain;
+  }
+  .dialog {
+    background: var(--card); border-radius: 8px; max-width: 27rem; width: 100%;
+    padding: 1.5rem; box-shadow: 0 18px 50px rgba(0,0,0,0.25);
+    margin: auto;
+  }
+  .dialog h3 { margin: 0 0 0.6rem; font-size: 1.05rem; letter-spacing: -0.01em; }
+  .dialog p { margin: 0 0 0.8rem; font-size: 0.9rem; line-height: 1.55; }
+  .dialog .loses {
+    background: #fdf4f3; border: 1px solid #e6c9c7; border-radius: 5px;
+    padding: 0.7rem 0.85rem; font-size: 0.86rem; color: var(--bad); margin: 0 0 1rem;
+  }
+  .dialog .loses ul { margin: 0.35rem 0 0; padding-left: 1.1rem; }
+  .dialog input { letter-spacing: 0.12em; font-weight: 650; text-transform: uppercase; }
+  /* Full-bleed to the dialog edges so it can sit flush at the foot
+     while the content scrolls behind it. */
+  .dialog .row {
+    display: flex; gap: 0.6rem; justify-content: flex-end; flex-wrap: wrap;
+    position: sticky; bottom: -1.5rem; z-index: 1; background: var(--card);
+    margin: 1.1rem -1.5rem -1.5rem; padding: 0.9rem 1.5rem 1.5rem;
+    border-top: 1px solid var(--rule);
+    border-radius: 0 0 8px 8px;
+  }
+
+  /* ---------------- attendees ---------------- */
+  .attendee { padding: 0.9rem 1.05rem; border-bottom: 1px solid var(--rule); }
+  .attendee:last-child { border-bottom: 0; }
+  .attendee.chase { border-left: 3px solid var(--bad); }
+  .attendee .row1 {
+    display: flex; align-items: flex-start; gap: 0.85rem; justify-content: space-between;
+  }
+  .attendee .person { display: flex; gap: 0.75rem; align-items: flex-start; min-width: 0; }
+  .attendee .name { font-weight: 650; }
+  .attendee .contact { font-size: 0.84rem; color: var(--muted); word-break: break-all; }
+  .attendee .money { font-size: 0.82rem; color: var(--muted); margin-top: 0.3rem; }
+  .attendee .money.chase { color: var(--bad); font-weight: 600; }
+  .check { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
+  .check input { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); }
+
+  /* Present or absent, both said out loud. A tick that starts unticked
+     cannot tell "did not turn up" from "not got to yet", and the
+     difference matters once certificates depend on it. */
+  .reg { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
+  .reg-btn {
+    font: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+    background: none; color: var(--muted); border: 1px solid var(--rule);
+    padding: 0.3rem 0.6rem; border-radius: 3px; white-space: nowrap;
+  }
+  .reg-btn:hover { border-color: var(--muted); color: var(--ink); }
+  .reg-btn.yes.on { background: var(--good); border-color: var(--good); color: #fff; }
+  .reg-btn.no.on  { background: var(--warn); border-color: var(--warn); color: #fff; }
+  .reg-btn[disabled] { opacity: 0.5; cursor: default; }
+  .attendee.unmarked { border-left: 3px solid var(--accent); }
+
+  .tasklead {
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; margin: 0 0 0.7rem;
+  }
+  .taskrule { border: 0; border-top: 1px solid var(--rule); margin: 0 0 1.1rem; }
+
+  /* A quiet way back out. Nobody should be hunting for it, and
+     nobody should be tripping over it either. */
+  .portal-foot {
+    margin: 2.5rem 0 0; padding-top: 1.25rem;
+    border-top: 1px solid var(--rule); text-align: center;
+  }
+  .portal-foot a {
+    font-size: 0.78rem; color: var(--muted); text-decoration: none;
+  }
+  .portal-foot a:hover { color: var(--ink); text-decoration: underline; }
+  .saved { font-size: 0.75rem; color: var(--good); margin-left: 0.5rem; }
+
+  /* participant photo, taken at the registration desk */
+  .shot { flex: none; width: 54px; }
+  .shot .frame {
+    width: 54px; height: 54px; border-radius: 5px; overflow: hidden;
+    border: 1px solid var(--rule); background: #f0eeea;
+    display: grid; place-items: center; cursor: pointer;
+  }
+  .shot .frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .shot .frame svg { width: 20px; height: 20px; color: var(--muted); }
+  .shot .frame:hover { border-color: var(--accent); }
+  .shot .cap {
+    display: block; text-align: center; font-size: 0.66rem; color: var(--muted);
+    margin-top: 0.2rem; cursor: pointer;
+  }
+  .shot input[type=file] { display: none; }
+  .shot .cap.busy { color: var(--accent); }
+  .shot .cap.err { color: var(--bad); }
+
+  /* ---------------- notes ---------------- */
+  .notes { margin-top: 0.7rem; }
+  .notes .head {
+    display: flex; align-items: baseline; gap: 0.5rem; justify-content: space-between;
+    font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; margin-bottom: 0.4rem;
+  }
+  .note { border-left: 2px solid var(--rule); padding: 0.15rem 0 0.15rem 0.7rem; margin-bottom: 0.6rem; }
+  .note.mine { border-left-color: var(--accent); }
+  .note .meta {
+    font-size: 0.75rem; color: var(--muted); margin-bottom: 0.15rem;
+    display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: baseline;
+  }
+  .note .meta .author { font-weight: 650; color: var(--ink); }
+  .note .body { font-size: 0.92rem; white-space: pre-wrap; }
+  .note textarea { font-size: 0.92rem; min-height: 4rem; }
+  .note .acts { display: flex; gap: 0.4rem; margin-top: 0.4rem; flex-wrap: wrap; }
+  .note .note-msg { font-size: 0.78rem; margin-top: 0.3rem; }
+  .note .note-msg.err { color: var(--bad); }
+
+  .addnote { margin-top: 0.5rem; }
+  .addnote textarea { font-size: 0.92rem; min-height: 3.2rem; }
+  .addnote .acts { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.4rem; }
+  .nonotes { font-size: 0.85rem; color: var(--muted); margin: 0 0 0.5rem; }
+
+  .attendees-card {
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: 6px; overflow: hidden;
+  }
+
+  .admin-panel {
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 1.25rem; margin-top: 1.5rem;
+  }
+  .admin-panel h3 {
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 1rem; font-weight: 600;
+  }
+  .admin-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .admin-row .why { font-size: 0.82rem; color: var(--muted); flex: 1 1 12rem; min-width: 0; }
+  .sep { height: 1px; background: var(--rule); margin: 1.25rem 0; }
+
+  .empty {
+    background: var(--card); border: 1px dashed var(--rule); border-radius: 6px;
+    padding: 2rem 1.25rem; text-align: center; color: var(--muted); font-size: 0.9rem;
+  }
+  .counts { font-size: 0.85rem; color: var(--muted); margin-bottom: 1rem; }
+  .counts .chase { color: var(--bad); font-weight: 650; }
+
+  .panel {
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 1.25rem; margin-bottom: 1rem;
+  }
+  .panel h3 {
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 1rem; font-weight: 600;
+  }
+
+  .coachlist { display: grid; gap: 0.35rem; max-height: 18rem; overflow-y: auto; }
+  .coachrow {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.3rem 0; border-bottom: 1px solid var(--rule);
+  }
+  .coachrow:last-child { border-bottom: 0; }
+  .coachrow .cname {
+    flex: 1 1 auto; min-width: 0; font-size: 0.9rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .coachrow select { flex: 0 0 8.5rem; width: 8.5rem; font-size: 0.85rem; padding: 0.35rem 0.4rem; }
+  .coachrow.on .cname { font-weight: 650; }
+
+  .result {
+    background: #eef4fb; border: 1px solid var(--accent); border-radius: 6px;
+    padding: 1.15rem; margin-bottom: 1rem;
+  }
+  .result h3 { margin: 0 0 0.5rem; font-size: 1rem; letter-spacing: -0.01em; }
+  .linkbox { display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.75rem; flex-wrap: wrap; }
+  .linkbox input {
+    flex: 1 1 16rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem;
+  }
+  .thumb {
+    margin-top: 0.6rem; max-width: 100%; border-radius: 4px; border: 1px solid var(--rule);
+    display: none;
+  }
+  .hidden { display: none !important; }
+
+  /* ---------------- course chat ---------------- */
+  .chat { display: grid; gap: 0.9rem; max-height: 26rem; overflow-y: auto; padding-right: 0.2rem; }
+  .chat-msg { display: flex; gap: 0.7rem; align-items: flex-start; }
+  .chat-msg .body {
+    background: #faf9f7; border: 1px solid var(--rule); border-radius: 6px;
+    padding: 0.55rem 0.75rem; font-size: 0.92rem; white-space: pre-wrap;
+    flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere;
+  }
+  .chat-msg.mine .body { background: #eef4fb; border-color: #cfe0f2; }
+  .chat-msg .meta {
+    display: flex; gap: 0.5rem; align-items: baseline; flex-wrap: wrap;
+    font-size: 0.75rem; color: var(--muted); margin-bottom: 0.2rem;
+  }
+  .chat-msg .meta .author { font-weight: 650; color: var(--ink); }
+  .chat-none { color: var(--muted); font-size: 0.88rem; margin: 0.3rem 0; }
+
+  /* ---------------- direct messages ---------------- */
+  .dm { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 44rem) { .dm { grid-template-columns: 15rem 1fr; align-items: start; } }
+  .dm-people { display: grid; gap: 0.15rem; max-height: 26rem; overflow-y: auto; }
+  .dm-person {
+    display: flex; align-items: center; gap: 0.6rem; width: 100%;
+    font: inherit; text-align: left; background: none; border: 0;
+    border-radius: 5px; padding: 0.45rem 0.5rem; cursor: pointer;
+  }
+  .dm-person:hover { background: #faf9f7; }
+  .dm-person.on { background: #eef4fb; }
+  .dm-person .nm {
+    flex: 1 1 auto; min-width: 0; font-size: 0.9rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .dm-person .dot {
+    flex: none; min-width: 1.15rem; height: 1.15rem; padding: 0 0.3rem;
+    border-radius: 999px; background: var(--bad); color: #fff;
+    font-size: 0.68rem; font-weight: 700; display: grid; place-items: center;
+  }
+  .dm-thread { min-width: 0; }
+  /* Slides in at the foot when a message arrives while you are doing
+     something else. Tapping it opens the conversation. */
+  .toast {
+    position: fixed; left: 50%; bottom: 1.1rem; transform: translateX(-50%);
+    z-index: 80; max-width: min(26rem, calc(100vw - 2rem));
+    display: flex; gap: 0.7rem; align-items: center;
+    background: var(--shell); color: #fff; border-radius: 8px;
+    padding: 0.7rem 0.9rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    font: inherit; text-align: left; border: 0; cursor: pointer;
+    animation: toastin 0.18s ease-out;
+  }
+  @keyframes toastin {
+    from { opacity: 0; transform: translateX(-50%) translateY(0.5rem); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  .toast .who { font-size: 0.8rem; color: #b9c0c7; }
+  .toast .said {
+    font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; max-width: 17rem;
+  }
+
+  .unread-flag {
+    display: inline-grid; place-items: center; min-width: 1.1rem; height: 1.1rem;
+    padding: 0 0.28rem; margin-left: 0.35rem; border-radius: 999px;
+    background: var(--bad); color: #fff; font-size: 0.66rem; font-weight: 700;
+  }
+
+  /* ---------------- coach invoices ---------------- */
+  .inv-row {
+    display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    padding: 0.7rem 0.85rem; border-bottom: 1px solid var(--rule);
+  }
+  .inv-row:last-child { border-bottom: 0; }
+  .inv-row .who { flex: 1 1 10rem; min-width: 0; font-weight: 650; font-size: 0.92rem; }
+  .inv-row .amt { font-size: 0.92rem; white-space: nowrap; }
+  .inv-row .files { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+  .rc-row {
+    display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+    padding: 0.5rem 0; border-bottom: 1px solid var(--rule); font-size: 0.88rem;
+  }
+  .rc-row:last-child { border-bottom: 0; }
+  .rc-row .cat {
+    font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase;
+    border: 1px solid var(--rule); border-radius: 3px; padding: 0.12rem 0.45rem;
+    color: var(--muted); white-space: nowrap;
+  }
+  .rc-row .desc { flex: 1 1 8rem; min-width: 0; color: var(--muted); }
+  .filebox {
+    border: 1px dashed var(--rule); border-radius: 5px;
+    padding: 0.8rem 0.9rem; margin-bottom: 0.8rem; background: #faf9f7;
+  }
+  .filebox .name { font-size: 0.85rem; color: var(--muted); margin-top: 0.4rem; }
+  .filebox .name.on { color: var(--good); font-weight: 600; }
+
+/* participant management */
+.pm-bar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:0 0 .8rem}
+.pm-form{border:1px solid var(--rule);border-radius:.4rem;padding:1rem;margin:0 0 1rem;background:#faf9f7}
+.pm-form .grid2{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+@media(max-width:640px){.pm-form .grid2{grid-template-columns:1fr}}
+.pm-check{display:flex;align-items:center;gap:.45rem;font-size:.9rem;margin:.5rem 0}
+.acts{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.6rem}
+.acts .btn{font-size:.72rem;padding:.3rem .6rem}
+.attendee.inactive{opacity:.55}
+.pill.gone{border-color:var(--warn);color:var(--warn)}
+.wk{border:1px solid var(--rule);border-radius:.4rem;margin-bottom:.5rem;overflow:hidden}
+.wk__head{display:flex;align-items:center;gap:.7rem;padding:.6rem .8rem;cursor:pointer;background:#faf9f7}
+.wk__n{font-weight:700;font-size:.8rem;min-width:4.2rem;color:var(--muted)}
+.wk__subj{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.9rem}
+.wk__state{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.wk__state.done{color:var(--good)}
+.wk__body{padding:.9rem;border-top:1px solid var(--rule)}
+.wk__body textarea{min-height:16rem;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem}
+.seqbar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-top:.6rem}
+.sigwrap{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:1rem;z-index:60}
+.sigbox{background:var(--card);border:1px solid var(--rule);border-radius:.5rem;
+  padding:1.25rem;max-width:640px;width:100%;max-height:calc(100vh - 2rem);
+  overflow-y:auto;box-shadow:0 18px 50px rgba(0,0,0,.25);color:var(--ink)}
+.sigbox h3{margin:0 0 .3rem}
+.sigbox .sub{margin:0 0 .8rem}
+.sigpad{width:100%;height:220px;background:#fff;border:1px solid var(--rule);border-radius:.35rem;touch-action:none;display:block}
+.sigrow{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-top:.8rem}
+.sigview{width:100%;background:#fff;border:1px solid var(--rule);border-radius:.35rem}
+.editgrid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+@media(max-width:640px){.editgrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="left">
+    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+    <span class="brandname">Coach Portal</span>
+  </span>
+  <span class="right">
+    <a class="linkbtn hidden" id="bloglink" href="/portal/blog/">Blog</a>
+    <a class="linkbtn hidden" id="feedbacklink" href="/portal/feedback/">Feedback</a>
+    <a class="linkbtn hidden" id="docslink" href="/portal/documents/">My documents</a>
+    <a class="linkbtn hidden" id="reflectlink" href="/portal/reflections/">Reflections</a>
+    <a class="linkbtn hidden" id="codeslink" href="/portal/codes/">Discount codes</a>
+    <button id="messagesbtn" class="hidden" type="button">Messages</button>
+    <button id="profilebtn" class="hidden" type="button">My profile</button>
+    <span class="who" id="who"></span>
+    <button id="signout" class="hidden" type="button">Sign out</button>
+  </span>
+</div>
+
+<!-- ============ LOGIN ============ -->
+<section id="view-login">
+  <div class="login">
+    <div class="lmark"><img src="/brand/birdBox.png" alt="BirdBox"></div>
+    <h1>Sign in</h1>
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" inputmode="email">
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password">
+    </div>
+    <button class="btn wide" id="signin" type="button">Sign in</button>
+    <p class="msg" id="login-msg"></p>
+  </div>
+</section>
+
+<section id="view-emails" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back-emails">&larr; All courses</a>
+    <h2>Follow-up emails</h2>
+    <p class="sub">The year of weekly emails a participant receives after finishing a course. Each course type has its own.</p>
+
+    <div class="field" style="max-width:26rem">
+      <label for="seq-pick">Course</label>
+      <select id="seq-pick"></select>
+    </div>
+
+    <div class="admin-row" style="margin:.4rem 0 1rem">
+      <span class="why" id="seq-summary"></span>
+    </div>
+
+    <div id="seq-weeks"></div>
+  </div>
+</section>
+
+<!-- ============ HOST EMAIL ============ -->
+<div class="overlay hidden" id="hostwrap">
+  <div class="dialog" style="max-width:44rem" role="dialog" aria-modal="true" aria-labelledby="host-h">
+    <h3 id="host-h">Send the host email</h3>
+    <p class="sub" id="host-sub" style="margin-bottom:1rem"></p>
+
+    <div class="grid2">
+      <div class="field">
+        <label for="host-code">Host code <span class="hint">free spots</span></label>
+        <input id="host-code" type="text" spellcheck="false" autocapitalize="characters">
+      </div>
+      <div class="field">
+        <label for="host-uses">How many spots</label>
+        <input id="host-uses" type="number" min="0" max="4">
+      </div>
+    </div>
+
+    <div class="grid2" id="host-prepaid-wrap">
+      <div class="field">
+        <label for="host-comm">Prepaid code <span class="hint">spots they paid for upfront</span></label>
+        <input id="host-comm" type="text" spellcheck="false" autocapitalize="characters">
+      </div>
+      <div class="field">
+        <label for="host-comm-uses">How many</label>
+        <input id="host-comm-uses" type="number" min="0" max="15">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="host-eb">Early bird code <span class="hint" id="host-eb-hint"></span></label>
+      <input id="host-eb" type="text" spellcheck="false" autocapitalize="characters" value="EB10">
+    </div>
+
+    <div class="field">
+      <label for="host-subject">Subject</label>
+      <input id="host-subject" type="text">
+    </div>
+
+    <div class="field">
+      <label for="host-body">The email as it will send
+        <span class="hint">edit anything here</span>
+      </label>
+      <textarea id="host-body" style="min-height:22rem"></textarea>
+    </div>
+
+    <p class="whenline" id="host-note"></p>
+    <p class="msg" id="host-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="host-rebuild" type="button">Rebuild</button>
+      <button class="btn ghost" id="host-close" type="button">Cancel</button>
+      <button class="btn go" id="host-send" type="button">Create codes and send</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FIND A PARTICIPANT ============ -->
+<section id="view-people" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back-people">&larr; All courses</a>
+    <h2>Find someone</h2>
+    <p class="sub">Search by name or email. Shows every course they have been on, including ones they cancelled or that have already run.</p>
+
+    <div class="panel">
+      <div class="admin-row">
+        <input id="pp-q" type="text" placeholder="Name or email" autocomplete="off"
+               style="flex:1 1 16rem;min-width:0">
+        <button class="btn small" id="pp-go" type="button">Search</button>
+        <span class="why" id="pp-count"></span>
+      </div>
+    </div>
+
+    <div id="pp-results"></div>
+  </div>
+</section>
+
+<!-- ============ EXPORT ============ -->
+<div class="overlay hidden" id="exwrap">
+  <div class="dialog" style="max-width:34rem" role="dialog" aria-modal="true" aria-labelledby="ex-h">
+    <h3 id="ex-h">Export the list</h3>
+    <p class="sub" id="ex-sub" style="margin-bottom:1rem"></p>
+
+    <div class="admin-row" style="margin-bottom:0.7rem">
+      <button class="btn ghost tiny" id="ex-all" type="button">Select all</button>
+      <button class="btn ghost tiny" id="ex-none" type="button">Just the basics</button>
+    </div>
+
+    <div id="ex-fields" style="max-height:16rem;overflow-y:auto;border:1px solid var(--rule);
+         border-radius:5px;padding:0.6rem 0.8rem;margin-bottom:1rem"></div>
+
+    <label class="pm-check">
+      <input type="checkbox" id="ex-inactive">
+      Include cancelled, archived and no-shows
+    </label>
+
+    <div class="field" style="max-width:20rem;margin-top:0.6rem">
+      <label for="ex-sep">Separator
+        <span class="hint">try semicolon if everything lands in one column</span>
+      </label>
+      <select id="ex-sep">
+        <option value=",">Comma — Google Sheets, Numbers</option>
+        <option value=";">Semicolon — Excel in most of Europe</option>
+        <option value="\t">Tab</option>
+      </select>
+    </div>
+
+    <p class="whenline" id="ex-note"></p>
+    <p class="msg" id="ex-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="ex-close" type="button">Cancel</button>
+      <button class="btn" id="ex-go" type="button">Download CSV</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DIRECT MESSAGES ============ -->
+<section id="view-messages" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back-messages">&larr; All courses</a>
+    <h2>Messages</h2>
+    <p class="sub">Between you and one other person. Nothing here is attached to a course.</p>
+
+    <div class="panel">
+      <div class="dm">
+        <div>
+          <div class="whenline" style="font-weight:650;color:var(--ink);margin-bottom:0.4rem">The team</div>
+          <div class="dm-people" id="dm-people"></div>
+        </div>
+
+        <div class="dm-thread">
+          <div class="whenline" style="font-weight:650;color:var(--ink);margin-bottom:0.4rem" id="dm-with">
+            Choose somebody to write to
+          </div>
+          <div class="chat" id="dm-list"></div>
+          <div id="dm-compose" class="hidden" style="margin-top:0.9rem">
+            <textarea id="dm-box" style="min-height:3.4rem" placeholder="Write a message…"></textarea>
+            <div class="admin-row" style="margin-top:0.5rem">
+              <button class="btn small" id="dm-send" type="button">Send</button>
+              <span class="why" id="dm-msg"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE TEAM ============ -->
+<section id="view-team" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back-team">&larr; All courses</a>
+    <h2>The team</h2>
+    <p class="sub">Everyone with a portal login. Adding somebody emails them a link to set their own password.</p>
+
+    <div class="panel">
+      <h3>Add somebody</h3>
+      <div class="grid2">
+        <div class="field">
+          <label for="tm-name">Full name <span class="hint">as it should read on a course</span></label>
+          <input id="tm-name" type="text" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="tm-email">Email <span class="hint">what they sign in with</span></label>
+          <input id="tm-email" type="email" autocomplete="off">
+        </div>
+      </div>
+      <div class="field" style="max-width:16rem">
+        <label for="tm-role">Role
+          <span class="hint">whether they lead or assist is set per course</span>
+        </label>
+        <select id="tm-role">
+          <option value="coach">Coach</option>
+          <option value="support">Support — office and media</option>
+          <option value="admin">Admin — sees everything</option>
+        </select>
+      </div>
+      <div class="admin-row">
+        <button class="btn small" id="tm-add" type="button">Add and send the invite</button>
+        <span class="why" id="tm-msg"></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>On the team</h3>
+      <div id="tm-list"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Deactivated</h3>
+      <p class="whenline" style="margin-bottom:0.8rem">
+        They cannot sign in, but everything they did is intact — past courses, notes and invoices all still name them.
+      </p>
+      <div id="tm-gone"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MY PROFILE ============ -->
+<section id="view-profile" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back-profile">&larr; All courses</a>
+    <h2>My profile</h2>
+    <p class="sub">Seen by the BirdBox team only — never on the website.</p>
+
+    <div class="panel">
+      <h3>Photo</h3>
+      <div style="display:flex;gap:1.1rem;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex:none">
+          <div id="pf-frame" style="width:110px;height:110px;border-radius:6px;overflow:hidden;
+               border:1px solid var(--rule);background:#f0eeea;display:grid;place-items:center;cursor:pointer">
+            <span style="color:var(--muted);font-size:0.78rem">No photo</span>
+          </div>
+          <input id="pf-file" type="file" accept="image/*" class="hidden">
+        </div>
+        <div style="flex:1 1 14rem;min-width:0">
+          <button class="btn ghost small" id="pf-choose" type="button">Choose a photo</button>
+          <p class="whenline" style="margin-top:0.5rem" id="pf-photo-msg">
+            A clear headshot. It is shrunk on your device before uploading.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Details</h3>
+      <div class="grid2">
+        <div class="field">
+          <label for="pf-name">Name</label>
+          <input id="pf-name" type="text" disabled>
+        </div>
+        <div class="field">
+          <label for="pf-email">Email</label>
+          <input id="pf-email" type="text" disabled>
+        </div>
+      </div>
+      <p class="whenline" style="margin:-0.5rem 0 1rem">
+        Ask an admin if either of those needs changing — they are what you sign in with.
+      </p>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="pf-phone">Phone <span class="hint">so we can reach you on a course day</span></label>
+          <input id="pf-phone" type="text" inputmode="tel">
+        </div>
+        <div class="field">
+          <label for="pf-country">Where you are based</label>
+          <select id="pf-country"><option value="">Choose a country…</option></select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pf-languages">Languages you can coach in
+          <span class="hint">helps when we are allocating seminars</span>
+        </label>
+        <input id="pf-languages" type="text" placeholder="English, German">
+      </div>
+
+      <div class="field">
+        <label for="pf-bio">About you <span class="hint">background, specialisms, anything useful</span></label>
+        <textarea id="pf-bio" style="min-height:7rem"></textarea>
+      </div>
+
+      <div class="admin-row">
+        <button class="btn" id="pf-save" type="button">Save</button>
+        <span class="why" id="pf-msg"></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Coaching philosophy</h3>
+      <div id="pf-phil-nudge"></div>
+      <p class="whenline" style="margin-bottom:0.8rem">
+        What you stand for as a coach, and how you want people to experience
+        being coached by you. Seen by the BirdBox team only, never by
+        participants and never on the website.
+      </p>
+      <p class="whenline" style="margin-bottom:0.9rem">
+        If you have not written one before, the five steps are a reasonable
+        way in: know your role and your values, decide what you want the
+        people you coach to leave with, set the standards you hold yourself
+        to as well as them, work out how you will know it is working, and
+        choose the leadership style you want to grow into.
+      </p>
+      <div class="field">
+        <label for="pf-philosophy">Your coaching philosophy
+          <span class="hint">it is meant to change — come back and revise it</span>
+        </label>
+        <textarea id="pf-philosophy" style="min-height:14rem"></textarea>
+      </div>
+      <div class="admin-row">
+        <button class="btn" id="pf-phil-save" type="button">Save philosophy</button>
+        <span class="why" id="pf-phil-msg"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ALL INVOICES ============ -->
+<section id="view-invoices" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back-invoices">&larr; All courses</a>
+    <h2>Coach invoices</h2>
+    <p class="sub">Everything submitted, across every course. Filter by date and hand the lot to accounting.</p>
+
+    <div class="panel">
+      <div class="grid2">
+        <div class="field">
+          <label for="iv-from">From <span class="hint">course date</span></label>
+          <input id="iv-from" type="date">
+        </div>
+        <div class="field">
+          <label for="iv-to">To</label>
+          <input id="iv-to" type="date">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="iv-status">Status</label>
+          <select id="iv-status">
+            <option value="submitted">Submitted, not yet paid</option>
+            <option value="paid">Paid</option>
+            <option value="all">Everything, including drafts</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="iv-coach">Coach</label>
+          <select id="iv-coach"><option value="">Everyone</option></select>
+        </div>
+      </div>
+      <div class="admin-row">
+        <button class="btn small" id="iv-apply" type="button">Show</button>
+        <button class="btn ghost small" id="iv-quarter" type="button">This quarter</button>
+        <button class="btn ghost small" id="iv-year" type="button">This year</button>
+        <button class="btn small" id="iv-export" type="button">Export for accounts</button>
+        <span class="why" id="iv-summary"></span>
+      </div>
+    </div>
+
+    <div id="iv-list"></div>
+  </div>
+</section>
+
+<!-- ============ REPORTS ============ -->
+<section id="view-reports" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back-reports">&larr; All courses</a>
+    <h2>Reports</h2>
+    <p class="sub" id="rp-sub"></p>
+
+    <div class="panel">
+      <h3>Which courses</h3>
+      <div class="field" style="margin-bottom:0.5rem">
+        <label for="rp-course">Course
+          <span class="hint">one seminar, or everything in the range below</span>
+        </label>
+        <select id="rp-course"><option value="">All courses in the date range</option></select>
+      </div>
+      <p class="whenline" id="rp-course-why"></p>
+    </div>
+
+    <div class="panel" id="rp-range-panel">
+      <h3>Over what period</h3>
+      <div class="grid2">
+        <div class="field">
+          <label for="rp-from">From <span class="hint">course date</span></label>
+          <input id="rp-from" type="date">
+        </div>
+        <div class="field">
+          <label for="rp-to">To</label>
+          <input id="rp-to" type="date">
+        </div>
+      </div>
+      <div class="admin-row">
+        <button class="btn ghost small" id="rp-quarter" type="button">This quarter</button>
+        <button class="btn ghost small" id="rp-year" type="button">This year</button>
+        <button class="btn ghost small" id="rp-all" type="button">Everything</button>
+        <span class="why" id="rp-range"></span>
+      </div>
+      <label class="pm-check" style="margin-top:0.6rem">
+        <input type="checkbox" id="rp-archived">
+        Include archived and cancelled courses
+      </label>
+    </div>
+
+    <div class="panel hidden" id="rp-courses-panel">
+      <h3>Courses</h3>
+      <p class="whenline" style="margin-bottom:0.8rem">
+        One row per course: where and when it ran, who coached it, how many
+        booked and how many attended.
+      </p>
+      <div class="admin-row">
+        <button class="btn small" id="rp-courses" type="button">Export courses</button>
+        <span class="why" id="rp-courses-why"></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Participants</h3>
+      <p class="whenline" style="margin-bottom:0.8rem">
+        One row per registration, with the course it belongs to. Names and
+        email addresses are personal data — keep the file somewhere sensible
+        and delete it when you are done with it.
+      </p>
+      <div class="admin-row">
+        <button class="btn small" id="rp-people" type="button">Export participants</button>
+        <span class="why" id="rp-people-why"></span>
+      </div>
+    </div>
+
+    <div class="panel hidden" id="rp-noshow-panel">
+      <h3>Did not attend</h3>
+      <p class="whenline" style="margin-bottom:0.8rem">
+        Everyone marked absent on the day, with the course they paid for and
+        their email address — so you can offer them a place on another one.
+      </p>
+      <div class="admin-row">
+        <button class="btn small" id="rp-noshow" type="button">Export no-shows</button>
+        <span class="why" id="rp-noshow-why"></span>
+      </div>
+    </div>
+
+    <div class="panel hidden" id="rp-money-panel">
+      <h3>Finances</h3>
+      <p class="whenline" style="margin-bottom:0.8rem">
+        What was taken per registration: amount paid, discount applied,
+        currency and payment status, with the course against each one.
+      </p>
+      <div class="admin-row">
+        <button class="btn small" id="rp-money" type="button">Export finances</button>
+        <span class="why" id="rp-money-why"></span>
+      </div>
+    </div>
+
+    <div class="field" style="max-width:20rem">
+      <label for="rp-sep">Separator
+        <span class="hint">try semicolon if everything lands in one column</span>
+      </label>
+      <select id="rp-sep">
+        <option value=",">Comma — Google Sheets, Numbers</option>
+        <option value=";">Semicolon — Excel in most of Europe</option>
+        <option value="\t">Tab</option>
+      </select>
+    </div>
+
+    <p class="msg" id="rp-msg"></p>
+  </div>
+</section>
+
+<!-- ============ COURSES ============ -->
+<section id="view-courses" class="hidden">
+  <div class="wrap">
+    <div class="banner">
+      <img src="/brand/team-2026.jpeg" alt="The BirdBox coaching team">
+      <div class="veil"></div>
+      <div class="caption">
+        <div class="hello" id="hello"></div>
+        <div class="role" id="myrole"></div>
+      </div>
+    </div>
+
+    <div class="headrow">
+      <div>
+        <h1>Courses</h1>
+        <p class="sub" id="courses-sub" style="margin:0"></p>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn ghost hidden" id="peoplebtn" type="button">Find someone</button>
+        <button class="btn ghost hidden" id="teambtn" type="button">Team</button>
+                <button class="btn ghost hidden" id="workshopsbtn" type="button">Workshops</button>
+        <button class="btn ghost hidden" id="reportsbtn" type="button">Reports</button>
+        <button class="btn ghost hidden" id="invoicesbtn" type="button">Invoices</button>
+        <button class="btn ghost hidden" id="emailsbtn" type="button">Follow-up emails</button>
+        <button class="btn hidden" id="newcourse" type="button">New course</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" id="tab-live" type="button" data-tab="live">
+        Live <span class="n" id="n-live"></span>
+      </button>
+      <button class="tab" id="tab-past" type="button" data-tab="past">
+        Archived &amp; cancelled <span class="n" id="n-past"></span>
+      </button>
+      <button class="tab hidden" id="tab-done" type="button" data-tab="done">
+        Finished <span class="n" id="n-done"></span>
+      </button>
+    </div>
+
+    <div id="lowalert"></div>
+    <div id="courses-list"></div>
+
+    <p class="portal-foot">
+      <a href="/">Return to the website</a>
+    </p>
+  </div>
+</section>
+
+<div class="sigwrap hidden" id="sigwrap">
+  <div class="sigbox">
+    <h3 id="sig-h">Sign the participant agreement</h3>
+    <p class="sub" id="sig-sub"></p>
+    <canvas class="sigpad" id="sigpad"></canvas>
+    <img class="sigview hidden" id="sigview" alt="Signature">
+    <div class="sigrow">
+      <button class="btn small" id="sig-save" type="button">Save signature</button>
+      <button class="btn ghost small" id="sig-clear" type="button">Clear</button>
+      <button class="btn ghost small" id="sig-close" type="button">Close</button>
+      <span class="why" id="sig-msg"></span>
+    </div>
+  </div>
+</div>
+
+<div class="sigwrap hidden" id="editwrap">
+  <div class="sigbox">
+    <h3>Edit participant</h3>
+    <p class="sub">Certificates use these exact spellings.</p>
+    <div class="editgrid">
+      <div class="field">
+        <label for="ed-first">First name</label>
+        <input id="ed-first" type="text">
+      </div>
+      <div class="field">
+        <label for="ed-last">Last name</label>
+        <input id="ed-last" type="text">
+      </div>
+    </div>
+    <div class="editgrid">
+      <div class="field">
+        <label for="ed-email">Email</label>
+        <input id="ed-email" type="email">
+      </div>
+      <div class="field">
+        <label for="ed-phone">Phone <span class="hint">optional</span></label>
+        <input id="ed-phone" type="text">
+      </div>
+    </div>
+    <div class="sigrow">
+      <button class="btn small" id="ed-save" type="button">Save changes</button>
+      <button class="btn ghost small" id="ed-close" type="button">Cancel</button>
+      <span class="why" id="ed-msg"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ATTENDEES ============ -->
+<section id="view-course" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back">← All courses</a>
+    <h2 id="course-title"></h2>
+    <p class="sub" id="course-meta"></p>
+    <p class="counts" id="counts"></p>
+    <div class="pm-bar hidden" id="pm-bar">
+      <button class="btn small" id="pm-add" type="button">Add participant</button>
+      <label class="pm-check"><input type="checkbox" id="pm-showall"> Show archived and cancelled</label>
+    </div>
+
+    <p class="tasklead hidden" id="task-lead">To close this seminar out</p>
+
+    <div class="admin-row hidden" id="cert-bar" style="margin:0 0 1rem">
+      <button class="btn small" id="cert-open" type="button">Complete and submit seminar</button>
+      <span class="why" id="cert-state"></span>
+    </div>
+
+    <div class="admin-row hidden" id="fb-bar" style="margin:0 0 1rem">
+      <a class="btn small" id="fb-open" href="/portal/feedback/">Process feedback</a>
+      <span class="why" id="fb-state"></span>
+    </div>
+
+    <div class="admin-row hidden" id="inv-bar" style="margin:0 0 1rem">
+      <button class="btn small" id="inv-open" type="button">My invoice</button>
+      <span class="why" id="inv-state"></span>
+    </div>
+
+    <hr class="taskrule hidden" id="task-rule">
+
+    <div class="admin-row hidden" id="pc-bar" style="margin:0 0 1rem">
+      <button class="btn small" id="pc-open" type="button">Pre-course email</button>
+      <span class="why" id="pc-state"></span>
+    </div>
+
+    <div class="admin-row hidden" id="fu-bar" style="margin:0 0 1rem">
+      <button class="btn small" id="fu-open" type="button">Follow-up email</button>
+      <span class="why" id="fu-state"></span>
+    </div>
+
+    <div class="admin-row hidden" id="ad-bar" style="margin:0 0 1rem">
+      <button class="btn small" id="ad-open" type="button">Email everyone</button>
+      <span class="why" id="ad-state"></span>
+    </div>
+
+    <div class="admin-row hidden" id="arch-bar" style="margin:0 0 1rem">
+      <button class="btn small" id="arch-btn" type="button">Archive this course</button>
+      <span class="why" id="arch-state"></span>
+    </div>
+
+
+    <div class="pm-form hidden" id="pm-form">
+      <div class="grid2">
+        <div class="field">
+          <label for="pm-first">First name</label>
+          <input id="pm-first" type="text" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="pm-last">Last name</label>
+          <input id="pm-last" type="text" autocomplete="off">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="pm-email">Email</label>
+          <input id="pm-email" type="email" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="pm-phone">Phone <span class="hint">optional</span></label>
+          <input id="pm-phone" type="text" autocomplete="off">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="pm-source">Where did this booking come from?</label>
+          <select id="pm-source">
+            <option value="manual">Added by hand</option>
+            <option value="regfox">RegFox / Webconnex</option>
+            <option value="transfer">Transferred from another course</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pm-note">Note <span class="hint">optional, staff only</span></label>
+          <input id="pm-note" type="text" placeholder="e.g. paid RegFox Jan 2026">
+        </div>
+      </div>
+      <div class="field hidden" id="pm-online-wrap">
+        <label for="pm-online">Free online course <span class="hint">this seminar includes one</span></label>
+        <select id="pm-online">
+          <option value="">Do not give online access</option>
+        </select>
+      </div>
+      <label class="pm-check"><input type="checkbox" id="pm-paid" checked> Mark as paid in full</label>
+      <label class="pm-check"><input type="checkbox" id="pm-email-send"> Send them the registration confirmation email now</label>
+      <div class="admin-row" style="margin-top:.8rem">
+        <button class="btn small" id="pm-save" type="button">Add participant</button>
+        <button class="btn ghost small" id="pm-cancel" type="button">Cancel</button>
+        <span class="why" id="pm-msg"></span>
+      </div>
+    </div>
+
+    <div class="attendees-card" id="attendees"></div>
+
+    <div class="panel hidden" id="chatpanel" style="margin-top:1.5rem">
+      <h3>Team chat <span class="hint" style="text-transform:none;letter-spacing:0">— everyone coaching this course</span></h3>
+      <div class="chat" id="chat-list"></div>
+      <div style="margin-top:0.9rem">
+        <textarea id="chat-box" style="min-height:3.4rem"
+          placeholder="Roadworks on the road to the gym — leave a bit early on Saturday."></textarea>
+        <div class="admin-row" style="margin-top:0.5rem">
+          <button class="btn small" id="chat-send" type="button">Send</button>
+          <span class="why" id="chat-msg"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-panel hidden" id="adminpanel">
+      <h3>Admin</h3>
+
+      <div class="admin-row" id="salesrow">
+        <button class="btn small go hidden" id="publishbtn" type="button">Put back on sale</button>
+        <button class="btn ghost small hidden" id="unpublishbtn" type="button">Take off sale</button>
+        <span class="why" id="saleswhy"></span>
+      </div>
+
+      <div class="sep" id="salessep"></div>
+
+      <div class="admin-row">
+        <button class="btn small" id="editcoursebtn" type="button">Edit course details</button>
+        <span class="why">Venue, address, map pin, dates, price and description.</span>
+      </div>
+
+      <div class="sep"></div>
+
+      <h3>Export</h3>
+      <div class="admin-row">
+        <button class="btn small" id="ex-open" type="button">Export participants</button>
+        <span class="why">Choose which details you need. Downloads as a CSV.</span>
+      </div>
+
+      <div class="sep"></div>
+
+      <h3>Host</h3>
+      <div class="admin-row">
+        <button class="btn small" id="host-open" type="button">Send the host email</button>
+        <span class="why" id="host-state"></span>
+      </div>
+
+      <div class="sep"></div>
+
+      <h3>Coach invoices</h3>
+      <div id="inv-admin"></div>
+
+      <div class="sep"></div>
+
+      <h3>Capacity</h3>
+      <div class="admin-row">
+        <input id="cap-input" type="number" min="0" step="1" style="max-width:7rem">
+        <button class="btn small" id="cap-save" type="button">Save capacity</button>
+        <span class="why" id="cap-why"></span>
+      </div>
+
+      <div class="sep"></div>
+
+      <h3>Coaches on this course</h3>
+      <div class="coachlist" id="editcoaches"></div>
+      <div class="admin-row" style="margin-top:0.9rem">
+        <button class="btn small" id="savecoaches" type="button">Save coaches</button>
+        <span class="why">The lead coach handles participant emails and feedback. Assistants coach and write notes. A lead can be left until later.</span>
+      </div>
+
+      <div class="sep"></div>
+
+      <div id="reschedwrap">
+        <p class="whenline" id="r-tzhint" style="margin-bottom:0.7rem"></p>
+        <div class="grid2">
+          <div class="field">
+            <label for="r-date">New start date</label>
+            <input id="r-date" type="date">
+          </div>
+          <div class="field">
+            <label for="r-starttime">Start time</label>
+            <input id="r-starttime" type="time" value="09:00">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="r-enddate">New end date <span class="hint">same day if blank</span></label>
+            <input id="r-enddate" type="date">
+          </div>
+          <div class="field">
+            <label for="r-endtime">End time</label>
+            <input id="r-endtime" type="time" value="17:00">
+          </div>
+        </div>
+        <p class="whenline" id="r-preview"></p>
+        <div class="admin-row" style="margin-top:0.9rem">
+          <button class="btn small" id="reschedbtn" type="button">Move the date</button>
+          <span class="why">Participants and assigned coaches are emailed automatically. Any unpaid balance moves with it.</span>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="field">
+        <label for="c-reason">Why it is cancelled <span class="hint">optional — goes in the email to participants</span></label>
+        <textarea id="c-reason" placeholder="Leave blank and we will say it was our decision, not theirs."></textarea>
+      </div>
+      <div class="admin-row">
+        <button class="btn small danger" id="cancelbtn" type="button">Cancel and refund everyone</button>
+        <span class="why" id="cancelwhy"></span>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="admin-row">
+        <button class="btn ghost small" id="archivebtn" type="button">Archive</button>
+        <button class="btn ghost small danger hidden" id="deletebtn" type="button">Delete permanently</button>
+        <span class="why" id="adminwhy"></span>
+      </div>
+
+      <p class="msg" id="admin-msg"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ NEW COURSE ============ -->
+<section id="view-new" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back2">← All courses</a>
+    <h2 id="form-title">New course</h2>
+    <p class="sub" id="form-sub">Fill this in and the course goes live. You will get a link to paste into Community Box.</p>
+
+    <div id="created" class="result hidden">
+      <h3>Course created</h3>
+      <p style="margin:0;font-size:0.9rem" id="created-title"></p>
+      <div class="linkbox">
+        <input type="text" id="created-link" readonly>
+        <button class="btn" id="copylink" type="button">Copy</button>
+      </div>
+      <div class="linkbox">
+        <button class="btn ghost" id="another" type="button">Create another</button>
+        <button class="btn ghost" id="tocourses" type="button">Back to courses</button>
+      </div>
+    </div>
+
+    <div id="form">
+      <div class="panel">
+        <h3>What and where</h3>
+        <div class="grid2">
+          <div class="field">
+            <label for="f-brand">Brand</label>
+            <select id="f-brand">
+              <option value="tcc">TCC — The Coaches Course</option>
+              <option value="tgc">TGC — The Gymnastics Course</option>
+              <option value="tec">TEC — The Endurance Course</option>
+              <option value="twc">TWC — The Weightlifting Course</option>
+              <option value="birdbox">BirdBox</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-type">Type</label>
+            <select id="f-type">
+              <option value="live_seminar">Live seminar</option>
+              <option value="workshop">Workshop</option>
+              <option value="online_course">Online course</option>
+              <option value="mentorship">Mentorship</option>
+              <option value="programming">Programming</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label for="f-level">Level <span class="hint">leave blank for workshops</span></label>
+            <select id="f-level">
+              <option value="">—</option>
+              <option value="L1">Level 1</option>
+              <option value="L2">Level 2</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-language">Language of delivery</label>
+            <select id="f-language">
+              <option value="en">English</option>
+              <option value="fr">French</option>
+              <option value="es">Spanish</option>
+              <option value="de">German</option>
+              <option value="it">Italian</option>
+              <option value="ja">Japanese</option>
+              <option value="ko">Korean</option>
+              <option value="pt">Portuguese</option>
+              <option value="pl">Polish</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="whenline hidden" id="f-cert-note" style="margin:-0.4rem 0 1rem"></p>
+
+        <div class="field" id="wrap-workshop">
+          <label for="f-workshop">Workshop name <span class="hint">shown at point of sale</span></label>
+          <input id="f-workshop" type="text" placeholder="Rings: forward and backward rolls">
+        </div>
+
+        <div class="field" id="wrap-movements">
+          <label for="f-movements">Movements covered <span class="hint">one line, sold on this</span></label>
+          <input id="f-movements" type="text" placeholder="Strict pull-up, toes-to-bar, pull-over">
+        </div>
+
+        <div class="field">
+          <label for="f-summary">One-line summary <span class="hint">used on the map pin</span></label>
+          <input id="f-summary" type="text" placeholder="Two-day coaching development seminar">
+        </div>
+
+        <div class="field">
+          <label for="f-description">Description <span class="hint">optional, shown on the course page</span></label>
+          <textarea id="f-description"></textarea>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Venue</h3>
+        <div class="field">
+          <label for="f-venue">Host gym</label>
+          <input id="f-venue" type="text" placeholder="CrossFit Dublin">
+        </div>
+        <div class="field">
+          <label for="f-address">Address <span class="hint">optional</span></label>
+          <input id="f-address" type="text">
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="f-city">City <span class="hint">shown under the date</span></label>
+            <input id="f-city" type="text" placeholder="Dublin">
+          </div>
+          <div class="field">
+            <label for="f-country">Country <span class="hint">sets the time zone, currency and VAT</span></label>
+            <select id="f-country">
+              <option value="">Choose a country…</option>
+            </select>
+          </div>
+        </div>
+        <div class="field hidden" id="wrap-state">
+          <label for="f-state">State or province <span class="hint" id="f-state-hint">sets the time zone</span></label>
+          <select id="f-state">
+            <option value="">Choose…</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Map pin <span class="hint">puts this course on the seminar maps</span></label>
+          <div class="admin-row" style="margin-bottom:.5rem">
+            <button class="btn ghost small" id="f-lookup" type="button">Look up from address</button>
+            <span class="why" id="f-geo-msg"></span>
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <label for="f-lat">Latitude</label>
+              <input id="f-lat" type="text" inputmode="decimal" placeholder="48.183987">
+            </div>
+            <div class="field">
+              <label for="f-lng">Longitude</label>
+              <input id="f-lng" type="text" inputmode="decimal" placeholder="11.467969">
+            </div>
+          </div>
+          <p class="hint" style="margin:.35rem 0 0">
+            Or right-click the venue in Google Maps and paste both numbers into Latitude &mdash; they split automatically.
+          </p>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label for="f-hostname">Host contact <span class="hint">the person we deal with</span></label>
+            <input id="f-hostname" type="text" placeholder="Babette Moenig">
+          </div>
+          <div class="field">
+            <label for="f-hostemail">Host email <span class="hint">where the host email goes</span></label>
+            <input id="f-hostemail" type="email" placeholder="babette@thegym.com">
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label for="f-hostspots">Free host spots <span class="hint">usually 2</span></label>
+            <input id="f-hostspots" type="number" min="0" max="4" value="2">
+          </div>
+          <div class="field">
+            <label for="f-prepaid">Prepaid spots <span class="hint">0 unless they paid upfront</span></label>
+            <input id="f-prepaid" type="number" min="0" max="15" value="0">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f-image">Host gym photo <span class="hint" id="f-image-hint">optional</span></label>
+          <input id="f-image" type="file" accept="image/*">
+          <img class="thumb" id="thumb" alt="">
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>When</h3>
+        <div class="grid2">
+          <div class="field">
+            <label for="f-date">Date</label>
+            <input id="f-date" type="date">
+          </div>
+          <div class="field">
+            <label for="f-starttime">Start time</label>
+            <input id="f-starttime" type="time" value="09:00">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="f-enddate">End date <span class="hint">same day if blank</span></label>
+            <input id="f-enddate" type="date">
+          </div>
+          <div class="field">
+            <label for="f-endtime">End time</label>
+            <input id="f-endtime" type="time" value="12:00">
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:0.4rem">
+          <label for="f-timezone">Time zone <span class="hint">the times above are local to the course, not to you</span></label>
+          <input id="f-timezone" type="text" value="Europe/Dublin" list="tzlist"
+                 autocapitalize="off" autocorrect="off" spellcheck="false">
+          <!-- Filled from the browser's own list of every IANA zone, so
+               nothing here needs maintaining as zones are added. -->
+          <datalist id="tzlist"></datalist>
+        </div>
+        <p class="whenline" id="when-preview"></p>
+      </div>
+
+      <div class="panel">
+        <h3>Places and price</h3>
+        <div class="grid2">
+          <div class="field">
+            <label for="f-capacity">Capacity</label>
+            <input id="f-capacity" type="number" min="1" value="15">
+          </div>
+          <div class="field">
+            <label for="f-currency">Currency</label>
+            <select id="f-currency">
+              <option value="EUR">EUR</option>
+              <option value="USD">USD</option>
+              <option value="GBP">GBP</option>
+              <option value="AUD">AUD</option>
+              <option value="CAD">CAD</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="f-price">Price <span class="hint">whole units, excluding VAT</span></label>
+            <input id="f-price" type="number" min="0" step="1" placeholder="640">
+          </div>
+          <div class="field">
+            <label for="f-deposit">Deposit <span class="hint">blank for the standard 25%</span></label>
+            <input id="f-deposit" type="number" min="0" step="1" placeholder="25% of the price">
+          </div>
+        </div>
+        <p class="whenline" id="f-price-note"></p>
+      </div>
+
+      <div class="panel">
+        <h3>Coaches <span class="hint" style="text-transform:none;letter-spacing:0">— optional, can be set later</span></h3>
+        <div class="coachlist" id="coachlist"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Publish</h3>
+        <div class="field">
+          <label for="f-status">Status</label>
+          <select id="f-status">
+            <option value="published">Published — live and on sale now</option>
+            <option value="draft">Draft — not visible, no sales</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-slug">Link <span class="hint">generated for you, edit if you need to</span></label>
+          <input id="f-slug" type="text">
+        </div>
+        <div class="field">
+          <label for="f-adminnotes">Internal note <span class="hint">never shown publicly</span></label>
+          <input id="f-adminnotes" type="text">
+        </div>
+        <button class="btn wide" id="save" type="button">Create course</button>
+        <p class="msg" id="form-msg"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DELETE DIALOG ============ -->
+<div class="overlay hidden" id="delwrap">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="del-h">
+    <h3 id="del-h">Delete this course permanently</h3>
+    <p id="del-what"></p>
+    <div class="loses" id="del-loses"></div>
+    <label for="del-input">Type DELETE to confirm</label>
+    <input id="del-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <p class="msg" id="del-msg"></p>
+    <div class="row">
+      <button class="btn ghost" id="del-cancel" type="button">Cancel</button>
+      <button class="btn solid-danger" id="del-go" type="button" disabled>Delete permanently</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PRE-COURSE EMAIL ============ -->
+<div class="overlay hidden" id="pcwrap">
+  <div class="dialog" style="max-width:44rem" role="dialog" aria-modal="true" aria-labelledby="pc-h">
+    <h3 id="pc-h">Pre-course email</h3>
+    <p class="sub" id="pc-sub" style="margin-bottom:1rem"></p>
+
+    <div class="field">
+      <label for="pc-subject">Subject</label>
+      <input id="pc-subject" type="text">
+    </div>
+
+    <div class="field">
+      <label for="pc-note">Your personal message
+        <span class="hint">goes at the top, in your own words</span>
+      </label>
+      <textarea id="pc-note" style="min-height:7rem"
+        placeholder="This is Nathan, your lead coach for the weekend. I am looking forward to seeing you…"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="pc-body">The email as it will send
+        <span class="hint">edit anything here; {{first_name}} becomes each person's name</span>
+      </label>
+      <textarea id="pc-body" style="min-height:18rem"></textarea>
+    </div>
+
+    <p class="whenline" id="pc-note2"></p>
+    <p class="msg" id="pc-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="pc-rebuild" type="button">Reset from template</button>
+      <button class="btn ghost" id="pc-close" type="button">Cancel</button>
+      <button class="btn" id="pc-send" type="button">Send to everyone</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FOLLOW-UP EMAIL ============ -->
+<div class="overlay hidden" id="fuwrap">
+  <div class="dialog" style="max-width:44rem" role="dialog" aria-modal="true" aria-labelledby="fu-h">
+    <h3 id="fu-h">Follow-up email</h3>
+    <p class="sub" id="fu-sub" style="margin-bottom:1rem"></p>
+
+    <div class="field">
+      <label for="fu-subject">Subject</label>
+      <input id="fu-subject" type="text">
+    </div>
+
+    <div class="field">
+      <label for="fu-body">The email as it will send
+        <span class="hint">edit anything here; {{first_name}} becomes each person's name</span>
+      </label>
+      <textarea id="fu-body" style="min-height:20rem"></textarea>
+    </div>
+
+    <p class="whenline" id="fu-note"></p>
+    <p class="msg" id="fu-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="fu-rebuild" type="button">Reset from template</button>
+      <button class="btn ghost" id="fu-close" type="button">Cancel</button>
+      <button class="btn" id="fu-send" type="button">Send to everyone</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CANCEL AND REFUND ============ -->
+<div class="overlay hidden" id="cxwrap">
+  <div class="dialog" style="max-width:38rem" role="dialog" aria-modal="true" aria-labelledby="cx-h">
+    <h3 id="cx-h">Cancel and refund everyone</h3>
+    <p id="cx-what"></p>
+    <div class="loses hidden" id="cx-warn"></div>
+    <div id="cx-list" style="font-size:0.88rem;max-height:14rem;overflow-y:auto;
+         border:1px solid var(--rule);border-radius:5px;margin:0 0 1rem"></div>
+    <p class="whenline" id="cx-total"></p>
+    <p class="msg" id="cx-msg"></p>
+    <div class="row">
+      <button class="btn ghost" id="cx-close" type="button">Cancel</button>
+      <button class="btn solid-danger" id="cx-go" type="button">Refund and cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MARK AN INVOICE PAID ============ -->
+<div class="overlay hidden" id="paidwrap">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="paid-h">
+    <h3 id="paid-h">Mark as paid</h3>
+    <p id="paid-what"></p>
+    <div class="field">
+      <label for="paid-note">Reference <span class="hint">optional — bank reference, date sent</span></label>
+      <input id="paid-note" type="text" placeholder="SEPA 6 Aug">
+    </div>
+    <p class="whenline">The coach sees this marked as paid, and can no longer change the invoice.</p>
+    <p class="msg" id="paid-msg"></p>
+    <div class="row">
+      <button class="btn ghost" id="paid-close" type="button">Cancel</button>
+      <button class="btn go" id="paid-go" type="button">Mark paid</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ COACH INVOICE ============ -->
+<div class="overlay hidden" id="invwrap">
+  <div class="dialog" style="max-width:40rem" role="dialog" aria-modal="true" aria-labelledby="inv-h">
+    <h3 id="inv-h">My invoice</h3>
+    <p class="sub" id="inv-sub" style="margin-bottom:1rem"></p>
+
+    <div class="filebox">
+      <label for="inv-file">Your invoice <span class="hint">PDF</span></label>
+      <input id="inv-file" type="file" accept="application/pdf,image/*">
+      <div class="name" id="inv-file-name"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label for="inv-total">Total due <span class="hint">coaching and expenses together</span></label>
+        <input id="inv-total" type="number" min="0" step="0.01" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label for="inv-currency">Currency</label>
+        <select id="inv-currency">
+          <option value="EUR">EUR</option>
+          <option value="GBP">GBP</option>
+          <option value="USD">USD</option>
+          <option value="AUD">AUD</option>
+          <option value="CAD">CAD</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Receipts <span class="hint">one per expense — hotel, flights and so on</span></label>
+      <div style="margin-bottom:0.6rem">
+        <div class="whenline" style="font-weight:650;color:var(--ink);margin-bottom:0.2rem">
+          On your invoice <span class="hint" style="font-weight:400">— you paid, we pay you back</span>
+        </div>
+        <div id="inv-receipts" style="border:1px solid var(--rule);border-radius:5px;padding:0.3rem 0.75rem"></div>
+      </div>
+
+      <div style="margin-bottom:0.6rem">
+        <div class="whenline" style="font-weight:650;color:var(--ink);margin-bottom:0.2rem">
+          On a company card <span class="hint" style="font-weight:400">— already paid by BirdBox</span>
+        </div>
+        <div id="inv-company" style="border:1px solid var(--rule);border-radius:5px;padding:0.3rem 0.75rem"></div>
+      </div>
+
+      <div class="grid2">
+        <div class="field" style="margin-bottom:0.5rem">
+          <label for="rc-cat">What is it for</label>
+          <select id="rc-cat">
+            <option value="Hotel">Hotel</option>
+            <option value="Flights">Flights</option>
+            <option value="Train">Train</option>
+            <option value="Bus">Bus</option>
+            <option value="Rental car">Rental car</option>
+            <option value="Taxi">Taxi</option>
+            <option value="Fuel">Fuel</option>
+            <option value="Parking">Parking</option>
+            <option value="Meals">Meals</option>
+            <option value="__other">Something else…</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0.5rem">
+          <label for="rc-desc">Note <span class="hint">optional</span></label>
+          <input id="rc-desc" type="text" placeholder="Two nights, Glasgow">
+        </div>
+      </div>
+
+      <div class="field hidden" id="rc-other-wrap" style="margin-bottom:0.5rem">
+        <label for="rc-other">Type what it is for</label>
+        <input id="rc-other" type="text" placeholder="Equipment hire">
+      </div>
+
+      <label class="pm-check">
+        <input type="checkbox" id="rc-company">
+        Paid on a BirdBox company card
+      </label>
+
+      <div class="grid2 hidden" id="rc-amount-wrap">
+        <div class="field" style="margin-bottom:0.5rem">
+          <label for="rc-amount">What it cost
+            <span class="hint">needed — this is not on your invoice</span>
+          </label>
+          <input id="rc-amount" type="number" min="0" step="0.01" inputmode="decimal">
+        </div>
+        <div class="field" style="margin-bottom:0.5rem">
+          <label for="rc-currency">Currency</label>
+          <select id="rc-currency">
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+            <option value="USD">USD</option>
+            <option value="AUD">AUD</option>
+            <option value="CAD">CAD</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filebox">
+        <label for="rc-file">The receipt <span class="hint">photo or PDF</span></label>
+        <input id="rc-file" type="file" accept="application/pdf,image/*">
+        <div class="name" id="rc-file-name"></div>
+      </div>
+
+      <div class="admin-row">
+        <button class="btn ghost small" id="rc-add" type="button">Add this receipt</button>
+        <span class="why" id="rc-msg"></span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="inv-notes">Anything to tell us <span class="hint">optional</span></label>
+      <textarea id="inv-notes" style="min-height:3.5rem"></textarea>
+    </div>
+
+    <p class="msg" id="inv-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="inv-close" type="button">Close</button>
+      <button class="btn ghost" id="inv-save" type="button">Save for later</button>
+      <button class="btn go" id="inv-submit" type="button">Submit invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ COMPLETE AND SUBMIT ============ -->
+<div class="overlay hidden" id="certwrap">
+  <div class="dialog" style="max-width:34rem" role="dialog" aria-modal="true" aria-labelledby="cert-h">
+    <h3 id="cert-h">Complete and submit seminar</h3>
+    <p id="cert-what"></p>
+    <div class="loses hidden" id="cert-warn"></div>
+    <div id="cert-who" style="font-size:0.88rem;max-height:12rem;overflow-y:auto;
+         border:1px solid var(--rule);border-radius:5px;padding:0.7rem 0.85rem;margin:0 0 1rem"></div>
+    <p class="msg" id="cert-msg"></p>
+    <div class="row">
+      <button class="btn ghost" id="cert-close" type="button">Cancel</button>
+      <button class="btn go" id="cert-go" type="button">Send certificates</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ EXTRA EMAIL ============ -->
+<div class="overlay hidden" id="adwrap">
+  <div class="dialog" style="max-width:40rem" role="dialog" aria-modal="true" aria-labelledby="ad-h">
+    <h3 id="ad-h">Send an email</h3>
+    <p class="sub" id="ad-sub" style="margin-bottom:1rem"></p>
+
+    <div class="field">
+      <label for="ad-subject">Subject</label>
+      <input id="ad-subject" type="text">
+    </div>
+
+    <div class="field">
+      <label for="ad-body">Message
+        <span class="hint">{{first_name}} becomes their first name when it sends</span>
+      </label>
+      <textarea id="ad-body" style="min-height:14rem"
+        placeholder="The door code at the gym has changed for Saturday…"></textarea>
+    </div>
+
+    <p class="whenline" id="ad-note"></p>
+    <p class="msg" id="ad-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="ad-close" type="button">Cancel</button>
+      <button class="btn" id="ad-send" type="button">Send it</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ WELCOME EMAIL ============ -->
+<div class="overlay hidden" id="wcwrap">
+  <div class="dialog" style="max-width:40rem" role="dialog" aria-modal="true" aria-labelledby="wc-h">
+    <h3 id="wc-h">Welcome email</h3>
+    <p class="sub" id="wc-sub" style="margin-bottom:1rem"></p>
+
+    <div class="field">
+      <label for="wc-subject">Subject</label>
+      <input id="wc-subject" type="text">
+    </div>
+
+    <div class="field">
+      <label for="wc-body">Message
+        <span class="hint">{{first_name}} becomes their first name when it sends</span>
+      </label>
+      <textarea id="wc-body" style="min-height:15rem"></textarea>
+    </div>
+
+    <p class="whenline" id="wc-note"></p>
+    <p class="msg" id="wc-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="wc-close" type="button">Cancel</button>
+      <button class="btn" id="wc-send" type="button">Send it</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const LOW_NUMBERS = 5;
+const LOW_DAYS_OUT = 24;
+const LEAD_DAYS_OUT = 90;
+
+// How many assistants a course needs once the numbers get there. The
+// steps are not even — 15, 24, 30, 36 — so they are listed rather than
+// worked out from a formula that would drift from what is actually
+// wanted.
+const ASSIST_STEPS = [
+  { from: 36, assists: 4 },
+  { from: 30, assists: 3 },
+  { from: 24, assists: 2 },
+  { from: 15, assists: 1 },
+];
+
+// Below this there is no point flagging it: flights and cover cannot
+// be arranged, and a course that only reaches 15 the day before is one
+// the lead will simply run alone.
+const ASSIST_NOTICE_DAYS = 7;
+
+function assistsNeeded(booked) {
+  const step = ASSIST_STEPS.find((s) => booked >= s.from);
+  return step ? step.assists : 0;
 }
 
-export default async (request) => {
-  if (request.method !== "POST") return json({ error: "Use POST" }, 405);
+// Photos are for identifying a face while writing feedback, nothing
+// more, so they are shrunk hard before they ever leave the device.
+const PHOTO_MAX_PX = 900;
+const PHOTO_QUALITY = 0.82;
 
+const BRAND = {
+  birdbox: { icon: "/brand/birdBox.png", colour: "#2f7fd0", label: "BirdBox", slug: "bb"  },
+  tcc:     { icon: "/brand/tcc.png",     colour: "#2f7fd0", label: "TCC",     slug: "tcc" },
+  tgc:     { icon: "/brand/tgc.png",     colour: "#9e2029", label: "TGC",     slug: "tgc" },
+  tec:     { icon: "/brand/tec.png",     colour: "#1c6b3f", label: "TEC",     slug: "tec" },
+  twc:     { icon: "/brand/twc.png",     colour: "#e8a317", label: "TWC",     slug: "twc" },
+};
+
+const TAG_COLOUR = {
+  "tgc:1":        "#6d101a",
+  "tgc:2":        "#b02a33",
+  "tgc:workshop": "#e23b32",
+};
+
+/* ---------------- countries ---------------- */
+
+// Codes are what get stored, because the VAT lookup, the time zone
+// table and the public pages all match on the code. Names are only
+// ever for reading, and come from the browser rather than a list
+// anyone has to maintain.
+const REGION_NAMES = (() => {
+  try { return new Intl.DisplayNames(["en"], { type: "region" }); }
+  catch (e) { return null; }
+})();
+
+// Language codes are stored; people read names. Same approach as the
+// country list — the browser knows the names, so there is no list to
+// keep up to date as more languages are added.
+function langLabel(code) {
+  const raw = String(code == null ? "" : code).trim();
+  if (!raw) return "not chosen";
   try {
-    const token = (request.headers.get("authorization") || "").replace(/^Bearer /, "");
-    if (!token) return json({ error: "Not signed in" }, 401);
+    const n = new Intl.DisplayNames(["en"], { type: "language" }).of(raw);
+    return n ? n.charAt(0).toUpperCase() + n.slice(1) : raw;
+  } catch (e) { return raw; }
+}
 
-    const { data: auth, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !auth || !auth.user) return json({ error: "Not signed in" }, 401);
+function countryName(value) {
+  const raw = String(value == null ? "" : value).trim();
+  if (!raw) return "";
+  const upper = raw.toUpperCase();
+  const iso = upper === "UK" ? "GB" : upper;
+  if (!/^[A-Z]{2}$/.test(iso)) return raw;
+  if (!REGION_NAMES) return iso;
+  try {
+    const name = REGION_NAMES.of(iso);
+    return name && name !== iso ? name : iso;
+  } catch (e) { return iso; }
+}
 
-    const { courseId } = await request.json();
-    if (!courseId) return json({ error: "No course given" }, 400);
+// Every ISO 3166-1 country. Only the codes are listed; the names are
+// looked up, so nothing here needs correcting when a name changes.
+const COUNTRY_CODES = [
+  "AD","AE","AF","AG","AI","AL","AM","AO","AR","AT","AU","AW","AZ",
+  "BA","BB","BD","BE","BF","BG","BH","BI","BJ","BM","BN","BO","BR","BS","BT","BW","BY","BZ",
+  "CA","CD","CF","CG","CH","CI","CK","CL","CM","CN","CO","CR","CU","CV","CW","CY","CZ",
+  "DE","DJ","DK","DM","DO","DZ",
+  "EC","EE","EG","ER","ES","ET",
+  "FI","FJ","FK","FM","FO","FR",
+  "GA","GB","GD","GE","GG","GH","GI","GL","GM","GN","GQ","GR","GT","GU","GW","GY",
+  "HK","HN","HR","HT","HU",
+  "ID","IE","IL","IM","IN","IQ","IR","IS","IT",
+  "JE","JM","JO","JP",
+  "KE","KG","KH","KI","KM","KN","KP","KR","KW","KY","KZ",
+  "LA","LB","LC","LI","LK","LR","LS","LT","LU","LV","LY",
+  "MA","MC","MD","ME","MG","MH","MK","ML","MM","MN","MO","MQ","MR","MT","MU","MV","MW","MX","MY","MZ",
+  "NA","NC","NE","NG","NI","NL","NO","NP","NR","NU","NZ",
+  "OM",
+  "PA","PE","PF","PG","PH","PK","PL","PR","PS","PT","PW","PY",
+  "QA",
+  "RE","RO","RS","RU","RW",
+  "SA","SB","SC","SD","SE","SG","SI","SK","SL","SM","SN","SO","SR","SS","ST","SV","SY","SZ",
+  "TC","TD","TG","TH","TJ","TL","TM","TN","TO","TR","TT","TV","TW","TZ",
+  "UA","UG","US","UY","UZ",
+  "VA","VC","VE","VG","VI","VN","VU",
+  "WS",
+  "YE",
+  "ZA","ZM","ZW",
+];
 
-    // ---- who is asking ----------------------------------------
-    const { data: me } = await supabase
-      .from("staff")
-      .select("id, full_name, role, active")
-      .eq("id", auth.user.id)
-      .maybeSingle();
+// Which currency a course in that country is sold in. Anywhere not
+// listed leaves the currency alone and says so, rather than guessing
+// — a wrong currency here would put a wrong price on a live page.
+const COUNTRY_CURRENCY = {
+  GB: "GBP", US: "USD", AU: "AUD", CA: "CAD",
+  AT: "EUR", BE: "EUR", HR: "EUR", CY: "EUR", EE: "EUR", FI: "EUR",
+  FR: "EUR", DE: "EUR", GR: "EUR", IE: "EUR", IT: "EUR", LV: "EUR",
+  LT: "EUR", LU: "EUR", MT: "EUR", NL: "EUR", PT: "EUR", SK: "EUR",
+  SI: "EUR", ES: "EUR", MC: "EUR", AD: "EUR", SM: "EUR", VA: "EUR",
+  ME: "EUR",
+};
 
-    if (!me || !me.active) return json({ error: "Not a member of staff" }, 403);
+// Filled from vat_rates so the dropdown can show which countries
+// carry VAT, and at what rate.
+let vatByCode = {};
 
-    const isAdmin = me.role === "admin";
-    if (!isAdmin) {
-      // course_staff is keyed on (course_id, staff_id) and has no id
-      // column. Asking for one made the query fail, and the failure
-      // was indistinguishable from not being the lead coach — so
-      // every coach was refused and only an admin could send.
-      const { data: lead, error: leadErr } = await supabase
-        .from("course_staff")
-        .select("role")
-        .eq("course_id", courseId)
-        .eq("staff_id", me.id)
-        .eq("role", "lead_coach")
-        .maybeSingle();
+async function loadVatRates() {
+  if (Object.keys(vatByCode).length) return;
+  const { data, error } = await db.from("vat_rates").select("code, rate, label");
+  if (error) { console.error("Could not load VAT rates:", error.message); return; }
+  for (const r of data || []) {
+    const raw = Number(r.rate);
+    if (!Number.isFinite(raw) || raw <= 0) continue;
+    vatByCode[String(r.code || "").toUpperCase()] = raw <= 1 ? raw * 100 : raw;
+  }
+}
 
-      // A lookup that could not run is a fault, not a refusal. Saying
-      // so is the difference between a five-minute fix and an hour.
-      if (leadErr) {
-        console.error("Could not check the lead coach:", leadErr.message);
-        return json({
-          error: "Could not check who leads this course. This is a fault — try again.",
-        }, 500);
+function buildCountryOptions() {
+  const sel = $("f-country");
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Choose a country…</option>';
+
+  const rows = COUNTRY_CODES
+    .map((code) => ({ code, name: countryName(code) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  for (const r of rows) {
+    const o = document.createElement("option");
+    o.value = r.code;
+    const vat = vatByCode[r.code];
+    o.textContent = vat ? `${r.name} — VAT ${Number(vat.toFixed(2))}%` : r.name;
+    sel.append(o);
+  }
+  if (current) sel.value = current;
+}
+
+/* ---------------- standard prices ---------------- */
+
+// The price list lives in course_prices, so the portal and the public
+// pages read the same numbers. Filling it in automatically means an
+// admin never has to open the website to check what a course costs.
+let priceTable = [];
+let suppressAutoPrice = false;
+
+async function loadPriceTable() {
+  if (priceTable.length) return;
+  const { data, error } = await db.from("course_prices")
+    .select("brand, type, level, currency, price_cents, deposit_cents");
+  if (error) { console.error("Could not load prices:", error.message); return; }
+  priceTable = data || [];
+}
+
+const levelDigits = (v) => String(v == null ? "" : v).replace(/\D/g, "");
+
+function standardPrice() {
+  const brand = $("f-brand").value;
+  const type = $("f-type").value;
+  const lvl = levelDigits($("f-level").value);
+  const cur = $("f-currency").value;
+  return priceTable.find((p) =>
+    p.brand === brand && p.type === type &&
+    levelDigits(p.level) === lvl && p.currency === cur) || null;
+}
+
+// Always overwrites, so changing the currency changes the price too.
+// Anything genuinely one-off is typed over afterwards and saved as
+// normal — nothing here touches the row that gets stored.
+function applyStandardPrice() {
+  if (suppressAutoPrice) return;
+  const note = $("f-price-note");
+  const row = standardPrice();
+
+  if (!row) {
+    note.className = "whenline";
+    note.textContent = priceTable.length
+      ? "No standard price on file for this combination — type one in."
+      : "";
+    return;
+  }
+
+  const whole = row.price_cents / 100;
+  $("f-price").value = String(whole);
+  if (row.deposit_cents != null) $("f-deposit").value = String(row.deposit_cents / 100);
+
+  note.className = "whenline";
+  note.textContent =
+    `Standard price filled in: ${$("f-currency").value} ${whole}, excluding VAT. ` +
+    "Change it if this course is priced differently.";
+}
+
+/* ---------------- time zones ---------------- */
+
+// A course happens where it happens. Every time typed into this portal
+// is the time on the wall in that city, whatever time zone the person
+// filling the form is sitting in. Everything below exists to keep that
+// true — an admin creating a Glasgow course from Dubai would otherwise
+// store it three hours out, and nobody would notice until the
+// pre-course email told everyone the wrong start time.
+
+// Countries that sit in one time zone. Kept complete rather than
+// partial: a country missing from here used to leave the zone silently
+// on Europe/Dublin, which stored a Kuwait seminar three hours out.
+//
+// Multi-zone countries are deliberately absent — guessing between
+// Sydney and Perth would be worse than asking.
+const COUNTRY_TZ = {
+  AD: "Europe/Andorra", AE: "Asia/Dubai", AF: "Asia/Kabul",
+  AG: "America/Antigua", AI: "America/Anguilla", AL: "Europe/Tirane",
+  AM: "Asia/Yerevan", AO: "Africa/Luanda", AT: "Europe/Vienna",
+  AW: "America/Aruba", AZ: "Asia/Baku",
+  BA: "Europe/Sarajevo", BB: "America/Barbados", BD: "Asia/Dhaka",
+  BE: "Europe/Brussels", BF: "Africa/Ouagadougou", BG: "Europe/Sofia",
+  BH: "Asia/Bahrain", BI: "Africa/Bujumbura", BJ: "Africa/Porto-Novo",
+  BM: "Atlantic/Bermuda", BN: "Asia/Brunei", BO: "America/La_Paz",
+  BS: "America/Nassau", BT: "Asia/Thimphu", BW: "Africa/Gaborone",
+  BY: "Europe/Minsk", BZ: "America/Belize",
+  CD: "Africa/Kinshasa", CF: "Africa/Bangui", CG: "Africa/Brazzaville",
+  CH: "Europe/Zurich", CI: "Africa/Abidjan", CK: "Pacific/Rarotonga",
+  CL: "America/Santiago", CM: "Africa/Douala", CN: "Asia/Shanghai",
+  CO: "America/Bogota", CR: "America/Costa_Rica", CU: "America/Havana",
+  CV: "Atlantic/Cape_Verde", CW: "America/Curacao", CY: "Asia/Nicosia",
+  CZ: "Europe/Prague",
+  DE: "Europe/Berlin", DJ: "Africa/Djibouti", DK: "Europe/Copenhagen",
+  DM: "America/Dominica", DO: "America/Santo_Domingo", DZ: "Africa/Algiers",
+  EE: "Europe/Tallinn", EG: "Africa/Cairo", ER: "Africa/Asmara",
+  ES: "Europe/Madrid", ET: "Africa/Addis_Ababa",
+  FI: "Europe/Helsinki", FJ: "Pacific/Fiji", FK: "Atlantic/Stanley",
+  FO: "Atlantic/Faroe", FR: "Europe/Paris",
+  GA: "Africa/Libreville", GB: "Europe/London", GD: "America/Grenada",
+  GE: "Asia/Tbilisi", GG: "Europe/Guernsey", GH: "Africa/Accra",
+  GI: "Europe/Gibraltar", GM: "Africa/Banjul", GN: "Africa/Conakry",
+  GQ: "Africa/Malabo", GR: "Europe/Athens", GT: "America/Guatemala",
+  GU: "Pacific/Guam", GW: "Africa/Bissau", GY: "America/Guyana",
+  HK: "Asia/Hong_Kong", HN: "America/Tegucigalpa", HR: "Europe/Zagreb",
+  HT: "America/Port-au-Prince", HU: "Europe/Budapest",
+  IE: "Europe/Dublin", IL: "Asia/Jerusalem", IM: "Europe/Isle_of_Man",
+  IN: "Asia/Kolkata", IQ: "Asia/Baghdad", IR: "Asia/Tehran",
+  IS: "Atlantic/Reykjavik", IT: "Europe/Rome",
+  JE: "Europe/Jersey", JM: "America/Jamaica", JO: "Asia/Amman",
+  JP: "Asia/Tokyo",
+  KE: "Africa/Nairobi", KG: "Asia/Bishkek", KH: "Asia/Phnom_Penh",
+  KM: "Indian/Comoro", KN: "America/St_Kitts", KP: "Asia/Pyongyang",
+  KR: "Asia/Seoul", KW: "Asia/Kuwait", KY: "America/Cayman",
+  LA: "Asia/Vientiane", LB: "Asia/Beirut", LC: "America/St_Lucia",
+  LI: "Europe/Vaduz", LK: "Asia/Colombo", LR: "Africa/Monrovia",
+  LS: "Africa/Maseru", LT: "Europe/Vilnius", LU: "Europe/Luxembourg",
+  LV: "Europe/Riga", LY: "Africa/Tripoli",
+  MA: "Africa/Casablanca", MC: "Europe/Monaco", MD: "Europe/Chisinau",
+  ME: "Europe/Podgorica", MG: "Indian/Antananarivo", MK: "Europe/Skopje",
+  ML: "Africa/Bamako", MM: "Asia/Yangon", MO: "Asia/Macau",
+  MQ: "America/Martinique", MR: "Africa/Nouakchott", MT: "Europe/Malta",
+  MU: "Indian/Mauritius", MV: "Indian/Maldives", MW: "Africa/Blantyre",
+  MY: "Asia/Kuala_Lumpur", MZ: "Africa/Maputo",
+  NA: "Africa/Windhoek", NC: "Pacific/Noumea", NE: "Africa/Niamey",
+  NG: "Africa/Lagos", NI: "America/Managua", NL: "Europe/Amsterdam",
+  NO: "Europe/Oslo", NP: "Asia/Kathmandu", NR: "Pacific/Nauru",
+  NU: "Pacific/Niue", NZ: "Pacific/Auckland",
+  OM: "Asia/Muscat",
+  PA: "America/Panama", PE: "America/Lima", PG: "Pacific/Port_Moresby",
+  PH: "Asia/Manila", PK: "Asia/Karachi", PL: "Europe/Warsaw",
+  PR: "America/Puerto_Rico", PS: "Asia/Gaza", PT: "Europe/Lisbon",
+  PW: "Pacific/Palau", PY: "America/Asuncion",
+  QA: "Asia/Qatar",
+  RE: "Indian/Reunion", RO: "Europe/Bucharest", RS: "Europe/Belgrade",
+  RW: "Africa/Kigali",
+  SA: "Asia/Riyadh", SB: "Pacific/Guadalcanal", SC: "Indian/Mahe",
+  SD: "Africa/Khartoum", SE: "Europe/Stockholm", SG: "Asia/Singapore",
+  SI: "Europe/Ljubljana", SK: "Europe/Bratislava", SL: "Africa/Freetown",
+  SM: "Europe/San_Marino", SN: "Africa/Dakar", SO: "Africa/Mogadishu",
+  SR: "America/Paramaribo", SS: "Africa/Juba", SV: "America/El_Salvador",
+  SY: "Asia/Damascus", SZ: "Africa/Mbabane",
+  TC: "America/Grand_Turk", TD: "Africa/Ndjamena", TG: "Africa/Lome",
+  TH: "Asia/Bangkok", TJ: "Asia/Dushanbe", TL: "Asia/Dili",
+  TM: "Asia/Ashgabat", TN: "Africa/Tunis", TO: "Pacific/Tongatapu",
+  TR: "Europe/Istanbul", TT: "America/Port_of_Spain", TV: "Pacific/Funafuti",
+  TW: "Asia/Taipei", TZ: "Africa/Dar_es_Salaam",
+  UA: "Europe/Kyiv", UG: "Africa/Kampala", UY: "America/Montevideo",
+  UZ: "Asia/Tashkent",
+  VA: "Europe/Vatican", VC: "America/St_Vincent", VE: "America/Caracas",
+  VG: "America/Tortola", VI: "America/St_Thomas", VN: "Asia/Ho_Chi_Minh",
+  VU: "Pacific/Efate",
+  WS: "Pacific/Apia",
+  YE: "Asia/Aden",
+  ZA: "Africa/Johannesburg", ZM: "Africa/Lusaka", ZW: "Africa/Harare",
+  ST: "Africa/Sao_Tome",
+  UK: "Europe/London",
+};
+
+// Where a state settles the time zone. Only the three countries we
+// actually run courses in — anywhere else in MULTI_TZ still asks for
+// the zone directly, which is rare enough to be reasonable.
+//
+// The code is what gets stored, because "Jacksonville, FL" is what an
+// American expects to read, not "Jacksonville, United States".
+const STATES = {
+  US: [
+    ["AL","Alabama","America/Chicago"], ["AK","Alaska","America/Anchorage"],
+    ["AZ","Arizona","America/Phoenix"], ["AR","Arkansas","America/Chicago"],
+    ["CA","California","America/Los_Angeles"], ["CO","Colorado","America/Denver"],
+    ["CT","Connecticut","America/New_York"], ["DC","District of Columbia","America/New_York"],
+    ["DE","Delaware","America/New_York"], ["FL","Florida","America/New_York"],
+    ["GA","Georgia","America/New_York"], ["HI","Hawaii","Pacific/Honolulu"],
+    ["IA","Iowa","America/Chicago"], ["ID","Idaho","America/Boise"],
+    ["IL","Illinois","America/Chicago"], ["IN","Indiana","America/Indiana/Indianapolis"],
+    ["KS","Kansas","America/Chicago"], ["KY","Kentucky","America/New_York"],
+    ["LA","Louisiana","America/Chicago"], ["MA","Massachusetts","America/New_York"],
+    ["MD","Maryland","America/New_York"], ["ME","Maine","America/New_York"],
+    ["MI","Michigan","America/Detroit"], ["MN","Minnesota","America/Chicago"],
+    ["MO","Missouri","America/Chicago"], ["MS","Mississippi","America/Chicago"],
+    ["MT","Montana","America/Denver"], ["NC","North Carolina","America/New_York"],
+    ["ND","North Dakota","America/Chicago"], ["NE","Nebraska","America/Chicago"],
+    ["NH","New Hampshire","America/New_York"], ["NJ","New Jersey","America/New_York"],
+    ["NM","New Mexico","America/Denver"], ["NV","Nevada","America/Los_Angeles"],
+    ["NY","New York","America/New_York"], ["OH","Ohio","America/New_York"],
+    ["OK","Oklahoma","America/Chicago"], ["OR","Oregon","America/Los_Angeles"],
+    ["PA","Pennsylvania","America/New_York"], ["RI","Rhode Island","America/New_York"],
+    ["SC","South Carolina","America/New_York"], ["SD","South Dakota","America/Chicago"],
+    ["TN","Tennessee","America/Chicago"], ["TX","Texas","America/Chicago"],
+    ["UT","Utah","America/Denver"], ["VA","Virginia","America/New_York"],
+    ["VT","Vermont","America/New_York"], ["WA","Washington","America/Los_Angeles"],
+    ["WI","Wisconsin","America/Chicago"], ["WV","West Virginia","America/New_York"],
+    ["WY","Wyoming","America/Denver"],
+  ],
+  CA: [
+    ["AB","Alberta","America/Edmonton"], ["BC","British Columbia","America/Vancouver"],
+    ["MB","Manitoba","America/Winnipeg"], ["NB","New Brunswick","America/Moncton"],
+    ["NL","Newfoundland and Labrador","America/St_Johns"],
+    ["NS","Nova Scotia","America/Halifax"], ["NT","Northwest Territories","America/Yellowknife"],
+    ["NU","Nunavut","America/Iqaluit"], ["ON","Ontario","America/Toronto"],
+    ["PE","Prince Edward Island","America/Halifax"], ["QC","Quebec","America/Toronto"],
+    ["SK","Saskatchewan","America/Regina"], ["YT","Yukon","America/Whitehorse"],
+  ],
+  BR: [
+    ["AC","Acre","America/Rio_Branco"], ["AL","Alagoas","America/Maceio"],
+    ["AP","Amapá","America/Belem"], ["AM","Amazonas","America/Manaus"],
+    ["BA","Bahia","America/Bahia"], ["CE","Ceará","America/Fortaleza"],
+    ["DF","Distrito Federal","America/Sao_Paulo"], ["ES","Espírito Santo","America/Sao_Paulo"],
+    ["GO","Goiás","America/Sao_Paulo"], ["MA","Maranhão","America/Fortaleza"],
+    ["MT","Mato Grosso","America/Cuiaba"], ["MS","Mato Grosso do Sul","America/Campo_Grande"],
+    ["MG","Minas Gerais","America/Sao_Paulo"], ["PA","Pará","America/Belem"],
+    ["PB","Paraíba","America/Fortaleza"], ["PR","Paraná","America/Sao_Paulo"],
+    ["PE","Pernambuco","America/Recife"], ["PI","Piauí","America/Fortaleza"],
+    ["RJ","Rio de Janeiro","America/Sao_Paulo"], ["RN","Rio Grande do Norte","America/Fortaleza"],
+    ["RS","Rio Grande do Sul","America/Sao_Paulo"], ["RO","Rondônia","America/Porto_Velho"],
+    ["RR","Roraima","America/Boa_Vista"], ["SC","Santa Catarina","America/Sao_Paulo"],
+    ["SP","São Paulo","America/Sao_Paulo"], ["SE","Sergipe","America/Maceio"],
+    ["TO","Tocantins","America/Araguaina"],
+  ],
+  MX: [
+    ["AGU","Aguascalientes","America/Mexico_City"], ["BCN","Baja California","America/Tijuana"],
+    ["BCS","Baja California Sur","America/Mazatlan"], ["CAM","Campeche","America/Merida"],
+    ["CHP","Chiapas","America/Mexico_City"], ["CHH","Chihuahua","America/Chihuahua"],
+    ["CMX","Ciudad de México","America/Mexico_City"], ["COA","Coahuila","America/Monterrey"],
+    ["COL","Colima","America/Mexico_City"], ["DUR","Durango","America/Monterrey"],
+    ["GUA","Guanajuato","America/Mexico_City"], ["GRO","Guerrero","America/Mexico_City"],
+    ["HID","Hidalgo","America/Mexico_City"], ["JAL","Jalisco","America/Mexico_City"],
+    ["MEX","México","America/Mexico_City"], ["MIC","Michoacán","America/Mexico_City"],
+    ["MOR","Morelos","America/Mexico_City"], ["NAY","Nayarit","America/Mazatlan"],
+    ["NLE","Nuevo León","America/Monterrey"], ["OAX","Oaxaca","America/Mexico_City"],
+    ["PUE","Puebla","America/Mexico_City"], ["QUE","Querétaro","America/Mexico_City"],
+    ["ROO","Quintana Roo","America/Cancun"], ["SLP","San Luis Potosí","America/Mexico_City"],
+    ["SIN","Sinaloa","America/Mazatlan"], ["SON","Sonora","America/Hermosillo"],
+    ["TAB","Tabasco","America/Mexico_City"], ["TAM","Tamaulipas","America/Matamoros"],
+    ["TLA","Tlaxcala","America/Mexico_City"], ["VER","Veracruz","America/Mexico_City"],
+    ["YUC","Yucatán","America/Merida"], ["ZAC","Zacatecas","America/Mexico_City"],
+  ],
+  AU: [
+    ["ACT","Australian Capital Territory","Australia/Sydney"],
+    ["NSW","New South Wales","Australia/Sydney"],
+    ["NT","Northern Territory","Australia/Darwin"],
+    ["QLD","Queensland","Australia/Brisbane"],
+    ["SA","South Australia","Australia/Adelaide"],
+    ["TAS","Tasmania","Australia/Hobart"],
+    ["VIC","Victoria","Australia/Melbourne"],
+    ["WA","Western Australia","Australia/Perth"],
+  ],
+};
+
+// Texas and Florida both have a second zone in their far corners, and
+// Indiana has several. The listed zone covers where the population is;
+// the picker is still there to override it.
+const STATE_LABEL = {
+  US: "State", CA: "Province or territory", AU: "State or territory",
+  BR: "State", MX: "State",
+};
+
+function buildStateOptions(cc) {
+  const wrap = document.getElementById("wrap-state");
+  const sel = document.getElementById("f-state");
+  const rows = STATES[cc];
+
+  wrap.classList.toggle("hidden", !rows);
+  if (!rows) { sel.innerHTML = '<option value="">Choose…</option>'; return; }
+
+  document.querySelector('label[for="f-state"]').childNodes[0].nodeValue =
+    (STATE_LABEL[cc] || "State") + " ";
+
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Choose…</option>';
+  for (const [code, name] of rows) {
+    const o = document.createElement("option");
+    o.value = code;
+    o.textContent = name;
+    sel.append(o);
+  }
+  if (rows.some(([c]) => c === current)) sel.value = current;
+}
+
+function zoneForState(cc, state) {
+  const rows = STATES[cc];
+  if (!rows) return null;
+  const hit = rows.find(([c]) => c === state);
+  return hit ? hit[2] : null;
+}
+
+// Countries where more than one zone exists on paper but everywhere
+// anyone lives keeps the same time. Asking would be pedantic, so these
+// resolve like any other single-zone country.
+const NOMINALLY_MULTI = {
+  AR: "America/Argentina/Buenos_Aires",  // every zone is UTC-3
+  KZ: "Asia/Almaty",                     // unified to one zone in 2024
+  MN: "Asia/Ulaanbaatar",                // the western zones are near-empty
+  EC: "America/Guayaquil",               // mainland; only the Galápagos differ
+  GL: "America/Nuuk",                    // where the population is
+  PG: "Pacific/Port_Moresby",
+  CD: "Africa/Kinshasa",
+  FM: "Pacific/Chuuk",
+  PF: "Pacific/Tahiti",
+  KI: "Pacific/Tarawa",
+  MH: "Pacific/Majuro",
+};
+Object.assign(COUNTRY_TZ, NOMINALLY_MULTI);
+
+// What is left genuinely needs a human: either a state picker below,
+// or the zone typed directly. Indonesia and Russia stay here because
+// Bali and Jakarta really are different times.
+const MULTI_TZ = new Set(["US", "CA", "AU", "BR", "MX", "RU", "ID"]);
+
+// Argentina, Ecuador and the rest above are in MULTI_TZ, so their
+// single-zone entries are not listed. Everything else in the country
+// dropdown resolves to exactly one zone.
+
+// Every zone the browser knows about, so the picker is never missing
+// the one a course actually needs.
+function buildTimezoneList() {
+  const list = document.getElementById("tzlist");
+  if (!list) return;
+  let zones = [];
+  try {
+    zones = Intl.supportedValuesOf("timeZone");
+  } catch (e) {
+    // Older browsers do not expose the list; fall back to the zones
+    // the countries above resolve to, which covers every country in
+    // the dropdown.
+    zones = [...new Set(Object.values(COUNTRY_TZ))].sort();
+  }
+  list.innerHTML = "";
+  for (const z of zones) {
+    const o = document.createElement("option");
+    o.value = z;
+    list.append(o);
+  }
+}
+
+function tzIsReal(tz) {
+  if (!tz) return false;
+  try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; }
+  catch { return false; }
+}
+const safeZone = (tz) => (tzIsReal(tz) ? tz : undefined);
+
+// How far the given zone sits from UTC at that particular moment,
+// which is not a constant — it changes when the clocks do.
+function zoneOffsetAt(date, tz) {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  });
+  const p = {};
+  for (const part of dtf.formatToParts(date)) p[part.type] = part.value;
+  const asUTC = Date.UTC(
+    +p.year, +p.month - 1, +p.day,
+    p.hour === "24" ? 0 : +p.hour, +p.minute, +p.second
+  );
+  return asUTC - date.getTime();
+}
+
+// "8 Aug 2026, 09:00, Europe/London" -> the real instant to store.
+// Two passes, because the offset we need depends on the answer we are
+// working out — one iteration settles it either side of a clock change.
+function zonedToInstant(dateStr, timeStr, tz) {
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  const [h, mi] = (timeStr || "09:00").split(":").map(Number);
+  const naive = Date.UTC(y, mo - 1, d, h || 0, mi || 0, 0);
+  if (!tzIsReal(tz)) return new Date(naive);
+  let guess = new Date(naive - zoneOffsetAt(new Date(naive), tz));
+  guess = new Date(naive - zoneOffsetAt(guess, tz));
+  return guess;
+}
+
+// The reverse, for filling the date and time boxes back in.
+function instantToZoned(iso, tz) {
+  const dtf = new Intl.DateTimeFormat("en-CA", {
+    timeZone: safeZone(tz), hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+  });
+  const p = {};
+  for (const part of dtf.formatToParts(new Date(iso))) p[part.type] = part.value;
+  return {
+    date: `${p.year}-${p.month}-${p.day}`,
+    time: `${p.hour === "24" ? "00" : p.hour}:${p.minute}`,
+  };
+}
+
+const MY_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+const BIN_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+  <path d="M10 11v6M14 11v6"/></svg>`;
+
+const RESTORE_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>`;
+
+const CAMERA_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+  <circle cx="12" cy="13" r="4"/></svg>`;
+
+function tagFor(course) {
+  const b = BRAND[course.brand] || BRAND.birdbox;
+  const lvl = String(course.level || "").replace(/\D/g, "");
+  const isWorkshop = course.type === "workshop";
+  const text = isWorkshop
+    ? `${b.label} Workshop`
+    : lvl ? `${b.label} L${lvl}` : b.label;
+  const key = isWorkshop ? `${course.brand}:workshop` : `${course.brand}:${lvl}`;
+  return { text, colour: TAG_COLOUR[key] || b.colour };
+}
+
+const $ = (id) => document.getElementById(id);
+const views = {
+  login:   $("view-login"),
+  courses: $("view-courses"),
+  course:  $("view-course"),
+  newc:    $("view-new"),
+  emails:  $("view-emails"),
+  invoices: $("view-invoices"),
+  profile:  $("view-profile"),
+  team:     $("view-team"),
+  messages: $("view-messages"),
+  people:   $("view-people"),
+  reports:  $("view-reports"),
+};
+const show = (n) =>
+  Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== n));
+
+let me = null;
+let staffList = [];
+let tab = "live";
+let myRoles = {};
+
+// Courses this coach has put away for themselves. Nobody else's view
+// of a course changes when they do it, which is the whole point.
+let myArchived = new Set();
+
+async function loadMyArchive() {
+  myArchived = new Set();
+  if (!me) return;
+  const { data, error } = await db.from("course_archives")
+    .select("course_id").eq("staff_id", me.id);
+  if (error) { console.error("Could not load archive:", error.message); return; }
+  for (const r of data || []) myArchived.add(r.course_id);
+}
+
+const isAdmin = () => me && me.role === "admin";
+const amLeadOn = (courseId) => isAdmin() || myRoles[courseId] === "lead_coach";
+const isPast = (c) => !!c.archived || c.status === "cancelled" || c.status === "complete";
+
+/* ---------------- which courses have feedback ---------------- */
+
+// Read from feedback_manuals, the same table the drafting function
+// and the feedback page read, so all three agree. A course type with
+// no row does not do feedback at all — TCC Level 2 issues its
+// certificate from the online course after the exam, so no feedback
+// email is written for it.
+//
+// null means the lookup failed. Nothing is hidden in that case: an
+// unreachable table should not quietly remove a button, and the
+// drafting function refuses on its own anyway.
+let feedbackManualKeys = new Set();
+
+async function loadFeedbackManuals() {
+  const { data, error } = await db
+    .from("feedback_manuals")
+    .select("brand, type, level, active")
+    .eq("active", true);
+
+  if (error) {
+    console.error("Could not load feedback manuals:", error.message);
+    feedbackManualKeys = null;
+    return;
+  }
+
+  feedbackManualKeys = new Set(
+    (data || []).map((r) =>
+      `${r.brand}:${r.type}:${String(r.level || "").replace(/\D/g, "")}`)
+  );
+}
+
+function courseHasFeedback(course) {
+  if (feedbackManualKeys === null) return true;
+  const key = `${course.brand}:${course.type}:` +
+              String(course.level || "").replace(/\D/g, "");
+  return feedbackManualKeys.has(key);
+}
+
+/* ---------------- auth ---------------- */
+
+$("signin").addEventListener("click", signIn);
+$("password").addEventListener("keydown", (e) => { if (e.key === "Enter") signIn(); });
+
+async function signIn() {
+  const msg = $("login-msg");
+  msg.className = "msg"; msg.textContent = "Signing in…";
+  $("signin").disabled = true;
+  const { error } = await db.auth.signInWithPassword({
+    email: $("email").value.trim(),
+    password: $("password").value,
+  });
+  $("signin").disabled = false;
+  if (error) {
+    msg.className = "msg err";
+    msg.textContent = "That email and password did not match. Try again.";
+    return;
+  }
+  msg.textContent = "";
+  await start();
+}
+
+$("signout").addEventListener("click", async () => {
+  await db.auth.signOut();
+  me = null;
+  myRoles = {};
+  $("who").textContent = "";
+  $("signout").classList.add("hidden");
+  $("profilebtn").classList.add("hidden");
+  $("messagesbtn").classList.add("hidden");
+  if (dmChannel) { db.removeChannel(dmChannel); dmChannel = null; }
+  const toast = document.getElementById("dm-toast");
+  if (toast) toast.remove();
+  $("codeslink").classList.add("hidden");
+  $("bloglink").classList.add("hidden");
+  $("feedbacklink").classList.add("hidden");
+  $("password").value = "";
+  show("login");
+});
+
+async function start() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { show("login"); return; }
+
+  const { data: staff, error } = await db
+    .from("staff").select("id, full_name, role, active")
+    .eq("id", session.user.id).maybeSingle();
+
+  const fail = async (text) => {
+    const msg = $("login-msg");
+    msg.className = "msg err"; msg.textContent = text;
+    await db.auth.signOut(); show("login");
+  };
+
+  if (error || !staff) return fail("This login is not set up as a staff member. Contact an admin.");
+  if (!staff.active)   return fail("This account is no longer active.");
+
+  me = staff;
+  const admin = staff.role === "admin";
+  $("who").textContent = staff.full_name;
+  $("signout").classList.remove("hidden");
+  $("profilebtn").classList.remove("hidden");
+  $("messagesbtn").classList.remove("hidden");
+  refreshUnreadFlag();
+  listenForMessages();
+  $("hello").textContent = `Welcome back, ${staff.full_name.split(" ")[0]}`;
+  $("myrole").textContent = staff.role.replace(/_/g, " ");
+  $("newcourse").classList.toggle("hidden", !admin);
+  $("emailsbtn").classList.toggle("hidden", !admin);
+  $("invoicesbtn").classList.toggle("hidden", !admin);
+  // Every coach can export their own courses and participants. The
+  // finances panel inside is admin only.
+  $("reportsbtn").classList.remove("hidden");
+  // Every coach keeps their own; an admin also reads what comes in.
+  $("reflectlink").classList.remove("hidden");
+  // Private to whoever is signed in, so everybody gets it.
+  $("docslink").classList.remove("hidden");
+  refreshReflectionFlag();
+  $("teambtn").classList.toggle("hidden", !admin);
+  $("workshopsbtn").classList.remove("hidden");
+  $("workshopsbtn").onclick = () => { location.href = "/portal/workshops/"; };
+      refreshWorkshopFlag();
+  $("codeslink").classList.toggle("hidden", !admin);
+  // Every coach can write a post; admins also review and publish.
+  $("bloglink").classList.remove("hidden");
+    refreshBlogFlag();
+
+  await loadFeedbackManuals();
+  await loadCourses();
+}
+
+/* ---------------- courses ---------------- */
+
+// Dates are shown as they read in the course's own city. A Tokyo
+// course starting Saturday morning is a Saturday course, even when
+// the person looking at the list is still on Friday evening.
+const fmtDate = (iso, tz) => iso
+  ? new Date(iso).toLocaleDateString(undefined, {
+      day: "numeric", month: "short", year: "numeric", timeZone: safeZone(tz),
+    })
+  : "";
+
+const fmtDay = (d) => d
+  ? new Date(d + "T00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" })
+  : "";
+
+const fmtWhen = (iso) => iso
+  ? new Date(iso).toLocaleString(undefined, {
+      day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+    })
+  : "";
+
+const fmtWhenIn = (date, tz) =>
+  date.toLocaleString(undefined, {
+    weekday: "short", day: "numeric", month: "short",
+    hour: "2-digit", minute: "2-digit", timeZone: safeZone(tz),
+  });
+
+const money = (cents, currency) =>
+  new Intl.NumberFormat(undefined, {
+    style: "currency", currency: currency || "EUR", maximumFractionDigits: 0,
+  }).format((cents || 0) / 100);
+
+const daysUntil = (iso) => Math.ceil((new Date(iso) - new Date()) / 86400000);
+
+$("newcourse").addEventListener("click", () => { editingCourse = null; openForm(); });
+$("editcoursebtn").addEventListener("click", () => {
+  if (currentCourse) openEditCourse(currentCourse);
+});
+$("back2").addEventListener("click", () => { editingCourse = null; });
+$("back").addEventListener("click", loadCourses);
+$("back2").addEventListener("click", loadCourses);
+$("tocourses").addEventListener("click", loadCourses);
+
+for (const id of ["tab-live", "tab-past", "tab-done"]) {
+  $(id).addEventListener("click", () => {
+    tab = $(id).dataset.tab;
+    $("tab-live").classList.toggle("on", tab === "live");
+    $("tab-past").classList.toggle("on", tab === "past");
+    $("tab-done").classList.toggle("on", tab === "done");
+    loadCourses();
+  });
+}
+
+async function loadCourses() {
+  show("courses");
+  const list = $("courses-list");
+  const alertBox = $("lowalert");
+  alertBox.innerHTML = "";
+  list.innerHTML = '<p class="empty">Loading…</p>';
+
+  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, status, slug, archived, grants_online_course, completed_at, issues_certificate, host_name, host_email, host_spots, prepaid_spots";
+
+  let all = [];
+  if (isAdmin()) {
+    const { data, error } = await db.from("courses").select(cols)
+      .order("starts_at", { ascending: true });
+    if (error) { list.innerHTML = '<p class="empty">Could not load courses.</p>'; return; }
+    all = data || [];
+    $("courses-sub").textContent = "Every course across all brands.";
+
+    // An admin sees every course, but is also a coach on some of them.
+    // Without this, their own roles were never loaded, so anything that
+    // depends on being assigned — invoicing for a course you coached —
+    // simply never appeared.
+    myRoles = {};
+    const { data: mine } = await db.from("course_staff")
+      .select("course_id, role").eq("staff_id", me.id);
+    for (const r of mine || []) myRoles[r.course_id] = r.role;
+  } else {
+    const { data, error } = await db.from("course_staff")
+      .select(`role, courses (${cols})`);
+    if (error) { list.innerHTML = '<p class="empty">Could not load courses.</p>'; return; }
+
+    myRoles = {};
+    all = (data || [])
+      .filter((r) => r.courses)
+      .map((r) => { myRoles[r.courses.id] = r.role; return r.courses; });
+
+    all.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+    $("courses-sub").textContent = "Courses you are allocated to.";
+  }
+
+  // Feedback is a lead coach's job, so the link only shows if they
+  // actually lead something.
+  const leadsSomething = isAdmin() ||
+    Object.values(myRoles).some((r) => r === "lead_coach");
+  $("feedbacklink").classList.toggle("hidden", !leadsSomething);
+
+  await loadMyArchive();
+
+  // A course a coach has filed comes off their live list and appears
+  // under Finished. Nothing about the course itself changes.
+  const doneOnes = all.filter((c) => !isPast(c) && myArchived.has(c.id));
+  const liveOnes = all.filter((c) => !isPast(c) && !myArchived.has(c.id));
+  const pastOnes = all.filter(isPast);
+
+  $("n-live").textContent = liveOnes.length ? liveOnes.length : "";
+  $("n-past").textContent = pastOnes.length ? pastOnes.length : "";
+  $("n-done").textContent = doneOnes.length ? doneOnes.length : "";
+  $("tab-done").classList.toggle("hidden", !doneOnes.length);
+
+  // The tab can vanish underneath somebody who is standing on it.
+  if (tab === "done" && !doneOnes.length) {
+    tab = "live";
+    $("tab-live").classList.add("on");
+    $("tab-done").classList.remove("on");
+  }
+
+  const byNewest = (rows) =>
+    rows.slice().sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at));
+
+  const courses = tab === "past" ? byNewest(pastOnes)
+                : tab === "done" ? byNewest(doneOnes)
+                : liveOnes;
+
+  if (!courses.length) {
+    list.innerHTML = `<p class="empty">${
+      tab === "past" ? "Nothing archived or cancelled."
+      : tab === "done" ? "Nothing filed yet."
+      : "No live courses."
+    }</p>`;
+    return;
+  }
+
+  const booked = {};
+  const { data: regs } = await db.from("registrations")
+    .select("course_id, payment_status")
+    .in("course_id", courses.map((c) => c.id));
+  for (const r of regs || []) {
+    if (r.payment_status === "refunded" || r.payment_status === "failed") continue;
+    booked[r.course_id] = (booked[r.course_id] || 0) + 1;
+  }
+
+  // Who owes an invoice, and who has sent one. Only worth loading for
+  // courses that have actually run — nobody invoices in advance.
+  // Only once the certificates have gone out. Before that the course
+  // is not finished, and an invoice would be early.
+  const ended = courses.filter((c) => !!c.completed_at);
+  const invoiceState = {};
+
+  if (ended.length) {
+    const ids = ended.map((c) => c.id);
+
+    const { data: invRows } = await db.from("coach_invoices")
+      .select("course_id, staff_id, status, paid_at")
+      .in("course_id", ids);
+
+    if (isAdmin()) {
+      // Every coach assigned to the course owes one.
+      const { data: assigned } = await db.from("course_staff")
+        .select("course_id, staff_id").in("course_id", ids);
+
+      const owed = {};
+      for (const a of assigned || []) {
+        (owed[a.course_id] = owed[a.course_id] || new Set()).add(a.staff_id);
       }
+      const sent = {};
+      const paid = {};
+      for (const i of invRows || []) {
+        if (i.status !== "submitted") continue;
+        (sent[i.course_id] = sent[i.course_id] || new Set()).add(i.staff_id);
+        if (i.paid_at) (paid[i.course_id] = paid[i.course_id] || new Set()).add(i.staff_id);
+      }
+      for (const c of ended) {
+        const total = owed[c.id] ? owed[c.id].size : 0;
+        const inCount = sent[c.id] ? sent[c.id].size : 0;
+        const paidCount = paid[c.id] ? paid[c.id].size : 0;
+        if (total) invoiceState[c.id] = { total, sent: inCount, paid: paidCount };
+      }
+    } else {
+      // A coach only ever sees their own.
+      const mine = {};
+      for (const i of invRows || []) {
+        if (i.staff_id === me.id) mine[i.course_id] = i;
+      }
+      for (const c of ended) {
+        if (!myRoles[c.id]) continue;
+        const row = mine[c.id];
+        invoiceState[c.id] = {
+          total: 1,
+          sent: row && row.status === "submitted" ? 1 : 0,
+          paid: row && row.paid_at ? 1 : 0,
+        };
+      }
+    }
+  }
 
-      if (!lead) return json({ error: "Only the lead coach or an admin can do this" }, 403);
+  const hasLead = {};
+  const assistCount = {};
+  if (isAdmin()) {
+    const { data: staffRows } = await db.from("course_staff")
+      .select("course_id, role")
+      .in("course_id", courses.map((c) => c.id));
+    for (const row of staffRows || []) {
+      if (row.role === "lead_coach") hasLead[row.course_id] = true;
+      else if (row.role === "assistant") {
+        assistCount[row.course_id] = (assistCount[row.course_id] || 0) + 1;
+      }
+    }
+  }
+
+  // Courses that have sold enough to need another pair of hands, with
+  // time left to arrange it.
+  const understaffed = (isAdmin() && tab === "live")
+    ? courses.map((c) => {
+        if (c.status === "draft") return null;
+        const days = daysUntil(c.starts_at);
+        if (days < ASSIST_NOTICE_DAYS) return null;
+        const taken = booked[c.id] || 0;
+        const need = assistsNeeded(taken);
+        const have = assistCount[c.id] || 0;
+        return need > have ? { course: c, taken, need, have, days } : null;
+      }).filter(Boolean)
+    : [];
+
+  if (understaffed.length) {
+    const el = document.createElement("div");
+    el.className = "alert";
+    el.innerHTML =
+      `<b>${understaffed.length} course${understaffed.length === 1 ? "" : "s"} ` +
+      `need${understaffed.length === 1 ? "s" : ""} another coach</b>` +
+      "Numbers have grown past what one coach should take on their own." +
+      "<ul></ul>";
+    const ul = el.querySelector("ul");
+    for (const u of understaffed) {
+      const short = u.need - u.have;
+      const li = document.createElement("li");
+      li.textContent =
+        `${u.course.title} — ${u.taken} booked, ` +
+        `${u.have} assistant${u.have === 1 ? "" : "s"} assigned, ` +
+        `${short} more needed · ${u.days} day${u.days === 1 ? "" : "s"} away`;
+      ul.append(li);
+    }
+    alertBox.append(el);
+  }
+
+  const struggling = (isAdmin() && tab === "live")
+    ? courses.filter((c) => {
+        if (c.status === "draft") return false;
+        const days = daysUntil(c.starts_at);
+        return days >= 0 && days <= LOW_DAYS_OUT && (booked[c.id] || 0) < LOW_NUMBERS;
+      })
+    : [];
+
+  if (struggling.length) {
+    const el = document.createElement("div");
+    el.className = "alert";
+    el.innerHTML = `<b>${struggling.length} course${struggling.length === 1 ? "" : "s"} need${struggling.length === 1 ? "s" : ""} a decision</b>
+      Under ${LOW_NUMBERS} places sold, within ${LOW_DAYS_OUT} days of running.
+      <ul></ul>`;
+    const ul = el.querySelector("ul");
+    for (const c of struggling) {
+      const d = daysUntil(c.starts_at);
+      const li = document.createElement("li");
+      li.textContent =
+        `${c.title} — ${fmtDate(c.starts_at, c.timezone)}, ${booked[c.id] || 0} booked, ` +
+        `${d} day${d === 1 ? "" : "s"} away`;
+      ul.append(li);
+    }
+    alertBox.append(el);
+  }
+
+  const needLead = (isAdmin() && tab === "live")
+    ? courses.filter((c) => {
+        if (c.status === "draft" || hasLead[c.id]) return false;
+        const days = daysUntil(c.starts_at);
+        return days >= 0 && days <= LEAD_DAYS_OUT;
+      })
+    : [];
+
+  if (needLead.length) {
+    const el = document.createElement("div");
+    el.className = "alert flag";
+    el.innerHTML = `<b>${needLead.length} course${needLead.length === 1 ? "" : "s"} still without a lead coach</b>
+      Within ${LEAD_DAYS_OUT} days of running.
+      <ul></ul>`;
+    const ul = el.querySelector("ul");
+    for (const c of needLead) {
+      const d = daysUntil(c.starts_at);
+      const li = document.createElement("li");
+      li.textContent = `${c.title} — ${fmtDate(c.starts_at, c.timezone)}, ${d} day${d === 1 ? "" : "s"} away`;
+      ul.append(li);
+    }
+    alertBox.append(el);
+  }
+
+  list.innerHTML = "";
+  for (const c of courses) {
+    const b = BRAND[c.brand] || BRAND.birdbox;
+    const t = tagFor(c);
+    const taken = booked[c.id] || 0;
+    const days = daysUntil(c.starts_at);
+    const isLow = tab === "live" && c.status !== "draft" &&
+                  days >= 0 && days <= LOW_DAYS_OUT && taken < LOW_NUMBERS;
+
+    const el = document.createElement("div");
+    el.className = "card" + (isPast(c) ? " is-archived" : "");
+    // A submitted course reads as finished business rather than a
+    // brand colour among the live ones.
+    el.style.borderLeftColor = c.completed_at ? "var(--good)"
+      : isLow ? "#b4610f" : t.colour;
+    el.innerHTML = `
+      <button class="course" type="button">
+        <span class="icon"><img alt=""></span>
+        <span>
+          <span class="top">
+            <span class="title"></span>
+            <span class="when"></span>
+          </span>
+          <span class="line"></span>
+          <span class="flags"></span>
+        </span>
+      </button>
+      <button class="copy" type="button" title="Copy the registration link">Copy<br>link</button>`;
+
+    el.querySelector(".icon img").src = b.icon;
+    el.querySelector(".title").textContent = c.title;
+    el.querySelector(".when").textContent = fmtDate(c.starts_at, c.timezone);
+    el.querySelector(".line").textContent =
+      [c.city, countryName(c.country)].filter(Boolean).join(", ") || "Location to be confirmed";
+
+    const flags = el.querySelector(".flags");
+    const tagEl = document.createElement("span");
+    tagEl.className = "tag";
+    tagEl.style.background = t.colour;
+    tagEl.textContent = t.text;
+    flags.append(tagEl);
+
+    const add = (text, cls = "") => {
+      const s = document.createElement("span");
+      s.className = "pill " + cls; s.textContent = text; flags.append(s);
+    };
+
+    if (!isAdmin() && myRoles[c.id]) {
+      add(myRoles[c.id] === "lead_coach" ? "you: lead" : "you: assist",
+          myRoles[c.id] === "lead_coach" ? "lead" : "");
+    }
+    if (isAdmin() && !isPast(c) && !hasLead[c.id] && c.status !== "draft") {
+      const due = days >= 0 && days <= LEAD_DAYS_OUT;
+      add("no lead", due ? "nolead due" : "nolead");
+    }
+    if (isLow) add(`${taken} booked · ${days}d away`, "low");
+
+    // Said on the card as well as in the summary above, so it is still
+    // visible once the alert has been read past.
+    if (isAdmin() && !isPast(c) && c.status !== "draft") {
+      const need = assistsNeeded(taken);
+      const have = assistCount[c.id] || 0;
+      if (need > have) {
+        const short = need - have;
+        add(`needs ${short} more assistant${short === 1 ? "" : "s"}`,
+            days >= ASSIST_NOTICE_DAYS ? "nolead due" : "nolead");
+      }
+    }
+    // "Completed" means the coach pressed submit and the certificates
+    // went out — not simply that the date has passed.
+    if (c.completed_at) add("completed", "done");
+    else if (c.status === "complete") add("ran — not submitted", "warn");
+    else if (c.status === "cancelled") add("cancelled", "bad");
+    else if (c.archived) add("archived", "draft");
+    // Money owed to coaches is the thing most easily forgotten once a
+    // course is over, so it says so on the card rather than waiting to
+    // be looked for.
+    const inv = invoiceState[c.id];
+    if (inv) {
+      if (inv.paid === inv.total) add("invoices paid", "done");
+      else if (inv.sent === inv.total) {
+        add(isAdmin() && inv.total > 1 ? `${inv.sent} invoices in` : "invoice sent", "on");
+      } else if (inv.sent) {
+        add(`${inv.total - inv.sent} of ${inv.total} invoices due`, "warn");
+      } else {
+        add(isAdmin() && inv.total > 1 ? `${inv.total} invoices due` : "invoice due", "warn");
+      }
     }
 
-    // ---- the course -------------------------------------------
-    const { data: course, error: cErr } = await supabase
-      .from("courses")
-      .select("id, brand, type, level, title, workshop_focus, starts_at, ends_at, timezone, completed_at, issues_certificate")
-      .eq("id", courseId)
+    if (myArchived.has(c.id)) add("filed", "done");
+    if (c.status === "full") add("full", "warn");
+    if (c.status === "draft") add("draft", "draft");
+    if (c.timezone && !tzIsReal(c.timezone)) add("bad time zone", "bad");
+
+    el.querySelector(".course").addEventListener("click", () => openCourse(c));
+
+    const copyBtn = el.querySelector(".copy");
+    copyBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const url = `${location.origin}/c/${c.slug}/`;
+      try {
+        await navigator.clipboard.writeText(url);
+        copyBtn.classList.add("done");
+        copyBtn.innerHTML = "Copied";
+      } catch {
+        window.prompt("Copy this link", url);
+      }
+      setTimeout(() => {
+        copyBtn.classList.remove("done");
+        copyBtn.innerHTML = "Copy<br>link";
+      }, 1800);
+    });
+
+    if (isAdmin() && isPast(c)) {
+      const restore = document.createElement("button");
+      restore.className = "rowbtn restore";
+      restore.type = "button";
+      restore.title = "Restore as a draft";
+      restore.setAttribute("aria-label", "Restore " + c.title);
+      restore.innerHTML = RESTORE_SVG;
+      restore.addEventListener("click", (e) => { e.stopPropagation(); restoreCourse(c); });
+      el.append(restore);
+
+      const bin = document.createElement("button");
+      bin.className = "rowbtn bin";
+      bin.type = "button";
+      bin.title = "Delete permanently";
+      bin.setAttribute("aria-label", "Delete " + c.title + " permanently");
+      bin.innerHTML = BIN_SVG;
+      bin.addEventListener("click", (e) => { e.stopPropagation(); askToDelete(c); });
+      el.append(bin);
+    }
+
+    list.appendChild(el);
+  }
+}
+
+/* ---------------- restore ---------------- */
+
+async function restoreCourse(course) {
+  if (!window.confirm(
+    `Restore "${course.title}"?\n\n` +
+    "It comes back as a draft, so it will not be on sale until you publish it."
+  )) return;
+
+  const { error } = await db.from("courses")
+    .update({ archived: false, status: "draft" }).eq("id", course.id);
+
+  if (error) { window.alert("Could not restore: " + error.message); return; }
+  tab = "live";
+  $("tab-live").classList.add("on");
+  $("tab-past").classList.remove("on");
+  await loadCourses();
+}
+
+/* ---------------- permanent delete ---------------- */
+
+let pendingDelete = null;
+
+async function askToDelete(course) {
+  pendingDelete = course;
+
+  const { count: regCount } = await db.from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("course_id", course.id);
+
+  $("del-what").innerHTML =
+    `<strong></strong> and everything attached to it will be removed from the database. ` +
+    `This cannot be undone.`;
+  $("del-what").querySelector("strong").textContent = course.title;
+
+  const loses = $("del-loses");
+  if (regCount) {
+    loses.innerHTML =
+      `<strong>This course has ${regCount} registration${regCount === 1 ? "" : "s"}.</strong>` +
+      `<ul>
+         <li>Participant names, emails, photos and waiver records</li>
+         <li>Payment records and every coach note</li>
+       </ul>
+       Stripe keeps its own record of any money taken, but yours will be gone.`;
+  } else {
+    loses.innerHTML = "Nobody has registered, so nothing else is lost.";
+  }
+
+  $("del-input").value = "";
+  $("del-go").disabled = true;
+  $("del-msg").textContent = "";
+  $("delwrap").classList.remove("hidden");
+  setTimeout(() => $("del-input").focus(), 50);
+}
+
+function closeDelete() {
+  $("delwrap").classList.add("hidden");
+  pendingDelete = null;
+}
+
+$("del-cancel").addEventListener("click", closeDelete);
+$("delwrap").addEventListener("click", (e) => { if (e.target === $("delwrap")) closeDelete(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("delwrap").classList.contains("hidden")) closeDelete();
+});
+
+$("del-input").addEventListener("input", () => {
+  $("del-go").disabled = $("del-input").value.trim().toUpperCase() !== "DELETE";
+});
+
+$("del-go").addEventListener("click", async () => {
+  if (!pendingDelete) return;
+  const course = pendingDelete;
+  const msg = $("del-msg");
+
+  $("del-go").disabled = true;
+  msg.className = "msg";
+  msg.textContent = "Deleting…";
+
+  try {
+    const { data: regs } = await db.from("registrations")
+      .select("id, photo_path").eq("course_id", course.id);
+
+    const ids = (regs || []).map((r) => r.id);
+    const photos = (regs || []).map((r) => r.photo_path).filter(Boolean);
+
+    if (photos.length) {
+      await db.storage.from("participant-photos").remove(photos);
+    }
+
+    if (ids.length) {
+      const { error: payErr } = await db.from("payments")
+        .delete().in("registration_id", ids);
+      if (payErr) throw payErr;
+
+      const { error: regErr } = await db.from("registrations")
+        .delete().eq("course_id", course.id);
+      if (regErr) throw regErr;
+    }
+
+    await db.from("participant_notes").delete().eq("course_id", course.id);
+
+    const { error: csErr } = await db.from("course_staff")
+      .delete().eq("course_id", course.id);
+    if (csErr) throw csErr;
+
+    const { error } = await db.from("courses").delete().eq("id", course.id);
+    if (error) throw error;
+
+    closeDelete();
+    await loadCourses();
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = "Could not delete: " + (err.message || "unknown error");
+    $("del-go").disabled = false;
+  }
+});
+
+/* ---------------- attendees ---------------- */
+
+const PAY_LABEL = {
+  paid_in_full: "paid in full",
+  deposit_paid: "deposit paid",
+  plan_active:  "payment plan",
+  pending:      "payment pending",
+  refunded:     "refunded",
+  failed:       "payment failed",
+};
+
+async function openCourse(course) {
+  show("course");
+  $("course-title").textContent = course.title;
+
+  const myRole = isAdmin() ? null : myRoles[course.id];
+  $("course-meta").textContent = [
+    fmtDate(course.starts_at, course.timezone),
+    [course.city, countryName(course.country)].filter(Boolean).join(", "),
+    myRole === "lead_coach" ? "You are lead coach"
+      : myRole === "assistant" ? "You are assisting" : null,
+    course.completed_at
+      ? "Completed — certificates sent " + fmtWhen(course.completed_at)
+      : course.status === "complete" ? "Ran — not yet submitted"
+      : course.status === "cancelled" ? "Cancelled"
+      : course.archived ? "Archived"
+      : course.status === "draft" ? "Draft — not on sale" : null,
+  ].filter(Boolean).join(" · ");
+
+  $("counts").textContent = "";
+  $("admin-msg").textContent = "";
+  $("adminpanel").classList.add("hidden");
+  const box = $("attendees");
+  box.innerHTML = '<p class="empty">Loading…</p>';
+
+  const { data, error } = await db.from("registrations")
+    .select("id, first_name, last_name, email, phone, country, created_at, payment_status, attended, certificate_sent_at, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name, learnworlds_language, learnworlds_status, learnworlds_user_id, learnworlds_enrolled_at, learnworlds_error, attendance_marked_at, attendance_marked_by")
+    .eq("course_id", course.id)
+    .order("last_name", { ascending: true });
+
+  if (error) { box.innerHTML = '<p class="empty">Could not load registrations.</p>'; return; }
+
+  const allRegs = data || [];
+  currentCourse = course;
+  allRegistrations = allRegs;
+  const showAll = $("pm-showall").checked;
+  const regs = showAll ? allRegs : allRegs.filter((r) => (r.status || "active") === "active");
+  const live = regs.filter(
+    (r) => r.payment_status !== "refunded" && r.payment_status !== "failed"
+  );
+
+  if (isAdmin()) wireAdmin(course, regs.length, live.length);
+  $("pm-bar").classList.toggle("hidden", !isAdmin());
+  await loadOnlineLanguages(course);
+  await loadWelcomes(course.id);
+  await loadAdhoc(course.id);
+  await loadPrecourse(course.id);
+  showPrecourseBar(course);
+  showCertBar(course);
+  await loadFeedbackState(course);
+  showFeedbackBar(course);
+  await loadFollowup(course.id);
+  showFollowupBar(course);
+  await loadMyInvoice(course);
+  showInvoiceBar(course);
+  showAdhocBar(course);
+  showArchiveBar(course);
+  showTaskDivider();
+  await loadChat(course);
+
+  if (!regs.length) {
+    box.innerHTML = '<p class="empty">' +
+      (allRegs.length ? "No active registrations. Tick the box above to see archived and cancelled." : "No registrations yet.") +
+      "</p>";
+    return;
+  }
+
+  const byReg = {};
+  const { data: pays } = await db.from("payments")
+    .select("registration_id, sequence, amount_cents, due_date, status, last_error")
+    .in("registration_id", regs.map((r) => r.id));
+  for (const p of pays || []) {
+    (byReg[p.registration_id] = byReg[p.registration_id] || []).push(p);
+  }
+
+  const notesByReg = await loadNotes(course.id);
+
+  let paid = 0, owing = 0, chasing = 0;
+
+  box.innerHTML = "";
+  for (const r of regs) {
+    const rows = byReg[r.id] || [];
+    const outstanding = rows.filter((p) => p.sequence > 1 && p.status !== "paid");
+    const failed = outstanding.filter((p) => p.status === "failed");
+    const owed = outstanding.reduce((sum, p) => sum + (p.amount_cents || 0), 0);
+
+    const needsChasing = failed.length > 0 || r.payment_status === "failed";
+    if (r.payment_status === "paid_in_full") paid++;
+    else if (owed > 0) owing++;
+    if (needsChasing) chasing++;
+
+    const el = document.createElement("div");
+    el.className = "attendee" + (needsChasing ? " chase" : "");
+    el.innerHTML = `
+      <div class="row1">
+        <div class="person">
+          <div class="shot"></div>
+          <div>
+            <div class="name"></div>
+            <div class="contact"></div>
+          </div>
+        </div>
+        <span class="reg" role="group" aria-label="Attendance">
+          <button class="reg-btn yes" type="button">Attended</button>
+          <button class="reg-btn no" type="button">Did not attend</button>
+          <span class="saved"></span>
+        </span>
+      </div>
+      <div class="flags" style="margin-top:0.35rem;display:flex;gap:0.35rem;flex-wrap:wrap"></div>
+      <div class="money"></div>
+      <div class="acts"></div>
+      <div class="notes"></div>`;
+    const regStatus = r.status || "active";
+    if (regStatus !== "active") el.classList.add("inactive");
+
+    el.querySelector(".name").textContent = `${r.first_name} ${r.last_name}`;
+    buildActions(el.querySelector(".acts"), course, r, regStatus);
+    el.querySelector(".contact").textContent = [r.email, r.phone].filter(Boolean).join(" · ");
+
+    renderShot(el.querySelector(".shot"), course, r);
+
+    const flags = el.querySelector(".flags");
+    const addPill = (text, cls = "") => {
+      const s = document.createElement("span");
+      s.className = "pill " + cls; s.textContent = text; flags.append(s);
+    };
+
+    const status = r.payment_status || "";
+    addPill(
+      PAY_LABEL[status] || status.replace(/_/g, " "),
+      status === "paid_in_full" ? "on"
+        : status === "refunded" || status === "failed" ? "bad"
+        : "warn"
+    );
+    if (failed.length) addPill("balance failed", "bad");
+    if (!r.waiver_signed_at) addPill("no waiver", "warn");
+
+    // Whether the lead coach has introduced themselves yet. Visible to
+    // the coach and to admin, so an outstanding one cannot hide.
+    if (regStatus === "active") {
+      const w = welcomeByReg[r.id];
+      if (w && w.status === "sent") addPill("welcome sent", "on");
+      else if (w) addPill("welcome draft", "warn");
+      else addPill("no welcome yet", "warn");
+    }
+
+    // Free online course, on courses that grant one. A failure has to
+    // be visible here — nobody would otherwise find out until the
+    // participant said they could not get in.
+    if (course.grants_online_course) {
+      if (r.learnworlds_status === "enrolled") {
+        addPill("online: " + langLabel(r.learnworlds_language), "on");
+      } else if (r.learnworlds_status === "failed") {
+        const s = document.createElement("span");
+        s.className = "pill bad";
+        s.textContent = "online access failed";
+        // The reason is long and technical, so it sits behind a hover
+        // rather than cluttering the row.
+        if (r.learnworlds_error) s.title = r.learnworlds_error;
+        flags.append(s);
+      } else {
+        addPill("online access pending", "warn");
+      }
+    }
+
+    const line = el.querySelector(".money");
+    const bits = [];
+    if (owed > 0) {
+      const next = outstanding[0];
+      bits.push(
+        failed.length
+          ? `${money(owed, r.currency)} outstanding — payment failed, needs chasing`
+          : `${money(owed, r.currency)} balance, charged automatically ${fmtDay(next.due_date)}`
+      );
+    }
+    if (isAdmin()) {
+      bits.push(`${money(r.amount_paid_cents, r.currency)} received`);
+      if (r.discount_code) {
+        bits.push(`code ${r.discount_code} (−${money(r.discount_cents, r.currency)})`);
+      }
+    }
+    if (failed.length && failed[0].last_error) bits.push(failed[0].last_error);
+    line.textContent = bits.join(" · ");
+    line.classList.toggle("chase", needsChasing);
+    if (!bits.length) line.remove();
+
+    wireRegister(el, r);
+
+    renderNotes(el.querySelector(".notes"), course, r, notesByReg[r.id] || []);
+
+    box.appendChild(el);
+  }
+
+  const counts = $("counts");
+  counts.textContent =
+    `${regs.length} of ${course.capacity} places · ${paid} paid in full` +
+    (owing ? ` · ${owing} awaiting balance` : "");
+  if (chasing) {
+    const s = document.createElement("span");
+    s.className = "chase";
+    s.textContent = ` · ${chasing} needs chasing`;
+    counts.appendChild(s);
+  }
+
+  updateRegisterCount();
+}
+
+/* ---------------- participant photo ---------------- */
+
+// Taken at the desk while they show their registration. It exists so
+// the coach can put a face to a name when writing feedback, and is
+// deleted automatically once the feedback has gone out.
+function renderShot(box, course, reg) {
+  box.innerHTML = `
+    <div class="frame" title="Photo for identifying this participant">${CAMERA_SVG}</div>
+    <span class="cap">Add photo</span>
+    <input type="file" accept="image/*" capture="user">`;
+
+  const frame = box.querySelector(".frame");
+  const cap = box.querySelector(".cap");
+  const input = box.querySelector("input");
+
+  if (reg.photo_path) showExisting();
+
+  async function showExisting() {
+    const { data } = await db.storage
+      .from("participant-photos")
+      .createSignedUrl(reg.photo_path, 3600);
+    if (!data?.signedUrl) return;
+    frame.innerHTML = `<img alt="">`;
+    frame.querySelector("img").src = data.signedUrl;
+    cap.textContent = "Retake";
+    cap.className = "cap";
+  }
+
+  frame.addEventListener("click", () => input.click());
+  cap.addEventListener("click", () => input.click());
+
+  input.addEventListener("change", async () => {
+    const file = input.files[0];
+    if (!file) return;
+
+    cap.className = "cap busy";
+    cap.textContent = "Saving…";
+
+    try {
+      const blob = await shrink(file);
+      const path = `${course.id}/${reg.id}.jpg`;
+
+      const { error } = await db.storage
+        .from("participant-photos")
+        .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+      if (error) throw error;
+
+      const { error: dbErr } = await db.from("registrations")
+        .update({ photo_path: path, photo_taken_at: new Date().toISOString() })
+        .eq("id", reg.id);
+      if (dbErr) throw dbErr;
+
+      reg.photo_path = path;
+      await showExisting();
+    } catch (err) {
+      console.error("Photo failed:", err);
+      cap.className = "cap err";
+      cap.textContent = "Failed";
+      setTimeout(() => { cap.className = "cap"; cap.textContent = reg.photo_path ? "Retake" : "Add photo"; }, 2500);
+    }
+    input.value = "";
+  });
+}
+
+// Shrink on the device before uploading. A phone photo is 8 to 12MB;
+// this makes it about 100KB, which uploads instantly on gym wifi.
+function shrink(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, PHOTO_MAX_PX / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error("Could not process the photo")),
+        "image/jpeg",
+        PHOTO_QUALITY
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("That file is not an image we can read"));
+    };
+    img.src = url;
+  });
+}
+
+/* ---------------- notes ---------------- */
+
+async function loadNotes(courseId) {
+  const { data, error } = await db
+    .from("participant_notes")
+    .select("id, registration_id, staff_id, body, created_at, updated_at, staff ( full_name )")
+    .eq("course_id", courseId)
+    .order("created_at", { ascending: true });
+
+  if (error) { console.error("Could not load notes:", error.message); return {}; }
+  const byReg = {};
+  for (const n of data || []) {
+    (byReg[n.registration_id] = byReg[n.registration_id] || []).push(n);
+  }
+  return byReg;
+}
+
+function renderNotes(box, course, reg, notes) {
+  const lead = amLeadOn(course.id);
+  box.innerHTML = `
+    <div class="head"><span>Notes</span><span class="count"></span></div>
+    <div class="list"></div>
+    <div class="addnote">
+      <textarea placeholder="What you saw — movement, progress, what to work on next…"></textarea>
+      <div class="acts">
+        <button class="btn tiny" type="button">Add note</button>
+        <span class="note-msg"></span>
+      </div>
+    </div>`;
+
+  box.querySelector(".count").textContent =
+    notes.length ? `${notes.length} note${notes.length === 1 ? "" : "s"}` : "";
+
+  const list = box.querySelector(".list");
+  if (!notes.length) {
+    const p = document.createElement("p");
+    p.className = "nonotes";
+    p.textContent = "Nothing written yet.";
+    list.append(p);
+  }
+
+  for (const n of notes) renderOneNote(list, n, lead);
+
+  const ta = box.querySelector(".addnote textarea");
+  const btn = box.querySelector(".addnote button");
+  const msg = box.querySelector(".addnote .note-msg");
+
+  btn.addEventListener("click", async () => {
+    const body = ta.value.trim();
+    if (!body) return;
+
+    btn.disabled = true;
+    msg.className = "note-msg";
+    msg.textContent = "Saving…";
+
+    const { data, error } = await db.from("participant_notes")
+      .insert({
+        registration_id: reg.id,
+        course_id: course.id,
+        staff_id: me.id,
+        body,
+      })
+      .select("id, registration_id, staff_id, body, created_at, updated_at, staff ( full_name )")
       .single();
 
-    if (cErr || !course) return json({ error: "Course not found" }, 404);
+    btn.disabled = false;
 
-    if (new Date(course.starts_at) > new Date()) {
-      return json({ error: "This course has not run yet." }, 400);
+    if (error) {
+      msg.className = "note-msg err";
+      msg.textContent = "Could not save: " + error.message;
+      return;
     }
 
-    // Some courses do not issue a certificate here. TCC Level 2 is the
-    // case: it includes an online course, and the certificate is issued
-    // by LearnWorlds once the exam is passed. The seminar still needs
-    // closing out, so the button still works — it just records the
-    // completion rather than generating anything.
-    if (course.issues_certificate === false) {
-      const { data: regs } = await supabase
-        .from("registrations")
-        .select("id, attended, status")
-        .eq("course_id", courseId);
+    const none = list.querySelector(".nonotes");
+    if (none) none.remove();
+    renderOneNote(list, data, lead);
+    ta.value = "";
+    msg.textContent = "";
+    const n = list.querySelectorAll(".note").length;
+    box.querySelector(".count").textContent = `${n} note${n === 1 ? "" : "s"}`;
+  });
+}
 
-      const attended = (regs || []).filter(
-        (r) => r.attended === true && (r.status || "active") === "active"
-      );
+function renderOneNote(list, note, lead) {
+  const mine = note.staff_id === me.id;
+  const canEdit = mine || lead;
 
-      if (!attended.length) {
-        return json({
-          error: "Nobody is marked as attended yet. Tick attendance first, then submit.",
-        }, 400);
-      }
+  const el = document.createElement("div");
+  el.className = "note" + (mine ? " mine" : "");
+  el.innerHTML = `
+    <div class="meta">
+      <span class="author"></span>
+      <span class="when"></span>
+      <span class="edited"></span>
+    </div>
+    <div class="body"></div>
+    <div class="acts"></div>
+    <div class="note-msg"></div>`;
 
-      if (!course.completed_at) {
-        await supabase
-          .from("courses")
-          .update({ completed_at: new Date().toISOString(), completed_by: me.id })
-          .eq("id", course.id);
-      }
+  let known = note.updated_at;
 
-      return json({
-        sent: 0,
-        failed: 0,
-        failures: [],
-        skipped: 0,
-        completedOnly: true,
-        attended: attended.length,
-      });
-    }
+  el.querySelector(".author").textContent = note.staff?.full_name
+    || (note.staff_id ? "Another coach" : "Written before notes were attributed");
+  el.querySelector(".when").textContent = fmtWhen(note.created_at);
 
-    // ---- who attended -----------------------------------------
-    const { data: regs, error: rErr } = await supabase
-      .from("registrations")
-      .select("id, first_name, last_name, email, attended, status, payment_status, certificate_sent_at")
-      .eq("course_id", courseId);
+  const edited = el.querySelector(".edited");
+  edited.textContent =
+    new Date(note.updated_at) - new Date(note.created_at) > 2000 ? "· edited" : "";
 
-    if (rErr) throw new Error("registrations: " + rErr.message);
+  let body = el.querySelector(".body");
+  body.textContent = note.body;
 
-    const eligible = (regs || []).filter(
-      (r) => r.attended === true &&
-             (r.status || "active") === "active" &&
-             r.payment_status !== "refunded" &&
-             r.email
-    );
+  const acts = el.querySelector(".acts");
+  const msg = el.querySelector(".note-msg");
 
-    if (!eligible.length) {
-      return json({
-        error: "Nobody is marked as attended yet. Tick attendance first, then submit.",
-      }, 400);
-    }
+  if (canEdit) {
+    const editBtn = document.createElement("button");
+    editBtn.className = "btn ghost tiny";
+    editBtn.type = "button";
+    editBtn.textContent = "Edit";
+    acts.append(editBtn);
 
-    const todo = eligible.filter((r) => !r.certificate_sent_at);
-    if (!todo.length) {
-      return json({ error: "Everyone who attended already has their certificate." }, 400);
-    }
+    editBtn.addEventListener("click", () => {
+      if (el.querySelector("textarea")) return;
 
-    // ---- the template and the wording -------------------------
-    const artwork = await loadArtwork(course);
-    if (!artwork) {
-      return json({
-        error: `No certificate artwork found for this course. Expected ${SITE_URL}${templatePath(course)}`,
-      }, 400);
-    }
+      const ta = document.createElement("textarea");
+      ta.value = body.textContent;
+      body.replaceWith(ta);
+      acts.innerHTML = "";
 
-    const template = await loadTemplate(course);
-    if (!template) {
-      return json({
-        error: "No certificate email is set up for this course type yet.",
-      }, 400);
-    }
+      const saveBtn = document.createElement("button");
+      saveBtn.className = "btn tiny";
+      saveBtn.type = "button";
+      saveBtn.textContent = "Save";
 
-    const layout = layoutFor(course);
+      const cancelBtn = document.createElement("button");
+      cancelBtn.className = "btn ghost tiny";
+      cancelBtn.type = "button";
+      cancelBtn.textContent = "Cancel";
 
-    // The name is set in the certificate's own face rather than a
-    // system font. Fetched once for the whole batch: a twelve-person
-    // seminar would otherwise pull it twelve times.
-    const nameFont = await loadNameFont();
+      acts.append(saveBtn, cancelBtn);
 
-    // The workshop design has a box for what was actually coached.
-    const focusText = course.type === "workshop"
-      ? (course.workshop_focus ||
-         String(course.title || "").replace(/^.*?Workshop\s*[\u2014-]\s*/i, "") ||
-         "")
-      : "";
+      const finish = (text, updatedAt) => {
+        const div = document.createElement("div");
+        div.className = "body";
+        div.textContent = text;
+        ta.replaceWith(div);
+        body = div;
+        acts.innerHTML = "";
+        acts.append(editBtn);
+        if (updatedAt) { known = updatedAt; edited.textContent = "· edited"; }
+      };
 
-    const awardedOn = new Date(course.ends_at || course.starts_at);
-    const awardedText = awardedOn.toLocaleDateString("en-GB", {
-      day: "numeric", month: "long", year: "numeric",
-      timeZone: safeZone(course.timezone),
-    });
+      cancelBtn.addEventListener("click", () => finish(note.body));
 
-    // ---- one at a time ----------------------------------------
-    let sent = 0;
-    const failures = [];
-
-    for (const reg of todo) {
-      const name = [reg.first_name, reg.last_name].filter(Boolean).join(" ").trim()
-        || "Participant";
-
-      try {
-        const reference = await nextReference(course);
-
-        const pdf = await buildPdf({
-          artwork,
-          layout,
-          nameFont,
-          name,
-          awardedText,
-          reference,
-          focus: focusText,
-        });
-
-        const fields = {
-          first_name: reg.first_name || "there",
-          last_name: reg.last_name || "",
-          full_name: name,
-          course_title: course.title || "your course",
-          awarded_on: awardedText,
-          reference,
-          site_url: SITE_URL,
-        };
-
-        const ok = await sendEmail({
-          to: reg.email,
-          subject: fill(template.subject || "Your certificate", fields),
-          text: fill(template.body, fields),
-          filename: `BirdBox certificate - ${name}.pdf`,
-          pdf,
-        });
-
-        // Recorded whether or not the email landed, so a reference is
-        // never handed out twice and a failure stays visible.
-        await supabase.from("certificates").insert({
-          registration_id: reg.id,
-          course_id: course.id,
-          reference,
-          participant_name: name,
-          awarded_on: awardedOn.toISOString().slice(0, 10),
-          status: ok ? "sent" : "failed",
-          error: ok ? null : "The email was rejected",
-        });
-
-        if (ok) {
-          await supabase
-            .from("registrations")
-            .update({ certificate_sent_at: new Date().toISOString() })
-            .eq("id", reg.id);
-          sent++;
-        } else {
-          failures.push(name);
+      saveBtn.addEventListener("click", async () => {
+        const next = ta.value.trim();
+        if (!next) {
+          msg.className = "note-msg err";
+          msg.textContent = "A note cannot be empty. Delete it instead.";
+          return;
         }
-      } catch (err) {
-        console.error("Certificate failed for", name, err);
-        failures.push(name);
-      }
-    }
 
-    // ---- mark the seminar closed out --------------------------
-    if (sent && !course.completed_at) {
-      await supabase
-        .from("courses")
-        .update({ completed_at: new Date().toISOString(), completed_by: me.id })
-        .eq("id", course.id);
-    }
+        saveBtn.disabled = true;
+        msg.className = "note-msg";
+        msg.textContent = "Saving…";
 
-    return json({
-      sent,
-      failed: failures.length,
-      failures,
-      skipped: eligible.length - todo.length,
+        const { data, error } = await db.from("participant_notes")
+          .update({ body: next, updated_at: new Date().toISOString() })
+          .eq("id", note.id)
+          .eq("updated_at", known)
+          .select("body, updated_at")
+          .maybeSingle();
+
+        saveBtn.disabled = false;
+
+        if (error) {
+          msg.className = "note-msg err";
+          msg.textContent = "Could not save: " + error.message;
+          return;
+        }
+
+        if (!data) {
+          const { data: current } = await db.from("participant_notes")
+            .select("body, updated_at").eq("id", note.id).maybeSingle();
+          msg.className = "note-msg err";
+          msg.textContent = "Someone else edited this note while you were writing. Theirs is shown below — copy anything you need and edit again.";
+          if (current) { note.body = current.body; finish(current.body, current.updated_at); }
+          return;
+        }
+
+        note.body = data.body;
+        msg.textContent = "";
+        finish(data.body, data.updated_at);
+      });
     });
-  } catch (err) {
-    console.error("certificates-send failed:", err);
-    return json({ error: err.message || "That did not work." }, 500);
   }
+
+  if (mine || isAdmin()) {
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn ghost tiny danger";
+    delBtn.type = "button";
+    delBtn.textContent = "Delete";
+    acts.append(delBtn);
+
+    delBtn.addEventListener("click", async () => {
+      if (!window.confirm("Delete this note? It cannot be recovered.")) return;
+      const { error } = await db.from("participant_notes").delete().eq("id", note.id);
+      if (error) {
+        msg.className = "note-msg err";
+        msg.textContent = "Could not delete: " + error.message;
+        return;
+      }
+      el.remove();
+    });
+  }
+
+  list.append(el);
+}
+
+// Marked means somebody decided, either way. Until then the row is
+// flagged, because an unmarked participant is the thing that quietly
+// costs a certificate.
+const isMarked = (r) => !!r.attendance_marked_at;
+
+function wireRegister(el, r) {
+  const yes = el.querySelector(".reg-btn.yes");
+  const no = el.querySelector(".reg-btn.no");
+
+  const paint = () => {
+    const marked = isMarked(r);
+    yes.classList.toggle("on", marked && !!r.attended);
+    no.classList.toggle("on", marked && !r.attended);
+    el.classList.toggle("unmarked", !marked);
+  };
+  paint();
+
+  const set = async (attended, btn) => {
+    yes.disabled = true; no.disabled = true;
+    const stamp = new Date().toISOString();
+
+    const { error } = await db.from("registrations").update({
+      attended,
+      attendance_marked_at: stamp,
+      attendance_marked_by: me.id,
+    }).eq("id", r.id);
+
+    yes.disabled = false; no.disabled = false;
+
+    if (error) { flash(el, "Could not save", true); return; }
+
+    r.attended = attended;
+    r.attendance_marked_at = stamp;
+    r.attendance_marked_by = me.id;
+    paint();
+    flash(el, "Saved");
+
+    // Everything downstream counts who was marked present.
+    showCertBar(currentCourse);
+    showFeedbackBar(currentCourse);
+    showArchiveBar(currentCourse);
+    updateRegisterCount();
+  };
+
+  yes.onclick = () => set(true, yes);
+  no.onclick = () => set(false, no);
+}
+
+// Said above the list, because a coach on a gym floor wants to know
+// how many are left rather than to scroll looking for gaps.
+function updateRegisterCount() {
+  const el = $("counts");
+  const old = el.querySelector(".left-to-mark");
+  if (old) old.remove();
+
+  const active = allRegistrations.filter((r) => (r.status || "active") === "active");
+  const left = active.filter((x) => !isMarked(x)).length;
+  if (!left) return;
+
+  const s = document.createElement("span");
+  s.className = "chase left-to-mark";
+  s.textContent = ` · ${left} still to mark present or absent`;
+  el.appendChild(s);
+}
+
+function flash(el, text, isError = false) {
+  let tag = el.querySelector(".saved");
+  if (!tag) {
+    tag = document.createElement("span");
+    tag.className = "saved";
+    const host = el.querySelector(".reg") || el.querySelector(".check") || el;
+    host.appendChild(tag);
+  }
+  tag.style.color = isError ? "var(--bad)" : "";
+  tag.textContent = text;
+  setTimeout(() => { tag.textContent = ""; }, 2000);
+}
+
+/* ---------------- admin actions ---------------- */
+
+async function callAdmin(payload) {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) throw new Error("Your session has expired — sign in again.");
+
+  const res = await fetch("/.netlify/functions/course-admin", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + session.access_token,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || "That did not work.");
+  return data;
+}
+
+// Signed links last an hour and are asked for once per photo, so a
+// picker of 28 coaches does not make 28 requests every time it opens.
+const photoUrls = new Map();
+
+async function coachPhotoUrl(path) {
+  if (!path) return null;
+  if (path.startsWith("/")) return path;
+  if (photoUrls.has(path)) return photoUrls.get(path);
+
+  const { data } = await db.storage
+    .from("staff-photos").createSignedUrl(path, 3600);
+  const url = data && data.signedUrl ? data.signedUrl : null;
+  photoUrls.set(path, url);
+  return url;
+}
+
+// Initials until the photo arrives, so the row does not jump about.
+function avatar(person, size = 30) {
+  const el = document.createElement("span");
+  el.style.cssText =
+    `flex:none;width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;` +
+    "background:#e6e3de;color:var(--muted);display:grid;place-items:center;" +
+    `font-size:${Math.round(size * 0.38)}px;font-weight:700;letter-spacing:0.02em`;
+
+  el.textContent = String(person.full_name || "")
+    .split(/\s+/).filter(Boolean).slice(0, 2)
+    .map((w) => w[0]).join("").toUpperCase();
+
+  coachPhotoUrl(person.photo_path).then((url) => {
+    if (!url) return;
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = "";
+    img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block";
+    img.onerror = () => {};
+    img.onload = () => { el.textContent = ""; el.append(img); };
+  });
+
+  return el;
+}
+
+function renderCoachPicker(box, assigned) {
+  box.innerHTML = "";
+  for (const s of staffList) {
+    const current = assigned[s.id] || "";
+    const row = document.createElement("div");
+    row.className = "coachrow" + (current ? " on" : "");
+    row.innerHTML = `
+      <span class="cname"></span>
+      <select>
+        <option value="">Not on this course</option>
+        <option value="lead_coach">Lead coach</option>
+        <option value="assistant">Assistant</option>
+      </select>`;
+    row.querySelector(".cname").textContent = s.full_name;
+    // A face next to the name, so coaches who have not met know who
+    // they are down to work with.
+    row.prepend(avatar(s));
+    const sel = row.querySelector("select");
+    sel.value = current;
+    sel.dataset.staff = s.id;
+    sel.addEventListener("change", () => row.classList.toggle("on", !!sel.value));
+    box.append(row);
+  }
+}
+
+function readCoachPicker(box) {
+  return Array.from(box.querySelectorAll("select"))
+    .filter((s) => s.value)
+    .map((s) => ({ staff_id: s.dataset.staff, role: s.value }));
+}
+
+/* ============ FOLLOW-UP EMAIL SEQUENCES ============ */
+const WEEKS = 52;
+let sequences = [];
+let seqSteps = {};   /* week number -> row */
+let seqOpen = null;  /* which week is expanded */
+
+/* What a writer can drop into a subject or body. */
+const MERGE_HELP = "{{first_name}} {{course_title}} {{city}} {{coach}} {{unsubscribe}}";
+
+async function openEmails() {
+  show("emails");
+  if (!sequences.length) {
+    const { data, error } = await db.from("email_sequences")
+      .select("id, key, name, brand, active").eq("active", true).order("name");
+    if (error) { window.alert("Could not load sequences: " + error.message); return; }
+    sequences = data || [];
+    const pick = $("seq-pick");
+    pick.innerHTML = "";
+    for (const q of sequences) {
+      const o = document.createElement("option");
+      o.value = q.id;
+      o.textContent = q.name;
+      pick.append(o);
+    }
+  }
+  if (!sequences.length) {
+    $("seq-weeks").innerHTML = '<p class="empty">No sequences set up yet.</p>';
+    return;
+  }
+  await loadSequence($("seq-pick").value || sequences[0].id);
+}
+
+async function loadSequence(sequenceId) {
+  $("seq-weeks").innerHTML = '<p class="empty">Loading…</p>';
+  const { data, error } = await db.from("email_sequence_steps")
+    .select("id, week_number, subject, body_html, active")
+    .eq("sequence_id", sequenceId).order("week_number");
+  if (error) { $("seq-weeks").innerHTML = '<p class="empty">Could not load: ' + error.message + "</p>"; return; }
+
+  seqSteps = {};
+  for (const row of data || []) seqSteps[row.week_number] = row;
+
+  const written = Object.values(seqSteps).filter((r) => r.subject && r.body_html).length;
+  $("seq-summary").textContent = `${written} of ${WEEKS} weeks written.`;
+
+  const box = $("seq-weeks");
+  box.innerHTML = "";
+  for (let w = 1; w <= WEEKS; w++) {
+    const row = seqSteps[w];
+    const done = !!(row && row.subject && row.body_html);
+
+    const wrap = document.createElement("div");
+    wrap.className = "wk";
+
+    const head = document.createElement("div");
+    head.className = "wk__head";
+    head.innerHTML =
+      `<span class="wk__n">Week ${w}</span>` +
+      `<span class="wk__subj"></span>` +
+      `<span class="wk__state${done ? " done" : ""}">${done ? "written" : "empty"}</span>`;
+    head.querySelector(".wk__subj").textContent = row && row.subject ? row.subject : "—";
+    head.onclick = () => { seqOpen = seqOpen === w ? null : w; loadSequence(sequenceId); };
+    wrap.append(head);
+
+    if (seqOpen === w) {
+      const body = document.createElement("div");
+      body.className = "wk__body";
+      body.innerHTML = `
+        <div class="field">
+          <label>Subject</label>
+          <input type="text" class="wk-subject">
+        </div>
+        <div class="field">
+          <label>Body <span class="hint">HTML. Merge fields: ${MERGE_HELP}</span></label>
+          <textarea class="wk-body"></textarea>
+        </div>
+        <div class="seqbar">
+          <button class="btn small wk-save" type="button">Save week ${w}</button>
+          <button class="btn ghost small wk-close" type="button">Close</button>
+          <span class="why wk-msg"></span>
+        </div>`;
+      body.querySelector(".wk-subject").value = row ? row.subject || "" : "";
+      body.querySelector(".wk-body").value = row ? row.body_html || "" : "";
+      body.querySelector(".wk-close").onclick = () => { seqOpen = null; loadSequence(sequenceId); };
+      body.querySelector(".wk-save").onclick = async (e) => {
+        const btn = e.target;
+        const subject = body.querySelector(".wk-subject").value.trim();
+        const html = body.querySelector(".wk-body").value.trim();
+        const msg = body.querySelector(".wk-msg");
+        if (!subject || !html) { msg.textContent = "Both a subject and a body are needed."; return; }
+        btn.disabled = true;
+        msg.textContent = "Saving…";
+        const payload = {
+          sequence_id: sequenceId,
+          week_number: w,
+          subject,
+          body_html: html,
+          updated_at: new Date().toISOString(),
+        };
+        const { error: sErr } = await db.from("email_sequence_steps")
+          .upsert(payload, { onConflict: "sequence_id,week_number" });
+        btn.disabled = false;
+        if (sErr) { msg.textContent = "Could not save: " + sErr.message; return; }
+        seqOpen = null;
+        loadSequence(sequenceId);
+      };
+      wrap.append(body);
+    }
+    box.append(wrap);
+  }
+}
+
+$("seq-pick").addEventListener("change", () => { seqOpen = null; loadSequence($("seq-pick").value); });
+$("emailsbtn").addEventListener("click", openEmails);
+$("back-emails").addEventListener("click", () => show("courses"));
+
+/* ---------- map pin ---------- */
+let editingCourse = null;
+
+/* A pasted "48.18, 11.46" splits itself across the two boxes. */
+$("f-lat").addEventListener("input", () => {
+  const v = $("f-lat").value;
+  if (v.includes(",")) {
+    const [a, b] = v.split(",").map((x) => x.trim());
+    $("f-lat").value = a;
+    if (b) $("f-lng").value = b;
+  }
+});
+
+async function lookupCoords() {
+  const msg = $("f-geo-msg");
+  const parts = [
+    $("f-venue").value.trim(),
+    $("f-address").value.trim(),
+    $("f-city").value.trim(),
+    countryName($("f-country").value),
+  ].filter(Boolean);
+  if (!parts.length) { msg.textContent = "Add an address or city first."; return; }
+
+  $("f-lookup").disabled = true;
+  msg.textContent = "Looking up…";
+  try {
+    const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
+      encodeURIComponent(parts.join(", "));
+    const res = await fetch(url, { headers: { "Accept": "application/json" } });
+    const hits = await res.json();
+    if (!hits || !hits.length) {
+      msg.textContent = "Nothing found. Try just the city, or paste the numbers from Google Maps.";
+      return;
+    }
+    const hit = hits[0];
+    $("f-lat").value = parseFloat(hit.lat).toFixed(6);
+    $("f-lng").value = parseFloat(hit.lon).toFixed(6);
+    // Always show what was matched — geocoders guess, and a wrong pin is
+    // worse than no pin.
+    msg.textContent = "Found: " + (hit.display_name || "").split(",").slice(0, 4).join(", ") +
+      " — check this is the right place.";
+  } catch (e) {
+    msg.textContent = "Lookup failed. Paste the numbers from Google Maps instead.";
+  } finally {
+    $("f-lookup").disabled = false;
+  }
+}
+$("f-lookup").addEventListener("click", lookupCoords);
+
+function fillForm(c) {
+  const set = (id, v) => { $(id).value = v == null ? "" : v; };
+  set("f-brand", c.brand); set("f-type", c.type); set("f-level", c.level || "");
+  set("f-workshop", c.workshop_focus); set("f-movements", c.movements);
+  set("f-summary", c.summary); set("f-description", c.description);
+  set("f-venue", c.venue_name); set("f-address", c.address);
+  set("f-hostname", c.host_name); set("f-hostemail", c.host_email);
+  set("f-hostspots", c.host_spots == null ? 2 : c.host_spots);
+  set("f-prepaid", c.prepaid_spots || 0);
+  set("f-city", c.city); set("f-country", (c.country || "").toUpperCase());
+  buildStateOptions((c.country || "").toUpperCase());
+  set("f-state", (c.state || "").toUpperCase());
+  set("f-lat", c.latitude); set("f-lng", c.longitude);
+  set("f-timezone", c.timezone); set("f-slug", c.slug);
+  set("f-capacity", c.capacity); set("f-currency", c.currency);
+  set("f-language", c.language); set("f-status", c.status);
+  set("f-adminnotes", c.admin_notes);
+  set("f-price", c.price_cents == null ? "" : (c.price_cents / 100).toFixed(2));
+  set("f-deposit", c.deposit_cents == null ? "" : (c.deposit_cents / 100).toFixed(2));
+
+  const start = instantToZoned(c.starts_at, c.timezone);
+  set("f-date", start.date); set("f-starttime", start.time);
+  if (c.ends_at) {
+    const end = instantToZoned(c.ends_at, c.timezone);
+    set("f-enddate", end.date); set("f-endtime", end.time);
+  } else { set("f-enddate", ""); set("f-endtime", ""); }
+}
+
+async function openEditCourse(course) {
+  const { data: full, error } = await db.from("courses").select("*").eq("id", course.id).single();
+  if (error) { window.alert("Could not load the course: " + error.message); return; }
+  editingCourse = full;
+  await openForm();
+  // An existing course keeps the price it was sold at. Nothing is
+  // auto-filled over the top of it.
+  suppressAutoPrice = true;
+  fillForm(full);
+  suppressAutoPrice = false;
+  $("f-price-note").textContent =
+    "This is the price this course was created with. Changing the currency will fill in the standard price instead.";
+  toggleWorkshopFields();
+  updateWhenPreview();
+  if (full.image_url) {
+    $("thumb").src = full.image_url;
+    $("thumb").style.display = "block";
+    $("f-image-hint").textContent = "current photo — only choose a file if you want to replace it";
+  }
+  $("form-title").textContent = "Edit course";
+  $("form-sub").textContent = "Changes appear on the course page, the seminar list and every map straight away.";
+  $("save").textContent = "Save changes";
+  const { data: assignedRows } = await db.from("course_staff")
+    .select("staff_id, role").eq("course_id", full.id);
+  const assigned = {};
+  for (const r of assignedRows || []) assigned[r.staff_id] = r.role;
+  renderCoachPicker($("coachlist"), assigned);
+}
+
+/* ---------- participant agreement signature ---------- */
+const WAIVER_VERSION = "2026-08-v1";
+let sigReg = null, sigCtx = null, sigDrawn = false;
+
+function sigSetup() {
+  const pad = $("sigpad");
+  // Match the backing store to the CSS size so the line isn't blurred or offset.
+  const ratio = window.devicePixelRatio || 1;
+  const rect = pad.getBoundingClientRect();
+  pad.width = Math.round(rect.width * ratio);
+  pad.height = Math.round(rect.height * ratio);
+  sigCtx = pad.getContext("2d");
+  sigCtx.scale(ratio, ratio);
+  sigCtx.lineWidth = 2.2;
+  sigCtx.lineCap = "round";
+  sigCtx.lineJoin = "round";
+  sigCtx.strokeStyle = "#111";
+  sigCtx.clearRect(0, 0, rect.width, rect.height);
+  sigDrawn = false;
+}
+
+function sigPoint(e) {
+  const rect = $("sigpad").getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function openSignature(reg) {
+  sigReg = reg;
+  const signed = !!reg.waiver_signed_at;
+  $("sig-h").textContent = signed ? "Participant agreement" : "Sign the participant agreement";
+  $("sig-sub").textContent = signed
+    ? `${reg.first_name} ${reg.last_name} signed on ${new Date(reg.waiver_signed_at).toLocaleDateString("en-GB")}` +
+      (reg.waiver_version ? ` — version ${reg.waiver_version}` : "")
+    : `${reg.first_name} ${reg.last_name} — sign below with a finger or stylus.`;
+  $("sig-msg").textContent = "";
+  $("sigwrap").classList.remove("hidden");
+
+  const view = $("sigview"), pad = $("sigpad");
+  if (signed && reg.waiver_signature) {
+    view.src = reg.waiver_signature;
+    view.classList.remove("hidden");
+    pad.classList.add("hidden");
+    $("sig-save").classList.add("hidden");
+    $("sig-clear").textContent = "Sign again";
+  } else {
+    view.classList.add("hidden");
+    pad.classList.remove("hidden");
+    $("sig-save").classList.remove("hidden");
+    $("sig-clear").textContent = "Clear";
+    sigSetup();
+  }
+}
+
+function wireSignature() {
+  const pad = $("sigpad");
+  let drawing = false;
+
+  pad.addEventListener("pointerdown", (e) => {
+    drawing = true;
+    pad.setPointerCapture(e.pointerId);
+    const p = sigPoint(e);
+    sigCtx.beginPath();
+    sigCtx.moveTo(p.x, p.y);
+    e.preventDefault();
+  });
+  pad.addEventListener("pointermove", (e) => {
+    if (!drawing) return;
+    const p = sigPoint(e);
+    sigCtx.lineTo(p.x, p.y);
+    sigCtx.stroke();
+    sigDrawn = true;
+    e.preventDefault();
+  });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) {
+    pad.addEventListener(ev, () => { drawing = false; });
+  }
+
+  $("sig-clear").onclick = () => {
+    $("sigview").classList.add("hidden");
+    pad.classList.remove("hidden");
+    $("sig-save").classList.remove("hidden");
+    $("sig-clear").textContent = "Clear";
+    sigSetup();
+  };
+
+  $("sig-close").onclick = () => {
+    $("sigwrap").classList.add("hidden");
+    sigReg = null;
+  };
+
+  $("sig-save").onclick = async () => {
+    if (!sigReg) return;
+    if (!sigDrawn) { $("sig-msg").textContent = "Nothing has been drawn yet."; return; }
+    $("sig-save").disabled = true;
+    $("sig-msg").textContent = "Saving…";
+    const dataUrl = $("sigpad").toDataURL("image/png");
+    const { error } = await db.from("registrations").update({
+      waiver_signature: dataUrl,
+      waiver_signed_at: new Date().toISOString(),
+      waiver_version: WAIVER_VERSION,
+      waiver_signed_name: `${sigReg.first_name} ${sigReg.last_name}`,
+    }).eq("id", sigReg.id);
+    $("sig-save").disabled = false;
+    if (error) { $("sig-msg").textContent = "Could not save: " + error.message; return; }
+    $("sigwrap").classList.add("hidden");
+    sigReg = null;
+    openCourse(currentCourse);
+  };
+}
+
+/* ---------- edit a participant ---------- */
+let editReg = null;
+
+function openEdit(reg) {
+  editReg = reg;
+  $("ed-first").value = reg.first_name || "";
+  $("ed-last").value = reg.last_name || "";
+  $("ed-email").value = reg.email || "";
+  $("ed-phone").value = reg.phone || "";
+  $("ed-msg").textContent = "";
+  $("editwrap").classList.remove("hidden");
+  $("ed-first").focus();
+}
+
+function wireEdit() {
+  $("ed-close").onclick = () => { $("editwrap").classList.add("hidden"); editReg = null; };
+
+  $("ed-save").onclick = async () => {
+    if (!editReg) return;
+    const first = $("ed-first").value.trim();
+    const last = $("ed-last").value.trim();
+    const email = $("ed-email").value.trim();
+    if (!first || !last) { $("ed-msg").textContent = "First and last name are both needed."; return; }
+    if (!email || !email.includes("@") || email.startsWith("@") || email.endsWith("@")) {
+      $("ed-msg").textContent = "A valid email is needed."; return;
+    }
+    $("ed-save").disabled = true;
+    $("ed-msg").textContent = "Saving…";
+    const { error } = await db.from("registrations").update({
+      first_name: first, last_name: last, email: email,
+      phone: $("ed-phone").value.trim() || null,
+    }).eq("id", editReg.id);
+    $("ed-save").disabled = false;
+    if (error) { $("ed-msg").textContent = "Could not save: " + error.message; return; }
+    $("editwrap").classList.add("hidden");
+    editReg = null;
+    openCourse(currentCourse);
+  };
+}
+
+/* ============ PARTICIPANT MANAGEMENT ============ */
+let currentCourse = null;
+let allRegistrations = [];
+
+const REG_STATUS_LABEL = {
+  active: "", cancelled: "Cancelled", no_show: "No show", archived: "Archived",
 };
 
-// ---------------------------------------------------------------
-
-// certificates/tcc-1, tgc-2, tgc-workshop and so on. Either extension
-// works, so whoever uploads the artwork does not have to think about it.
-function templateBase(course) {
-  const brand = String(course.brand || "").toLowerCase();
-  if (course.type === "workshop") return `/certificates/${brand}-workshop`;
-  const level = String(course.level == null ? "" : course.level).replace(/\D/g, "");
-  return `/certificates/${brand}-${level || "1"}`;
+function pmMsg(text, isError = false) {
+  const el = $("pm-msg");
+  el.textContent = text;
+  el.style.color = isError ? "var(--bad)" : "";
 }
 
-function templatePath(course) {
-  return templateBase(course) + ".jpg or .png";
+/* Active registrations are the ones that occupy a place. */
+function activeCount(regs) {
+  return regs.filter((r) => (r.status || "active") === "active").length;
 }
 
-// A JPEG starts FF D8 FF; a PNG starts with an eight-byte signature.
-// Reading the bytes rather than trusting the extension means a file
-// saved with the wrong one still works.
-function isPng(bytes) {
-  return bytes.length > 8 &&
-    bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+/* ---------- free online course, granted by hand ---------- */
+
+// The languages this course's online course exists in. Read straight
+// from the same table the checkout uses, so the portal can never
+// offer a language that would then fail to enrol.
+let onlineLanguages = [];
+
+async function loadOnlineLanguages(course) {
+  onlineLanguages = [];
+  if (!course || !course.grants_online_course) return;
+
+  const digits = String(course.level == null ? "" : course.level).replace(/\D/g, "");
+  const { data, error } = await db
+    .from("learnworlds_products")
+    .select("language, label, level, brand, active")
+    .eq("brand", course.brand)
+    .eq("active", true);
+
+  if (error) { console.error("Could not load online languages:", error.message); return; }
+
+  onlineLanguages = (data || [])
+    .filter((r) => String(r.level || "").replace(/\D/g, "") === digits)
+    .sort((a, b) => String(a.label || a.language).localeCompare(String(b.label || b.language)));
 }
 
-async function loadArtwork(course) {
-  const base = SITE_URL + templateBase(course);
-  for (const ext of [".jpg", ".jpeg", ".png"]) {
-    try {
-      const res = await fetch(base + ext);
-      if (!res.ok) continue;
-      const bytes = new Uint8Array(await res.arrayBuffer());
-      if (!bytes.length) continue;
-      return bytes;
-    } catch (err) {
-      console.error("Could not fetch artwork:", base + ext, err.message);
-    }
+function fillOnlineSelect() {
+  const wrap = $("pm-online-wrap");
+  const sel = $("pm-online");
+  const show = onlineLanguages.length > 0;
+  wrap.classList.toggle("hidden", !show);
+  if (!show) return;
+
+  sel.innerHTML = '<option value="">Do not give online access</option>';
+  for (const l of onlineLanguages) {
+    const o = document.createElement("option");
+    o.value = l.language;
+    o.textContent = l.label || langLabel(l.language);
+    sel.append(o);
   }
-  console.error("No artwork found for", base);
-  return null;
 }
 
-// certificates/name-font.ttf. Missing or unreadable, the certificate
-// still generates in Helvetica Bold rather than failing — a plainer
-// certificate is better than none.
-async function loadNameFont() {
+// Runs server-side: the LearnWorlds secret never reaches the browser.
+async function grantOnline(registrationId, language) {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) throw new Error("Your session has expired — sign in again.");
+
+  const res = await fetch("/.netlify/functions/grant-online-course", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + session.access_token,
+    },
+    body: JSON.stringify({ registration_id: registrationId, language }),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || "That did not work.");
+  return data;
+}
+
+// Asks which language, then grants it. Used for cash payers added by
+// hand, registrations that predate the automatic enrolment, and
+// retries after a failure.
+async function askAndGrant(reg, btn) {
+  if (!onlineLanguages.length) {
+    window.alert("No online course is set up for this brand and level.");
+    return;
+  }
+
+  const lines = onlineLanguages
+    .map((l, i) => `${i + 1}. ${l.label || langLabel(l.language)}`)
+    .join("\n");
+  const pick = window.prompt(
+    `Give ${reg.first_name} ${reg.last_name} free access to the online course.\n\n` +
+    `Which language?\n\n${lines}\n\nType the number:`
+  );
+  if (!pick) return;
+
+  const chosen = onlineLanguages[parseInt(pick, 10) - 1];
+  if (!chosen) { window.alert("That was not one of the numbers listed."); return; }
+
+  if (reg.learnworlds_status === "enrolled" &&
+      !window.confirm(
+        `${reg.first_name} already has access in ` +
+        `${langLabel(reg.learnworlds_language)}.\n\n` +
+        `Granting ${chosen.label || langLabel(chosen.language)} adds a second ` +
+        `course rather than replacing the first. Continue?`
+      )) return;
+
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = "Granting…";
+
   try {
-    const res = await fetch(SITE_URL + "/certificates/name-font.ttf");
-    if (!res.ok) {
-      console.warn("Name font not found; falling back to Helvetica Bold.");
-      return null;
-    }
-    return new Uint8Array(await res.arrayBuffer());
+    const r = await grantOnline(reg.id, chosen.language);
+    window.alert(
+      `Done — ${reg.first_name} now has the online course in ${r.label}.\n\n` +
+      (r.userWasCreated
+        ? "A new academy account was created, and they have been emailed a link to set their password."
+        : "They already had an academy account, and have been emailed to say the course has been added.")
+    );
   } catch (err) {
-    console.warn("Could not fetch the name font:", err.message);
-    return null;
+    window.alert("Could not grant access: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+  openCourse(currentCourse);
+}
+
+/* ---------- the pre-course email, to everyone ---------- */
+
+// Opens six days before the course starts, closes at the end of the
+// Wednesday before it. Both are worked out in the COURSE's time zone,
+// not the coach's — a lead in Dubai sending to a Glasgow course works
+// to Glasgow's clock.
+const PRECOURSE_OPEN_DAYS = 6;
+
+let precourseRow = null;   // the sent row, if there is one
+let pcCourse = null;       // the full course record
+let pcTemplate = null;
+let pcBodyTouched = false;
+
+async function loadPrecourse(courseId) {
+  precourseRow = null;
+  const { data, error } = await db
+    .from("course_emails")
+    .select("id, status, sent_at, subject")
+    .eq("course_id", courseId)
+    .eq("kind", "precourse")
+    .is("registration_id", null)
+    .order("sent_at", { ascending: false })
+    .limit(1);
+
+  if (error) { console.error("Could not load pre-course email:", error.message); return; }
+  precourseRow = (data && data[0]) || null;
+}
+
+// The Wednesday immediately before the course, at the very end of that
+// day. A course that starts on a Wednesday has no Wednesday inside the
+// six-day window, which the caller reports rather than hiding.
+function precourseWindow(course) {
+  const tz = course.timezone || "UTC";
+  const start = new Date(course.starts_at);
+  const opensAt = new Date(start.getTime() - PRECOURSE_OPEN_DAYS * 86400000);
+
+  const local = instantToZoned(course.starts_at, tz);
+  const [y, m, d] = local.date.split("-").map(Number);
+  // Midday avoids any daylight-saving edge while stepping back days.
+  const cursor = new Date(Date.UTC(y, m - 1, d, 12));
+  do {
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  } while (cursor.getUTCDay() !== 3);
+
+  const wed = cursor.toISOString().slice(0, 10);
+  const closesAt = zonedToInstant(wed, "23:59", tz);
+
+  return { opensAt, closesAt, wednesday: wed, noWednesday: closesAt < opensAt };
+}
+
+// Everything the template needs, read from the course record so the
+// email can never contradict the confirmation email.
+function precourseFields(course, coachName) {
+  const tz = course.timezone || "UTC";
+  const isWorkshop = course.type === "workshop";
+  const arriveMins = isWorkshop ? 15 : 30;
+
+  const start = new Date(course.starts_at);
+  const end = course.ends_at ? new Date(course.ends_at) : null;
+
+  const hhmm = (date) => instantToZoned(date.toISOString(), tz).time;
+  const dayName = (date) => date.toLocaleDateString("en-GB", {
+    weekday: "long", day: "numeric", month: "long", timeZone: safeZone(tz),
+  });
+
+  const arrive = new Date(start.getTime() - arriveMins * 60000);
+  const day2Arrive = new Date(start.getTime() - 15 * 60000);
+
+  return {
+    course_title: course.title || "",
+    venue: course.venue_name || "the host gym",
+    address: addressLine(course),
+    day1_date: dayName(start),
+    day2_date: end ? dayName(end) : "",
+    arrive_time: hhmm(arrive),
+    day2_arrive_time: hhmm(day2Arrive),
+    start_time: hhmm(start),
+    finish_time: end ? hhmm(end) : "",
+    coach_name: coachName || "",
+  };
+}
+
+// The address is typed from Google Maps and often already contains the
+// city, so only what is missing gets added.
+function addressLine(course) {
+  const address = String(course.address || "").trim();
+  const seen = address.toLowerCase();
+  const parts = address ? [address] : [];
+  for (const bit of [course.city, countryName(course.country)]) {
+    const value = String(bit || "").trim();
+    if (!value) continue;
+    if (seen.includes(value.toLowerCase())) continue;
+    parts.push(value);
+  }
+  return parts.join(", ");
+}
+
+function fillTemplate(body, fields, personalNote) {
+  let out = String(body).replace(/\{\{\s*personal_note\s*\}\}/gi,
+    (personalNote || "").trim());
+  for (const [key, value] of Object.entries(fields)) {
+    out = out.replace(new RegExp("\\{\\{\\s*" + key + "\\s*\\}\\}", "gi"), value);
+  }
+  // Two blank lines where an empty personal note was.
+  return out.replace(/\n{3,}/g, "\n\n").trim();
+}
+
+async function openPrecourse(course) {
+  const msg = $("pc-msg");
+  msg.className = "msg"; msg.textContent = "";
+  pcBodyTouched = false;
+
+  // The list view does not carry the venue or address, so read the
+  // full row rather than emailing people an incomplete address.
+  const { data: full, error } = await db.from("courses")
+    .select("*").eq("id", course.id).single();
+  if (error) { window.alert("Could not load the course: " + error.message); return; }
+  pcCourse = full;
+
+  const { data: tpl, error: tErr } = await db.from("email_templates")
+    .select("subject, body")
+    .eq("kind", "precourse")
+    .eq("type", full.type)
+    .eq("language", "en")
+    .maybeSingle();
+
+  if (tErr || !tpl) {
+    window.alert(
+      "No pre-course template is set up for this course type yet.\n\n" +
+      "Add a row to email_templates with kind 'precourse' and type '" + full.type + "'."
+    );
+    return;
+  }
+  pcTemplate = tpl;
+
+  const w = precourseWindow(full);
+  const now = new Date();
+
+  if (w.noWednesday) {
+    $("pc-note2").className = "whenline bad";
+    $("pc-note2").textContent =
+      "This course starts too soon after a Wednesday for the usual window. " +
+      "Send it when you judge best.";
+  } else if (now > w.closesAt) {
+    $("pc-note2").className = "whenline bad";
+    $("pc-note2").textContent =
+      "This is late — it should have gone by the end of Wednesday " +
+      fmtDate(w.closesAt.toISOString(), full.timezone) + ". Send it now.";
+  } else {
+    $("pc-note2").className = "whenline";
+    $("pc-note2").textContent =
+      "Due by the end of Wednesday " +
+      fmtDate(w.closesAt.toISOString(), full.timezone) +
+      ", local to " + (full.city || "the course") + ".";
+  }
+
+  const fields = precourseFields(full, me && me.full_name);
+  $("pc-h").textContent = "Pre-course email — " + full.title;
+  $("pc-sub").textContent = precourseRow && precourseRow.status === "sent"
+    ? `Already sent ${fmtWhen(precourseRow.sent_at)}. Sending again writes a second email to everyone.`
+    : "Goes to everyone still on the course, one at a time, from your own address.";
+
+  $("pc-subject").value = fillTemplate(tpl.subject || "", fields, "");
+  $("pc-note").value = "";
+  $("pc-body").value = fillTemplate(tpl.body, fields, "");
+
+  $("pc-send").disabled = false;
+  $("pcwrap").classList.remove("hidden");
+}
+
+function wirePrecourse() {
+  const rebuild = () => {
+    if (!pcTemplate || !pcCourse) return;
+    const fields = precourseFields(pcCourse, me && me.full_name);
+    $("pc-body").value = fillTemplate(pcTemplate.body, fields, $("pc-note").value);
+  };
+
+  // The body follows the personal note until the coach edits the body
+  // themselves — after that it is theirs, and nothing overwrites it.
+  $("pc-note").addEventListener("input", () => { if (!pcBodyTouched) rebuild(); });
+  $("pc-body").addEventListener("input", () => { pcBodyTouched = true; });
+
+  $("pc-rebuild").onclick = () => {
+    if (pcBodyTouched && !window.confirm(
+      "Rebuild from the template? Your edits to the email will be lost."
+    )) return;
+    pcBodyTouched = false;
+    rebuild();
+  };
+
+  $("pc-close").onclick = () => { $("pcwrap").classList.add("hidden"); };
+  $("pcwrap").addEventListener("click", (e) => {
+    if (e.target === $("pcwrap")) $("pcwrap").classList.add("hidden");
+  });
+
+  $("pc-send").onclick = async () => {
+    if (!pcCourse) return;
+    const subject = $("pc-subject").value.trim();
+    const body = $("pc-body").value.trim();
+    const msg = $("pc-msg");
+
+    if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return; }
+    if (!body) { msg.className = "msg err"; msg.textContent = "There is nothing to send."; return; }
+    if (body.includes("{{personal_note}}")) {
+      msg.className = "msg err";
+      msg.textContent = "The personal message placeholder is still in the email. Write one, or delete that line.";
+      return;
+    }
+
+    const count = activeCount(allRegistrations);
+    if (!window.confirm(
+      `Send this to ${count} participant${count === 1 ? "" : "s"} on "${pcCourse.title}"?\n\n` +
+      "Each person gets their own copy. This cannot be unsent."
+    )) return;
+
+    $("pc-send").disabled = true;
+    msg.className = "msg"; msg.textContent = "Sending…";
+
+    try {
+      const { data: row, error } = await db.from("course_emails").insert({
+        course_id: pcCourse.id,
+        registration_id: null,
+        kind: "precourse",
+        subject,
+        body,
+        personal_note: $("pc-note").value.trim() || null,
+        status: "draft",
+      }).select("id").single();
+
+      if (error) throw new Error(error.message);
+
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+
+      const res = await fetch("/.netlify/functions/course-email-send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        body: JSON.stringify({ emailId: row.id }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      msg.className = "msg ok";
+      msg.textContent = `Sent to ${out.sent}` +
+        (out.failed ? `, ${out.failed} failed` : "") + `, as ${out.sentAs}.`;
+      setTimeout(() => {
+        $("pcwrap").classList.add("hidden");
+        openCourse(currentCourse);
+      }, 1600);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("pc-send").disabled = false;
+  };
+
+  $("pc-open").onclick = () => { if (currentCourse) openPrecourse(currentCourse); };
+}
+
+// Shown to the lead coach and to admin. Blocked before the window
+// opens: nobody should send "this weekend" a fortnight early.
+function showPrecourseBar(course) {
+  const bar = $("pc-bar");
+  const canSee = (isAdmin() || amLeadOn(course.id)) &&
+                 course.type !== "online_course" && !isPast(course);
+  bar.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  const w = precourseWindow(course);
+  const now = new Date();
+  const sent = precourseRow && precourseRow.status === "sent";
+  const tooEarly = !w.noWednesday && now < w.opensAt;
+
+  $("pc-open").disabled = tooEarly;
+  $("pc-open").textContent = sent ? "Pre-course email sent" : "Pre-course email";
+  $("pc-open").classList.toggle("done", !!sent);
+
+  $("pc-state").textContent = sent
+    ? `Sent ${fmtWhen(precourseRow.sent_at)}.`
+    : tooEarly
+      ? `Opens ${fmtDate(w.opensAt.toISOString(), course.timezone)} — six days before the course.`
+      : now > w.closesAt
+        ? "Overdue — this should have gone by the end of Wednesday."
+        : `Due by the end of Wednesday ${fmtDate(w.closesAt.toISOString(), course.timezone)}.`;
+}
+
+/* ---------- cancelling a course ---------- */
+
+// Clause 1.5 of the terms: if we cancel and cannot offer a suitable
+// alternative, the participant is refunded in full. No administration
+// fee — that is only for refunds they ask for.
+let cancelPlan = null;
+
+function openCancelPreview(course, p) {
+  cancelPlan = { courseId: course.id, ...p };
+
+  const money = (cents) => new Intl.NumberFormat(undefined, {
+    style: "currency", currency: p.currency || "EUR", maximumFractionDigits: 2,
+  }).format((cents || 0) / 100);
+
+  $("cx-h").textContent = "Cancel " + course.title;
+
+  $("cx-what").textContent = p.people.length
+    ? `${p.people.length} participant${p.people.length === 1 ? "" : "s"} will be refunded in full and emailed. ` +
+      "The course is then archived. Refunds cannot be undone."
+    : "Nobody has booked, so there is nothing to refund. The course will be archived.";
+
+  // Money we cannot move automatically has to be visible, not buried.
+  const warn = $("cx-warn");
+  if (p.totalStuck) {
+    warn.classList.remove("hidden");
+    warn.innerHTML =
+      `<strong>${money(p.totalStuck)} cannot be refunded automatically</strong>` +
+      "No Stripe payment reference was recorded against it. Refund that by hand in Stripe.";
+  } else {
+    warn.classList.add("hidden");
+  }
+
+  const list = $("cx-list");
+  list.innerHTML = "";
+  for (const person of p.people) {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;justify-content:space-between;gap:1rem;padding:0.5rem 0.75rem;border-bottom:1px solid var(--rule)";
+    const who = document.createElement("span");
+    who.textContent = person.name || person.email;
+    const what = document.createElement("span");
+    what.style.whiteSpace = "nowrap";
+    const bits = [];
+    if (person.refundCents) bits.push("refund " + money(person.refundCents));
+    if (person.cancelCents) bits.push("stop " + money(person.cancelCents));
+    if (person.stuckCents) bits.push("by hand " + money(person.stuckCents));
+    what.textContent = bits.length ? bits.join(" · ") : "nothing taken";
+    row.append(who, what);
+    list.append(row);
+  }
+  if (!p.people.length) list.classList.add("hidden");
+  else list.classList.remove("hidden");
+
+  $("cx-total").textContent = p.people.length
+    ? `${money(p.totalRefund)} refunded` +
+      (p.totalCancel ? `, ${money(p.totalCancel)} of scheduled payments stopped.` : ".")
+    : "";
+
+  $("cx-msg").textContent = "";
+  $("cx-msg").className = "msg";
+  $("cx-go").disabled = p.alreadyCancelled;
+  $("cx-go").textContent = p.people.length ? "Refund and cancel" : "Cancel the course";
+  if (p.alreadyCancelled) {
+    $("cx-msg").className = "msg err";
+    $("cx-msg").textContent = "This course has already been cancelled.";
+  }
+
+  $("cxwrap").classList.remove("hidden");
+}
+
+function wireCancel() {
+  $("cx-close").onclick = () => { $("cxwrap").classList.add("hidden"); cancelPlan = null; };
+  $("cxwrap").addEventListener("click", (e) => {
+    if (e.target === $("cxwrap")) { $("cxwrap").classList.add("hidden"); cancelPlan = null; }
+  });
+
+  $("cx-go").onclick = async () => {
+    if (!cancelPlan) return;
+    const msg = $("cx-msg");
+
+    if (!window.confirm(
+      cancelPlan.people.length
+        ? `Refund ${cancelPlan.people.length} participant${cancelPlan.people.length === 1 ? "" : "s"} and cancel this course?\n\n` +
+          "This moves real money and cannot be undone."
+        : "Cancel and archive this course?"
+    )) return;
+
+    $("cx-go").disabled = true;
+    msg.className = "msg";
+    msg.textContent = "Refunding and emailing — this can take a moment…";
+
+    try {
+      const r = await callAdmin({
+        action: "cancel",
+        courseId: cancelPlan.courseId,
+        reason: $("c-reason").value.trim() || null,
+      });
+
+      const problems = (r.problems || []).length;
+      msg.className = problems ? "msg err" : "msg ok";
+      msg.textContent = problems
+        ? `Cancelled, but ${problems} did not go through: ${(r.problems || []).join("; ")}`
+        : `Cancelled. ${r.emailed} participant${r.emailed === 1 ? "" : "s"} refunded and emailed.`;
+
+      setTimeout(() => {
+        $("cxwrap").classList.add("hidden");
+        cancelPlan = null;
+        loadCourses();
+      }, problems ? 6000 : 2500);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+      $("cx-go").disabled = false;
+    }
+  };
+}
+
+/* ---------- the host email ---------- */
+
+// The email an admin currently writes by hand for every seminar. It
+// carries three codes, and assembling those by hand is where the time
+// goes and where the mistakes are.
+
+const BRAND_LETTER = { tcc: "C", tgc: "G", tec: "E", twc: "W", birdbox: "B" };
+
+// HCCMDEC1 — host code, CrossFit Munich, Germany, TCC, Level 1.
+// Initials of the gym rather than its full name, so the code stays
+// short enough to read down a phone.
+function codeStem(course) {
+  const gym = String(course.venue_name || course.city || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z ]/g, " ")
+    .split(/\s+/).filter(Boolean)
+    .filter((w) => !["the", "of", "and", "crossfit", "cf"].includes(w.toLowerCase()));
+
+  // CrossFit is dropped above because half the gyms we visit start
+  // with it — leaving it in would make most codes look alike.
+  const initials = (gym.length ? gym : [String(course.venue_name || "X")])
+    .slice(0, 3).map((w) => w[0].toUpperCase()).join("");
+
+  const country = String(course.country || "").toUpperCase().slice(0, 2);
+  const brand = BRAND_LETTER[course.brand] || "B";
+  const level = String(course.level == null ? "" : course.level).replace(/\D/g, "");
+
+  return `${initials}${country}${brand}${level}`;
+}
+
+// Same gym, same brand, same level, twice in a year would collide.
+// Rather than refuse, add a number — and say nothing, because the
+// admin can see the code in front of them either way.
+async function uniqueCode(base) {
+  for (let n = 0; n < 20; n++) {
+    const attempt = n === 0 ? base : `${base}${n + 1}`;
+    const { data } = await db.from("discount_codes")
+      .select("id").ilike("code", attempt).limit(1);
+    if (!data || !data.length) return attempt;
+  }
+  return `${base}${Date.now().toString().slice(-4)}`;
+}
+
+// Four weeks before the course starts, at the end of that day in the
+// course's own time zone — not the admin's.
+function earlyBirdEnds(course) {
+  const tz = course.timezone || "UTC";
+  const cutoff = new Date(new Date(course.starts_at).getTime() - 28 * 86400000);
+  const local = instantToZoned(cutoff.toISOString(), tz);
+  return zonedToInstant(local.date, "23:59", tz);
+}
+
+let hostCourse = null;
+
+async function openHostEmail(course) {
+  // The list view does not carry the host details or the venue, so
+  // read the full row rather than emailing somebody a half-built note.
+  const { data: full, error } = await db.from("courses")
+    .select("*").eq("id", course.id).single();
+  if (error) { window.alert("Could not load the course: " + error.message); return; }
+
+  if (!full.host_email) {
+    window.alert(
+      "There is no host email on this course.\n\n" +
+      "Add one under Edit course details, then come back."
+    );
+    return;
+  }
+
+  hostCourse = full;
+
+  const stem = codeStem(full);
+  $("host-code").value = await uniqueCode("HC" + stem);
+  $("host-uses").value = full.host_spots == null ? 2 : full.host_spots;
+
+  const prepaid = full.prepaid_spots || 0;
+  $("host-prepaid-wrap").classList.toggle("hidden", !prepaid);
+  $("host-comm").value = prepaid ? await uniqueCode(`COMM${prepaid}${stem}`) : "";
+  $("host-comm-uses").value = prepaid;
+
+  const ends = earlyBirdEnds(full);
+  $("host-eb-hint").textContent =
+    "stops " + fmtDate(ends.toISOString(), full.timezone) + ", four weeks before the course";
+
+  $("host-subject").value = `${full.title} is live — your host codes`;
+  $("host-body").value = hostEmailBody(full);
+  $("host-note").textContent =
+    "Sending creates the codes and copies the media team, the office, and any coach already assigned to this course.";
+  $("host-msg").textContent = "";
+  $("host-msg").className = "msg";
+  // Opened fresh every time. Without this, one successful send leaves
+  // the button disabled for good — it is only re-enabled on failure.
+  $("host-send").disabled = false;
+  $("hostwrap").classList.remove("hidden");
+}
+
+function hostEmailBody(course) {
+  const link = `${location.origin}/c/${course.slug}/`;
+  const spots = course.host_spots == null ? 2 : course.host_spots;
+  const prepaid = course.prepaid_spots || 0;
+  const ends = earlyBirdEnds(course);
+  const first = String(course.host_name || "there").split(" ")[0];
+
+  const dates = course.ends_at &&
+    fmtDate(course.ends_at, course.timezone) !== fmtDate(course.starts_at, course.timezone)
+      ? `${fmtDate(course.starts_at, course.timezone)} to ${fmtDate(course.ends_at, course.timezone)}`
+      : fmtDate(course.starts_at, course.timezone);
+
+  const where = [course.venue_name, course.city, countryName(course.country)]
+    .filter(Boolean).join(", ");
+
+  const lines = [
+    `Hey ${first},`,
+    "",
+    "Thank you for the confirmation — everything is settled and the seminar is now live.",
+    "",
+    `${course.title} at ${where} runs on ${dates}.`,
+    "",
+    "To make registering easy for anyone interested, please share this direct link:",
+    link,
+    "",
+  ];
+
+  if (spots > 0) {
+    lines.push(
+      `Your host code is ${$("host-code").value}. It gives you ` +
+      `${spots} free ${spots === 1 ? "place" : "places"} on the seminar — ` +
+      "register them whenever suits you.",
+      ""
+    );
+  }
+
+  if (prepaid > 0) {
+    lines.push(
+      `For the ${prepaid} ${prepaid === 1 ? "place" : "places"} you have already paid for, ` +
+      `use ${$("host-comm").value} at registration.`,
+      ""
+    );
+  }
+
+  lines.push(
+    "PROMOTION",
+    "",
+    `There is an early bird discount of 10% for anyone registering more than four weeks ` +
+    `before the seminar. The code is ${$("host-eb").value}, and it stops working on ` +
+    `${fmtDate(ends.toISOString(), course.timezone)}.`,
+    "",
+    "Please do share it on your socials or with anyone who might be interested. Early " +
+    "registrations genuinely help — they let us book travel in good time and give us " +
+    "confidence the seminar will run.",
+    "",
+    "MINIMUM NUMBERS",
+    "",
+    "We need at least 7 paying participants for the seminar to go ahead. If we are short " +
+    "10 to 14 days before, we would have to move or cancel it — sooner where there is " +
+    "long-haul travel involved. So the earlier the sign-ups come in, the better.",
+    "",
+    "PAYING",
+    "",
+    "Participants can pay in full, or pay a 25% deposit with the balance taken " +
+    "automatically 14 days before the seminar. Klarna is also available at checkout. " +
+    "Nobody needs to email us first — it is all on the registration page.",
+    "",
+    "PROMOTIONAL MATERIAL",
+    "",
+    "Sarah is copied in and will be in touch with the artwork and social assets for this " +
+    "seminar.",
+    "",
+    "We are looking forward to it. Any questions at all, just reply to this email.",
+    "",
+    "Kind regards,",
+  );
+
+  return lines.join("\n");
+}
+
+function wireHostEmail() {
+  $("host-open").onclick = () => { if (currentCourse) openHostEmail(currentCourse); };
+  $("host-close").onclick = () => { $("hostwrap").classList.add("hidden"); hostCourse = null; };
+  $("hostwrap").addEventListener("click", (e) => {
+    if (e.target === $("hostwrap")) { $("hostwrap").classList.add("hidden"); hostCourse = null; }
+  });
+
+  // Editing a code should change the email, since the code appears in
+  // it three times over.
+  $("host-rebuild").onclick = () => {
+    if (hostCourse) $("host-body").value = hostEmailBody(hostCourse);
+  };
+
+  $("host-send").onclick = async () => {
+    if (!hostCourse) return;
+    const msg = $("host-msg");
+
+    const body = $("host-body").value.trim();
+    const subject = $("host-subject").value.trim();
+    if (!subject || !body) {
+      msg.className = "msg err";
+      msg.textContent = "The subject and the email both need filling in.";
+      return;
+    }
+
+    if (!window.confirm(
+      `Send this to ${hostCourse.host_email}?\n\n` +
+      "The codes are created at the same time and will work immediately."
+    )) return;
+
+    $("host-send").disabled = true;
+    msg.className = "msg";
+    msg.textContent = "Creating the codes and sending…";
+
+    try {
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+
+      const res = await fetch("/.netlify/functions/host-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        body: JSON.stringify({
+          courseId: hostCourse.id,
+          subject,
+          body,
+          hostCode: $("host-code").value.trim().toUpperCase(),
+          hostUses: parseInt($("host-uses").value, 10) || 0,
+          prepaidCode: $("host-comm").value.trim().toUpperCase(),
+          prepaidUses: parseInt($("host-comm-uses").value, 10) || 0,
+          earlyBirdCode: $("host-eb").value.trim().toUpperCase(),
+        }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      msg.className = "msg ok";
+      msg.textContent = `Sent to ${out.sentTo} — ${out.copied} copied in` +
+        (out.coaches ? `, including ${out.coaches} coach${out.coaches === 1 ? "" : "es"}` : "") +
+        `. ${out.codes} code${out.codes === 1 ? "" : "s"} created.`;
+
+      setTimeout(() => {
+        $("hostwrap").classList.add("hidden");
+        hostCourse = null;
+        openCourse(currentCourse);
+      }, 2200);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+      $("host-send").disabled = false;
+    }
+  };
+}
+
+// Says whether it has gone out already, so nobody sends it twice.
+async function showHostBar(course) {
+  const state = $("host-state");
+  if (!isAdmin()) return;
+
+  if (!course.host_email) {
+    $("host-open").disabled = true;
+    state.textContent = "No host email on this course — add one under Edit course details.";
+    return;
+  }
+
+  $("host-open").disabled = false;
+
+  const { data } = await db.from("course_emails")
+    .select("sent_at").eq("course_id", course.id).eq("kind", "host")
+    .order("sent_at", { ascending: false }).limit(1);
+
+  const alreadySent = !!(data && data.length && data[0].sent_at);
+  $("host-open").classList.toggle("done", alreadySent);
+  $("host-open").textContent = alreadySent ? "Host email sent" : "Send the host email";
+
+  state.textContent = alreadySent
+    ? `Sent ${fmtWhen(data[0].sent_at)} to ${course.host_email}. Sending again creates new codes.`
+    : `Goes to ${course.host_email}, with the media team copied in.`;
+}
+
+/* ---------- finding a participant ---------- */
+
+// Somebody rings up about a course they think they booked, and the
+// only thing you have is a name. Searches every registration, past and
+// present, rather than only the live ones.
+
+async function openPeople() {
+  show("people");
+  $("pp-q").focus();
+}
+
+async function runPeopleSearch() {
+  const q = $("pp-q").value.trim();
+  const box = $("pp-results");
+  const count = $("pp-count");
+
+  if (q.length < 2) {
+    count.textContent = "Type at least two letters.";
+    box.innerHTML = "";
+    return;
+  }
+
+  box.innerHTML = '<p class="empty">Searching…</p>';
+  count.textContent = "";
+
+  // "Nathan" has to match a first name, "Bird" a surname, and "Nathan
+  // Bird" the two together — which is what anybody types first, and
+  // what matching each column separately fails at. So a multi-word
+  // search is split and every word has to appear somewhere in the
+  // person's name.
+  const clean = q.replace(/[%_]/g, " ").trim();
+  const words = clean.split(/\s+/).filter(Boolean);
+  const like = `%${clean}%`;
+
+  const { data, error } = await db
+    .from("registrations")
+    // Named explicitly: registrations points at courses twice — once
+    // for the course itself and once for transferred_from_course_id —
+    // so an unqualified join cannot tell which is meant.
+    .select("id, first_name, last_name, email, phone, status, attended, payment_status, created_at, course_id, courses!registrations_course_id_fkey ( id, title, city, country, starts_at, timezone, brand, level, type, status, archived, slug )")
+    // One word: match it anywhere. More than one: fetch on the first
+    // word and narrow below, because "every word appears somewhere in
+    // the name" is not a thing a single query can ask for.
+    .or(
+      words.length > 1
+        ? `first_name.ilike.%${words[0]}%,last_name.ilike.%${words[0]}%,email.ilike.${like}`
+        : `first_name.ilike.${like},last_name.ilike.${like},email.ilike.${like}`
+    )
+    .order("created_at", { ascending: false })
+    .limit(400);
+
+  if (error) {
+    box.innerHTML = '<p class="empty">Could not search: ' + error.message + "</p>";
+    return;
+  }
+
+  let rows = (data || []).filter((r) => r.courses);
+
+  // Every word has to appear in the name or the address — so "Nathan
+  // Bird" finds him, and "Nathan Smith" finds nobody rather than
+  // everybody called Nathan.
+  if (words.length > 1) {
+    const lower = words.map((w) => w.toLowerCase());
+    rows = rows.filter((r) => {
+      const hay = `${r.first_name || ""} ${r.last_name || ""} ${r.email || ""}`.toLowerCase();
+      return lower.every((w) => hay.includes(w));
+    });
+  }
+  if (!rows.length) {
+    box.innerHTML = '<p class="empty">Nobody matching that.</p>';
+    return;
+  }
+
+  // Grouped by person, because somebody who has been on four courses
+  // should read as one person with four courses, not four results.
+  const byPerson = {};
+  for (const r of rows) {
+    const key = (r.email || `${r.first_name} ${r.last_name}`).toLowerCase();
+    (byPerson[key] = byPerson[key] || []).push(r);
+  }
+
+  const people = Object.values(byPerson);
+  count.textContent =
+    `${people.length} ${people.length === 1 ? "person" : "people"}, ` +
+    `${rows.length} registration${rows.length === 1 ? "" : "s"}.`;
+
+  box.innerHTML = "";
+  for (const regs of people) {
+    const first = regs[0];
+
+    const card = document.createElement("div");
+    card.className = "panel";
+    card.style.marginBottom = "0.7rem";
+
+    const head = document.createElement("div");
+    head.style.cssText = "margin-bottom:0.6rem";
+    const name = document.createElement("div");
+    name.style.cssText = "font-weight:650;font-size:1rem";
+    name.textContent = `${first.first_name} ${first.last_name}`;
+    const contact = document.createElement("div");
+    contact.className = "whenline";
+    contact.textContent = [first.email, first.phone].filter(Boolean).join(" · ");
+    head.append(name, contact);
+    card.append(head);
+
+    for (const r of regs) {
+      const c = r.courses;
+      const row = document.createElement("div");
+      row.className = "inv-row";
+      row.style.cursor = "pointer";
+
+      const who = document.createElement("span");
+      who.className = "who";
+      const t = document.createElement("div");
+      t.textContent = c.title;
+      const when = document.createElement("div");
+      when.className = "whenline";
+      when.textContent = [
+        fmtDate(c.starts_at, c.timezone),
+        [c.city, countryName(c.country)].filter(Boolean).join(", "),
+      ].filter(Boolean).join(" · ");
+      who.append(t, when);
+
+      const flags = document.createElement("span");
+      flags.className = "files";
+      const pill = (text, cls) => {
+        const el = document.createElement("span");
+        el.className = "pill " + (cls || "");
+        el.textContent = text;
+        flags.append(el);
+      };
+
+      const regStatus = r.status || "active";
+      if (regStatus !== "active") pill(regStatus.replace(/_/g, " "), "bad");
+      else if (r.attended) pill("attended", "on");
+      pill((r.payment_status || "").replace(/_/g, " "),
+           r.payment_status === "paid_in_full" ? "on"
+             : r.payment_status === "refunded" ? "bad" : "warn");
+
+      row.append(who, flags);
+      row.onclick = () => openCourse(c);
+      card.append(row);
+    }
+
+    box.append(card);
   }
 }
 
-async function loadTemplate(course) {
-  const level = course.type === "workshop"
-    ? ""
-    : String(course.level == null ? "" : course.level).replace(/\D/g, "");
+function wirePeople() {
+  $("peoplebtn").onclick = openPeople;
+  $("back-people").onclick = loadCourses;
+  $("pp-go").onclick = runPeopleSearch;
+  $("pp-q").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); runPeopleSearch(); }
+  });
+}
 
-  const { data } = await supabase
-    .from("email_templates")
+/* ---------- exporting a course list ---------- */
+
+// Everything we hold on a registration, so whoever is asking for the
+// export can take what they need and nothing more. Sending a full
+// dump every time would put phone numbers and payment details in
+// places that only wanted an email list.
+const EXPORT_FIELDS = [
+  { key: "first_name",     label: "First name",        basic: true },
+  { key: "last_name",      label: "Last name",         basic: true },
+  { key: "email",          label: "Email",             basic: true },
+  { key: "phone",          label: "Phone" },
+  { key: "country",        label: "Country" },
+  { key: "status",         label: "Registration status" },
+  { key: "attended",       label: "Attended" },
+  { key: "payment_status", label: "Payment status" },
+  { key: "amount_paid",    label: "Amount paid" },
+  { key: "currency",       label: "Currency" },
+  { key: "discount_code",  label: "Discount code" },
+  { key: "discount",       label: "Discount amount" },
+  { key: "waiver",         label: "Waiver signed" },
+  { key: "certificate",    label: "Certificate sent" },
+  { key: "online_language",label: "Online course language" },
+  { key: "source",         label: "How they booked" },
+  { key: "registered",     label: "Registered on" },
+];
+
+function openExport(course) {
+  const box = $("ex-fields");
+  box.innerHTML = "";
+
+  for (const f of EXPORT_FIELDS) {
+    const row = document.createElement("label");
+    row.className = "pm-check";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.value = f.key;
+    cb.checked = !!f.basic;
+    const span = document.createElement("span");
+    span.textContent = f.label;
+    row.append(cb, span);
+    box.append(row);
+  }
+
+  $("ex-sub").textContent = course.title;
+  $("ex-inactive").checked = false;
+  $("ex-note").textContent =
+    "The file holds people's personal details — keep it somewhere sensible and delete it when you are done with it.";
+  $("ex-msg").textContent = "";
+  $("ex-msg").className = "msg";
+  $("ex-go").disabled = false;
+  $("exwrap").classList.remove("hidden");
+}
+
+// Quotes anything that would otherwise break the file — the separator
+// itself appearing in an address, a quote in a name, a newline in a
+// note. Which character separates the columns depends on where the
+// spreadsheet thinks it is: Excel in Germany or France splits on
+// semicolons and will put a comma-separated file entirely in column A.
+function csvCell(value, sep) {
+  const text = value == null ? "" : String(value);
+  const needsQuotes =
+    text.includes(sep) || text.includes('"') ||
+    text.includes("\n") || text.includes("\r");
+  return needsQuotes ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function wireExport() {
+  $("ex-open").onclick = () => { if (currentCourse) openExport(currentCourse); };
+  $("ex-close").onclick = () => { $("exwrap").classList.add("hidden"); };
+  $("exwrap").addEventListener("click", (e) => {
+    if (e.target === $("exwrap")) $("exwrap").classList.add("hidden");
+  });
+
+  $("ex-all").onclick = () => {
+    $("ex-fields").querySelectorAll("input").forEach((cb) => { cb.checked = true; });
+  };
+  $("ex-none").onclick = () => {
+    $("ex-fields").querySelectorAll("input").forEach((cb) => {
+      cb.checked = !!(EXPORT_FIELDS.find((f) => f.key === cb.value) || {}).basic;
+    });
+  };
+
+  $("ex-go").onclick = () => {
+    if (!currentCourse) return;
+    const msg = $("ex-msg");
+
+    const chosen = Array.from($("ex-fields").querySelectorAll("input"))
+      .filter((cb) => cb.checked).map((cb) => cb.value);
+
+    if (!chosen.length) {
+      msg.className = "msg err";
+      msg.textContent = "Choose at least one thing to export.";
+      return;
+    }
+
+    const wantInactive = $("ex-inactive").checked;
+    const rows = allRegistrations.filter(
+      (r) => wantInactive || (r.status || "active") === "active"
+    );
+
+    if (!rows.length) {
+      msg.className = "msg err";
+      msg.textContent = "There is nobody to export.";
+      return;
+    }
+
+    const value = (r, key) => {
+      switch (key) {
+        case "attended":        return r.attended ? "yes" : "no";
+        case "status":          return r.status || "active";
+        case "amount_paid":     return ((r.amount_paid_cents || 0) / 100).toFixed(2);
+        case "discount":        return ((r.discount_cents || 0) / 100).toFixed(2);
+        case "waiver":          return r.waiver_signed_at ? fmtWhen(r.waiver_signed_at) : "";
+        case "certificate":     return r.certificate_sent_at ? fmtWhen(r.certificate_sent_at) : "";
+        case "online_language": return r.learnworlds_language ? langLabel(r.learnworlds_language) : "";
+        case "registered":      return r.created_at ? fmtWhen(r.created_at) : "";
+        case "source":          return [r.source, r.source_note].filter(Boolean).join(" — ");
+        default:                return r[key];
+      }
+    };
+
+    const sep = $("ex-sep").value === "\\t" ? "\t" : $("ex-sep").value;
+
+    const header = chosen.map((k) =>
+      (EXPORT_FIELDS.find((f) => f.key === k) || { label: k }).label);
+
+    const lines = [
+      header.map((h) => csvCell(h, sep)).join(sep),
+      ...rows.map((r) => chosen.map((k) => csvCell(value(r, k), sep)).join(sep)),
+    ];
+
+    // Excel reads this first line and splits accordingly, whatever its
+    // regional setting. Other spreadsheets ignore it, so it is only
+    // added where it helps.
+    if (sep === ";") lines.unshift("sep=;");
+
+    // The byte order mark is what makes Excel open accented names
+    // correctly — without it Zsolt Sóti arrives as mojibake.
+    const blob = new Blob(["\ufeff" + lines.join("\r\n")],
+      { type: "text/csv;charset=utf-8;" });
+
+    const ext = sep === "\t" ? ".tsv" : ".csv";
+    const name = (currentCourse.slug || "course") + "-participants" + ext;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    msg.className = "msg ok";
+    msg.textContent = `${rows.length} row${rows.length === 1 ? "" : "s"} exported as ${name}.`;
+  };
+}
+
+/* ---------- direct messages ---------- */
+
+// One to one, between any two members of staff. Deliberately separate
+// from the course chat: that one is about a course and everybody on it
+// can read back, this one is a private line between two people.
+let dmWith = null;
+let dmUnread = {};
+
+async function loadUnread() {
+  dmUnread = {};
+  if (!me) return 0;
+
+  const { data, error } = await db
+    .from("direct_messages")
+    .select("sender_id")
+    .eq("recipient_id", me.id)
+    .is("read_at", null);
+
+  if (error) { console.error("Could not load unread:", error.message); return 0; }
+  for (const m of data || []) dmUnread[m.sender_id] = (dmUnread[m.sender_id] || 0) + 1;
+  return (data || []).length;
+}
+
+// A count on the Messages button, so an unread message is visible from
+// anywhere in the portal rather than only when you go looking.
+// A red count on the Blog button when posts are waiting for review,
+// so a submission is visible from the portal rather than only once
+// somebody opens the blog. Admin only — a coach has nothing to review.
+async function refreshBlogFlag() {
+  const link = $("bloglink");
+  link.textContent = "Blog";
+  if (!isAdmin()) return;
+
+  const { count, error } = await db.from("blog_posts")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "submitted");
+
+  if (error || !count) return;
+
+  const flag = document.createElement("span");
+  flag.className = "unread-flag";
+  flag.textContent = count > 9 ? "9+" : String(count);
+  link.append(flag);
+}
+
+// A count on the Workshops button. For an admin it is work waiting on
+// a decision; for a coach it is a decision they have not read yet.
+// Opening the thing in the workshops page clears it.
+// A count on the Reflections link. For an admin it is what the team
+// has sent that nobody has read; for a coach it is a reply they have
+// not seen. Opening it clears it.
+async function refreshReflectionFlag() {
+  const link = $("reflectlink");
+  if (!link || !me) return;
+  link.textContent = "Reflections";
+
+  let total = 0;
+  try {
+    if (isAdmin()) {
+      const { data } = await db.from("reflections").select("id")
+        .eq("status", "submitted").neq("staff_id", me.id)
+        .is("seen_by_admin_at", null);
+      total = (data || []).length;
+    } else {
+      const { data } = await db.from("reflections").select("id")
+        .eq("staff_id", me.id).eq("status", "submitted")
+        .is("seen_by_coach_at", null);
+      total = (data || []).length;
+    }
+  } catch (err) {
+    console.error("Could not count reflections:", err.message);
+    return;
+  }
+
+  if (!total) return;
+  const flag = document.createElement("span");
+  flag.className = "unread-flag";
+  flag.textContent = total > 9 ? "9+" : String(total);
+  link.append(flag);
+}
+
+async function refreshWorkshopFlag() {
+  const btn = $("workshopsbtn");
+  if (!btn || !me) return;
+  btn.textContent = "Workshops";
+
+  let total = 0;
+  try {
+    if (isAdmin()) {
+      const [r, t] = await Promise.all([
+        db.from("workshop_requests").select("id").eq("status", "submitted"),
+        db.from("workshop_templates").select("id").eq("status", "pending"),
+      ]);
+      total = (r.data || []).length + (t.data || []).length;
+    } else {
+      const [r, t] = await Promise.all([
+        db.from("workshop_requests").select("id")
+          .eq("requested_by", me.id).is("seen_by_coach_at", null)
+          .in("status", ["approved", "declined"]),
+        db.from("workshop_templates").select("id")
+          .eq("created_by", me.id).is("seen_by_coach_at", null)
+          .in("status", ["approved", "rejected"]),
+      ]);
+      total = (r.data || []).length + (t.data || []).length;
+    }
+  } catch (err) {
+    console.error("Could not count workshops:", err.message);
+    return;
+  }
+
+  if (!total) return;
+  const flag = document.createElement("span");
+  flag.className = "unread-flag";
+  flag.textContent = total > 9 ? "9+" : String(total);
+  btn.append(flag);
+}
+
+  async function refreshUnreadFlag() {
+
+  const total = await loadUnread();
+  const btn = $("messagesbtn");
+  btn.textContent = "Messages";
+  if (total) {
+    const flag = document.createElement("span");
+    flag.className = "unread-flag";
+    flag.textContent = total > 9 ? "9+" : String(total);
+    btn.append(flag);
+  }
+}
+
+async function openMessages() {
+  show("messages");
+
+  if (!staffList.length) {
+    const { data } = await db.from("staff")
+      .select("id, full_name, role, photo_path").eq("active", true).order("full_name");
+    staffList = data || [];
+  }
+
+  await loadUnread();
+  renderPeople();
+
+  if (dmWith) await openThread(dmWith);
+}
+
+function renderPeople() {
+  const box = $("dm-people");
+  box.innerHTML = "";
+
+  // Anyone with unread messages floats to the top; the rest stay
+  // alphabetical so people are where you expect them.
+  const others = staffList
+    .filter((p) => p.id !== me.id)
+    .sort((a, b) => (dmUnread[b.id] || 0) - (dmUnread[a.id] || 0) ||
+                    a.full_name.localeCompare(b.full_name));
+
+  if (!others.length) {
+    box.innerHTML = '<p class="chat-none">Nobody else on the team yet.</p>';
+    return;
+  }
+
+  for (const person of others) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "dm-person" + (dmWith && dmWith.id === person.id ? " on" : "");
+
+    const nm = document.createElement("span");
+    nm.className = "nm";
+    nm.textContent = person.full_name;
+
+    btn.append(avatar(person, 28), nm);
+
+    if (dmUnread[person.id]) {
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      dot.textContent = String(dmUnread[person.id]);
+      btn.append(dot);
+    }
+
+    btn.onclick = () => openThread(person);
+    box.append(btn);
+  }
+}
+
+async function openThread(person) {
+  dmWith = person;
+  renderPeople();
+
+  $("dm-with").textContent = person.full_name;
+  $("dm-compose").classList.remove("hidden");
+  $("dm-msg").textContent = "";
+
+  const list = $("dm-list");
+  list.innerHTML = '<p class="chat-none">Loading…</p>';
+
+  // Both directions of the conversation. The policy already limits
+  // this to messages we are party to, so the filter is about picking
+  // the right thread rather than about access.
+  const { data, error } = await db
+    .from("direct_messages")
+    .select("id, sender_id, recipient_id, body, created_at, read_at")
+    .or(`and(sender_id.eq.${me.id},recipient_id.eq.${person.id}),` +
+        `and(sender_id.eq.${person.id},recipient_id.eq.${me.id})`)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    list.innerHTML = '<p class="chat-none">Could not load that conversation.</p>';
+    return;
+  }
+
+  renderThread(data || [], person);
+
+  // Marked read once they are on screen, which is the only honest
+  // moment to claim it.
+  const unread = (data || []).filter((m) => m.recipient_id === me.id && !m.read_at);
+  if (unread.length) {
+    await db.from("direct_messages")
+      .update({ read_at: new Date().toISOString() })
+      .in("id", unread.map((m) => m.id));
+    await loadUnread();
+    renderPeople();
+    await refreshUnreadFlag();
+  }
+}
+
+function renderThread(rows, person) {
+  const list = $("dm-list");
+  list.innerHTML = "";
+
+  if (!rows.length) {
+    const p = document.createElement("p");
+    p.className = "chat-none";
+    p.textContent = `Nothing between you and ${person.full_name.split(" ")[0]} yet.`;
+    list.append(p);
+    return;
+  }
+
+  for (const m of rows) {
+    const mine = m.sender_id === me.id;
+
+    const row = document.createElement("div");
+    row.className = "chat-msg" + (mine ? " mine" : "");
+
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "flex:1 1 auto;min-width:0";
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const author = document.createElement("span");
+    author.className = "author";
+    author.textContent = mine ? "You" : person.full_name;
+    const when = document.createElement("span");
+    when.textContent = fmtWhen(m.created_at);
+    meta.append(author, when);
+
+    if (mine) {
+      const seen = document.createElement("span");
+      seen.textContent = m.read_at ? "read" : "sent";
+      meta.append(seen);
+
+      const del = document.createElement("button");
+      del.className = "textlink";
+      del.type = "button";
+      del.style.fontSize = "0.75rem";
+      del.textContent = "delete";
+      del.onclick = async () => {
+        if (!window.confirm("Delete this message? It goes for both of you.")) return;
+        const { error } = await db.from("direct_messages").delete().eq("id", m.id);
+        if (error) { window.alert("Could not delete it: " + error.message); return; }
+        row.remove();
+      };
+      meta.append(del);
+    }
+
+    const body = document.createElement("div");
+    body.className = "body";
+    body.textContent = m.body;
+
+    wrap.append(meta, body);
+    row.append(avatar(mine ? me : person, 34), wrap);
+    list.append(row);
+  }
+
+  list.scrollTop = list.scrollHeight;
+}
+
+// Messages arrive while you are somewhere else in the portal, so the
+// portal listens rather than waiting to be asked. Without this a
+// message only appears when the thread is reopened, which is not what
+// anybody expects of a chat.
+let dmChannel = null;
+
+function listenForMessages() {
+  if (!me || dmChannel) return;
+
+  dmChannel = db
+    .channel("dm-" + me.id)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "direct_messages",
+        filter: `recipient_id=eq.${me.id}`,
+      },
+      (payload) => onMessageArrived(payload.new)
+    )
+    .subscribe();
+}
+
+async function onMessageArrived(row) {
+  // Who it is from. The list is already loaded in almost every case;
+  // reading it fresh only for somebody added since sign-in.
+  let from = staffList.find((p) => p.id === row.sender_id);
+  if (!from) {
+    const { data } = await db.from("staff")
+      .select("id, full_name, role, photo_path").eq("id", row.sender_id).maybeSingle();
+    if (data) { from = data; staffList.push(data); }
+  }
+  if (!from) return;
+
+  const readingThem =
+    !views.messages.classList.contains("hidden") && dmWith && dmWith.id === row.sender_id;
+
+  if (readingThem) {
+    // Already looking at the conversation, so it simply appears — and
+    // reopening marks it read, which is honest because it is on screen.
+    await openThread(dmWith);
+    return;
+  }
+
+  await loadUnread();
+  await refreshUnreadFlag();
+  if (!views.messages.classList.contains("hidden")) renderPeople();
+
+  showToast(from, row.body);
+}
+
+let toastTimer = null;
+
+function showToast(from, body) {
+  const old = document.getElementById("dm-toast");
+  if (old) old.remove();
+  if (toastTimer) clearTimeout(toastTimer);
+
+  const el = document.createElement("button");
+  el.id = "dm-toast";
+  el.className = "toast";
+  el.type = "button";
+
+  const text = document.createElement("span");
+  const who = document.createElement("div");
+  who.className = "who";
+  who.textContent = from.full_name;
+  const said = document.createElement("div");
+  said.className = "said";
+  said.textContent = String(body).replace(/\s+/g, " ").trim();
+  text.append(who, said);
+
+  el.append(avatar(from, 30), text);
+
+  el.onclick = () => {
+    el.remove();
+    openMessages().then(() => openThread(from));
+  };
+
+  document.body.append(el);
+  // Long enough to read a line, short enough not to sit in the way.
+  toastTimer = setTimeout(() => el.remove(), 8000);
+}
+
+function wireMessages() {
+  $("messagesbtn").onclick = openMessages;
+  $("back-messages").onclick = loadCourses;
+
+  const send = async () => {
+    if (!dmWith) return;
+    const box = $("dm-box");
+    const msg = $("dm-msg");
+    const body = box.value.trim();
+    if (!body) return;
+
+    $("dm-send").disabled = true;
+    msg.textContent = "Sending…";
+
+    const { error } = await db.from("direct_messages").insert({
+      sender_id: me.id,
+      recipient_id: dmWith.id,
+      body,
+    });
+
+    $("dm-send").disabled = false;
+
+    if (error) { msg.textContent = "Could not send: " + error.message; return; }
+
+    box.value = "";
+    msg.textContent = "";
+    await openThread(dmWith);
+  };
+
+  $("dm-send").onclick = send;
+  $("dm-box").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+}
+
+/* ---------- the course chat ---------- */
+
+// Coach to coach, about this course. Roadworks outside the gym, who is
+// bringing the rings, a nudge about an invoice. Attached to the course
+// rather than to people, so somebody who joins late can read back.
+
+async function loadChat(course) {
+  const panel = $("chatpanel");
+  const canSee = isAdmin() || !!myRoles[course.id];
+  panel.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  const list = $("chat-list");
+  list.innerHTML = '<p class="chat-none">Loading…</p>';
+  $("chat-msg").textContent = "";
+
+  const { data, error } = await db
+    .from("course_messages")
+    .select("id, staff_id, body, created_at, staff ( full_name, photo_path )")
+    .eq("course_id", course.id)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    list.innerHTML = '<p class="chat-none">Could not load the chat.</p>';
+    return;
+  }
+
+  renderChat(data || []);
+}
+
+function renderChat(rows) {
+  const list = $("chat-list");
+  list.innerHTML = "";
+
+  if (!rows.length) {
+    const p = document.createElement("p");
+    p.className = "chat-none";
+    p.textContent = "Nothing here yet. Anything the others should know before the day?";
+    list.append(p);
+    return;
+  }
+
+  for (const m of rows) {
+    const person = m.staff || { full_name: "A coach" };
+    const mine = m.staff_id === me.id;
+
+    const row = document.createElement("div");
+    row.className = "chat-msg" + (mine ? " mine" : "");
+
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "flex:1 1 auto;min-width:0";
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const author = document.createElement("span");
+    author.className = "author";
+    author.textContent = mine ? "You" : person.full_name;
+    const when = document.createElement("span");
+    when.textContent = fmtWhen(m.created_at);
+    meta.append(author, when);
+
+    // Only your own, and only ever your own — the policy would refuse
+    // anything else anyway.
+    if (mine) {
+      const del = document.createElement("button");
+      del.className = "textlink";
+      del.type = "button";
+      del.style.fontSize = "0.75rem";
+      del.textContent = "delete";
+      del.onclick = async () => {
+        if (!window.confirm("Delete this message?")) return;
+        const { error } = await db.from("course_messages").delete().eq("id", m.id);
+        if (error) { window.alert("Could not delete it: " + error.message); return; }
+        row.remove();
+      };
+      meta.append(del);
+    }
+
+    const body = document.createElement("div");
+    body.className = "body";
+    body.textContent = m.body;
+
+    wrap.append(meta, body);
+    row.append(avatar(person, 34), wrap);
+    list.append(row);
+  }
+
+  // Newest at the foot, which is where the eye goes.
+  list.scrollTop = list.scrollHeight;
+}
+
+function wireChat() {
+  const send = async () => {
+    if (!currentCourse) return;
+    const box = $("chat-box");
+    const msg = $("chat-msg");
+    const body = box.value.trim();
+    if (!body) return;
+
+    $("chat-send").disabled = true;
+    msg.textContent = "Sending…";
+
+    const { data, error } = await db.from("course_messages").insert({
+      course_id: currentCourse.id,
+      staff_id: me.id,
+      body,
+    }).select("id, staff_id, body, created_at, staff ( full_name, photo_path )").single();
+
+    $("chat-send").disabled = false;
+
+    if (error) { msg.textContent = "Could not send: " + error.message; return; }
+
+    box.value = "";
+    msg.textContent = "";
+    await loadChat(currentCourse);
+  };
+
+  $("chat-send").onclick = send;
+
+  // Enter sends, shift-enter starts a new line — the way every other
+  // chat behaves.
+  $("chat-box").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+}
+
+/* ---------- the follow-up email ---------- */
+
+// Sent by the lead coach a few days after the seminar, while it is
+// still fresh. Prompted rather than automatic — the coach was there
+// and may want to say something particular to that group.
+const FOLLOWUP_DUE_DAYS = 3;
+const FOLLOWUP_LATE_DAYS = 10;
+
+let followupRow = null;
+let fuCourse = null;
+let fuTemplate = null;
+
+async function loadFollowup(courseId) {
+  followupRow = null;
+  const { data, error } = await db
+    .from("course_emails")
+    .select("id, status, sent_at, subject")
+    .eq("course_id", courseId)
+    .eq("kind", "followup")
+    .is("registration_id", null)
+    .order("sent_at", { ascending: false })
+    .limit(1);
+
+  if (error) { console.error("Could not load follow-up:", error.message); return; }
+  followupRow = (data && data[0]) || null;
+}
+
+// Only once the course has actually finished, and only to the lead
+// coach or an admin. Before that there is nothing to follow up.
+function showFollowupBar(course) {
+  const bar = $("fu-bar");
+  const canSee = (isAdmin() || amLeadOn(course.id)) &&
+                 course.type !== "online_course" &&
+                 new Date(course.ends_at || course.starts_at) < new Date();
+
+  bar.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  const sent = followupRow && followupRow.status === "sent";
+  const daysSince = Math.floor(
+    (Date.now() - new Date(course.ends_at || course.starts_at)) / 86400000
+  );
+
+  $("fu-open").textContent = sent ? "Follow-up email sent" : "Follow-up email";
+  $("fu-open").disabled = false;
+  $("fu-open").classList.toggle("done", !!sent);
+
+  $("fu-state").textContent = sent
+    ? `Sent ${fmtWhen(followupRow.sent_at)}.`
+    : daysSince < FOLLOWUP_DUE_DAYS
+      ? `Best sent in a few days, once they have had a chance to train.`
+      : daysSince > FOLLOWUP_LATE_DAYS
+        ? `The seminar was ${daysSince} days ago — worth sending today.`
+        : `Due now — it has been ${daysSince} day${daysSince === 1 ? "" : "s"}.`;
+}
+
+async function openFollowup(course) {
+  const msg = $("fu-msg");
+  msg.className = "msg"; msg.textContent = "";
+
+  const { data: full, error } = await db.from("courses")
+    .select("*").eq("id", course.id).single();
+  if (error) { window.alert("Could not load the course: " + error.message); return; }
+  fuCourse = full;
+
+  const level = String(full.level == null ? "" : full.level).replace(/\D/g, "");
+  const { data: tpl } = await db.from("email_templates")
     .select("subject, body")
-    .eq("kind", "certificate")
-    .eq("type", course.type)
-    .eq("brand", String(course.brand || "").toLowerCase())
+    .eq("kind", "followup")
+    .eq("type", full.type)
+    .eq("brand", String(full.brand || "").toLowerCase())
     .eq("level", level)
     .eq("language", "en")
     .maybeSingle();
 
-  return data || null;
+  if (!tpl) {
+    window.alert(
+      "No follow-up template is set up for this course yet.\n\n" +
+      `It needs a row in email_templates with kind 'followup', type '${full.type}', ` +
+      `brand '${full.brand}' and level '${level}'.`
+    );
+    return;
+  }
+  fuTemplate = tpl;
+
+  $("fu-h").textContent = "Follow-up email — " + full.title;
+  $("fu-sub").textContent = followupRow && followupRow.status === "sent"
+    ? `Already sent ${fmtWhen(followupRow.sent_at)}. Sending again writes a second email to everyone.`
+    : "Goes to everyone who attended, one at a time, from your own address.";
+
+  $("fu-subject").value = fillFollowup(tpl.subject || "", full);
+  $("fu-body").value = fillFollowup(tpl.body, full);
+  $("fu-note").textContent =
+    "Edit anything before sending — you were there, so say what is worth saying.";
+  $("fu-send").disabled = false;
+  $("fuwrap").classList.remove("hidden");
 }
 
-// BB-TCC1-0826-0001. Brand and level so it is readable at a glance,
-// the course month so it can be placed in time, then a running number.
-// The unique constraint on the column is the real guarantee; a clash
-// simply retries with the next number.
-async function nextReference(course) {
-  const brand = String(course.brand || "bb").toUpperCase();
-  const level = course.type === "workshop"
-    ? "W"
-    : String(course.level == null ? "" : course.level).replace(/\D/g, "") || "1";
-
-  const start = new Date(course.starts_at);
-  const stamp = String(start.getUTCMonth() + 1).padStart(2, "0") +
-                String(start.getUTCFullYear()).slice(-2);
-
-  const { count } = await supabase
-    .from("certificates")
-    .select("id", { count: "exact", head: true });
-
-  let n = (count || 0) + 1;
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const reference = `BB-${brand}${level}-${stamp}-${String(n).padStart(4, "0")}`;
-    const { data: clash } = await supabase
-      .from("certificates")
-      .select("id")
-      .eq("reference", reference)
-      .maybeSingle();
-    if (!clash) return reference;
-    n++;
-  }
-  throw new Error("Could not allocate a certificate reference");
+// {{first_name}} is deliberately left in — the sending function fills
+// it per person, so the coach can see it in the draft.
+function fillFollowup(text, course) {
+  return String(text)
+    .replace(/\{\{\s*course_title\s*\}\}/gi, course.title || "")
+    .replace(/\{\{\s*city\s*\}\}/gi, course.city || "")
+    .replace(/\{\{\s*coach_name\s*\}\}/gi, (me && me.full_name) || "");
 }
 
-async function buildPdf({ artwork, layout, nameFont, name, awardedText, reference, focus }) {
-  const doc = await PDFDocument.create();
-  doc.registerFontkit(fontkit);
-  const page = doc.addPage([PAGE.width, PAGE.height]);
-
-  // PNG artwork is embedded losslessly and makes a much larger file, so
-  // JPEG is preferable — but both are accepted rather than failing.
-  const image = isPng(artwork)
-    ? await doc.embedPng(artwork)
-    : await doc.embedJpg(artwork);
-  page.drawImage(image, { x: 0, y: 0, width: PAGE.width, height: PAGE.height });
-
-  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const plain = await doc.embedFont(StandardFonts.Helvetica);
-
-  // subset: false keeps the whole character set, so an accented name
-  // like Nürnberg or São Paulo does not come out as blanks.
-  let display = bold;
-  if (nameFont) {
-    try {
-      display = await doc.embedFont(nameFont, { subset: false });
-    } catch (err) {
-      console.warn("Could not embed the name font; using Helvetica Bold.", err.message);
-    }
-  }
-
-  // Positions are in artwork pixels, converted here — so the numbers in
-  // LAYOUTS can be read straight off the design.
-  const scale = PAGE.width / layout.art.width;
-  const toX = (px) => px * scale;
-  const toY = (pxFromTop) => PAGE.height - pxFromTop * scale;
-
-  // Shrinks until it fits, rather than running past the rule it sits on.
-  const put = (text, spec, font, colour) => {
-    if (!text || !spec) return;
-    let size = spec.size * scale;
-    const maxWidth = spec.maxWidth * scale;
-    while (font.widthOfTextAtSize(text, size) > maxWidth && size > spec.min * scale) {
-      size -= 1;
-    }
-    const width = font.widthOfTextAtSize(text, size);
-    const x = spec.centreX != null
-      ? toX(spec.centreX) - width / 2
-      : toX(spec.rightX) - width;
-    page.drawText(text, { x, y: toY(spec.baselineY), size, font, color: colour });
-  };
-
-  put(name, layout.name, display, rgb(0.05, 0.05, 0.05));
-  put(focus, layout.focus, plain, rgb(0.1, 0.1, 0.1));
-  put(awardedText, layout.awardedOn, plain, rgb(0.1, 0.1, 0.1));
-
-  // Discreet, and clear of the corner graphics on both designs.
-  const r = layout.reference;
-  const refSize = r.size * scale;
-  page.drawText(reference, {
-    x: toX(r.rightX) - plain.widthOfTextAtSize(reference, refSize),
-    y: toY(r.baselineY),
-    size: refSize,
-    font: plain,
-    color: rgb(0.55, 0.55, 0.55),
+function wireFollowup() {
+  $("fu-open").onclick = () => { if (currentCourse) openFollowup(currentCourse); };
+  $("fu-close").onclick = () => { $("fuwrap").classList.add("hidden"); };
+  $("fuwrap").addEventListener("click", (e) => {
+    if (e.target === $("fuwrap")) $("fuwrap").classList.add("hidden");
   });
 
-  return await doc.saveAsBase64();
+  $("fu-rebuild").onclick = () => {
+    if (!fuTemplate || !fuCourse) return;
+    if (!window.confirm("Reset from the template? Your edits will be lost.")) return;
+    $("fu-subject").value = fillFollowup(fuTemplate.subject || "", fuCourse);
+    $("fu-body").value = fillFollowup(fuTemplate.body, fuCourse);
+  };
+
+  $("fu-send").onclick = async () => {
+    if (!fuCourse) return;
+    const subject = $("fu-subject").value.trim();
+    const body = $("fu-body").value.trim();
+    const msg = $("fu-msg");
+
+    if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return; }
+    if (!body) { msg.className = "msg err"; msg.textContent = "There is nothing to send."; return; }
+
+    // Only the people who were actually there. Somebody who booked and
+    // did not turn up has no use for "putting it into practice".
+    const attended = allRegistrations.filter(
+      (r) => (r.status || "active") === "active" && r.attended
+    );
+
+    if (!attended.length) {
+      msg.className = "msg err";
+      msg.textContent = "Nobody is ticked as attended, so there is nobody to send this to.";
+      return;
+    }
+
+    if (!window.confirm(
+      `Send this to ${attended.length} participant${attended.length === 1 ? "" : "s"} ` +
+      `who attended "${fuCourse.title}"?\n\nThis cannot be unsent.`
+    )) return;
+
+    $("fu-send").disabled = true;
+    msg.className = "msg"; msg.textContent = "Sending…";
+
+    try {
+      const { data: row, error } = await db.from("course_emails").insert({
+        course_id: fuCourse.id,
+        registration_id: null,
+        kind: "followup",
+        subject,
+        body,
+        status: "draft",
+      }).select("id").single();
+
+      if (error) throw new Error(error.message);
+
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+
+      const res = await fetch("/.netlify/functions/course-email-send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        body: JSON.stringify({ emailId: row.id, attendedOnly: true }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      msg.className = "msg ok";
+      msg.textContent = `Sent to ${out.sent}` +
+        (out.failed ? `, ${out.failed} failed` : "") + `, as ${out.sentAs}.`;
+
+      setTimeout(() => {
+        $("fuwrap").classList.add("hidden");
+        openCourse(currentCourse);
+      }, 1600);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("fu-send").disabled = false;
+  };
 }
 
-function fill(text, fields) {
-  let out = String(text);
-  for (const [key, value] of Object.entries(fields)) {
-    out = out.replace(new RegExp("\\{\\{\\s*" + key + "\\s*\\}\\}", "gi"), value);
+/* ---------- coach invoices ---------- */
+
+// The coach's own invoice, uploaded as they already produce it. BirdBox
+// collects and organises rather than generating, so there is no
+// self-billing arrangement to keep on the right side of.
+//
+// Receipts are categorised but carry no amounts: those are already
+// itemised on the coach's own invoice, and a second set of numbers
+// would eventually disagree with the first.
+
+let myInvoice = null;
+let myReceipts = [];
+let invCourse = null;
+
+async function loadMyInvoice(course) {
+  myInvoice = null;
+  myReceipts = [];
+  if (!me) return;
+
+  const { data, error } = await db
+    .from("coach_invoices")
+    .select("id, total_cents, currency, invoice_path, notes, status, submitted_at, paid_at, paid_note")
+    .eq("course_id", course.id)
+    .eq("staff_id", me.id)
+    .maybeSingle();
+
+  if (error) { console.error("Could not load invoice:", error.message); return; }
+  myInvoice = data || null;
+
+  if (myInvoice) {
+    const { data: rows } = await db
+      .from("coach_invoice_receipts")
+      .select("id, category, description, file_path, created_at, paid_by_company, amount_cents, currency")
+      .eq("invoice_id", myInvoice.id)
+      .order("created_at", { ascending: true });
+    myReceipts = rows || [];
+  }
+}
+
+// Coaches on the course see their own. Admin uses the panel below,
+// because an admin is usually not invoicing for the course.
+function showInvoiceBar(course) {
+  const bar = $("inv-bar");
+  const onIt = !!myRoles[course.id];
+  const ran = new Date(course.ends_at || course.starts_at) < new Date();
+
+  bar.classList.toggle("hidden", !onIt || !ran);
+  if (!onIt || !ran) return;
+
+  // Certificates come first. Until the seminar has been submitted, the
+  // course is not finished — and invoicing for it would be premature.
+  if (!course.completed_at) {
+    $("inv-open").disabled = true;
+    $("inv-open").classList.remove("done");
+    $("inv-open").textContent = "My invoice";
+    $("inv-state").textContent =
+      "Available once the seminar is completed and the certificates have gone out.";
+    return;
+  }
+  $("inv-open").disabled = false;
+
+  const sent = myInvoice && myInvoice.status === "submitted";
+  const paid = myInvoice && !!myInvoice.paid_at;
+
+  $("inv-open").textContent = paid ? "Invoice paid"
+    : sent ? "Invoice submitted"
+    : myInvoice ? "Finish my invoice" : "My invoice";
+  // Submitted is done as far as the coach is concerned; paid is done
+  // for everybody.
+  $("inv-open").classList.toggle("done", !!sent || !!paid);
+
+  $("inv-state").textContent = paid
+    ? `Paid ${fmtWhen(myInvoice.paid_at)} — ${money(myInvoice.total_cents, myInvoice.currency)}.`
+    : sent
+      ? `Sent ${fmtWhen(myInvoice.submitted_at)} — ${money(myInvoice.total_cents, myInvoice.currency)}. You can still change it.`
+      : myInvoice
+        ? "Saved but not submitted yet."
+        : "Upload your invoice and receipts for this course.";
+}
+
+async function openInvoice(course) {
+  invCourse = course;
+  await loadMyInvoice(course);
+
+  const submitted = myInvoice && myInvoice.status === "submitted";
+  const paid = myInvoice && !!myInvoice.paid_at;
+
+  $("inv-h").textContent = "Invoice — " + course.title;
+  $("inv-sub").textContent = paid
+    ? `Paid ${fmtWhen(myInvoice.paid_at)}${myInvoice.paid_note ? " — " + myInvoice.paid_note : ""}. This invoice is now fixed.`
+    : submitted
+      ? `Submitted ${fmtWhen(myInvoice.submitted_at)}. You can still change it until it is paid.`
+      : "Upload your own invoice, attach a receipt for each expense, and give the total due.";
+
+  // Once paid it is a record of what was settled, so nothing about it
+  // moves. Everything stays visible and downloadable.
+  for (const id of ["inv-file", "inv-total", "inv-currency", "inv-notes",
+                    "rc-cat", "rc-desc", "rc-other", "rc-file",
+                    "rc-company", "rc-amount", "rc-currency"]) {
+    $(id).disabled = paid;
+  }
+  $("rc-add").classList.toggle("hidden", paid);
+  $("inv-save").classList.toggle("hidden", paid);
+  $("inv-submit").classList.toggle("hidden", paid);
+
+  $("inv-total").value = myInvoice && myInvoice.total_cents != null
+    ? (myInvoice.total_cents / 100).toFixed(2) : "";
+  $("inv-currency").value = (myInvoice && myInvoice.currency) || course.currency || "EUR";
+  $("inv-notes").value = (myInvoice && myInvoice.notes) || "";
+
+  $("inv-file").value = "";
+  $("inv-file-name").textContent = myInvoice && myInvoice.invoice_path
+    ? "Uploaded. Choose a file only if you want to replace it."
+    : "";
+  $("inv-file-name").className = myInvoice && myInvoice.invoice_path ? "name on" : "name";
+
+  $("rc-file").value = "";
+  $("rc-file-name").textContent = "";
+  $("rc-desc").value = "";
+  $("rc-other").value = "";
+  $("rc-cat").value = "Hotel";
+  $("rc-other-wrap").classList.add("hidden");
+  $("rc-company").checked = false;
+  $("rc-amount").value = "";
+  $("rc-currency").value = course.currency || "EUR";
+  $("rc-amount-wrap").classList.add("hidden");
+  $("rc-msg").textContent = "";
+
+  renderReceipts();
+  $("inv-msg").textContent = "";
+  $("inv-msg").className = "msg";
+  $("inv-save").disabled = false;
+  $("inv-submit").disabled = false;
+  $("invwrap").classList.remove("hidden");
+}
+
+function renderReceipts() {
+  const paid = myInvoice && !!myInvoice.paid_at;
+
+  // Two lists, because they are two different things. What the coach
+  // paid comes back to them through their invoice. What went on a
+  // company card is already spent, and carries its own amount because
+  // no invoice records it.
+  const draw = (box, rows, empty) => {
+    box.innerHTML = "";
+    if (!rows.length) {
+      const p = document.createElement("p");
+      p.style.cssText = "color:var(--muted);font-size:0.86rem;margin:0.5rem 0";
+      p.textContent = empty;
+      box.append(p);
+      return;
+    }
+
+    for (const r of rows) {
+      const row = document.createElement("div");
+      row.className = "rc-row";
+
+      const cat = document.createElement("span");
+      cat.className = "cat";
+      cat.textContent = r.category;
+
+      const desc = document.createElement("span");
+      desc.className = "desc";
+      desc.textContent = r.description || "";
+
+      row.append(cat, desc);
+
+      if (r.paid_by_company && r.amount_cents != null) {
+        const amt = document.createElement("span");
+        amt.style.whiteSpace = "nowrap";
+        amt.textContent = money(r.amount_cents, r.currency);
+        row.append(amt);
+      }
+
+      const view = document.createElement("button");
+      view.className = "btn ghost tiny";
+      view.type = "button";
+      view.textContent = "View";
+      view.onclick = () => openStoredFile(r.file_path);
+      row.append(view);
+
+      if (!paid) {
+        const del = document.createElement("button");
+        del.className = "btn ghost tiny danger";
+        del.type = "button";
+        del.textContent = "Remove";
+        del.onclick = async () => {
+          if (!window.confirm(`Remove the ${r.category.toLowerCase()} receipt?`)) return;
+          del.disabled = true;
+          await db.storage.from("coach-invoices").remove([r.file_path]);
+          const { error } = await db.from("coach_invoice_receipts").delete().eq("id", r.id);
+          if (error) { window.alert("Could not remove it: " + error.message); del.disabled = false; return; }
+          myReceipts = myReceipts.filter((x) => x.id !== r.id);
+          renderReceipts();
+        };
+        row.append(del);
+      }
+
+      box.append(row);
+    }
+  };
+
+  draw($("inv-receipts"), myReceipts.filter((r) => !r.paid_by_company),
+       "Nothing yet. Coaching alone needs no receipt.");
+  draw($("inv-company"), myReceipts.filter((r) => r.paid_by_company),
+       "Nothing paid on a company card.");
+}
+
+// The bucket is private, so a file is reached through a short-lived
+// signed link rather than a public URL.
+async function openStoredFile(path) {
+  const { data, error } = await db.storage
+    .from("coach-invoices").createSignedUrl(path, 300);
+  if (error || !data?.signedUrl) {
+    window.alert("Could not open that file: " + (error ? error.message : "no link returned"));
+    return;
+  }
+  window.open(data.signedUrl, "_blank");
+}
+
+// The row has to exist before a receipt can point at it, so this is
+// called before any upload rather than only when saving.
+async function ensureInvoice() {
+  if (myInvoice) return myInvoice;
+
+  const { data, error } = await db.from("coach_invoices").insert({
+    course_id: invCourse.id,
+    staff_id: me.id,
+    currency: $("inv-currency").value || "EUR",
+    status: "draft",
+  }).select("id, total_cents, currency, invoice_path, notes, status, submitted_at").single();
+
+  if (error) throw new Error(error.message);
+  myInvoice = data;
+  return myInvoice;
+}
+
+async function uploadTo(file, prefix) {
+  const ext = (file.name.split(".").pop() || "pdf").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const path = `${invCourse.id}/${me.id}/${prefix}-${Date.now()}.${ext}`;
+  const { error } = await db.storage
+    .from("coach-invoices")
+    .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+  if (error) throw new Error(error.message);
+  return path;
+}
+
+function wireInvoices() {
+  $("inv-open").onclick = () => { if (currentCourse) openInvoice(currentCourse); };
+  $("inv-close").onclick = () => { $("invwrap").classList.add("hidden"); invCourse = null; };
+  $("invwrap").addEventListener("click", (e) => {
+    if (e.target === $("invwrap")) { $("invwrap").classList.add("hidden"); invCourse = null; }
+  });
+
+  $("rc-company").addEventListener("change", () => {
+    // A company-card expense is on no invoice, so its amount has to be
+    // captured here or the course total would be short by that much.
+    $("rc-amount-wrap").classList.toggle("hidden", !$("rc-company").checked);
+    if ($("rc-company").checked) $("rc-amount").focus();
+  });
+
+  $("rc-cat").addEventListener("change", () => {
+    const other = $("rc-cat").value === "__other";
+    $("rc-other-wrap").classList.toggle("hidden", !other);
+    if (other) $("rc-other").focus();
+  });
+
+  for (const [input, label] of [["inv-file", "inv-file-name"], ["rc-file", "rc-file-name"]]) {
+    $(input).addEventListener("change", () => {
+      const f = $(input).files[0];
+      $(label).textContent = f ? f.name : "";
+      $(label).className = f ? "name on" : "name";
+    });
+  }
+
+  // Each receipt is uploaded as it is added, so a long list is not
+  // riding on one submit that could fail at the end.
+  $("rc-add").onclick = async () => {
+    const msg = $("rc-msg");
+    const file = $("rc-file").files[0];
+    const isOther = $("rc-cat").value === "__other";
+    const category = isOther ? $("rc-other").value.trim() : $("rc-cat").value;
+    const company = $("rc-company").checked;
+    const amount = $("rc-amount").value.trim();
+
+    if (!category) { msg.textContent = "Say what the receipt is for."; return; }
+    if (!file) { msg.textContent = "Choose the receipt file."; return; }
+    if (company && !amount) {
+      msg.textContent = "Add what it cost — a company-card expense is on no invoice.";
+      return;
+    }
+
+    $("rc-add").disabled = true;
+    msg.textContent = "Uploading…";
+
+    try {
+      await ensureInvoice();
+      const path = await uploadTo(file, "receipt");
+
+      const { data, error } = await db.from("coach_invoice_receipts").insert({
+        invoice_id: myInvoice.id,
+        category,
+        description: $("rc-desc").value.trim() || null,
+        file_path: path,
+        paid_by_company: company,
+        amount_cents: company && amount ? Math.round(parseFloat(amount) * 100) : null,
+        currency: company ? $("rc-currency").value : null,
+      }).select("id, category, description, file_path, created_at, paid_by_company, amount_cents, currency").single();
+
+      if (error) throw new Error(error.message);
+
+      myReceipts.push(data);
+      renderReceipts();
+      $("rc-file").value = "";
+      $("rc-file-name").textContent = "";
+      $("rc-desc").value = "";
+      $("rc-other").value = "";
+      $("rc-amount").value = "";
+      msg.textContent = "Added.";
+      setTimeout(() => { msg.textContent = ""; }, 1800);
+    } catch (err) {
+      msg.textContent = "Could not add it: " + err.message;
+    }
+    $("rc-add").disabled = false;
+  };
+
+  const saveInvoice = async (submitting) => {
+    const msg = $("inv-msg");
+    const total = $("inv-total").value.trim();
+
+    if (myInvoice && myInvoice.paid_at) {
+      msg.className = "msg err";
+      msg.textContent = "This invoice has been paid, so it can no longer be changed.";
+      return;
+    }
+
+    // A coach on salary may be claiming nothing at all — only handing in
+    // company-card receipts. That is a valid submission, so an invoice
+    // is only required where money is actually being claimed.
+    const claiming = total !== "" && parseFloat(total) > 0;
+
+    if (submitting) {
+      if (claiming && !$("inv-file").files[0] && !(myInvoice && myInvoice.invoice_path)) {
+        msg.className = "msg err";
+        msg.textContent = "Upload your invoice, or set the total to zero if you are claiming nothing.";
+        return;
+      }
+      if (!claiming && !myReceipts.length) {
+        msg.className = "msg err";
+        msg.textContent = "There is nothing here to submit — add a total, or attach a receipt.";
+        return;
+      }
+    }
+
+    $("inv-save").disabled = true;
+    $("inv-submit").disabled = true;
+    msg.className = "msg";
+    msg.textContent = submitting ? "Submitting…" : "Saving…";
+
+    try {
+      await ensureInvoice();
+
+      let invoicePath = myInvoice.invoice_path;
+      const file = $("inv-file").files[0];
+      if (file) invoicePath = await uploadTo(file, "invoice");
+
+      const patch = {
+        total_cents: total === "" ? 0 : Math.round(parseFloat(total) * 100),
+        currency: $("inv-currency").value,
+        notes: $("inv-notes").value.trim() || null,
+        invoice_path: invoicePath,
+        updated_at: new Date().toISOString(),
+      };
+      if (submitting) {
+        patch.status = "submitted";
+        patch.submitted_at = new Date().toISOString();
+      }
+
+      const { data, error } = await db.from("coach_invoices")
+        .update(patch).eq("id", myInvoice.id)
+        .select("id, total_cents, currency, invoice_path, notes, status, submitted_at").single();
+
+      if (error) throw new Error(error.message);
+      myInvoice = data;
+
+      msg.className = "msg ok";
+      msg.textContent = submitting
+        ? "Submitted. Thank you — we will be in touch if anything is missing."
+        : "Saved. Come back and submit when you are ready.";
+
+      if (submitting) {
+        setTimeout(() => {
+          $("invwrap").classList.add("hidden");
+          openCourse(currentCourse);
+        }, 1600);
+      } else {
+        $("inv-file").value = "";
+        $("inv-file-name").textContent = "Uploaded. Choose a file only if you want to replace it.";
+        $("inv-file-name").className = "name on";
+      }
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+
+    $("inv-save").disabled = false;
+    $("inv-submit").disabled = false;
+  };
+
+  $("inv-save").onclick = () => saveInvoice(false);
+  $("inv-submit").onclick = () => saveInvoice(true);
+}
+
+// Everything submitted for this course, so an admin can download the
+// lot and hand it to accounting.
+async function renderInvoiceAdmin(course) {
+  const box = $("inv-admin");
+  box.innerHTML = '<p class="whenline">Loading…</p>';
+
+  const { data, error } = await db
+    .from("coach_invoices")
+    .select("id, staff_id, total_cents, currency, invoice_path, notes, status, submitted_at, staff ( full_name )")
+    .eq("course_id", course.id);
+
+  if (error) { box.innerHTML = '<p class="whenline bad">Could not load invoices.</p>'; return; }
+
+  const rows = data || [];
+  if (!rows.length) {
+    box.innerHTML = '<p class="whenline">No coach has submitted an invoice for this course yet.</p>';
+    return;
+  }
+
+  const { data: receipts } = await db
+    .from("coach_invoice_receipts")
+    .select("id, invoice_id, category, description, file_path, paid_by_company, amount_cents, currency")
+    .in("invoice_id", rows.map((r) => r.id));
+
+  const byInvoice = {};
+  for (const r of receipts || []) (byInvoice[r.invoice_id] = byInvoice[r.invoice_id] || []).push(r);
+
+  box.innerHTML = "";
+  let total = 0;
+  let company = 0;
+
+  for (const inv of rows) {
+    if (inv.status === "submitted") total += inv.total_cents || 0;
+
+    const row = document.createElement("div");
+    row.className = "inv-row";
+
+    const who = document.createElement("span");
+    who.className = "who";
+    who.textContent = (inv.staff && inv.staff.full_name) || "A coach";
+
+    const state = document.createElement("span");
+    state.className = "pill " + (inv.paid_at ? "done" : inv.status === "submitted" ? "on" : "warn");
+    state.textContent = inv.paid_at ? "paid" : inv.status === "submitted" ? "submitted" : "draft";
+
+    const amt = document.createElement("span");
+    amt.className = "amt";
+    amt.textContent = inv.total_cents != null ? money(inv.total_cents, inv.currency) : "no total yet";
+
+    const files = document.createElement("span");
+    files.className = "files";
+
+    if (inv.invoice_path) {
+      const b = document.createElement("button");
+      b.className = "btn ghost tiny";
+      b.type = "button";
+      b.textContent = "Invoice";
+      b.onclick = () => openStoredFile(inv.invoice_path);
+      files.append(b);
+    }
+
+    for (const r of byInvoice[inv.id] || []) {
+      if (r.paid_by_company) company += r.amount_cents || 0;
+      const b = document.createElement("button");
+      b.className = "btn ghost tiny";
+      b.type = "button";
+      // Marked, so a card receipt is not mistaken for something still
+      // owed to the coach.
+      b.textContent = r.paid_by_company ? r.category + " (card)" : r.category;
+      b.title = [r.description || r.category,
+                 r.paid_by_company ? "On a company card — " + money(r.amount_cents, r.currency) : ""]
+                .filter(Boolean).join(" · ");
+      b.onclick = () => openStoredFile(r.file_path);
+      files.append(b);
+    }
+
+    // Only a submitted invoice can be paid — a draft is not a claim yet.
+    if (inv.status === "submitted" && !inv.paid_at) {
+      const pay = document.createElement("button");
+      pay.className = "btn tiny go";
+      pay.type = "button";
+      pay.textContent = "Mark paid";
+      pay.onclick = () => openPaid(inv, () => renderInvoiceAdmin(course));
+      files.append(pay);
+    }
+
+    const wipe = document.createElement("button");
+    wipe.className = "btn ghost tiny danger";
+    wipe.type = "button";
+    wipe.textContent = "Delete";
+    wipe.onclick = () => deleteInvoice(inv, () => renderInvoiceAdmin(course));
+    files.append(wipe);
+
+    row.append(who, state, amt, files);
+    box.append(row);
+
+    if (inv.notes) {
+      const note = document.createElement("div");
+      note.className = "whenline";
+      note.style.padding = "0 0.85rem 0.6rem";
+      note.textContent = inv.notes;
+      box.append(note);
+    }
+  }
+
+  const sum = document.createElement("p");
+  sum.className = "whenline";
+  sum.style.marginTop = "0.6rem";
+  const cur = rows[0].currency || "EUR";
+  const settled = rows.filter((r) => r.paid_at).reduce((n, r) => n + (r.total_cents || 0), 0);
+
+  // Owed to coaches and already spent on a card are different kinds of
+  // money, so they are two figures and a total rather than one number.
+  const parts = [];
+  if (total) parts.push(`${money(total, cur)} claimed by coaches (${money(settled, cur)} paid)`);
+  if (company) parts.push(`${money(company, cur)} already on company cards`);
+  if (total || company) parts.push(`${money(total + company, cur)} for the course in total`);
+
+  sum.textContent = parts.length ? parts.join(" · ") : "Nothing submitted yet.";
+  box.append(sum);
+}
+
+/* ---------- the team ---------- */
+
+// Adding somebody creates their login and their staff record together,
+// server-side, and emails them a link to choose a password. Nobody is
+// ever sent a password, and the two records cannot drift apart.
+
+async function callStaff(payload) {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) throw new Error("Your session has expired — sign in again.");
+
+  const res = await fetch("/.netlify/functions/staff-invite", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + session.access_token,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || "That did not work.");
+  return data;
+}
+
+async function openTeam() {
+  show("team");
+  $("tm-msg").textContent = "";
+  await loadTeam();
+}
+
+async function loadTeam() {
+  const live = $("tm-list");
+  const gone = $("tm-gone");
+  live.innerHTML = '<p class="whenline">Loading…</p>';
+  gone.innerHTML = "";
+
+  const { data, error } = await db.from("staff")
+    .select("id, full_name, email, role, active, phone, photo_path")
+    .order("full_name");
+
+  if (error) { live.innerHTML = '<p class="whenline bad">Could not load the team.</p>'; return; }
+
+  staffList = (data || []).filter((p) => p.active);
+
+  const draw = (box, rows, empty) => {
+    box.innerHTML = "";
+    if (!rows.length) {
+      const p = document.createElement("p");
+      p.className = "whenline";
+      p.textContent = empty;
+      box.append(p);
+      return;
+    }
+    for (const person of rows) box.append(teamRow(person));
+  };
+
+  draw(live, (data || []).filter((p) => p.active), "Nobody yet.");
+  draw(gone, (data || []).filter((p) => !p.active), "Nobody has been deactivated.");
+}
+
+function teamRow(person) {
+  const row = document.createElement("div");
+  row.className = "inv-row";
+
+  const who = document.createElement("span");
+  who.className = "who";
+  who.style.cssText += ";display:flex;gap:0.7rem;align-items:center";
+  const text = document.createElement("span");
+  const name = document.createElement("div");
+  name.textContent = person.full_name;
+  const sub = document.createElement("div");
+  sub.className = "whenline";
+  sub.textContent = [person.email, person.phone].filter(Boolean).join(" · ");
+  text.append(name, sub);
+  who.append(avatar(person, 38), text);
+
+  const role = document.createElement("span");
+  role.className = "pill " + (person.role === "admin" ? "lead" : "");
+  role.textContent = person.role;
+
+  const acts = document.createElement("span");
+  acts.className = "files";
+
+  if (person.active) {
+    const again = document.createElement("button");
+    again.className = "btn ghost tiny";
+    again.type = "button";
+    again.textContent = "Send the invite again";
+    again.onclick = async () => {
+      again.disabled = true;
+      const was = again.textContent;
+      again.textContent = "Sending…";
+      try {
+        await callStaff({ action: "reinvite", staffId: person.id });
+        again.textContent = "Sent";
+        setTimeout(() => { again.textContent = was; again.disabled = false; }, 2500);
+      } catch (err) {
+        window.alert(err.message);
+        again.textContent = was;
+        again.disabled = false;
+      }
+    };
+    acts.append(again);
+
+    // Not offered on your own row — locking yourself out of the portal
+    // would need somebody with database access to undo.
+    if (person.id !== me.id) {
+      const off = document.createElement("button");
+      off.className = "btn ghost tiny danger";
+      off.type = "button";
+      off.textContent = "Deactivate";
+      off.onclick = async () => {
+        if (!window.confirm(
+          `Deactivate ${person.full_name}?\n\n` +
+          "They will not be able to sign in. Everything they have done stays as it is."
+        )) return;
+        off.disabled = true;
+        try {
+          const r = await callStaff({ action: "deactivate", staffId: person.id });
+          if (r.stillOn && r.stillOn.length) {
+            window.alert(
+              `${r.name} is deactivated, but is still assigned to ${r.stillOn.length} ` +
+              `upcoming course${r.stillOn.length === 1 ? "" : "s"}:\n\n` +
+              r.stillOn.join("\n") +
+              "\n\nAssign somebody else to those."
+            );
+          }
+          await loadTeam();
+        } catch (err) {
+          window.alert(err.message);
+          off.disabled = false;
+        }
+      };
+      acts.append(off);
+    }
+  } else {
+    const on = document.createElement("button");
+    on.className = "btn tiny go";
+    on.type = "button";
+    on.textContent = "Reactivate";
+    on.onclick = async () => {
+      on.disabled = true;
+      try {
+        await callStaff({ action: "reactivate", staffId: person.id });
+        await loadTeam();
+      } catch (err) {
+        window.alert(err.message);
+        on.disabled = false;
+      }
+    };
+    acts.append(on);
+  }
+
+  row.append(who, role, acts);
+  return row;
+}
+
+function wireTeam() {
+  $("teambtn").onclick = openTeam;
+  $("back-team").onclick = loadCourses;
+
+  $("tm-add").onclick = async () => {
+    const msg = $("tm-msg");
+    const name = $("tm-name").value.trim();
+    const email = $("tm-email").value.trim();
+
+    if (!name) { msg.textContent = "Add their name."; return; }
+    if (!email || !email.includes("@")) { msg.textContent = "Add a valid email."; return; }
+
+    $("tm-add").disabled = true;
+    msg.textContent = "Creating the login and sending the invite…";
+
+    try {
+      const r = await callStaff({
+        action: "invite",
+        fullName: name,
+        email,
+        role: $("tm-role").value,
+      });
+
+      msg.textContent = r.warning
+        ? r.warning
+        : `${name} has been added and emailed a link to set their password.`;
+
+      $("tm-name").value = "";
+      $("tm-email").value = "";
+      await loadTeam();
+    } catch (err) {
+      msg.textContent = err.message;
+    }
+    $("tm-add").disabled = false;
+  };
+}
+
+/* ---------- my profile ---------- */
+
+// Internal only. A phone number that works on a course day, and a face
+// to go with a name when a course is staffed by people who have not
+// met — nothing here reaches the website.
+let profileRow = null;
+
+async function openProfile() {
+  show("profile");
+
+  await loadVatRates();
+  const sel = $("pf-country");
+  if (sel.options.length <= 1) {
+    const rows = COUNTRY_CODES
+      .map((code) => ({ code, name: countryName(code) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    for (const r of rows) {
+      const o = document.createElement("option");
+      o.value = r.code;
+      o.textContent = r.name;
+      sel.append(o);
+    }
+  }
+
+  const { data, error } = await db.from("staff")
+    .select("id, full_name, email, phone, bio, photo_path, country, languages, " +
+            "coaching_philosophy, philosophy_updated_at")
+    .eq("id", me.id).single();
+
+  if (error) { $("pf-msg").textContent = "Could not load your profile."; return; }
+  profileRow = data;
+
+  $("pf-name").value = data.full_name || "";
+  $("pf-email").value = data.email || "";
+  $("pf-phone").value = data.phone || "";
+  $("pf-country").value = (data.country || "").toUpperCase();
+  $("pf-languages").value = data.languages || "";
+  $("pf-bio").value = data.bio || "";
+  $("pf-philosophy").value = data.coaching_philosophy || "";
+  $("pf-msg").textContent = "";
+  $("pf-phil-msg").textContent = "";
+  showPhilosophyNudge();
+
+  await showProfilePhoto();
+}
+
+async function showProfilePhoto() {
+  const frame = $("pf-frame");
+  const path = profileRow && profileRow.photo_path;
+
+  if (!path) {
+    frame.innerHTML = '<span style="color:var(--muted);font-size:0.78rem">No photo</span>';
+    return;
+  }
+
+  // A path starting with a slash is one of the team headshots already
+  // in the repo. Anything else was uploaded, and lives in the private
+  // bucket behind a signed link.
+  let src = path;
+  if (!path.startsWith("/")) {
+    const { data } = await db.storage
+      .from("staff-photos").createSignedUrl(path, 3600);
+    if (!data || !data.signedUrl) return;
+    src = data.signedUrl;
+  }
+
+  frame.innerHTML = "";
+  const img = document.createElement("img");
+  img.src = src;
+  img.alt = "";
+  img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block";
+  img.onerror = () => {
+    frame.innerHTML = '<span style="color:var(--muted);font-size:0.78rem">No photo</span>';
+  };
+  frame.append(img);
+}
+
+const PHILOSOPHY_STALE_DAYS = 365;
+
+function showPhilosophyNudge() {
+  const box = $("pf-phil-nudge");
+  box.innerHTML = "";
+  if (!profileRow) return;
+
+  const written = (profileRow.coaching_philosophy || "").trim();
+  const when = profileRow.philosophy_updated_at;
+  const months = when
+    ? Math.floor((Date.now() - new Date(when)) / 86400000 / 30)
+    : null;
+
+  const note = (cls, head, body) => {
+    const el = document.createElement("div");
+    el.className = "alert" + (cls ? " " + cls : "");
+    el.innerHTML = `<b>${head}</b>`;
+    el.append(document.createTextNode(body));
+    box.append(el);
+  };
+
+  if (!written) {
+    note("", "You have not written one yet",
+      "Every coach we work with is asked to. It is worth an hour, and it " +
+      "changes how you coach more than most things you could spend an hour on.");
+    return;
+  }
+
+  const days = when ? (Date.now() - new Date(when)) / 86400000 : Infinity;
+  if (days > PHILOSOPHY_STALE_DAYS) {
+    note("flag", "Worth revisiting",
+      `Last changed ${months} months ago. You have coached a lot of people ` +
+      "since then — read it back and see whether it still describes you.");
+  }
+}
+
+function wireProfile() {
+  $("profilebtn").onclick = openProfile;
+  $("back-profile").onclick = loadCourses;
+  $("pf-choose").onclick = () => $("pf-file").click();
+  $("pf-frame").onclick = () => $("pf-file").click();
+
+  $("pf-file").addEventListener("change", async () => {
+    const file = $("pf-file").files[0];
+    if (!file) return;
+    const msg = $("pf-photo-msg");
+    msg.className = "whenline";
+    msg.textContent = "Saving…";
+
+    try {
+      // Same shrink the participant photos use — a phone headshot is
+      // ten megabytes otherwise, and gym wifi will not thank you.
+      const blob = await shrink(file);
+      const path = `${me.id}.jpg`;
+
+      const { error } = await db.storage
+        .from("staff-photos")
+        .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+      if (error) throw error;
+
+      const { error: dbErr } = await db.from("staff")
+        .update({ photo_path: path }).eq("id", me.id);
+      if (dbErr) throw dbErr;
+
+      profileRow.photo_path = path;
+      await showProfilePhoto();
+      msg.textContent = "Saved.";
+    } catch (err) {
+      msg.className = "whenline bad";
+      msg.textContent = "Could not save that photo: " + (err.message || "unknown error");
+    }
+    $("pf-file").value = "";
+  });
+
+  $("pf-save").onclick = async () => {
+    const msg = $("pf-msg");
+    $("pf-save").disabled = true;
+    msg.textContent = "Saving…";
+
+    const { error } = await db.from("staff").update({
+      phone: $("pf-phone").value.trim() || null,
+      country: $("pf-country").value.trim().toUpperCase() || null,
+      languages: $("pf-languages").value.trim() || null,
+      bio: $("pf-bio").value.trim() || null,
+    }).eq("id", me.id);
+
+    $("pf-save").disabled = false;
+    msg.textContent = error ? "Could not save: " + error.message : "Saved.";
+    if (!error) setTimeout(() => { msg.textContent = ""; }, 2000);
+  };
+
+  // Saved on its own, and stamped, so the nudge can tell how long it
+  // has been sitting there untouched.
+  $("pf-phil-save").onclick = async () => {
+    const msg = $("pf-phil-msg");
+    const text = $("pf-philosophy").value.trim();
+
+    $("pf-phil-save").disabled = true;
+    msg.textContent = "Saving…";
+
+    const { error } = await db.from("staff").update({
+      coaching_philosophy: text || null,
+      philosophy_updated_at: text ? new Date().toISOString() : null,
+    }).eq("id", me.id);
+
+    $("pf-phil-save").disabled = false;
+
+    if (error) { msg.textContent = "Could not save: " + error.message; return; }
+
+    profileRow.coaching_philosophy = text || null;
+    profileRow.philosophy_updated_at = text ? new Date().toISOString() : null;
+    showPhilosophyNudge();
+
+    msg.textContent = text ? "Saved." : "Cleared.";
+    setTimeout(() => { msg.textContent = ""; }, 2000);
+  };
+}
+
+/* ---------- marking an invoice paid ---------- */
+
+// Paid is the end of the line: the coach sees it, and neither side can
+// change the invoice afterwards. It is a record of what was settled.
+let paidInvoice = null;
+let paidThen = null;
+
+function openPaid(inv, afterwards) {
+  paidInvoice = inv;
+  paidThen = afterwards;
+  $("paid-what").textContent =
+    `${(inv.staff && inv.staff.full_name) || "This coach"} — ` +
+    `${money(inv.total_cents, inv.currency)}.`;
+  $("paid-note").value = "";
+  $("paid-msg").textContent = "";
+  $("paid-msg").className = "msg";
+  $("paid-go").disabled = false;
+  $("paidwrap").classList.remove("hidden");
+}
+
+function wirePaid() {
+  $("paid-close").onclick = () => { $("paidwrap").classList.add("hidden"); paidInvoice = null; };
+  $("paidwrap").addEventListener("click", (e) => {
+    if (e.target === $("paidwrap")) { $("paidwrap").classList.add("hidden"); paidInvoice = null; }
+  });
+
+  $("paid-go").onclick = async () => {
+    if (!paidInvoice) return;
+    const msg = $("paid-msg");
+    $("paid-go").disabled = true;
+    msg.className = "msg";
+    msg.textContent = "Saving…";
+
+    const { error } = await db.from("coach_invoices").update({
+      paid_at: new Date().toISOString(),
+      paid_by: me.id,
+      paid_note: $("paid-note").value.trim() || null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", paidInvoice.id);
+
+    if (error) {
+      msg.className = "msg err";
+      msg.textContent = "Could not save: " + error.message;
+      $("paid-go").disabled = false;
+      return;
+    }
+
+    $("paidwrap").classList.add("hidden");
+    const done = paidThen;
+    paidInvoice = null; paidThen = null;
+    if (done) done();
+  };
+}
+
+// Removing an invoice entirely: the row, its receipts, and the files
+// behind them. Kept available even once paid, because the reason to
+// reach for it is usually that something landed on the wrong course —
+// or, before go-live, that it was only ever a test.
+async function deleteInvoice(inv, afterwards) {
+  const who = (inv.staff && inv.staff.full_name) || "this coach";
+
+  const { data: receipts } = await db
+    .from("coach_invoice_receipts")
+    .select("id, file_path")
+    .eq("invoice_id", inv.id);
+
+  const count = (receipts || []).length;
+
+  if (!window.confirm(
+    `Delete ${who}'s invoice?\n\n` +
+    `The invoice file${count ? ` and ${count} receipt${count === 1 ? "" : "s"}` : ""} ` +
+    `will be removed for good.` +
+    (inv.paid_at ? "\n\nThis one is marked as paid — you would lose that record." : "")
+  )) return;
+
+  const paths = [
+    ...(inv.invoice_path ? [inv.invoice_path] : []),
+    ...(receipts || []).map((r) => r.file_path).filter(Boolean),
+  ];
+  if (paths.length) await db.storage.from("coach-invoices").remove(paths);
+
+  await db.from("coach_invoice_receipts").delete().eq("invoice_id", inv.id);
+  const { error } = await db.from("coach_invoices").delete().eq("id", inv.id);
+
+  if (error) { window.alert("Could not delete it: " + error.message); return; }
+  if (afterwards) afterwards();
+}
+
+/* ---------- every invoice, across every course ---------- */
+
+async function openInvoicesView() {
+  show("invoices");
+
+  if (!staffList.length) {
+    const { data } = await db.from("staff")
+      .select("id, full_name, role, photo_path").eq("active", true).order("full_name");
+    staffList = data || [];
+  }
+  const pick = $("iv-coach");
+  if (pick.options.length <= 1) {
+    for (const st of staffList) {
+      const o = document.createElement("option");
+      o.value = st.id;
+      o.textContent = st.full_name;
+      pick.append(o);
+    }
+  }
+
+  if (!$("iv-from").value && !$("iv-to").value) thisQuarter();
+  await runInvoiceSearch();
+}
+
+function setRange(from, to) {
+  $("iv-from").value = from.toISOString().slice(0, 10);
+  $("iv-to").value = to.toISOString().slice(0, 10);
+}
+
+function thisQuarter() {
+  const now = new Date();
+  const q = Math.floor(now.getMonth() / 3);
+  setRange(new Date(now.getFullYear(), q * 3, 1),
+           new Date(now.getFullYear(), q * 3 + 3, 0));
+}
+
+function thisYear() {
+  const y = new Date().getFullYear();
+  setRange(new Date(y, 0, 1), new Date(y, 11, 31));
+}
+
+// Filtered on the course date rather than when the invoice was
+// submitted, because that is how the work is accounted for — a
+// December seminar invoiced in January belongs to December.
+// What the last search actually returned, so the export sends exactly
+// what is on screen rather than running the filters a second time and
+// risking a different answer.
+let lastInvoiceRows = [];
+let lastInvoiceReceipts = {};
+
+async function runInvoiceSearch() {
+  const box = $("iv-list");
+  box.innerHTML = '<p class="empty">Loading…</p>';
+
+  const from = $("iv-from").value;
+  const to = $("iv-to").value;
+  const status = $("iv-status").value;
+  const coach = $("iv-coach").value;
+
+  lastInvoiceRows = [];
+  lastInvoiceReceipts = {};
+
+  let q = db.from("coach_invoices")
+    .select("id, course_id, staff_id, total_cents, currency, invoice_path, notes, status, submitted_at, paid_at, paid_note, staff ( full_name ), courses ( title, starts_at, timezone, city, country )");
+
+  if (coach) q = q.eq("staff_id", coach);
+  if (status === "paid") q = q.not("paid_at", "is", null);
+  else if (status === "submitted") q = q.eq("status", "submitted").is("paid_at", null);
+
+  const { data, error } = await q;
+  if (error) { box.innerHTML = '<p class="empty">Could not load invoices.</p>'; return; }
+
+  let rows = (data || []).filter((r) => r.courses);
+  if (from) rows = rows.filter((r) => r.courses.starts_at >= from);
+  if (to) rows = rows.filter((r) => r.courses.starts_at <= to + "T23:59:59Z");
+  rows.sort((a, b) => new Date(a.courses.starts_at) - new Date(b.courses.starts_at));
+
+  if (!rows.length) {
+    box.innerHTML = '<p class="empty">Nothing matches those filters.</p>';
+    $("iv-summary").textContent = "";
+    return;
+  }
+
+  const { data: receipts } = await db
+    .from("coach_invoice_receipts")
+    .select("id, invoice_id, category, description, file_path, paid_by_company, amount_cents, currency")
+    .in("invoice_id", rows.map((r) => r.id));
+
+  const byInvoice = {};
+  for (const r of receipts || []) (byInvoice[r.invoice_id] = byInvoice[r.invoice_id] || []).push(r);
+
+  lastInvoiceRows = rows;
+  lastInvoiceReceipts = byInvoice;
+
+  // Totals per currency, because a Glasgow invoice in sterling and a
+  // Munich one in euro cannot be added together.
+  const totals = {};
+  const cardTotals = {};
+  for (const r of rows) {
+    const cur = r.currency || "EUR";
+    totals[cur] = (totals[cur] || 0) + (r.total_cents || 0);
+  }
+  for (const r of receipts || []) {
+    if (!r.paid_by_company) continue;
+    const cur = r.currency || "EUR";
+    cardTotals[cur] = (cardTotals[cur] || 0) + (r.amount_cents || 0);
+  }
+
+  const claimed = Object.entries(totals).filter(([, c]) => c).map(([cur, c]) => money(c, cur));
+  const carded = Object.entries(cardTotals).filter(([, c]) => c).map(([cur, c]) => money(c, cur));
+
+  $("iv-summary").textContent =
+    `${rows.length} invoice${rows.length === 1 ? "" : "s"} — ` +
+    (claimed.length ? claimed.join(" · ") + " claimed" : "nothing claimed") +
+    (carded.length ? `, ${carded.join(" · ")} on company cards` : "");
+
+  box.innerHTML = "";
+  const card = document.createElement("div");
+  card.className = "attendees-card";
+
+  for (const inv of rows) {
+    const row = document.createElement("div");
+    row.className = "inv-row";
+
+    const who = document.createElement("span");
+    who.className = "who";
+    who.innerHTML = "";
+    const name = document.createElement("div");
+    name.textContent = (inv.staff && inv.staff.full_name) || "A coach";
+    const where = document.createElement("div");
+    where.className = "whenline";
+    where.textContent = `${inv.courses.title} · ${fmtDate(inv.courses.starts_at, inv.courses.timezone)}`;
+    who.append(name, where);
+
+    const state = document.createElement("span");
+    state.className = "pill " + (inv.paid_at ? "done" : inv.status === "submitted" ? "on" : "warn");
+    state.textContent = inv.paid_at ? "paid" : inv.status === "submitted" ? "submitted" : "draft";
+
+    const amt = document.createElement("span");
+    amt.className = "amt";
+    amt.textContent = inv.total_cents != null ? money(inv.total_cents, inv.currency) : "no total";
+
+    const files = document.createElement("span");
+    files.className = "files";
+
+    if (inv.invoice_path) {
+      const b = document.createElement("button");
+      b.className = "btn ghost tiny";
+      b.type = "button";
+      b.textContent = "Invoice";
+      b.onclick = () => openStoredFile(inv.invoice_path);
+      files.append(b);
+    }
+    for (const r of byInvoice[inv.id] || []) {
+      const b = document.createElement("button");
+      b.className = "btn ghost tiny";
+      b.type = "button";
+      b.textContent = r.paid_by_company ? r.category + " (card)" : r.category;
+      b.title = [r.description || r.category,
+                 r.paid_by_company ? "On a company card — " + money(r.amount_cents, r.currency) : ""]
+                .filter(Boolean).join(" · ");
+      b.onclick = () => openStoredFile(r.file_path);
+      files.append(b);
+    }
+    if (inv.status === "submitted" && !inv.paid_at) {
+      const pay = document.createElement("button");
+      pay.className = "btn tiny go";
+      pay.type = "button";
+      pay.textContent = "Mark paid";
+      pay.onclick = () => openPaid(inv, runInvoiceSearch);
+      files.append(pay);
+    }
+
+    const wipe = document.createElement("button");
+    wipe.className = "btn ghost tiny danger";
+    wipe.type = "button";
+    wipe.textContent = "Delete";
+    wipe.onclick = () => deleteInvoice(inv, runInvoiceSearch);
+    files.append(wipe);
+
+    row.append(who, state, amt, files);
+    card.append(row);
+
+    if (inv.paid_note) {
+      const note = document.createElement("div");
+      note.className = "whenline";
+      note.style.padding = "0 0.85rem 0.6rem";
+      note.textContent = "Paid: " + inv.paid_note;
+      card.append(note);
+    }
+  }
+
+  box.append(card);
+}
+
+// Everything accounts need for a period, in one file. One row per
+// invoice and one per receipt, so a bookkeeper can filter on the Type
+// column and see either.
+//
+// The PDFs stay in storage. Zipping a quarter of receipts in a browser
+// on an iPad is slow and fails halfway; a signed link opens the file
+// directly and lasts a week, which is long enough to work through.
+const RECEIPT_LINK_DAYS = 7;
+
+async function exportInvoices() {
+  const btn = $("iv-export");
+  const msg = $("iv-summary");
+
+  if (!lastInvoiceRows.length) {
+    msg.textContent = "Nothing to export — press Show first.";
+    return;
+  }
+
+  btn.disabled = true;
+  const was = msg.textContent;
+  msg.textContent = "Building the file…";
+
+  try {
+    // One signed link per file, asked for in a single call.
+    const paths = [];
+    for (const inv of lastInvoiceRows) {
+      if (inv.invoice_path) paths.push(inv.invoice_path);
+      for (const r of lastInvoiceReceipts[inv.id] || []) {
+        if (r.file_path) paths.push(r.file_path);
+      }
+    }
+
+    const links = {};
+    if (paths.length) {
+      const { data } = await db.storage.from("coach-invoices")
+        .createSignedUrls(paths, RECEIPT_LINK_DAYS * 86400);
+      for (const item of data || []) {
+        if (item.signedUrl && !item.error) links[item.path] = item.signedUrl;
+      }
+    }
+
+    const header = ["Course date", "Course", "City", "Country", "Coach",
+      "Type", "Category", "Description", "Amount", "Currency", "Paid by",
+      "Invoice status", "Submitted", "Paid on", "Payment reference", "File"];
+
+    const rows = [];
+    for (const inv of lastInvoiceRows) {
+      const c = inv.courses || {};
+      const base = [
+        c.starts_at ? rpDate(c.starts_at, c.timezone) : "",
+        c.title || "",
+        c.city || "",
+        countryName(c.country),
+        (inv.staff && inv.staff.full_name) || "",
+      ];
+      const state = inv.paid_at ? "paid" : inv.status || "";
+      const tail = [
+        state,
+        inv.submitted_at ? rpDate(inv.submitted_at) : "",
+        inv.paid_at ? rpDate(inv.paid_at) : "",
+        inv.paid_note || "",
+      ];
+
+      rows.push([...base, "Invoice", "Coaching and expenses",
+        inv.notes || "",
+        inv.total_cents == null ? "" : (inv.total_cents / 100).toFixed(2),
+        inv.currency || "", "Coach", ...tail,
+        inv.invoice_path ? (links[inv.invoice_path] || "file missing") : "not uploaded"]);
+
+      for (const r of lastInvoiceReceipts[inv.id] || []) {
+        rows.push([...base, "Receipt", r.category || "",
+          r.description || "",
+          r.amount_cents == null ? "" : (r.amount_cents / 100).toFixed(2),
+          r.currency || inv.currency || "",
+          r.paid_by_company ? "BirdBox card" : "Coach",
+          ...tail,
+          r.file_path ? (links[r.file_path] || "file missing") : ""]);
+      }
+    }
+
+    downloadCsv("birdbox-invoices-" + new Date().toISOString().slice(0, 10),
+                header, rows, ",");
+
+    const missing = rows.filter((r) => r[15] === "file missing").length;
+    msg.textContent =
+      `${rows.length} row${rows.length === 1 ? "" : "s"} exported. ` +
+      `File links work for ${RECEIPT_LINK_DAYS} days.` +
+      (missing ? ` ${missing} file${missing === 1 ? "" : "s"} could not be linked.` : "");
+  } catch (err) {
+    msg.textContent = "Could not export: " + err.message;
+    setTimeout(() => { msg.textContent = was; }, 5000);
+  }
+  btn.disabled = false;
+}
+
+function wireInvoicesView() {
+  $("iv-export").onclick = exportInvoices;
+  $("invoicesbtn").onclick = openInvoicesView;
+  $("back-invoices").onclick = () => show("courses");
+  $("iv-apply").onclick = runInvoiceSearch;
+  $("iv-quarter").onclick = () => { thisQuarter(); runInvoiceSearch(); };
+  $("iv-year").onclick = () => { thisYear(); runInvoiceSearch(); };
+  for (const id of ["iv-status", "iv-coach"]) {
+    $(id).addEventListener("change", runInvoiceSearch);
+  }
+}
+
+/* ---------------- an extra email ---------------- */
+
+// Everything else the portal sends is a fixed piece of the process: a
+// welcome, a pre-course note, a follow-up. This is for whatever else
+// comes up — the door code changed, here is the video from Saturday,
+// the car park is closed.
+//
+// It writes to course_emails like the rest, so the office can see who
+// is actually talking to their participants and who is not. A row with
+// a registration_id goes to one person; without one it goes to the
+// whole cohort. That is how the sending function already works, so
+// nothing about the existing emails changes.
+//
+// Lead coach and admin, matching every other email here.
+
+let adReg = null;     // the one participant, or null for everyone
+let adCourse = null;
+
+function openAdhoc(course, reg) {
+  adCourse = course;
+  adReg = reg || null;
+
+  const active = allRegistrations.filter((r) => (r.status || "active") === "active");
+
+  $("ad-h").textContent = reg
+    ? `Email ${reg.first_name} ${reg.last_name}`
+    : "Email everyone on this course";
+
+  $("ad-sub").textContent = reg
+    ? `Goes to ${reg.email}, from your own address, with info@ copied in.`
+    : `Goes to ${active.length} participant${active.length === 1 ? "" : "s"}, ` +
+      "one at a time, from your own address.";
+
+  $("ad-subject").value = "";
+  $("ad-body").value = "";
+
+  $("ad-note").className = "whenline";
+  $("ad-note").textContent = reg
+    ? "Anything you send is recorded against this course."
+    : "Everyone gets their own copy — nobody sees anybody else's address.";
+
+  $("ad-msg").textContent = "";
+  $("ad-msg").className = "msg";
+  $("ad-send").disabled = false;
+  $("adwrap").classList.remove("hidden");
+  setTimeout(() => $("ad-subject").focus(), 50);
+}
+
+function showAdhocBar(course) {
+  const bar = $("ad-bar");
+  const canSee = (isAdmin() || amLeadOn(course.id)) && course.type !== "online_course";
+  bar.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  const active = allRegistrations.filter(
+    (r) => (r.status || "active") === "active"
+  ).length;
+
+  $("ad-open").disabled = !active;
+  $("ad-state").textContent = active
+    ? `Anything the ${active} of them need to know that the standard emails do not cover.`
+    : "Nobody registered yet.";
+}
+
+function wireAdhoc() {
+  const close = () => {
+    $("adwrap").classList.add("hidden");
+    adReg = null; adCourse = null;
+  };
+  $("ad-close").onclick = close;
+  $("adwrap").addEventListener("click", (e) => { if (e.target === $("adwrap")) close(); });
+  $("ad-open").onclick = () => { if (currentCourse) openAdhoc(currentCourse, null); };
+
+  $("ad-send").onclick = async () => {
+    if (!adCourse) return;
+    const subject = $("ad-subject").value.trim();
+    const body = $("ad-body").value.trim();
+    const msg = $("ad-msg");
+
+    if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return; }
+    if (!body) { msg.className = "msg err"; msg.textContent = "There is nothing to send."; return; }
+
+    const active = allRegistrations.filter((r) => (r.status || "active") === "active");
+    const count = adReg ? 1 : active.length;
+
+    if (!count) {
+      msg.className = "msg err";
+      msg.textContent = "There is nobody to send this to.";
+      return;
+    }
+
+    if (!window.confirm(
+      adReg
+        ? `Send this to ${adReg.first_name} ${adReg.last_name}?\n\nIt cannot be unsent.`
+        : `Send this to ${count} participant${count === 1 ? "" : "s"} on ` +
+          `"${adCourse.title}"?\n\nEach person gets their own copy. It cannot be unsent.`
+    )) return;
+
+    $("ad-send").disabled = true;
+    msg.className = "msg"; msg.textContent = "Sending…";
+
+    try {
+      // registration_id set means one person, null means the cohort.
+      const { data: row, error } = await db.from("course_emails").insert({
+        course_id: adCourse.id,
+        registration_id: adReg ? adReg.id : null,
+        kind: "adhoc",
+        subject,
+        body,
+        status: "draft",
+      }).select("id").single();
+
+      if (error) throw new Error(error.message);
+
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+
+      const res = await fetch("/.netlify/functions/course-email-send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        // Everyone still on the course, not only those who attended.
+        body: JSON.stringify({ emailId: row.id, attendedOnly: false }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      msg.className = "msg ok";
+      msg.textContent = `Sent to ${out.sent}` +
+        (out.failed ? `, ${out.failed} failed` : "") + `, as ${out.sentAs}.`;
+
+      setTimeout(() => {
+        $("adwrap").classList.add("hidden");
+        adReg = null; adCourse = null;
+        openCourse(currentCourse);
+      }, 1600);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("ad-send").disabled = false;
+  };
+}
+
+/* ---------------- a coach putting a course away ---------------- */
+
+// Archiving means finished, not hidden. A coach can only do it once
+// the jobs that are actually theirs are done — otherwise it becomes a
+// way to lose a course that still needs work.
+//
+// Only the jobs that apply to that course type count. TCC Level 2
+// issues no certificate and has no feedback; a workshop has no
+// follow-up email. Requiring those would make some courses impossible
+// to archive at all.
+//
+// An assistant is judged on their own invoice and nothing else. The
+// feedback and the follow-up belong to the lead, and waiting on
+// somebody else's work is not a rule, it is a queue.
+function archiveBlockers(course) {
+  const out = [];
+  const ran = new Date(course.ends_at || course.starts_at) < new Date();
+  if (!ran) return ["the course has not finished yet"];
+
+  // The register first. Everything else counts who was present, so an
+  // unmarked participant makes every other check unreliable.
+  const active = allRegistrations.filter((r) => (r.status || "active") === "active");
+  const unmarked = active.filter((r) => !isMarked(r)).length;
+  if (unmarked) {
+    out.push(`${unmarked} still to mark present or absent`);
+  }
+
+  // And nobody who was there should still be waiting for a certificate.
+  if (course.issues_certificate !== false && course.type !== "online_course") {
+    const owed = active.filter((r) => r.attended && !r.certificate_sent_at).length;
+    if (owed) out.push(`${owed} certificate${owed === 1 ? "" : "s"} still to send`);
+  }
+
+  const lead = amLeadOn(course.id);
+  const online = course.type === "online_course";
+
+  // Everyone: the seminar has to have been submitted.
+  if (!online && !course.completed_at) out.push("the seminar has not been submitted");
+
+  if (lead && !online) {
+    if (courseHasFeedback(course)) {
+      const attended = allRegistrations.filter(
+        (r) => (r.status || "active") === "active" && r.attended
+      ).length;
+      const t = feedbackState || { draft: 0, approved: 0, sent: 0, failed: 0 };
+      if (attended && (t.sent < attended || t.draft || t.approved || t.failed)) {
+        out.push("feedback still to send");
+      }
+    }
+  }
+
+  // Their own invoice, whether they led it or assisted.
+  if (myRoles[course.id] && !(myInvoice && myInvoice.status === "submitted")) {
+    out.push("your invoice");
+  }
+
+  return out;
+}
+
+// The heading and the rule only make sense when the block above the
+// line is actually there.
+function showTaskDivider() {
+  const above = ["cert-bar", "fb-bar", "inv-bar"]
+    .some((id) => !$(id).classList.contains("hidden"));
+  const below = ["pc-bar", "fu-bar", "ad-bar", "arch-bar"]
+    .some((id) => !$(id).classList.contains("hidden"));
+
+  $("task-lead").classList.toggle("hidden", !above);
+  $("task-rule").classList.toggle("hidden", !(above && below));
+}
+
+function showArchiveBar(course) {
+  const bar = $("arch-bar");
+
+  // Admin has archiving of their own on the course, which takes it off
+  // sale for everybody. This one is personal, so it is for coaches.
+  const mine = !!myRoles[course.id];
+  const canSee = mine && !isPast(course);
+  bar.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  const already = myArchived.has(course.id);
+  const blockers = already ? [] : archiveBlockers(course);
+  const btn = $("arch-btn");
+
+  btn.textContent = already ? "Put back on my list" : "Archive this course";
+  btn.classList.toggle("ghost", already);
+  btn.classList.toggle("done", already);
+  btn.disabled = !already && blockers.length > 0;
+
+  $("arch-state").textContent = already
+    ? "Filed under Finished. This changes nothing for anybody else."
+    : blockers.length
+      ? "Waiting on: " + blockers.join(", ") + "."
+      : "Everything is done. Filing it moves it off your list — it stays exactly as it is for everybody else.";
+}
+
+async function toggleArchive() {
+  if (!currentCourse) return;
+  const id = currentCourse.id;
+  const already = myArchived.has(id);
+  const btn = $("arch-btn");
+
+  btn.disabled = true;
+
+  if (already) {
+    const { error } = await db.from("course_archives")
+      .delete().eq("staff_id", me.id).eq("course_id", id);
+    if (error) {
+      $("arch-state").textContent = "Could not do that: " + error.message;
+      btn.disabled = false;
+      return;
+    }
+    myArchived.delete(id);
+  } else {
+    const { error } = await db.from("course_archives")
+      .insert({ staff_id: me.id, course_id: id });
+    if (error) {
+      $("arch-state").textContent = "Could not do that: " + error.message;
+      btn.disabled = false;
+      return;
+    }
+    myArchived.add(id);
+  }
+
+  btn.disabled = false;
+  showArchiveBar(currentCourse);
+}
+
+/* ---------------- reports ---------------- */
+
+// Exports for people who are not sitting in the portal: a host asking
+// who is coming, an accountant asking what was taken, a coach keeping
+// their own records. Everything is a CSV, because that is what opens
+// on whatever they happen to have.
+//
+// A coach exports only the courses they are on, and never any money.
+// The finances panel is not hidden from them so much as absent.
+
+// A file called birdbox-participants is no use once three are sitting
+// in a downloads folder, so a single seminar names itself.
+function reportFileName(base) {
+  const one = reportCourseList.find((c) => c.id === $("rp-course").value);
+  const stamp = new Date().toISOString().slice(0, 10);
+  if (!one) return `birdbox-${base}-${stamp}`;
+  const slug = (one.slug || one.title || "course")
+    .toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48);
+  return `${slug}-${base}`;
+}
+
+function reportSep() {
+  const v = $("rp-sep").value;
+  return v === "\\t" ? "\t" : v;
+}
+
+// The BOM is what tells Excel the file is UTF-8. Without it every
+// accented name arrives mangled.
+function downloadCsv(name, header, rows, sep) {
+  const lines = [header.map((h) => csvCell(h, sep)).join(sep)];
+  for (const r of rows) lines.push(r.map((c) => csvCell(c, sep)).join(sep));
+  if (sep === ";") lines.unshift("sep=;");
+
+  const blob = new Blob(["\uFEFF" + lines.join("\r\n")],
+    { type: "text/csv;charset=utf-8;" });
+  const ext = sep === "\t" ? ".tsv" : ".csv";
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name + ext;
+  document.body.append(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+const rpDate = (iso, tz) => iso
+  ? new Date(iso).toLocaleDateString("en-CA", { timeZone: safeZone(tz) })
+  : "";
+
+// Every course this person could report on, held so the picker and
+// the exports work from the same list.
+let reportCourseList = [];
+
+async function openReports() {
+  show("reports");
+  $("rp-sub").textContent = isAdmin()
+    ? "Every course across all brands."
+    : "Participant lists for the courses you are allocated to.";
+  $("rp-courses-panel").classList.toggle("hidden", !isAdmin());
+  $("rp-noshow-panel").classList.toggle("hidden", !isAdmin());
+  $("rp-money-panel").classList.toggle("hidden", !isAdmin());
+  $("rp-msg").textContent = "";
+  for (const id of ["rp-courses-why", "rp-people-why", "rp-money-why", "rp-noshow-why"]) {
+    $(id).textContent = "";
+  }
+  if (!$("rp-from").value && !$("rp-to").value) rpThisYear();
+
+  await buildCoursePicker();
+  showRange();
+}
+
+async function buildCoursePicker() {
+  const sel = $("rp-course");
+  const chosen = sel.value;
+  sel.innerHTML = '<option value="">All courses in the date range</option>';
+
+  try {
+    reportCourseList = await allReportableCourses();
+  } catch (err) {
+    $("rp-course-why").className = "whenline bad";
+    $("rp-course-why").textContent = "Could not load the course list: " + err.message;
+    return;
+  }
+
+  // Newest first — a coach exporting one seminar almost always wants
+  // the one that just ran.
+  const rows = reportCourseList.slice()
+    .sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at));
+
+  for (const c of rows) {
+    const o = document.createElement("option");
+    o.value = c.id;
+    o.textContent =
+      `${c.title} — ${rpDate(c.starts_at, c.timezone)}` +
+      (c.city ? `, ${c.city}` : "") +
+      (isPast(c) ? " (archived)" : "");
+    sel.append(o);
+  }
+  if (rows.some((c) => c.id === chosen)) sel.value = chosen;
+  onCourseChosen();
+}
+
+// Picking one course makes the date range irrelevant, so it gets out
+// of the way rather than sitting there looking like it still applies.
+function onCourseChosen() {
+  const id = $("rp-course").value;
+  const one = reportCourseList.find((c) => c.id === id);
+  $("rp-range-panel").classList.toggle("hidden", !!one);
+
+  const why = $("rp-course-why");
+  why.className = "whenline";
+  why.textContent = one
+    ? `Exporting ${one.title} only. The date range does not apply.`
+    : "Leave this as it is to export everything in the date range below.";
+}
+
+function setRpRange(from, to) {
+  $("rp-from").value = from ? from.toISOString().slice(0, 10) : "";
+  $("rp-to").value = to ? to.toISOString().slice(0, 10) : "";
+  showRange();
+}
+
+function rpThisQuarter() {
+  const now = new Date();
+  const q = Math.floor(now.getMonth() / 3);
+  setRpRange(new Date(now.getFullYear(), q * 3, 1),
+             new Date(now.getFullYear(), q * 3 + 3, 0));
+}
+
+function rpThisYear() {
+  const y = new Date().getFullYear();
+  setRpRange(new Date(y, 0, 1), new Date(y, 11, 31));
+}
+
+function showRange() {
+  const from = $("rp-from").value;
+  const to = $("rp-to").value;
+  $("rp-range").textContent = !from && !to
+    ? "Every course on record."
+    : from && to ? `Courses running between ${fmtDay(from)} and ${fmtDay(to)}.`
+    : from ? `Courses running on or after ${fmtDay(from)}.`
+    : `Courses running on or before ${fmtDay(to)}.`;
+}
+
+// Everything this person is allowed to report on. The permission
+// question is asked here and nowhere else.
+async function allReportableCourses() {
+  const cols = "id, brand, type, level, title, city, country, venue_name, " +
+               "host_name, host_email, starts_at, ends_at, timezone, capacity, " +
+               "price_cents, currency, status, archived, completed_at, slug";
+
+  if (isAdmin()) {
+    const { data, error } = await db.from("courses").select(cols)
+      .order("starts_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
+  const { data, error } = await db.from("course_staff")
+    .select(`role, courses (${cols})`).eq("staff_id", me.id);
+  if (error) throw new Error(error.message);
+  const rows = (data || []).map((r) => r.courses).filter(Boolean);
+  rows.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+  return rows;
+}
+
+// What the current settings actually select. One chosen course wins
+// outright — the archived tickbox and the dates are ignored, because
+// somebody who picked a specific seminar means that one.
+async function reportCourses() {
+  const all = reportCourseList.length ? reportCourseList : await allReportableCourses();
+
+  const one = $("rp-course").value;
+  if (one) return all.filter((c) => c.id === one);
+
+  let rows = all;
+  const from = $("rp-from").value;
+  const to = $("rp-to").value;
+  if (from) rows = rows.filter((c) => c.starts_at >= from);
+  if (to) rows = rows.filter((c) => c.starts_at <= to + "T23:59:59Z");
+  if (!$("rp-archived").checked) rows = rows.filter((c) => !isPast(c));
+
+  return rows;
+}
+
+// Who was on them, in one query rather than one per course.
+async function reportRegistrations(courseIds) {
+  if (!courseIds.length) return [];
+  const out = [];
+  // Chunked, because a year of seminars is more ids than a URL will
+  // carry in a single request.
+  for (let i = 0; i < courseIds.length; i += 40) {
+    const slice = courseIds.slice(i, i + 40);
+    const { data, error } = await db.from("registrations")
+      .select("id, course_id, first_name, last_name, email, phone, country, " +
+              "status, attended, attendance_marked_at, payment_status, " +
+              "amount_paid_cents, currency, discount_code, discount_cents, " +
+              "created_at, waiver_signed_at, certificate_sent_at, source")
+      .in("course_id", slice);
+    if (error) throw new Error(error.message);
+    out.push(...(data || []));
   }
   return out;
 }
 
-async function sendEmail({ to, subject, text, filename, pdf }) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) { console.warn("No Resend key; certificate not sent to", to); return false; }
+async function reportStaff(courseIds) {
+  if (!courseIds.length) return {};
+  const byCourse = {};
+  for (let i = 0; i < courseIds.length; i += 40) {
+    const slice = courseIds.slice(i, i + 40);
+    const { data } = await db.from("course_staff")
+      .select("course_id, role, staff ( full_name )").in("course_id", slice);
+    for (const r of data || []) {
+      const t = byCourse[r.course_id] = byCourse[r.course_id] || { lead: "", assists: [] };
+      const name = r.staff?.full_name || "";
+      if (r.role === "lead_coach") t.lead = name;
+      else if (name) t.assists.push(name);
+    }
+  }
+  return byCourse;
+}
+
+const courseLabel = (c) =>
+  `${(BRAND[c.brand] || BRAND.birdbox).label}` +
+  `${c.level ? " " + c.level : ""}` +
+  `${c.type === "workshop" ? " Workshop" : ""}`;
+
+async function exportCourses() {
+  if (!isAdmin()) return;
+  const btn = $("rp-courses");
+  const why = $("rp-courses-why");
+  btn.disabled = true;
+  why.textContent = "Working…";
 
   try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: `BirdBox Coaching <${FROM}>`,
-        to: [to],
-        reply_to: OFFICE,
-        subject,
-        text,
-        attachments: [{ filename, content: pdf }],
-      }),
-    });
-    if (!res.ok) {
-      console.error("Resend rejected certificate for", to, await res.text());
-      return false;
+    const courses = await reportCourses();
+    if (!courses.length) { why.textContent = $("rp-course").value
+      ? "That course could not be read." : "No courses in that range."; return; }
+
+    const ids = courses.map((c) => c.id);
+    const [regs, staffBy] = await Promise.all([
+      reportRegistrations(ids), reportStaff(ids),
+    ]);
+
+    const booked = {}, attended = {};
+    for (const r of regs) {
+      if ((r.status || "active") !== "active") continue;
+      booked[r.course_id] = (booked[r.course_id] || 0) + 1;
+      if (r.attended) attended[r.course_id] = (attended[r.course_id] || 0) + 1;
     }
-    return true;
+
+    const header = ["Date", "End date", "Brand", "Type", "Title", "Venue",
+      "City", "Country", "Lead coach", "Assistants", "Capacity", "Booked",
+      "Attended", "Status", "Completed", "Host", "Host email", "Link"];
+    if (isAdmin()) header.push("Price", "Currency");
+
+    const rows = courses.map((c) => {
+      const t = staffBy[c.id] || { lead: "", assists: [] };
+      const row = [
+        rpDate(c.starts_at, c.timezone),
+        rpDate(c.ends_at, c.timezone),
+        courseLabel(c),
+        String(c.type || "").replace(/_/g, " "),
+        c.title,
+        c.venue_name || "",
+        c.city || "",
+        countryName(c.country),
+        t.lead,
+        t.assists.join(", "),
+        c.capacity ?? "",
+        booked[c.id] || 0,
+        attended[c.id] || 0,
+        c.archived ? "archived" : (c.status || ""),
+        c.completed_at ? rpDate(c.completed_at, c.timezone) : "",
+        c.host_name || "",
+        c.host_email || "",
+        `${location.origin}/c/${c.slug}/`,
+      ];
+      if (isAdmin()) {
+        row.push(c.price_cents == null ? "" : (c.price_cents / 100).toFixed(2),
+                 c.currency || "");
+      }
+      return row;
+    });
+
+    downloadCsv(reportFileName("courses"),
+                header, rows, reportSep());
+    why.textContent = `${rows.length} course${rows.length === 1 ? "" : "s"} exported.`;
   } catch (err) {
-    console.error("Could not send certificate to", to, err.message);
-    return false;
+    why.textContent = "Could not export: " + err.message;
+  }
+  btn.disabled = false;
+}
+
+async function exportParticipants() {
+  const btn = $("rp-people");
+  const why = $("rp-people-why");
+  btn.disabled = true;
+  why.textContent = "Working…";
+
+  try {
+    const courses = await reportCourses();
+    if (!courses.length) { why.textContent = $("rp-course").value
+      ? "That course could not be read." : "No courses in that range."; return; }
+
+    const byId = {};
+    for (const c of courses) byId[c.id] = c;
+    const regs = await reportRegistrations(courses.map((c) => c.id));
+    if (!regs.length) { why.textContent = "Nobody registered on those courses."; return; }
+
+    regs.sort((a, b) => {
+      const ca = byId[a.course_id], cb = byId[b.course_id];
+      return new Date(ca.starts_at) - new Date(cb.starts_at) ||
+             String(a.last_name).localeCompare(String(b.last_name));
+    });
+
+    const header = ["Course date", "Brand", "Course", "City", "Country",
+      "First name", "Last name", "Email", "Phone", "Their country",
+      "Registration status", "Attended", "Agreement signed", "Certificate sent",
+      "Booked on", "How they booked"];
+
+    const rows = regs.map((r) => {
+      const c = byId[r.course_id];
+      return [
+        rpDate(c.starts_at, c.timezone),
+        courseLabel(c),
+        c.title,
+        c.city || "",
+        countryName(c.country),
+        r.first_name || "",
+        r.last_name || "",
+        r.email || "",
+        r.phone || "",
+        countryName(r.country),
+        REG_STATUS_LABEL[r.status || "active"] || "Active",
+        r.attended ? "yes" : "no",
+        r.waiver_signed_at ? rpDate(r.waiver_signed_at) : "",
+        r.certificate_sent_at ? rpDate(r.certificate_sent_at) : "",
+        r.created_at ? rpDate(r.created_at) : "",
+        [r.source, r.source_note].filter(Boolean).join(" — "),
+      ];
+    });
+
+    downloadCsv(reportFileName("participants"),
+                header, rows, reportSep());
+    why.textContent = `${rows.length} registration${rows.length === 1 ? "" : "s"} exported.`;
+  } catch (err) {
+    why.textContent = "Could not export: " + err.message;
+  }
+  btn.disabled = false;
+}
+
+async function exportFinances() {
+  if (!isAdmin()) return;
+  const btn = $("rp-money");
+  const why = $("rp-money-why");
+  btn.disabled = true;
+  why.textContent = "Working…";
+
+  try {
+    const courses = await reportCourses();
+    if (!courses.length) { why.textContent = $("rp-course").value
+      ? "That course could not be read." : "No courses in that range."; return; }
+
+    const byId = {};
+    for (const c of courses) byId[c.id] = c;
+    const regs = await reportRegistrations(courses.map((c) => c.id));
+    if (!regs.length) { why.textContent = "Nothing was taken on those courses."; return; }
+
+    regs.sort((a, b) => {
+      const ca = byId[a.course_id], cb = byId[b.course_id];
+      return new Date(ca.starts_at) - new Date(cb.starts_at);
+    });
+
+    const header = ["Course date", "Brand", "Course", "City", "Country",
+      "Participant", "Email", "Payment status", "Amount paid", "Currency",
+      "Discount code", "Discount", "List price", "Booked on", "Registration status"];
+
+    const rows = regs.map((r) => {
+      const c = byId[r.course_id];
+      return [
+        rpDate(c.starts_at, c.timezone),
+        courseLabel(c),
+        c.title,
+        c.city || "",
+        countryName(c.country),
+        `${r.first_name || ""} ${r.last_name || ""}`.trim(),
+        r.email || "",
+        PAY_LABEL[r.payment_status] || r.payment_status || "",
+        ((r.amount_paid_cents || 0) / 100).toFixed(2),
+        r.currency || c.currency || "",
+        r.discount_code || "",
+        ((r.discount_cents || 0) / 100).toFixed(2),
+        c.price_cents == null ? "" : (c.price_cents / 100).toFixed(2),
+        r.created_at ? rpDate(r.created_at) : "",
+        REG_STATUS_LABEL[r.status || "active"] || "Active",
+      ];
+    });
+
+    // A total per currency, because sterling and euro do not add up.
+    const totals = {};
+    for (const r of regs) {
+      const cur = r.currency || byId[r.course_id].currency || "EUR";
+      totals[cur] = (totals[cur] || 0) + (r.amount_paid_cents || 0);
+    }
+
+    downloadCsv(reportFileName("finances"),
+                header, rows, reportSep());
+    why.textContent =
+      `${rows.length} row${rows.length === 1 ? "" : "s"} exported — ` +
+      Object.entries(totals).map(([cur, c]) => money(c, cur)).join(" · ") + " taken.";
+  } catch (err) {
+    why.textContent = "Could not export: " + err.message;
+  }
+  btn.disabled = false;
+}
+
+function wireArchive() {
+  $("arch-btn").onclick = toggleArchive;
+}
+
+// Somebody who paid and did not turn up. Worth reaching out to, and
+// impossible to find without going course by course otherwise.
+//
+// Only people a coach actually marked absent — an unmarked register
+// is not evidence anybody was missing.
+async function exportNoShows() {
+  if (!isAdmin()) return;
+  const btn = $("rp-noshow");
+  const why = $("rp-noshow-why");
+  btn.disabled = true;
+  why.textContent = "Working…";
+
+  try {
+    const courses = await reportCourses();
+    if (!courses.length) {
+      why.textContent = $("rp-course").value
+        ? "That course could not be read." : "No courses in that range.";
+      return;
+    }
+
+    const byId = {};
+    for (const c of courses) byId[c.id] = c;
+    const regs = await reportRegistrations(courses.map((c) => c.id));
+
+    const missed = regs.filter((r) =>
+      (r.status || "active") === "active" &&
+      r.attendance_marked_at && !r.attended);
+
+    if (!missed.length) {
+      why.textContent = "Nobody was marked absent in that range.";
+      return;
+    }
+
+    missed.sort((a, b) => {
+      const ca = byId[a.course_id], cb = byId[b.course_id];
+      return new Date(cb.starts_at) - new Date(ca.starts_at) ||
+             String(a.last_name).localeCompare(String(b.last_name));
+    });
+
+    const header = ["Course date", "Brand", "Course", "City", "Country",
+      "First name", "Last name", "Email", "Phone", "Paid", "Currency",
+      "Payment status", "Booked on"];
+
+    const rows = missed.map((r) => {
+      const c = byId[r.course_id];
+      return [
+        rpDate(c.starts_at, c.timezone),
+        courseLabel(c),
+        c.title,
+        c.city || "",
+        countryName(c.country),
+        r.first_name || "",
+        r.last_name || "",
+        r.email || "",
+        r.phone || "",
+        ((r.amount_paid_cents || 0) / 100).toFixed(2),
+        r.currency || c.currency || "",
+        PAY_LABEL[r.payment_status] || r.payment_status || "",
+        r.created_at ? rpDate(r.created_at) : "",
+      ];
+    });
+
+    downloadCsv(reportFileName("no-shows"), header, rows, reportSep());
+
+    const paid = missed.reduce((n, r) => n + (r.amount_paid_cents || 0), 0);
+    why.textContent =
+      `${rows.length} no-show${rows.length === 1 ? "" : "s"} exported` +
+      (paid ? ` — ${money(paid, missed[0].currency || "EUR")} paid between them.` : ".");
+  } catch (err) {
+    why.textContent = "Could not export: " + err.message;
+  }
+  btn.disabled = false;
+}
+
+function wireReports() {
+  $("reportsbtn").onclick = openReports;
+  $("back-reports").onclick = loadCourses;
+  $("rp-quarter").onclick = rpThisQuarter;
+  $("rp-year").onclick = rpThisYear;
+  $("rp-all").onclick = () => setRpRange(null, null);
+  for (const id of ["rp-from", "rp-to"]) {
+    $(id).addEventListener("change", showRange);
+  }
+  $("rp-course").addEventListener("change", onCourseChosen);
+  $("rp-courses").onclick = exportCourses;
+  $("rp-people").onclick = exportParticipants;
+  $("rp-money").onclick = exportFinances;
+  $("rp-noshow").onclick = exportNoShows;
+}
+
+/* ---------- straight to this course's feedback ---------- */
+
+// The lead coach is already looking at the course. Sending them out to
+// the feedback page to find it again in a list is a step nobody needs,
+// so the link carries the course with it.
+// How far feedback has got for this course. The button cannot say a
+// job is finished without asking, and the feedback page is where the
+// work actually happens, so the state is read from the drafts.
+let feedbackState = null;
+
+async function loadFeedbackState(course) {
+  feedbackState = null;
+  if (!courseHasFeedback(course)) return;
+
+  const { data, error } = await db.from("feedback_drafts")
+    .select("registration_id, status").eq("course_id", course.id);
+
+  if (error) { console.error("Could not load feedback state:", error.message); return; }
+
+  const tally = { draft: 0, approved: 0, sent: 0, failed: 0 };
+  for (const d of data || []) {
+    if (tally[d.status] != null) tally[d.status]++;
+  }
+  feedbackState = tally;
+}
+
+function showFeedbackBar(course) {
+  const bar = $("fb-bar");
+
+  // The feedback page lists every course you lead, whenever it runs,
+  // so this button applies the same test and no more. Gating it on the
+  // course having finished only hid it on the days you are actually
+  // sitting in the gym writing notes.
+  //
+  // It does have to agree with the feedback page about which course
+  // types do feedback at all, or the button would land somebody on a
+  // page that has quietly dropped that course from its list.
+  const canSee = (isAdmin() || amLeadOn(course.id)) &&
+                 course.type !== "online_course" &&
+                 courseHasFeedback(course);
+
+  bar.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  $("fb-open").href = "/portal/feedback/?course=" + encodeURIComponent(course.id);
+
+  const attended = allRegistrations.filter(
+    (r) => (r.status || "active") === "active" && r.attended
+  ).length;
+
+  const t = feedbackState || { draft: 0, approved: 0, sent: 0, failed: 0 };
+  const outstanding = t.draft + t.approved + t.failed;
+
+  // Green only when every person who attended has had theirs. A course
+  // where half went out is still a job in progress.
+  const finished = attended > 0 && t.sent >= attended && !outstanding;
+
+  const btn = $("fb-open");
+  btn.classList.toggle("done", finished);
+  btn.textContent = finished ? "Feedback sent" : "Process feedback";
+
+  $("fb-state").textContent =
+    !attended  ? "Tick who attended first — feedback goes to those people."
+    : finished ? `All ${t.sent} sent.`
+    : t.failed ? `${t.failed} failed to send — open the feedback page to see why.`
+    : t.sent   ? `${t.sent} of ${attended} sent, ${outstanding} still to go.`
+    : t.approved ? `${t.approved} checked and ready to send.`
+    : t.draft  ? `${t.draft} drafted, waiting to be read through.`
+    : `Write and send coaching feedback to the ${attended} ` +
+      `${attended === 1 ? "person" : "people"} ticked as attended.`;
+}
+
+/* ---------- complete and submit the seminar ---------- */
+
+// One deliberate action at the end of a course: check the attendance
+// list, then send everyone their certificate. Not automatic, because a
+// certificate says someone completed the course — that needs a human
+// to confirm.
+
+function showCertBar(course) {
+  const bar = $("cert-bar");
+  const canSee = (isAdmin() || amLeadOn(course.id)) &&
+                 course.type !== "online_course" &&
+                 new Date(course.starts_at) <= new Date();
+
+  bar.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  const active = allRegistrations.filter((r) => (r.status || "active") === "active");
+  const attended = active.filter((r) => r.attended);
+  const done = attended.filter((r) => r.certificate_sent_at);
+
+  const btn = $("cert-open");
+  const state = $("cert-state");
+
+  // TCC Level 2 and anything else flagged this way issues its
+  // certificate from the online course after the exam, so this button
+  // only closes the seminar out.
+  const noCert = course.issues_certificate === false;
+
+  if (course.completed_at && (noCert || (done.length === attended.length && attended.length))) {
+    btn.disabled = true;
+    btn.classList.add("done");
+    btn.textContent = noCert ? "Seminar completed" : "Seminar submitted";
+    state.textContent = noCert
+      ? `Completed ${fmtWhen(course.completed_at)}. Certificates are issued by the online course.`
+      : `Submitted ${fmtWhen(course.completed_at)} — ${done.length} certificate` +
+        `${done.length === 1 ? "" : "s"} sent.`;
+    return;
+  }
+
+  btn.classList.remove("done");
+
+  if (noCert) {
+    btn.disabled = attended.length === 0;
+    btn.textContent = "Complete seminar";
+    state.textContent = attended.length === 0
+      ? "Tick who attended first."
+      : `${attended.length} of ${active.length} marked as attended. ` +
+        "Certificates come from the online course after the exam.";
+    return;
+  }
+
+  btn.disabled = attended.length === 0;
+  btn.textContent = done.length ? "Send remaining certificates" : "Complete and submit seminar";
+  state.textContent = attended.length === 0
+    ? "Tick who attended first — certificates go to those people."
+    : done.length
+      ? `${attended.length - done.length} of ${attended.length} still to receive theirs.`
+      : `${attended.length} of ${active.length} marked as attended.`;
+}
+
+function openCertDialog(course) {
+  const active = allRegistrations.filter((r) => (r.status || "active") === "active");
+  const attended = active.filter((r) => r.attended);
+  const todo = attended.filter((r) => !r.certificate_sent_at);
+  const missing = active.filter((r) => !r.attended);
+  const noCert = course.issues_certificate === false;
+
+  $("cert-h").textContent = noCert ? "Complete seminar" : "Complete and submit seminar";
+  $("cert-what").innerHTML = "";
+  $("cert-what").append(document.createTextNode(
+    noCert
+      ? `This marks the seminar complete for ${attended.length} participant` +
+        `${attended.length === 1 ? "" : "s"}. No certificate is sent from here — ` +
+        "this course issues its certificate through the online course once the exam is passed."
+      : `${todo.length} certificate${todo.length === 1 ? "" : "s"} will be generated and emailed. ` +
+        "Each one carries a unique reference and cannot be unsent."
+  ));
+
+  // Anyone unticked is about to be left out, which is the mistake worth
+  // catching before the button is pressed rather than after.
+  const warn = $("cert-warn");
+  if (missing.length) {
+    warn.classList.remove("hidden");
+    warn.innerHTML = `<strong>${missing.length} person${missing.length === 1 ? " is" : "s are"} not ticked as attended</strong>` +
+      "<ul></ul>They will not get a certificate. Close this and tick them if they were there.";
+    const ul = warn.querySelector("ul");
+    for (const r of missing) {
+      const li = document.createElement("li");
+      li.textContent = `${r.first_name} ${r.last_name}`;
+      ul.append(li);
+    }
+  } else {
+    warn.classList.add("hidden");
+  }
+
+  // Names print exactly as they appear here, so this is the last chance
+  // to spot a lowercase surname or a typo.
+  const who = $("cert-who");
+  who.innerHTML = "";
+  if (noCert) {
+    who.classList.add("hidden");
+  } else {
+    who.classList.remove("hidden");
+  }
+  if (noCert) {
+    $("cert-msg").textContent = "";
+    $("cert-msg").className = "msg";
+    $("cert-go").disabled = attended.length === 0;
+    $("cert-go").textContent = "Mark as complete";
+    $("certwrap").classList.remove("hidden");
+    return;
+  }
+  $("cert-go").textContent = "Send certificates";
+  if (!todo.length) {
+    who.textContent = "Everyone who attended already has their certificate.";
+  } else {
+    const head = document.createElement("div");
+    head.style.cssText = "font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem";
+    head.textContent = "Certificates will read";
+    who.append(head);
+    for (const r of todo) {
+      const line = document.createElement("div");
+      line.textContent = `${r.first_name} ${r.last_name}`;
+      line.style.padding = "0.1rem 0";
+      who.append(line);
+    }
+    const note = document.createElement("div");
+    note.style.cssText = "color:var(--muted);margin-top:0.5rem;font-size:0.82rem";
+    note.textContent = "Spelling is printed exactly as shown. Cancel and use Edit to correct anything.";
+    who.append(note);
+  }
+
+  $("cert-msg").textContent = "";
+  $("cert-msg").className = "msg";
+  $("cert-go").disabled = todo.length === 0;
+  $("certwrap").classList.remove("hidden");
+}
+
+function wireCertificates() {
+  $("cert-open").onclick = () => { if (currentCourse) openCertDialog(currentCourse); };
+  $("cert-close").onclick = () => { $("certwrap").classList.add("hidden"); };
+  $("certwrap").addEventListener("click", (e) => {
+    if (e.target === $("certwrap")) $("certwrap").classList.add("hidden");
+  });
+
+  $("cert-go").onclick = async () => {
+    if (!currentCourse) return;
+    const msg = $("cert-msg");
+
+    const noCert = currentCourse.issues_certificate === false;
+
+    if (!window.confirm(
+      noCert
+        ? `Mark "${currentCourse.title}" as complete?\n\n` +
+          "No certificates are sent — they come from the online course after the exam."
+        : `Send certificates for "${currentCourse.title}"?\n\n` +
+          "This emails each person their certificate as a PDF. It cannot be undone."
+    )) return;
+
+    $("cert-go").disabled = true;
+    msg.className = "msg";
+    msg.textContent = noCert
+      ? "Marking complete…"
+      : "Generating and sending — this can take a moment…";
+
+    try {
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+
+      const res = await fetch("/.netlify/functions/certificates-send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        body: JSON.stringify({ courseId: currentCourse.id }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      msg.className = out.failed ? "msg err" : "msg ok";
+      msg.textContent = out.completedOnly
+        ? `Seminar marked complete for ${out.attended} participant` +
+          `${out.attended === 1 ? "" : "s"}.`
+        : out.failed
+          ? `${out.sent} sent, ${out.failed} failed: ${(out.failures || []).join(", ")}.`
+          : `${out.sent} certificate${out.sent === 1 ? "" : "s"} sent.`;
+
+      setTimeout(() => {
+        $("certwrap").classList.add("hidden");
+        openCourse(currentCourse);
+      }, out.failed ? 4000 : 1800);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+      $("cert-go").disabled = false;
+    }
+  };
+}
+
+/* ---------- the lead coach's welcome email ---------- */
+
+// Which participants have already had one. Read from course_emails,
+// which is also what the sending function writes to, so the pill can
+// never disagree with what actually went out.
+let welcomeByReg = {};
+
+// How many extra emails each participant has had. Shown on their row,
+// so a coach can see at a glance who they have been talking to.
+let adhocByReg = {};
+
+async function loadAdhoc(courseId) {
+  adhocByReg = {};
+  const { data, error } = await db
+    .from("course_emails")
+    .select("registration_id, status")
+    .eq("course_id", courseId)
+    .eq("kind", "adhoc")
+    .eq("status", "sent");
+
+  if (error) { console.error("Could not load extra emails:", error.message); return; }
+  for (const row of data || []) {
+    if (row.registration_id) {
+      adhocByReg[row.registration_id] = (adhocByReg[row.registration_id] || 0) + 1;
+    }
   }
 }
 
-function safeZone(tz) {
-  try {
-    new Intl.DateTimeFormat("en-GB", { timeZone: tz || "UTC" });
-    return tz || "UTC";
-  } catch (e) { return "UTC"; }
+async function loadWelcomes(courseId) {
+  welcomeByReg = {};
+  const { data, error } = await db
+    .from("course_emails")
+    .select("id, registration_id, status, sent_at, subject")
+    .eq("course_id", courseId)
+    .eq("kind", "welcome");
+
+  if (error) { console.error("Could not load welcome emails:", error.message); return; }
+  for (const row of data || []) {
+    if (row.registration_id) welcomeByReg[row.registration_id] = row;
+  }
 }
 
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
+// The coach writes the email; this gives them somewhere to start.
+// Everything here is editable before it sends.
+function welcomeDraft(course, reg) {
+  // The title already carries the city — "TCC Level 1 — Munich" — so
+  // adding it again reads as "Munich in Munich".
+  const me_ = (me && me.full_name) || "your lead coach";
+  return {
+    subject: `Welcome to ${course.title} — I will be your lead coach`,
+    body:
+      `Hey {{first_name}},\n\n` +
+      `It's great to see that you have registered for the ${course.title}. ` +
+      `My name is ${me_}, and I will be your lead coach for the seminar.\n\n` +
+      `I look forward to meeting you on that weekend, and if you have any ` +
+      `questions in the meantime, please feel free to reach out to me.\n\n` +
+      `Many thanks\n` +
+      `${me_}`,
+  };
 }
+
+let wcReg = null;
+
+function openWelcome(course, reg) {
+  wcReg = reg;
+  const already = welcomeByReg[reg.id];
+
+  $("wc-h").textContent = already && already.status === "sent"
+    ? "Welcome email — already sent"
+    : `Welcome email to ${reg.first_name} ${reg.last_name}`;
+
+  $("wc-sub").textContent = already && already.status === "sent"
+    ? `Sent ${fmtWhen(already.sent_at)}. Sending again writes a second email.`
+    : `Goes to ${reg.email}, from your own address, with info@ copied in.`;
+
+  const draft = welcomeDraft(course, reg);
+  $("wc-subject").value = already ? (already.subject || draft.subject) : draft.subject;
+  $("wc-body").value = draft.body;
+
+  $("wc-note").textContent =
+    "Write it in your own words — this is only a starting point.";
+  $("wc-msg").textContent = "";
+  $("wc-msg").className = "msg";
+  $("wc-send").disabled = false;
+  $("wcwrap").classList.remove("hidden");
+}
+
+function wireWelcome() {
+  $("wc-close").onclick = () => { $("wcwrap").classList.add("hidden"); wcReg = null; };
+  $("wcwrap").addEventListener("click", (e) => {
+    if (e.target === $("wcwrap")) { $("wcwrap").classList.add("hidden"); wcReg = null; }
+  });
+
+  $("wc-send").onclick = async () => {
+    if (!wcReg || !currentCourse) return;
+    const subject = $("wc-subject").value.trim();
+    const body = $("wc-body").value.trim();
+    const msg = $("wc-msg");
+
+    if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return; }
+    if (!body) { msg.className = "msg err"; msg.textContent = "There is nothing to send."; return; }
+
+    $("wc-send").disabled = true;
+    msg.className = "msg"; msg.textContent = "Sending…";
+
+    try {
+      // The row is written first, then sent. That is the same order the
+      // pre-course email uses, so a send that fails leaves a draft
+      // rather than nothing at all.
+      const { data: row, error } = await db.from("course_emails").insert({
+        course_id: currentCourse.id,
+        registration_id: wcReg.id,
+        kind: "welcome",
+        subject,
+        body,
+        status: "draft",
+      }).select("id").single();
+
+      if (error) throw new Error(error.message);
+
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+
+      const res = await fetch("/.netlify/functions/course-email-send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        body: JSON.stringify({ emailId: row.id }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      msg.className = "msg ok";
+      msg.textContent = `Sent as ${out.sentAs}.`;
+      setTimeout(() => {
+        $("wcwrap").classList.add("hidden");
+        wcReg = null;
+        openCourse(currentCourse);
+      }, 1200);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("wc-send").disabled = false;
+  };
+}
+
+function buildActions(box, course, reg, status) {
+  box.innerHTML = "";
+  const add = (label, cls, fn) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn " + cls;
+    b.textContent = label;
+    b.onclick = () => fn(b);
+    box.append(b);
+    return b;
+  };
+
+  // The welcome email is the lead coach's job, so this one button is
+  // theirs as well as the admin's. Everything else stays admin-only.
+  const canWelcome = isAdmin() || amLeadOn(course.id);
+  if (canWelcome && status === "active") {
+    const sent = welcomeByReg[reg.id] && welcomeByReg[reg.id].status === "sent";
+    add(sent ? "Welcome sent" : "Send welcome", sent ? "ghost small" : "small",
+        () => openWelcome(course, reg));
+
+    // Anything the standard emails do not cover, to this one person.
+    const extras = adhocByReg[reg.id] || 0;
+    add(extras ? `Email (${extras} sent)` : "Email", "ghost small",
+        () => openAdhoc(course, reg));
+  }
+
+  if (!isAdmin()) return;
+
+  add("Edit", "ghost small", () => openEdit(reg));
+  add(reg.waiver_signed_at ? "Agreement" : "Sign agreement", "ghost small", () => openSignature(reg));
+
+  if (status !== "active") {
+    const pill = document.createElement("span");
+    pill.className = "pill gone";
+    pill.textContent = REG_STATUS_LABEL[status] || status;
+    box.append(pill);
+    add("Restore", "ghost small", (b) => setRegStatus(reg, "active", b));
+  } else {
+    add("Transfer", "ghost small", (b) => transferParticipant(course, reg, b));
+    add("Archive", "ghost small", (b) => setRegStatus(reg, "archived", b));
+    add("Cancelled", "ghost small", (b) => setRegStatus(reg, "cancelled", b));
+    add("No show", "ghost small", (b) => setRegStatus(reg, "no_show", b));
+  }
+  // Only where the course actually includes an online course, so the
+  // button cannot appear somewhere it would be meaningless.
+  if (course.grants_online_course && status === "active") {
+    add(
+      reg.learnworlds_status === "enrolled" ? "Online access" : "Grant online access",
+      "ghost small",
+      (b) => askAndGrant(reg, b)
+    );
+  }
+
+  add("Delete", "ghost small", (b) => deleteParticipant(reg, b));
+}
+
+async function setRegStatus(reg, status, btn) {
+  const who = `${reg.first_name} ${reg.last_name}`;
+  const wording = {
+    archived: `Archive ${who}? They keep their record and history, but stop counting toward capacity.`,
+    cancelled: `Mark ${who} as cancelled? Their place is freed.`,
+    no_show: `Mark ${who} as a no show?`,
+    active: `Restore ${who} to the active list? They will count toward capacity again.`,
+  }[status];
+  if (!window.confirm(wording)) return;
+
+  btn.disabled = true;
+  const patch = { status };
+  patch.archived_at = status === "archived" ? new Date().toISOString() : null;
+  const { error } = await db.from("registrations").update(patch).eq("id", reg.id);
+  btn.disabled = false;
+  if (error) { window.alert("That did not work: " + error.message); return; }
+  openCourse(currentCourse);
+}
+
+async function deleteParticipant(reg, btn) {
+  const who = `${reg.first_name} ${reg.last_name}`;
+  if (!window.confirm(
+    `Permanently delete ${who}?\n\nThis removes the registration, their payments, notes and photo record. It cannot be undone.\n\nUse Archive instead if you want to keep the history.`
+  )) return;
+  if (!window.confirm(`Last check — delete ${who} for good?`)) return;
+
+  btn.disabled = true;
+  // Children first, in case the foreign keys don't cascade.
+  for (const table of ["payments", "participant_notes", "feedback_drafts", "course_emails"]) {
+    await db.from(table).delete().eq("registration_id", reg.id);
+  }
+  const { error } = await db.from("registrations").delete().eq("id", reg.id);
+  btn.disabled = false;
+  if (error) { window.alert("Could not delete: " + error.message); return; }
+  openCourse(currentCourse);
+}
+
+async function transferParticipant(course, reg, btn) {
+  const { data: options, error } = await db.from("courses")
+    .select("id, title, city, country, starts_at, timezone, capacity, status")
+    .eq("archived", false)
+    .in("status", ["published", "draft", "full"])
+    .gte("starts_at", new Date().toISOString())
+    .neq("id", course.id)
+    .order("starts_at", { ascending: true });
+  if (error) { window.alert("Could not load courses: " + error.message); return; }
+  if (!options || !options.length) { window.alert("There are no other upcoming courses to move them to."); return; }
+
+  const lines = options.map((c, i) =>
+    `${i + 1}. ${c.title} — ${[c.city, countryName(c.country)].filter(Boolean).join(", ")} — ${fmtDate(c.starts_at, c.timezone)}`
+  ).join("\n");
+  const pick = window.prompt(
+    `Move ${reg.first_name} ${reg.last_name} to which course?\n\n${lines}\n\nType the number:`
+  );
+  if (!pick) return;
+  const target = options[parseInt(pick, 10) - 1];
+  if (!target) { window.alert("That was not one of the numbers listed."); return; }
+
+  // Check the destination has room before moving anyone into it.
+  const { data: existing, error: cErr } = await db.from("registrations")
+    .select("id, status").eq("course_id", target.id);
+  if (cErr) { window.alert("Could not check capacity: " + cErr.message); return; }
+  const taken = activeCount(existing || []);
+  if (target.capacity != null && taken >= target.capacity) {
+    window.alert(`"${target.title}" is full — ${taken} of ${target.capacity} places taken.\n\nRaise its capacity first, then transfer.`);
+    return;
+  }
+
+  if (!window.confirm(`Move ${reg.first_name} ${reg.last_name} to "${target.title}"?\n\nThey are not emailed automatically.`)) return;
+
+  btn.disabled = true;
+  const { error: uErr } = await db.from("registrations").update({
+    course_id: target.id,
+    transferred_from_course_id: course.id,
+    source: "transfer",
+  }).eq("id", reg.id);
+  btn.disabled = false;
+  if (uErr) { window.alert("Transfer failed: " + uErr.message); return; }
+  window.alert(`Moved to "${target.title}".`);
+  openCourse(currentCourse);
+}
+
+function wireParticipantControls() {
+  $("pm-showall").onchange = () => { if (currentCourse) openCourse(currentCourse); };
+
+  $("pm-add").onclick = () => {
+    $("pm-form").classList.remove("hidden");
+    pmMsg("");
+    for (const id of ["pm-first", "pm-last", "pm-email", "pm-phone", "pm-note"]) $(id).value = "";
+    $("pm-paid").checked = true;
+    $("pm-email-send").checked = false;
+    fillOnlineSelect();
+    $("pm-first").focus();
+  };
+  $("pm-cancel").onclick = () => { $("pm-form").classList.add("hidden"); pmMsg(""); };
+
+  $("pm-save").onclick = async () => {
+    if (!currentCourse) return;
+    const first = $("pm-first").value.trim();
+    const last = $("pm-last").value.trim();
+    const email = $("pm-email").value.trim();
+    if (!first || !last) { pmMsg("First and last name are both needed — certificates use them.", true); return; }
+    if (!email || !email.includes("@") || email.startsWith("@") || email.endsWith("@")) {
+      pmMsg("A valid email is needed.", true); return;
+    }
+
+    const taken = activeCount(allRegistrations);
+    if (currentCourse.capacity != null && taken >= currentCourse.capacity) {
+      if (!window.confirm(`This course is full — ${taken} of ${currentCourse.capacity}.\n\nAdd them anyway and go over capacity?`)) return;
+    }
+
+    $("pm-save").disabled = true;
+    pmMsg("Adding…");
+
+    const { data: staffRow } = await db.auth.getUser();
+    const row = {
+      course_id: currentCourse.id,
+      first_name: first,
+      last_name: last,
+      email: email,
+      phone: $("pm-phone").value.trim() || null,
+      status: "active",
+      source: $("pm-source").value,
+      source_note: $("pm-note").value.trim() || null,
+      payment_status: $("pm-paid").checked ? "paid_in_full" : "unpaid",
+      added_by: staffRow && staffRow.user ? staffRow.user.id : null,
+    };
+
+    const { data: created, error } = await db.from("registrations").insert(row).select("id").single();
+    $("pm-save").disabled = false;
+    if (error) { pmMsg("Could not add them: " + error.message, true); return; }
+
+    const notes = [];
+
+    if ($("pm-email-send").checked) {
+      try {
+        await callAdmin({ action: "send_registration_email", registration_id: created.id });
+        notes.push("the confirmation email has gone out");
+      } catch (e) {
+        notes.push("but the confirmation email did not send: " + e.message);
+      }
+    }
+
+    // The online course is granted after the registration exists, so a
+    // LearnWorlds problem can never cost you the registration itself.
+    const wantOnline = $("pm-online").value;
+    if (wantOnline) {
+      try {
+        const r = await grantOnline(created.id, wantOnline);
+        notes.push("online access granted in " + r.label);
+      } catch (e) {
+        notes.push("but online access failed: " + e.message);
+      }
+    }
+
+    pmMsg(notes.length ? "Added — " + notes.join(", ") + "." : "Added. No email was sent.");
+
+    $("pm-form").classList.add("hidden");
+    openCourse(currentCourse);
+  };
+
+  $("cap-save").onclick = async () => {
+    if (!currentCourse) return;
+    const raw = $("cap-input").value.trim();
+    const cap = raw === "" ? null : parseInt(raw, 10);
+    if (raw !== "" && (isNaN(cap) || cap < 0)) { flash($("cap-why"), "Capacity must be a whole number.", true); return; }
+
+    const taken = activeCount(allRegistrations);
+    if (cap != null && cap < taken) {
+      if (!window.confirm(`There are already ${taken} active registrations. Setting capacity to ${cap} leaves the course over capacity.\n\nSet it anyway?`)) return;
+    }
+
+    $("cap-save").disabled = true;
+    const { error } = await db.from("courses").update({ capacity: cap }).eq("id", currentCourse.id);
+    $("cap-save").disabled = false;
+    if (error) { flash($("cap-why"), "Could not save: " + error.message, true); return; }
+    currentCourse.capacity = cap;
+    flash($("cap-why"), "Capacity saved.");
+  };
+}
+
+async function wireAdmin(course, totalRegs, liveRegs) {
+  const panel = $("adminpanel");
+  const msg = $("admin-msg");
+  panel.classList.remove("hidden");
+  $("cap-input").value = course.capacity == null ? "" : course.capacity;
+  $("cap-why").textContent = `${activeCount(allRegistrations)} active registrations.`;
+
+  const publishBtn = $("publishbtn");
+  const unpublishBtn = $("unpublishbtn");
+  const isDraft = !course.archived && course.status === "draft";
+  const isSelling = !course.archived && course.status === "published";
+
+  publishBtn.classList.toggle("hidden", !isDraft);
+  unpublishBtn.classList.toggle("hidden", !isSelling);
+  $("salesrow").classList.toggle("hidden", !isDraft && !isSelling);
+  $("salessep").classList.toggle("hidden", !isDraft && !isSelling);
+  $("saleswhy").textContent = isDraft
+    ? "This course is a draft. Nobody can see or buy it until you put it on sale."
+    : isSelling ? "This course is live and taking registrations." : "";
+
+  publishBtn.onclick = async () => {
+    if (!window.confirm(`Put "${course.title}" on sale? The page goes live immediately.`)) return;
+    publishBtn.disabled = true;
+    msg.className = "msg"; msg.textContent = "Putting on sale…";
+    const { error } = await db.from("courses")
+      .update({ status: "published", archived: false }).eq("id", course.id);
+    publishBtn.disabled = false;
+    if (error) { msg.className = "msg err"; msg.textContent = "Could not save: " + error.message; return; }
+    await loadCourses();
+  };
+
+  unpublishBtn.onclick = async () => {
+    if (!window.confirm(`Take "${course.title}" off sale? It becomes a draft and stops selling.`)) return;
+    unpublishBtn.disabled = true;
+    msg.className = "msg"; msg.textContent = "Taking off sale…";
+    const { error } = await db.from("courses").update({ status: "draft" }).eq("id", course.id);
+    unpublishBtn.disabled = false;
+    if (error) { msg.className = "msg err"; msg.textContent = "Could not save: " + error.message; return; }
+    await loadCourses();
+  };
+
+  if (!staffList.length) {
+    const { data } = await db.from("staff")
+      .select("id, full_name, role, photo_path").eq("active", true).order("full_name");
+    staffList = data || [];
+  }
+  const { data: assignedRows } = await db.from("course_staff")
+    .select("staff_id, role").eq("course_id", course.id);
+  const assigned = {};
+  for (const r of assignedRows || []) assigned[r.staff_id] = r.role;
+  renderCoachPicker($("editcoaches"), assigned);
+  renderInvoiceAdmin(course);
+  showHostBar(course);
+
+  $("savecoaches").onclick = async () => {
+    const picked = readCoachPicker($("editcoaches"));
+    const leads = picked.filter((p) => p.role === "lead_coach");
+
+    if (leads.length > 1) {
+      msg.className = "msg err";
+      msg.textContent = "Only one lead coach — the others should be assistants.";
+      return;
+    }
+
+    $("savecoaches").disabled = true;
+    msg.className = "msg"; msg.textContent = "Saving…";
+
+    const { error: delErr } = await db.from("course_staff")
+      .delete().eq("course_id", course.id);
+    if (delErr) {
+      $("savecoaches").disabled = false;
+      msg.className = "msg err"; msg.textContent = "Could not save: " + delErr.message;
+      return;
+    }
+
+    if (picked.length) {
+      const rows = picked.map((p) => ({ course_id: course.id, ...p }));
+      const { error } = await db.from("course_staff").insert(rows);
+      if (error) {
+        $("savecoaches").disabled = false;
+        msg.className = "msg err"; msg.textContent = "Could not save: " + error.message;
+        return;
+      }
+    }
+
+    $("savecoaches").disabled = false;
+    msg.className = "msg ok";
+    const assists = picked.length - leads.length;
+    msg.textContent = leads.length
+      ? `Saved — lead coach set${assists ? `, ${assists} assisting` : ""}.`
+      : picked.length
+        ? `Saved — ${assists} assisting, lead still to be decided.`
+        : "Saved — nobody assigned yet.";
+  };
+
+  // The reschedule boxes read and write in the course's own time zone,
+  // not the coach's. A lead in Dubai moving a Glasgow course types
+  // Glasgow times.
+  const courseTz = course.timezone || "Europe/Dublin";
+  const tzOk = tzIsReal(courseTz);
+  const where = course.city || "the course";
+
+  const tzHint = $("r-tzhint");
+  if (!tzOk) {
+    tzHint.className = "whenline bad";
+    tzHint.textContent =
+      `This course has an unrecognised time zone (“${courseTz}”), so times cannot be trusted. ` +
+      `Fix it in the database before moving the date.`;
+  } else {
+    tzHint.className = "whenline";
+    tzHint.textContent = `Times below are local to ${where} (${courseTz}).`;
+  }
+
+  const s = instantToZoned(course.starts_at, courseTz);
+  $("r-date").value = s.date;
+  $("r-starttime").value = s.time;
+  if (course.ends_at) {
+    const e = instantToZoned(course.ends_at, courseTz);
+    $("r-enddate").value = e.date;
+    $("r-endtime").value = e.time;
+  } else {
+    $("r-enddate").value = "";
+  }
+
+  const reschedPreview = () => {
+    const el = $("r-preview");
+    const date = $("r-date").value;
+    if (!date || !tzOk) { el.textContent = ""; return; }
+    const when = zonedToInstant(date, $("r-starttime").value || "09:00", courseTz);
+    const there = fmtWhenIn(when, courseTz);
+    const mine = fmtWhenIn(when, MY_ZONE);
+    el.className = "whenline";
+    el.innerHTML = "";
+    el.append(document.createTextNode("Would start "));
+    const b = document.createElement("b");
+    b.textContent = there;
+    el.append(b, document.createTextNode(
+      ` in ${where}` + (there === mine ? "." : ` — ${mine} where you are now.`)
+    ));
+  };
+  for (const id of ["r-date", "r-starttime", "r-enddate", "r-endtime"]) {
+    $(id).oninput = reschedPreview;
+  }
+  reschedPreview();
+
+  $("reschedbtn").onclick = async () => {
+    const date = $("r-date").value;
+    if (!date) { msg.className = "msg err"; msg.textContent = "Pick a new date."; return; }
+    if (!tzOk) {
+      msg.className = "msg err";
+      msg.textContent = "This course has an invalid time zone. Fix that first, or the emails will tell people the wrong time.";
+      return;
+    }
+
+    const newStart = zonedToInstant(date, $("r-starttime").value || "09:00", courseTz);
+    const newEnd = $("r-endtime").value
+      ? zonedToInstant($("r-enddate").value || date, $("r-endtime").value, courseTz)
+      : null;
+
+    const who = liveRegs === 1 ? "1 participant" : `${liveRegs} participants`;
+    if (!window.confirm(
+      `Move "${course.title}" to ${fmtWhenIn(newStart, courseTz)} local time in ${where}?\n\n` +
+      `${who} and any assigned coaches will be emailed.`
+    )) return;
+
+    $("reschedbtn").disabled = true;
+    msg.className = "msg"; msg.textContent = "Moving the date and sending emails…";
+
+    try {
+      const r = await callAdmin({
+        action: "reschedule",
+        courseId: course.id,
+        startsAt: newStart.toISOString(),
+        endsAt: newEnd ? newEnd.toISOString() : null,
+      });
+      msg.className = "msg ok";
+      msg.textContent =
+        `Moved. ${r.emailed} of ${r.participants} participant${r.participants === 1 ? "" : "s"} emailed, ` +
+        `${r.coachesEmailed} coach${r.coachesEmailed === 1 ? "" : "es"} emailed.`;
+      setTimeout(loadCourses, 2500);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("reschedbtn").disabled = false;
+  };
+
+  $("cancelwhy").textContent = liveRegs
+    ? `Refunds ${liveRegs} participant${liveRegs === 1 ? "" : "s"} in full, stops any unpaid balances, emails everyone and archives the course.`
+    : "Nobody has booked, so there is nothing to refund. This will archive the course.";
+
+  // Cancelling shows what would happen before any of it does. Refunds
+  // cannot be taken back, so the numbers are on screen first.
+  $("cancelbtn").onclick = async () => {
+    msg.className = "msg";
+    msg.textContent = "Working out what would be refunded…";
+    $("cancelbtn").disabled = true;
+
+    try {
+      const p = await callAdmin({ action: "cancel_preview", courseId: course.id });
+      msg.textContent = "";
+      openCancelPreview(course, p);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("cancelbtn").disabled = false;
+  };
+
+  const archiveBtn = $("archivebtn");
+  const deleteBtn = $("deletebtn");
+  archiveBtn.textContent = isPast(course) ? "Restore as a draft" : "Archive";
+
+  deleteBtn.classList.toggle("hidden", !isPast(course));
+  $("adminwhy").textContent = isPast(course)
+    ? "Restoring brings it back as a draft. Deleting removes the course, its registrations, notes, photos and payment records for good."
+    : "Archiving hides a course and takes it off sale. Restore and delete become available once it is archived.";
+
+  archiveBtn.onclick = async () => {
+    if (isPast(course)) return restoreCourse(course);
+
+    if (!window.confirm(`Archive "${course.title}"? It will be taken off sale and hidden from the live list.`)) return;
+
+    archiveBtn.disabled = true;
+    msg.className = "msg";
+    msg.textContent = "Archiving…";
+
+    const { error } = await db.from("courses")
+      .update({ archived: true, status: "cancelled" }).eq("id", course.id);
+    archiveBtn.disabled = false;
+
+    if (error) { msg.className = "msg err"; msg.textContent = "Could not save: " + error.message; return; }
+    await loadCourses();
+  };
+
+  deleteBtn.onclick = () => askToDelete(course);
+}
+
+/* ---------------- new course ---------------- */
+
+async function openForm() {
+  show("newc");
+  $("f-image").value = "";
+  $("thumb").style.display = "none";
+  $("f-image-hint").textContent = "optional";
+  if (!editingCourse) {
+    $("form-title").textContent = "New course";
+    $("form-sub").textContent = "Fill this in and the course goes live. You will get a link to paste into Community Box.";
+    $("save").textContent = "Create course";
+  }
+  $("created").classList.add("hidden");
+  $("form").classList.remove("hidden");
+  $("form-msg").textContent = "";
+
+  // Countries and prices both come from the database, so the form is
+  // never out of step with what checkout will charge.
+  await loadVatRates();
+  buildCountryOptions();
+  buildTimezoneList();
+  await loadPriceTable();
+  if (!editingCourse) applyStandardPrice();
+
+  toggleWorkshopFields();
+  updateWhenPreview();
+
+  if (!staffList.length) {
+    const { data } = await db.from("staff")
+      .select("id, full_name, role, photo_path").eq("active", true).order("full_name");
+    staffList = data || [];
+  }
+  renderCoachPicker($("coachlist"), {});
+}
+
+// Where the certificate comes from the online course rather than the
+// seminar. Set at creation so nobody has to remember: a TCC Level 2
+// created next year behaves the same as the ones created today.
+function issuesCertificate(brand, type, level) {
+  const lvl = String(level == null ? "" : level).replace(/\D/g, "");
+  // TCC Level 2 includes an online course, and the certificate follows
+  // the exam. Everything else issues one from the seminar.
+  if (brand === "tcc" && lvl === "2") return false;
+  return true;
+}
+
+function toggleWorkshopFields() {
+  const isWorkshop = $("f-type").value === "workshop";
+  $("wrap-workshop").classList.toggle("hidden", !isWorkshop);
+  $("wrap-movements").classList.toggle("hidden", !isWorkshop);
+  showCertificateNote();
+}
+
+// Visible while the course is being created, rather than discovered at
+// the end of it when the button reads differently than expected.
+function showCertificateNote() {
+  const note = $("f-cert-note");
+  if (!note) return;
+  const issues = issuesCertificate($("f-brand").value, $("f-type").value, $("f-level").value);
+  note.classList.toggle("hidden", issues);
+  if (!issues) {
+    note.textContent =
+      "This course does not issue a certificate from the seminar — " +
+      "it comes from the online course once the exam is passed.";
+  }
+}
+$("f-type").addEventListener("change", () => {
+  toggleWorkshopFields();
+  buildSlug();
+  applyStandardPrice();
+});
+
+// Says out loud what is about to be stored, so a wrong zone is caught
+// here rather than six weeks later in a pre-course email.
+function updateWhenPreview() {
+  const el = $("when-preview");
+  const tz = $("f-timezone").value.trim();
+  const date = $("f-date").value;
+  const time = $("f-starttime").value || "09:00";
+  const city = $("f-city").value.trim();
+
+  if (!tz) { el.className = "whenline"; el.textContent = ""; return; }
+
+  if (!tzIsReal(tz)) {
+    el.className = "whenline bad";
+    el.textContent =
+      `“${tz}” is not a time zone. Pick one from the list — Glasgow, for instance, is Europe/London.`;
+    return;
+  }
+  if (!date) {
+    el.className = "whenline";
+    el.textContent = "Add a date and this will show you exactly what gets stored.";
+    return;
+  }
+
+  const when = zonedToInstant(date, time, tz);
+  const there = fmtWhenIn(when, tz);
+  const mine = fmtWhenIn(when, MY_ZONE);
+
+  el.className = "whenline";
+  el.innerHTML = "";
+  el.append(document.createTextNode("Starts "));
+  const b = document.createElement("b");
+  b.textContent = there;
+  el.append(b, document.createTextNode(
+    city ? ` in ${city}` : " local to the course"
+  ));
+  el.append(document.createTextNode(
+    there === mine ? "." : ` — that is ${mine} where you are now.`
+  ));
+}
+
+function buildSlug() {
+  const brand = BRAND[$("f-brand").value]?.slug || "bb";
+  const level = ($("f-level").value || "").toLowerCase();
+  const city  = ($("f-city").value || "").trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const start = $("f-date").value;
+  let stamp = "";
+  if (start) {
+    const d = new Date(start + "T00:00");
+    stamp = String(d.getMonth() + 1).padStart(2, "0") + String(d.getFullYear()).slice(-2);
+  }
+  let wname = "";
+  if ($("f-type").value === "workshop") {
+    const words = ($("f-workshop").value || "").trim().toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).filter(Boolean);
+    const kept = [];
+    for (const w of words) {
+      if ([...kept, w].join("-").length > 24) break;
+      kept.push(w);
+    }
+    wname = kept.join("-");
+  }
+  $("f-slug").value = [brand, level, wname, city, stamp].filter(Boolean).join("-");
+}
+["f-brand", "f-level", "f-city", "f-date", "f-workshop"].forEach((id) =>
+  $(id).addEventListener("change", buildSlug)
+);
+$("f-city").addEventListener("blur", buildSlug);
+$("f-city").addEventListener("input", updateWhenPreview);
+
+// Brand, level and currency all change which standard price applies.
+for (const id of ["f-brand", "f-level", "f-currency"]) {
+  $(id).addEventListener("change", applyStandardPrice);
+}
+for (const id of ["f-brand", "f-level"]) {
+  $(id).addEventListener("change", showCertificateNote);
+}
+
+// The country settles three things at once: the time zone, the
+// currency, and the VAT rate charged at checkout. Where it cannot
+// settle the zone — the US, Australia, Canada, Brazil — it says so
+// and leaves it alone.
+$("f-country").addEventListener("change", () => {
+  const cc = $("f-country").value.trim().toUpperCase();
+
+  const cur = COUNTRY_CURRENCY[cc];
+  if (cur) {
+    $("f-currency").value = cur;
+    applyStandardPrice();
+  } else if (cc) {
+    $("f-price-note").className = "whenline";
+    $("f-price-note").textContent =
+      `No standard currency set for ${countryName(cc)} — choose the currency yourself.`;
+  }
+
+  // A state picker where one settles the zone, hidden everywhere else.
+  buildStateOptions(cc);
+  if (STATES[cc]) {
+    // Cleared, so a zone left over from the last country cannot be
+    // mistaken for one that belongs to this course.
+    $("f-timezone").value = "";
+    const el = $("when-preview");
+    el.className = "whenline";
+    el.textContent = `Choose the ${(STATE_LABEL[cc] || "state").toLowerCase()} — it sets the time zone.`;
+    return;
+  }
+  $("f-state").value = "";
+
+  if (COUNTRY_TZ[cc]) {
+    $("f-timezone").value = COUNTRY_TZ[cc];
+  } else if (cc) {
+    // Either a country that spans zones, or one not in the list. Both
+    // need a human to choose — and both must say so, because silently
+    // leaving the previous zone is how a Kuwait course ends up stored
+    // on Irish time. Clearing it makes that impossible to miss.
+    $("f-timezone").value = "";
+    const el = $("when-preview");
+    el.className = "whenline bad";
+    el.textContent = MULTI_TZ.has(cc)
+      ? `${countryName(cc)} spans several time zones — choose the one for this city from the list.`
+      : `Choose the time zone for ${countryName(cc)} from the list — it has not been set automatically.`;
+    return;
+  }
+  updateWhenPreview();
+});
+
+$("f-state").addEventListener("change", () => {
+  const cc = $("f-country").value.trim().toUpperCase();
+  const tz = zoneForState(cc, $("f-state").value);
+  // A handful of states straddle two zones, so this is a starting
+  // point rather than the last word — the picker stays editable.
+  if (tz) $("f-timezone").value = tz;
+  updateWhenPreview();
+  buildSlug();
+});
+
+for (const id of ["f-date", "f-starttime", "f-enddate", "f-endtime", "f-timezone"]) {
+  $(id).addEventListener("input", updateWhenPreview);
+  $(id).addEventListener("change", updateWhenPreview);
+}
+
+$("f-image").addEventListener("change", () => {
+  const f = $("f-image").files[0];
+  const t = $("thumb");
+  if (!f) { t.style.display = "none"; return; }
+  t.src = URL.createObjectURL(f);
+  t.style.display = "block";
+  t.style.maxHeight = "9rem";
+});
+
+$("save").addEventListener("click", saveCourse);
+
+async function saveCourse() {
+  const msg = $("form-msg");
+  msg.className = "msg";
+
+  const brand = $("f-brand").value;
+  const type  = $("f-type").value;
+  const city  = $("f-city").value.trim();
+  const start = $("f-date").value;
+  const price = $("f-price").value;
+  const tz    = $("f-timezone").value.trim();
+  let slug    = $("f-slug").value.trim();
+
+  if (!start)  { msg.className = "msg err"; msg.textContent = "Add a date."; return; }
+  if (!price)  { msg.className = "msg err"; msg.textContent = "Add a price."; return; }
+  if (!tzIsReal(tz)) {
+    msg.className = "msg err";
+    msg.textContent = `“${tz || "blank"}” is not a time zone, so the course would be stored at the wrong hour. Pick one from the list.`;
+    return;
+  }
+  if (!slug)   { buildSlug(); slug = $("f-slug").value.trim(); }
+  if (!slug)   { msg.className = "msg err"; msg.textContent = "Add a link."; return; }
+
+  const picked = readCoachPicker($("coachlist"));
+  if (picked.filter((p) => p.role === "lead_coach").length > 1) {
+    msg.className = "msg err";
+    msg.textContent = "Only one lead coach — the others should be assistants.";
+    return;
+  }
+
+  const wname = $("f-workshop").value.trim();
+  const level = $("f-level").value;
+  const label = BRAND[brand]?.label || "BirdBox";
+  const title = type === "workshop" && wname
+    ? `${label} Workshop — ${wname}`
+    : `${label}${level ? " " + level.replace("L", "Level ") : ""}${city ? " — " + city : ""}`;
+
+  $("save").disabled = true;
+  msg.textContent = editingCourse ? "Saving…" : "Creating…";
+
+  try {
+    let imageUrl = null;
+    const file = $("f-image").files[0];
+    if (file) {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${slug}-${Date.now()}.${ext}`;
+      const { error: upErr } = await db.storage
+        .from("course-images").upload(path, file, { cacheControl: "3600", upsert: false });
+      if (upErr) throw new Error("Photo upload failed: " + upErr.message);
+      imageUrl = db.storage.from("course-images").getPublicUrl(path).data.publicUrl;
+    }
+
+    const row = {
+      brand, type,
+      level: level || null,
+      title,
+      slug,
+      summary: $("f-summary").value.trim() || null,
+      description: $("f-description").value.trim() || null,
+      movements: type === "workshop" ? ($("f-movements").value.trim() || null) : null,
+      workshop_focus: type === "workshop" ? (wname || null) : null,
+      venue_name: $("f-venue").value.trim() || null,
+      address: $("f-address").value.trim() || null,
+      city: city || null,
+      country: $("f-country").value.trim().toUpperCase() || null,
+      state: $("f-state").value.trim().toUpperCase() || null,
+      starts_at: zonedToInstant(start, $("f-starttime").value || "09:00", tz).toISOString(),
+      ends_at: $("f-endtime").value
+        ? zonedToInstant($("f-enddate").value || start, $("f-endtime").value, tz).toISOString()
+        : null,
+      timezone: tz,
+      capacity: parseInt($("f-capacity").value, 10) || 15,
+      price_cents: Math.round(parseFloat(price) * 100),
+      deposit_cents: $("f-deposit").value ? Math.round(parseFloat($("f-deposit").value) * 100) : null,
+      currency: $("f-currency").value,
+      language: $("f-language").value,
+      status: $("f-status").value,
+      latitude: $("f-lat").value.trim() === "" ? null : parseFloat($("f-lat").value),
+      longitude: $("f-lng").value.trim() === "" ? null : parseFloat($("f-lng").value),
+      admin_notes: $("f-adminnotes").value.trim() || null,
+      host_name: $("f-hostname").value.trim() || null,
+      host_email: $("f-hostemail").value.trim().toLowerCase() || null,
+      host_spots: parseInt($("f-hostspots").value, 10) || 0,
+      prepaid_spots: parseInt($("f-prepaid").value, 10) || 0,
+      issues_certificate: issuesCertificate(brand, type, level),
+    };
+    // On an edit, only overwrite the photo when a new one was chosen.
+    if (imageUrl || !editingCourse) row.image_url = imageUrl;
+
+    // We go back to the same gyms, so the same brand, level, city and
+    // month comes round again — and an archived course still holds
+    // its link. Rather than refuse, take the next one free. Deleting
+    // the old course to free the link would lose its history.
+    let course = null;
+    let error = null;
+    let usedSlug = row.slug;
+
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const tryRow = attempt === 0
+        ? row
+        : { ...row, slug: `${row.slug}-${attempt + 1}` };
+
+      const result = editingCourse
+        ? await db.from("courses").update(tryRow).eq("id", editingCourse.id)
+            .select("id, title, slug").single()
+        : await db.from("courses").insert(tryRow).select("id, title, slug").single();
+
+      if (!result.error) { course = result.data; usedSlug = tryRow.slug; break; }
+
+      // Only a clash is worth retrying. Anything else is a real error
+      // and retrying it nineteen more times would just be slow.
+      if (result.error.code !== "23505") { error = result.error; break; }
+      error = result.error;
+    }
+
+    if (!course) {
+      throw new Error(
+        error && error.code === "23505"
+          ? "That link is taken, and so are the next nineteen variations of it. Edit the link by hand."
+          : (error ? error.message : "Could not save the course.")
+      );
+    }
+
+    // Say so, because the link they were shown a moment ago is not the
+    // one that got saved.
+    if (usedSlug !== row.slug) {
+      $("f-slug").value = usedSlug;
+    }
+
+    if (editingCourse) {
+      await db.from("course_staff").delete().eq("course_id", course.id);
+    }
+    if (picked.length) {
+      const rows = picked.map((p) => ({ course_id: course.id, ...p }));
+      const { error: csErr } = await db.from("course_staff").insert(rows);
+      if (csErr) console.error("Coach assignment failed:", csErr);
+    }
+    if (editingCourse) {
+      editingCourse = null;
+      msg.className = "msg";
+      msg.textContent = "Saved. The seminar maps and listings update straight away.";
+      $("save").disabled = false;
+      await loadCourses();
+      return;
+    }
+
+    const url = `${location.origin}/c/${course.slug}/`;
+    $("created-title").textContent = course.title;
+    $("created-link").value = url;
+    $("created").classList.remove("hidden");
+    $("form").classList.add("hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = err.message || "Could not create the course.";
+  } finally {
+    $("save").disabled = false;
+  }
+}
+
+$("copylink").addEventListener("click", async () => {
+  const input = $("created-link");
+  try {
+    await navigator.clipboard.writeText(input.value);
+    $("copylink").textContent = "Copied";
+    setTimeout(() => { $("copylink").textContent = "Copy"; }, 1800);
+  } catch {
+    input.select();
+  }
+});
+
+$("another").addEventListener("click", () => {
+  ["f-summary","f-description","f-workshop","f-movements","f-venue","f-address",
+   "f-city","f-country","f-state","f-date","f-enddate","f-price","f-deposit",
+   "f-slug","f-adminnotes","f-hostname","f-hostemail"]
+    .forEach((id) => { $(id).value = ""; });
+  $("wrap-state").classList.add("hidden");
+  $("f-image").value = "";
+  $("thumb").style.display = "none";
+  openForm();
+});
+
+/* ---------------- go ---------------- */
+wireParticipantControls();
+wireSignature();
+wireEdit();
+wireWelcome();
+wirePrecourse();
+wireCertificates();
+wireCancel();
+wireInvoices();
+wirePaid();
+wireInvoicesView();
+wireReports();
+wireArchive();
+wireAdhoc();
+wireProfile();
+wireTeam();
+wireChat();
+wireMessages();
+wireHostEmail();
+wireFollowup();
+wirePeople();
+wireExport();
+start();
+</script>
+
+</body>
+</html>
