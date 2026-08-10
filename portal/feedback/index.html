@@ -168,19 +168,6 @@
       </div>
     </div>
 
-    <div class="panel">
-      <h3>Feedback language</h3>
-      <div style="max-width:22rem">
-        <div class="field" style="margin-bottom:0">
-          <label for="fb-lang">Write this email in
-            <span class="lim-saved hidden" id="fb-lang-saved">saved</span>
-          </label>
-          <select id="fb-lang"></select>
-        </div>
-      </div>
-      <p class="lim-note" id="fb-lang-note"></p>
-    </div>
-
     <div class="panel hidden" id="limpanel">
       <h3>Limitations <span class="hint" style="text-transform:none;letter-spacing:0">— from the intervention library</span></h3>
       <div class="lims">
@@ -452,7 +439,6 @@ async function start() {
 
   await loadManuals();
   buildLimitationOptions();
-  buildLanguageOptions();
   buildTranslateOptions();
 
   // Arriving from a course in the portal: open that course straight
@@ -473,34 +459,6 @@ function buildTranslateOptions() {
     o.value = code;
     o.textContent = name;
     sel.append(o);
-  }
-}
-
-function buildLanguageOptions() {
-  const sel = $("fb-lang");
-  sel.innerHTML = "";
-  for (const [code, name] of LANGUAGES) {
-    const o = document.createElement("option");
-    o.value = code;
-    o.textContent = name;
-    sel.append(o);
-  }
-}
-
-function buildLimitationOptions() {
-  for (const id of ["lim-primary", "lim-secondary"]) {
-    const sel = $(id);
-    sel.innerHTML = "";
-    const none = document.createElement("option");
-    none.value = "";
-    none.textContent = "None";
-    sel.append(none);
-    for (const name of LIMITATIONS) {
-      const o = document.createElement("option");
-      o.value = name;
-      o.textContent = name;
-      sel.append(o);
-    }
   }
 }
 
@@ -816,7 +774,6 @@ async function openDraft(reg) {
 
   current = { reg, draft: drafts[reg.id] || null, notes: notes || [] };
 
-  renderLanguage(reg);
   renderLimitations(reg);
 
   $("generate").disabled = !(notes && notes.length);
@@ -832,75 +789,6 @@ async function openDraft(reg) {
 
   renderDraft();
 }
-
-/* ---------------- feedback language ---------------- */
-
-// Which language this participant reads their email in. Defaults to
-// the course language, so a Spanish-taught seminar writes in Spanish
-// without anybody setting anything — but any one participant can be
-// switched on their own.
-function renderLanguage(reg) {
-  const sent = current.draft?.status === "sent";
-  const chosen = reg.feedback_language || course.language || "en";
-
-  $("fb-lang").value = LANGUAGES.some(([c]) => c === chosen) ? chosen : "en";
-  $("fb-lang").disabled = sent;
-  $("fb-lang-saved").classList.add("hidden");
-
-  const courseLang = languageName(course.language || "en");
-  const note = $("fb-lang-note");
-
-  if (sent) {
-    note.textContent = "This email has been sent, so the language is now fixed.";
-  } else if (!reg.feedback_language) {
-    note.textContent =
-      `Following the course, which is taught in ${courseLang}. ` +
-      "Change it and rewrite the draft to write this person's email in another language.";
-  } else {
-    note.textContent =
-      "Set for this participant. Your notes can be in any language — this only " +
-      "decides what they read.";
-  }
-}
-
-async function saveLanguage() {
-  if (!current) return;
-  const value = $("fb-lang").value;
-  const note = $("fb-lang-note");
-
-  // Matching the course is not an override, so it is stored as empty
-  // and follows the course if that ever changes.
-  const store = value === (course.language || "en") ? null : value;
-
-  const { error } = await db.from("registrations")
-    .update({ feedback_language: store })
-    .eq("id", current.reg.id);
-
-  if (error) {
-    note.textContent = "Could not save that: " + error.message;
-    return;
-  }
-
-  current.reg.feedback_language = store;
-  const inList = people.find((p) => p.id === current.reg.id);
-  if (inList) inList.feedback_language = store;
-
-  const saved = $("fb-lang-saved");
-  saved.classList.remove("hidden");
-  setTimeout(() => saved.classList.add("hidden"), 1800);
-
-  // A draft already written in another language is now wrong, and
-  // saying so is better than letting it go out unnoticed.
-  if (current.draft && current.draft.body && current.draft.status !== "sent") {
-    note.textContent =
-      `Saved. The draft below is not in ${languageName(value)} — rewrite it ` +
-      "from the notes.";
-  } else {
-    note.textContent = `Saved. The draft will be written in ${languageName(value)}.`;
-  }
-}
-
-$("fb-lang").addEventListener("change", saveLanguage);
 
 /* ---------------- limitations ---------------- */
 
@@ -1097,7 +985,20 @@ async function runTranslate() {
       },
       body: JSON.stringify({ registrationId: current.reg.id, language: lang }),
     });
-    const out = await res.json();
+
+    const raw = await res.text();
+    let out;
+    try {
+      out = JSON.parse(raw);
+    } catch {
+      throw new Error(
+        res.status === 404
+          ? "The translation service is not there. It may still be deploying — " +
+            "wait for the Netlify build to finish and try again."
+          : `The translation service returned an error (${res.status}). ` +
+            "Check the Netlify function log."
+      );
+    }
     if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
 
     const { data: d } = await db.from("feedback_drafts")
