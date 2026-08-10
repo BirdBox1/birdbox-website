@@ -893,11 +893,95 @@
         <button class="btn small" id="iv-apply" type="button">Show</button>
         <button class="btn ghost small" id="iv-quarter" type="button">This quarter</button>
         <button class="btn ghost small" id="iv-year" type="button">This year</button>
+        <button class="btn small" id="iv-export" type="button">Export for accounts</button>
         <span class="why" id="iv-summary"></span>
       </div>
     </div>
 
     <div id="iv-list"></div>
+  </div>
+</section>
+
+<!-- ============ REPORTS ============ -->
+<section id="view-reports" class="hidden">
+  <div class="wrap">
+    <a class="back" id="back-reports">&larr; All courses</a>
+    <h2>Reports</h2>
+    <p class="sub" id="rp-sub"></p>
+
+    <div class="panel">
+      <h3>Over what period</h3>
+      <div class="grid2">
+        <div class="field">
+          <label for="rp-from">From <span class="hint">course date</span></label>
+          <input id="rp-from" type="date">
+        </div>
+        <div class="field">
+          <label for="rp-to">To</label>
+          <input id="rp-to" type="date">
+        </div>
+      </div>
+      <div class="admin-row">
+        <button class="btn ghost small" id="rp-quarter" type="button">This quarter</button>
+        <button class="btn ghost small" id="rp-year" type="button">This year</button>
+        <button class="btn ghost small" id="rp-all" type="button">Everything</button>
+        <span class="why" id="rp-range"></span>
+      </div>
+      <label class="pm-check" style="margin-top:0.6rem">
+        <input type="checkbox" id="rp-archived">
+        Include archived and cancelled courses
+      </label>
+    </div>
+
+    <div class="panel">
+      <h3>Courses</h3>
+      <p class="whenline" style="margin-bottom:0.8rem">
+        One row per course: where and when it ran, who coached it, how many
+        booked and how many attended.
+      </p>
+      <div class="admin-row">
+        <button class="btn small" id="rp-courses" type="button">Export courses</button>
+        <span class="why" id="rp-courses-why"></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Participants</h3>
+      <p class="whenline" style="margin-bottom:0.8rem">
+        One row per registration, with the course it belongs to. Names and
+        email addresses are personal data — keep the file somewhere sensible
+        and delete it when you are done with it.
+      </p>
+      <div class="admin-row">
+        <button class="btn small" id="rp-people" type="button">Export participants</button>
+        <span class="why" id="rp-people-why"></span>
+      </div>
+    </div>
+
+    <div class="panel hidden" id="rp-money-panel">
+      <h3>Finances</h3>
+      <p class="whenline" style="margin-bottom:0.8rem">
+        What was taken per registration: amount paid, discount applied,
+        currency and payment status, with the course against each one.
+      </p>
+      <div class="admin-row">
+        <button class="btn small" id="rp-money" type="button">Export finances</button>
+        <span class="why" id="rp-money-why"></span>
+      </div>
+    </div>
+
+    <div class="field" style="max-width:20rem">
+      <label for="rp-sep">Separator
+        <span class="hint">try semicolon if everything lands in one column</span>
+      </label>
+      <select id="rp-sep">
+        <option value=",">Comma — Google Sheets, Numbers</option>
+        <option value=";">Semicolon — Excel in most of Europe</option>
+        <option value="\t">Tab</option>
+      </select>
+    </div>
+
+    <p class="msg" id="rp-msg"></p>
   </div>
 </section>
 
@@ -922,6 +1006,7 @@
         <button class="btn ghost hidden" id="peoplebtn" type="button">Find someone</button>
         <button class="btn ghost hidden" id="teambtn" type="button">Team</button>
                 <button class="btn ghost hidden" id="workshopsbtn" type="button">Workshops</button>
+        <button class="btn ghost hidden" id="reportsbtn" type="button">Reports</button>
         <button class="btn ghost hidden" id="invoicesbtn" type="button">Invoices</button>
         <button class="btn ghost hidden" id="emailsbtn" type="button">Follow-up emails</button>
         <button class="btn hidden" id="newcourse" type="button">New course</button>
@@ -2332,6 +2417,7 @@ const views = {
   team:     $("view-team"),
   messages: $("view-messages"),
   people:   $("view-people"),
+  reports:  $("view-reports"),
 };
 const show = (n) =>
   Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== n));
@@ -2454,6 +2540,9 @@ async function start() {
   $("newcourse").classList.toggle("hidden", !admin);
   $("emailsbtn").classList.toggle("hidden", !admin);
   $("invoicesbtn").classList.toggle("hidden", !admin);
+  // Every coach can export their own courses and participants. The
+  // finances panel inside is admin only.
+  $("reportsbtn").classList.remove("hidden");
   $("teambtn").classList.toggle("hidden", !admin);
   $("workshopsbtn").classList.remove("hidden");
   $("workshopsbtn").onclick = () => { location.href = "/portal/workshops/"; };
@@ -6814,6 +6903,12 @@ function thisYear() {
 // Filtered on the course date rather than when the invoice was
 // submitted, because that is how the work is accounted for — a
 // December seminar invoiced in January belongs to December.
+// What the last search actually returned, so the export sends exactly
+// what is on screen rather than running the filters a second time and
+// risking a different answer.
+let lastInvoiceRows = [];
+let lastInvoiceReceipts = {};
+
 async function runInvoiceSearch() {
   const box = $("iv-list");
   box.innerHTML = '<p class="empty">Loading…</p>';
@@ -6822,6 +6917,9 @@ async function runInvoiceSearch() {
   const to = $("iv-to").value;
   const status = $("iv-status").value;
   const coach = $("iv-coach").value;
+
+  lastInvoiceRows = [];
+  lastInvoiceReceipts = {};
 
   let q = db.from("coach_invoices")
     .select("id, course_id, staff_id, total_cents, currency, invoice_path, notes, status, submitted_at, paid_at, paid_note, staff ( full_name ), courses ( title, starts_at, timezone, city, country )");
@@ -6851,6 +6949,9 @@ async function runInvoiceSearch() {
 
   const byInvoice = {};
   for (const r of receipts || []) (byInvoice[r.invoice_id] = byInvoice[r.invoice_id] || []).push(r);
+
+  lastInvoiceRows = rows;
+  lastInvoiceReceipts = byInvoice;
 
   // Totals per currency, because a Glasgow invoice in sterling and a
   // Munich one in euro cannot be added together.
@@ -6953,7 +7054,103 @@ async function runInvoiceSearch() {
   box.append(card);
 }
 
+// Everything accounts need for a period, in one file. One row per
+// invoice and one per receipt, so a bookkeeper can filter on the Type
+// column and see either.
+//
+// The PDFs stay in storage. Zipping a quarter of receipts in a browser
+// on an iPad is slow and fails halfway; a signed link opens the file
+// directly and lasts a week, which is long enough to work through.
+const RECEIPT_LINK_DAYS = 7;
+
+async function exportInvoices() {
+  const btn = $("iv-export");
+  const msg = $("iv-summary");
+
+  if (!lastInvoiceRows.length) {
+    msg.textContent = "Nothing to export — press Show first.";
+    return;
+  }
+
+  btn.disabled = true;
+  const was = msg.textContent;
+  msg.textContent = "Building the file…";
+
+  try {
+    // One signed link per file, asked for in a single call.
+    const paths = [];
+    for (const inv of lastInvoiceRows) {
+      if (inv.invoice_path) paths.push(inv.invoice_path);
+      for (const r of lastInvoiceReceipts[inv.id] || []) {
+        if (r.file_path) paths.push(r.file_path);
+      }
+    }
+
+    const links = {};
+    if (paths.length) {
+      const { data } = await db.storage.from("coach-invoices")
+        .createSignedUrls(paths, RECEIPT_LINK_DAYS * 86400);
+      for (const item of data || []) {
+        if (item.signedUrl && !item.error) links[item.path] = item.signedUrl;
+      }
+    }
+
+    const header = ["Course date", "Course", "City", "Country", "Coach",
+      "Type", "Category", "Description", "Amount", "Currency", "Paid by",
+      "Invoice status", "Submitted", "Paid on", "Payment reference", "File"];
+
+    const rows = [];
+    for (const inv of lastInvoiceRows) {
+      const c = inv.courses || {};
+      const base = [
+        c.starts_at ? rpDate(c.starts_at, c.timezone) : "",
+        c.title || "",
+        c.city || "",
+        countryName(c.country),
+        (inv.staff && inv.staff.full_name) || "",
+      ];
+      const state = inv.paid_at ? "paid" : inv.status || "";
+      const tail = [
+        state,
+        inv.submitted_at ? rpDate(inv.submitted_at) : "",
+        inv.paid_at ? rpDate(inv.paid_at) : "",
+        inv.paid_note || "",
+      ];
+
+      rows.push([...base, "Invoice", "Coaching and expenses",
+        inv.notes || "",
+        inv.total_cents == null ? "" : (inv.total_cents / 100).toFixed(2),
+        inv.currency || "", "Coach", ...tail,
+        inv.invoice_path ? (links[inv.invoice_path] || "file missing") : "not uploaded"]);
+
+      for (const r of lastInvoiceReceipts[inv.id] || []) {
+        rows.push([...base, "Receipt", r.category || "",
+          r.description || "",
+          r.amount_cents == null ? "" : (r.amount_cents / 100).toFixed(2),
+          r.currency || inv.currency || "",
+          r.paid_by_company ? "BirdBox card" : "Coach",
+          ...tail,
+          r.file_path ? (links[r.file_path] || "file missing") : ""]);
+      }
+    }
+
+    downloadCsv("birdbox-invoices-" + new Date().toISOString().slice(0, 10),
+                header, rows, ",");
+
+    const missing = rows.filter((r) => r[15] === "file missing").length;
+    msg.textContent =
+      `${rows.length} row${rows.length === 1 ? "" : "s"} exported. ` +
+      `File links work for ${RECEIPT_LINK_DAYS} days.` +
+      (missing ? ` ${missing} file${missing === 1 ? "" : "s"} could not be linked.` : "");
+  } catch (err) {
+    msg.textContent = "Could not export: " + err.message;
+    setTimeout(() => { msg.textContent = was; }, 5000);
+  }
+  btn.disabled = false;
+}
+
 function wireInvoicesView() {
+  $("iv-export").onclick = exportInvoices;
   $("invoicesbtn").onclick = openInvoicesView;
   $("back-invoices").onclick = () => show("courses");
   $("iv-apply").onclick = runInvoiceSearch;
@@ -6962,6 +7159,357 @@ function wireInvoicesView() {
   for (const id of ["iv-status", "iv-coach"]) {
     $(id).addEventListener("change", runInvoiceSearch);
   }
+}
+
+/* ---------------- reports ---------------- */
+
+// Exports for people who are not sitting in the portal: a host asking
+// who is coming, an accountant asking what was taken, a coach keeping
+// their own records. Everything is a CSV, because that is what opens
+// on whatever they happen to have.
+//
+// A coach exports only the courses they are on, and never any money.
+// The finances panel is not hidden from them so much as absent.
+
+function reportSep() {
+  const v = $("rp-sep").value;
+  return v === "\\t" ? "\t" : v;
+}
+
+// The BOM is what tells Excel the file is UTF-8. Without it every
+// accented name arrives mangled.
+function downloadCsv(name, header, rows, sep) {
+  const lines = [header.map((h) => csvCell(h, sep)).join(sep)];
+  for (const r of rows) lines.push(r.map((c) => csvCell(c, sep)).join(sep));
+  if (sep === ";") lines.unshift("sep=;");
+
+  const blob = new Blob(["\uFEFF" + lines.join("\r\n")],
+    { type: "text/csv;charset=utf-8;" });
+  const ext = sep === "\t" ? ".tsv" : ".csv";
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name + ext;
+  document.body.append(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+const rpDate = (iso, tz) => iso
+  ? new Date(iso).toLocaleDateString("en-CA", { timeZone: safeZone(tz) })
+  : "";
+
+function openReports() {
+  show("reports");
+  $("rp-sub").textContent = isAdmin()
+    ? "Every course across all brands."
+    : "The courses you are allocated to.";
+  $("rp-money-panel").classList.toggle("hidden", !isAdmin());
+  $("rp-msg").textContent = "";
+  for (const id of ["rp-courses-why", "rp-people-why", "rp-money-why"]) {
+    $(id).textContent = "";
+  }
+  if (!$("rp-from").value && !$("rp-to").value) rpThisYear();
+  showRange();
+}
+
+function setRpRange(from, to) {
+  $("rp-from").value = from ? from.toISOString().slice(0, 10) : "";
+  $("rp-to").value = to ? to.toISOString().slice(0, 10) : "";
+  showRange();
+}
+
+function rpThisQuarter() {
+  const now = new Date();
+  const q = Math.floor(now.getMonth() / 3);
+  setRpRange(new Date(now.getFullYear(), q * 3, 1),
+             new Date(now.getFullYear(), q * 3 + 3, 0));
+}
+
+function rpThisYear() {
+  const y = new Date().getFullYear();
+  setRpRange(new Date(y, 0, 1), new Date(y, 11, 31));
+}
+
+function showRange() {
+  const from = $("rp-from").value;
+  const to = $("rp-to").value;
+  $("rp-range").textContent = !from && !to
+    ? "Every course on record."
+    : from && to ? `Courses running between ${fmtDay(from)} and ${fmtDay(to)}.`
+    : from ? `Courses running on or after ${fmtDay(from)}.`
+    : `Courses running on or before ${fmtDay(to)}.`;
+}
+
+// The courses in range that this person is allowed to see. Everything
+// below builds on this, so the permission question is asked once.
+async function reportCourses() {
+  const cols = "id, brand, type, level, title, city, country, venue_name, " +
+               "host_name, host_email, starts_at, ends_at, timezone, capacity, " +
+               "price_cents, currency, status, archived, completed_at, slug";
+
+  let rows = [];
+  if (isAdmin()) {
+    const { data, error } = await db.from("courses").select(cols)
+      .order("starts_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    rows = data || [];
+  } else {
+    const { data, error } = await db.from("course_staff")
+      .select(`role, courses (${cols})`).eq("staff_id", me.id);
+    if (error) throw new Error(error.message);
+    rows = (data || []).map((r) => r.courses).filter(Boolean);
+    rows.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+  }
+
+  const from = $("rp-from").value;
+  const to = $("rp-to").value;
+  if (from) rows = rows.filter((c) => c.starts_at >= from);
+  if (to) rows = rows.filter((c) => c.starts_at <= to + "T23:59:59Z");
+  if (!$("rp-archived").checked) rows = rows.filter((c) => !isPast(c));
+
+  return rows;
+}
+
+// Who was on them, in one query rather than one per course.
+async function reportRegistrations(courseIds) {
+  if (!courseIds.length) return [];
+  const out = [];
+  // Chunked, because a year of seminars is more ids than a URL will
+  // carry in a single request.
+  for (let i = 0; i < courseIds.length; i += 40) {
+    const slice = courseIds.slice(i, i + 40);
+    const { data, error } = await db.from("registrations")
+      .select("id, course_id, first_name, last_name, email, phone, country, " +
+              "status, attended, payment_status, amount_paid_cents, currency, " +
+              "discount_code, discount_cents, created_at, waiver_signed_at, " +
+              "certificate_sent_at, source")
+      .in("course_id", slice);
+    if (error) throw new Error(error.message);
+    out.push(...(data || []));
+  }
+  return out;
+}
+
+async function reportStaff(courseIds) {
+  if (!courseIds.length) return {};
+  const byCourse = {};
+  for (let i = 0; i < courseIds.length; i += 40) {
+    const slice = courseIds.slice(i, i + 40);
+    const { data } = await db.from("course_staff")
+      .select("course_id, role, staff ( full_name )").in("course_id", slice);
+    for (const r of data || []) {
+      const t = byCourse[r.course_id] = byCourse[r.course_id] || { lead: "", assists: [] };
+      const name = r.staff?.full_name || "";
+      if (r.role === "lead_coach") t.lead = name;
+      else if (name) t.assists.push(name);
+    }
+  }
+  return byCourse;
+}
+
+const courseLabel = (c) =>
+  `${(BRAND[c.brand] || BRAND.birdbox).label}` +
+  `${c.level ? " " + c.level : ""}` +
+  `${c.type === "workshop" ? " Workshop" : ""}`;
+
+async function exportCourses() {
+  const btn = $("rp-courses");
+  const why = $("rp-courses-why");
+  btn.disabled = true;
+  why.textContent = "Working…";
+
+  try {
+    const courses = await reportCourses();
+    if (!courses.length) { why.textContent = "No courses in that range."; return; }
+
+    const ids = courses.map((c) => c.id);
+    const [regs, staffBy] = await Promise.all([
+      reportRegistrations(ids), reportStaff(ids),
+    ]);
+
+    const booked = {}, attended = {};
+    for (const r of regs) {
+      if ((r.status || "active") !== "active") continue;
+      booked[r.course_id] = (booked[r.course_id] || 0) + 1;
+      if (r.attended) attended[r.course_id] = (attended[r.course_id] || 0) + 1;
+    }
+
+    const header = ["Date", "End date", "Brand", "Type", "Title", "Venue",
+      "City", "Country", "Lead coach", "Assistants", "Capacity", "Booked",
+      "Attended", "Status", "Completed", "Host", "Host email", "Link"];
+    if (isAdmin()) header.push("Price", "Currency");
+
+    const rows = courses.map((c) => {
+      const t = staffBy[c.id] || { lead: "", assists: [] };
+      const row = [
+        rpDate(c.starts_at, c.timezone),
+        rpDate(c.ends_at, c.timezone),
+        courseLabel(c),
+        String(c.type || "").replace(/_/g, " "),
+        c.title,
+        c.venue_name || "",
+        c.city || "",
+        countryName(c.country),
+        t.lead,
+        t.assists.join(", "),
+        c.capacity ?? "",
+        booked[c.id] || 0,
+        attended[c.id] || 0,
+        c.archived ? "archived" : (c.status || ""),
+        c.completed_at ? rpDate(c.completed_at, c.timezone) : "",
+        c.host_name || "",
+        c.host_email || "",
+        `${location.origin}/c/${c.slug}/`,
+      ];
+      if (isAdmin()) {
+        row.push(c.price_cents == null ? "" : (c.price_cents / 100).toFixed(2),
+                 c.currency || "");
+      }
+      return row;
+    });
+
+    downloadCsv("birdbox-courses-" + new Date().toISOString().slice(0, 10),
+                header, rows, reportSep());
+    why.textContent = `${rows.length} course${rows.length === 1 ? "" : "s"} exported.`;
+  } catch (err) {
+    why.textContent = "Could not export: " + err.message;
+  }
+  btn.disabled = false;
+}
+
+async function exportParticipants() {
+  const btn = $("rp-people");
+  const why = $("rp-people-why");
+  btn.disabled = true;
+  why.textContent = "Working…";
+
+  try {
+    const courses = await reportCourses();
+    if (!courses.length) { why.textContent = "No courses in that range."; return; }
+
+    const byId = {};
+    for (const c of courses) byId[c.id] = c;
+    const regs = await reportRegistrations(courses.map((c) => c.id));
+    if (!regs.length) { why.textContent = "Nobody registered on those courses."; return; }
+
+    regs.sort((a, b) => {
+      const ca = byId[a.course_id], cb = byId[b.course_id];
+      return new Date(ca.starts_at) - new Date(cb.starts_at) ||
+             String(a.last_name).localeCompare(String(b.last_name));
+    });
+
+    const header = ["Course date", "Brand", "Course", "City", "Country",
+      "First name", "Last name", "Email", "Phone", "Their country",
+      "Registration status", "Attended", "Agreement signed", "Certificate sent",
+      "Booked on", "How they booked"];
+
+    const rows = regs.map((r) => {
+      const c = byId[r.course_id];
+      return [
+        rpDate(c.starts_at, c.timezone),
+        courseLabel(c),
+        c.title,
+        c.city || "",
+        countryName(c.country),
+        r.first_name || "",
+        r.last_name || "",
+        r.email || "",
+        r.phone || "",
+        countryName(r.country),
+        REG_STATUS_LABEL[r.status || "active"] || "Active",
+        r.attended ? "yes" : "no",
+        r.waiver_signed_at ? rpDate(r.waiver_signed_at) : "",
+        r.certificate_sent_at ? rpDate(r.certificate_sent_at) : "",
+        r.created_at ? rpDate(r.created_at) : "",
+        [r.source, r.source_note].filter(Boolean).join(" — "),
+      ];
+    });
+
+    downloadCsv("birdbox-participants-" + new Date().toISOString().slice(0, 10),
+                header, rows, reportSep());
+    why.textContent = `${rows.length} registration${rows.length === 1 ? "" : "s"} exported.`;
+  } catch (err) {
+    why.textContent = "Could not export: " + err.message;
+  }
+  btn.disabled = false;
+}
+
+async function exportFinances() {
+  if (!isAdmin()) return;
+  const btn = $("rp-money");
+  const why = $("rp-money-why");
+  btn.disabled = true;
+  why.textContent = "Working…";
+
+  try {
+    const courses = await reportCourses();
+    if (!courses.length) { why.textContent = "No courses in that range."; return; }
+
+    const byId = {};
+    for (const c of courses) byId[c.id] = c;
+    const regs = await reportRegistrations(courses.map((c) => c.id));
+    if (!regs.length) { why.textContent = "Nothing was taken on those courses."; return; }
+
+    regs.sort((a, b) => {
+      const ca = byId[a.course_id], cb = byId[b.course_id];
+      return new Date(ca.starts_at) - new Date(cb.starts_at);
+    });
+
+    const header = ["Course date", "Brand", "Course", "City", "Country",
+      "Participant", "Email", "Payment status", "Amount paid", "Currency",
+      "Discount code", "Discount", "List price", "Booked on", "Registration status"];
+
+    const rows = regs.map((r) => {
+      const c = byId[r.course_id];
+      return [
+        rpDate(c.starts_at, c.timezone),
+        courseLabel(c),
+        c.title,
+        c.city || "",
+        countryName(c.country),
+        `${r.first_name || ""} ${r.last_name || ""}`.trim(),
+        r.email || "",
+        PAY_LABEL[r.payment_status] || r.payment_status || "",
+        ((r.amount_paid_cents || 0) / 100).toFixed(2),
+        r.currency || c.currency || "",
+        r.discount_code || "",
+        ((r.discount_cents || 0) / 100).toFixed(2),
+        c.price_cents == null ? "" : (c.price_cents / 100).toFixed(2),
+        r.created_at ? rpDate(r.created_at) : "",
+        REG_STATUS_LABEL[r.status || "active"] || "Active",
+      ];
+    });
+
+    // A total per currency, because sterling and euro do not add up.
+    const totals = {};
+    for (const r of regs) {
+      const cur = r.currency || byId[r.course_id].currency || "EUR";
+      totals[cur] = (totals[cur] || 0) + (r.amount_paid_cents || 0);
+    }
+
+    downloadCsv("birdbox-finances-" + new Date().toISOString().slice(0, 10),
+                header, rows, reportSep());
+    why.textContent =
+      `${rows.length} row${rows.length === 1 ? "" : "s"} exported — ` +
+      Object.entries(totals).map(([cur, c]) => money(c, cur)).join(" · ") + " taken.";
+  } catch (err) {
+    why.textContent = "Could not export: " + err.message;
+  }
+  btn.disabled = false;
+}
+
+function wireReports() {
+  $("reportsbtn").onclick = openReports;
+  $("back-reports").onclick = loadCourses;
+  $("rp-quarter").onclick = rpThisQuarter;
+  $("rp-year").onclick = rpThisYear;
+  $("rp-all").onclick = () => setRpRange(null, null);
+  for (const id of ["rp-from", "rp-to"]) {
+    $(id).addEventListener("change", showRange);
+  }
+  $("rp-courses").onclick = exportCourses;
+  $("rp-people").onclick = exportParticipants;
+  $("rp-money").onclick = exportFinances;
 }
 
 /* ---------- straight to this course's feedback ---------- */
@@ -8251,6 +8799,7 @@ wireCancel();
 wireInvoices();
 wirePaid();
 wireInvoicesView();
+wireReports();
 wireProfile();
 wireTeam();
 wireChat();
