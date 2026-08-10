@@ -1152,6 +1152,11 @@
       <span class="why" id="fb-state"></span>
     </div>
 
+    <div class="admin-row hidden" id="ad-bar" style="margin:0 0 1rem">
+      <button class="btn small" id="ad-open" type="button">Email everyone</button>
+      <span class="why" id="ad-state"></span>
+    </div>
+
     <div class="admin-row hidden" id="arch-bar" style="margin:0 0 1rem">
       <button class="btn small" id="arch-btn" type="button">Archive this course</button>
       <span class="why" id="arch-state"></span>
@@ -1849,6 +1854,35 @@
     <div class="row">
       <button class="btn ghost" id="cert-close" type="button">Cancel</button>
       <button class="btn go" id="cert-go" type="button">Send certificates</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ EXTRA EMAIL ============ -->
+<div class="overlay hidden" id="adwrap">
+  <div class="dialog" style="max-width:40rem" role="dialog" aria-modal="true" aria-labelledby="ad-h">
+    <h3 id="ad-h">Send an email</h3>
+    <p class="sub" id="ad-sub" style="margin-bottom:1rem"></p>
+
+    <div class="field">
+      <label for="ad-subject">Subject</label>
+      <input id="ad-subject" type="text">
+    </div>
+
+    <div class="field">
+      <label for="ad-body">Message
+        <span class="hint">{{first_name}} becomes their first name when it sends</span>
+      </label>
+      <textarea id="ad-body" style="min-height:14rem"
+        placeholder="The door code at the gym has changed for Saturday…"></textarea>
+    </div>
+
+    <p class="whenline" id="ad-note"></p>
+    <p class="msg" id="ad-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="ad-close" type="button">Cancel</button>
+      <button class="btn" id="ad-send" type="button">Send it</button>
     </div>
   </div>
 </div>
@@ -3220,6 +3254,7 @@ async function openCourse(course) {
   $("pm-bar").classList.toggle("hidden", !isAdmin());
   await loadOnlineLanguages(course);
   await loadWelcomes(course.id);
+  await loadAdhoc(course.id);
   await loadPrecourse(course.id);
   showPrecourseBar(course);
   showCertBar(course);
@@ -3229,6 +3264,7 @@ async function openCourse(course) {
   showFollowupBar(course);
   await loadMyInvoice(course);
   showInvoiceBar(course);
+  showAdhocBar(course);
   showArchiveBar(course);
   await loadChat(course);
 
@@ -7308,6 +7344,152 @@ function wireInvoicesView() {
   }
 }
 
+/* ---------------- an extra email ---------------- */
+
+// Everything else the portal sends is a fixed piece of the process: a
+// welcome, a pre-course note, a follow-up. This is for whatever else
+// comes up — the door code changed, here is the video from Saturday,
+// the car park is closed.
+//
+// It writes to course_emails like the rest, so the office can see who
+// is actually talking to their participants and who is not. A row with
+// a registration_id goes to one person; without one it goes to the
+// whole cohort. That is how the sending function already works, so
+// nothing about the existing emails changes.
+//
+// Lead coach and admin, matching every other email here.
+
+let adReg = null;     // the one participant, or null for everyone
+let adCourse = null;
+
+function openAdhoc(course, reg) {
+  adCourse = course;
+  adReg = reg || null;
+
+  const active = allRegistrations.filter((r) => (r.status || "active") === "active");
+
+  $("ad-h").textContent = reg
+    ? `Email ${reg.first_name} ${reg.last_name}`
+    : "Email everyone on this course";
+
+  $("ad-sub").textContent = reg
+    ? `Goes to ${reg.email}, from your own address, with info@ copied in.`
+    : `Goes to ${active.length} participant${active.length === 1 ? "" : "s"}, ` +
+      "one at a time, from your own address.";
+
+  $("ad-subject").value = "";
+  $("ad-body").value = "";
+
+  $("ad-note").className = "whenline";
+  $("ad-note").textContent = reg
+    ? "Anything you send is recorded against this course."
+    : "Everyone gets their own copy — nobody sees anybody else's address.";
+
+  $("ad-msg").textContent = "";
+  $("ad-msg").className = "msg";
+  $("ad-send").disabled = false;
+  $("adwrap").classList.remove("hidden");
+  setTimeout(() => $("ad-subject").focus(), 50);
+}
+
+function showAdhocBar(course) {
+  const bar = $("ad-bar");
+  const canSee = (isAdmin() || amLeadOn(course.id)) && course.type !== "online_course";
+  bar.classList.toggle("hidden", !canSee);
+  if (!canSee) return;
+
+  const active = allRegistrations.filter(
+    (r) => (r.status || "active") === "active"
+  ).length;
+
+  $("ad-open").disabled = !active;
+  $("ad-state").textContent = active
+    ? `Anything the ${active} of them need to know that the standard emails do not cover.`
+    : "Nobody registered yet.";
+}
+
+function wireAdhoc() {
+  const close = () => {
+    $("adwrap").classList.add("hidden");
+    adReg = null; adCourse = null;
+  };
+  $("ad-close").onclick = close;
+  $("adwrap").addEventListener("click", (e) => { if (e.target === $("adwrap")) close(); });
+  $("ad-open").onclick = () => { if (currentCourse) openAdhoc(currentCourse, null); };
+
+  $("ad-send").onclick = async () => {
+    if (!adCourse) return;
+    const subject = $("ad-subject").value.trim();
+    const body = $("ad-body").value.trim();
+    const msg = $("ad-msg");
+
+    if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return; }
+    if (!body) { msg.className = "msg err"; msg.textContent = "There is nothing to send."; return; }
+
+    const active = allRegistrations.filter((r) => (r.status || "active") === "active");
+    const count = adReg ? 1 : active.length;
+
+    if (!count) {
+      msg.className = "msg err";
+      msg.textContent = "There is nobody to send this to.";
+      return;
+    }
+
+    if (!window.confirm(
+      adReg
+        ? `Send this to ${adReg.first_name} ${adReg.last_name}?\n\nIt cannot be unsent.`
+        : `Send this to ${count} participant${count === 1 ? "" : "s"} on ` +
+          `"${adCourse.title}"?\n\nEach person gets their own copy. It cannot be unsent.`
+    )) return;
+
+    $("ad-send").disabled = true;
+    msg.className = "msg"; msg.textContent = "Sending…";
+
+    try {
+      // registration_id set means one person, null means the cohort.
+      const { data: row, error } = await db.from("course_emails").insert({
+        course_id: adCourse.id,
+        registration_id: adReg ? adReg.id : null,
+        kind: "adhoc",
+        subject,
+        body,
+        status: "draft",
+      }).select("id").single();
+
+      if (error) throw new Error(error.message);
+
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+
+      const res = await fetch("/.netlify/functions/course-email-send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        // Everyone still on the course, not only those who attended.
+        body: JSON.stringify({ emailId: row.id, attendedOnly: false }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      msg.className = "msg ok";
+      msg.textContent = `Sent to ${out.sent}` +
+        (out.failed ? `, ${out.failed} failed` : "") + `, as ${out.sentAs}.`;
+
+      setTimeout(() => {
+        $("adwrap").classList.add("hidden");
+        adReg = null; adCourse = null;
+        openCourse(currentCourse);
+      }, 1600);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("ad-send").disabled = false;
+  };
+}
+
 /* ---------------- a coach putting a course away ---------------- */
 
 // Archiving means finished, not hidden. A coach can only do it once
@@ -8128,6 +8310,27 @@ function wireCertificates() {
 // never disagree with what actually went out.
 let welcomeByReg = {};
 
+// How many extra emails each participant has had. Shown on their row,
+// so a coach can see at a glance who they have been talking to.
+let adhocByReg = {};
+
+async function loadAdhoc(courseId) {
+  adhocByReg = {};
+  const { data, error } = await db
+    .from("course_emails")
+    .select("registration_id, status")
+    .eq("course_id", courseId)
+    .eq("kind", "adhoc")
+    .eq("status", "sent");
+
+  if (error) { console.error("Could not load extra emails:", error.message); return; }
+  for (const row of data || []) {
+    if (row.registration_id) {
+      adhocByReg[row.registration_id] = (adhocByReg[row.registration_id] || 0) + 1;
+    }
+  }
+}
+
 async function loadWelcomes(courseId) {
   welcomeByReg = {};
   const { data, error } = await db
@@ -8268,6 +8471,11 @@ function buildActions(box, course, reg, status) {
     const sent = welcomeByReg[reg.id] && welcomeByReg[reg.id].status === "sent";
     add(sent ? "Welcome sent" : "Send welcome", sent ? "ghost small" : "small",
         () => openWelcome(course, reg));
+
+    // Anything the standard emails do not cover, to this one person.
+    const extras = adhocByReg[reg.id] || 0;
+    add(extras ? `Email (${extras} sent)` : "Email", "ghost small",
+        () => openAdhoc(course, reg));
   }
 
   if (!isAdmin()) return;
@@ -9138,6 +9346,7 @@ wirePaid();
 wireInvoicesView();
 wireReports();
 wireArchive();
+wireAdhoc();
 wireProfile();
 wireTeam();
 wireChat();
