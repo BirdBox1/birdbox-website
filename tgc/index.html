@@ -237,6 +237,8 @@
     border: 1px solid var(--line); background: #241E20;
     font-size: 13px; font-weight: 800; color: #ADA6A8;
   }
+  /* Stops a long name or role being squeezed into a narrow column. */
+  .tcc-person__who { flex: 1 1 auto; min-width: 0; }
   .tcc-person__name { font-size: 13px; font-weight: 700; }
   .tcc-person__role { font-size: 12px; color: var(--muted); }
 
@@ -700,6 +702,7 @@
   );
 
   const BRAND = "tgc";
+  const SHOWN = 3;
   const box = document.getElementById("tcc-quotes");
 
   function initials(name) {
@@ -726,14 +729,49 @@
     return span;
   }
 
+  /* There are far more approved testimonials than the three that fit here,
+     so the page picks a fresh three on every load rather than showing the
+     same lowest three sort_order rows forever. Several coaches have written
+     about more than one course, so the pick is one per person: no visitor
+     ever sees the same face twice in the panel. */
+  function pickThree(rows) {
+    const byName = new Map();
+    for (const row of rows) {
+      if (!byName.has(row.name)) byName.set(row.name, []);
+      byName.get(row.name).push(row);
+    }
+
+    const names = [...byName.keys()];
+    for (let i = names.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [names[i], names[j]] = [names[j], names[i]];
+    }
+
+    const out = [];
+    for (const name of names) {
+      if (out.length >= SHOWN) break;
+      const list = byName.get(name);
+      out.push(list[Math.floor(Math.random() * list.length)]);
+    }
+
+    // Fewer distinct people than slots: fall back to filling from anything left.
+    if (out.length < SHOWN) {
+      for (const row of rows) {
+        if (out.length >= SHOWN) break;
+        if (!out.includes(row)) out.push(row);
+      }
+    }
+
+    return out;
+  }
+
   async function load() {
     const { data, error } = await supabase
       .from("testimonials")
       .select("quote, quote_short, name, role, country, photo, rating")
       .eq("approved", true)
       .eq("brand", BRAND)
-      .order("sort_order", { ascending: true })
-      .limit(3);
+      .order("sort_order", { ascending: true });
 
     if (error || !data || !data.length) {
       if (error) console.error("Testimonials failed:", error);
@@ -744,7 +782,7 @@
     }
 
     box.textContent = "";
-    for (const t of data) {
+    for (const t of pickThree(data)) {
       const stars = document.createElement("div");
       stars.className = "tcc-stars";
       stars.setAttribute("aria-label", `${t.rating || 5} stars`);
@@ -757,6 +795,7 @@
       const person = document.createElement("div");
       person.className = "tcc-person";
       const who = document.createElement("span");
+      who.className = "tcc-person__who";
       const name = document.createElement("span");
       name.className = "tcc-person__name";
       name.textContent = t.name;
