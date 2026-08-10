@@ -87,13 +87,27 @@ export default async (request) => {
 
     const isAdmin = me.role === "admin";
     if (!isAdmin) {
-      const { data: lead } = await supabase
+      // course_staff is keyed on (course_id, staff_id) and has no id
+      // column. Asking for one made the query fail, and the failure
+      // was indistinguishable from not being the lead coach — so
+      // every coach was refused and only an admin could send.
+      const { data: lead, error: leadErr } = await supabase
         .from("course_staff")
-        .select("id")
+        .select("role")
         .eq("course_id", courseId)
         .eq("staff_id", me.id)
         .eq("role", "lead_coach")
         .maybeSingle();
+
+      // A lookup that could not run is a fault, not a refusal. Saying
+      // so is the difference between a five-minute fix and an hour.
+      if (leadErr) {
+        console.error("Could not check the lead coach:", leadErr.message);
+        return json({
+          error: "Could not check who leads this course. This is a fault — try again.",
+        }, 500);
+      }
+
       if (!lead) return json({ error: "Only the lead coach or an admin can do this" }, 403);
     }
 
