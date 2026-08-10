@@ -337,6 +337,29 @@
     </div>
 
     <div class="panel">
+      <h3>The host</h3>
+      <p class="whenline" style="margin:-0.4rem 0 0.9rem">
+        Who we deal with at the gym. These carry through to the course, and the
+        host email with the discount codes goes to this address.
+      </p>
+      <div class="grid2">
+        <div class="field">
+          <label for="r-hostname">Host contact
+            <span class="hint">the person organising it at their end</span>
+          </label>
+          <input id="r-hostname" type="text" placeholder="Babette Moenig">
+        </div>
+        <div class="field">
+          <label for="r-hostemail">Host email</label>
+          <input id="r-hostemail" type="text" inputmode="email"
+                 autocapitalize="off" autocorrect="off" spellcheck="false"
+                 placeholder="babette@thegym.com">
+        </div>
+      </div>
+      <p class="whenline" id="r-host-note"></p>
+    </div>
+
+    <div class="panel">
       <h3>Anything else</h3>
       <div class="field">
         <label for="r-note">Note to the office <span class="hint">optional</span></label>
@@ -967,6 +990,8 @@ function openRequest(row) {
   $("r-country").value = (row?.country || "").toUpperCase();
   $("r-timezone").value = row?.timezone || "";
   $("r-expected").value = row?.expected_participants ?? "";
+  $("r-hostname").value = row?.host_name || "";
+  $("r-hostemail").value = row?.host_email || "";
   $("r-note").value = row?.coach_note || "";
 
   if (row?.starts_at) {
@@ -985,7 +1010,7 @@ function openRequest(row) {
 
   for (const id of ["r-template", "r-title", "r-venue", "r-address", "r-city",
                     "r-country", "r-timezone", "r-date", "r-start", "r-end",
-                    "r-expected", "r-note"]) {
+                    "r-expected", "r-hostname", "r-hostemail", "r-note"]) {
     $(id).disabled = locked;
   }
 
@@ -1000,6 +1025,7 @@ function openRequest(row) {
   renderRequestReview();
   renderRequestAdmin();
   updateWhen();
+  updateHostNote();
   markSeen("workshop_requests", row, row?.requested_by);
 }
 
@@ -1166,6 +1192,31 @@ function updateWhen() {
   ));
 }
 
+function updateHostNote() {
+  const el = $("r-host-note");
+  const email = $("r-hostemail").value.trim();
+  const name = $("r-hostname").value.trim();
+
+  if (!email && !name) {
+    el.className = "whenline";
+    el.textContent = "Without a host email we cannot send them their discount codes.";
+    return;
+  }
+  if (email && (!email.includes("@") || email.startsWith("@") || email.endsWith("@"))) {
+    el.className = "whenline bad";
+    el.textContent = "That address does not look right.";
+    return;
+  }
+  el.className = "whenline";
+  el.textContent = email
+    ? `The host email will go to ${email}.`
+    : "Add an email address so the host can be sent their codes.";
+}
+
+for (const id of ["r-hostname", "r-hostemail"]) {
+  $(id).addEventListener("input", updateHostNote);
+}
+
 function readRequestForm() {
   const tz = $("r-timezone").value.trim();
   const date = $("r-date").value;
@@ -1182,6 +1233,8 @@ function readRequestForm() {
     ends_at: date && tzIsReal(tz)
       ? zonedToInstant(date, $("r-end").value || "12:00", tz).toISOString() : null,
     expected_participants: parseInt($("r-expected").value, 10) || null,
+    host_name: $("r-hostname").value.trim() || null,
+    host_email: $("r-hostemail").value.trim().toLowerCase() || null,
     coach_note: $("r-note").value.trim() || null,
     updated_at: new Date().toISOString(),
   };
@@ -1254,6 +1307,17 @@ $("r-submit").addEventListener("click", async () => {
     msg.textContent = "The finish time is not after the start time.";
     return;
   }
+  if (form.host_email &&
+      (!form.host_email.includes("@") ||
+       form.host_email.startsWith("@") || form.host_email.endsWith("@"))) {
+    msg.className = "msg err";
+    msg.textContent = "That host email does not look right. It carries through to the course.";
+    return;
+  }
+  if (!form.host_email && !window.confirm(
+    "No host email has been given.\n\nThe office cannot send the host their " +
+    "discount codes without one. Submit anyway?"
+  )) return;
 
   const chosen = templates.find((t) => t.id === form.template_id);
   if (!chosen) {
@@ -1515,6 +1579,8 @@ async function goLive() {
     movements: snap.movements || null,
     venue_name: request.venue_name,
     address: request.address,
+    host_name: request.host_name,
+    host_email: request.host_email,
     city: request.city,
     country: request.country,
     starts_at: request.starts_at,
@@ -1567,6 +1633,13 @@ async function goLive() {
         "Open it in the portal to check it and publish."
       : `Course created as a draft with NO PRICE SET (${currency} 0). ` +
         "Set the price in the portal before publishing.");
+
+  if (!request.host_email) {
+    $("r-host-note").className = "whenline bad";
+    $("r-host-note").textContent =
+      "No host email on this course, so the host email with the discount codes " +
+      "cannot be sent. Add one under Edit course details in the portal.";
+  }
 
   if (lat === null) {
     $("r-geowhy").className = "whenline bad";
