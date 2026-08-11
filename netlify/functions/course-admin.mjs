@@ -149,6 +149,16 @@ ${SITE_URL}/c/${course.slug}/`,
       brand: course.brand,
     });
     if (ok) emailed++;
+    if (ok) {
+      await logEmail({
+        courseId: course.id,
+        registrationId: r.id,
+        kind: "rescheduled",
+        subject: `${course.title} has moved to ${newWhen}`,
+        body: "Sent automatically when the course was " +
+              "moved.",
+      });
+    }
   }
 
   // ---- coaches ---------------------------------------------
@@ -201,9 +211,7 @@ ${SITE_URL}/portal/`,
       text:
 `Hi ${(course.host_name || "there").split(" ")[0]},
 
-I am sorry — we have had to move the date of ${course.title}, and I know that has knock-on effects at your end.
-
-You will have held the space, arranged cover and planned around the original date. Changing it on you is not something we do lightly, and I am sorry for the disruption.
+Following our conversation, this is to confirm that ${course.title} has now been moved in our system.
 
 THE NEW DATE
 
@@ -211,23 +219,32 @@ It was ${oldWhen}.
 
 It is now ${newWhen}, starting at ${newTime}${where ? `, at ${where}` : ""}.
 
-WHAT HAPPENS NOW
+WHAT HAS BEEN DONE
 
 ${active.length} participant${active.length === 1 ? " has" : "s have"} been emailed and told their place moves with the course. Anyone the new date does not suit can move to another one or take a credit.
 
 The registration page is unchanged and now shows the new date, so anything you have already shared still works:
 ${SITE_URL}/c/${course.slug}/
 
-IF THE NEW DATE DOES NOT WORK FOR THE GYM
+IF ANYTHING HERE IS NOT AS WE AGREED
 
-Please reply and tell us as soon as you can. We would rather find another date that suits you than push ahead with one that does not.
+Reply and tell us — better now than closer to the day.
 
-Thank you for bearing with us.
+Thank you for being flexible with this one.
 
 BirdBox Coaching
 ${OFFICE}`,
       brand: course.brand,
     });
+
+    if (hostEmailed) {
+      await logEmail({
+        courseId: course.id,
+        kind: "rescheduled_host",
+        subject: `A change of date for ${course.title}`,
+        body: `Confirmed to ${course.host_email} that the date moved to ${newWhen}.`,
+      });
+    }
   }
 
   return json({
@@ -380,7 +397,7 @@ async function cancel({ courseId, reason }, me) {
 
   const { data: course } = await supabase
     .from("courses")
-    .select("id, brand, title, starts_at, timezone, city, cancelled_at")
+    .select("id, brand, title, starts_at, timezone, city, cancelled_at, host_name, host_email")
     .eq("id", courseId)
     .maybeSingle();
 
@@ -458,19 +475,37 @@ async function cancel({ courseId, reason }, me) {
       text:
 `Hello ${(person.name || "there").split(" ")[0]},
 
-I am sorry to say that ${course.title}, due to run on ${when}, has been cancelled.
+I am very sorry. We have had to cancel ${course.title}, which was due to run on ${when}.
 
-${reason ? reason + "\n\n" : ""}${money}
+${reason ? reason + "\n\n" : `This is not a decision we wanted to make. There were not enough registrations to cover bringing a coach out to you, and running it anyway was not something we could do. That is on us rather than on you, and I know it does not make it any less annoying to read.\n\n`}WHAT HAPPENS WITH YOUR MONEY
 
-${person.cancelCents ? "Any payment still scheduled has been stopped, so nothing further will be taken.\n\n" : ""}If you would like to join another date instead, reply to this email and we will arrange it.
+${money}
+${person.cancelCents ? "\nAny payment still scheduled has been stopped, so nothing further will be taken from your card.\n" : ""}
+You do not need to ask for it or chase it. If it has not appeared within a week, reply to this email and we will look into it.
 
-We are sorry for the disruption, and for any travel or accommodation you may have booked.
+IF YOU STILL WANT TO DO THE COURSE
+
+We would very much like you there. Reply to this email and we will find you a place on another date — and we will keep an eye out for anything running near you.
+
+I am sorry too for any travel or time off you had already arranged around this. If that has cost you something, tell us and we will see what we can do.
+
+Thank you for booking with us in the first place, and I hope we get another chance.
 
 BirdBox Coaching
 ${OFFICE}`,
       brand: course.brand,
     });
     if (ok) emailed++;
+    if (ok) {
+      await logEmail({
+        courseId: course.id,
+        registrationId: person.registration_id || null,
+        kind: "cancelled",
+        subject: `${course.title} has been cancelled`,
+        body: "Sent automatically when the course was " +
+              "cancelled.",
+      });
+    }
   }
 
   // ---- and the coaches ------------------------------------
@@ -490,11 +525,54 @@ ${OFFICE}`,
 
 ${course.title} on ${when} has been cancelled by ${me.full_name}.
 
-${plan.length} participant${plan.length === 1 ? " has" : "s have"} been emailed and refunded.
+${plan.length} participant${plan.length === 1 ? " has" : "s have"} been emailed and refunded, and the host has been told.
+
+If you had travel booked for this one, sort it out now rather than later, and put anything you cannot recover on your next invoice.
 
 ${SITE_URL}/portal/`,
       brand: course.brand,
     });
+  }
+
+  // ---- and the host ----------------------------------------
+  // It is their gym and their diary. They were not being told at all.
+  let hostEmailed = false;
+  if (course.host_email) {
+    hostEmailed = await send({
+      to: course.host_email,
+      subject: `${course.title} has been cancelled`,
+      text:
+`Hi ${(course.host_name || "there").split(" ")[0]},
+
+Following our conversation, this is to confirm that ${course.title}, due to run at your gym on ${when}, has now been cancelled on our side.
+
+${reason ? reason + "\n\n" : `As discussed, registrations did not reach the point where we could cover bringing a coach out to you.\n\n`}WHAT HAS BEEN DONE
+
+${plan.length} participant${plan.length === 1 ? " has" : "s have"} been emailed and refunded in full. Nobody is out of pocket and nobody will arrive on the day. You do not need to contact anyone.
+
+The registration page has been taken down.
+
+You can release the space and stand down whatever you had arranged.
+
+WHAT WE WOULD LIKE NEXT
+
+We would still very much like to come to you. If you are willing to host another date, tell us roughly when suits and we will work around you — and we will give it longer to fill next time.
+
+Thank you for your patience with this one, and for having us in the first place.
+
+BirdBox Coaching
+${OFFICE}`,
+      brand: course.brand,
+    });
+
+    if (hostEmailed) {
+      await logEmail({
+        courseId: course.id,
+        kind: "cancelled_host",
+        subject: `${course.title} has been cancelled`,
+        body: `Confirmed to ${course.host_email} that the course was cancelled.`,
+      });
+    }
   }
 
   await supabase.from("courses").update({
@@ -507,6 +585,7 @@ ${SITE_URL}/portal/`,
 
   return json({
     cancelled: true,
+    hostEmailed,
     emailed,
     refundedCents: refunded,
     people: plan.length,
@@ -681,6 +760,22 @@ function emailHtml(text, brand) {
     </td></tr>
   </table>
 </body></html>`;
+}
+
+// Written after the fact so a failed send is not recorded as a
+// success. registration_id set means one participant; null means the
+// host or the team.
+async function logEmail({ courseId, registrationId, kind, subject, body }) {
+  const { error } = await supabase.from("course_emails").insert({
+    course_id: courseId,
+    registration_id: registrationId || null,
+    kind,
+    subject,
+    body,
+    status: "sent",
+    sent_at: new Date().toISOString(),
+  });
+  if (error) console.error("Could not record the", kind, "email:", error.message);
 }
 
 async function send({ to, subject, text, brand }) {
