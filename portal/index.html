@@ -2693,6 +2693,7 @@ async function start() {
   $("invoicesbtn").classList.toggle("hidden", !admin);
   // Every coach can export their own courses and participants. The
   // finances panel inside is admin only.
+  $("peoplebtn").classList.toggle("hidden", !admin);
   $("reportsbtn").classList.remove("hidden");
   // Every coach keeps their own; an admin also reads what comes in.
   $("reflectlink").classList.remove("hidden");
