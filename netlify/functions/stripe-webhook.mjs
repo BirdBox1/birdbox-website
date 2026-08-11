@@ -10,7 +10,7 @@
 // runs on a timer.
 //
 // It also sends the participant their confirmation email, but only
-// for TCC and TGC seminars. Anything else — workshops, TEC, TWC —
+// for TCC and TGC. Anything else — TEC, TWC —
 // sends nothing, because the schedule and kit list below are only
 // true for those two. Widen SENDS_CONFIRMATION when the copy for the
 // others exists, not before.
@@ -454,7 +454,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
   try {
     const { data: course } = await supabase
       .from("courses")
-      .select("brand, level, type, title, venue_name, address, city, country, starts_at, ends_at, timezone")
+      .select("brand, level, type, title, workshop_focus, venue_name, address, city, country, starts_at, ends_at, timezone")
       .eq("id", courseId)
       .single();
 
@@ -464,10 +464,10 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
     }
 
     const brandKey = String(course.brand || "").toLowerCase();
-    const isSeminar = String(course.type || "").toLowerCase() !== "workshop";
+    const isWorkshop = String(course.type || "").toLowerCase() === "workshop";
 
     // Deliberately narrow. See the note at the top of this file.
-    if (!SENDS_CONFIRMATION.includes(brandKey) || !isSeminar) {
+    if (!SENDS_CONFIRMATION.includes(brandKey)) {
       console.log("No confirmation copy for this course type — skipped", {
         courseId, brand: brandKey, type: course.type,
       });
@@ -483,14 +483,41 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
     const brand = BRAND[brandKey] || { name: "BirdBox Coaching", colour: "#2f7fd0" };
     const accent = brand.colour;
     const levelDigits = String(course.level == null ? "" : course.level).replace(/\D/g, "");
-    const courseName = brand.name + (levelDigits ? " — Level " + levelDigits : "");
+    const courseName = isWorkshop
+      ? (course.title || brand.name + " Workshop")
+      : brand.name + (levelDigits ? " — Level " + levelDigits : "");
+
+    // Times as they read at the venue, whatever zone anybody is in.
+    const clock = (iso) => {
+      if (!iso) return null;
+      try {
+        return new Date(iso).toLocaleTimeString("en-GB", {
+          hour: "2-digit", minute: "2-digit", hour12: false,
+          timeZone: course.timezone || "UTC",
+        });
+      } catch { return null; }
+    };
+
+    const startClock = clock(course.starts_at);
+    const endClock = clock(course.ends_at);
+
+    // Arrive fifteen minutes before, which is what the pre-course
+    // email says too.
+    const arriveClock = course.starts_at
+      ? clock(new Date(new Date(course.starts_at).getTime() - 15 * 60000).toISOString())
+      : null;
+
+    const workshopSchedule = startClock
+      ? (endClock ? `${startClock} to ${endClock}.` : `Starts at ${startClock}.`) +
+        (arriveClock ? ` Please arrive at ${arriveClock} so we can start on time.` : "")
+      : "We will confirm the timings closer to the day.";
     const dates = formatDates(course);
     const place = [course.city, course.country].filter(Boolean).join(", ");
     const fullAddress = addressLine(course);
 
     // Manuals only exist for Level 1 today. For anything else the
     // section is left out rather than linking to an empty page.
-    const manualUrl = levelDigits === "1"
+    const manualUrl = (!isWorkshop && levelDigits === "1")
       ? SITE_URL + "/manuals/" + brandKey + "-l1/"
       : null;
 
@@ -500,14 +527,22 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
     const onlineOk = online && online.status === "enrolled";
     const onlineName = onlineOk && online.label ? online.label : null;
 
-    const bring = [
-      "This confirmation email, printed or on your phone",
-      "Government-issued photo ID",
-      manualUrl ? "The course manual, with a pen — digital is fine, or print it if you prefer" : "A pen and something to write on",
-      "Suitable clothes for training",
-      "Snacks and fluids, and lunch if you are not going off site",
-    ];
-    if (brandKey === "tgc") bring.push("Gymnastics grips, if you use them");
+    // Three hours in a gym needs rather less than two days in a
+    // classroom: no ID, no manual, no lunch.
+    const bring = isWorkshop
+      ? [
+          "Suitable clothes for training",
+          "Water",
+          "This confirmation email, printed or on your phone",
+        ]
+      : [
+          "This confirmation email, printed or on your phone",
+          "Government-issued photo ID",
+          manualUrl ? "The course manual, with a pen — digital is fine, or print it if you prefer" : "A pen and something to write on",
+          "Suitable clothes for training",
+          "Snacks and fluids, and lunch if you are not going off site",
+        ];
+    if (!isWorkshop && brandKey === "tgc") bring.push("Gymnastics grips, if you use them");
 
     const balanceNote = option === "deposit" && balanceCents > 0
       ? "Your deposit is paid. The remaining balance will be charged automatically to the same card 14 days before the course."
@@ -526,16 +561,19 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       course.venue_name || "",
       fullAddress,
       "",
-      "COURSE SCHEDULE",
-      "9:00am to 5:00pm each day, with a one-hour lunch break.",
-      "Please arrive at 8:30am on day one to check in.",
+      isWorkshop ? "WHAT WE ARE COVERING" : null,
+      isWorkshop ? (course.workshop_focus || course.title || "") : null,
+      isWorkshop ? "" : null,
+      isWorkshop ? "ON THE DAY" : "COURSE SCHEDULE",
+      isWorkshop ? workshopSchedule : "9:00am to 5:00pm each day, with a one-hour lunch break.",
+      isWorkshop ? null : "Please arrive at 8:30am on day one to check in.",
       "",
       manualUrl ? "READING MATERIAL" : null,
       manualUrl ? manualUrl : null,
       manualUrl ? "Choose your language on that page." : null,
       manualUrl ? "" : null,
       onlineOk ? "YOUR FREE ONLINE COURSE" : null,
-      onlineOk ? "Included with this seminar at no extra cost" +
+      onlineOk ? "Included with this " + (isWorkshop ? "workshop" : "seminar") + " at no extra cost" +
         (onlineName ? " (" + onlineName + ")" : "") + "." : null,
       onlineOk ? "You will receive two separate emails from BirdBox Academy: one to set your password, and one confirming your access." : null,
       onlineOk ? "In the academy it is listed as BirdBox Coaching Development Level " + levelDigits + " — this is the same course." : null,
@@ -564,9 +602,16 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
     <div style="color:#666;">${esc(fullAddress)}</div>
   </div>
 
-  <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Course schedule</h3>
-  <p style="margin:0;">9:00am to 5:00pm each day, with a one-hour lunch break.<br>
-     Please arrive at <strong>8:30am on day one</strong> to check in.</p>
+  ${isWorkshop && (course.workshop_focus || course.title) ? `
+  <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">What we are covering</h3>
+  <p style="margin:0;">${esc(course.workshop_focus || course.title)}</p>
+  ` : ""}
+
+  <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">${isWorkshop ? "On the day" : "Course schedule"}</h3>
+  ${isWorkshop
+    ? `<p style="margin:0;">${esc(workshopSchedule)}</p>`
+    : `<p style="margin:0;">9:00am to 5:00pm each day, with a one-hour lunch break.<br>
+     Please arrive at <strong>8:30am on day one</strong> to check in.</p>`}
 
   ${manualUrl ? `
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Reading material</h3>
@@ -579,7 +624,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
 
   ${onlineOk ? `
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Your free online course</h3>
-  <p style="margin:0 0 12px;">Included with this seminar at no extra cost${onlineName ? ` (${esc(onlineName)})` : ""}. You will receive two more emails from BirdBox Academy — one to set your password, and one confirming your access.</p>
+  <p style="margin:0 0 12px;">Included with this ${isWorkshop ? "workshop" : "seminar"} at no extra cost${onlineName ? ` (${esc(onlineName)})` : ""}. You will receive two more emails from BirdBox Academy — one to set your password, and one confirming your access.</p>
   <p style="margin:0;">
     <a href="${LMS_URL}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Go to BirdBox Academy</a>
   </p>
