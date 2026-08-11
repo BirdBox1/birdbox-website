@@ -260,6 +260,7 @@ export default async (request) => {
           text: fill(template.body, fields),
           filename: `BirdBox certificate - ${name}.pdf`,
           pdf,
+          brand: course.brand,
         });
 
         // Recorded whether or not the email landed, so a reference is
@@ -489,7 +490,119 @@ function fill(text, fields) {
   return out;
 }
 
-async function sendEmail({ to, subject, text, filename, pdf }) {
+// The brand marks are black lettering on transparent, so they sit on
+// a white band under the dark strip rather than on it. SITE_URL is
+// already declared at the top of the file — an email cannot resolve a
+// relative path, so the images need that absolute origin.
+const BRAND_MARKS = {
+  tcc:     { file: "tcc.png",     alt: "The Coaches Course" },
+  tgc:     { file: "tgc.png",     alt: "The Gymnastics Course" },
+  tec:     { file: "tec.png",     alt: "The Endurance Course" },
+  twc:     { file: "twc.png",     alt: "The Weightlifting Course" },
+  birdbox: { file: "birdBox.png", alt: "BirdBox Coaching" },
+};
+
+function brandMark(brand) {
+  return BRAND_MARKS[String(brand || "").toLowerCase()] || BRAND_MARKS.birdbox;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+// This email was going out as plain text only, so the section titles
+// sat flat among the paragraphs and the whole thing read as a wall.
+// The copy already carries its own structure — ALL CAPS lines are
+// headings, hyphens are list items — so the formatting is read back
+// out of it rather than asking anybody to rewrite the template.
+function bodyToHtml(text) {
+  const blocks = String(text).split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
+  const out = [];
+
+  for (const block of blocks) {
+    const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+
+    // A run of hyphens is a list, whatever surrounds it.
+    if (lines.every((l) => /^[-•]\s+/.test(l))) {
+      out.push(
+        '<ul style="margin:0 0 16px;padding-left:1.2rem;font-size:16px;' +
+        'line-height:1.65;color:#16181b">' +
+        lines.map((l) =>
+          `<li style="margin:0 0 6px">${escapeHtml(l.replace(/^[-•]\s+/, ""))}</li>`
+        ).join("") +
+        "</ul>"
+      );
+      continue;
+    }
+
+    for (const line of lines) {
+      // A short line in capitals is a section title. Long ones are
+      // sentences somebody happened to shout.
+      const isHeading =
+        line.length <= 60 &&
+        /[A-Z]/.test(line) &&
+        line === line.toUpperCase() &&
+        !/^[-•]/.test(line);
+
+      if (isHeading) {
+        out.push(
+          '<p style="margin:26px 0 8px;font-size:12px;letter-spacing:0.12em;' +
+          'text-transform:uppercase;font-weight:700;color:#16181b">' +
+          escapeHtml(line) + "</p>"
+        );
+        continue;
+      }
+
+      if (/^[-•]\s+/.test(line)) {
+        out.push(
+          '<p style="margin:0 0 6px 1.2rem;font-size:16px;line-height:1.65;' +
+          'color:#16181b">' + escapeHtml(line.replace(/^[-•]\s+/, "")) + "</p>"
+        );
+        continue;
+      }
+
+      out.push(
+        '<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#16181b">' +
+        escapeHtml(line) + "</p>"
+      );
+    }
+  }
+
+  return out.join("");
+}
+
+function emailHtml(text, brand) {
+  const mark = brandMark(brand);
+
+  return `<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#f4f3f0">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3f0">
+    <tr><td align="center" style="padding:32px 16px">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+             style="max-width:600px;background:#ffffff;border:1px solid #e0ddd7;border-radius:6px">
+        <tr><td style="padding:14px 28px;background:#0d0e10;border-radius:5px 5px 0 0">
+          <span style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#9aa1a9;
+                       font-family:Helvetica,Arial,sans-serif">BirdBox Coaching</span>
+        </td></tr>
+        <tr><td align="left" style="padding:20px 28px;background:#ffffff;
+                   border-bottom:1px solid #e0ddd7">
+          <img src="${SITE_URL}/brand/${mark.file}" alt="${escapeHtml(mark.alt)}"
+               height="46" style="height:46px;width:auto;display:block;border:0;outline:none;
+               text-decoration:none;-ms-interpolation-mode:bicubic">
+        </td></tr>
+        <tr><td style="padding:28px;font-family:Helvetica,Arial,sans-serif">${bodyToHtml(text)}</td></tr>
+        <tr><td style="padding:18px 28px;border-top:1px solid #e0ddd7;
+                       font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6c7178">
+          BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+async function sendEmail({ to, subject, text, filename, pdf, brand }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) { console.warn("No Resend key; certificate not sent to", to); return false; }
 
@@ -503,6 +616,7 @@ async function sendEmail({ to, subject, text, filename, pdf }) {
         reply_to: OFFICE,
         subject,
         text,
+        html: emailHtml(text, brand),
         attachments: [{ filename, content: pdf }],
       }),
     });
