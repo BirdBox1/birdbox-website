@@ -1441,7 +1441,9 @@
 
         <div class="grid2">
           <div class="field">
-            <label for="f-level">Level <span class="hint">leave blank for workshops</span></label>
+            <label for="f-level">Level
+              <span class="hint">required, except for workshops</span>
+            </label>
             <select id="f-level">
               <option value="">—</option>
               <option value="L1">Level 1</option>
@@ -4852,7 +4854,10 @@ function wireCancel() {
       msg.className = problems ? "msg err" : "msg ok";
       msg.textContent = problems
         ? `Cancelled, but ${problems} did not go through: ${(r.problems || []).join("; ")}`
-        : `Cancelled. ${r.emailed} participant${r.emailed === 1 ? "" : "s"} refunded and emailed.`;
+        : `Cancelled. ${r.emailed} participant${r.emailed === 1 ? "" : "s"} refunded and emailed` +
+          // A host who is not told finds out when they open the gym.
+          (r.hostEmailed ? ", and the host." : ". THE HOST HAS NOT BEEN TOLD — " +
+           "there is no host email on this course. Contact them yourself.");
 
       setTimeout(() => {
         $("cxwrap").classList.add("hidden");
@@ -9434,6 +9439,17 @@ async function saveCourse() {
   let slug    = $("f-slug").value.trim();
 
   if (!start)  { msg.className = "msg err"; msg.textContent = "Add a date."; return; }
+
+  // Workshops have no level and are not meant to. Everything else does.
+  if (type !== "workshop" && !$("f-level").value) {
+    msg.className = "msg err";
+    msg.textContent =
+      "Choose a level. Without one the course shows as just “" +
+      (BRAND[brand] || BRAND.birdbox).label +
+      "”, and whether it issues a certificate is worked out from the level.";
+    $("f-level").focus();
+    return;
+  }
   if (!price)  { msg.className = "msg err"; msg.textContent = "Add a price."; return; }
   if (!tzIsReal(tz)) {
     msg.className = "msg err";
