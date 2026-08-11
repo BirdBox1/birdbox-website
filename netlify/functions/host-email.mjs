@@ -105,7 +105,11 @@ export default async (request) => {
     // Every seminar gets its own early bird row, so each can expire
     // four weeks before its own start date. Hosts all share the same
     // memorable code, which is the point.
-    if (earlyBirdCode) {
+    //
+    // Workshops do not run an early bird at all. Enforced here rather
+    // than only in the form, because a code created by accident is
+    // live the moment it exists.
+    if (earlyBirdCode && course.type !== "workshop") {
       const expires = new Date(
         new Date(course.starts_at).getTime() - EARLY_BIRD_DAYS * 86400000
       );
@@ -147,6 +151,7 @@ export default async (request) => {
       subject,
       text: body + `\n\n${me.full_name}\nBirdBox Coaching\n${SITE_URL}`,
       brand: course.brand,
+      isWorkshop: course.type === "workshop",
     });
 
     if (!sent) {
@@ -326,16 +331,28 @@ function bodyToHtml(text) {
   return out.join("");
 }
 
-function emailHtml(text, brand) {
+function emailHtml(text, brand, isWorkshop) {
   const mark = brandMark(brand);
 
-  return `<!DOCTYPE html>
-<html><body style="margin:0;padding:0;background:#f4f3f0">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3f0">
-    <tr><td align="center" style="padding:32px 16px">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-             style="max-width:600px;background:#ffffff;border:1px solid #e0ddd7;border-radius:6px">
-        <tr><td style="padding:14px 28px;background:#0d0e10;border-radius:5px 5px 0 0">
+  // The workshop mark is white lettering, so it cannot go on the white
+  // band the others use. It sits on the dark strip instead, on the
+  // right, with the strip a little taller to carry it — and the white
+  // band is dropped, because there is nothing left to put on it.
+  const header = isWorkshop
+    ? `<tr><td style="padding:18px 28px;background:#0d0e10;border-radius:5px 5px 0 0">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td align="left" style="vertical-align:middle">
+              <span style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#9aa1a9;
+                           font-family:Helvetica,Arial,sans-serif">BirdBox Coaching</span>
+            </td>
+            <td align="right" style="vertical-align:middle">
+              <img src="${SITE_URL}/brand/tgc-workshops.png" alt="TGC Workshops"
+                   height="34" style="height:34px;width:auto;display:block;border:0;outline:none;
+                   text-decoration:none;-ms-interpolation-mode:bicubic">
+            </td>
+          </tr></table>
+        </td></tr>`
+    : `<tr><td style="padding:14px 28px;background:#0d0e10;border-radius:5px 5px 0 0">
           <span style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#9aa1a9;
                        font-family:Helvetica,Arial,sans-serif">BirdBox Coaching</span>
         </td></tr>
@@ -344,7 +361,15 @@ function emailHtml(text, brand) {
           <img src="${SITE_URL}/brand/${mark.file}" alt="${escapeHtml(mark.alt)}"
                height="46" style="height:46px;width:auto;display:block;border:0;outline:none;
                text-decoration:none;-ms-interpolation-mode:bicubic">
-        </td></tr>
+        </td></tr>`;
+
+  return `<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#f4f3f0">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3f0">
+    <tr><td align="center" style="padding:32px 16px">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+             style="max-width:600px;background:#ffffff;border:1px solid #e0ddd7;border-radius:6px">
+        ${header}
         <tr><td style="padding:28px;font-family:Helvetica,Arial,sans-serif">${bodyToHtml(text)}</td></tr>
         <tr><td style="padding:18px 28px;border-top:1px solid #e0ddd7;
                        font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6c7178">
@@ -356,7 +381,7 @@ function emailHtml(text, brand) {
 </body></html>`;
 }
 
-async function send({ to, cc, subject, text, brand }) {
+async function send({ to, cc, subject, text, brand, isWorkshop }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) { console.warn("No Resend key; host email not sent to", to); return false; }
 
@@ -371,7 +396,7 @@ async function send({ to, cc, subject, text, brand }) {
         reply_to: OFFICE,
         subject,
         text,
-        html: emailHtml(text, brand),
+        html: emailHtml(text, brand, isWorkshop),
       }),
     });
     if (!res.ok) {
