@@ -5223,6 +5223,18 @@ async function runPeopleSearch() {
     return;
   }
 
+  // What each of them was actually awarded. People write in a year or
+  // two later having lost theirs, and this is how it gets found again.
+  const certByReg = {};
+  {
+    const { data: certs } = await db.from("certificates")
+      .select("id, registration_id, reference, awarded_on, status, reissue_count")
+      .in("registration_id", rows.map((r) => r.id));
+    for (const c of certs || []) {
+      if (c.status === "sent") certByReg[c.registration_id] = c;
+    }
+  }
+
   // Grouped by person, because somebody who has been on four courses
   // should read as one person with four courses, not four results.
   const byPerson = {};
@@ -5289,6 +5301,27 @@ async function runPeopleSearch() {
            r.payment_status === "paid_in_full" ? "on"
              : r.payment_status === "refunded" ? "bad" : "warn");
 
+      // Their certificate, if they have one. Admin only, because it
+      // reissues a document carrying a reference.
+      const cert = certByReg[r.id];
+      if (cert && isAdmin()) {
+        const again = document.createElement("button");
+        again.className = "btn ghost tiny";
+        again.type = "button";
+        again.textContent = cert.reissue_count
+          ? `Reissue (${cert.reissue_count} already)`
+          : "Reissue certificate";
+        again.title = `${cert.reference} · awarded ${fmtDay(cert.awarded_on)}`;
+        again.onclick = (e) => {
+          // The row opens the course; the button must not.
+          e.stopPropagation();
+          reissueCertificate(cert, r, c, again);
+        };
+        flags.append(again);
+      } else if (cert) {
+        pill("certificate " + cert.reference, "on");
+      }
+
       row.append(who, flags);
       row.onclick = () => openCourse(c);
       card.append(row);
@@ -5296,6 +5329,64 @@ async function runPeopleSearch() {
 
     box.append(card);
   }
+}
+
+// The certificate they were awarded, sent again. Same reference, same
+// date, same document — they lost a copy, they did not earn a new one.
+async function reissueCertificate(cert, reg, course, btn) {
+  const to = reg.email;
+  if (!to) {
+    window.alert("There is no email address on that registration. Add one first.");
+    return;
+  }
+
+  if (!window.confirm(
+    `Send ${reg.first_name} ${reg.last_name} their certificate again?\n\n` +
+    `${course.title}\n` +
+    `Reference ${cert.reference}, awarded ${fmtDay(cert.awarded_on)}\n\n` +
+    `It goes to ${to}.` +
+    (cert.reissue_count
+      ? `\n\nThis would be reissue number ${cert.reissue_count + 1}.`
+      : "")
+  )) return;
+
+  const was = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Sending…";
+
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) throw new Error("Your session has expired — sign in again.");
+
+    const res = await fetch("/.netlify/functions/certificates-send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + session.access_token,
+      },
+      body: JSON.stringify({ certificateId: cert.id }),
+    });
+
+    const raw = await res.text();
+    let out;
+    try { out = JSON.parse(raw); }
+    catch {
+      throw new Error(
+        res.status === 404
+          ? "The certificate service is not there. Wait for the deploy and try again."
+          : `The certificate service returned an error (${res.status}).`
+      );
+    }
+    if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+    cert.reissue_count = out.times;
+    btn.textContent = `Reissue (${out.times} already)`;
+    window.alert(`Sent to ${out.sentTo}.`);
+  } catch (err) {
+    btn.textContent = was;
+    window.alert("Could not reissue it: " + err.message);
+  }
+  btn.disabled = false;
 }
 
 function wirePeople() {
