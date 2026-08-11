@@ -70,7 +70,7 @@ async function reschedule({ courseId, startsAt, endsAt }, me) {
 
   const { data: course, error: cErr } = await supabase
     .from("courses")
-    .select("id, brand, title, city, country, venue_name, address, starts_at, ends_at, timezone, slug")
+    .select("id, brand, title, city, country, venue_name, address, starts_at, ends_at, timezone, slug, host_name, host_email")
     .eq("id", courseId)
     .single();
 
@@ -189,11 +189,53 @@ ${SITE_URL}/portal/`,
     if (ok) coachesEmailed++;
   }
 
+  // ---- and the host ----------------------------------------
+  // Their gym, their staffing, their diary. They were not being told
+  // at all, which is the one person who cannot find out from the
+  // website that the date has changed.
+  let hostEmailed = false;
+  if (course.host_email) {
+    hostEmailed = await send({
+      to: course.host_email,
+      subject: `A change of date for ${course.title}`,
+      text:
+`Hi ${(course.host_name || "there").split(" ")[0]},
+
+I am sorry — we have had to move the date of ${course.title}, and I know that has knock-on effects at your end.
+
+You will have held the space, arranged cover and planned around the original date. Changing it on you is not something we do lightly, and I am sorry for the disruption.
+
+THE NEW DATE
+
+It was ${oldWhen}.
+
+It is now ${newWhen}, starting at ${newTime}${where ? `, at ${where}` : ""}.
+
+WHAT HAPPENS NOW
+
+${active.length} participant${active.length === 1 ? " has" : "s have"} been emailed and told their place moves with the course. Anyone the new date does not suit can move to another one or take a credit.
+
+The registration page is unchanged and now shows the new date, so anything you have already shared still works:
+${SITE_URL}/c/${course.slug}/
+
+IF THE NEW DATE DOES NOT WORK FOR THE GYM
+
+Please reply and tell us as soon as you can. We would rather find another date that suits you than push ahead with one that does not.
+
+Thank you for bearing with us.
+
+BirdBox Coaching
+${OFFICE}`,
+      brand: course.brand,
+    });
+  }
+
   return json({
     moved: true,
     participants: active.length,
     emailed,
     coachesEmailed,
+    hostEmailed,
   });
 }
 
