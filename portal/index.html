@@ -1364,8 +1364,9 @@
         <p class="whenline" id="r-preview"></p>
         <div class="admin-row" style="margin-top:0.9rem">
           <button class="btn small" id="reschedbtn" type="button">Move the date</button>
-          <span class="why">Participants and assigned coaches are emailed automatically. Any unpaid balance moves with it.</span>
+          <span class="why">Participants, the host and any assigned coaches are emailed automatically. Any unpaid balance moves with it.</span>
         </div>
+        <p class="msg" id="resched-msg"></p>
       </div>
 
       <div class="sep"></div>
@@ -9096,11 +9097,14 @@ async function wireAdmin(course, totalRegs, liveRegs) {
   reschedPreview();
 
   $("reschedbtn").onclick = async () => {
+    // The panel-wide message sits several screens below this button,
+    // so a move that worked looked like one that did nothing.
+    const rmsg = $("resched-msg");
     const date = $("r-date").value;
-    if (!date) { msg.className = "msg err"; msg.textContent = "Pick a new date."; return; }
+    if (!date) { rmsg.className = "msg err"; rmsg.textContent = "Pick a new date."; return; }
     if (!tzOk) {
-      msg.className = "msg err";
-      msg.textContent = "This course has an invalid time zone. Fix that first, or the emails will tell people the wrong time.";
+      rmsg.className = "msg err";
+      rmsg.textContent = "This course has an invalid time zone. Fix that first, or the emails will tell people the wrong time.";
       return;
     }
 
@@ -9116,7 +9120,7 @@ async function wireAdmin(course, totalRegs, liveRegs) {
     )) return;
 
     $("reschedbtn").disabled = true;
-    msg.className = "msg"; msg.textContent = "Moving the date and sending emails…";
+    rmsg.className = "msg"; rmsg.textContent = "Moving the date and sending emails…";
 
     try {
       const r = await callAdmin({
@@ -9125,8 +9129,8 @@ async function wireAdmin(course, totalRegs, liveRegs) {
         startsAt: newStart.toISOString(),
         endsAt: newEnd ? newEnd.toISOString() : null,
       });
-      msg.className = "msg ok";
-      msg.textContent =
+      rmsg.className = "msg ok";
+      rmsg.textContent =
         `Moved. ${r.emailed} of ${r.participants} participant${r.participants === 1 ? "" : "s"} emailed, ` +
         `${r.coachesEmailed} coach${r.coachesEmailed === 1 ? "" : "es"} emailed` +
         // Worth saying out loud. A host who is not told is the one
@@ -9135,8 +9139,8 @@ async function wireAdmin(course, totalRegs, liveRegs) {
          "there is no host email on this course. Add one under Edit course details.");
       setTimeout(loadCourses, 2500);
     } catch (err) {
-      msg.className = "msg err";
-      msg.textContent = err.message;
+      rmsg.className = "msg err";
+      rmsg.textContent = err.message;
     }
     $("reschedbtn").disabled = false;
   };
