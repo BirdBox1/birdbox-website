@@ -9128,7 +9128,11 @@ async function wireAdmin(course, totalRegs, liveRegs) {
       msg.className = "msg ok";
       msg.textContent =
         `Moved. ${r.emailed} of ${r.participants} participant${r.participants === 1 ? "" : "s"} emailed, ` +
-        `${r.coachesEmailed} coach${r.coachesEmailed === 1 ? "" : "es"} emailed.`;
+        `${r.coachesEmailed} coach${r.coachesEmailed === 1 ? "" : "es"} emailed` +
+        // Worth saying out loud. A host who is not told is the one
+        // person who finds out when nobody turns up.
+        (r.hostEmailed ? ", and the host." : ". THE HOST HAS NOT BEEN TOLD — " +
+         "there is no host email on this course. Add one under Edit course details.");
       setTimeout(loadCourses, 2500);
     } catch (err) {
       msg.className = "msg err";
