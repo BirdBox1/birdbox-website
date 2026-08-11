@@ -63,6 +63,129 @@ function layoutFor(course) {
   return course.type === "workshop" ? LAYOUTS.workshop : LAYOUTS.seminar;
 }
 
+// ---------------------------------------------------------------
+// Reissue one certificate
+// ---------------------------------------------------------------
+
+// Everything needed is on the record already: the reference, the name
+// as it was printed, and the date awarded. So the same certificate is
+// rebuilt rather than a new one issued — a second reference for one
+// course would leave two answers to "what did they get".
+//
+// The awarded date comes from the certificate row, not from the
+// course. If the course was later moved, the certificate still says
+// what it said when it was earned.
+async function reissue(certificateId, me) {
+  const { data: cert } = await supabase
+    .from("certificates")
+    .select("id, registration_id, course_id, reference, participant_name, " +
+            "awarded_on, status, reissue_count")
+    .eq("id", certificateId)
+    .maybeSingle();
+
+  if (!cert) return json({ error: "That certificate could not be found." }, 404);
+
+  const { data: course } = await supabase
+    .from("courses")
+    .select("id, brand, type, level, title, workshop_focus, starts_at, ends_at, timezone")
+    .eq("id", cert.course_id)
+    .maybeSingle();
+
+  if (!course) return json({ error: "The course for that certificate is gone." }, 404);
+
+  const { data: reg } = await supabase
+    .from("registrations")
+    .select("id, first_name, last_name, email")
+    .eq("id", cert.registration_id)
+    .maybeSingle();
+
+  if (!reg || !reg.email) {
+    return json({ error: "There is no email address on that registration." }, 400);
+  }
+
+  const artwork = await loadArtwork(course);
+  if (!artwork) {
+    return json({
+      error: `No certificate artwork found for this course. Expected ${SITE_URL}${templatePath(course)}`,
+    }, 500);
+  }
+
+  const template = await loadTemplate(course);
+  if (!template) {
+    return json({ error: "No certificate email template is set up for this course." }, 500);
+  }
+
+  const layout = layoutFor(course);
+  const nameFont = await loadNameFont();
+
+  const focusText = course.type === "workshop"
+    ? (course.workshop_focus ||
+       String(course.title || "").replace(/^.*?Workshop\s*[\u2014-]\s*/i, "") ||
+       "")
+    : "";
+
+  const awardedText = new Date(cert.awarded_on + "T12:00:00Z")
+    .toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
+  const name = cert.participant_name || "Participant";
+
+  const pdf = await buildPdf({
+    artwork, layout, nameFont, name, awardedText,
+    reference: cert.reference,
+    focus: focusText,
+  });
+
+  const fields = {
+    first_name: reg.first_name || "there",
+    last_name: reg.last_name || "",
+    full_name: name,
+    course_title: course.title || "your course",
+    awarded_on: awardedText,
+    reference: cert.reference,
+    site_url: SITE_URL,
+  };
+
+  // A short note in front of the original email, so it does not read
+  // as though they have just completed the course all over again.
+  const preamble =
+`Hi ${reg.first_name || "there"},
+
+Here is your certificate for ${course.title} again, as requested. It is the same certificate you were awarded on ${awardedText}, with the same reference — nothing has changed.
+
+Worth saving somewhere you will find it. If you lose it again, just ask.
+
+`;
+
+  const ok = await sendEmail({
+    to: reg.email,
+    subject: `Your certificate for ${course.title}`,
+    text: preamble + fill(template.body, fields),
+    filename: `BirdBox certificate - ${name}.pdf`,
+    pdf,
+    brand: course.brand,
+  });
+
+  if (!ok) {
+    return json({ error: "The email was rejected. Check the address." }, 502);
+  }
+
+  // Counted, because a third request from the same person is worth
+  // noticing.
+  await supabase.from("certificates").update({
+    reissued_at: new Date().toISOString(),
+    reissue_count: (cert.reissue_count || 0) + 1,
+    last_reissued_by: me.id,
+  }).eq("id", cert.id);
+
+  return json({
+    reissued: true,
+    sentTo: reg.email,
+    reference: cert.reference,
+    name,
+    times: (cert.reissue_count || 0) + 1,
+  });
+}
+
 export default async (request) => {
   if (request.method !== "POST") return json({ error: "Use POST" }, 405);
 
@@ -73,8 +196,10 @@ export default async (request) => {
     const { data: auth, error: authErr } = await supabase.auth.getUser(token);
     if (authErr || !auth || !auth.user) return json({ error: "Not signed in" }, 401);
 
-    const { courseId } = await request.json();
-    if (!courseId) return json({ error: "No course given" }, 400);
+    const { courseId, certificateId } = await request.json();
+    if (!courseId && !certificateId) {
+      return json({ error: "No course or certificate given" }, 400);
+    }
 
     // ---- who is asking ----------------------------------------
     const { data: me } = await supabase
@@ -84,6 +209,18 @@ export default async (request) => {
       .maybeSingle();
 
     if (!me || !me.active) return json({ error: "Not a member of staff" }, 403);
+
+    // ---- a reissue --------------------------------------------
+    // Somebody wrote in a year later having lost theirs. They get the
+    // certificate they were awarded, not a new one — same reference,
+    // same date, rebuilt from what was recorded at the time. A second
+    // reference for the same course would make the record ambiguous.
+    if (certificateId) {
+      if (me.role !== "admin") {
+        return json({ error: "Only an admin can reissue a certificate" }, 403);
+      }
+      return await reissue(certificateId, me);
+    }
 
     const isAdmin = me.role === "admin";
     if (!isAdmin) {
