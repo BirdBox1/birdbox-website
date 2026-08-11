@@ -8728,10 +8728,21 @@ function buildActions(box, course, reg, status) {
         () => openAdhoc(course, reg));
   }
 
+  // Any coach on the course, because this happens at the desk on the
+  // morning with the participant standing there. It was admin only,
+  // which meant the one person who could collect a signature was the
+  // one person not in the room.
+  const onCourse = isAdmin() || !!myRoles[course.id];
+  if (onCourse && status === "active") {
+    const signed = !!reg.waiver_signed_at;
+    add(signed ? "Agreement" : "Sign agreement",
+        signed ? "ghost small" : "small",
+        () => openSignature(reg));
+  }
+
   if (!isAdmin()) return;
 
   add("Edit", "ghost small", () => openEdit(reg));
-  add(reg.waiver_signed_at ? "Agreement" : "Sign agreement", "ghost small", () => openSignature(reg));
 
   if (status !== "active") {
     const pill = document.createElement("span");
