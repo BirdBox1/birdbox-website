@@ -1,0 +1,44 @@
+// supabase/functions/drip-unsub/index.ts
+// Series-only unsubscribe. Verifies the signed token, sets drip_enrollments.status='unsubscribed'
+// for that email+chain (series only — the newsletter is untouched), then REDIRECTS to a branded
+// confirmation page on the main site. (Supabase serves edge-function HTML as text/plain on its own
+// domain, so we render the confirmation from the site instead.)
+//
+// Deploy with Verify JWT = OFF.
+// Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (or SERVICE_ROLE_KEY), DRIP_UNSUB_SECRET, SITE_BASE
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_ROLE_KEY =
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY")!;
+const UNSUB_SECRET = Deno.env.get("DRIP_UNSUB_SECRET") ?? "";
+const SITE_BASE = (Deno.env.get("SITE_BASE") ?? "https://warm-beijinho-9a5b1c.netlify.app").replace(/\/$/, "");
+const enc = (s: string) => new TextEncoder().encode(s);
+
+async function unsubToken(email: string, chain: string): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", enc(UNSUB_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, enc(`${email.toLowerCase()}|${chain}`));
+  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "").slice(0, 24);
+}
+
+function redirect(to: string): Response {
+  return new Response(null, { status: 302, headers: { Location: to } });
+}
+
+Deno.serve(async (req) => {
+  const url = new URL(req.url);
+  const email = (url.searchParams.get("e") ?? "").toLowerCase();
+  const chain = url.searchParams.get("c") ?? "";
+  const token = url.searchParams.get("t") ?? "";
+
+  if (!email || !chain || !token || token !== await unsubToken(email, chain)) {
+    return redirect(`${SITE_BASE}/unsubscribed/?err=1`);
+  }
+
+  await fetch(`${SUPABASE_URL}/rest/v1/drip_enrollments?email=eq.${encodeURIComponent(email)}&chain=eq.${chain}`, {
+    method: "PATCH",
+    headers: { apikey: SERVICE_ROLE_KEY, authorization: `Bearer ${SERVICE_ROLE_KEY}`, "content-type": "application/json", Prefer: "return=minimal" },
+    body: JSON.stringify({ status: "unsubscribed" }),
+  });
+
+  return redirect(`${SITE_BASE}/unsubscribed/?c=${chain}`);
+});
