@@ -1,44 +1,58 @@
-// supabase/functions/drip-unsub/index.ts
-// Series-only unsubscribe. Verifies the signed token, sets drip_enrollments.status='unsubscribed'
-// for that email+chain (series only — the newsletter is untouched), then REDIRECTS to a branded
-// confirmation page on the main site. (Supabase serves edge-function HTML as text/plain on its own
-// domain, so we render the confirmation from the site instead.)
-//
-// Deploy with Verify JWT = OFF.
-// Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (or SERVICE_ROLE_KEY), DRIP_UNSUB_SECRET, SITE_BASE
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BirdBox Coaching</title>
+<style>
+  :root { --ink:#14100F; --blue:#2F8FEF; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Arial,Helvetica,sans-serif; background:#0e1116; color:#22262b; }
+  .wrap { max-width:560px; margin:0 auto; padding:36px 18px; }
+  .card { background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.4); }
+  .head { background:#14100F; padding:0; }
+  .head img { display:block; width:100%; height:auto; }
+  .body { padding:38px 40px; text-align:center; }
+  h1 { margin:0 0 14px; font-size:23px; color:var(--ink); }
+  p { margin:0 0 14px; font-size:16px; line-height:1.6; color:#44484d; }
+  .sep { height:1px; background:#eceef1; margin:24px 0; }
+  .muted { font-size:13px; color:#9aa0a6; }
+  a.btn { display:inline-block; margin-top:6px; padding:12px 26px; background:var(--blue); color:#fff !important;
+          text-decoration:none; border-radius:8px; font-weight:bold; font-size:15px; }
+  .foot { text-align:center; color:#5b626a; font-size:12px; padding:16px 0 0; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="head">
+        <img src="https://warm-beijinho-9a5b1c.netlify.app/brand/birdbox-email-header.png" alt="BirdBox Coaching">
+      </div>
+      <div class="body">
+        <h1 id="title">You're unsubscribed</h1>
+        <p id="msg">You've been removed from this weekly coaching series.</p>
+        <p class="muted" id="sub">You'll still receive the BirdBox newsletter unless you unsubscribe from that separately.</p>
+        <div class="sep"></div>
+        <p class="muted">Changed your mind? Just reply to any of our emails and we'll add you back.</p>
+        <a class="btn" href="https://warm-beijinho-9a5b1c.netlify.app/">Back to BirdBox</a>
+      </div>
+    </div>
+    <div class="foot">BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland</div>
+  </div>
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE_KEY =
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY")!;
-const UNSUB_SECRET = Deno.env.get("DRIP_UNSUB_SECRET") ?? "";
-const SITE_BASE = (Deno.env.get("SITE_BASE") ?? "https://warm-beijinho-9a5b1c.netlify.app").replace(/\/$/, "");
-const enc = (s: string) => new TextEncoder().encode(s);
-
-async function unsubToken(email: string, chain: string): Promise<string> {
-  const key = await crypto.subtle.importKey("raw", enc(UNSUB_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, enc(`${email.toLowerCase()}|${chain}`));
-  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "").slice(0, 24);
-}
-
-function redirect(to: string): Response {
-  return new Response(null, { status: 302, headers: { Location: to } });
-}
-
-Deno.serve(async (req) => {
-  const url = new URL(req.url);
-  const email = (url.searchParams.get("e") ?? "").toLowerCase();
-  const chain = url.searchParams.get("c") ?? "";
-  const token = url.searchParams.get("t") ?? "";
-
-  if (!email || !chain || !token || token !== await unsubToken(email, chain)) {
-    return redirect(`${SITE_BASE}/unsubscribed/?err=1`);
-  }
-
-  await fetch(`${SUPABASE_URL}/rest/v1/drip_enrollments?email=eq.${encodeURIComponent(email)}&chain=eq.${chain}`, {
-    method: "PATCH",
-    headers: { apikey: SERVICE_ROLE_KEY, authorization: `Bearer ${SERVICE_ROLE_KEY}`, "content-type": "application/json", Prefer: "return=minimal" },
-    body: JSON.stringify({ status: "unsubscribed" }),
-  });
-
-  return redirect(`${SITE_BASE}/unsubscribed/?c=${chain}`);
-});
+  <script>
+    var p = new URLSearchParams(location.search);
+    var c = p.get('c'), err = p.get('err');
+    var series = c === 'tgc' ? 'The Gymnastics Course weekly series'
+               : c === 'tcc' ? 'The Coaches Course weekly series'
+               : 'this weekly coaching series';
+    if (err) {
+      document.getElementById('title').textContent = 'Link not valid';
+      document.getElementById('msg').textContent = 'This unsubscribe link is invalid or has expired. If you meant to unsubscribe, use the link in your most recent email, or just reply and ask us.';
+      document.getElementById('sub').style.display = 'none';
+    } else {
+      document.getElementById('msg').textContent = "You've been removed from " + series + ". You won't receive any more of these weekly emails.";
+    }
+  </script>
+</body>
+</html>
