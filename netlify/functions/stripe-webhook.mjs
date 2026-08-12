@@ -18,6 +18,12 @@
 // Where a course grants a free online course, the participant is
 // also enrolled in LearnWorlds before the confirmation goes out, so
 // the LearnWorlds emails land first and ours can refer to them.
+//
+// It also notices when somebody tries to register and does not get
+// through — a declined card, or a checkout they walked away from.
+// Those are written to abandoned_checkouts, and a separate hourly
+// function offers them a hand an hour later if they have not come
+// back on their own. Most of them do come back when asked.
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
@@ -82,6 +88,12 @@ export default async (req) => {
       case "invoice.marked_uncollectible":
       case "invoice.overdue":
         await onInvoiceGivenUp(event.data.object);
+        break;
+      case "checkout.session.expired":
+        await onCheckoutAbandoned(event.data.object);
+        break;
+      case "payment_intent.payment_failed":
+        await onPaymentFailed(event.data.object);
         break;
       default:
         break; // ignore everything else
@@ -203,6 +215,25 @@ async function onCheckoutCompleted(session) {
     );
     if (bumpError) {
       console.error("Could not count discount redemption", discountCode, bumpError);
+    }
+  }
+
+  // They may have been declined earlier and come back on their own.
+  // Close off anything outstanding for them on this course, so the
+  // hourly chase does not write to somebody who has already paid.
+  //
+  // Matched on email and course rather than session id, because a
+  // retry usually starts a new checkout altogether.
+  if (details.email) {
+    const { error: recoverError } = await supabase
+      .from("abandoned_checkouts")
+      .update({ recovered_at: new Date().toISOString() })
+      .eq("course_id", meta.course_id)
+      .ilike("email", details.email)
+      .is("recovered_at", null);
+
+    if (recoverError) {
+      console.error("Could not close the abandoned record", recoverError.message);
     }
   }
 
@@ -440,6 +471,97 @@ async function onInvoiceGivenUp(invoice) {
     `They have not been removed from the course — contact them or remove ` +
     `them manually.`
   );
+}
+
+// ---------------------------------------------------------------
+// somebody tried and did not get through
+// ---------------------------------------------------------------
+//
+// Two ways it happens. A card is declined at the last step — which is
+// the common one, and the person is right there wanting to pay. Or
+// the checkout expires because they walked away.
+//
+// Neither creates a registration, so without this there is no record
+// anywhere on our side that they ever tried. Nothing is emailed from
+// here: the hourly function waits to see whether they come back on
+// their own first, because most people retry within minutes and an
+// email in that window is just noise.
+
+async function onCheckoutAbandoned(session) {
+  await recordAbandoned(session, "the checkout expired");
+}
+
+// A payment intent does not carry the course, so the session it
+// belongs to has to be found first.
+async function onPaymentFailed(intent) {
+  let session = null;
+  try {
+    const found = await stripe.checkout.sessions.list({
+      payment_intent: intent.id,
+      limit: 1,
+      expand: ["data.customer_details"],
+    });
+    session = found.data[0] || null;
+  } catch (err) {
+    console.error("Could not find the session for", intent.id, err.message);
+  }
+
+  // A balance invoice failing is not somebody abandoning a checkout —
+  // that has its own handling and its own retries.
+  if (!session) return;
+
+  const why = intent.last_payment_error?.message ||
+              intent.last_payment_error?.code ||
+              "the payment was declined";
+
+  await recordAbandoned(session, why);
+}
+
+async function recordAbandoned(session, reason) {
+  const details = session.customer_details || {};
+  const meta = session.metadata || {};
+
+  const email = (details.email || session.customer_email || "").trim();
+  if (!email) return;                 // nothing to write to
+  if (!meta.course_id) return;        // not one of ours
+
+  const field = (key) =>
+    session.custom_fields?.find((f) => f.key === key)?.text?.value?.trim();
+
+  const [billingFirst, ...billingRest] = (details.name || "").trim().split(" ");
+  const firstName = field("firstname") || billingFirst || null;
+  const lastName = field("lastname") || billingRest.join(" ") || null;
+
+  // They may have tried twice and got through the second time, or
+  // registered on another card. Either way there is nothing to chase.
+  const { data: already } = await supabase
+    .from("registrations")
+    .select("id")
+    .eq("course_id", meta.course_id)
+    .ilike("email", email)
+    .limit(1);
+
+  if (already && already.length) return;
+
+  // Keyed on the session, so a card retried three times leaves one
+  // record rather than three.
+  const { error } = await supabase.from("abandoned_checkouts").upsert({
+    stripe_session_id: session.id,
+    course_id: meta.course_id,
+    email,
+    first_name: firstName,
+    last_name: lastName,
+    abandoned_at: new Date().toISOString(),
+  }, { onConflict: "stripe_session_id" });
+
+  if (error) {
+    console.error("Could not record the abandoned checkout", session.id, error.message);
+    return;
+  }
+
+  console.log("Abandoned checkout recorded", {
+    session: session.id, email, course: meta.course_slug, reason,
+  });
 }
 
 // ---------------------------------------------------------------
