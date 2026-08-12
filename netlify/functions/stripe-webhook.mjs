@@ -573,14 +573,24 @@ async function recordAbandoned(session, reason, fallbackEmail) {
 
   // They may have tried twice and got through the second time, or
   // registered on another card. Either way there is nothing to chase.
+  //
+  // Only a registration that actually holds a place counts. A row
+  // sitting at pending has not been paid for, so somebody in that
+  // state whose card just failed is exactly who this is for — and a
+  // cancelled or refunded one is not a place either.
   const { data: already } = await supabase
     .from("registrations")
-    .select("id")
+    .select("id, payment_status")
     .eq("course_id", meta.course_id)
     .ilike("email", email)
+    .eq("status", "active")
+    .in("payment_status", ["paid_in_full", "deposit_paid"])
     .limit(1);
 
-  if (already && already.length) return;
+  if (already && already.length) {
+    console.log("They already hold a place — nothing to chase", session.id);
+    return;
+  }
 
   // Keyed on the session, so a card retried three times leaves one
   // record rather than three.
