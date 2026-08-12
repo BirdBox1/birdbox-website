@@ -93,6 +93,7 @@
   .tabs {
     display: flex; gap: 0.4rem; margin-bottom: 1.25rem;
     border-bottom: 1px solid var(--rule);
+    flex-wrap: wrap; align-items: flex-end;
   }
   .tab {
     font: inherit; font-size: 0.88rem; font-weight: 600;
@@ -226,6 +227,26 @@
   }
   .course .seats--nearly { color: var(--warn); border-color: #e8c9a4; background: #fff8f0; }
   .course .seats--full   { color: #fff; background: var(--good); border-color: var(--good); }
+
+  /* Sits with the tabs rather than above the list, so it reads as
+     part of choosing what you are looking at. */
+  .tabsort {
+    margin-left: auto; display: flex; align-items: center; gap: 0.4rem;
+    padding-bottom: 0.4rem;
+  }
+  .tabsort label {
+    font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600;
+  }
+  .tabsort select {
+    font: inherit; font-size: 0.82rem; padding: 0.25rem 0.5rem;
+    border: 1px solid var(--rule); border-radius: 4px;
+    background: #fff; color: var(--ink);
+  }
+  @media (max-width: 34rem) {
+    .tabsort { margin-left: 0; width: 100%; padding-top: 0.5rem; }
+    .tabsort select { flex: 1 1 auto; }
+  }
   .course .line { font-size: 0.85rem; color: var(--muted); margin-top: 0.1rem; }
   .course .flags { margin-top: 0.4rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
 
@@ -1122,6 +1143,19 @@
       <button class="tab hidden" id="tab-done" type="button" data-tab="done">
         Finished <span class="n" id="n-done"></span>
       </button>
+      <span class="tabsort">
+        <label for="sortby">Order</label>
+        <select id="sortby">
+          <option value="soonest">Date — soonest first</option>
+          <option value="furthest">Date — furthest first</option>
+          <option value="added">Recently added</option>
+          <option value="oldest">Longest on the system</option>
+          <option value="type">Course type</option>
+          <option value="fullest">Most registrations</option>
+          <option value="emptiest">Fewest registrations</option>
+          <option value="status">Drafts first, then complete</option>
+        </select>
+      </span>
     </div>
 
     <div id="lowalert"></div>
@@ -2547,6 +2581,53 @@ const CAMERA_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
   <circle cx="12" cy="13" r="4"/></svg>`;
 
+// Which order the course list is in. Held here rather than read from
+// the select each time, so switching tabs keeps the choice.
+let courseSort = "soonest";
+
+const SORTS = {
+  soonest:  (a, b) => new Date(a.starts_at) - new Date(b.starts_at),
+  furthest: (a, b) => new Date(b.starts_at) - new Date(a.starts_at),
+  added:    (a, b) => new Date(b.created_at || b.starts_at) - new Date(a.created_at || a.starts_at),
+  oldest:   (a, b) => new Date(a.created_at || a.starts_at) - new Date(b.created_at || b.starts_at),
+
+  // Brand, then level, then workshops last within a brand — which is
+  // the order somebody thinks about them in.
+  type: (a, b) =>
+    String(a.brand || "").localeCompare(String(b.brand || "")) ||
+    String(a.type || "").localeCompare(String(b.type || "")) ||
+    String(a.level || "").localeCompare(String(b.level || "")) ||
+    new Date(a.starts_at) - new Date(b.starts_at),
+
+  // Drafts first because they are unfinished business, then live
+  // ones, then anything already seen through to the end.
+  status: (a, b) => {
+    const rank = (c) =>
+      c.status === "draft" ? 0
+      : c.completed_at ? 3
+      : c.status === "cancelled" ? 4
+      : c.status === "full" ? 2 : 1;
+    return rank(a) - rank(b) || new Date(a.starts_at) - new Date(b.starts_at);
+  },
+};
+
+function sortCourses(rows, how, booked) {
+  const out = rows.slice();
+
+  // These two need the registration counts, which the plain
+  // comparators above do not have.
+  if (how === "fullest" || how === "emptiest") {
+    const n = (c) => booked[c.id] || 0;
+    out.sort((a, b) => how === "fullest"
+      ? n(b) - n(a) || new Date(a.starts_at) - new Date(b.starts_at)
+      : n(a) - n(b) || new Date(a.starts_at) - new Date(b.starts_at));
+    return out;
+  }
+
+  out.sort(SORTS[how] || SORTS.soonest);
+  return out;
+}
+
 function tagFor(course) {
   const b = BRAND[course.brand] || BRAND.birdbox;
   const lvl = String(course.level || "").replace(/\D/g, "");
@@ -2771,6 +2852,11 @@ $("back").addEventListener("click", loadCourses);
 $("back2").addEventListener("click", loadCourses);
 $("tocourses").addEventListener("click", loadCourses);
 
+$("sortby").addEventListener("change", () => {
+  courseSort = $("sortby").value;
+  loadCourses();
+});
+
 for (const id of ["tab-live", "tab-past", "tab-done"]) {
   $(id).addEventListener("click", () => {
     tab = $(id).dataset.tab;
@@ -2788,7 +2874,7 @@ async function loadCourses() {
   alertBox.innerHTML = "";
   list.innerHTML = '<p class="empty">Loading…</p>';
 
-  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, status, slug, archived, grants_online_course, completed_at, issues_certificate, host_name, host_email, host_spots, prepaid_spots";
+  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, status, slug, archived, grants_online_course, completed_at, issues_certificate, host_name, host_email, host_spots, prepaid_spots, created_at";
 
   let all = [];
   if (isAdmin()) {
@@ -2846,12 +2932,17 @@ async function loadCourses() {
     $("tab-done").classList.remove("on");
   }
 
-  const byNewest = (rows) =>
-    rows.slice().sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at));
+  // Soonest first is the default because it answers the question the
+  // page is usually open for: what is coming up. Everything else is a
+  // deliberate choice, and the archived tabs start furthest-first
+  // because there "recent" means most recently run.
+  const rows = tab === "past" ? pastOnes : tab === "done" ? doneOnes : liveOnes;
+  const effective = (tab !== "live" && courseSort === "soonest") ? "furthest" : courseSort;
+  const courses = sortCourses(rows, effective, booked);
 
-  const courses = tab === "past" ? byNewest(pastOnes)
-                : tab === "done" ? byNewest(doneOnes)
-                : liveOnes;
+  // The select can fall out of step after a reload, so it is set from
+  // the value rather than trusted to have kept it.
+  $("sortby").value = courseSort;
 
   if (!courses.length) {
     list.innerHTML = `<p class="empty">${
