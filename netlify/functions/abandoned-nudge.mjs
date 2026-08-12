@@ -79,11 +79,15 @@ export default async () => {
     // Belt and braces. The webhook closes these off when somebody
     // comes back, but a registration made any other way — a host
     // code, or added by hand in the portal — would not have.
+    // Same rule as the webhook: only a registration that actually
+    // holds a place counts. Pending is not a place.
     const { data: already } = await supabase
       .from("registrations")
       .select("id")
       .eq("course_id", row.course_id)
       .ilike("email", row.email)
+      .eq("status", "active")
+      .in("payment_status", ["paid_in_full", "deposit_paid"])
       .limit(1);
 
     if (already && already.length) {
