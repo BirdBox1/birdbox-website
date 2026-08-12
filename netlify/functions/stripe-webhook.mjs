@@ -491,39 +491,74 @@ async function onCheckoutAbandoned(session) {
   await recordAbandoned(session, "the checkout expired");
 }
 
-// A payment intent does not carry the course, so the session it
-// belongs to has to be found first.
+// A payment intent carries no metadata of its own — no course, and
+// often no email — so the checkout session it belongs to has to be
+// found first. Two ways, because either can come back empty.
 async function onPaymentFailed(intent) {
   let session = null;
-  try {
-    const found = await stripe.checkout.sessions.list({
-      payment_intent: intent.id,
-      limit: 1,
-      expand: ["data.customer_details"],
-    });
-    session = found.data[0] || null;
-  } catch (err) {
-    console.error("Could not find the session for", intent.id, err.message);
+
+  // The session id is on the intent itself on current API versions,
+  // which is quicker and more reliable than searching for it.
+  const reference = intent.payment_details?.order_reference;
+  if (typeof reference === "string" && reference.startsWith("cs_")) {
+    try {
+      session = await stripe.checkout.sessions.retrieve(reference);
+    } catch (err) {
+      console.error("Could not read session", reference, err.message);
+    }
+  }
+
+  // Older intents, and anything where that field is absent.
+  if (!session) {
+    try {
+      const found = await stripe.checkout.sessions.list({
+        payment_intent: intent.id,
+        limit: 1,
+      });
+      session = found.data[0] || null;
+    } catch (err) {
+      console.error("Could not find a session for", intent.id, err.message);
+    }
   }
 
   // A balance invoice failing is not somebody abandoning a checkout —
   // that has its own handling and its own retries.
-  if (!session) return;
+  if (!session) {
+    console.log("Payment failed with no checkout session — ignored", intent.id);
+    return;
+  }
 
   const why = intent.last_payment_error?.message ||
               intent.last_payment_error?.code ||
               "the payment was declined";
 
-  await recordAbandoned(session, why);
+  // The session may have no email on it if they never got that far,
+  // but the card they tried usually carries one.
+  const fallbackEmail =
+    intent.receipt_email ||
+    intent.last_payment_error?.payment_method?.billing_details?.email ||
+    null;
+
+  await recordAbandoned(session, why, fallbackEmail);
 }
 
-async function recordAbandoned(session, reason) {
+async function recordAbandoned(session, reason, fallbackEmail) {
   const details = session.customer_details || {};
   const meta = session.metadata || {};
 
-  const email = (details.email || session.customer_email || "").trim();
-  if (!email) return;                 // nothing to write to
-  if (!meta.course_id) return;        // not one of ours
+  const email = (details.email || session.customer_email || fallbackEmail || "").trim();
+
+  // Say why rather than returning in silence. A record that never
+  // appears is indistinguishable from a webhook that never fired,
+  // and that difference cost an hour once already.
+  if (!email) {
+    console.log("Abandoned checkout has no email address — nothing to write to", session.id);
+    return;
+  }
+  if (!meta.course_id) {
+    console.log("Abandoned checkout carries no course — not one of ours", session.id);
+    return;
+  }
 
   const field = (key) =>
     session.custom_fields?.find((f) => f.key === key)?.text?.value?.trim();
@@ -531,6 +566,10 @@ async function recordAbandoned(session, reason) {
   const [billingFirst, ...billingRest] = (details.name || "").trim().split(" ");
   const firstName = field("firstname") || billingFirst || null;
   const lastName = field("lastname") || billingRest.join(" ") || null;
+
+  console.log("Recording abandoned checkout", {
+    session: session.id, email, course: meta.course_slug || meta.course_id, reason,
+  });
 
   // They may have tried twice and got through the second time, or
   // registered on another card. Either way there is nothing to chase.
