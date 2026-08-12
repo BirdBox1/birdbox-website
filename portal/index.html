@@ -2932,19 +2932,13 @@ async function loadCourses() {
     $("tab-done").classList.remove("on");
   }
 
-  // Soonest first is the default because it answers the question the
-  // page is usually open for: what is coming up. Everything else is a
-  // deliberate choice, and the archived tabs start furthest-first
-  // because there "recent" means most recently run.
   const rows = tab === "past" ? pastOnes : tab === "done" ? doneOnes : liveOnes;
-  const effective = (tab !== "live" && courseSort === "soonest") ? "furthest" : courseSort;
-  const courses = sortCourses(rows, effective, booked);
 
   // The select can fall out of step after a reload, so it is set from
   // the value rather than trusted to have kept it.
   $("sortby").value = courseSort;
 
-  if (!courses.length) {
+  if (!rows.length) {
     list.innerHTML = `<p class="empty">${
       tab === "past" ? "Nothing archived or cancelled."
       : tab === "done" ? "Nothing filed yet."
@@ -2953,15 +2947,28 @@ async function loadCourses() {
     return;
   }
 
+  // Loaded before the sort, because two of the orderings are by how
+  // many people are on each course. Counted from the tab's own list —
+  // sorting changes the order, never the membership.
+  //
+  // A cancelled registration is not a person in the room. Refunded
+  // and failed were already excluded; cancelled was not, and these
+  // numbers decide whether a course looks viable.
   const booked = {};
   const { data: regs } = await db.from("registrations")
     .select("course_id, payment_status, status")
-    .in("course_id", courses.map((c) => c.id));
+    .in("course_id", rows.map((c) => c.id));
   for (const r of regs || []) {
     if (r.payment_status === "refunded" || r.payment_status === "failed") continue;
     if ((r.status || "active") !== "active") continue;
     booked[r.course_id] = (booked[r.course_id] || 0) + 1;
   }
+
+  // Soonest first is the default because it answers the question the
+  // page is usually open for: what is coming up. The archived tabs
+  // flip it, because there "recent" means most recently run.
+  const effective = (tab !== "live" && courseSort === "soonest") ? "furthest" : courseSort;
+  const courses = sortCourses(rows, effective, booked);
 
   // Who owes an invoice, and who has sent one. Only worth loading for
   // courses that have actually run — nobody invoices in advance.
