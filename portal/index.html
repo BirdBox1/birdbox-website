@@ -211,6 +211,21 @@
   }
   .course .title { font-weight: 650; letter-spacing: -0.01em; }
   .course .when { font-size: 0.82rem; color: var(--muted); white-space: nowrap; }
+
+  /* How full it is, top right. Quiet until it matters — amber when
+     there are only a handful of places left, solid once it is full,
+     because those are the two states worth noticing from a list. */
+  .course .topright {
+    display: flex; align-items: baseline; gap: 0.55rem;
+    white-space: nowrap; flex: none;
+  }
+  .course .seats {
+    font-size: 0.78rem; font-weight: 650; font-variant-numeric: tabular-nums;
+    color: var(--muted); border: 1px solid var(--rule); border-radius: 3px;
+    padding: 0.1rem 0.35rem; line-height: 1.35;
+  }
+  .course .seats--nearly { color: var(--warn); border-color: #e8c9a4; background: #fff8f0; }
+  .course .seats--full   { color: #fff; background: var(--good); border-color: var(--good); }
   .course .line { font-size: 0.85rem; color: var(--muted); margin-top: 0.1rem; }
   .course .flags { margin-top: 0.4rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
 
@@ -2849,10 +2864,11 @@ async function loadCourses() {
 
   const booked = {};
   const { data: regs } = await db.from("registrations")
-    .select("course_id, payment_status")
+    .select("course_id, payment_status, status")
     .in("course_id", courses.map((c) => c.id));
   for (const r of regs || []) {
     if (r.payment_status === "refunded" || r.payment_status === "failed") continue;
+    if ((r.status || "active") !== "active") continue;
     booked[r.course_id] = (booked[r.course_id] || 0) + 1;
   }
 
@@ -3030,7 +3046,10 @@ async function loadCourses() {
         <span>
           <span class="top">
             <span class="title"></span>
-            <span class="when"></span>
+            <span class="topright">
+              <span class="when"></span>
+              <span class="seats"></span>
+            </span>
           </span>
           <span class="line"></span>
           <span class="flags"></span>
@@ -3041,6 +3060,21 @@ async function loadCourses() {
     el.querySelector(".icon img").src = b.icon;
     el.querySelector(".title").textContent = c.title;
     el.querySelector(".when").textContent = fmtDate(c.starts_at, c.timezone);
+
+    // How full it is, at a glance. The number people actually want
+    // from this page and currently have to open a course to find.
+    const seats = el.querySelector(".seats");
+    if (c.capacity) {
+      seats.textContent = `${taken}/${c.capacity}`;
+      const share = taken / c.capacity;
+      seats.classList.toggle("seats--full", taken >= c.capacity);
+      seats.classList.toggle("seats--nearly", taken < c.capacity && share >= 0.85);
+      seats.title = taken >= c.capacity
+        ? "Full"
+        : `${c.capacity - taken} place${c.capacity - taken === 1 ? "" : "s"} left`;
+    } else {
+      seats.remove();
+    }
     el.querySelector(".line").textContent =
       [c.city, countryName(c.country)].filter(Boolean).join(", ") || "Location to be confirmed";
 
