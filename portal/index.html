@@ -7162,7 +7162,14 @@ function teamRow(person) {
         )) return;
         del.disabled = true;
         try {
-          await callStaff({ action: "delete", staffId: person.id });
+          const r = await callStaff({ action: "delete", staffId: person.id });
+          let note = "";
+          if (r.stillOn && r.stillOn.length) {
+            note += `${person.full_name} was still on ${r.stillOn.length} upcoming course` +
+              `${r.stillOn.length === 1 ? "" : "s"}:\n${r.stillOn.join("\n")}\n\nAssign somebody else to those.`;
+          }
+          if (r.authWarning) note += (note ? "\n\n" : "") + r.authWarning;
+          if (note) window.alert(note);
           await loadTeam();
         } catch (err) {
           window.alert(err.message);
