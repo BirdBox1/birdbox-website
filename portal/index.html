@@ -7146,6 +7146,31 @@ function teamRow(person) {
       }
     };
     acts.append(on);
+
+    // Fully remove a deactivated coach so their email can be invited again.
+    // Guarded server-side: only works if they have no course history.
+    if (person.id !== me.id) {
+      const del = document.createElement("button");
+      del.className = "btn ghost tiny danger";
+      del.type = "button";
+      del.textContent = "Delete";
+      del.onclick = async () => {
+        if (!window.confirm(
+          `Permanently delete ${person.full_name}?\n\n` +
+          "This removes their login and staff record so the email can be invited again from scratch. " +
+          "It only works if they have no course history \u2014 otherwise keep them deactivated.\n\nThis cannot be undone."
+        )) return;
+        del.disabled = true;
+        try {
+          await callStaff({ action: "delete", staffId: person.id });
+          await loadTeam();
+        } catch (err) {
+          window.alert(err.message);
+          del.disabled = false;
+        }
+      };
+      acts.append(del);
+    }
   }
 
   row.append(who, role, acts);
