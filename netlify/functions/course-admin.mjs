@@ -50,6 +50,7 @@ export default async (request) => {
       case "send_registration_email": return await sendRegistrationEmail(body);
       case "cancel_preview":        return await cancelPreview(body);
       case "cancel":                return await cancel(body, me);
+      case "refund_registration":   return await refundRegistration(body, me);
       default:
         return json({ error: `Unknown action "${body.action}".` }, 400);
     }
@@ -589,6 +590,144 @@ ${OFFICE}`,
     emailed,
     refundedCents: refunded,
     people: plan.length,
+    problems,
+  });
+}
+
+// ---------------------------------------------------------------
+// Cancel and refund ONE participant (not the whole course). Same refund
+// mechanics and safety checks as cancel(), applied to a single person:
+// refund what was actually charged, stop anything still scheduled, free
+// their place, and email them. The course itself stays live.
+
+async function refundRegistration({ courseId, registrationId, reason }, me) {
+  if (!courseId || !registrationId) return json({ error: "A course and a participant are needed." }, 400);
+
+  const { data: course } = await supabase
+    .from("courses")
+    .select("id, brand, title, starts_at, timezone, city")
+    .eq("id", courseId)
+    .maybeSingle();
+  if (!course) return json({ error: "Course not found" }, 404);
+
+  const { data: reg } = await supabase
+    .from("registrations")
+    .select("id, first_name, last_name, email, status, payment_status, currency")
+    .eq("id", registrationId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (!reg) return json({ error: "Participant not found on this course" }, 404);
+  if ((reg.status || "") === "cancelled" && reg.payment_status === "refunded") {
+    return json({ error: "This participant has already been cancelled and refunded." }, 400);
+  }
+
+  // Same reasoning as cancelPlan(): charged_at is the fact about whether
+  // money moved; status is only a label. Never refund what was not taken.
+  const { data: pays } = await supabase
+    .from("payments")
+    .select("id, sequence, amount_cents, status, charged_at, stripe_payment_intent_id, refunded_at")
+    .eq("registration_id", reg.id);
+
+  const rows = pays || [];
+  const wasTaken = (p) => !!p.charged_at && p.status !== "refunded" && !p.refunded_at;
+  const toRefund = rows.filter((p) => wasTaken(p) && p.stripe_payment_intent_id);
+  const toCancel = rows.filter((p) => !p.charged_at && p.status !== "refunded" && p.status !== "cancelled");
+  const stuck    = rows.filter((p) => wasTaken(p) && !p.stripe_payment_intent_id);
+
+  let refunded = 0;
+  const problems = [];
+
+  for (const row of toRefund) {
+    // Re-check at the moment of refunding, so two admins cannot double-refund.
+    const { data: pay } = await supabase
+      .from("payments")
+      .select("id, amount_cents, status, charged_at, stripe_payment_intent_id, refunded_at")
+      .eq("id", row.id)
+      .single();
+    if (!pay || pay.refunded_at || pay.status === "refunded") continue;
+    if (!pay.charged_at || !pay.stripe_payment_intent_id) continue;
+
+    try {
+      const refund = await stripe.refunds.create({
+        payment_intent: pay.stripe_payment_intent_id,
+        reason: "requested_by_customer",
+      });
+      await supabase.from("payments").update({
+        status: "refunded",
+        refunded_at: new Date().toISOString(),
+        refunded_cents: pay.amount_cents,
+        stripe_refund_id: refund.id,
+      }).eq("id", pay.id);
+      refunded += pay.amount_cents;
+    } catch (err) {
+      console.error("Refund failed for", reg.email, err.message);
+      problems.push(`${reg.first_name || reg.email}: ${err.message}`);
+    }
+  }
+
+  // Stop anything still scheduled so nothing further is taken.
+  if (toCancel.length) {
+    const { error } = await supabase
+      .from("payments")
+      .update({ status: "cancelled" })
+      .in("id", toCancel.map((p) => p.id));
+    if (error) problems.push(`could not stop the balance — ${error.message}`);
+  }
+
+  // Charged but with no Stripe reference — cannot refund automatically.
+  if (stuck.length) {
+    const stuckCents = stuck.reduce((n, p) => n + (p.amount_cents || 0), 0);
+    problems.push(`${formatMoney(stuckCents, reg.currency || "EUR")} was taken but has no Stripe reference — refund it by hand in Stripe.`);
+  }
+
+  // Free their place and set the record.
+  await supabase.from("registrations")
+    .update({ status: "cancelled", payment_status: refunded ? "refunded" : "pending" })
+    .eq("id", reg.id);
+
+  // ---- tell the participant ----
+  const tz = safeZone(course.timezone);
+  const when = longDate(course.starts_at, tz);
+  const currency = reg.currency || "EUR";
+  const moneyLine = refunded
+    ? `${formatMoney(refunded, currency)} has been refunded to the card you paid with. It usually appears within five to ten working days.`
+    : "There was nothing to refund on your registration.";
+
+  let emailed = false;
+  if (reg.email) {
+    emailed = await send({
+      to: reg.email,
+      subject: `Your place on ${course.title} has been cancelled`,
+      text:
+`Hello ${(reg.first_name || "there")},
+
+Your place on ${course.title}, due to run on ${when}, has been cancelled.
+
+${reason ? reason + "\n\n" : ""}WHAT HAPPENS WITH YOUR MONEY
+
+${moneyLine}
+${toCancel.length ? "\nAny payment still scheduled has been stopped, so nothing further will be taken from your card.\n" : ""}
+If anything here is not what you expected, just reply to this email and we will sort it out.
+
+BirdBox Coaching
+${OFFICE}`,
+      brand: course.brand,
+    });
+    if (emailed) {
+      await logEmail({
+        courseId: course.id,
+        registrationId: reg.id,
+        kind: "cancelled",
+        subject: `Your place on ${course.title} has been cancelled`,
+        body: `Single participant cancelled and refunded by ${me.full_name}.`,
+      });
+    }
+  }
+
+  return json({
+    cancelled: true,
+    emailed,
+    refundedCents: refunded,
     problems,
   });
 }
