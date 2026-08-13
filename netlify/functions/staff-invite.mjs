@@ -206,10 +206,13 @@ async function setActive({ staffId }, active, me) {
   return json({ done: true, name: person.full_name });
 }
 
-// Fully remove somebody — their login and their staff record — so the
-// email is free to be invited from scratch. Deliberately narrow: only for
-// people with no course history. Anyone who has actually coached stays
-// deactivated instead, so their name on past records is never broken.
+// Fully remove somebody — their staff record and their login — so the
+// email is free to invite again, and a fired coach is properly gone.
+//
+// Most references clear themselves on delete (SET NULL / CASCADE). A few
+// are NO ACTION and would block, so they are cleared first. The one thing
+// we will NOT quietly erase is money: a coach with invoice records is kept
+// (deactivate them instead), because that is financial history.
 async function remove({ staffId }, me) {
   if (staffId === me.id) return json({ error: "You cannot delete yourself." }, 400);
 
@@ -217,37 +220,53 @@ async function remove({ staffId }, me) {
     .from("staff").select("id, full_name, email").eq("id", staffId).maybeSingle();
   if (!person) return json({ error: "That person is not on the team." }, 404);
 
-  // On any course, past or future? Deleting them would break those records.
-  const { data: assigned } = await supabase
-    .from("course_staff").select("course_id").eq("staff_id", staffId).limit(1);
-  if (assigned && assigned.length) {
+  // Financial history is never silently deleted.
+  const { data: inv } = await supabase
+    .from("coach_invoices").select("id").eq("staff_id", staffId).limit(1);
+  if (inv && inv.length) {
     return json({
-      error: `${person.full_name} is assigned to one or more courses, so deleting them would break those records. Deactivate them instead.`,
+      error: `${person.full_name} has invoice records, so they can't be deleted — that would erase financial history. Deactivate them instead.`,
     }, 400);
   }
 
-  // Remove the staff row first. A foreign-key error means they have other
-  // history (notes, messages), so stop rather than half-delete.
+  // Note any upcoming courses they were on, so the admin can reassign.
+  const { data: upcoming } = await supabase
+    .from("course_staff")
+    .select("courses ( title, starts_at, archived, status )")
+    .eq("staff_id", staffId);
+  const stillOn = (upcoming || [])
+    .filter((r) => r.courses && !r.courses.archived &&
+                   r.courses.status !== "cancelled" &&
+                   new Date(r.courses.starts_at) > new Date())
+    .map((r) => r.courses.title);
+
+  // Clear the NO ACTION references the database will not clear itself.
+  await supabase.from("direct_messages").delete()
+    .or(`sender_id.eq.${staffId},recipient_id.eq.${staffId}`);
+  await supabase.from("course_messages").delete().eq("staff_id", staffId);
+  await supabase.from("registrations").update({ added_by: null }).eq("added_by", staffId);
+  await supabase.from("workshop_requests").update({ requested_by: null }).eq("requested_by", staffId);
+  await supabase.from("workshop_requests").update({ reviewed_by: null }).eq("reviewed_by", staffId);
+  await supabase.from("workshop_templates").update({ approved_by: null }).eq("approved_by", staffId);
+  await supabase.from("workshop_templates").update({ created_by: null }).eq("created_by", staffId);
+
+  // Remove the staff row — CASCADE clears course_staff, reflections,
+  // staff_documents; SET NULL clears blog author, notes, certificates, etc.
   const { error: sErr } = await supabase.from("staff").delete().eq("id", staffId);
   if (sErr) {
-    return json({
-      error: "This person has records linked to them, so they cannot be fully deleted. Keep them deactivated instead.",
-    }, 400);
+    return json({ error: "Could not remove them: " + sErr.message }, 500);
   }
 
-  // Then clear the login, so the email can be invited again.
+  // Clear the login so the email is free to invite again.
+  let authWarning = null;
   try {
     await supabase.auth.admin.deleteUser(staffId);
   } catch (err) {
     console.error("Staff row deleted but auth user remained:", err.message);
-    return json({
-      deleted: true,
-      name: person.full_name,
-      warning: "Removed from the team, but their old login could not be cleared. If re-inviting that email fails, delete the user under Supabase Authentication.",
-    });
+    authWarning = "Their old login could not be cleared automatically — if re-inviting that email fails, delete the user under Supabase Authentication.";
   }
 
-  return json({ deleted: true, name: person.full_name });
+  return json({ deleted: true, name: person.full_name, stillOn, authWarning });
 }
 
 // ---------------------------------------------------------------
