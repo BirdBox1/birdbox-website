@@ -286,6 +286,7 @@
   .pill.draft{ border-color: var(--muted); color: var(--muted); }
   .pill.on   { border-color: var(--good); color: var(--good); }
   .pill.code { border-color: var(--accent); color: var(--accent); text-transform: none; letter-spacing: 0.02em; font-weight: 650; }
+  .pill.coach{ border-color: var(--ink); color: var(--ink); text-transform: none; letter-spacing: 0.01em; font-weight: 600; }
   .pill.done { background: var(--good); border-color: var(--good); color: #fff; font-weight: 700; }
   .pill.low  { background: var(--warn); border-color: var(--warn); color: #fff; font-weight: 700; }
   .pill.lead { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 700; }
@@ -3029,14 +3030,20 @@ async function loadCourses() {
 
   const hasLead = {};
   const assistCount = {};
+  const leadName = {};      // course_id -> lead coach first name (admin view)
+  const assistNames = {};   // course_id -> [assistant first names]
   if (isAdmin()) {
     const { data: staffRows } = await db.from("course_staff")
-      .select("course_id, role")
+      .select("course_id, role, staff ( full_name )")
       .in("course_id", courses.map((c) => c.id));
     for (const row of staffRows || []) {
-      if (row.role === "lead_coach") hasLead[row.course_id] = true;
-      else if (row.role === "assistant") {
+      const nm = ((row.staff && row.staff.full_name) || "Unnamed").split(" ")[0];
+      if (row.role === "lead_coach") {
+        hasLead[row.course_id] = true;
+        leadName[row.course_id] = nm;
+      } else if (row.role === "assistant") {
         assistCount[row.course_id] = (assistCount[row.course_id] || 0) + 1;
+        (assistNames[row.course_id] = assistNames[row.course_id] || []).push(nm);
       }
     }
   }
@@ -3200,6 +3207,20 @@ async function loadCourses() {
       const s = document.createElement("span");
       s.className = "pill " + cls; s.textContent = text; flags.append(s);
     };
+
+    // Admin-only: who is coaching this course (lead + assistants), so the
+    // whole allocation can be scanned from the front page at a glance.
+    if (isAdmin()) {
+      const lead = leadName[c.id];
+      const assists = assistNames[c.id] || [];
+      if (lead || assists.length) {
+        let txt = "Lead: " + (lead || "—");
+        if (assists.length) {
+          txt += " · " + (assists.length === 1 ? "Assist: " : "Assists: ") + assists.join(", ");
+        }
+        add(txt, "coach");
+      }
+    }
 
     if (!isAdmin() && myRoles[c.id]) {
       add(myRoles[c.id] === "lead_coach" ? "you: lead" : "you: assist",
@@ -7077,6 +7098,43 @@ function teamRow(person) {
 
   const acts = document.createElement("span");
   acts.className = "files";
+
+  // Admin can set or replace anyone's profile photo. Uploaded via the
+  // staff-invite function, which alone has rights to write another person's
+  // staff row and their slot in the staff-photos bucket.
+  const photoBtn = document.createElement("button");
+  photoBtn.className = "btn ghost tiny";
+  photoBtn.type = "button";
+  photoBtn.textContent = person.photo_path ? "Change photo" : "Add photo";
+  const photoInput = document.createElement("input");
+  photoInput.type = "file";
+  photoInput.accept = "image/*";
+  photoInput.className = "hidden";
+  photoBtn.onclick = () => photoInput.click();
+  photoInput.addEventListener("change", async () => {
+    const file = photoInput.files[0];
+    if (!file) return;
+    const was = photoBtn.textContent;
+    photoBtn.disabled = true;
+    photoBtn.textContent = "Saving…";
+    try {
+      const blob = await shrink(file);
+      const image = await new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => res(fr.result);
+        fr.onerror = () => rej(new Error("Could not read that image."));
+        fr.readAsDataURL(blob);
+      });
+      await callStaff({ action: "set_photo", staffId: person.id, image });
+      await loadTeam();
+    } catch (err) {
+      window.alert(err.message || "Could not save that photo.");
+      photoBtn.textContent = was;
+      photoBtn.disabled = false;
+    }
+    photoInput.value = "";
+  });
+  acts.append(photoBtn, photoInput);
 
   if (person.active) {
     const again = document.createElement("button");
