@@ -87,7 +87,7 @@
       nav.append(wrap);
     }
 
-    window.gtranslateSettings = {"default_language":"en","native_language_names":true,"detect_browser_language":true,"url_structure":"sub_domain","languages":["en","fr","it","es","de","zh-CN","cs","fi","nl","ja","ko","pl","pt","ca","hu","ar","ro","ru"],"wrapper_selector":".gtranslate_wrapper","flag_size":16,"switcher_horizontal_position":"right","flag_style":"3d","switcher_text_color":"#f7f7f7","switcher_arrow_color":"#f2f2f2","switcher_border_color":"#161616","switcher_background_color":"#303030","switcher_background_shadow_color":"#474747","switcher_background_hover_color":"#3a3a3a","dropdown_text_color":"#eaeaea","dropdown_hover_color":"#748393","dropdown_background_color":"#474747"};
+    window.gtranslateSettings = {"default_language":"en","native_language_names":true,"detect_browser_language":true,"url_structure":"sub_domain","languages":["en","fr","it","es","de","zh-CN","cs","fi","nl","ja","ko","pl","pt","ca","hu","ar","ro","ru"],"wrapper_selector":".gtranslate_wrapper","flag_size":16,"switcher_horizontal_position":"inline","flag_style":"3d","switcher_text_color":"#f7f7f7","switcher_arrow_color":"#f2f2f2","switcher_border_color":"#161616","switcher_background_color":"#303030","switcher_background_shadow_color":"#474747","switcher_background_hover_color":"#3a3a3a","dropdown_text_color":"#eaeaea","dropdown_hover_color":"#748393","dropdown_background_color":"#474747"};
 
     var s = document.createElement("script");
     s.src = "https://cdn.gtranslate.net/widgets/latest/dwf.js";
