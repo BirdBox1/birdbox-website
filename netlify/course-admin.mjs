@@ -55,6 +55,7 @@ export default async (req) => {
 
     if (action === "reschedule") return await reschedule(course, body, admin);
     if (action === "cancel")     return await cancel(course, body, admin);
+  if (action === "refund_registration") return await refundRegistration(course, body, admin);
 
     return json({ error: "Unknown action" }, 400);
   } catch (err) {
@@ -335,6 +336,108 @@ async function cancel(course, body, admin) {
     refunded_cents: refundedTotal,
     problems: failures,
   });
+}
+
+// ---------------------------------------------------------------
+// cancel and refund ONE participant (frees their place, refunds their
+// money, emails them). Same refund mechanics as the whole-course cancel.
+// ---------------------------------------------------------------
+async function refundRegistration(course, body, admin) {
+  const regId = body.registrationId;
+  if (!regId) return json({ error: "Missing participant" }, 400);
+
+  const { data: reg } = await supabase
+    .from("registrations")
+    .select("id, first_name, last_name, email, currency, payment_status, status")
+    .eq("id", regId)
+    .eq("course_id", course.id)
+    .single();
+
+  if (!reg) return json({ error: "Participant not found on this course" }, 404);
+  if (reg.payment_status === "refunded") {
+    return json({ error: "This participant has already been refunded." }, 400);
+  }
+
+  const { data: pays } = await supabase
+    .from("payments")
+    .select("id, sequence, amount_cents, status, stripe_payment_intent_id, stripe_invoice_id")
+    .eq("registration_id", reg.id)
+    .order("sequence", { ascending: true });
+
+  let refunded = 0;
+  const problems = [];
+
+  for (const pay of pays || []) {
+    // Money already taken comes back.
+    if (pay.status === "paid" && pay.stripe_payment_intent_id) {
+      try {
+        const refund = await stripe.refunds.create({
+          payment_intent: pay.stripe_payment_intent_id,
+          reason: "requested_by_customer",
+          metadata: { course_slug: course.slug, registration_id: reg.id, cancelled_by: admin.full_name },
+        });
+        refunded += refund.amount || pay.amount_cents || 0;
+        await supabase.from("payments")
+          .update({ status: "refunded", last_error: null })
+          .eq("id", pay.id);
+      } catch (err) {
+        problems.push(`instalment ${pay.sequence}: ${err.message}`);
+        await supabase.from("payments")
+          .update({ last_error: "Refund failed: " + err.message })
+          .eq("id", pay.id);
+      }
+      continue;
+    }
+    // Money not yet taken must never be taken.
+    if (pay.stripe_invoice_id) {
+      try {
+        const inv = await stripe.invoices.retrieve(pay.stripe_invoice_id);
+        if (inv.status === "draft") await stripe.invoices.del(pay.stripe_invoice_id);
+        else if (inv.status === "open") await stripe.invoices.voidInvoice(pay.stripe_invoice_id);
+        await supabase.from("payments")
+          .update({ status: "refunded", last_error: null })
+          .eq("id", pay.id);
+      } catch (err) {
+        problems.push(`unpaid balance: ${err.message}`);
+      }
+    }
+  }
+
+  // Refund their record and free their place on the course.
+  await supabase.from("registrations")
+    .update({ payment_status: "refunded", status: "cancelled" })
+    .eq("id", reg.id);
+
+  // Tell the participant (unless the caller asks us not to).
+  const reason = (body.reason || "").trim();
+  const amount = refunded ? money(refunded, reg.currency) : null;
+  let emailed = false;
+  if (body.notify !== false) {
+    emailed = await sendEmail({
+      to: reg.email,
+      subject: `Your place on ${course.title} has been cancelled`,
+      heading: "Your registration has been cancelled",
+      body: [
+        `Hi ${escapeHtml(reg.first_name)},`,
+        `Your place on <strong>${escapeHtml(course.title)}</strong> on ${longDate(course.starts_at)} has been cancelled.`,
+        reason ? escapeHtml(reason) : "",
+        amount
+          ? `<strong>You have been refunded ${amount}.</strong> It has been sent back to your card and normally lands within five to ten working days, depending on your bank. You do not need to do anything.`
+          : `Any payment you made is being refunded.`,
+        `If this was not expected, just reply to this email and we will sort it out.`,
+      ],
+    });
+  }
+
+  await adminSummary(
+    `Participant refunded: ${course.title}`,
+    `${admin.full_name} cancelled and refunded ${reg.first_name} ${reg.last_name} (${reg.email}) on ${course.title} (${longDate(course.starts_at)}).\n\n` +
+    `Refunded: ${money(refunded, reg.currency || "EUR")}\n` +
+    `Participant emailed: ${emailed ? "yes" : "no"}\n` +
+    (problems.length ? `\nNEEDS ATTENTION — did not refund cleanly:\n  ${problems.join("; ")}` : "Refund went through cleanly.")
+  );
+
+  return json({ ok: true, refunded_cents: refunded, emailed, problems });
 }
 
 // ---------------------------------------------------------------
