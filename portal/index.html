@@ -9034,6 +9034,7 @@ function buildActions(box, course, reg, status) {
     add("Archive", "ghost small", (b) => setRegStatus(reg, "archived", b));
     add("Cancelled", "ghost small", (b) => setRegStatus(reg, "cancelled", b));
     add("No show", "ghost small", (b) => setRegStatus(reg, "no_show", b));
+    add("Refund & cancel", "ghost small danger", (b) => refundAndCancel(course, reg, b));
   }
   // Only where the course actually includes an online course, so the
   // button cannot appear somewhere it would be meaningless.
@@ -9065,6 +9066,40 @@ async function setRegStatus(reg, status, btn) {
   btn.disabled = false;
   if (error) { window.alert("That did not work: " + error.message); return; }
   openCourse(currentCourse);
+}
+
+async function refundAndCancel(course, reg, btn) {
+  const who = `${reg.first_name} ${reg.last_name}`;
+  const amt = reg.amount_paid_cents
+    ? money(reg.amount_paid_cents, reg.currency)
+    : "any payment they made";
+  if (!window.confirm(
+    `Refund ${amt} to ${who} and cancel their place on this course?\n\n` +
+    "This sends real money back to their card and cannot be undone. They will be emailed a confirmation."
+  )) return;
+
+  btn.disabled = true;
+  const prev = btn.textContent;
+  btn.textContent = "Refunding\u2026";
+  try {
+    const r = await callAdmin({
+      action: "refund_registration",
+      courseId: course.id,
+      registrationId: reg.id,
+    });
+    if (r.problems && r.problems.length) {
+      window.alert(
+        "Their place was cancelled, but the refund hit a problem:\n" +
+        r.problems.join("; ") +
+        "\n\nCheck Stripe and refund by hand if needed."
+      );
+    }
+    openCourse(currentCourse);
+  } catch (err) {
+    window.alert("That did not work: " + err.message);
+    btn.disabled = false;
+    btn.textContent = prev;
+  }
 }
 
 async function deleteParticipant(reg, btn) {
