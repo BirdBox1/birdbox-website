@@ -61,13 +61,13 @@ export default async () => {
   try {
     const { data: courses } = await supabase
       .from("courses")
-      .select("slug, updated_at, created_at")
+      .select("slug, created_at")
       .eq("status", "published")
       .eq("archived", false)
       .gt("starts_at", nowIso);
     for (const c of courses || []) {
       if (!c.slug) continue;
-      entries.push(urlEntry(`${SITE}/c/${c.slug}/`, day(c.updated_at || c.created_at), "weekly", "0.8"));
+      entries.push(urlEntry(`${SITE}/c/${c.slug}/`, day(c.created_at), "weekly", "0.8"));
     }
   } catch (_) { /* skip courses if unavailable */ }
 
