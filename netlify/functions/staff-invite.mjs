@@ -50,6 +50,7 @@ export default async (request) => {
       case "reinvite":   return await reinvite(body, me);
       case "deactivate": return await setActive(body, false, me);
       case "reactivate": return await setActive(body, true, me);
+      case "delete":     return await remove(body, me);
       default:
         return json({ error: `Unknown action "${body.action}".` }, 400);
     }
@@ -203,6 +204,50 @@ async function setActive({ staffId }, active, me) {
   if (error) return json({ error: error.message }, 500);
 
   return json({ done: true, name: person.full_name });
+}
+
+// Fully remove somebody — their login and their staff record — so the
+// email is free to be invited from scratch. Deliberately narrow: only for
+// people with no course history. Anyone who has actually coached stays
+// deactivated instead, so their name on past records is never broken.
+async function remove({ staffId }, me) {
+  if (staffId === me.id) return json({ error: "You cannot delete yourself." }, 400);
+
+  const { data: person } = await supabase
+    .from("staff").select("id, full_name, email").eq("id", staffId).maybeSingle();
+  if (!person) return json({ error: "That person is not on the team." }, 404);
+
+  // On any course, past or future? Deleting them would break those records.
+  const { data: assigned } = await supabase
+    .from("course_staff").select("course_id").eq("staff_id", staffId).limit(1);
+  if (assigned && assigned.length) {
+    return json({
+      error: `${person.full_name} is assigned to one or more courses, so deleting them would break those records. Deactivate them instead.`,
+    }, 400);
+  }
+
+  // Remove the staff row first. A foreign-key error means they have other
+  // history (notes, messages), so stop rather than half-delete.
+  const { error: sErr } = await supabase.from("staff").delete().eq("id", staffId);
+  if (sErr) {
+    return json({
+      error: "This person has records linked to them, so they cannot be fully deleted. Keep them deactivated instead.",
+    }, 400);
+  }
+
+  // Then clear the login, so the email can be invited again.
+  try {
+    await supabase.auth.admin.deleteUser(staffId);
+  } catch (err) {
+    console.error("Staff row deleted but auth user remained:", err.message);
+    return json({
+      deleted: true,
+      name: person.full_name,
+      warning: "Removed from the team, but their old login could not be cleared. If re-inviting that email fails, delete the user under Supabase Authentication.",
+    });
+  }
+
+  return json({ deleted: true, name: person.full_name });
 }
 
 // ---------------------------------------------------------------
