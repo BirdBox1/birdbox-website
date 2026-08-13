@@ -142,6 +142,19 @@
     margin: 14px 0 0;
     text-align: center;
   }
+  .bb-back {
+    display: inline-block;
+    margin-top: 30px;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accentText);
+    text-decoration: none;
+    border: 1px solid var(--line);
+    padding: 12px 24px;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .bb-back:hover { border-color: var(--accent); color: #ffffff; }
 
   .bb-footer {
     text-align: center;
@@ -201,6 +214,8 @@
     <p class="bb-note" id="bb-note" role="status"></p>
     <p class="bb-small">We will only email you about The Weightlifting Course. No newsletters, no sharing.</p>
   </section>
+
+  <a class="bb-back" href="/">&larr; All pathways</a>
 </main>
 
 <footer class="bb-footer">
