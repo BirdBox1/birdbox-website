@@ -218,7 +218,7 @@
      because those are the two states worth noticing from a list. */
   .course .topright {
     display: flex; align-items: baseline; gap: 0.55rem;
-    white-space: nowrap; flex: none;
+    white-space: nowrap; flex: none; flex-wrap: wrap; justify-content: flex-end;
   }
   .course .seats {
     font-size: 0.78rem; font-weight: 650; font-variant-numeric: tabular-nums;
@@ -227,6 +227,7 @@
   }
   .course .seats--nearly { color: var(--warn); border-color: #e8c9a4; background: #fff8f0; }
   .course .seats--full   { color: #fff; background: var(--good); border-color: var(--good); }
+  .course .card-income { flex-basis: 100%; text-align: right; font-size: 0.72rem; font-weight: 700; color: var(--good); margin-top: 0.15rem; font-variant-numeric: tabular-nums; }
 
   /* Sits with the tabs rather than above the list, so it reads as
      part of choosing what you are looking at. */
@@ -2875,7 +2876,7 @@ async function loadCourses() {
   alertBox.innerHTML = "";
   list.innerHTML = '<p class="empty">Loading…</p>';
 
-  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, status, slug, archived, grants_online_course, completed_at, issues_certificate, host_name, host_email, host_spots, prepaid_spots, created_at";
+  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, currency, status, slug, archived, grants_online_course, completed_at, issues_certificate, host_name, host_email, host_spots, prepaid_spots, created_at";
 
   let all = [];
   if (isAdmin()) {
@@ -2955,14 +2956,15 @@ async function loadCourses() {
   // A cancelled registration is not a person in the room. Refunded
   // and failed were already excluded; cancelled was not, and these
   // numbers decide whether a course looks viable.
-  const booked = {};
+  const booked = {}, income = {};
   const { data: regs } = await db.from("registrations")
-    .select("course_id, payment_status, status")
+    .select("course_id, payment_status, status, amount_paid_cents")
     .in("course_id", rows.map((c) => c.id));
   for (const r of regs || []) {
     if (r.payment_status === "refunded" || r.payment_status === "failed") continue;
     if ((r.status || "active") !== "active") continue;
     booked[r.course_id] = (booked[r.course_id] || 0) + 1;
+    income[r.course_id] = (income[r.course_id] || 0) + (r.amount_paid_cents || 0);
   }
 
   // Soonest first is the default because it answers the question the
@@ -3173,6 +3175,16 @@ async function loadCourses() {
         : `${c.capacity - taken} place${c.capacity - taken === 1 ? "" : "s"} left`;
     } else {
       seats.remove();
+    }
+
+    // Admin-only: total income received for this course, under the seat
+    // count, so the whole list can be scanned at a glance.
+    if (isAdmin()) {
+      const incEl = document.createElement("span");
+      incEl.className = "card-income";
+      incEl.textContent = money(income[c.id] || 0, c.currency);
+      incEl.title = "Income received (excludes refunds)";
+      el.querySelector(".topright").append(incEl);
     }
     el.querySelector(".line").textContent =
       [c.city, countryName(c.country)].filter(Boolean).join(", ") || "Location to be confirmed";
@@ -3543,6 +3555,11 @@ async function openCourse(course) {
     if (failed.length) addPill("balance failed", "bad");
     if (!r.waiver_signed_at) addPill("no waiver", "warn");
 
+    // The discount code this person registered with, shown next to the
+    // name so coaches/admin can see it at a glance. Blank for transfers
+    // (e.g. RegFox imports) that carry no code.
+    if (r.discount_code) addPill("code: " + r.discount_code, "code");
+
     // Whether the lead coach has introduced themselves yet. Visible to
     // the coach and to admin, so an outstanding one cannot hide.
     if (regStatus === "active") {
@@ -3551,7 +3568,6 @@ async function openCourse(course) {
       else if (w) addPill("welcome draft", "warn");
       else addPill("no welcome yet", "warn");
     }
-    if (r.discount_code) addPill("code: " + r.discount_code, "code");
 
     // Free online course, on courses that grant one. A failure has to
     // be visible here — nobody would otherwise find out until the
