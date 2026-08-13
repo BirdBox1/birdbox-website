@@ -3551,6 +3551,7 @@ async function openCourse(course) {
       else if (w) addPill("welcome draft", "warn");
       else addPill("no welcome yet", "warn");
     }
+    if (r.discount_code) addPill("code: " + r.discount_code, "code");
 
     // Free online course, on courses that grant one. A failure has to
     // be visible here — nobody would otherwise find out until the
