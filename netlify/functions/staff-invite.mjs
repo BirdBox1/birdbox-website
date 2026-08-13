@@ -51,6 +51,7 @@ export default async (request) => {
       case "deactivate": return await setActive(body, false, me);
       case "reactivate": return await setActive(body, true, me);
       case "delete":     return await remove(body, me);
+      case "set_photo":  return await setPhoto(body, me);
       default:
         return json({ error: `Unknown action "${body.action}".` }, 400);
     }
@@ -267,6 +268,38 @@ async function remove({ staffId }, me) {
   }
 
   return json({ deleted: true, name: person.full_name, stillOn, authWarning });
+}
+
+// Admin sets (or replaces) another staff member's profile photo. Done here
+// because only the service role can write another person's staff row and
+// upload to their slot in the staff-photos bucket. The photo is keyed by the
+// person's id (<id>.jpg), exactly like a self-uploaded one, so the rest of
+// the portal shows it with no further change.
+async function setPhoto({ staffId, image }, me) {
+  if (!staffId) return json({ error: "No staff member given." }, 400);
+  if (!image || typeof image !== "string") return json({ error: "No image given." }, 400);
+
+  const { data: person } = await supabase
+    .from("staff").select("id, full_name").eq("id", staffId).maybeSingle();
+  if (!person) return json({ error: "That person is not on the team." }, 404);
+
+  // Accept a data URL (data:image/jpeg;base64,...) or a bare base64 string.
+  const b64 = image.includes(",") ? image.slice(image.indexOf(",") + 1) : image;
+  const bytes = Buffer.from(b64, "base64");
+  if (!bytes.length) return json({ error: "That image could not be read." }, 400);
+  if (bytes.length > 5_000_000) return json({ error: "That image is too large." }, 400);
+
+  const path = `${staffId}.jpg`;
+  const { error: upErr } = await supabase.storage
+    .from("staff-photos")
+    .upload(path, bytes, { contentType: "image/jpeg", upsert: true });
+  if (upErr) return json({ error: "Could not save the photo: " + upErr.message }, 500);
+
+  const { error: dbErr } = await supabase
+    .from("staff").update({ photo_path: path }).eq("id", staffId);
+  if (dbErr) return json({ error: "Photo saved but not linked: " + dbErr.message }, 500);
+
+  return json({ done: true, name: person.full_name, photo_path: path });
 }
 
 // ---------------------------------------------------------------
