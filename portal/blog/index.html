@@ -368,6 +368,12 @@ async function loadList() {
 
   if (tab === "mine") q = q.eq("created_by", me.id);
   else if (tab === "review") q = q.in("status", ["submitted", "approved"]);
+  else if (tab === "all") {
+    // Admin "Everything": everyone's submitted / approved / published work,
+    // plus the admin's own posts (any status). Other coaches' unsubmitted
+    // drafts and sent-back posts stay private to the writer until submitted.
+    q = q.or(`status.in.(submitted,approved,published),created_by.eq.${me.id}`);
+  }
 
   const { data, error } = await q;
   if (error) {
@@ -644,6 +650,26 @@ function blockEditor(b, i) {
     else preview.classList.add("hidden");
     el.append(preview);
 
+    // Clear the uploaded image so a different one can be chosen. Shown only
+    // once something is uploaded; to replace, remove then pick a new file
+    // (or just pick a new file, which overwrites it).
+    const rm = document.createElement("button");
+    rm.type = "button";
+    rm.className = "btn ghost tiny danger";
+    rm.textContent = "Remove photo";
+    rm.style.marginTop = "0.5rem";
+    rm.classList.toggle("hidden", !b.path);
+    rm.onclick = () => {
+      b.path = undefined;
+      preview.src = "";
+      preview.classList.add("hidden");
+      name.className = "name";
+      name.textContent = "";
+      rm.classList.add("hidden");
+      input.value = "";
+    };
+    el.append(rm);
+
     input.addEventListener("change", async () => {
       const file = input.files[0];
       if (!file) return;
@@ -655,6 +681,7 @@ function blockEditor(b, i) {
         name.textContent = "Uploaded.";
         preview.src = fileUrl(b.path);
         preview.classList.remove("hidden");
+        rm.classList.remove("hidden");
       } catch (err) {
         name.className = "name";
         name.textContent = "Could not upload: " + err.message;
