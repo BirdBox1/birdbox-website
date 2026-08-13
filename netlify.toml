@@ -2,3 +2,8 @@
 # runtime. Without this the manual is not deployed alongside the code.
 [functions]
   included_files = ["prompts/**"]
+
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/.netlify/functions/sitemap"
+  status = 200
