@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agreements — BirdBox Coaching</title>
+<style>
+  :root {
+    --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+    --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0;
+    --good:#1f8a54; --warn:#b4610f; --bad:#b3261e; --flag:#d9b310;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+
+  .bar{background:var(--shell);color:#fff;padding:0.7rem 1.25rem;
+    display:flex;align-items:center;justify-content:space-between;gap:1rem}
+  .bar .left{display:flex;align-items:center;gap:0.75rem;min-width:0}
+  .mark{width:34px;height:34px;border-radius:4px;background:#fff;
+    display:grid;place-items:center;flex:none}
+  .mark img{width:26px;height:26px;object-fit:contain;display:block}
+  .bar .brandname{font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;
+    color:#9aa1a9;white-space:nowrap}
+  .bar a{font:inherit;font-size:0.8rem;color:#cfd4d9;border:1px solid #33373c;
+    padding:0.3rem 0.7rem;border-radius:3px;text-decoration:none;white-space:nowrap}
+  .bar a:hover{color:#fff;border-color:#55595e}
+
+  .wrap{max-width:56rem;margin:0 auto;padding:1.5rem 1.25rem 5rem}
+  h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0 0 0.2rem;font-weight:600}
+  .sub{color:var(--muted);font-size:0.9rem;margin:0 0 1.25rem}
+  .back{display:inline-block;font-size:0.85rem;color:var(--accent);
+    text-decoration:none;margin-bottom:1rem;cursor:pointer;background:none;border:0;
+    font-family:inherit;padding:0}
+  .back:hover{text-decoration:underline}
+
+  .btn{font:inherit;font-weight:600;background:var(--ink);color:#fff;border:0;
+    border-radius:4px;padding:0.6rem 1.1rem;cursor:pointer}
+  .btn:hover{background:#000}
+  .btn[disabled]{opacity:0.45;cursor:default}
+  .btn.small{font-size:0.82rem;padding:0.4rem 0.8rem}
+  .btn.ghost{background:none;color:var(--ink);border:1px solid var(--rule);font-weight:500}
+  .btn.ghost:hover{background:#fff;border-color:var(--muted)}
+  .btn.go{background:var(--good)}
+  .btn.go:hover{background:#176e43}
+
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:6px;
+    margin-bottom:0.7rem;overflow:hidden}
+  .row{display:flex;align-items:center;gap:0.9rem;width:100%;text-align:left;
+    font:inherit;background:none;border:0;padding:0.9rem 1.05rem;cursor:pointer}
+  .row:hover{background:#faf9f7}
+  .row .who{flex:1 1 auto;min-width:0}
+  .row .name{display:block;font-weight:650}
+  .row .meta{display:block;font-size:0.82rem;color:var(--muted)}
+
+  .pill{display:inline-block;font-size:0.66rem;letter-spacing:0.09em;
+    text-transform:uppercase;padding:0.16rem 0.45rem;border:1px solid var(--rule);
+    border-radius:3px;color:var(--muted);white-space:nowrap}
+  .pill.ok{background:var(--good);border-color:var(--good);color:#fff;font-weight:700}
+  .pill.due{background:#f3cf3d;border-color:#d9b310;color:#33280a;font-weight:700}
+
+  .panel{background:var(--card);border:1px solid var(--rule);border-radius:6px;
+    padding:1.25rem;margin-bottom:1rem}
+  .panel h3{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 0.8rem;font-weight:600}
+  .panel .lead-in{font-size:0.88rem;color:var(--muted);margin:0 0 0.9rem}
+
+  /* the agreement text itself */
+  .doc{background:#fbfaf8;border:1px solid var(--rule);border-radius:5px;
+    padding:1.1rem 1.15rem;margin-bottom:1.25rem;font-size:0.94rem}
+  .doc h3{font-size:0.95rem;letter-spacing:0;text-transform:none;color:var(--ink);
+    margin:1.3rem 0 0.4rem;font-weight:650}
+  .doc h3:first-child{margin-top:0}
+  .doc p{margin:0 0 0.7rem}
+  .doc ul{margin:0 0 0.8rem;padding-left:1.2rem}
+  .doc li{margin-bottom:0.3rem}
+
+  label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.3rem}
+  .hint{font-weight:400;color:var(--muted);font-size:0.78rem}
+  input[type=text]{width:100%;font:inherit;padding:0.55rem 0.65rem;
+    border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink)}
+  .field{margin-bottom:1rem}
+  .tick{display:flex;gap:0.6rem;align-items:flex-start;font-size:0.9rem;
+    font-weight:400;margin-bottom:1rem}
+  .tick input{margin-top:0.28rem;flex:none;width:1.05rem;height:1.05rem}
+
+  .alert{background:#fffbe8;border:1px solid #eddfa4;border-left:3px solid var(--flag);
+    border-radius:6px;padding:0.9rem 1.05rem;margin-bottom:1rem;font-size:0.9rem}
+  .alert.good{background:#f2f9f5;border-color:#c3e0d0;border-left-color:var(--good)}
+  .alert.bad{background:#fdf4f3;border-color:#e6c9c7;border-left-color:var(--bad)}
+  .alert b{display:block;margin-bottom:0.2rem}
+
+  .msg{font-size:0.85rem;margin-top:0.9rem;min-height:1.2em}
+  .msg.err{color:var(--bad)}
+  .msg.ok{color:var(--good)}
+  .empty{background:var(--card);border:1px dashed var(--rule);border-radius:6px;
+    padding:2rem 1.25rem;text-align:center;color:var(--muted);font-size:0.9rem}
+  .counts{font-size:0.85rem;color:var(--muted);margin-bottom:1rem}
+  .hidden{display:none!important}
+
+  .tabs{display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap}
+  .tab{font:inherit;font-size:0.85rem;background:none;border:1px solid var(--rule);
+    border-radius:4px;padding:0.35rem 0.8rem;cursor:pointer;color:var(--muted)}
+  .tab.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
+
+  .person{display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0;
+    border-bottom:1px solid var(--rule);font-size:0.9rem}
+  .person:last-child{border-bottom:0}
+  .person input{flex:none;width:1.1rem;height:1.1rem}
+  .person .pname{flex:1 1 auto;min-width:0}
+  .person .pname small{display:block;color:var(--muted);font-size:0.78rem}
+
+  @media print{
+    .bar,.back,.tabs,.btn,.tick,.field,#sign-msg{display:none!important}
+    body{background:#fff}
+    .doc{border:0;background:#fff;padding:0}
+    .wrap{max-width:none;padding:0}
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="left">
+    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+    <span class="brandname">Agreements</span>
+  </span>
+  <a href="/portal/">← Portal</a>
+</div>
+
+<div class="wrap">
+  <div id="loading"><p class="sub">Loading…</p></div>
+
+  <!-- ===== list ===== -->
+  <section id="view-list" class="hidden">
+    <h1>Agreements</h1>
+    <p class="sub" id="list-sub"></p>
+
+    <div class="tabs hidden" id="tabs">
+      <button class="tab on" id="tab-mine" type="button">Mine</button>
+      <button class="tab" id="tab-admin" type="button">Manage</button>
+    </div>
+
+    <div id="mine">
+      <div id="agreementlist"></div>
+    </div>
+
+    <div id="adminlist" class="hidden"></div>
+  </section>
+
+  <!-- ===== one agreement ===== -->
+  <section id="view-doc" class="hidden">
+    <button class="back" id="back-list" type="button">← All agreements</button>
+    <h1 id="d-title"></h1>
+    <p class="sub" id="d-meta"></p>
+
+    <div id="d-status"></div>
+    <div class="doc" id="d-body"></div>
+
+    <div class="panel" id="sign-panel">
+      <h3>Sign</h3>
+      <p class="lead-in">
+        Type your full name as it appears below. That typed name, with the date
+        and time, is your signature and is stored against this agreement.
+      </p>
+
+      <div class="field">
+        <label for="typed">Your full name
+          <span class="hint">— as recorded: <b id="expected"></b></span>
+        </label>
+        <input id="typed" type="text" autocomplete="off" autocapitalize="words">
+      </div>
+
+      <label class="tick">
+        <input type="checkbox" id="confirm">
+        <span>I have read and agree to the terms set out above.</span>
+      </label>
+
+      <button class="btn go" id="sign" type="button">Sign this agreement</button>
+      <p class="msg" id="sign-msg"></p>
+    </div>
+
+    <div class="panel hidden" id="signed-panel">
+      <h3>Signed</h3>
+      <p class="lead-in" id="signed-detail"></p>
+      <button class="btn small ghost" id="print" type="button">Print or save a copy</button>
+    </div>
+  </section>
+
+  <!-- ===== admin: one agreement ===== -->
+  <section id="view-manage" class="hidden">
+    <button class="back" id="back-list-2" type="button">← All agreements</button>
+    <h1 id="m-title"></h1>
+    <p class="sub" id="m-meta"></p>
+
+    <div class="panel">
+      <h3>Who it goes to</h3>
+      <p class="lead-in" id="m-lead"></p>
+      <div id="m-people"></div>
+      <p class="msg" id="m-msg"></p>
+    </div>
+  </section>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient(
+  "https://yvdmazpxtpuvidlcifnq.supabase.co",
+  "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+);
+
+const $ = (id) => document.getElementById(id);
+const show = (n) => {
+  for (const v of ["list", "doc", "manage"]) {
+    $("view-" + v).classList.toggle("hidden", v !== n);
+  }
+  $("loading").classList.add("hidden");
+  window.scrollTo({ top: 0 });
+};
+
+const fmtWhen = (iso) => iso
+  ? new Date(iso).toLocaleString(undefined, {
+      day: "numeric", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    })
+  : "";
+
+// Names are compared loosely — case, spacing and accents should not
+// stop somebody signing their own name on an iPad keyboard.
+const loose = (s) => String(s || "")
+  .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase().replace(/[^a-z]/g, "");
+
+let me = null;
+let agreements = [];
+let mySignatures = {};
+let currentDoc = null;
+
+start();
+
+async function start() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { location.href = "/portal/"; return; }
+
+  const { data: staff } = await db.from("staff")
+    .select("id, full_name, email, role, active")
+    .eq("id", session.user.id).maybeSingle();
+
+  if (!staff || !staff.active) { location.href = "/portal/"; return; }
+  me = staff;
+
+  if (me.role === "admin") $("tabs").classList.remove("hidden");
+  await loadList();
+}
+
+/* ---------------- the list ---------------- */
+
+async function loadList() {
+  show("list");
+  $("agreementlist").innerHTML = '<p class="empty">Loading…</p>';
+
+  // RLS decides what comes back: everything for an admin, and for a
+  // coach only agreements marked for everyone or assigned to them.
+  const { data: docs, error } = await db.from("agreements")
+    .select("id, doc_key, version, title, audience, active, body_html, created_at")
+    .eq("active", true)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    $("agreementlist").innerHTML = '<p class="empty">Could not load agreements.</p>';
+    console.error(error);
+    return;
+  }
+  agreements = docs || [];
+
+  const { data: sigs } = await db.from("agreement_signatures")
+    .select("agreement_id, typed_name, signed_at")
+    .eq("staff_id", me.id);
+
+  mySignatures = {};
+  for (const s of sigs || []) mySignatures[s.agreement_id] = s;
+
+  renderMine();
+  if (me.role === "admin") renderAdmin();
+}
+
+function renderMine() {
+  const list = $("agreementlist");
+  list.innerHTML = "";
+
+  // An admin sees the management view separately; here they only see
+  // what they themselves have been asked to sign.
+  const forMe = agreements.filter(
+    (a) => a.audience === "all" || mySignatures[a.id] || a.assignedToMe !== false
+  );
+
+  const outstanding = agreements.filter((a) => !mySignatures[a.id]).length;
+  $("list-sub").textContent = agreements.length
+    ? outstanding
+      ? `${outstanding} waiting for your signature.`
+      : "Everything is signed. Nothing needs your attention."
+    : "Nothing to sign at the moment.";
+
+  if (!agreements.length) {
+    list.innerHTML = '<p class="empty">Nothing to sign at the moment.</p>';
+    return;
+  }
+
+  for (const a of agreements) {
+    const sig = mySignatures[a.id];
+    const el = document.createElement("div");
+    el.className = "card";
+    el.innerHTML = `<button class="row" type="button">
+      <span class="who"><span class="name"></span><span class="meta"></span></span>
+      <span class="pill"></span></button>`;
+    el.querySelector(".name").textContent = a.title;
+    el.querySelector(".meta").textContent = sig
+      ? `Signed ${fmtWhen(sig.signed_at)}`
+      : "Not yet signed";
+
+    const pill = el.querySelector(".pill");
+    if (sig) { pill.textContent = "signed"; pill.className = "pill ok"; }
+    else { pill.textContent = "to sign"; pill.className = "pill due"; }
+
+    el.querySelector(".row").addEventListener("click", () => openDoc(a));
+    list.append(el);
+  }
+}
+
+/* ---------------- signing ---------------- */
+
+function openDoc(a) {
+  currentDoc = a;
+  show("doc");
+  $("d-title").textContent = a.title;
+  $("d-meta").textContent = `Version ${a.version}`;
+  $("d-body").innerHTML = a.body_html;
+  $("d-status").innerHTML = "";
+  $("sign-msg").textContent = "";
+  $("typed").value = "";
+  $("confirm").checked = false;
+  $("expected").textContent = me.full_name;
+
+  const sig = mySignatures[a.id];
+  $("sign-panel").classList.toggle("hidden", !!sig);
+  $("signed-panel").classList.toggle("hidden", !sig);
+
+  if (sig) {
+    $("signed-detail").textContent =
+      `Signed by ${sig.typed_name} on ${fmtWhen(sig.signed_at)}. ` +
+      `This record cannot be changed. If the agreement is ever revised you ` +
+      `will be asked to sign the new version.`;
+    const el = document.createElement("div");
+    el.className = "alert good";
+    el.innerHTML = "<b>You have signed this</b>The text below is what you agreed to.";
+    $("d-status").append(el);
+  }
+}
+
+$("sign").addEventListener("click", async () => {
+  const msg = $("sign-msg");
+  const typed = $("typed").value.trim();
+
+  if (!$("confirm").checked) {
+    msg.className = "msg err";
+    msg.textContent = "Tick the box to confirm you have read it.";
+    return;
+  }
+  if (!typed) {
+    msg.className = "msg err";
+    msg.textContent = "Type your full name.";
+    return;
+  }
+  if (loose(typed) !== loose(me.full_name)) {
+    msg.className = "msg err";
+    msg.textContent = `That does not match your name on file. Type it as: ${me.full_name}`;
+    return;
+  }
+  if (!window.confirm(
+    "Sign this agreement?\n\n" +
+    "Your name and the date will be stored permanently and cannot be edited afterwards."
+  )) return;
+
+  $("sign").disabled = true;
+  msg.className = "msg";
+  msg.textContent = "Signing…";
+
+  const { data, error } = await db.from("agreement_signatures").insert({
+    agreement_id: currentDoc.id,
+    staff_id: me.id,
+    typed_name: typed,
+    user_agent: navigator.userAgent,
+  }).select().single();
+
+  if (error) {
+    msg.className = "msg err";
+    msg.textContent = error.code === "23505"
+      ? "You have already signed this one."
+      : "Could not save that: " + error.message;
+    $("sign").disabled = false;
+    return;
+  }
+
+  mySignatures[currentDoc.id] = data;
+  $("sign").disabled = false;
+  openDoc(currentDoc);
+  renderMine();
+});
+
+$("print").addEventListener("click", () => window.print());
+
+/* ---------------- admin ---------------- */
+
+$("tab-mine").addEventListener("click", () => {
+  $("tab-mine").classList.add("on");
+  $("tab-admin").classList.remove("on");
+  $("mine").classList.remove("hidden");
+  $("adminlist").classList.add("hidden");
+});
+
+$("tab-admin").addEventListener("click", () => {
+  $("tab-admin").classList.add("on");
+  $("tab-mine").classList.remove("on");
+  $("adminlist").classList.remove("hidden");
+  $("mine").classList.add("hidden");
+});
+
+async function renderAdmin() {
+  const box = $("adminlist");
+  box.innerHTML = '<p class="empty">Loading…</p>';
+
+  const ids = agreements.map((a) => a.id);
+  let counts = {};
+  if (ids.length) {
+    const { data: sigs } = await db.from("agreement_signatures")
+      .select("agreement_id").in("agreement_id", ids);
+    for (const s of sigs || []) {
+      counts[s.agreement_id] = (counts[s.agreement_id] || 0) + 1;
+    }
+    const { data: asg } = await db.from("agreement_assignments")
+      .select("agreement_id").in("agreement_id", ids);
+    for (const a of agreements) a.assignedCount = 0;
+    for (const x of asg || []) {
+      const a = agreements.find((y) => y.id === x.agreement_id);
+      if (a) a.assignedCount++;
+    }
+  }
+
+  box.innerHTML = "";
+  for (const a of agreements) {
+    const el = document.createElement("div");
+    el.className = "card";
+    el.innerHTML = `<button class="row" type="button">
+      <span class="who"><span class="name"></span><span class="meta"></span></span>
+      <span class="pill"></span></button>`;
+    el.querySelector(".name").textContent = a.title;
+    el.querySelector(".meta").textContent = a.audience === "all"
+      ? "Everyone on the team"
+      : `${a.assignedCount || 0} assigned`;
+    const pill = el.querySelector(".pill");
+    pill.textContent = `${counts[a.id] || 0} signed`;
+    pill.className = counts[a.id] ? "pill ok" : "pill";
+    el.querySelector(".row").addEventListener("click", () => openManage(a));
+    box.append(el);
+  }
+}
+
+async function openManage(a) {
+  currentDoc = a;
+  show("manage");
+  $("m-title").textContent = a.title;
+  $("m-meta").textContent = `Version ${a.version} · ${a.audience === "all" ? "everyone" : "assigned only"}`;
+  $("m-msg").textContent = "";
+  $("m-people").innerHTML = '<p class="empty">Loading…</p>';
+
+  $("m-lead").textContent = a.audience === "all"
+    ? "This one goes to every active member of staff automatically. Ticks are not needed."
+    : "Tick the people who should see this. Nobody else will know it exists.";
+
+  const { data: staff } = await db.from("staff")
+    .select("id, full_name, email, role")
+    .eq("active", true).order("full_name");
+
+  const { data: asg } = await db.from("agreement_assignments")
+    .select("staff_id").eq("agreement_id", a.id);
+  const assigned = new Set((asg || []).map((x) => x.staff_id));
+
+  const { data: sigs } = await db.from("agreement_signatures")
+    .select("staff_id, typed_name, signed_at").eq("agreement_id", a.id);
+  const signed = {};
+  for (const s of sigs || []) signed[s.staff_id] = s;
+
+  const box = $("m-people");
+  box.innerHTML = "";
+
+  for (const p of staff || []) {
+    const el = document.createElement("div");
+    el.className = "person";
+    el.innerHTML = `<input type="checkbox">
+      <span class="pname"><b></b><small></small></span>
+      <span class="pill"></span>`;
+
+    const cb = el.querySelector("input");
+    cb.checked = a.audience === "all" || assigned.has(p.id);
+    cb.disabled = a.audience === "all" || !!signed[p.id];
+
+    el.querySelector("b").textContent = p.full_name;
+    el.querySelector("small").textContent = p.email;
+
+    const pill = el.querySelector(".pill");
+    if (signed[p.id]) {
+      pill.textContent = "signed";
+      pill.className = "pill ok";
+      el.querySelector("small").textContent =
+        `Signed ${fmtWhen(signed[p.id].signed_at)}`;
+    } else {
+      pill.textContent = cb.checked ? "waiting" : "—";
+      pill.className = cb.checked ? "pill due" : "pill";
+    }
+
+    cb.addEventListener("change", async () => {
+      const msg = $("m-msg");
+      msg.className = "msg";
+      msg.textContent = "Saving…";
+      cb.disabled = true;
+
+      let error;
+      if (cb.checked) {
+        ({ error } = await db.from("agreement_assignments")
+          .insert({ agreement_id: a.id, staff_id: p.id }));
+      } else {
+        ({ error } = await db.from("agreement_assignments")
+          .delete().eq("agreement_id", a.id).eq("staff_id", p.id));
+      }
+
+      cb.disabled = false;
+      if (error) {
+        cb.checked = !cb.checked;
+        msg.className = "msg err";
+        msg.textContent = "Could not save: " + error.message;
+        return;
+      }
+      pill.textContent = cb.checked ? "waiting" : "—";
+      pill.className = cb.checked ? "pill due" : "pill";
+      msg.className = "msg ok";
+      msg.textContent = cb.checked
+        ? `${p.full_name} can now see it.`
+        : `${p.full_name} can no longer see it.`;
+    });
+
+    box.append(el);
+  }
+}
+
+$("back-list").addEventListener("click", loadList);
+$("back-list-2").addEventListener("click", loadList);
+</script>
+
+</body>
+</html>
