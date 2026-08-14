@@ -27,6 +27,12 @@
     padding:0.3rem 0.7rem;border-radius:3px;text-decoration:none;white-space:nowrap}
   .bar a:hover{color:#fff;border-color:#55595e}
 
+  /* The bar wraps rather than overlapping itself on a phone. */
+  @media (max-width: 46rem) {
+    .bar{flex-wrap:wrap;row-gap:0.55rem;padding:0.65rem 0.9rem}
+    .bar .left{flex:1 1 100%}
+  }
+
   .wrap{max-width:56rem;margin:0 auto;padding:1.5rem 1.25rem 5rem}
   h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0 0 0.2rem;font-weight:600}
   .sub{color:var(--muted);font-size:0.9rem;margin:0 0 1.25rem}
@@ -106,6 +112,7 @@
   .alert.good{background:#f2f9f5;border-color:#c3e0d0;border-left-color:var(--good)}
   .alert.bad{background:#fdf4f3;border-color:#e6c9c7;border-left-color:var(--bad)}
   .alert b{display:block;margin-bottom:0.2rem}
+  .alert a{color:var(--accent)}
 
   .msg{font-size:0.85rem;margin-top:0.9rem;min-height:1.2em}
   .msg.err{color:var(--bad)}
@@ -176,7 +183,8 @@
       <h3>Sign</h3>
       <p class="lead-in">
         Sign with your finger or a pencil, then type your name underneath.
-        Both are stored against this agreement with the date and time.
+        Both are stored against this agreement with the date and time, and a
+        signed PDF is saved to your documents.
       </p>
 
       <label for="pad">Your signature</label>
@@ -210,6 +218,7 @@
       <h3>Signed</h3>
       <div class="sigshot hidden" id="signed-shot"><img id="signed-img" alt="Signature"></div>
       <p class="lead-in" id="signed-detail"></p>
+      <div id="copy-state"></div>
       <button class="btn small ghost" id="print" type="button">Print or save a copy</button>
     </div>
   </section>
@@ -231,11 +240,17 @@
 
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm";
 
 const db = createClient(
   "https://yvdmazpxtpuvidlcifnq.supabase.co",
   "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
 );
+
+// The same private bucket the documents page reads from. A coach may
+// only write into a folder named after their own id, which is exactly
+// what signing does — so no server function is needed.
+const DOC_BUCKET = "staff-documents";
 
 const $ = (id) => document.getElementById(id);
 const show = (n) => {
@@ -379,8 +394,166 @@ function padImage() {
   out.width = Math.round(cw * scale);
   out.height = Math.round(ch * scale);
   const octx = out.getContext("2d");
+  // A white ground rather than transparency: the PNG goes into a PDF,
+  // where transparent pixels can render as black.
+  octx.fillStyle = "#ffffff";
+  octx.fillRect(0, 0, out.width, out.height);
   octx.drawImage(canvas, minX, minY, cw, ch, 0, 0, out.width, out.height);
   return out.toDataURL("image/png");
+}
+
+/* ---------------- the signed PDF ---------------- */
+
+// The agreement is stored as HTML for the page. For the PDF it has to
+// become plain blocks, so the browser's own parser does the reading
+// rather than a set of regular expressions that would break on the
+// first nested tag.
+function blocksFrom(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const blocks = [];
+
+  for (const node of doc.body.children) {
+    const tag = node.tagName.toLowerCase();
+    const text = node.textContent.replace(/\s+/g, " ").trim();
+
+    if (tag === "ul" || tag === "ol") {
+      for (const li of node.children) {
+        const item = li.textContent.replace(/\s+/g, " ").trim();
+        if (item) blocks.push({ kind: "item", text: item });
+      }
+    } else if (/^h[1-6]$/.test(tag)) {
+      if (text) blocks.push({ kind: "head", text });
+    } else if (text) {
+      blocks.push({ kind: "text", text });
+    }
+  }
+  return blocks;
+}
+
+// Natural size of the signature, so it goes into the PDF at its own
+// proportions rather than stretched to a fixed box.
+function imageSize(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => reject(new Error("Could not read the signature image."));
+    img.src = dataUrl;
+  });
+}
+
+async function buildPdf(agreement, signature) {
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const LEFT = 20, WIDTH = 170, BOTTOM = 272;
+  let y = 24;
+
+  const space = (needed) => {
+    if (y + needed > BOTTOM) { doc.addPage(); y = 24; }
+  };
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text(agreement.title, LEFT, y);
+  y += 7;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(110);
+  doc.text(`BirdBox Coaching Ltd · Version ${agreement.version}`, LEFT, y);
+  y += 4;
+  doc.setDrawColor(200);
+  doc.line(LEFT, y, LEFT + WIDTH, y);
+  y += 9;
+  doc.setTextColor(25);
+
+  for (const block of blocksFrom(agreement.body_html)) {
+    if (block.kind === "head") {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      const lines = doc.splitTextToSize(block.text, WIDTH);
+      space(lines.length * 5 + 4);
+      y += 3;
+      doc.text(lines, LEFT, y);
+      y += lines.length * 5 + 1;
+      continue;
+    }
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+
+    const indent = block.kind === "item" ? 5 : 0;
+    const text = block.kind === "item" ? "•  " + block.text : block.text;
+    const lines = doc.splitTextToSize(text, WIDTH - indent);
+    space(lines.length * 5 + 3);
+    doc.text(lines, LEFT + indent, y);
+    y += lines.length * 5 + (block.kind === "item" ? 1 : 3);
+  }
+
+  // The signature block stays together — a name on one page and the
+  // signature on the next would look like two documents.
+  const size = await imageSize(signature.signature_png);
+  const drawWidth = Math.min(58, WIDTH / 2);
+  const drawHeight = (size.h / size.w) * drawWidth;
+
+  space(drawHeight + 30);
+  y += 6;
+  doc.setDrawColor(200);
+  doc.line(LEFT, y, LEFT + WIDTH, y);
+  y += 8;
+
+  doc.addImage(signature.signature_png, "PNG", LEFT, y, drawWidth, drawHeight);
+  y += drawHeight + 2;
+  doc.setDrawColor(160);
+  doc.line(LEFT, y, LEFT + drawWidth + 10, y);
+  y += 5;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text(signature.typed_name, LEFT, y);
+  y += 5;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(110);
+  doc.text(`Signed ${fmtWhen(signature.signed_at)}`, LEFT, y);
+  y += 4;
+  doc.text(
+    "Signed electronically in the BirdBox coach portal. The typed name was " +
+    "checked against the signatory's staff record.",
+    LEFT, y, { maxWidth: WIDTH }
+  );
+
+  return doc.output("blob");
+}
+
+// Saved into the coach's own documents. The signature in the database
+// is the record that matters, so a failure here is worth telling them
+// about but must never undo a signature that has already been made.
+async function savePdfCopy(agreement, signature) {
+  const blob = await buildPdf(agreement, signature);
+
+  const slug = (agreement.doc_key || "agreement").replace(/[^a-z0-9\-]/gi, "-");
+  const fileName = `${agreement.title} (signed).pdf`;
+  const path = `${me.id}/${Date.now()}-${slug}-v${agreement.version}-signed.pdf`;
+
+  const { error: upErr } = await db.storage.from(DOC_BUCKET)
+    .upload(path, blob, { contentType: "application/pdf", upsert: false });
+  if (upErr) throw new Error(upErr.message);
+
+  const { error } = await db.from("staff_documents").insert({
+    staff_id: me.id,
+    title: agreement.title,
+    note: `Signed ${fmtWhen(signature.signed_at)} · version ${agreement.version}`,
+    file_path: path,
+    file_name: fileName,
+    mime_type: "application/pdf",
+    size_bytes: blob.size,
+  });
+
+  // A file nothing points at is invisible and stays there forever.
+  if (error) {
+    await db.storage.from(DOC_BUCKET).remove([path]);
+    throw new Error(error.message);
+  }
 }
 
 /* ---------------- boot ---------------- */
@@ -479,6 +652,7 @@ function openDoc(a) {
   $("d-meta").textContent = `Version ${a.version}`;
   $("d-body").innerHTML = a.body_html;
   $("d-status").innerHTML = "";
+  $("copy-state").innerHTML = "";
   $("sign-msg").textContent = "";
   $("typed").value = "";
   $("confirm").checked = false;
@@ -491,23 +665,74 @@ function openDoc(a) {
   if (!sig) {
     // The pad has no size until its panel is visible.
     requestAnimationFrame(() => { sizePad(); clearPad(); });
-  } else {
-    const shot = $("signed-shot");
-    if (sig.signature_png) {
-      $("signed-img").src = sig.signature_png;
-      shot.classList.remove("hidden");
-    } else {
-      shot.classList.add("hidden");
-    }
-    $("signed-detail").textContent =
-      `Signed by ${sig.typed_name} on ${fmtWhen(sig.signed_at)}. ` +
-      `This record cannot be changed. If the agreement is ever revised you ` +
-      `will be asked to sign the new version.`;
-    const el = document.createElement("div");
-    el.className = "alert good";
-    el.innerHTML = "<b>You have signed this</b>The text below is what you agreed to.";
-    $("d-status").append(el);
+    return;
   }
+
+  const shot = $("signed-shot");
+  if (sig.signature_png) {
+    $("signed-img").src = sig.signature_png;
+    shot.classList.remove("hidden");
+  } else {
+    shot.classList.add("hidden");
+  }
+
+  $("signed-detail").textContent =
+    `Signed by ${sig.typed_name} on ${fmtWhen(sig.signed_at)}. ` +
+    `This record cannot be changed. If the agreement is ever revised you ` +
+    `will be asked to sign the new version.`;
+
+  const el = document.createElement("div");
+  el.className = "alert good";
+  el.innerHTML = "<b>You have signed this</b>The text below is what you agreed to.";
+  $("d-status").append(el);
+}
+
+// Says where the copy went, or offers a retry if it did not get there.
+function showCopyState(kind, detail) {
+  const box = $("copy-state");
+  box.innerHTML = "";
+
+  if (kind === "saved") {
+    const el = document.createElement("p");
+    el.className = "lead-in";
+    el.innerHTML =
+      'A signed PDF has been saved to <a href="/portal/documents/">My documents</a>. ' +
+      "It is yours to keep — nobody else can see it.";
+    box.append(el);
+    return;
+  }
+
+  if (kind === "working") {
+    const el = document.createElement("p");
+    el.className = "lead-in";
+    el.textContent = "Saving a PDF copy to your documents…";
+    box.append(el);
+    return;
+  }
+
+  const el = document.createElement("div");
+  el.className = "alert bad";
+  el.innerHTML =
+    "<b>Your signature is saved, but the PDF copy did not reach your documents</b>" +
+    "<span></span>";
+  el.querySelector("span").textContent = detail || "";
+  const again = document.createElement("button");
+  again.className = "btn small ghost";
+  again.type = "button";
+  again.style.marginTop = "0.6rem";
+  again.textContent = "Try saving the copy again";
+  again.onclick = async () => {
+    again.disabled = true;
+    showCopyState("working");
+    try {
+      await savePdfCopy(currentDoc, mySignatures[currentDoc.id]);
+      showCopyState("saved");
+    } catch (err) {
+      showCopyState("failed", err.message);
+    }
+  };
+  el.append(again);
+  box.append(el);
 }
 
 $("sign").addEventListener("click", async () => {
@@ -570,8 +795,20 @@ $("sign").addEventListener("click", async () => {
 
   mySignatures[currentDoc.id] = data;
   $("sign").disabled = false;
+  msg.textContent = "";
   openDoc(currentDoc);
   renderMine();
+
+  // The signature is already safe at this point. The PDF is a copy for
+  // the coach to keep, so it is made afterwards and reported on its own.
+  showCopyState("working");
+  try {
+    await savePdfCopy(currentDoc, data);
+    showCopyState("saved");
+  } catch (err) {
+    console.error("Could not save the PDF copy:", err);
+    showCopyState("failed", err.message);
+  }
 });
 
 $("print").addEventListener("click", () => window.print());
