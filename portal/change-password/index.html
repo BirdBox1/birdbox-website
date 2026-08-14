@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Change password — BirdBox Coaching</title>
+<style>
+  :root { --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+          --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0; --good:#1f8a54; --bad:#b3261e; }
+  *,*::before,*::after { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+         font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .bar { background:var(--shell); color:#fff; padding:0.7rem 1.25rem;
+         display:flex; align-items:center; gap:0.75rem; }
+  .mark { width:34px; height:34px; border-radius:4px; background:#fff;
+          display:grid; place-items:center; flex:none; }
+  .mark img { width:26px; height:26px; object-fit:contain; display:block; }
+  .brandname { font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; color:#9aa1a9; }
+  .box { max-width:24rem; margin:3rem auto; background:var(--card);
+         border:1px solid var(--rule); border-radius:6px; padding:1.75rem; }
+  h1 { font-size:1.2rem; letter-spacing:-0.02em; margin:0 0 0.3rem; font-weight:600; }
+  .sub { color:var(--muted); font-size:0.88rem; margin:0 0 1.25rem; }
+  label { display:block; font-size:0.8rem; font-weight:600; margin-bottom:0.3rem; }
+  input { width:100%; font:inherit; padding:0.55rem 0.65rem; border:1px solid var(--rule);
+          border-radius:4px; background:#fff; color:var(--ink); }
+  input:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .field { margin-bottom:1rem; }
+  .btn { font:inherit; font-weight:600; background:var(--ink); color:#fff; border:0;
+         border-radius:4px; padding:0.6rem 1.1rem; cursor:pointer; width:100%; }
+  .btn:hover { background:#000; }
+  .btn[disabled] { opacity:0.5; cursor:default; }
+  .msg { font-size:0.85rem; margin-top:0.9rem; min-height:1.2em; }
+  .msg.err { color:var(--bad); }
+  .msg.ok { color:var(--good); }
+  .foot { margin-top:1.5rem; padding-top:1.15rem; border-top:1px solid var(--rule); text-align:center; }
+  .foot a { font-size:0.8rem; color:var(--muted); text-decoration:none; }
+  .foot a:hover { color:var(--ink); text-decoration:underline; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+  <span class="brandname">Coach Portal</span>
+</div>
+
+<div class="box">
+  <h1>Change your password</h1>
+  <p class="sub">Enter the password you have now, then choose a new one. At least 12 characters.</p>
+
+  <div class="field">
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="username" inputmode="email">
+  </div>
+  <div class="field">
+    <label for="current">Current password</label>
+    <input id="current" type="password" autocomplete="current-password">
+  </div>
+  <div class="field">
+    <label for="next">New password</label>
+    <input id="next" type="password" autocomplete="new-password">
+  </div>
+  <div class="field">
+    <label for="again">New password again</label>
+    <input id="again" type="password" autocomplete="new-password">
+  </div>
+
+  <button class="btn" id="go" type="button">Change password</button>
+  <p class="msg" id="msg"></p>
+
+  <p class="foot"><a href="/portal/">Back to the portal</a></p>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient(
+  "https://yvdmazpxtpuvidlcifnq.supabase.co",
+  "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+);
+
+const $ = (id) => document.getElementById(id);
+
+// If they are already signed in, fill the email in for them.
+const { data: { session } } = await db.auth.getSession();
+if (session && session.user && session.user.email) {
+  $("email").value = session.user.email;
+  $("current").focus();
+} else {
+  $("email").focus();
+}
+
+async function change() {
+  const msg = $("msg");
+  const email = $("email").value.trim();
+  const current = $("current").value;
+  const next = $("next").value;
+  const again = $("again").value;
+
+  msg.className = "msg";
+
+  if (!email || !email.includes("@")) {
+    msg.className = "msg err"; msg.textContent = "Enter your email address."; return;
+  }
+  if (!current) {
+    msg.className = "msg err"; msg.textContent = "Enter the password you have now."; return;
+  }
+  if (next.length < 12) {
+    msg.className = "msg err"; msg.textContent = "The new password needs at least 12 characters."; return;
+  }
+  if (next !== again) {
+    msg.className = "msg err"; msg.textContent = "The two new passwords do not match."; return;
+  }
+  if (next === current) {
+    msg.className = "msg err"; msg.textContent = "That is the password you already have."; return;
+  }
+
+  $("go").disabled = true;
+  msg.textContent = "Checking…";
+
+  // Signing in first proves the current password is right and gives a
+  // fresh session, which is what the password update runs against.
+  const { error: signErr } = await db.auth.signInWithPassword({
+    email, password: current,
+  });
+
+  if (signErr) {
+    $("go").disabled = false;
+    msg.className = "msg err";
+    msg.textContent = "That email and password did not match.";
+    return;
+  }
+
+  msg.textContent = "Saving…";
+  const { error } = await db.auth.updateUser({ password: next });
+  $("go").disabled = false;
+
+  if (error) {
+    msg.className = "msg err";
+    msg.textContent = "Could not change it: " + error.message;
+    return;
+  }
+
+  $("current").value = ""; $("next").value = ""; $("again").value = "";
+  msg.className = "msg ok";
+  msg.textContent = "Password changed. You can sign in to the portal with it now.";
+}
+
+$("go").addEventListener("click", change);
+$("again").addEventListener("keydown", (e) => { if (e.key === "Enter") change(); });
+</script>
+
+</body>
+</html>
