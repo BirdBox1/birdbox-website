@@ -66,7 +66,6 @@
     color:var(--muted);margin:0 0 0.8rem;font-weight:600}
   .panel .lead-in{font-size:0.88rem;color:var(--muted);margin:0 0 0.9rem}
 
-  /* the agreement text itself */
   .doc{background:#fbfaf8;border:1px solid var(--rule);border-radius:5px;
     padding:1.1rem 1.15rem;margin-bottom:1.25rem;font-size:0.94rem}
   .doc h3{font-size:0.95rem;letter-spacing:0;text-transform:none;color:var(--ink);
@@ -85,6 +84,23 @@
     font-weight:400;margin-bottom:1rem}
   .tick input{margin-top:0.28rem;flex:none;width:1.05rem;height:1.05rem}
 
+  /* the signature pad. touch-action:none stops the page scrolling
+     under a finger that is trying to draw. */
+  .pad{position:relative;border:1px solid var(--rule);border-radius:4px;
+    background:#fff;overflow:hidden}
+  .pad canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair}
+  .pad .baseline{position:absolute;left:1rem;right:1rem;bottom:2.6rem;
+    border-bottom:1px dashed #d5d1c9;pointer-events:none}
+  .pad .ghost{position:absolute;left:1rem;bottom:1rem;font-size:0.78rem;
+    color:#b8b4ac;pointer-events:none}
+  .pad.drawn .ghost{display:none}
+  .padrow{display:flex;justify-content:space-between;align-items:center;
+    margin:0.4rem 0 1rem;gap:0.5rem;flex-wrap:wrap}
+
+  .sigshot{border:1px solid var(--rule);border-radius:4px;background:#fff;
+    padding:0.5rem;max-width:22rem;margin-bottom:0.8rem}
+  .sigshot img{display:block;width:100%;height:auto}
+
   .alert{background:#fffbe8;border:1px solid #eddfa4;border-left:3px solid var(--flag);
     border-radius:6px;padding:0.9rem 1.05rem;margin-bottom:1rem;font-size:0.9rem}
   .alert.good{background:#f2f9f5;border-color:#c3e0d0;border-left-color:var(--good)}
@@ -96,7 +112,6 @@
   .msg.ok{color:var(--good)}
   .empty{background:var(--card);border:1px dashed var(--rule);border-radius:6px;
     padding:2rem 1.25rem;text-align:center;color:var(--muted);font-size:0.9rem}
-  .counts{font-size:0.85rem;color:var(--muted);margin-bottom:1rem}
   .hidden{display:none!important}
 
   .tabs{display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap}
@@ -112,10 +127,12 @@
   .person .pname small{display:block;color:var(--muted);font-size:0.78rem}
 
   @media print{
-    .bar,.back,.tabs,.btn,.tick,.field,#sign-msg{display:none!important}
+    .bar,.back,.tabs,.btn,.tick,.field,.pad,.padrow,#sign-msg,#sign-panel
+      {display:none!important}
     body{background:#fff}
     .doc{border:0;background:#fff;padding:0}
     .wrap{max-width:none;padding:0}
+    .panel{border:0;padding:0}
   }
 </style>
 </head>
@@ -142,10 +159,7 @@
       <button class="tab" id="tab-admin" type="button">Manage</button>
     </div>
 
-    <div id="mine">
-      <div id="agreementlist"></div>
-    </div>
-
+    <div id="mine"><div id="agreementlist"></div></div>
     <div id="adminlist" class="hidden"></div>
   </section>
 
@@ -161,9 +175,20 @@
     <div class="panel" id="sign-panel">
       <h3>Sign</h3>
       <p class="lead-in">
-        Type your full name as it appears below. That typed name, with the date
-        and time, is your signature and is stored against this agreement.
+        Sign with your finger or a pencil, then type your name underneath.
+        Both are stored against this agreement with the date and time.
       </p>
+
+      <label for="pad">Your signature</label>
+      <div class="pad" id="pad-box">
+        <canvas id="pad"></canvas>
+        <span class="baseline"></span>
+        <span class="ghost">Sign here</span>
+      </div>
+      <div class="padrow">
+        <span class="hint">Turn the iPad sideways if you want more room.</span>
+        <button class="btn small ghost" id="pad-clear" type="button">Clear</button>
+      </div>
 
       <div class="field">
         <label for="typed">Your full name
@@ -183,6 +208,7 @@
 
     <div class="panel hidden" id="signed-panel">
       <h3>Signed</h3>
+      <div class="sigshot hidden" id="signed-shot"><img id="signed-img" alt="Signature"></div>
       <p class="lead-in" id="signed-detail"></p>
       <button class="btn small ghost" id="print" type="button">Print or save a copy</button>
     </div>
@@ -238,6 +264,127 @@ let agreements = [];
 let mySignatures = {};
 let currentDoc = null;
 
+/* ---------------- signature pad ---------------- */
+
+const canvas = $("pad");
+const ctx = canvas.getContext("2d");
+let drawing = false;
+let hasInk = false;
+let lastX = 0, lastY = 0;
+
+// The canvas is stretched by CSS, so its backing store has to be
+// sized in real device pixels or the line comes out fuzzy and
+// offset from the finger.
+function sizePad() {
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(rect.width * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "#16181b";
+}
+
+function clearPad() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  sizePad();
+  hasInk = false;
+  $("pad-box").classList.remove("drawn");
+}
+
+function padPoint(e) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+canvas.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  canvas.setPointerCapture(e.pointerId);
+  drawing = true;
+  const p = padPoint(e);
+  lastX = p.x; lastY = p.y;
+  // A single tap should leave a dot, not nothing.
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 1.1, 0, Math.PI * 2);
+  ctx.fillStyle = "#16181b";
+  ctx.fill();
+  hasInk = true;
+  $("pad-box").classList.add("drawn");
+});
+
+canvas.addEventListener("pointermove", (e) => {
+  if (!drawing) return;
+  e.preventDefault();
+  const p = padPoint(e);
+  ctx.beginPath();
+  ctx.moveTo(lastX, lastY);
+  ctx.lineTo(p.x, p.y);
+  ctx.stroke();
+  lastX = p.x; lastY = p.y;
+});
+
+for (const ev of ["pointerup", "pointercancel", "pointerleave"]) {
+  canvas.addEventListener(ev, () => { drawing = false; });
+}
+
+$("pad-clear").addEventListener("click", clearPad);
+
+// Rotating the iPad resizes the canvas, which wipes it. Warn rather
+// than silently losing a signature somebody just drew.
+let resizeTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if ($("view-doc").classList.contains("hidden")) return;
+    const had = hasInk;
+    clearPad();
+    if (had) {
+      $("sign-msg").className = "msg err";
+      $("sign-msg").textContent = "The pad was cleared when the screen changed size — sign again.";
+    }
+  }, 200);
+});
+
+// Trim the empty margins so the stored image is the signature itself,
+// then scale it down to something sensible to keep in the database.
+function padImage() {
+  const w = canvas.width, h = canvas.height;
+  const px = ctx.getImageData(0, 0, w, h).data;
+  let minX = w, minY = h, maxX = -1, maxY = -1;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (px[(y * w + x) * 4 + 3] > 8) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) return null;
+
+  const pad = 10;
+  minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+  maxX = Math.min(w - 1, maxX + pad); maxY = Math.min(h - 1, maxY + pad);
+
+  const cw = maxX - minX + 1, ch = maxY - minY + 1;
+  const scale = Math.min(1, 600 / cw);
+
+  const out = document.createElement("canvas");
+  out.width = Math.round(cw * scale);
+  out.height = Math.round(ch * scale);
+  const octx = out.getContext("2d");
+  octx.drawImage(canvas, minX, minY, cw, ch, 0, 0, out.width, out.height);
+  return out.toDataURL("image/png");
+}
+
+/* ---------------- boot ---------------- */
+
 start();
 
 async function start() {
@@ -276,7 +423,7 @@ async function loadList() {
   agreements = docs || [];
 
   const { data: sigs } = await db.from("agreement_signatures")
-    .select("agreement_id, typed_name, signed_at")
+    .select("agreement_id, typed_name, signature_png, signed_at")
     .eq("staff_id", me.id);
 
   mySignatures = {};
@@ -289,12 +436,6 @@ async function loadList() {
 function renderMine() {
   const list = $("agreementlist");
   list.innerHTML = "";
-
-  // An admin sees the management view separately; here they only see
-  // what they themselves have been asked to sign.
-  const forMe = agreements.filter(
-    (a) => a.audience === "all" || mySignatures[a.id] || a.assignedToMe !== false
-  );
 
   const outstanding = agreements.filter((a) => !mySignatures[a.id]).length;
   $("list-sub").textContent = agreements.length
@@ -347,7 +488,17 @@ function openDoc(a) {
   $("sign-panel").classList.toggle("hidden", !!sig);
   $("signed-panel").classList.toggle("hidden", !sig);
 
-  if (sig) {
+  if (!sig) {
+    // The pad has no size until its panel is visible.
+    requestAnimationFrame(() => { sizePad(); clearPad(); });
+  } else {
+    const shot = $("signed-shot");
+    if (sig.signature_png) {
+      $("signed-img").src = sig.signature_png;
+      shot.classList.remove("hidden");
+    } else {
+      shot.classList.add("hidden");
+    }
     $("signed-detail").textContent =
       `Signed by ${sig.typed_name} on ${fmtWhen(sig.signed_at)}. ` +
       `This record cannot be changed. If the agreement is ever revised you ` +
@@ -363,6 +514,11 @@ $("sign").addEventListener("click", async () => {
   const msg = $("sign-msg");
   const typed = $("typed").value.trim();
 
+  if (!hasInk) {
+    msg.className = "msg err";
+    msg.textContent = "Sign in the box above first.";
+    return;
+  }
   if (!$("confirm").checked) {
     msg.className = "msg err";
     msg.textContent = "Tick the box to confirm you have read it.";
@@ -370,7 +526,7 @@ $("sign").addEventListener("click", async () => {
   }
   if (!typed) {
     msg.className = "msg err";
-    msg.textContent = "Type your full name.";
+    msg.textContent = "Type your full name as well.";
     return;
   }
   if (loose(typed) !== loose(me.full_name)) {
@@ -378,9 +534,17 @@ $("sign").addEventListener("click", async () => {
     msg.textContent = `That does not match your name on file. Type it as: ${me.full_name}`;
     return;
   }
+
+  const png = padImage();
+  if (!png) {
+    msg.className = "msg err";
+    msg.textContent = "The signature did not come through — clear the box and try again.";
+    return;
+  }
+
   if (!window.confirm(
     "Sign this agreement?\n\n" +
-    "Your name and the date will be stored permanently and cannot be edited afterwards."
+    "Your signature, name and the date will be stored permanently and cannot be edited afterwards."
   )) return;
 
   $("sign").disabled = true;
@@ -391,6 +555,7 @@ $("sign").addEventListener("click", async () => {
     agreement_id: currentDoc.id,
     staff_id: me.id,
     typed_name: typed,
+    signature_png: png,
     user_agent: navigator.userAgent,
   }).select().single();
 
@@ -471,7 +636,8 @@ async function openManage(a) {
   currentDoc = a;
   show("manage");
   $("m-title").textContent = a.title;
-  $("m-meta").textContent = `Version ${a.version} · ${a.audience === "all" ? "everyone" : "assigned only"}`;
+  $("m-meta").textContent =
+    `Version ${a.version} · ${a.audience === "all" ? "everyone" : "assigned only"}`;
   $("m-msg").textContent = "";
   $("m-people").innerHTML = '<p class="empty">Loading…</p>';
 
