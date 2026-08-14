@@ -1080,18 +1080,59 @@ function fill(id, value, isHtml) {
   }
 }
 
+// A course runs in its own timezone, not the reader's. A seminar
+// finishing at 17:00 in Chicago is already the next day in Europe, so
+// formatting these timestamps in the browser's timezone pushed the end
+// date forward a day for anyone east of the venue. Every date shown
+// here is worked out in the course's own timezone instead, which is
+// what the portal and the seminar list already do.
+function courseZone(c) {
+  const tz = c && c.timezone ? String(c.timezone).trim() : "";
+  if (!tz) return undefined;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: tz });
+    return tz;
+  } catch (e) {
+    // A bad or unknown zone name would throw on every call below, so
+    // fall back to the reader's own rather than breaking the page.
+    return undefined;
+  }
+}
+
+// year / month / day as they read at the venue
+function zonedParts(date, tz) {
+  const out = {};
+  const fmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+  });
+  for (const part of fmt.formatToParts(date)) out[part.type] = part.value;
+  return out;
+}
+
 function formatDates(c) {
-  const opts = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+  const tz = courseZone(c);
+  const opts = {
+    weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: tz,
+  };
+
   const start = new Date(c.starts_at);
   const startStr = start.toLocaleDateString(undefined, opts);
   if (!c.ends_at) return startStr;
+
   const end = new Date(c.ends_at);
-  if (start.toDateString() === end.toDateString()) return startStr;
-  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
-  if (sameMonth) {
-    return start.getDate() + "–" + end.getDate() + " " +
-      end.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const s = zonedParts(start, tz);
+  const e = zonedParts(end, tz);
+
+  // one day
+  if (s.year === e.year && s.month === e.month && s.day === e.day) return startStr;
+
+  // same month, e.g. 22–23 August 2026
+  if (s.year === e.year && s.month === e.month) {
+    return Number(s.day) + "–" + Number(e.day) + " " +
+      end.toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: tz });
   }
+
+  // spans a month or a year
   return startStr + " – " + end.toLocaleDateString(undefined, opts);
 }
 
