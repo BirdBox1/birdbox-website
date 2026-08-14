@@ -1,18 +1,22 @@
-// netlify/functions/backup-storage.mjs
+// netlify/functions/backup-storage-background.mjs
 //
-// The files the database only points at: certificates artwork, signed
-// waivers, coach invoices, participant photos, manuals, blog images.
-// The nightly database snapshot holds the rows; without this the rows
-// would point at nothing.
+// The files the database only points at: signed waivers, coach invoices,
+// participant photos, manuals, blog images. The nightly database
+// snapshot holds the rows; without this the rows point at nothing.
 //
-// Incremental. It lists what is already in B2 and uploads only what is
-// missing, so the first run copies everything and later runs copy the
-// handful of files added that day. Nothing is ever deleted from B2 —
-// a file removed from Supabase stays in the archive, which is the
-// point of an archive.
+// One bucket per invocation. Doing all seven in one go ran out of
+// memory partway through `manuals` — each file is held whole in memory
+// before uploading, and 60 MB of PDFs was past what a function will
+// carry. Per bucket it never holds more than that bucket's worth, and
+// a bucket that fails cannot stop the others.
 //
-// Runs weekly. Files change far less than rows do, and a weekly sweep
-// is enough to keep the gap small without moving 118 MB every night.
+// Incremental within a bucket: it lists what B2 already holds and
+// uploads only what is missing. Nothing is ever deleted from B2, so a
+// file removed from Supabase stays archived — the point of an archive.
+//
+// Runs weekly, one bucket per day so no two land together.
+//   ?bucket=manuals      one named bucket
+//   ?key=<BACKUP_TOKEN>  needed when calling by hand
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -36,10 +40,12 @@ const BUCKETS = [
   "participant-photos", "staff-documents", "staff-photos",
 ];
 
-// Netlify allows 15 minutes for a background function. Stopping short
-// of that leaves room to send the email rather than being killed
-// mid-upload with nothing to show for it.
-const TIME_BUDGET_MS = 12 * 60 * 1000;
+// Which bucket a scheduled run takes, by day of the week. Sunday is
+// index 0, so the order below is Sunday through Saturday.
+const BY_DAY = [
+  "blog", "coach-invoices", "course-images", "manuals",
+  "participant-photos", "staff-documents", "staff-photos",
+];
 
 const enc = new TextEncoder();
 
@@ -57,8 +63,7 @@ async function hmac(key, text) {
 
 // One signer for every request, so GET and PUT cannot drift apart.
 async function signedFetch(method, path, query, body, contentType) {
-  const now = new Date();
-  const stamp = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
+  const stamp = new Date().toISOString().replace(/[:-]|\.\d{3}/g, "");
   const date = stamp.slice(0, 8);
   const host = `${B2_BUCKET}.${B2_ENDPOINT}`;
   const payloadHash = body ? await sha256Hex(body) : await sha256Hex(new Uint8Array());
@@ -75,13 +80,7 @@ async function signedFetch(method, path, query, body, contentType) {
   const signedHeaders = names.join(";");
 
   const canonical = [
-    method,
-    path,
-    query,
-    canonicalHeaders,
-    "",
-    signedHeaders,
-    payloadHash,
+    method, path, query, canonicalHeaders, "", signedHeaders, payloadHash,
   ].join("\n");
 
   const scope = `${date}/${B2_REGION}/s3/aws4_request`;
@@ -111,14 +110,14 @@ async function signedFetch(method, path, query, body, contentType) {
   });
 }
 
-// Everything already archived, so nothing is copied twice. Paged,
-// because a bucket will eventually hold more than a thousand files.
-async function alreadyStored() {
+// What is already archived for this bucket, so nothing copies twice.
+async function alreadyStored(bucket) {
   const have = new Set();
   let token = null;
+  const prefix = encodeURIComponent(`storage/${bucket}/`);
 
   do {
-    const params = ["list-type=2", "max-keys=1000", "prefix=storage%2F"];
+    const params = ["list-type=2", "max-keys=1000", `prefix=${prefix}`];
     if (token) params.push("continuation-token=" + encodeURIComponent(token));
     params.sort();
 
@@ -147,11 +146,8 @@ async function listBucket(bucket, prefix = "") {
   for (const entry of data || []) {
     const path = prefix ? `${prefix}/${entry.name}` : entry.name;
     // A row with no id is a folder, not a file.
-    if (!entry.id) {
-      out.push(...await listBucket(bucket, path));
-    } else {
-      out.push({ path, size: entry.metadata?.size ?? 0 });
-    }
+    if (!entry.id) out.push(...await listBucket(bucket, path));
+    else out.push({ path, size: entry.metadata?.size ?? 0 });
   }
   return out;
 }
@@ -165,9 +161,7 @@ async function sendReport(subject, text) {
     headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
     body: JSON.stringify({
       from: `BirdBox Backups <${FROM}>`,
-      to: [TO],
-      subject,
-      text,
+      to: [TO], subject, text,
     }),
   });
 
@@ -182,107 +176,86 @@ export default async (request) => {
     return new Response("no", { status: 401 });
   }
 
-  const startedAt = Date.now();
-  const started = new Date();
-  const problems = [];
-  const perBucket = [];
+  // Named bucket, or the one whose turn it is today.
+  const asked = url.searchParams.get("bucket");
+  const bucket = asked || BY_DAY[new Date().getUTCDay()];
 
-  let have;
-  try {
-    have = await alreadyStored();
-  } catch (err) {
-    await sendReport(
-      `PROBLEM — BirdBox storage backup ${started.toISOString().slice(0, 10)}`,
-      `Could not read what is already in Backblaze, so nothing was copied.\n\n${err.message}`
+  if (!BUCKETS.includes(bucket)) {
+    return new Response(
+      JSON.stringify({ error: `Unknown bucket "${bucket}".`, known: BUCKETS }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
     );
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 
-  let copied = 0;
-  let copiedBytes = 0;
-  let skipped = 0;
-  let ranOut = false;
+  const started = new Date();
+  const day = started.toISOString().slice(0, 10);
+  const problems = [];
 
-  for (const bucket of BUCKETS) {
-    let files = [];
+  let have, files;
+  try {
+    have = await alreadyStored(bucket);
+    files = await listBucket(bucket);
+  } catch (err) {
+    await sendReport(
+      `PROBLEM — BirdBox storage backup: ${bucket}`,
+      `Could not start on ${bucket}, so nothing was copied from it.\n\n${err.message}`
+    );
+    return new Response(JSON.stringify({ bucket, error: err.message }), { status: 500 });
+  }
+
+  let copied = 0, copiedBytes = 0, skipped = 0;
+
+  for (const file of files) {
+    const key = `storage/${bucket}/${file.path}`;
+    if (have.has(key)) { skipped++; continue; }
+
     try {
-      files = await listBucket(bucket);
+      const { data, error } = await supabase.storage.from(bucket).download(file.path);
+      if (error) throw new Error(error.message);
+
+      const bytes = new Uint8Array(await data.arrayBuffer());
+      const res = await signedFetch(
+        "PUT",
+        "/" + key.split("/").map(encodeURIComponent).join("/"),
+        "",
+        bytes,
+        data.type || "application/octet-stream"
+      );
+      if (!res.ok) throw new Error(`B2 refused it (${res.status})`);
+
+      copied++;
+      copiedBytes += bytes.length;
     } catch (err) {
-      problems.push(`${bucket} — could not list: ${err.message}`);
-      continue;
+      problems.push(`${file.path} — ${err.message}`);
     }
-
-    let newHere = 0;
-    for (const file of files) {
-      const key = `storage/${bucket}/${file.path}`;
-
-      if (have.has(key)) { skipped++; continue; }
-
-      if (Date.now() - startedAt > TIME_BUDGET_MS) { ranOut = true; break; }
-
-      try {
-        const { data, error } = await supabase.storage.from(bucket).download(file.path);
-        if (error) throw new Error(error.message);
-
-        const bytes = new Uint8Array(await data.arrayBuffer());
-        const res = await signedFetch(
-          "PUT",
-          "/" + key.split("/").map(encodeURIComponent).join("/"),
-          "",
-          bytes,
-          data.type || "application/octet-stream"
-        );
-        if (!res.ok) throw new Error(`B2 refused it (${res.status})`);
-
-        copied++;
-        newHere++;
-        copiedBytes += bytes.length;
-      } catch (err) {
-        problems.push(`${bucket}/${file.path} — ${err.message}`);
-      }
-    }
-
-    perBucket.push(`${bucket}: ${files.length} files, ${newHere} newly copied`);
-    if (ranOut) break;
   }
 
   const mb = (copiedBytes / 1048576).toFixed(1);
-  const trouble = problems.length > 0 || ranOut;
-  const day = started.toISOString().slice(0, 10);
-
-  const subject = trouble
-    ? `PROBLEM — BirdBox storage backup ${day}`
-    : `BirdBox storage backup ${day} — ${copied} new files`;
+  const subject = problems.length
+    ? `PROBLEM — BirdBox storage backup: ${bucket}`
+    : `BirdBox storage backup: ${bucket} — ${copied} new`;
 
   const lines = [
-    `Storage sweep started ${started.toISOString()}.`,
+    `Bucket "${bucket}", swept ${started.toISOString()}.`,
     "",
-    `${copied} new file${copied === 1 ? "" : "s"} copied, ${mb} MB.`,
-    `${skipped} already archived, so not copied again.`,
-    "",
-    ranOut
-      ? "RAN OUT OF TIME before finishing. The rest will be picked up on the next run —"
-      : "Every bucket was walked to the end.",
-    ranOut ? "nothing is lost, it just takes another sweep or two to catch up." : "",
+    `${files.length} file${files.length === 1 ? "" : "s"} in the bucket.`,
+    `${copied} newly copied, ${mb} MB.`,
+    `${skipped} already archived.`,
     "",
     problems.length ? "Problems:" : "No problems.",
-    ...problems.slice(0, 40).map((p) => "  " + p),
-    problems.length > 40 ? `  …and ${problems.length - 40} more` : "",
+    ...problems.slice(0, 30).map((p) => "  " + p),
+    problems.length > 30 ? `  …and ${problems.length - 30} more` : "",
     "",
-    "Buckets:",
-    ...perBucket.map((b) => "  " + b),
-    "",
-    "Files live in Backblaze under storage/<bucket>/<path>.",
-    "Nothing is ever deleted there, so a file removed from Supabase stays archived.",
+    `Archived under storage/${bucket}/ in Backblaze.`,
   ].filter((l) => l !== "");
 
   const emailed = await sendReport(subject, lines.join("\n"));
 
   return new Response(JSON.stringify({
-    day, copied, skipped, mb, ranOut, problems, emailed,
+    bucket, day, total: files.length, copied, skipped, mb, problems, emailed,
   }, null, 2), { headers: { "Content-Type": "application/json" } });
 };
 
 export const config = {
-  schedule: "0 3 * * 0",
+  schedule: "0 3 * * *",
 };
