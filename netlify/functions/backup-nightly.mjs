@@ -9,8 +9,8 @@
 // backup that stops working quietly is worse than none at all, because
 // you only find out on the day you need it.
 //
-// Runs on a schedule set in netlify.toml. Can also be called by hand
-// with ?key=<BACKUP_TOKEN> to test it.
+// Runs on the schedule at the foot of this file. Can also be called by
+// hand with ?key=<BACKUP_TOKEN> to test it.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -29,22 +29,23 @@ const B2_REGION = "eu-central-003";
 const TO = "info@birdboxcoaching.com";
 const FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
 
-// Every table worth keeping. Named explicitly rather than discovered,
-// so a snapshot is a deliberate list and not whatever happened to be
-// in the schema that night.
+// Every table in the database, checked against information_schema
+// rather than remembered. A table missing from here is a table with
+// no backup, so this list is worth re-checking whenever one is added.
 const TABLES = [
-  "courses", "registrations", "payments", "course_staff", "staff",
-  "certificates", "coach_invoices", "coach_invoice_receipts",
-  "participant_notes", "course_emails", "course_messages",
-  "direct_messages", "reflections", "reflection_replies",
-  "course_archives", "abandoned_checkouts", "discount_codes",
-  "course_prices", "course_templates", "workshop_templates",
-  "workshop_requests", "email_templates", "email_sequences",
-  "email_sequence_steps", "email_enrolments", "email_sends",
-  "feedback_drafts", "feedback_manuals", "blog_posts", "testimonials",
-  "learnworlds_products", "vat_rates", "manuals",
-  "interest_signups", "email_signups",
-  "drip_emails", "drip_enrollments", "drip_sends",
+  "abandoned_checkouts", "blog_posts", "certificates",
+  "coach_invoice_receipts", "coach_invoices", "coach_notifications",
+  "course_archives", "course_emails", "course_messages", "course_prices",
+  "course_staff", "course_templates", "courses", "direct_messages",
+  "discount_codes", "drip_emails", "drip_enrollments", "drip_sends",
+  "email_block_translations", "email_blocks", "email_enrolments",
+  "email_sends", "email_sequence_steps", "email_sequences",
+  "email_signups", "email_templates", "feedback_drafts",
+  "feedback_manuals", "interest_signups", "learnworlds_products",
+  "manuals", "participant_notes", "payments", "programming_applications",
+  "reflection_replies", "reflections", "registrations", "staff",
+  "staff_documents", "testimonials", "vat_rates", "workshop_requests",
+  "workshop_templates",
 ];
 
 // Read in pages. A single select would quietly stop at the row limit,
