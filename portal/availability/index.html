@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My availability — BirdBox Coaching</title>
+<style>
+  :root { --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+          --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0; --good:#1f8a54; --bad:#b3261e; }
+  *,*::before,*::after { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+         font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .bar { background:var(--shell); color:#fff; padding:0.7rem 1.25rem;
+         display:flex; align-items:center; gap:0.75rem; position:sticky; top:0; z-index:5; }
+  .mark { width:34px; height:34px; border-radius:4px; background:#fff;
+          display:grid; place-items:center; flex:none; }
+  .mark img { width:26px; height:26px; object-fit:contain; display:block; }
+  .brandname { font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; color:#9aa1a9; }
+  .wrap { max-width:34rem; margin:1.5rem auto 4rem; padding:0 1rem; }
+  h1 { font-size:1.2rem; letter-spacing:-0.02em; margin:0 0 0.3rem; font-weight:600; }
+  .sub { color:var(--muted); font-size:0.88rem; margin:0 0 1.25rem; }
+  .panel { background:var(--card); border:1px solid var(--rule); border-radius:6px;
+           padding:1rem 1.1rem; margin-bottom:1.1rem; }
+  .panel h2 { font-size:0.8rem; letter-spacing:0.1em; text-transform:uppercase;
+              color:var(--muted); margin:0 0 0.7rem; font-weight:600; }
+  label { display:block; font-size:0.8rem; font-weight:600; margin-bottom:0.3rem; }
+  select, input { width:100%; font:inherit; padding:0.5rem 0.6rem; border:1px solid var(--rule);
+                  border-radius:4px; background:#fff; color:var(--ink); }
+  select:focus-visible, input:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .field { margin-bottom:0.8rem; }
+  .row2 { display:flex; gap:0.6rem; }
+  .row2 > * { flex:1; }
+  .btn { font:inherit; font-weight:600; background:var(--ink); color:#fff; border:0;
+         border-radius:4px; padding:0.55rem 1rem; cursor:pointer; }
+  .btn:hover { background:#000; }
+  .btn[disabled] { opacity:0.45; cursor:default; }
+  .btn.ghost { background:#fff; color:var(--ink); border:1px solid var(--rule); }
+  .btn.ghost:hover { background:#f7f6f3; }
+  .btn.wide { width:100%; }
+  .msg { font-size:0.85rem; margin-top:0.6rem; min-height:1.2em; }
+  .msg.err { color:var(--bad); }
+  .msg.ok { color:var(--good); }
+  .monthhead { font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase;
+               color:var(--muted); font-weight:600; margin:1.3rem 0 0.45rem 0.15rem; }
+  .wk { display:flex; align-items:center; gap:0.7rem; width:100%; text-align:left;
+        background:var(--card); border:1px solid var(--rule); border-radius:6px;
+        padding:0.65rem 0.8rem; margin-bottom:0.4rem; font:inherit; color:var(--ink);
+        cursor:pointer; }
+  .wk:hover { border-color:#c9c4ba; }
+  .wk .dot { width:16px; height:16px; border-radius:50%; border:2px solid var(--rule);
+             flex:none; background:#fff; }
+  .wk .lbl { flex:1; }
+  .wk .tag { font-size:0.72rem; color:var(--muted); }
+  .wk.off { background:#fdf1f0; border-color:#e9c6c2; }
+  .wk.off .dot { background:var(--bad); border-color:var(--bad); }
+  .wk.off .lbl { color:var(--bad); font-weight:600; }
+  .wk.locked { cursor:default; opacity:0.75; }
+  .legend { font-size:0.8rem; color:var(--muted); margin:0.2rem 0 0.9rem; }
+  .foot { margin-top:2rem; padding-top:1.15rem; border-top:1px solid var(--rule); text-align:center; }
+  .foot a { font-size:0.8rem; color:var(--muted); text-decoration:none; }
+  .foot a:hover { color:var(--ink); text-decoration:underline; }
+  .sticky { position:sticky; bottom:0; background:var(--paper);
+            padding:0.7rem 0 0.9rem; border-top:1px solid var(--rule); }
+  .count { font-size:0.85rem; color:var(--muted); margin-bottom:0.5rem; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+  <span class="brandname">Coach Portal</span>
+</div>
+
+<div class="wrap">
+  <h1>My availability</h1>
+  <p class="sub">Seminars run on weekends. Tap any weekend you are <strong>not</strong> available.
+     Leave the rest untouched. You can change these at any time.</p>
+
+  <div id="whoPanel" class="panel" style="display:none">
+    <h2>Viewing</h2>
+    <div class="field">
+      <label for="who">Coach</label>
+      <select id="who"></select>
+    </div>
+    <p class="sub" style="margin:0">Admin view. Changes you make here are saved against the coach you select.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Repeating pattern</h2>
+    <p class="sub" style="margin:0 0 0.8rem">
+      For something like alternate weekends. This fills in the weekends for you —
+      you can still tap any single one afterwards to change it.</p>
+    <div class="field">
+      <label for="pFrom">Starting weekend</label>
+      <select id="pFrom"></select>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="pEvery">Repeat</label>
+        <select id="pEvery">
+          <option value="2">Every 2nd weekend</option>
+          <option value="1">Every weekend</option>
+          <option value="3">Every 3rd weekend</option>
+          <option value="4">Every 4th weekend</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="pFor">For</label>
+        <select id="pFor">
+          <option value="3">3 months</option>
+          <option value="6" selected>6 months</option>
+          <option value="12">12 months</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="pLabel">Reason (optional)</label>
+      <input id="pLabel" type="text" placeholder="e.g. with my children">
+    </div>
+    <button class="btn wide" id="pApply" type="button">Add these weekends</button>
+    <p class="msg" id="pMsg"></p>
+  </div>
+
+  <p class="legend">Red means unavailable. Everything else is treated as available.</p>
+
+  <div id="list"></div>
+
+  <div class="sticky">
+    <p class="count" id="count"></p>
+    <p class="msg" id="msg"></p>
+  </div>
+
+  <p class="foot"><a href="/portal/">Back to the portal</a></p>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient(
+  "https://yvdmazpxtpuvidlcifnq.supabase.co",
+  "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+);
+
+const $ = (id) => document.getElementById(id);
+const WEEKS = 52;
+
+let me = null;         // signed-in staff row
+let isAdmin = false;
+let targetId = null;   // whose availability we are editing
+let weekends = [];     // array of YYYY-MM-DD (Saturdays)
+let off = new Map();   // 'YYYY-MM-DD' -> row id
+
+// ---------- helpers ----------
+function iso(d) {
+  return d.getFullYear() + "-" +
+         String(d.getMonth() + 1).padStart(2, "0") + "-" +
+         String(d.getDate()).padStart(2, "0");
+}
+// Saturday of the week containing d (Monday-based week, same as weekend_of() in SQL)
+function saturdayOf(d) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dow = (x.getDay() + 6) % 7;      // Mon=0 … Sun=6
+  x.setDate(x.getDate() - dow + 5);      // +5 = Saturday
+  return x;
+}
+function buildWeekends() {
+  const out = [];
+  let s = saturdayOf(new Date());
+  for (let i = 0; i < WEEKS; i++) {
+    out.push(iso(s));
+    s = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 7);
+  }
+  return out;
+}
+function label(isoSat) {
+  const [y, m, d] = isoSat.split("-").map(Number);
+  const sat = new Date(y, m - 1, d);
+  const sun = new Date(y, m - 1, d + 1);
+  const dd = (x) => x.getDate();
+  const mon = (x) => x.toLocaleDateString("en-GB", { month: "short" });
+  return sat.getMonth() === sun.getMonth()
+    ? `Sat ${dd(sat)} – Sun ${dd(sun)} ${mon(sat)}`
+    : `Sat ${dd(sat)} ${mon(sat)} – Sun ${dd(sun)} ${mon(sun)}`;
+}
+function monthName(isoSat) {
+  const [y, m] = isoSat.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+}
+function say(el, text, cls) {
+  el.className = "msg" + (cls ? " " + cls : "");
+  el.textContent = text;
+}
+
+// ---------- load ----------
+const { data: { session } } = await db.auth.getSession();
+if (!session) {
+  document.querySelector(".wrap").innerHTML =
+    '<h1>Please sign in</h1><p class="sub">Open the portal and sign in, then come back to this page.</p>' +
+    '<p class="foot"><a href="/portal/">Go to the portal</a></p>';
+} else {
+  const { data: staffRow } = await db
+    .from("staff").select("id, full_name, role").eq("id", session.user.id).maybeSingle();
+  me = staffRow;
+  isAdmin = !!staffRow && staffRow.role === "admin";
+  targetId = session.user.id;
+
+  weekends = buildWeekends();
+  $("pFrom").innerHTML = weekends.map(w => `<option value="${w}">${label(w)}</option>`).join("");
+
+  if (isAdmin) {
+    $("whoPanel").style.display = "";
+    const { data: all } = await db
+      .from("staff").select("id, full_name").eq("active", true).order("full_name");
+    if (all) {
+      $("who").innerHTML = all
+        .map(s => `<option value="${s.id}"${s.id === targetId ? " selected" : ""}>${s.full_name}</option>`)
+        .join("");
+      $("who").addEventListener("change", async () => {
+        targetId = $("who").value;
+        await loadOff();
+        render();
+      });
+    }
+  }
+
+  await loadOff();
+  render();
+}
+
+async function loadOff() {
+  off = new Map();
+  const { data, error } = await db
+    .from("coach_unavailability")
+    .select("id, starts_on")
+    .eq("staff_id", targetId)
+    .gte("starts_on", weekends[0])
+    .lte("starts_on", weekends[weekends.length - 1]);
+  if (error) { say($("msg"), "Could not load your dates: " + error.message, "err"); return; }
+  (data || []).forEach(r => off.set(r.starts_on, r.id));
+}
+
+// ---------- render ----------
+function render() {
+  const list = $("list");
+  let html = "";
+  let lastMonth = "";
+  for (const w of weekends) {
+    const mn = monthName(w);
+    if (mn !== lastMonth) { html += `<div class="monthhead">${mn}</div>`; lastMonth = mn; }
+    const isOff = off.has(w);
+    html += `<button class="wk${isOff ? " off" : ""}" data-w="${w}" type="button">
+               <span class="dot"></span>
+               <span class="lbl">${label(w)}</span>
+               <span class="tag">${isOff ? "Unavailable" : ""}</span>
+             </button>`;
+  }
+  list.innerHTML = html;
+  list.querySelectorAll(".wk").forEach(b =>
+    b.addEventListener("click", () => toggle(b.dataset.w)));
+  $("count").textContent = off.size === 0
+    ? "No weekends marked yet."
+    : off.size + (off.size === 1 ? " weekend marked unavailable." : " weekends marked unavailable.");
+}
+
+// ---------- write ----------
+async function toggle(w) {
+  const msg = $("msg");
+  if (off.has(w)) {
+    const id = off.get(w);
+    off.delete(w); render();
+    const { error } = await db.from("coach_unavailability").delete().eq("id", id);
+    if (error) { off.set(w, id); render(); say(msg, "Could not remove that: " + error.message, "err"); return; }
+    say(msg, "Saved.", "ok");
+  } else {
+    off.set(w, "pending"); render();
+    const { data, error } = await db.from("coach_unavailability")
+      .insert({
+        staff_id: targetId,
+        starts_on: w,
+        kind: "blackout",
+        source: isAdmin && targetId !== me.id ? "admin" : "coach",
+        created_by: me ? me.id : null
+      })
+      .select("id").single();
+    if (error) { off.delete(w); render(); say(msg, "Could not save that: " + error.message, "err"); return; }
+    off.set(w, data.id); render();
+    say(msg, "Saved.", "ok");
+  }
+}
+
+$("pApply").addEventListener("click", async () => {
+  const pMsg = $("pMsg");
+  const start = $("pFrom").value;
+  const every = parseInt($("pEvery").value, 10);
+  const months = parseInt($("pFor").value, 10);
+  const note = $("pLabel").value.trim() || null;
+
+  const startIdx = weekends.indexOf(start);
+  if (startIdx < 0) { say(pMsg, "Pick a starting weekend.", "err"); return; }
+  const limit = Math.min(weekends.length, startIdx + Math.round(months * 4.345));
+
+  const picked = [];
+  for (let i = startIdx; i < limit; i += every) {
+    if (!off.has(weekends[i])) picked.push(weekends[i]);
+  }
+  if (picked.length === 0) { say(pMsg, "Those weekends are already marked.", "err"); return; }
+
+  $("pApply").disabled = true;
+  say(pMsg, "Saving " + picked.length + " weekends…");
+
+  const patternId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+  const rows = picked.map(w => ({
+    staff_id: targetId,
+    starts_on: w,
+    kind: "blackout",
+    source: isAdmin && targetId !== me.id ? "admin" : "coach",
+    created_by: me ? me.id : null,
+    pattern_id: patternId,
+    pattern_label: note
+  }));
+
+  const { error } = await db.from("coach_unavailability")
+    .upsert(rows, { onConflict: "staff_id,starts_on", ignoreDuplicates: true });
+
+  $("pApply").disabled = false;
+  if (error) { say(pMsg, "Could not save: " + error.message, "err"); return; }
+
+  await loadOff();
+  render();
+  say(pMsg, picked.length + " weekends added. Tap any single one to change it.", "ok");
+});
+</script>
+
+</body>
+</html>
