@@ -600,6 +600,30 @@
 .sigview{width:100%;background:#fff;border:1px solid var(--rule);border-radius:.35rem}
 .editgrid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
 @media(max-width:640px){.editgrid{grid-template-columns:1fr}}
+  
+  /* The top bar on a phone. There are enough buttons now that they
+     wrap onto a second row and ride over the brand name, which is
+     what the coaches were seeing. Below this width the bar becomes
+     three stacked rows instead of fighting for one. */
+  @media (max-width: 46rem) {
+    .bar {
+      flex-wrap: wrap;
+      row-gap: 0.55rem;
+      padding: 0.65rem 0.9rem;
+    }
+    .bar .left { flex: 1 1 100%; }
+    .bar .right {
+      flex: 1 1 100%;
+      justify-content: flex-start;
+      gap: 0.4rem;
+    }
+    .bar .who {
+      width: 100%;
+      order: -1;
+      color: #9aa1a9;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -613,6 +637,7 @@
     <a class="linkbtn hidden" id="bloglink" href="/portal/blog/">Blog</a>
     <a class="linkbtn hidden" id="feedbacklink" href="/portal/feedback/">Feedback</a>
     <a class="linkbtn hidden" id="docslink" href="/portal/documents/">My documents</a>
+        <a class="linkbtn" id="agreementslink" href="/portal/agreements/">Agreements</a>
     <a class="linkbtn hidden" id="reflectlink" href="/portal/reflections/">Reflections</a>
     <a class="linkbtn hidden" id="codeslink" href="/portal/codes/">Discount codes</a>
     <button id="messagesbtn" class="hidden" type="button">Messages</button>
