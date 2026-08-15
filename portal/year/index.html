@@ -388,7 +388,11 @@ function buildWeekends() {
 /* ---------- gathering seminars ---------- */
 
 // A course belongs to the weekend its local start date falls in.
-const courseWeekend = (c) => iso(saturdayOf(new Date(c.starts_at)));
+// Written as a declaration, not a const, so it is hoisted — the first
+// render runs before this point in the file is reached.
+function courseWeekend(c) {
+  return iso(saturdayOf(new Date(c.starts_at)));
+}
 
 function items() {
   const brand = $("brand").value;
