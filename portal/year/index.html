@@ -84,7 +84,17 @@
   .sem .line { font-size:0.78rem; color:var(--muted); }
   .sem .right { flex:none; display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap;
                 justify-content:flex-end; max-width:14rem; }
-  .sem.plan { background:#fcfbf9; }
+
+  /* A plan is not a seminar. It sits on the calendar so the gaps are
+     visible, but it takes no money and nobody has been told about it,
+     so it reads greyed and dashed rather than as another live row. */
+  .sem.plan { background:#f5f4f1;
+              border-left:3px dashed #c8c4bb;
+              padding-left:calc(0.7rem - 3px); }
+  .sem.plan .tag { opacity:0.5; }
+  .sem.plan .where { color:var(--muted); }
+  .sem.plan .line { font-style:italic; }
+  .sem.plan:hover { background:#efeee9; }
 
   .b-tcc { background:var(--tcc); } .b-tgc { background:var(--tgc); }
   .b-tec { background:var(--tec); } .b-twc { background:var(--twc); color:#3a2a00; }
@@ -185,6 +195,7 @@
   .sheetbox .acts { display:flex; gap:0.45rem; flex-wrap:wrap; margin-top:0.9rem; }
   .sheetbox h4 { font-size:0.7rem; letter-spacing:0.11em; text-transform:uppercase;
                  color:var(--muted); margin:1rem 0 0.4rem; font-weight:650; }
+  .sheetbox .foot { color:var(--muted); font-size:0.78rem; margin:0.6rem 0 0; }
   .notelist { font-size:0.87rem; }
   .notelist .n { border-left:2px solid var(--rule); padding:0.1rem 0 0.1rem 0.6rem;
                  margin-bottom:0.45rem; }
@@ -193,6 +204,7 @@
   .sem:hover { background:#faf9f7; }
   .sem.locked, .chip.locked { cursor:default; }
   .sem.locked:hover { background:none; }
+  .sem.plan.locked:hover { background:#f5f4f1; }
   .chip { cursor:pointer; }
   .hidden { display:none !important; }
 </style>
@@ -394,8 +406,10 @@ async function loadAll() {
     db.from("courses")
       .select("id, title, brand, level, city, country, venue_name, starts_at, timezone, status, archived, capacity, slug, host_name, host_email, host_spots, prepaid_spots, type")
       .eq("archived", false).gte("starts_at", from).lt("starts_at", to),
+    // The host columns are read here because the panel below shows them.
+    // They were missing, so every plan looked as though it had no host.
     db.from("planned_seminars")
-      .select("id, market, city, country, venue_name, brand, level, weekend_start, stage, coach_staff_id, note")
+      .select("id, market, city, country, venue_name, brand, level, weekend_start, stage, coach_staff_id, note, host_name, host_email, host_instagram, host_phone, course_id")
       .neq("stage","dropped").gte("weekend_start", from).lt("weekend_start", to),
     db.from("coach_unavailability").select("staff_id, starts_on, note, source"),
   ]);
@@ -512,6 +526,7 @@ function items() {
         where:p.venue_name || p.market, stage:p.stage, note:p.note,
         team: s ? [{ id:s.id, name:s.full_name, role:"lead_coach" }] : [],
         coachId: p.coach_staff_id,
+        courseId: p.course_id,
         hay:[p.venue_name,p.market,s?s.full_name:""].join(" ").toLowerCase(),
       });
     }
@@ -636,7 +651,7 @@ function semRow(i) {
       <span class="where">${esc(i.where)}</span>
       <span class="line">${
         i.workshop ? '<b>' + esc(exactDay(i.startsAt, i.timezone)) + '</b> · workshop · ' : ""}${
-        planned ? "planned" : esc(i.title)}${
+        planned ? (i.courseId ? "planned · now a live course" : "planned") : esc(i.title)}${
         i.note ? " · " + esc(i.note) : ""}${
         clash.length ? ' · <b style="color:var(--bad)">' + esc(clash.join(", ")) +
                        " marked unavailable</b>" : ""}</span>
@@ -981,23 +996,43 @@ function openSheet(kind, id) {
   } else {
     const p = plans.find(x => x.id === id);
     if (!p) return;
-    const v = null;
     html += `<h3>${esc((p.brand||"").toUpperCase())} ${esc(p.level||"")} — ${
       esc(p.venue_name || p.market)}</h3>
       <p class="when">${esc(weekendLabel(p.weekend_start))} · ${esc(p.stage)}</p><dl class="facts">`;
     html += fact("Market", esc([p.city, p.country, p.market].filter(Boolean)[0] || p.market));
     html += fact("Coach", it.team.length ? esc(it.team[0].name)
       : '<span class="pill need">nobody yet</span>');
+    if (p.course_id) {
+      html += fact("Promoted", '<span class="pill on">a course was created from this plan</span>');
+    }
     if (priv) {
       html += fact("Host", esc(p.host_name));
       html += fact("Host email", p.host_email
         ? `<a href="mailto:${esc(p.host_email)}">${esc(p.host_email)}</a>` : "");
-      html += fact("Instagram", p.host_instagram ? esc(p.host_instagram) : "");
+      html += fact("Host phone", esc(p.host_phone));
+      html += fact("Instagram", esc(p.host_instagram));
       html += fact("Note", esc(p.note));
     }
     html += `</dl>`;
+
+    // Promoting is what this whole page exists to lead to: it opens the
+    // portal's own new-course form filled in from the plan. Admin only,
+    // because only an admin can create a course.
+    const acts = [];
+    if (isAdmin) {
+      acts.push(p.course_id
+        ? `<a class="btn ghost" href="/portal/?course=${esc(p.course_id)}">Open the course</a>`
+        : `<a class="btn" href="/portal/?plan=${esc(p.id)}">Promote to live</a>`);
+    }
     if (priv && p.host_email) {
-      html += `<div class="acts"><a class="btn ghost" href="mailto:${esc(p.host_email)}">Email the host</a></div>`;
+      acts.push(`<a class="btn ghost" href="mailto:${esc(p.host_email)}">Email the host</a>`);
+    }
+    if (acts.length) html += `<div class="acts">${acts.join("")}</div>`;
+
+    if (isAdmin && !p.course_id) {
+      html += `<p class="foot">Promoting opens the new-course form already filled in
+        from this plan, as a draft. Nothing is created, and nothing goes on sale,
+        until you press Create course.</p>`;
     }
   }
 
