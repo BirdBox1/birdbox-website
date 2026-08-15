@@ -146,6 +146,15 @@
           cursor:pointer; overflow:hidden; white-space:nowrap; }
   .chip.plan { opacity:0.55; border:1px dashed rgba(255,255,255,0.7); }
   .chip.idea { opacity:0.32; }
+  /* A workshop is midweek and usually an evening, so it is drawn hollow
+     with its day on it rather than as a solid weekend block. */
+  .chip.wshop { background:#fff !important; border:1px solid currentColor;
+                font-size:0.54rem; letter-spacing:-0.02em; }
+  .chip.wshop.b-tcc { color:var(--tcc); }
+  .chip.wshop.b-tgc { color:var(--tgc); }
+  .chip.wshop.b-tec { color:var(--tec); }
+  .chip.wshop.b-twc { color:#8a6200; }
+  .chip.wshop.b-none{ color:#6c7178; }
 
   .key { display:flex; gap:0.9rem; flex-wrap:wrap; align-items:center;
          padding:0.6rem 1.1rem; font-size:0.74rem; color:var(--muted); }
@@ -248,7 +257,7 @@
   <span><span class="sw b-tgc"></span>TGC</span>
   <span><span class="sw b-tec"></span>TEC</span>
   <span><span class="sw b-twc"></span>TWC</span>
-  <span>faded = planned · hatched = coach unavailable</span>
+  <span>faded = planned · hollow = workshop, with its day · hatched = coach unavailable</span>
 </div>
 
 <div class="sched" id="sched"><div class="empty">Loading…</div></div>
@@ -566,6 +575,11 @@ function exactDay(isoStamp) {
     { weekday:"short", day:"numeric", month:"short" });
 }
 
+// Two letters for the grid, where a chip is barely wider than a thumb.
+function shortDay(isoStamp) {
+  return ["Su","Mo","Tu","We","Th","Fr","Sa"][new Date(isoStamp).getDay()];
+}
+
 function semRow(i) {
   const tag = (i.brand || "").toUpperCase() + (i.workshop ? "" : lvl(i.level));
   const planned = i.kind === "plan";
@@ -678,9 +692,8 @@ function renderGrid() {
     row.get(wk).push(it);
   };
   for (const i of all) {
-    // A workshop is an evening or a weekday. Putting it in a weekend
-    // column would say somebody is booked when they are not.
-    if (i.workshop) continue;
+    // Workshops sit in the week they fall in, drawn hollow with the day
+    // on them, so nobody reads a Wednesday evening as a booked weekend.
     if (!i.team.length) put("none", i.weekend, i);
     else for (const t of i.team) put(t.id, i.weekend, i);
   }
@@ -758,7 +771,7 @@ function renderGrid() {
   const nc = all.filter(i => i.kind === "course").length;
   const nw = all.filter(i => i.workshop).length;
   say(`${nc} on sale, ${all.length - nc} planned in this view.` +
-      (nw ? ` ${nw} workshop${nw===1?"":"s"} shown on the schedule only.` : ""));
+      (nw ? ` ${nw} workshop${nw===1?"":"s"}, shown hollow with the day.` : ""));
 }
 
 function gridRow(person, row, months, idx, total, unassigned) {
@@ -798,8 +811,11 @@ function gridRow(person, row, months, idx, total, unassigned) {
     let inner = "";
     if (list) {
       inner = list.map(i => {
-        const tag = (i.brand||"").toUpperCase() + lvl(i.level);
-        const kind = i.kind === "course" ? "" : (i.stage === "idea" ? " idea" : " plan");
+        const tag = i.workshop
+          ? (i.brand||"").toUpperCase() + "\u00b7" + shortDay(i.startsAt)
+          : (i.brand||"").toUpperCase() + lvl(i.level);
+        const kind = (i.kind === "course" ? "" : (i.stage === "idea" ? " idea" : " plan"))
+          + (i.workshop ? " wshop" : "");
         const mine = maySeeDetail(i);
         return `<span class="chip ${brandClass(i.brand)}${kind}${mine ? "" : " locked"}"
                  ${mine ? `data-open="${i.kind}:${i.id}"` : ""}
@@ -819,6 +835,7 @@ function countYear(staffId) {
   let n = 0;
   for (const c of courses) {
     if (new Date(c.starts_at).getFullYear() !== year) continue;
+    if (c.type === "workshop") continue;   // targets are seminars
     if ((courseStaff.get(c.id)||[]).some(t => t.staff_id === staffId)) n++;
   }
   for (const p of plans) {
