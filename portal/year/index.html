@@ -473,7 +473,12 @@ function buildWeekends() {
 // Written as a declaration, not a const, so it is hoisted — the first
 // render runs before this point in the file is reached.
 function courseWeekend(c) {
-  return iso(saturdayOf(new Date(c.starts_at)));
+  // Work from the date as it reads in the course's own city, so a
+  // Saturday in Tokyo is not filed under the previous weekend.
+  const local = new Date(c.starts_at).toLocaleDateString("en-CA",
+    { timeZone: safeZone(c.timezone) });          // en-CA gives YYYY-MM-DD
+  const [y,m,d] = local.split("-").map(Number);
+  return iso(saturdayOf(new Date(y, m-1, d)));
 }
 
 function items() {
@@ -491,6 +496,7 @@ function items() {
     out.push({
       kind:"course", id:c.id, weekend:courseWeekend(c), brand:c.brand, level:c.level,
       type:c.type, workshop:c.type === "workshop", startsAt:c.starts_at,
+      timezone:c.timezone,
       where:[c.city, c.venue_name].filter(Boolean).join(" — ") || c.title,
       title:c.title, status:c.status, team:names,
       hay:[c.city,c.venue_name,c.title,...names.map(n=>n.name)].join(" ").toLowerCase(),
@@ -569,15 +575,24 @@ function renderSchedule() {
 
 // A workshop can run on any day, so the weekend heading it sits under
 // does not describe it. The row carries its own date instead.
-function exactDay(isoStamp) {
-  const d = new Date(isoStamp);
-  return d.toLocaleDateString("en-GB",
-    { weekday:"short", day:"numeric", month:"short" });
+function safeZone(tz) {
+  // A bad timezone string would throw and take the render with it.
+  try { new Date().toLocaleDateString("en-GB", { timeZone: tz }); return tz; }
+  catch (e) { return undefined; }
+}
+
+function exactDay(isoStamp, tz) {
+  return new Date(isoStamp).toLocaleDateString("en-GB",
+    { weekday:"short", day:"numeric", month:"short", timeZone: safeZone(tz) });
 }
 
 // Two letters for the grid, where a chip is barely wider than a thumb.
-function shortDay(isoStamp) {
-  return ["Su","Mo","Tu","We","Th","Fr","Sa"][new Date(isoStamp).getDay()];
+// Read in the venue's time, so a Tokyo Wednesday does not show as
+// Tuesday to somebody looking at it from Paris.
+function shortDay(isoStamp, tz) {
+  const d = new Date(isoStamp).toLocaleDateString("en-GB",
+    { weekday:"short", timeZone: safeZone(tz) });
+  return d.slice(0, 2);
 }
 
 function semRow(i) {
@@ -620,7 +635,7 @@ function semRow(i) {
     <span class="body">
       <span class="where">${esc(i.where)}</span>
       <span class="line">${
-        i.workshop ? '<b>' + esc(exactDay(i.startsAt)) + '</b> · workshop · ' : ""}${
+        i.workshop ? '<b>' + esc(exactDay(i.startsAt, i.timezone)) + '</b> · workshop · ' : ""}${
         planned ? "planned" : esc(i.title)}${
         i.note ? " · " + esc(i.note) : ""}${
         clash.length ? ' · <b style="color:var(--bad)">' + esc(clash.join(", ")) +
@@ -812,7 +827,7 @@ function gridRow(person, row, months, idx, total, unassigned) {
     if (list) {
       inner = list.map(i => {
         const tag = i.workshop
-          ? (i.brand||"").toUpperCase() + "\u00b7" + shortDay(i.startsAt)
+          ? (i.brand||"").toUpperCase() + "\u00b7" + shortDay(i.startsAt, i.timezone)
           : (i.brand||"").toUpperCase() + lvl(i.level);
         const kind = (i.kind === "course" ? "" : (i.stage === "idea" ? " idea" : " plan"))
           + (i.workshop ? " wshop" : "");
@@ -912,7 +927,7 @@ function openSheet(kind, id) {
 
     html += `<h3>${esc(c.title)}</h3>
       <p class="when">${c.type === "workshop"
-          ? esc(exactDay(c.starts_at)) + " · workshop"
+          ? esc(exactDay(c.starts_at, c.timezone)) + " · workshop"
           : esc(weekendLabel(courseWeekend(c)))} · ${
         c.status === "draft" ? "Draft, not on sale" : "On sale"}</p><dl class="facts">`;
     html += fact("Where", esc([c.venue_name, c.city, c.country].filter(Boolean).join(", ")));
