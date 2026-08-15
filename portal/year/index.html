@@ -172,6 +172,7 @@
            font-size:0.88rem; margin-bottom:0.9rem; }
   .facts dt { color:var(--muted); white-space:nowrap; }
   .facts dd { margin:0; word-break:break-word; }
+  .facts .hint { color:var(--muted); font-size:0.78rem; }
   .sheetbox .acts { display:flex; gap:0.45rem; flex-wrap:wrap; margin-top:0.9rem; }
   .sheetbox h4 { font-size:0.7rem; letter-spacing:0.11em; text-transform:uppercase;
                  color:var(--muted); margin:1rem 0 0.4rem; font-weight:650; }
@@ -279,6 +280,7 @@ let courseStaff = new Map();
 let plans = [];
 let unavail = new Map();
 let regCounts = new Map();   // course_id -> people booked
+let codes = new Map();       // course_id -> discount codes
 let showPlanned = true;
 let showBlank = false;
 let mode = "sched";
@@ -404,8 +406,24 @@ async function loadAll() {
   // they are on, so this is partial for them — which is correct, and
   // the panel simply says nothing rather than showing a wrong number.
   regCounts = new Map();
+  codes = new Map();
   courseStaff = new Map();
   const ids = courses.map(c => c.id);
+
+  // Host and early-bird codes, so "have the host spots been taken"
+  // is answerable without opening Stripe. Wrapped, because a coach
+  // may not be allowed to read these and that must not break the page.
+  try {
+    for (let i = 0; i < ids.length; i += 40) {
+      const { data } = await db.from("discount_codes")
+        .select("course_id, code, label, kind, percent_off, max_redemptions, times_redeemed, active, expires_at")
+        .in("course_id", ids.slice(i, i+40));
+      for (const d of data || []) {
+        if (!codes.has(d.course_id)) codes.set(d.course_id, []);
+        codes.get(d.course_id).push(d);
+      }
+    }
+  } catch (e) { /* not visible to this person; the panel simply omits it */ }
   for (let i = 0; i < ids.length; i += 40) {
     const { data } = await db.from("registrations")
       .select("course_id, status, payment_status").in("course_id", ids.slice(i, i+40));
@@ -858,7 +876,29 @@ function openSheet(kind, id) {
       html += fact("Host spots", c.host_spots != null
         ? `${c.host_spots} free${c.prepaid_spots ? ", " + c.prepaid_spots + " prepaid" : ""}` : "");
     }
-    html += `</dl><div class="acts">`;
+    html += `</dl>`;
+
+    // Codes, and whether the host has actually used their free spots.
+    const cs = priv ? (codes.get(c.id) || []) : [];
+    if (cs.length) {
+      html += `<h4>Codes</h4><dl class="facts">`;
+      for (const d of cs) {
+        const used = d.times_redeemed || 0;
+        const cap  = d.max_redemptions;
+        const isHost = /^HC/i.test(d.code || "") || /host/i.test(d.kind || d.label || "");
+        let state = cap != null ? `${used} of ${cap} used` : `${used} used`;
+        if (isHost && cap != null) {
+          state += used >= cap
+            ? ' <span class="pill on">host spots taken</span>'
+            : ' <span class="pill warn">host has not registered</span>';
+        }
+        if (d.active === false) state += ' <span class="pill">inactive</span>';
+        html += fact(esc(d.code), state + (d.label ? ` <span class="hint">${esc(d.label)}</span>` : ""));
+      }
+      html += `</dl>`;
+    }
+
+    html += `<div class="acts">`;
     if (c.slug && c.status !== "draft") {
       html += `<a class="btn ghost" href="${esc(link)}" target="_blank">Registration page</a>`;
       html += `<button class="btn ghost" data-copy="${esc(link)}">Copy link</button>`;
