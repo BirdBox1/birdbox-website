@@ -182,9 +182,12 @@
       </div>
 
       <div class="field">
-        <label for="pWeekend">Weekend</label>
-        <select id="pWeekend"></select>
+        <label for="pDate">Weekend
+          <span class="hint">— pick any day and it snaps to that weekend</span></label>
+        <input id="pDate" type="date">
+        <p class="hint" id="pWeekendLabel" style="margin:0.25rem 0 0"></p>
       </div>
+      <select id="pWeekend" class="hidden"></select>
 
       <div class="field">
         <label for="pCoach">Coach <span class="hint">— availability and capability checked below</span></label>
@@ -253,10 +256,9 @@
             <label for="vCity">City</label>
             <input id="vCity" type="text" placeholder="Madrid">
           </div>
-          <div class="field" style="flex:0 0 7rem">
-            <label for="vCountry">Country <span class="hint">2 letters</span></label>
-            <input id="vCountry" type="text" maxlength="2" placeholder="ES"
-                   autocapitalize="characters" autocorrect="off">
+          <div class="field">
+            <label for="vCountry">Country</label>
+            <select id="vCountry"></select>
           </div>
         </div>
         <div class="row2">
@@ -370,6 +372,9 @@ let allVenues = [];         // every venue, loaded once
 let allHistory = [];        // every historical seminar, loaded once
 let venueIndex = new Map(); // venue id -> { venue, rows, haystack, wordSet }
 
+let priceList = [];    // course_prices, so the planner cannot drift from checkout
+let countryList = [];  // built from the countries already in use
+
 const WEEKS_AHEAD = 78;     // eighteen months, so a whole planning year fits
 const SPACING_DAYS = 90;    // your rule: 2 to 3 months between brands in a market
 
@@ -437,7 +442,9 @@ if (!session) {
   }
 
   buildWeekends();
-  await Promise.all([loadStaff(), loadCapabilities(), loadUnavailable(), loadEverything()]);
+  await Promise.all([loadStaff(), loadCapabilities(), loadUnavailable(),
+                     loadEverything(), loadPrices(), loadCountries()]);
+  applyPrice();
 
   // Default the plan view to the next six months.
   const today = new Date();
@@ -456,6 +463,26 @@ function buildWeekends() {
   }
   $("pWeekend").innerHTML = weekends
     .map(w => `<option value="${w}">${weekendLabel(w)}</option>`).join("");
+
+  // The date field is what you actually touch; the select behind it
+  // keeps every check working off a Saturday as before.
+  const first = weekends[0];
+  $("pDate").min = first;
+  $("pDate").max = weekends[weekends.length - 1];
+  $("pDate").value = first;
+  syncWeekend();
+}
+
+// Any day you pick belongs to a weekend, so snap to it and say which.
+function syncWeekend() {
+  const picked = $("pDate").value;
+  if (!picked) return;
+  const [y,m,d] = picked.split("-").map(Number);
+  const sat = iso(saturdayOf(new Date(y, m-1, d)));
+  $("pWeekend").value = weekends.includes(sat) ? sat : (weekends[0] || "");
+  $("pWeekendLabel").textContent = $("pWeekend").value
+    ? weekendLabel($("pWeekend").value)
+    : "That is outside the range the planner covers.";
 }
 
 async function loadStaff() {
@@ -465,6 +492,57 @@ async function loadStaff() {
   $("pCoach").innerHTML =
     '<option value="">Nobody yet</option>' +
     staffList.map(s => `<option value="${s.id}">${esc(s.full_name)}</option>`).join("");
+}
+
+async function loadPrices() {
+  const { data } = await db.from("course_prices")
+    .select("brand, type, level, currency, price_cents, deposit_cents");
+  priceList = data || [];
+}
+
+// The country picker is built from the countries already in use, so it
+// matches the portal rather than being a second list to maintain.
+async function loadCountries() {
+  const seen = new Map();
+  const { data: cs } = await db.from("courses")
+    .select("country").not("country", "is", null);
+  for (const c of cs || []) {
+    const k = String(c.country).toUpperCase().slice(0, 2);
+    if (k) seen.set(k, k);
+  }
+
+  countryList = [...seen.keys()].sort();
+  const names = new Intl.DisplayNames(["en"], { type: "region" });
+  $("vCountry").innerHTML =
+    '<option value="">— not set —</option>' +
+    countryList.map(k => {
+      let label = k;
+      try { label = names.of(k) || k; } catch (e) {}
+      return `<option value="${k}">${esc(label)}</option>`;
+    }).join("");
+}
+
+// The price the checkout would actually use for this brand and level.
+function applyPrice() {
+  const brand = $("pBrand").value;
+  const level = $("pLevel").value;
+  const cur = $("sCurrency").value;
+
+  const hit = priceList.find(p =>
+    p.brand === brand &&
+    (p.type === "live_seminar" || p.type == null) &&
+    (p.level === level || p.level == null) &&
+    p.currency === cur);
+
+  const box = $("sPrice");
+  if (hit && hit.price_cents != null) {
+    // Only fill it in if nobody has typed over it.
+    if (!box.dataset.touched) box.value = Math.round(hit.price_cents / 100);
+    box.placeholder = String(Math.round(hit.price_cents / 100));
+  } else {
+    box.placeholder = "no standard price set";
+  }
+  readiness();
 }
 
 async function loadCapabilities() {
@@ -780,6 +858,11 @@ $("pVenue").addEventListener("change", () => {
 for (const id of ["pBrand","pLevel","pWeekend","pCoach"]) {
   $(id).addEventListener("change", runChecks);
 }
+$("pDate").addEventListener("change", () => { syncWeekend(); runChecks(); });
+for (const id of ["pBrand","pLevel","sCurrency"]) {
+  $(id).addEventListener("change", applyPrice);
+}
+$("sPrice").addEventListener("input", () => { $("sPrice").dataset.touched = "1"; });
 
 /* ---------- the checks ---------- */
 
@@ -924,29 +1007,50 @@ $("lookup").addEventListener("click", async () => {
   $("lookup").disabled = true;
   say(msg, "Looking it up\u2026");
   try {
-    const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q="
-              + encodeURIComponent(q);
-    const res = await fetch(url, { headers: { "Accept": "application/json" } });
-    const hits = await res.json();
-    if (!hits.length) { say(msg, "Nothing found. Try a simpler address.", "err"); return; }
+    const res = await fetch("/.netlify/functions/geocode?q=" + encodeURIComponent(q));
+    const out = await res.json();
 
-    const h = hits[0];
-    $("vLat").value = Number(h.lat).toFixed(6);
-    $("vLng").value = Number(h.lon).toFixed(6);
+    if (out.error) { say(msg, out.error, "err"); return; }
+    if (!out.results || !out.results.length) {
+      say(msg, "Nothing found. Try just the gym name and the city.", "err");
+      return;
+    }
 
-    const a = h.address || {};
-    if (!$("vCity").value.trim()) {
-      $("vCity").value = a.city || a.town || a.village || a.municipality || "";
-    }
-    if (!$("vCountry").value.trim() && a.country_code) {
-      $("vCountry").value = a.country_code.toUpperCase();
-    }
-    say(msg, "Found: " + (h.display_name || "").split(",").slice(0,3).join(","), "ok");
+    const h = out.results[0];
+    $("vLat").value = h.latitude.toFixed(6);
+    $("vLng").value = h.longitude.toFixed(6);
+    if (!$("vCity").value.trim() && h.city) $("vCity").value = h.city;
+    if (h.country) $("vCountry").value = h.country;
+
+    say(msg, "Found: " + h.label.split(",").slice(0,3).join(","), "ok");
+    readiness();
   } catch (e) {
     say(msg, "Could not reach the lookup service. Type the coordinates by hand.", "err");
   } finally {
     $("lookup").disabled = false;
   }
+});
+
+// Coordinates are nearly always copied as a pair — "40.416775, -3.703790"
+// — so pasting into either box should fill both rather than making
+// somebody split it by hand.
+function splitPair(el, other) {
+  const raw = el.value.trim();
+  const m = raw.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if (!m) return;
+  el.value = m[1];
+  $(other).value = m[2];
+  readiness();
+}
+$("vLat").addEventListener("input", () => splitPair($("vLat"), "vLng"));
+$("vLng").addEventListener("input", () => {
+  // Pasted into the second box, the pair still reads latitude first.
+  const raw = $("vLng").value.trim();
+  const m = raw.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if (!m) return;
+  $("vLat").value = m[1];
+  $("vLng").value = m[2];
+  readiness();
 });
 
 // What is still missing before this could become a real course.
@@ -1011,7 +1115,7 @@ $("save").addEventListener("click", async () => {
 
     address: txt("vAddress"),
     city: txt("vCity"),
-    country: $("vCountry").value.trim().toUpperCase() || null,
+    country: $("vCountry").value || null,
     latitude: num("vLat"),
     longitude: num("vLng"),
 
@@ -1030,9 +1134,12 @@ $("save").addEventListener("click", async () => {
 
   say(msg, "Added to the plan.", "ok");
   for (const id of ["pNote","hName","hEmail","hInsta","hPhone",
-                    "vAddress","vCity","vCountry","vLat","vLng","sCap","sPrice"]) {
+                    "vAddress","vCity","vLat","vLng","sCap"]) {
     $(id).value = "";
   }
+  $("vCountry").value = "";
+  delete $("sPrice").dataset.touched;
+  applyPrice();
   $("geomsg").textContent = "";
   readiness();
   await renderNear(market, lastSpellings);
