@@ -247,6 +247,7 @@ let showBlank = false;
 let mode = "sched";
 let weekends = [];
 let hiddenCoaches = new Set(); // coach rows folded away, kept on this device
+let localOrder = [];           // this person's own row order, kept on this device
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const FULL = ["January","February","March","April","May","June","July",
@@ -307,6 +308,8 @@ if (!session) {
 
   try { hiddenCoaches = new Set(JSON.parse(localStorage.getItem("bb.year.hidden") || "[]")); }
   catch (e) { hiddenCoaches = new Set(); }
+  try { localOrder = JSON.parse(localStorage.getItem("bb.year.order") || "[]"); }
+  catch (e) { localOrder = []; }
 
   buildYearPicker();
   await loadAll();
@@ -551,14 +554,17 @@ function saveHidden() {
 }
 
 function coachOrder() {
-  const withT = staff.filter(s => profiles.get(s.id)?.target_min != null);
-  const rest  = staff.filter(s => profiles.get(s.id)?.target_min == null);
-  const byOrder = (a,b) => {
-    const oa = profiles.get(a.id)?.display_order ?? 9999;
-    const ob = profiles.get(b.id)?.display_order ?? 9999;
-    return oa - ob || a.full_name.localeCompare(b.full_name);
+  // Anybody can arrange the rows to suit themselves; that arrangement
+  // stays on their device. When an admin moves somebody it is also
+  // written to the database, so the shared default follows.
+  const rank = (id) => {
+    const local = localOrder.indexOf(id);
+    if (local >= 0) return local;
+    const d = profiles.get(id)?.display_order;
+    return d != null ? 1000 + d : 9999;
   };
-  return [...withT.sort(byOrder), ...rest.sort(byOrder)];
+  return staff.slice().sort((a,b) =>
+    rank(a.id) - rank(b.id) || a.full_name.localeCompare(b.full_name));
 }
 
 function renderGrid() {
@@ -612,11 +618,21 @@ function renderGrid() {
         `<button class="btn tiny" data-show="${s.id}">${esc(s.full_name)} +</button>`).join("") +
       `<button class="btn tiny" id="showAll">Show everyone</button>`
     : "";
-  $("hiddenbar").classList.toggle("hidden", !away.length);
+  if (localOrder.length) {
+    $("hiddenbar").innerHTML +=
+      `<button class="btn tiny" id="resetOrder">Reset the order</button>`;
+  }
+  $("hiddenbar").classList.toggle("hidden", !away.length && !localOrder.length);
   $("hiddenbar").querySelectorAll("[data-show]").forEach(b =>
     b.addEventListener("click", () => { hiddenCoaches.delete(b.dataset.show); saveHidden(); renderGrid(); }));
   const sa = $("showAll");
   if (sa) sa.addEventListener("click", () => { hiddenCoaches.clear(); saveHidden(); renderGrid(); });
+  const ro = $("resetOrder");
+  if (ro) ro.addEventListener("click", () => {
+    localOrder = [];
+    localStorage.removeItem("bb.year.order");
+    renderGrid();
+  });
 
   $("gridwrap").querySelectorAll("[data-move]").forEach(b =>
     b.addEventListener("click", () => moveCoach(b.dataset.move, +b.dataset.dir)));
@@ -634,20 +650,24 @@ function renderGrid() {
 function gridRow(person, row, months, idx, total, unassigned) {
   const p = profiles.get(person.id);
 
+  // How many seminars against target is Nathan's planning number, not
+  // something the team needs on their screen.
   let target = "";
-  if (p && p.is_reserve_only) target = '<span class="tgt">reserve only</span>';
-  else if (p && p.target_min != null) {
-    const n = countYear(person.id);
-    const min = p.target_min, max = p.target_max ?? p.target_min;
-    const cls = n > max ? " over" : n >= min ? " on" : "";
-    target = `<span class="tgt${cls}">${n} of ${min===max?min:min+"–"+max}</span>`;
-  } else if (!unassigned) target = '<span class="tgt">no target</span>';
+  if (isAdmin) {
+    if (p && p.is_reserve_only) target = '<span class="tgt">reserve only</span>';
+    else if (p && p.target_min != null) {
+      const n = countYear(person.id);
+      const min = p.target_min, max = p.target_max ?? p.target_min;
+      const cls = n > max ? " over" : n >= min ? " on" : "";
+      target = `<span class="tgt${cls}">${n} of ${min===max?min:min+"–"+max}</span>`;
+    } else if (!unassigned) target = '<span class="tgt">no target</span>';
+  }
 
   let tools = "";
   if (!unassigned) {
     tools = `<span class="rowtools">
-      ${isAdmin && idx > 0 ? `<button data-move="${person.id}" data-dir="-1" title="Move up">▲</button>` : ""}
-      ${isAdmin && idx >= 0 && idx < total-1 ? `<button data-move="${person.id}" data-dir="1" title="Move down">▼</button>` : ""}
+      ${idx > 0 ? `<button data-move="${person.id}" data-dir="-1" title="Move up">▲</button>` : ""}
+      ${idx >= 0 && idx < total-1 ? `<button data-move="${person.id}" data-dir="1" title="Move down">▼</button>` : ""}
       <button data-hide="${person.id}" title="Hide this row">✕</button>
     </span>`;
   }
@@ -707,17 +727,21 @@ async function moveCoach(id, dir) {
   const swapped = order.slice();
   [swapped[i], swapped[j]] = [swapped[j], swapped[i]];
 
+  localOrder = swapped.map(s => s.id);
+  localStorage.setItem("bb.year.order", JSON.stringify(localOrder));
+  renderGrid();
+
+  // Only an admin changes the order everybody else starts from.
+  if (!isAdmin) return;
   const rows = swapped.map((s, n) => ({ staff_id: s.id, display_order: n + 1 }));
   for (const r of rows) {
     const p = profiles.get(r.staff_id);
     if (p) p.display_order = r.display_order;
     else profiles.set(r.staff_id, { staff_id: r.staff_id, display_order: r.display_order });
   }
-  renderGrid();
-
   const { error } = await db.from("coach_profiles")
     .upsert(rows, { onConflict: "staff_id" });
-  if (error) say("Order not saved: " + error.message, "err");
+  if (error) say("Shared order not saved: " + error.message, "err");
 }
 
 /* ---------- switching and controls ---------- */
