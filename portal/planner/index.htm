@@ -313,7 +313,7 @@ if (!session) {
   }
 
   buildWeekends();
-  await Promise.all([loadStaff(), loadCapabilities(), loadUnavailable()]);
+  await Promise.all([loadStaff(), loadCapabilities(), loadUnavailable(), loadEverything()]);
 
   // Default the plan view to the next six months.
   const today = new Date();
@@ -359,6 +359,155 @@ async function loadUnavailable() {
   }
 }
 
+
+/* ---------- everything, held locally ---------- */
+
+// 470 venues and 814 historical seminars is small enough to load once
+// and search in the browser. Five years of hand-typed sheets spell the
+// same place several ways — Munich and Munchen, Spain and Espana, and
+// 38 US state codes standing in for the country — so matching in SQL
+// would mean an endless list of aliases. Folding accents and matching
+// here is both simpler and more reliable.
+
+let allVenues = [];
+let allHistory = [];
+let venueIndex = new Map();   // venue id -> { venue, rows, haystack }
+
+// "Munchen" and "Munchen" and "MUNICH" all reduce to the same thing.
+function fold(s) {
+  return String(s == null ? "" : s)
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+// Places written differently depending on who typed them.
+const ALIASES = [
+  ["spain","espana","espanya"],
+  ["germany","deutschland"],
+  ["italy","italia"],
+  ["mexico","méxico","cdmx","ciudad de mexico"],
+  ["brazil","brasil"],
+  ["netherlands","holland","nl"],
+  ["uk","united kingdom","england","scotland","wales","gb","great britain"],
+  ["usa","us","united states","america"],
+  ["korea","south korea"],
+  ["czechia","czech republic","czech"],
+  ["reunion","reunion island"],
+  ["switzerland","suisse","schweiz","svizzera"],
+  ["austria","osterreich"],
+  ["ireland","eire"],
+  ["munich","munchen"],
+  ["milan","milano"],
+  ["rome","roma"],
+  ["vienna","wien"],
+  ["prague","praha"],
+  ["warsaw","warszawa"],
+  ["lisbon","lisboa"],
+  ["seville","sevilla"],
+  ["cologne","koln"],
+  ["zurich","zuerich"],
+  ["geneva","geneve","genf"],
+  ["florence","firenze"],
+  ["turin","torino"],
+  ["naples","napoli"],
+  ["copenhagen","kobenhavn"],
+  ["gothenburg","goteborg"],
+  ["bogota"],
+  ["sao paulo"],
+  ["reykjavik"],
+  ["vancouver"],
+];
+
+// US state codes, so "USA" finds the 44 venues whose location is
+// written as a bare "FL" or "TX".
+const US_CODES = ("al ak az ar ca co ct de fl ga hi id il in ia ks ky la me md ma " +
+  "mi mn ms mo mt ne nv nh nj nm ny nc nd oh ok or pa ri sc sd tn tx ut vt va wa wv wi wy dc")
+  .split(" ");
+
+// The sheets nearly always wrote the state as a code, so searching
+// "Florida" has to reach "FL".
+const US_STATES = {
+  alabama:"al", alaska:"ak", arizona:"az", arkansas:"ar", california:"ca",
+  colorado:"co", connecticut:"ct", delaware:"de", florida:"fl", georgia:"ga",
+  hawaii:"hi", idaho:"id", illinois:"il", indiana:"in", iowa:"ia",
+  kansas:"ks", kentucky:"ky", louisiana:"la", maine:"me", maryland:"md",
+  massachusetts:"ma", michigan:"mi", minnesota:"mn", mississippi:"ms",
+  missouri:"mo", montana:"mt", nebraska:"ne", nevada:"nv",
+  "new hampshire":"nh", "new jersey":"nj", "new mexico":"nm", "new york":"ny",
+  "north carolina":"nc", "north dakota":"nd", ohio:"oh", oklahoma:"ok",
+  oregon:"or", pennsylvania:"pa", "rhode island":"ri", "south carolina":"sc",
+  "south dakota":"sd", tennessee:"tn", texas:"tx", utah:"ut", vermont:"vt",
+  virginia:"va", washington:"wa", "west virginia":"wv", wisconsin:"wi",
+  wyoming:"wy",
+};
+
+function expand(q) {
+  const f = fold(q);
+  const terms = new Set([f]);
+  for (const group of ALIASES) {
+    if (group.some(g => fold(g) === f || f.includes(fold(g)))) {
+      group.forEach(g => terms.add(fold(g)));
+    }
+  }
+  if (["usa","us","united states","america"].includes(f)) {
+    US_CODES.forEach(c => terms.add(c));
+  }
+  if (US_STATES[f]) terms.add(US_STATES[f]);
+  for (const [name, code] of Object.entries(US_STATES)) {
+    if (code === f) terms.add(name);
+  }
+  return [...terms].filter(Boolean);
+}
+
+async function loadEverything() {
+  const [{ data: vs }, { data: hs }] = await Promise.all([
+    db.from("venues")
+      .select("id, name, location_raw, region, host_contact, times_run, times_cancelled, avg_participants, best_participants, first_seen, last_seen"),
+    db.from("seminar_history")
+      .select("venue_id, starts_on, brand, level, venue_raw, location_raw, lead_coach, participants, status"),
+  ]);
+
+  allVenues  = vs || [];
+  allHistory = hs || [];
+
+  venueIndex = new Map();
+  for (const v of allVenues) {
+    venueIndex.set(v.id, { venue: v, rows: [], words: new Set([fold(v.name), fold(v.location_raw)]) });
+  }
+  for (const h of allHistory) {
+    const e = venueIndex.get(h.venue_id);
+    if (!e) continue;
+    e.rows.push(h);
+    // Every spelling this venue has ever been written under, so any
+    // one of them finds it.
+    e.words.add(fold(h.location_raw));
+    e.words.add(fold(h.venue_raw));
+  }
+  for (const e of venueIndex.values()) {
+    e.haystack = [...e.words].filter(Boolean).join(" | ");
+    e.wordSet  = new Set(e.haystack.split(/[\s|]+/).filter(Boolean));
+  }
+}
+
+function findVenues(q) {
+  const terms = expand(q);
+  const out = [];
+  for (const e of venueIndex.values()) {
+    const hit = terms.some(t => {
+      if (!t) return false;
+      // Short terms are state codes and the like — "in" would
+      // otherwise match inside half the gym names in the country,
+      // so those have to be whole words.
+      if (t.length <= 3) return e.wordSet.has(t);
+      return e.haystack.includes(t);
+    });
+    if (hit) out.push(e);
+  }
+  // Best first, so the strongest host in a market is at the top.
+  out.sort((a, b) => (b.venue.avg_participants || 0) - (a.venue.avg_participants || 0));
+  return out;
+}
+
 /* ---------- searching a market ---------- */
 
 $("go").addEventListener("click", search);
@@ -369,31 +518,29 @@ async function search() {
   const msg = $("qmsg");
   if (q.length < 2) { say(msg, "Type at least two letters.", "err"); return; }
 
-  say(msg, "Looking…");
   market = q;
+  const matches = findVenues(q);
+  marketVenues = matches.map(m => m.venue);
 
-  // Venues whose name or recorded location match.
-  const { data: vs, error: verr } = await db.from("venues")
-    .select("id, name, location_raw, region, host_contact, times_run, times_cancelled, avg_participants, best_participants, first_seen, last_seen")
-    .or(`name.ilike.%${q}%,location_raw.ilike.%${q}%`)
-    .order("avg_participants", { ascending: false, nullsFirst: false });
+  const hist = matches.flatMap(m => m.rows)
+    .sort((x, y) => String(y.starts_on || "").localeCompare(String(x.starts_on || "")));
 
-  if (verr) { say(msg, "Could not search: " + verr.message, "err"); return; }
-  marketVenues = vs || [];
+  renderRecord(hist);
 
-  // Everything ever run there, whatever the gym.
-  const { data: hist } = await db.from("seminar_history")
-    .select("starts_on, brand, level, venue_raw, location_raw, lead_coach, participants, status")
-    .or(`location_raw.ilike.%${q}%,venue_raw.ilike.%${q}%`)
-    .order("starts_on", { ascending: false });
+  // Courses carry the city as typed on the course, which may differ
+  // again, so pass every spelling these venues have used.
+  const spellings = [...new Set(matches.flatMap(m =>
+    [...m.words].map(w => w.split(" ")[0]).filter(w => w.length > 3)))];
+  lastSpellings = spellings.slice(0, 12);
 
-  renderRecord(hist || []);
-  await renderNear(q);
+  await renderNear(q, lastSpellings);
   renderVenuePicker();
   runChecks();
 
   $("results").classList.remove("hidden");
-  say(msg, `${marketVenues.length} host${marketVenues.length === 1 ? "" : "s"} on record.`, "ok");
+  say(msg, marketVenues.length
+    ? `${marketVenues.length} host${marketVenues.length === 1 ? "" : "s"} on record.`
+    : "Nothing on record — this would be a new market.", "ok");
 }
 
 function renderRecord(hist) {
@@ -447,20 +594,26 @@ function renderRecord(hist) {
 
 // Live courses and existing plans in this market, so the spacing
 // rule has something to check against.
-let nearCourses = [], nearPlans = [];
+let nearCourses = [], nearPlans = [], lastSpellings = [];
 
-async function renderNear(q) {
+async function renderNear(q, spellings) {
+  const terms = [q, ...(spellings || [])];
+  const orCourses = terms
+    .map(t => `city.ilike.%${t}%,venue_name.ilike.%${t}%,title.ilike.%${t}%`)
+    .join(",");
+
   const { data: cs } = await db.from("courses")
     .select("id, title, brand, level, city, country, starts_at, timezone, status, archived")
-    .or(`city.ilike.%${q}%,venue_name.ilike.%${q}%,title.ilike.%${q}%`)
+    .or(orCourses)
     .eq("archived", false)
     .gte("starts_at", new Date(Date.now() - 200*86400000).toISOString())
     .order("starts_at");
   nearCourses = (cs || []).filter(c => c.status !== "cancelled");
 
+  const orPlans = terms.map(t => `market.ilike.%${t}%,venue_name.ilike.%${t}%`).join(",");
   const { data: ps } = await db.from("planned_seminars")
     .select("id, market, venue_name, brand, level, weekend_start, stage, coach_staff_id")
-    .ilike("market", `%${q}%`)
+    .or(orPlans)
     .neq("stage", "dropped")
     .order("weekend_start");
   nearPlans = ps || [];
@@ -668,7 +821,7 @@ $("save").addEventListener("click", async () => {
 
   say(msg, "Added to the plan.", "ok");
   $("pNote").value = "";
-  await renderNear(market);
+  await renderNear(market, lastSpellings);
   runChecks();
   await loadPlan();
   await loadLoad();
@@ -679,7 +832,7 @@ async function dropPlan(id) {
   const { error } = await db.from("planned_seminars")
     .update({ stage: "dropped", updated_at: new Date().toISOString() }).eq("id", id);
   if (error) { window.alert("Could not remove it: " + error.message); return; }
-  if (market) await renderNear(market);
+  if (market) await renderNear(market, lastSpellings);
   await loadPlan();
   await loadLoad();
 }
