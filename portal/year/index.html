@@ -906,7 +906,7 @@ function openSheet(kind, id) {
     if (priv && c.host_email) {
       html += `<a class="btn ghost" href="mailto:${esc(c.host_email)}">Email the host</a>`;
     }
-    html += `<a class="btn ghost" href="/portal/">Open in the portal</a></div>`;
+    html += `<a class="btn ghost" href="/portal/?course=${esc(c.id)}">Open in the portal</a></div>`;
 
   } else {
     const p = plans.find(x => x.id === id);
