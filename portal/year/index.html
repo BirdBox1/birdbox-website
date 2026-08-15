@@ -383,7 +383,7 @@ async function loadAll() {
     db.from("staff").select("id, full_name, role").eq("active", true).order("full_name"),
     db.from("coach_profiles").select("staff_id, target_min, target_max, is_reserve_only, display_order"),
     db.from("courses")
-      .select("id, title, brand, level, city, country, venue_name, starts_at, timezone, status, archived, capacity, slug, host_name, host_email, host_spots, prepaid_spots")
+      .select("id, title, brand, level, city, country, venue_name, starts_at, timezone, status, archived, capacity, slug, host_name, host_email, host_spots, prepaid_spots, type")
       .eq("archived", false).gte("starts_at", from).lt("starts_at", to),
     db.from("planned_seminars")
       .select("id, market, city, country, venue_name, brand, level, weekend_start, stage, coach_staff_id, note")
@@ -481,6 +481,7 @@ function items() {
     });
     out.push({
       kind:"course", id:c.id, weekend:courseWeekend(c), brand:c.brand, level:c.level,
+      type:c.type, workshop:c.type === "workshop", startsAt:c.starts_at,
       where:[c.city, c.venue_name].filter(Boolean).join(" — ") || c.title,
       title:c.title, status:c.status, team:names,
       hay:[c.city,c.venue_name,c.title,...names.map(n=>n.name)].join(" ").toLowerCase(),
@@ -557,8 +558,16 @@ function renderSchedule() {
   say(`${nc} on sale, ${np} planned in this view.`);
 }
 
+// A workshop can run on any day, so the weekend heading it sits under
+// does not describe it. The row carries its own date instead.
+function exactDay(isoStamp) {
+  const d = new Date(isoStamp);
+  return d.toLocaleDateString("en-GB",
+    { weekday:"short", day:"numeric", month:"short" });
+}
+
 function semRow(i) {
-  const tag = (i.brand || "").toUpperCase() + lvl(i.level);
+  const tag = (i.brand || "").toUpperCase() + (i.workshop ? "" : lvl(i.level));
   const planned = i.kind === "plan";
 
   let right = "";
@@ -596,7 +605,9 @@ function semRow(i) {
     <span class="tag ${brandClass(i.brand)}">${esc(tag)}</span>
     <span class="body">
       <span class="where">${esc(i.where)}</span>
-      <span class="line">${planned ? "planned" : esc(i.title)}${
+      <span class="line">${
+        i.workshop ? '<b>' + esc(exactDay(i.startsAt)) + '</b> · workshop · ' : ""}${
+        planned ? "planned" : esc(i.title)}${
         i.note ? " · " + esc(i.note) : ""}${
         clash.length ? ' · <b style="color:var(--bad)">' + esc(clash.join(", ")) +
                        " marked unavailable</b>" : ""}</span>
@@ -667,6 +678,9 @@ function renderGrid() {
     row.get(wk).push(it);
   };
   for (const i of all) {
+    // A workshop is an evening or a weekday. Putting it in a weekend
+    // column would say somebody is booked when they are not.
+    if (i.workshop) continue;
     if (!i.team.length) put("none", i.weekend, i);
     else for (const t of i.team) put(t.id, i.weekend, i);
   }
@@ -742,7 +756,9 @@ function renderGrid() {
     }));
 
   const nc = all.filter(i => i.kind === "course").length;
-  say(`${nc} on sale, ${all.length - nc} planned in this view.`);
+  const nw = all.filter(i => i.workshop).length;
+  say(`${nc} on sale, ${all.length - nc} planned in this view.` +
+      (nw ? ` ${nw} workshop${nw===1?"":"s"} shown on the schedule only.` : ""));
 }
 
 function gridRow(person, row, months, idx, total, unassigned) {
@@ -878,7 +894,9 @@ function openSheet(kind, id) {
     const link = `${location.origin}/c/${c.slug || ""}/`;
 
     html += `<h3>${esc(c.title)}</h3>
-      <p class="when">${esc(weekendLabel(courseWeekend(c)))} · ${
+      <p class="when">${c.type === "workshop"
+          ? esc(exactDay(c.starts_at)) + " · workshop"
+          : esc(weekendLabel(courseWeekend(c)))} · ${
         c.status === "draft" ? "Draft, not on sale" : "On sale"}</p><dl class="facts">`;
     html += fact("Where", esc([c.venue_name, c.city, c.country].filter(Boolean).join(", ")));
     html += fact("Course", esc((c.brand||"").toUpperCase() + " " + (c.level||"")));
