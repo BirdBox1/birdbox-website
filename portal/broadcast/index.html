@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Message the team — BirdBox Coaching</title>
+<style>
+  :root { --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+          --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0; --good:#1f8a54; --bad:#b3261e; }
+  *,*::before,*::after { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+         font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .bar { background:var(--shell); color:#fff; padding:0.7rem 1.25rem;
+         display:flex; align-items:center; gap:0.75rem; position:sticky; top:0; z-index:5; }
+  .mark { width:34px; height:34px; border-radius:4px; background:#fff;
+          display:grid; place-items:center; flex:none; }
+  .mark img { width:26px; height:26px; object-fit:contain; display:block; }
+  .brandname { font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; color:#9aa1a9; }
+  .bar .back { margin-left:auto; font-size:0.8rem; color:#cfd4d9;
+               border:1px solid #33373c; border-radius:3px;
+               padding:0.3rem 0.7rem; text-decoration:none; white-space:nowrap; }
+  .bar .back:hover { color:#fff; border-color:#55595e; }
+  .wrap { max-width:36rem; margin:1.5rem auto 4rem; padding:0 1rem; }
+  h1 { font-size:1.2rem; letter-spacing:-0.02em; margin:0 0 0.3rem; font-weight:600; }
+  .sub { color:var(--muted); font-size:0.88rem; margin:0 0 1.25rem; }
+  .panel { background:var(--card); border:1px solid var(--rule); border-radius:6px;
+           padding:1rem 1.1rem; margin-bottom:1.1rem; }
+  .panel h2 { font-size:0.8rem; letter-spacing:0.1em; text-transform:uppercase;
+              color:var(--muted); margin:0 0 0.7rem; font-weight:600; }
+  label { display:block; font-size:0.8rem; font-weight:600; margin-bottom:0.3rem; }
+  textarea { width:100%; font:inherit; padding:0.6rem 0.7rem; border:1px solid var(--rule);
+             border-radius:4px; background:#fff; color:var(--ink);
+             min-height:9rem; resize:vertical; }
+  textarea:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .btn { font:inherit; font-weight:600; background:var(--ink); color:#fff; border:0;
+         border-radius:4px; padding:0.55rem 1rem; cursor:pointer; }
+  .btn:hover { background:#000; }
+  .btn[disabled] { opacity:0.45; cursor:default; }
+  .btn.wide { width:100%; }
+  .btn.tiny { font-size:0.78rem; padding:0.3rem 0.65rem; font-weight:500;
+              background:#fff; color:var(--ink); border:1px solid var(--rule); }
+  .btn.tiny:hover { background:#f7f6f3; }
+  .picks { display:flex; gap:0.4rem; flex-wrap:wrap; margin-bottom:0.9rem; }
+  .who { display:grid; gap:0.1rem; max-height:22rem; overflow-y:auto;
+         border:1px solid var(--rule); border-radius:5px; padding:0.4rem 0.6rem; }
+  .prow { display:flex; align-items:center; gap:0.6rem; padding:0.35rem 0;
+          border-bottom:1px solid var(--rule); cursor:pointer; }
+  .prow:last-child { border-bottom:0; }
+  .prow input { width:1.15rem; height:1.15rem; accent-color:var(--accent); flex:none; }
+  .prow .nm { flex:1; min-width:0; font-size:0.92rem;
+              overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .prow .rl { font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase;
+              color:var(--muted); border:1px solid var(--rule);
+              border-radius:3px; padding:0.1rem 0.4rem; }
+  .hint { font-weight:400; color:var(--muted); font-size:0.78rem; }
+  .preview { background:#faf9f7; border:1px solid var(--rule); border-radius:5px;
+             padding:0.7rem 0.85rem; font-size:0.9rem; white-space:pre-wrap;
+             margin-top:0.6rem; min-height:3rem; }
+  .msg { font-size:0.85rem; margin-top:0.7rem; min-height:1.2em; }
+  .msg.err { color:var(--bad); }
+  .msg.ok { color:var(--good); }
+  .count { font-size:0.85rem; color:var(--muted); margin:0.5rem 0 0; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+  <span class="brandname">Coach Portal</span>
+  <a class="back" href="/portal/">Back to the portal</a>
+</div>
+
+<div class="wrap">
+  <h1>Message the team</h1>
+  <p class="sub">Sends the same message to everybody you tick, as a normal private
+     message from you. Nobody can see who else got it, and any reply comes back
+     to you in their own conversation.</p>
+
+  <div class="panel">
+    <h2>Who it goes to</h2>
+    <div class="picks">
+      <button class="btn tiny" id="pAll" type="button">Everyone</button>
+      <button class="btn tiny" id="pCoaches" type="button">Coaches only</button>
+      <button class="btn tiny" id="pNone" type="button">Clear</button>
+    </div>
+    <div class="who" id="who"></div>
+    <p class="count" id="count"></p>
+  </div>
+
+  <div class="panel">
+    <h2>The message</h2>
+    <label for="body">What you want to say
+      <span class="hint">— type {name} and it becomes their first name</span>
+    </label>
+    <textarea id="body" placeholder="Hey {name}, there is a new page in the portal…"></textarea>
+
+    <label style="margin-top:0.9rem">How it will read <span class="hint" id="pvWho"></span></label>
+    <div class="preview" id="preview"></div>
+  </div>
+
+  <button class="btn wide" id="send" type="button">Send</button>
+  <p class="msg" id="msg"></p>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient(
+  "https://yvdmazpxtpuvidlcifnq.supabase.co",
+  "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+);
+
+const $ = (id) => document.getElementById(id);
+
+let me = null;
+let team = [];               // everyone except me
+const picked = new Set();    // staff ids
+
+const firstName = (full) => String(full || "").trim().split(/\s+/)[0] || "there";
+
+// {name} becomes their first name. Left as written if somebody forgets it.
+function fill(text, person) {
+  return String(text).replace(/\{\s*name\s*\}/gi, firstName(person.full_name));
+}
+
+function say(el, text, cls) {
+  el.className = "msg" + (cls ? " " + cls : "");
+  el.textContent = text;
+}
+
+// ---------- load ----------
+const { data: { session } } = await db.auth.getSession();
+
+if (!session) {
+  document.querySelector(".wrap").innerHTML =
+    '<h1>Please sign in</h1><p class="sub">Open the portal and sign in, then come back.</p>';
+} else {
+  const { data: staffRow } = await db
+    .from("staff").select("id, full_name, role").eq("id", session.user.id).maybeSingle();
+
+  if (!staffRow || staffRow.role !== "admin") {
+    document.querySelector(".wrap").innerHTML =
+      '<h1>Not available</h1><p class="sub">Only an admin can message the whole team. ' +
+      'You can message anybody individually from Messages in the portal.</p>';
+  } else {
+    me = staffRow;
+    const { data: all } = await db.from("staff")
+      .select("id, full_name, role").eq("active", true).order("full_name");
+    team = (all || []).filter(p => p.id !== me.id);
+    renderWho();
+    renderPreview();
+  }
+}
+
+// ---------- who ----------
+function renderWho() {
+  const box = $("who");
+  box.innerHTML = "";
+
+  if (!team.length) {
+    box.innerHTML = '<p class="sub" style="margin:0.4rem 0">Nobody else on the team yet.</p>';
+    return;
+  }
+
+  for (const p of team) {
+    const row = document.createElement("label");
+    row.className = "prow";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = picked.has(p.id);
+    cb.addEventListener("change", () => {
+      if (cb.checked) picked.add(p.id); else picked.delete(p.id);
+      renderCount();
+      renderPreview();
+    });
+
+    const nm = document.createElement("span");
+    nm.className = "nm";
+    nm.textContent = p.full_name;
+
+    const rl = document.createElement("span");
+    rl.className = "rl";
+    rl.textContent = p.role;
+
+    row.append(cb, nm, rl);
+    box.append(row);
+  }
+  renderCount();
+}
+
+function renderCount() {
+  $("count").textContent = picked.size === 0
+    ? "Nobody selected yet."
+    : picked.size + (picked.size === 1 ? " person selected." : " people selected.");
+}
+
+function setPicks(fn) {
+  picked.clear();
+  for (const p of team) if (fn(p)) picked.add(p.id);
+  renderWho();
+  renderPreview();
+}
+
+$("pAll").addEventListener("click", () => setPicks(() => true));
+$("pCoaches").addEventListener("click", () => setPicks(p => p.role === "coach"));
+$("pNone").addEventListener("click", () => setPicks(() => false));
+
+// ---------- preview ----------
+function renderPreview() {
+  const text = $("body").value;
+  const first = team.find(p => picked.has(p.id));
+
+  $("pvWho").textContent = first ? "— as " + first.full_name + " will see it" : "";
+  $("preview").textContent = !text.trim()
+    ? "Nothing written yet."
+    : first ? fill(text, first) : text;
+}
+
+$("body").addEventListener("input", renderPreview);
+
+// ---------- send ----------
+$("send").addEventListener("click", async () => {
+  const msg = $("msg");
+  const text = $("body").value.trim();
+
+  if (!picked.size) { say(msg, "Tick at least one person first.", "err"); return; }
+  if (!text) { say(msg, "There is nothing to send.", "err"); return; }
+
+  const people = team.filter(p => picked.has(p.id));
+
+  if (!window.confirm(
+    `Send this to ${people.length} ${people.length === 1 ? "person" : "people"}?\n\n` +
+    "Each one gets it as a private message from you. It cannot be unsent."
+  )) return;
+
+  $("send").disabled = true;
+  say(msg, "Sending…");
+
+  const rows = people.map(p => ({
+    sender_id: me.id,
+    recipient_id: p.id,
+    body: fill(text, p),
+  }));
+
+  const { error } = await db.from("direct_messages").insert(rows);
+
+  $("send").disabled = false;
+
+  if (error) { say(msg, "Could not send: " + error.message, "err"); return; }
+
+  say(msg, `Sent to ${people.length} ${people.length === 1 ? "person" : "people"}. ` +
+           "Replies will arrive in Messages.", "ok");
+  $("body").value = "";
+  renderPreview();
+});
+</script>
+
+</body>
+</html>
