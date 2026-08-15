@@ -2899,6 +2899,14 @@ async function start() {
 
   await loadFeedbackManuals();
   await loadCourses();
+
+  // A link from the year view can name a course, so the portal opens
+  // straight onto it rather than making somebody scroll for it.
+  const wanted = new URLSearchParams(location.search).get("course");
+  if (wanted) {
+    const { data: one } = await db.from("courses").select("*").eq("id", wanted).maybeSingle();
+    if (one) openCourse(one);
+  }
 }
 
 /* ---------------- courses ---------------- */
