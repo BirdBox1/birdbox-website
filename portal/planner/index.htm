@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seminar planner — BirdBox Coaching</title>
+<style>
+  :root { --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+          --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0; --good:#1f8a54;
+          --warn:#b4610f; --bad:#b3261e; }
+  *,*::before,*::after { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+         font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+
+  .bar { background:var(--shell); color:#fff; padding:0.7rem 1.25rem;
+         display:flex; align-items:center; gap:0.75rem; position:sticky; top:0; z-index:5; }
+  .mark { width:34px; height:34px; border-radius:4px; background:#fff;
+          display:grid; place-items:center; flex:none; }
+  .mark img { width:26px; height:26px; object-fit:contain; display:block; }
+  .brandname { font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; color:#9aa1a9; }
+  .bar .back { margin-left:auto; font-size:0.8rem; color:#cfd4d9;
+               border:1px solid #33373c; border-radius:3px;
+               padding:0.3rem 0.7rem; text-decoration:none; white-space:nowrap; }
+  .bar .back:hover { color:#fff; border-color:#55595e; }
+
+  .wrap { max-width:52rem; margin:1.5rem auto 5rem; padding:0 1rem; }
+  h1 { font-size:1.25rem; letter-spacing:-0.02em; margin:0 0 0.3rem; font-weight:600; }
+  .sub { color:var(--muted); font-size:0.88rem; margin:0 0 1.25rem; }
+
+  .panel { background:var(--card); border:1px solid var(--rule); border-radius:6px;
+           padding:1rem 1.1rem; margin-bottom:1.1rem; }
+  .panel h2 { font-size:0.75rem; letter-spacing:0.12em; text-transform:uppercase;
+              color:var(--muted); margin:0 0 0.8rem; font-weight:600; }
+
+  label { display:block; font-size:0.8rem; font-weight:600; margin-bottom:0.3rem; }
+  .hint { font-weight:400; color:var(--muted); font-size:0.78rem; }
+  input, select, textarea { width:100%; font:inherit; padding:0.5rem 0.6rem;
+    border:1px solid var(--rule); border-radius:4px; background:#fff; color:var(--ink); }
+  textarea { min-height:3.2rem; resize:vertical; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline:2px solid var(--accent); outline-offset:1px; }
+  .field { margin-bottom:0.8rem; }
+  .row2 { display:flex; gap:0.6rem; flex-wrap:wrap; }
+  .row2 > * { flex:1 1 10rem; }
+
+  .btn { font:inherit; font-weight:600; background:var(--ink); color:#fff; border:0;
+         border-radius:4px; padding:0.55rem 1rem; cursor:pointer; }
+  .btn:hover { background:#000; }
+  .btn[disabled] { opacity:0.45; cursor:default; }
+  .btn.wide { width:100%; }
+  .btn.ghost { background:#fff; color:var(--ink); border:1px solid var(--rule); font-weight:500; }
+  .btn.ghost:hover { background:#f7f6f3; }
+  .btn.tiny { font-size:0.76rem; padding:0.25rem 0.55rem; font-weight:500;
+              background:#fff; color:var(--ink); border:1px solid var(--rule); }
+  .btn.tiny:hover { background:#f7f6f3; }
+  .btn.tiny.danger { color:var(--bad); border-color:#e6c9c7; }
+
+  .msg { font-size:0.85rem; margin-top:0.6rem; min-height:1.2em; }
+  .msg.err { color:var(--bad); }
+  .msg.ok  { color:var(--good); }
+
+  .stat { display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:0.9rem; }
+  .stat div { min-width:5rem; }
+  .stat .n { font-size:1.35rem; font-weight:650; letter-spacing:-0.02em; display:block; }
+  .stat .l { font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase;
+             color:var(--muted); font-weight:600; }
+
+  .flag { border-left:3px solid var(--rule); padding:0.55rem 0.8rem; margin-bottom:0.5rem;
+          background:#faf9f7; border-radius:0 5px 5px 0; font-size:0.88rem; }
+  .flag.block { border-left-color:var(--bad);  background:#fdf1f0; }
+  .flag.warn  { border-left-color:var(--warn); background:#fff8f0; }
+  .flag.ok    { border-left-color:var(--good); background:#f2f9f5; }
+  .flag b { display:block; font-size:0.8rem; margin-bottom:0.1rem; }
+
+  table { width:100%; border-collapse:collapse; font-size:0.86rem; }
+  th { text-align:left; font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase;
+       color:var(--muted); font-weight:600; padding:0.3rem 0.5rem 0.3rem 0;
+       border-bottom:1px solid var(--rule); white-space:nowrap; }
+  td { padding:0.45rem 0.5rem 0.45rem 0; border-bottom:1px solid var(--rule);
+       vertical-align:top; }
+  tr:last-child td { border-bottom:0; }
+  .num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+  .pill { display:inline-block; font-size:0.66rem; letter-spacing:0.08em;
+          text-transform:uppercase; padding:0.14rem 0.45rem; border-radius:3px;
+          border:1px solid var(--rule); color:var(--muted); white-space:nowrap; }
+  .pill.on   { border-color:var(--good); color:var(--good); }
+  .pill.warn { border-color:var(--warn); color:var(--warn); }
+  .pill.bad  { border-color:var(--bad);  color:var(--bad); font-weight:650; }
+  .pill.ink  { background:var(--ink); border-color:var(--ink); color:#fff; font-weight:650; }
+
+  .monthhead { font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase;
+               color:var(--muted); font-weight:600; margin:1.2rem 0 0.4rem; }
+  .empty { color:var(--muted); font-size:0.88rem; padding:0.6rem 0; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+  <span class="brandname">Coach Portal</span>
+  <a class="back" href="/portal/">Back to the portal</a>
+</div>
+
+<div class="wrap">
+  <h1>Seminar planner</h1>
+  <p class="sub">Search a market, see what it has done and what is already near it,
+     then pencil a weekend in. Nothing here is public and nothing sends —
+     a plan only becomes real when you create the course in the portal.</p>
+
+  <div class="panel">
+    <h2>Market</h2>
+    <div class="row2">
+      <div class="field" style="flex:2 1 16rem">
+        <label for="q">Where <span class="hint">— city, country, or part of a gym name</span></label>
+        <input id="q" type="text" placeholder="madrid" autocomplete="off">
+      </div>
+      <div class="field" style="flex:0 0 7rem">
+        <label for="go">&nbsp;</label>
+        <button class="btn wide" id="go" type="button">Look</button>
+      </div>
+    </div>
+    <p class="msg" id="qmsg"></p>
+  </div>
+
+  <div id="results" class="hidden">
+
+    <div class="panel">
+      <h2>The record</h2>
+      <div class="stat" id="stat"></div>
+      <div id="hosts"></div>
+    </div>
+
+    <div class="panel">
+      <h2>What is already near this</h2>
+      <div id="near"></div>
+    </div>
+
+    <div class="panel" id="pencilPanel">
+      <h2>Pencil a weekend</h2>
+
+      <div class="row2">
+        <div class="field">
+          <label for="pBrand">Brand</label>
+          <select id="pBrand">
+            <option value="tcc">TCC — The Coaches Course</option>
+            <option value="tgc">TGC — The Gymnastics Course</option>
+            <option value="tec">TEC — The Endurance Course</option>
+            <option value="twc">TWC — The Weightlifting Course</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pLevel">Level</label>
+          <select id="pLevel">
+            <option value="L1">Level 1</option>
+            <option value="L2">Level 2</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pVenue">Host gym</label>
+        <select id="pVenue"></select>
+      </div>
+      <div class="field hidden" id="pNewVenueWrap">
+        <label for="pNewVenue">New gym name</label>
+        <input id="pNewVenue" type="text" placeholder="CrossFit Somewhere">
+      </div>
+
+      <div class="field">
+        <label for="pWeekend">Weekend</label>
+        <select id="pWeekend"></select>
+      </div>
+
+      <div class="field">
+        <label for="pCoach">Coach <span class="hint">— availability and capability checked below</span></label>
+        <select id="pCoach"></select>
+      </div>
+
+      <div id="checks"></div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="pStage">How firm</label>
+          <select id="pStage">
+            <option value="idea">Idea — thinking about it</option>
+            <option value="pencilled" selected>Pencilled — intend to run it</option>
+            <option value="confirmed">Confirmed — host has agreed</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pNote">Note <span class="hint">optional</span></label>
+          <input id="pNote" type="text" placeholder="waiting to hear back from Anna">
+        </div>
+      </div>
+
+      <button class="btn wide" id="save" type="button">Add to the plan</button>
+      <p class="msg" id="smsg"></p>
+    </div>
+
+  </div>
+
+  <div class="panel">
+    <h2>The plan</h2>
+    <div class="row2" style="margin-bottom:0.8rem">
+      <div class="field" style="margin:0">
+        <label for="fFrom">From</label>
+        <input id="fFrom" type="date">
+      </div>
+      <div class="field" style="margin:0">
+        <label for="fTo">To</label>
+        <input id="fTo" type="date">
+      </div>
+      <div class="field" style="margin:0;flex:0 0 6rem">
+        <label>&nbsp;</label>
+        <button class="btn ghost wide" id="fGo" type="button">Show</button>
+      </div>
+    </div>
+    <div id="plan"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Coach load</h2>
+    <p class="sub" style="margin:0 0 0.7rem">
+      Booked courses plus anything planned, against each coach's target for the year.</p>
+    <div class="scroll"><div id="load"></div></div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient(
+  "https://yvdmazpxtpuvidlcifnq.supabase.co",
+  "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+);
+
+const $ = (id) => document.getElementById(id);
+
+let me = null;
+let isAdmin = false;
+let staffList = [];
+let capabilities = [];      // coach_capabilities
+let unavailable = new Map();// staff_id -> Set of 'YYYY-MM-DD' Saturdays
+let market = null;          // what was searched
+let marketVenues = [];      // venues matching it
+let weekends = [];          // Saturdays offered in the picker
+
+const WEEKS_AHEAD = 78;     // eighteen months, so a whole planning year fits
+const SPACING_DAYS = 90;    // your rule: 2 to 3 months between brands in a market
+
+/* ---------- small helpers ---------- */
+
+const esc = (s) => String(s == null ? "" : s)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+function iso(d) {
+  return d.getFullYear() + "-" +
+         String(d.getMonth()+1).padStart(2,"0") + "-" +
+         String(d.getDate()).padStart(2,"0");
+}
+// Saturday of the week containing d — same arithmetic as the
+// availability page and weekend_of() in SQL, so all three agree.
+function saturdayOf(d) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dow = (x.getDay() + 6) % 7;
+  x.setDate(x.getDate() - dow + 5);
+  return x;
+}
+function weekendLabel(isoSat) {
+  const [y,m,d] = isoSat.split("-").map(Number);
+  const sat = new Date(y, m-1, d), sun = new Date(y, m-1, d+1);
+  const mon = (x) => x.toLocaleDateString("en-GB",{month:"short"});
+  return sat.getMonth() === sun.getMonth()
+    ? `Sat ${sat.getDate()} – Sun ${sun.getDate()} ${mon(sat)} ${y}`
+    : `Sat ${sat.getDate()} ${mon(sat)} – Sun ${sun.getDate()} ${mon(sun)} ${y}`;
+}
+function monthLabel(isoDate) {
+  const [y,m] = isoDate.split("-").map(Number);
+  return new Date(y, m-1, 1).toLocaleDateString("en-GB",{month:"long",year:"numeric"});
+}
+function daysBetween(a, b) {
+  return Math.round((new Date(b) - new Date(a)) / 86400000);
+}
+function say(el, text, cls) {
+  el.className = "msg" + (cls ? " " + cls : "");
+  el.textContent = text;
+}
+
+/* ---------- load ---------- */
+
+const { data: { session } } = await db.auth.getSession();
+
+if (!session) {
+  document.querySelector(".wrap").innerHTML =
+    '<h1>Please sign in</h1><p class="sub">Open the portal, sign in, then come back.</p>';
+} else {
+  const { data: staffRow } = await db.from("staff")
+    .select("id, full_name, role").eq("id", session.user.id).maybeSingle();
+  me = staffRow;
+  isAdmin = !!staffRow && staffRow.role === "admin";
+
+  // Everyone can look. Only an admin can add — and the database
+  // enforces that too, so this is tidiness rather than security.
+  if (!isAdmin) {
+    $("pencilPanel").classList.add("hidden");
+    document.querySelector(".sub").textContent =
+      "Search a market to see what it has done and what is planned there. " +
+      "Planning is admin only — this is a read-only view.";
+  }
+
+  buildWeekends();
+  await Promise.all([loadStaff(), loadCapabilities(), loadUnavailable()]);
+
+  // Default the plan view to the next six months.
+  const today = new Date();
+  $("fFrom").value = iso(today);
+  $("fTo").value   = iso(new Date(today.getFullYear(), today.getMonth()+6, today.getDate()));
+  await loadPlan();
+  await loadLoad();
+}
+
+function buildWeekends() {
+  weekends = [];
+  let s = saturdayOf(new Date());
+  for (let i = 0; i < WEEKS_AHEAD; i++) {
+    weekends.push(iso(s));
+    s = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 7);
+  }
+  $("pWeekend").innerHTML = weekends
+    .map(w => `<option value="${w}">${weekendLabel(w)}</option>`).join("");
+}
+
+async function loadStaff() {
+  const { data } = await db.from("staff")
+    .select("id, full_name, role").eq("active", true).order("full_name");
+  staffList = data || [];
+  $("pCoach").innerHTML =
+    '<option value="">Nobody yet</option>' +
+    staffList.map(s => `<option value="${s.id}">${esc(s.full_name)}</option>`).join("");
+}
+
+async function loadCapabilities() {
+  const { data } = await db.from("coach_capabilities")
+    .select("staff_id, brand, level, cap_role, languages, can_solo, status, note");
+  capabilities = data || [];
+}
+
+async function loadUnavailable() {
+  unavailable = new Map();
+  const { data } = await db.from("coach_unavailability")
+    .select("staff_id, starts_on, note, source");
+  for (const r of data || []) {
+    if (!unavailable.has(r.staff_id)) unavailable.set(r.staff_id, new Map());
+    unavailable.get(r.staff_id).set(r.starts_on, r);
+  }
+}
+
+/* ---------- searching a market ---------- */
+
+$("go").addEventListener("click", search);
+$("q").addEventListener("keydown", (e) => { if (e.key === "Enter") search(); });
+
+async function search() {
+  const q = $("q").value.trim();
+  const msg = $("qmsg");
+  if (q.length < 2) { say(msg, "Type at least two letters.", "err"); return; }
+
+  say(msg, "Looking…");
+  market = q;
+
+  // Venues whose name or recorded location match.
+  const { data: vs, error: verr } = await db.from("venues")
+    .select("id, name, location_raw, region, host_contact, times_run, times_cancelled, avg_participants, best_participants, first_seen, last_seen")
+    .or(`name.ilike.%${q}%,location_raw.ilike.%${q}%`)
+    .order("avg_participants", { ascending: false, nullsFirst: false });
+
+  if (verr) { say(msg, "Could not search: " + verr.message, "err"); return; }
+  marketVenues = vs || [];
+
+  // Everything ever run there, whatever the gym.
+  const { data: hist } = await db.from("seminar_history")
+    .select("starts_on, brand, level, venue_raw, location_raw, lead_coach, participants, status")
+    .or(`location_raw.ilike.%${q}%,venue_raw.ilike.%${q}%`)
+    .order("starts_on", { ascending: false });
+
+  renderRecord(hist || []);
+  await renderNear(q);
+  renderVenuePicker();
+  runChecks();
+
+  $("results").classList.remove("hidden");
+  say(msg, `${marketVenues.length} host${marketVenues.length === 1 ? "" : "s"} on record.`, "ok");
+}
+
+function renderRecord(hist) {
+  const live = hist.filter(h => ["live","confirmed"].includes(h.status) && h.participants != null);
+  const past = live.filter(h => h.starts_on && h.starts_on <= iso(new Date()));
+  const pax  = past.map(h => h.participants);
+  const avg  = pax.length ? (pax.reduce((a,b)=>a+b,0) / pax.length) : null;
+  const last = past.length ? past[0].starts_on : null;
+  const monthsSince = last
+    ? Math.round(daysBetween(last, iso(new Date())) / 30.4) : null;
+
+  $("stat").innerHTML = `
+    <div><span class="n">${past.length}</span><span class="l">run</span></div>
+    <div><span class="n">${avg ? avg.toFixed(1) : "—"}</span><span class="l">average</span></div>
+    <div><span class="n">${pax.length ? Math.max(...pax) : "—"}</span><span class="l">best</span></div>
+    <div><span class="n">${marketVenues.length}</span><span class="l">hosts</span></div>
+    <div><span class="n">${monthsSince == null ? "—" : monthsSince}</span><span class="l">months since</span></div>`;
+
+  if (!marketVenues.length) {
+    $("hosts").innerHTML = '<p class="empty">Nothing on record here — this would be a new market.</p>';
+    return;
+  }
+
+  const rows = marketVenues.slice(0, 12).map(v => {
+    const months = v.last_seen
+      ? Math.round(daysBetween(v.last_seen, iso(new Date())) / 30.4) : null;
+    const band =
+      months == null           ? '<span class="pill">never run</span>'
+      : months < 0             ? '<span class="pill ink">booked ahead</span>'
+      : months <= 6            ? '<span class="pill on">warm</span>'
+      : months <= 12           ? '<span class="pill on">good</span>'
+      : months <= 24           ? '<span class="pill warn">cooling</span>'
+      :                          '<span class="pill bad">cold</span>';
+    return `<tr>
+      <td>${esc(v.name)}<div class="hint">${esc(v.location_raw || "")}</div></td>
+      <td class="num">${v.times_run ?? 0}</td>
+      <td class="num">${v.avg_participants ?? "—"}</td>
+      <td class="num">${v.best_participants ?? "—"}</td>
+      <td class="num">${months == null ? "—" : months}</td>
+      <td>${band}</td>
+    </tr>`;
+  }).join("");
+
+  $("hosts").innerHTML = `<div class="scroll"><table>
+    <tr><th>Host</th><th class="num">Runs</th><th class="num">Avg</th>
+        <th class="num">Best</th><th class="num">Months</th><th></th></tr>
+    ${rows}</table></div>` +
+    (marketVenues.length > 12
+      ? `<p class="hint" style="margin-top:0.5rem">${marketVenues.length - 12} more not shown.</p>` : "");
+}
+
+// Live courses and existing plans in this market, so the spacing
+// rule has something to check against.
+let nearCourses = [], nearPlans = [];
+
+async function renderNear(q) {
+  const { data: cs } = await db.from("courses")
+    .select("id, title, brand, level, city, country, starts_at, timezone, status, archived")
+    .or(`city.ilike.%${q}%,venue_name.ilike.%${q}%,title.ilike.%${q}%`)
+    .eq("archived", false)
+    .gte("starts_at", new Date(Date.now() - 200*86400000).toISOString())
+    .order("starts_at");
+  nearCourses = (cs || []).filter(c => c.status !== "cancelled");
+
+  const { data: ps } = await db.from("planned_seminars")
+    .select("id, market, venue_name, brand, level, weekend_start, stage, coach_staff_id")
+    .ilike("market", `%${q}%`)
+    .neq("stage", "dropped")
+    .order("weekend_start");
+  nearPlans = ps || [];
+
+  const bits = [];
+
+  for (const c of nearCourses) {
+    const d = (c.starts_at || "").slice(0,10);
+    bits.push(`<div class="flag"><b>${esc(c.brand?.toUpperCase() || "")} ${esc(c.level || "")} — on sale</b>
+      ${esc(c.title)} · ${esc(d)}</div>`);
+  }
+  for (const p of nearPlans) {
+    const who = staffList.find(s => s.id === p.coach_staff_id);
+    bits.push(`<div class="flag"><b>${esc(p.brand.toUpperCase())} ${esc(p.level || "")} — ${esc(p.stage)}</b>
+      ${esc(p.venue_name || p.market)} · ${esc(weekendLabel(p.weekend_start))}${who ? " · " + esc(who.full_name) : ""}
+      <button class="btn tiny danger" data-drop="${p.id}" style="margin-left:0.4rem">Remove</button></div>`);
+  }
+
+  $("near").innerHTML = bits.length
+    ? bits.join("")
+    : '<p class="empty">Nothing scheduled or planned in this market.</p>';
+
+  $("near").querySelectorAll("[data-drop]").forEach(b =>
+    b.addEventListener("click", () => dropPlan(b.dataset.drop)));
+}
+
+function renderVenuePicker() {
+  const opts = marketVenues.map(v =>
+    `<option value="${v.id}">${esc(v.name)}${v.avg_participants ? " — avg " + v.avg_participants : ""}</option>`
+  ).join("");
+  $("pVenue").innerHTML = opts + '<option value="__new">A gym not on this list…</option>';
+  $("pNewVenueWrap").classList.toggle("hidden", $("pVenue").value !== "__new");
+}
+
+$("pVenue").addEventListener("change", () => {
+  $("pNewVenueWrap").classList.toggle("hidden", $("pVenue").value !== "__new");
+  runChecks();
+});
+for (const id of ["pBrand","pLevel","pWeekend","pCoach"]) {
+  $(id).addEventListener("change", runChecks);
+}
+
+/* ---------- the checks ---------- */
+
+function runChecks() {
+  if (!market) return;
+  const box = $("checks");
+  const brand = $("pBrand").value;
+  const level = $("pLevel").value;
+  const wk    = $("pWeekend").value;
+  const coach = $("pCoach").value;
+  const out = [];
+
+  /* --- cross-brand spacing --- */
+  const clashes = [];
+  for (const c of nearCourses) {
+    if (!c.starts_at) continue;
+    if ((c.brand || "") === brand) continue;          // same brand is fine
+    const gap = Math.abs(daysBetween(c.starts_at.slice(0,10), wk));
+    if (gap <= SPACING_DAYS) {
+      clashes.push(`${(c.brand||"").toUpperCase()} ${c.level||""} on sale, ${gap} days apart`);
+    }
+  }
+  for (const p of nearPlans) {
+    if (p.brand === brand) continue;
+    const gap = Math.abs(daysBetween(p.weekend_start, wk));
+    if (gap <= SPACING_DAYS) {
+      clashes.push(`${p.brand.toUpperCase()} ${p.level||""} ${p.stage}, ${gap} days apart`);
+    }
+  }
+  if (clashes.length) {
+    out.push(`<div class="flag warn"><b>Another brand is close</b>
+      ${clashes.map(esc).join("<br>")}<br>
+      <span class="hint">Your rule is 2 to 3 months between brands in the same market.</span></div>`);
+  }
+
+  /* --- same brand, too soon --- */
+  const sameBrand = [];
+  for (const p of nearPlans) {
+    if (p.brand !== brand) continue;
+    const gap = Math.abs(daysBetween(p.weekend_start, wk));
+    if (gap <= 60) sameBrand.push(`${p.brand.toUpperCase()} ${p.level||""} ${gap} days apart`);
+  }
+  if (sameBrand.length) {
+    out.push(`<div class="flag warn"><b>Same brand, close together</b>
+      ${sameBrand.map(esc).join("<br>")}</div>`);
+  }
+
+  /* --- the host --- */
+  const vid = $("pVenue").value;
+  const v = marketVenues.find(x => x.id === vid);
+  if (v) {
+    const months = v.last_seen
+      ? Math.round(daysBetween(v.last_seen, iso(new Date())) / 30.4) : null;
+    if (months != null && months > 24) {
+      out.push(`<div class="flag warn"><b>This host has gone cold</b>
+        Last run ${esc(v.last_seen)}, about ${months} months ago. The record says a gap
+        over two years averages well below a recent return.</div>`);
+    } else if (v.avg_participants && v.avg_participants >= 12) {
+      out.push(`<div class="flag ok"><b>Strong host</b>
+        ${v.times_run} run${v.times_run === 1 ? "" : "s"}, averaging ${v.avg_participants},
+        best ${v.best_participants}.</div>`);
+    }
+    if (v.times_cancelled >= 2) {
+      out.push(`<div class="flag warn"><b>Cancelled before</b>
+        ${v.times_cancelled} seminars at this host were cancelled.</div>`);
+    }
+  }
+
+  /* --- lead time --- */
+  const lead = daysBetween(iso(new Date()), wk);
+  if (lead < 84) {
+    out.push(`<div class="flag ${lead < 56 ? "block" : "warn"}"><b>Short notice</b>
+      ${lead} days away. Three months is the minimum you aim for, and long-haul travel
+      needs longer.</div>`);
+  }
+
+  /* --- the coach --- */
+  if (coach) {
+    const person = staffList.find(s => s.id === coach);
+    const name = person ? person.full_name : "This coach";
+
+    const un = unavailable.get(coach);
+    const hit = un ? un.get(wk) : null;
+    if (hit) {
+      const how = hit.source === "coach" ? "block" : "warn";
+      out.push(`<div class="flag ${how}"><b>${esc(name)} is not available</b>
+        ${esc(hit.note || "Marked unavailable")}${
+          hit.source === "coach" ? "" : " — from notes rather than from them, so worth checking"}
+      </div>`);
+    } else if (!un || un.size === 0) {
+      out.push(`<div class="flag"><b>No availability recorded</b>
+        ${esc(name)} has not filled in their weekends yet, so this is unchecked.</div>`);
+    }
+
+    const caps = capabilities.filter(c =>
+      c.staff_id === coach &&
+      (c.brand === brand || c.brand === "*") &&
+      (c.level === level || c.level == null) &&
+      c.cap_role === "lead");
+
+    if (!caps.length) {
+      out.push(`<div class="flag block"><b>${esc(name)} does not lead this course</b>
+        Nothing on record for ${brand.toUpperCase()} ${level} as a lead.</div>`);
+    } else {
+      const best = caps.sort((a,b) =>
+        ({active:0,developing:1,avoid:2,future:3}[a.status] ?? 9) -
+        ({active:0,developing:1,avoid:2,future:3}[b.status] ?? 9))[0];
+      if (best.status === "future") {
+        out.push(`<div class="flag block"><b>Not ready yet</b>
+          ${esc(name)} is marked as future for ${brand.toUpperCase()} ${level}.
+          ${esc(best.note || "")}</div>`);
+      } else if (best.status === "developing") {
+        out.push(`<div class="flag warn"><b>Development placement</b>
+          ${esc(name)} is still developing on ${brand.toUpperCase()} ${level}.
+          ${esc(best.note || "")}</div>`);
+      } else if (best.status === "avoid") {
+        out.push(`<div class="flag warn"><b>Possible, but avoid</b>
+          ${esc(best.note || "")}</div>`);
+      }
+      if (best.can_solo === false) {
+        out.push(`<div class="flag warn"><b>Needs a second coach</b>
+          ${esc(best.note || name + " does not work this course alone.")}</div>`);
+      }
+    }
+  }
+
+  box.innerHTML = out.length
+    ? out.join("")
+    : '<div class="flag ok"><b>Nothing flagged</b>Weekend, coach and spacing all look clear.</div>';
+}
+
+/* ---------- saving ---------- */
+
+$("save").addEventListener("click", async () => {
+  const msg = $("smsg");
+  if (!market) { say(msg, "Search a market first.", "err"); return; }
+
+  const vid = $("pVenue").value;
+  const isNew = vid === "__new";
+  const venueName = isNew
+    ? $("pNewVenue").value.trim()
+    : (marketVenues.find(v => v.id === vid) || {}).name;
+
+  if (isNew && !venueName) { say(msg, "Name the gym.", "err"); return; }
+
+  $("save").disabled = true;
+  say(msg, "Saving…");
+
+  const { error } = await db.from("planned_seminars").insert({
+    market: market.toLowerCase(),
+    venue_id: isNew ? null : vid,
+    venue_name: venueName || null,
+    brand: $("pBrand").value,
+    level: $("pLevel").value,
+    weekend_start: $("pWeekend").value,
+    coach_staff_id: $("pCoach").value || null,
+    stage: $("pStage").value,
+    note: $("pNote").value.trim() || null,
+    created_by: me ? me.id : null,
+  });
+
+  $("save").disabled = false;
+  if (error) { say(msg, "Could not save: " + error.message, "err"); return; }
+
+  say(msg, "Added to the plan.", "ok");
+  $("pNote").value = "";
+  await renderNear(market);
+  runChecks();
+  await loadPlan();
+  await loadLoad();
+});
+
+async function dropPlan(id) {
+  if (!window.confirm("Remove this from the plan?")) return;
+  const { error } = await db.from("planned_seminars")
+    .update({ stage: "dropped", updated_at: new Date().toISOString() }).eq("id", id);
+  if (error) { window.alert("Could not remove it: " + error.message); return; }
+  if (market) await renderNear(market);
+  await loadPlan();
+  await loadLoad();
+}
+
+/* ---------- the plan ---------- */
+
+$("fGo").addEventListener("click", loadPlan);
+
+async function loadPlan() {
+  const box = $("plan");
+  box.innerHTML = '<p class="empty">Loading…</p>';
+
+  let q = db.from("v_plan").select("*");
+  if ($("fFrom").value) q = q.gte("weekend_start", $("fFrom").value);
+  if ($("fTo").value)   q = q.lte("weekend_start", $("fTo").value);
+
+  const { data, error } = await q;
+  if (error) { box.innerHTML = '<p class="empty">Could not load the plan.</p>'; return; }
+  if (!data || !data.length) {
+    box.innerHTML = '<p class="empty">Nothing planned in that range yet.</p>';
+    return;
+  }
+
+  let html = "", lastMonth = "";
+  for (const p of data) {
+    const mn = monthLabel(p.weekend_start);
+    if (mn !== lastMonth) {
+      if (lastMonth) html += "</table></div>";
+      html += `<div class="monthhead">${esc(mn)}</div><div class="scroll"><table>
+        <tr><th>Weekend</th><th>What</th><th>Where</th><th>Coach</th><th></th><th></th></tr>`;
+      lastMonth = mn;
+    }
+    const stage =
+      p.stage === "confirmed" ? '<span class="pill on">confirmed</span>'
+      : p.stage === "pencilled" ? '<span class="pill warn">pencilled</span>'
+      : '<span class="pill">idea</span>';
+    html += `<tr>
+      <td>${esc(weekendLabel(p.weekend_start))}</td>
+      <td>${esc((p.brand||"").toUpperCase())} ${esc(p.level||"")}</td>
+      <td>${esc(p.venue || p.market)}${
+        p.venue_avg ? `<div class="hint">avg ${p.venue_avg}, ${p.venue_runs} run${p.venue_runs===1?"":"s"}</div>` : ""}</td>
+      <td>${esc(p.coach || "—")}</td>
+      <td>${stage}</td>
+      <td class="num">${isAdmin ? `<button class="btn tiny danger" data-drop="${p.id}">Remove</button>` : ""}</td>
+    </tr>`;
+  }
+  html += "</table></div>";
+  box.innerHTML = html;
+
+  box.querySelectorAll("[data-drop]").forEach(b =>
+    b.addEventListener("click", () => dropPlan(b.dataset.drop)));
+}
+
+/* ---------- coach load ---------- */
+
+async function loadLoad() {
+  const box = $("load");
+  const { data, error } = await db.from("v_coach_load_planned").select("*");
+  if (error || !data) { box.innerHTML = '<p class="empty">Could not load coach targets.</p>'; return; }
+
+  const rows = data
+    .filter(r => r.target_min != null || r.booked_this_year > 0 || r.planned_this_year > 0)
+    .map(r => {
+      const total = (r.booked_this_year || 0) + (r.planned_this_year || 0);
+      const min = r.target_min, max = r.target_max;
+      let state = '<span class="pill">no target</span>';
+      if (r.is_reserve_only)      state = '<span class="pill bad">reserve only</span>';
+      else if (min != null) {
+        if (total > (max ?? min))      state = '<span class="pill bad">over target</span>';
+        else if (total >= min)         state = '<span class="pill on">on target</span>';
+        else if (total >= min * 0.6)   state = '<span class="pill warn">building</span>';
+        else                           state = '<span class="pill warn">room to fill</span>';
+      }
+      return `<tr>
+        <td>${esc(r.full_name)}</td>
+        <td class="num">${r.booked_this_year || 0}</td>
+        <td class="num">${r.planned_this_year || 0}</td>
+        <td class="num">${total}</td>
+        <td class="num">${min == null ? "—" : (max && max !== min ? `${min}–${max}` : min)}</td>
+        <td>${state}</td>
+      </tr>`;
+    }).join("");
+
+  box.innerHTML = `<table>
+    <tr><th>Coach</th><th class="num">Booked</th><th class="num">Planned</th>
+        <th class="num">Total</th><th class="num">Target</th><th></th></tr>
+    ${rows}</table>`;
+}
+</script>
+
+</body>
+</html>
