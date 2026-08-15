@@ -136,6 +136,9 @@
       </div>
     </div>
     <p class="msg" id="qmsg"></p>
+    <p class="hint" id="qhint" style="margin:0.2rem 0 0">
+      Search a market and the record, what is already near it, and the form
+      to pencil a weekend all appear here.</p>
   </div>
 
   <div id="results" class="hidden">
@@ -440,6 +443,27 @@ function monthLabel(isoDate) {
 }
 function daysBetween(a, b) {
   return Math.round((new Date(b) - new Date(a)) / 86400000);
+}
+// "Sat 9 Jan 2027" — enough to place it in the year without a lookup.
+function dayLabel(isoDate) {
+  const [y,m,d] = String(isoDate).slice(0,10).split("-").map(Number);
+  return new Date(y, m-1, d).toLocaleDateString("en-GB",
+    { weekday:"short", day:"numeric", month:"short", year:"numeric" })
+    .replace(",", "");
+}
+// Which side of the weekend being planned it falls on. "84 days apart"
+// alone does not say whether you are following something or leading it.
+function gapPhrase(otherDate, wk) {
+  const d = daysBetween(String(otherDate).slice(0,10), wk);
+  const n = Math.abs(d);
+  return `${n} day${n === 1 ? "" : "s"} ${d >= 0 ? "before" : "after"} this one`;
+}
+// One clash, said properly: what it is, whose gym, which town, when.
+function clashLine(what, where, when, wk) {
+  return `<div style="margin:0.15rem 0">` +
+    `<b style="display:inline;font-size:0.86rem">${esc(what)}</b>` +
+    `${where ? " — " + esc(where) : ""}` +
+    `<div class="hint">${esc(dayLabel(when))} · ${esc(gapPhrase(when, wk))}</div></div>`;
 }
 function say(el, text, cls) {
   el.className = "msg" + (cls ? " " + cls : "");
@@ -771,6 +795,7 @@ async function search() {
   runChecks();
 
   $("results").classList.remove("hidden");
+  $("qhint").classList.add("hidden");
   say(msg, marketVenues.length
     ? `${marketVenues.length} host${marketVenues.length === 1 ? "" : "s"} on record.`
     : "Nothing on record — this would be a new market.", "ok");
@@ -836,7 +861,7 @@ async function renderNear(q, spellings) {
     .join(",");
 
   const { data: cs } = await db.from("courses")
-    .select("id, title, brand, level, city, country, starts_at, timezone, status, archived")
+    .select("id, title, brand, level, city, country, venue_name, starts_at, timezone, status, archived")
     .or(orCourses)
     .eq("archived", false)
     .gte("starts_at", new Date(Date.now() - 200*86400000).toISOString())
@@ -860,12 +885,15 @@ async function renderNear(q, spellings) {
   }
   for (const p of nearPlans) {
     const who = staffList.find(s => s.id === p.coach_staff_id);
-    // A plan that has become a course is a record of how that course
-    // came about. Removing it would not touch the course, but it would
-    // throw away the trail, so it is not offered.
-    const tail = p.course_id
-      ? `<a class="btn tiny" href="/portal/?course=${esc(p.course_id)}" style="margin-left:0.4rem">Open the course</a>`
-      : `<button class="btn tiny danger" data-drop="${p.id}" style="margin-left:0.4rem">Remove</button>`;
+    // Once a plan has become a course it has done its job, so it can be
+    // cleared off the list. The course is a separate record and is never
+    // touched by this.
+    const tail =
+      (p.course_id
+        ? `<a class="btn tiny" href="/portal/?course=${esc(p.course_id)}" style="margin-left:0.4rem">Open the course</a>`
+        : "") +
+      `<button class="btn tiny danger" data-drop="${p.id}"
+         data-live="${p.course_id ? "1" : ""}" style="margin-left:0.4rem">Remove</button>`;
     bits.push(`<div class="flag"><b>${esc(p.brand.toUpperCase())} ${esc(p.level || "")} — ${esc(p.stage)}</b>
       ${esc(p.venue_name || p.market)} · ${esc(weekendLabel(p.weekend_start))}${who ? " · " + esc(who.full_name) : ""}
       ${tail}</div>`);
@@ -876,7 +904,7 @@ async function renderNear(q, spellings) {
     : '<p class="empty">Nothing scheduled or planned in this market.</p>';
 
   $("near").querySelectorAll("[data-drop]").forEach(b =>
-    b.addEventListener("click", () => dropPlan(b.dataset.drop)));
+    b.addEventListener("click", () => dropPlan(b.dataset.drop, !!b.dataset.live)));
 }
 
 function renderVenuePicker() {
@@ -918,20 +946,26 @@ function runChecks() {
     if ((c.brand || "") === brand) continue;          // same brand is fine
     const gap = Math.abs(daysBetween(c.starts_at.slice(0,10), wk));
     if (gap <= SPACING_DAYS) {
-      clashes.push(`${(c.brand||"").toUpperCase()} ${c.level||""} on sale, ${gap} days apart`);
+      clashes.push(clashLine(
+        `${(c.brand||"").toUpperCase()} ${c.level||""} ${c.status === "draft" ? "draft" : "on sale"}`,
+        [c.venue_name, c.city].filter(Boolean).join(", ") || c.title,
+        c.starts_at, wk));
     }
   }
   for (const p of nearPlans) {
     if (p.brand === brand) continue;
     const gap = Math.abs(daysBetween(p.weekend_start, wk));
     if (gap <= SPACING_DAYS) {
-      clashes.push(`${p.brand.toUpperCase()} ${p.level||""} ${p.stage}, ${gap} days apart`);
+      clashes.push(clashLine(
+        `${p.brand.toUpperCase()} ${p.level||""} ${p.stage}`,
+        p.venue_name || p.market, p.weekend_start, wk));
     }
   }
   if (clashes.length) {
     out.push(`<div class="flag warn"><b>Another brand is close</b>
-      ${clashes.map(esc).join("<br>")}<br>
-      <span class="hint">Your rule is 2 to 3 months between brands in the same market.</span></div>`);
+      ${clashes.join("")}
+      <span class="hint">Your rule is 2 to 3 months between brands in the same market.
+      Check these are really the same market — anything in another town is not.</span></div>`);
   }
 
   /* --- same brand, too soon --- */
@@ -939,11 +973,15 @@ function runChecks() {
   for (const p of nearPlans) {
     if (p.brand !== brand) continue;
     const gap = Math.abs(daysBetween(p.weekend_start, wk));
-    if (gap <= 60) sameBrand.push(`${p.brand.toUpperCase()} ${p.level||""} ${gap} days apart`);
+    if (gap <= 60) sameBrand.push(clashLine(
+      `${p.brand.toUpperCase()} ${p.level||""} ${p.stage}`,
+      p.venue_name || p.market, p.weekend_start, wk));
   }
   if (sameBrand.length) {
     out.push(`<div class="flag warn"><b>Same brand, close together</b>
-      ${sameBrand.map(esc).join("<br>")}</div>`);
+      ${sameBrand.join("")}
+      <span class="hint">Level progressions in one city are deliberate —
+      this only matters if it is the same level twice.</span></div>`);
   }
 
   /* --- the host --- */
@@ -1204,8 +1242,16 @@ $("save").addEventListener("click", async () => {
   await loadLoad();
 });
 
-async function dropPlan(id) {
-  if (!window.confirm("Remove this from the plan?")) return;
+async function dropPlan(id, isLive) {
+  // Worth saying out loud, because it is the thing anybody would worry
+  // about: the course, its registrations, its codes and the email
+  // already sent to the host all live somewhere else entirely.
+  if (!window.confirm(isLive
+    ? "Remove this from the plan?\n\n" +
+      "The course itself is not affected — it stays on sale, with its " +
+      "registrations, codes and host email exactly as they are. This only " +
+      "clears the plan off this list."
+    : "Remove this from the plan?")) return;
   const { error } = await db.from("planned_seminars")
     .update({ stage: "dropped", updated_at: new Date().toISOString() }).eq("id", id);
   if (error) { window.alert("Could not remove it: " + error.message); return; }
@@ -1259,9 +1305,11 @@ async function loadPlan() {
     // it is not offered for removal — and removing it would not touch
     // the course either way.
     const action = !isAdmin ? ""
-      : courseId
-        ? `<a class="btn tiny" href="/portal/?course=${esc(courseId)}">Open the course</a>`
-        : `<button class="btn tiny danger" data-drop="${p.id}">Remove</button>`;
+      : (courseId
+          ? `<a class="btn tiny" href="/portal/?course=${esc(courseId)}">Open the course</a> `
+          : "") +
+        `<button class="btn tiny danger" data-drop="${p.id}"
+           data-live="${courseId ? "1" : ""}">Remove</button>`;
 
     html += `<tr>
       <td>${esc(weekendLabel(p.weekend_start))}</td>
@@ -1277,7 +1325,7 @@ async function loadPlan() {
   box.innerHTML = html;
 
   box.querySelectorAll("[data-drop]").forEach(b =>
-    b.addEventListener("click", () => dropPlan(b.dataset.drop)));
+    b.addEventListener("click", () => dropPlan(b.dataset.drop, !!b.dataset.live)));
 }
 
 /* ---------- coach load ---------- */
