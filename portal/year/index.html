@@ -153,6 +153,35 @@
                  vertical-align:-1px; margin-right:0.25rem; }
 
   .empty { padding:2rem 1.1rem; color:var(--muted); font-size:0.9rem; }
+
+  /* ---------- the detail sheet ---------- */
+  .sheet { position:fixed; inset:0; z-index:40; background:rgba(13,14,16,0.45);
+           display:flex; align-items:flex-end; justify-content:center; }
+  @media (min-width:44rem) { .sheet { align-items:center; } }
+  .sheetbox { background:var(--card); width:100%; max-width:34rem;
+              border-radius:10px 10px 0 0; padding:1.2rem 1.2rem 1.5rem;
+              max-height:86vh; overflow-y:auto; position:relative;
+              box-shadow:0 -10px 40px rgba(0,0,0,0.25); }
+  @media (min-width:44rem) { .sheetbox { border-radius:10px; } }
+  .sheetclose { position:absolute; top:0.5rem; right:0.8rem; font-size:1.5rem;
+                background:none; border:0; color:var(--muted); cursor:pointer; }
+  .sheetbox h3 { margin:0 0 0.15rem; font-size:1.05rem; letter-spacing:-0.01em;
+                 padding-right:2rem; }
+  .sheetbox .when { color:var(--muted); font-size:0.86rem; margin:0 0 0.9rem; }
+  .facts { display:grid; grid-template-columns:auto 1fr; gap:0.3rem 0.9rem;
+           font-size:0.88rem; margin-bottom:0.9rem; }
+  .facts dt { color:var(--muted); white-space:nowrap; }
+  .facts dd { margin:0; word-break:break-word; }
+  .sheetbox .acts { display:flex; gap:0.45rem; flex-wrap:wrap; margin-top:0.9rem; }
+  .sheetbox h4 { font-size:0.7rem; letter-spacing:0.11em; text-transform:uppercase;
+                 color:var(--muted); margin:1rem 0 0.4rem; font-weight:650; }
+  .notelist { font-size:0.87rem; }
+  .notelist .n { border-left:2px solid var(--rule); padding:0.1rem 0 0.1rem 0.6rem;
+                 margin-bottom:0.45rem; }
+  .notelist .n .who { font-size:0.72rem; color:var(--muted); }
+  .sem { cursor:pointer; }
+  .sem:hover { background:#faf9f7; }
+  .chip { cursor:pointer; }
   .hidden { display:none !important; }
 </style>
 </head>
@@ -223,6 +252,13 @@
 <div class="hiddenbar hidden" id="hiddenbar"></div>
 <div class="gridwrap hidden" id="gridwrap"></div>
 
+<div class="sheet hidden" id="sheet">
+  <div class="sheetbox">
+    <button class="sheetclose" id="sheetClose" type="button">&times;</button>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -242,6 +278,7 @@ let courses = [];
 let courseStaff = new Map();
 let plans = [];
 let unavail = new Map();
+let regCounts = new Map();   // course_id -> people booked
 let showPlanned = true;
 let showBlank = false;
 let mode = "sched";
@@ -342,10 +379,10 @@ async function loadAll() {
     db.from("staff").select("id, full_name, role").eq("active", true).order("full_name"),
     db.from("coach_profiles").select("staff_id, target_min, target_max, is_reserve_only, display_order"),
     db.from("courses")
-      .select("id, title, brand, level, city, country, venue_name, starts_at, timezone, status, archived, capacity")
+      .select("id, title, brand, level, city, country, venue_name, starts_at, timezone, status, archived, capacity, slug, host_name, host_email, host_spots, prepaid_spots")
       .eq("archived", false).gte("starts_at", from).lt("starts_at", to),
     db.from("planned_seminars")
-      .select("id, market, venue_name, brand, level, weekend_start, stage, coach_staff_id, note")
+      .select("id, market, city, country, venue_name, brand, level, weekend_start, stage, coach_staff_id, note")
       .neq("stage","dropped").gte("weekend_start", from).lt("weekend_start", to),
     db.from("coach_unavailability").select("staff_id, starts_on, note, source"),
   ]);
@@ -363,8 +400,21 @@ async function loadAll() {
     unavail.get(u.staff_id).set(u.starts_on, u);
   }
 
+  // How many are booked. A coach only sees registrations for courses
+  // they are on, so this is partial for them — which is correct, and
+  // the panel simply says nothing rather than showing a wrong number.
+  regCounts = new Map();
   courseStaff = new Map();
   const ids = courses.map(c => c.id);
+  for (let i = 0; i < ids.length; i += 40) {
+    const { data } = await db.from("registrations")
+      .select("course_id, status, payment_status").in("course_id", ids.slice(i, i+40));
+    for (const r of data || []) {
+      if ((r.status || "active") !== "active") continue;
+      if (["refunded","failed"].includes(r.payment_status)) continue;
+      regCounts.set(r.course_id, (regCounts.get(r.course_id) || 0) + 1);
+    }
+  }
   for (let i = 0; i < ids.length; i += 40) {
     const { data } = await db.from("course_staff")
       .select("course_id, staff_id, role").in("course_id", ids.slice(i, i+40));
@@ -520,7 +570,7 @@ function semRow(i) {
   const clash = i.team.filter(t => unavail.get(t.id)?.has(i.weekend))
     .map(t => t.name);
 
-  return `<div class="sem${planned ? " plan" : ""}">
+  return `<div class="sem${planned ? " plan" : ""}" data-open="${i.kind}:${i.id}">
     <span class="tag ${brandClass(i.brand)}">${esc(tag)}</span>
     <span class="body">
       <span class="where">${esc(i.where)}</span>
@@ -534,6 +584,15 @@ function semRow(i) {
 }
 
 function wireSchedule() {
+  $("sched").querySelectorAll("[data-open]").forEach(row =>
+    row.addEventListener("click", (e) => {
+      // The coach dropdown lives on the row; using it should not also
+      // open the panel.
+      if (e.target.closest("select")) return;
+      const [k, id] = row.dataset.open.split(":");
+      openSheet(k, id);
+    }));
+
   $("sched").querySelectorAll("[data-plan]").forEach(sel =>
     sel.addEventListener("change", async () => {
       const { error } = await db.from("planned_seminars")
@@ -636,6 +695,12 @@ function renderGrid() {
 
   $("gridwrap").querySelectorAll("[data-move]").forEach(b =>
     b.addEventListener("click", () => moveCoach(b.dataset.move, +b.dataset.dir)));
+  $("gridwrap").querySelectorAll("[data-open]").forEach(ch =>
+    ch.addEventListener("click", () => {
+      const [k, id] = ch.dataset.open.split(":");
+      openSheet(k, id);
+    }));
+
   $("gridwrap").querySelectorAll("[data-hide]").forEach(b =>
     b.addEventListener("click", () => {
       hiddenCoaches.add(b.dataset.hide);
@@ -687,6 +752,7 @@ function gridRow(person, row, months, idx, total, unassigned) {
         const tag = (i.brand||"").toUpperCase() + lvl(i.level);
         const kind = i.kind === "course" ? "" : (i.stage === "idea" ? " idea" : " plan");
         return `<span class="chip ${brandClass(i.brand)}${kind}"
+                 data-open="${i.kind}:${i.id}"
                  title="${esc(tag + " — " + i.where)}">${esc(tag)}</span>`;
       }).join("");
     }
@@ -744,6 +810,96 @@ async function moveCoach(id, dir) {
   if (error) say("Shared order not saved: " + error.message, "err");
 }
 
+/* ---------- the detail sheet ---------- */
+
+// Host details and money are for the admin and the coaches actually on
+// that seminar. Everybody else sees where and when, which is what a
+// shared calendar is for.
+function maySeeDetail(item) {
+  if (isAdmin) return true;
+  if (item.kind === "course") return (item.team || []).some(t => t.id === me?.id);
+  return item.coachId === me?.id;
+}
+
+function fact(label, value) {
+  return value ? `<dt>${esc(label)}</dt><dd>${value}</dd>` : "";
+}
+
+function openSheet(kind, id) {
+  const list = items();
+  const it = list.find(x => x.kind === kind && x.id === id);
+  if (!it) return;
+
+  const priv = maySeeDetail(it);
+  let html = "";
+
+  if (kind === "course") {
+    const c = courses.find(x => x.id === id);
+    if (!c) return;
+    const booked = regCounts.get(c.id);
+    const link = `${location.origin}/c/${c.slug || ""}/`;
+
+    html += `<h3>${esc(c.title)}</h3>
+      <p class="when">${esc(weekendLabel(courseWeekend(c)))} · ${
+        c.status === "draft" ? "Draft, not on sale" : "On sale"}</p><dl class="facts">`;
+    html += fact("Where", esc([c.venue_name, c.city, c.country].filter(Boolean).join(", ")));
+    html += fact("Course", esc((c.brand||"").toUpperCase() + " " + (c.level||"")));
+    if (booked != null) {
+      html += fact("Booked", `${booked} of ${c.capacity ?? "—"}` +
+        (booked < 7 ? ' <span class="pill bad">under minimum</span>' : ""));
+    }
+    html += fact("Coaching", it.team.length
+      ? it.team.map(t => esc(t.name) + (t.role === "lead_coach" ? " (lead)" : "")).join(", ")
+      : '<span class="pill need">nobody assigned</span>');
+    if (priv) {
+      html += fact("Host", esc(c.host_name));
+      html += fact("Host email", c.host_email
+        ? `<a href="mailto:${esc(c.host_email)}">${esc(c.host_email)}</a>` : "");
+      html += fact("Host spots", c.host_spots != null
+        ? `${c.host_spots} free${c.prepaid_spots ? ", " + c.prepaid_spots + " prepaid" : ""}` : "");
+    }
+    html += `</dl><div class="acts">`;
+    if (c.slug && c.status !== "draft") {
+      html += `<a class="btn ghost" href="${esc(link)}" target="_blank">Registration page</a>`;
+      html += `<button class="btn ghost" data-copy="${esc(link)}">Copy link</button>`;
+    }
+    if (priv && c.host_email) {
+      html += `<a class="btn ghost" href="mailto:${esc(c.host_email)}">Email the host</a>`;
+    }
+    html += `<a class="btn ghost" href="/portal/">Open in the portal</a></div>`;
+
+  } else {
+    const p = plans.find(x => x.id === id);
+    if (!p) return;
+    const v = null;
+    html += `<h3>${esc((p.brand||"").toUpperCase())} ${esc(p.level||"")} — ${
+      esc(p.venue_name || p.market)}</h3>
+      <p class="when">${esc(weekendLabel(p.weekend_start))} · ${esc(p.stage)}</p><dl class="facts">`;
+    html += fact("Market", esc([p.city, p.country, p.market].filter(Boolean)[0] || p.market));
+    html += fact("Coach", it.team.length ? esc(it.team[0].name)
+      : '<span class="pill need">nobody yet</span>');
+    if (priv) {
+      html += fact("Host", esc(p.host_name));
+      html += fact("Host email", p.host_email
+        ? `<a href="mailto:${esc(p.host_email)}">${esc(p.host_email)}</a>` : "");
+      html += fact("Instagram", p.host_instagram ? esc(p.host_instagram) : "");
+      html += fact("Note", esc(p.note));
+    }
+    html += `</dl>`;
+    if (priv && p.host_email) {
+      html += `<div class="acts"><a class="btn ghost" href="mailto:${esc(p.host_email)}">Email the host</a></div>`;
+    }
+  }
+
+  $("sheetBody").innerHTML = html;
+  $("sheetBody").querySelectorAll("[data-copy]").forEach(b =>
+    b.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Copied"; }
+      catch (e) { window.prompt("Copy this link", b.dataset.copy); }
+    }));
+  $("sheet").classList.remove("hidden");
+}
+
 /* ---------- switching and controls ---------- */
 
 function render() {
@@ -761,6 +917,11 @@ function render() {
     renderGrid();
   }
 }
+
+$("sheetClose").addEventListener("click", () => $("sheet").classList.add("hidden"));
+$("sheet").addEventListener("click", (e) => {
+  if (e.target === $("sheet")) $("sheet").classList.add("hidden");
+});
 
 $("mSched").addEventListener("click", () => {
   mode = "sched";
