@@ -55,6 +55,7 @@
               background:#fff; color:var(--ink); border:1px solid var(--rule); }
   .btn.tiny:hover { background:#f7f6f3; }
   .btn.tiny.danger { color:var(--bad); border-color:#e6c9c7; }
+  a.btn.tiny { text-decoration:none; display:inline-block; }
 
   .msg { font-size:0.85rem; margin-top:0.6rem; min-height:1.2em; }
   .msg.err { color:var(--bad); }
@@ -190,7 +191,9 @@
       <select id="pWeekend" class="hidden"></select>
 
       <div class="field">
-        <label for="pCoach">Coach <span class="hint">— availability and capability checked below</span></label>
+        <label for="pCoach">Coach
+          <span class="hint">— optional. Weekends are planned first and staffed after;
+            if you do name somebody, they are checked below.</span></label>
         <select id="pCoach"></select>
       </div>
 
@@ -253,12 +256,17 @@
             <button class="btn ghost wide" id="lookup" type="button">Look up</button>
           </div>
           <div class="field">
-            <label for="vCity">City</label>
+            <label for="vCity">City <span class="hint">— this becomes the market</span></label>
             <input id="vCity" type="text" placeholder="Madrid">
           </div>
           <div class="field">
             <label for="vCountry">Country</label>
             <select id="vCountry"></select>
+          </div>
+          <div class="field" style="flex:0 0 7rem">
+            <label for="vState">State <span class="hint">US, CA, AU, BR, MX</span></label>
+            <input id="vState" type="text" placeholder="MD" maxlength="3"
+                   autocapitalize="characters" autocorrect="off">
           </div>
         </div>
         <div class="row2">
@@ -344,7 +352,9 @@
   <div class="panel">
     <h2>Coach load</h2>
     <p class="sub" style="margin:0 0 0.7rem">
-      Booked courses plus anything planned, against each coach's target for the year.</p>
+      Booked courses plus anything planned, against each coach's target for the year.
+      A check after the fact, not a constraint on the calendar — weekends come first
+      and people are moved around them.</p>
     <div class="scroll"><div id="load"></div></div>
   </div>
 </div>
@@ -382,6 +392,26 @@ const SPACING_DAYS = 90;    // your rule: 2 to 3 months between brands in a mark
 
 const esc = (s) => String(s == null ? "" : s)
   .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+// Every stage a plan can be in. This was a two-branch ternary, so
+// anything that was not confirmed or pencilled — including a plan that
+// had been promoted to a live course — displayed as "idea".
+const STAGE_PILL = {
+  idea:         ["",     "idea"],
+  talking:      ["",     "talking"],
+  pencilled:    ["warn", "pencilled"],
+  confirmed:    ["on",   "confirmed"],
+  live:         ["ink",  "live"],
+  date_changed: ["warn", "date changed"],
+  at_risk:      ["bad",  "at risk"],
+  cancelled:    ["bad",  "cancelled"],
+  dropped:      ["",     "dropped"],
+};
+
+function stagePill(stage) {
+  const hit = STAGE_PILL[stage] || ["", stage || "—"];
+  return `<span class="pill${hit[0] ? " " + hit[0] : ""}">${esc(hit[1])}</span>`;
+}
 
 function iso(d) {
   return d.getFullYear() + "-" +
@@ -815,7 +845,7 @@ async function renderNear(q, spellings) {
 
   const orPlans = terms.map(t => `market.ilike.%${t}%,venue_name.ilike.%${t}%`).join(",");
   const { data: ps } = await db.from("planned_seminars")
-    .select("id, market, venue_name, brand, level, weekend_start, stage, coach_staff_id")
+    .select("id, market, venue_name, brand, level, weekend_start, stage, coach_staff_id, course_id")
     .or(orPlans)
     .neq("stage", "dropped")
     .order("weekend_start");
@@ -830,9 +860,15 @@ async function renderNear(q, spellings) {
   }
   for (const p of nearPlans) {
     const who = staffList.find(s => s.id === p.coach_staff_id);
+    // A plan that has become a course is a record of how that course
+    // came about. Removing it would not touch the course, but it would
+    // throw away the trail, so it is not offered.
+    const tail = p.course_id
+      ? `<a class="btn tiny" href="/portal/?course=${esc(p.course_id)}" style="margin-left:0.4rem">Open the course</a>`
+      : `<button class="btn tiny danger" data-drop="${p.id}" style="margin-left:0.4rem">Remove</button>`;
     bits.push(`<div class="flag"><b>${esc(p.brand.toUpperCase())} ${esc(p.level || "")} — ${esc(p.stage)}</b>
       ${esc(p.venue_name || p.market)} · ${esc(weekendLabel(p.weekend_start))}${who ? " · " + esc(who.full_name) : ""}
-      <button class="btn tiny danger" data-drop="${p.id}" style="margin-left:0.4rem">Remove</button></div>`);
+      ${tail}</div>`);
   }
 
   $("near").innerHTML = bits.length
@@ -940,6 +976,8 @@ function runChecks() {
   }
 
   /* --- the coach --- */
+  // Only when one has been named. A weekend with nobody against it is
+  // the normal state of a plan, not something to flag.
   if (coach) {
     const person = staffList.find(s => s.id === coach);
     const name = person ? person.full_name : "This coach";
@@ -1021,6 +1059,7 @@ $("lookup").addEventListener("click", async () => {
     $("vLng").value = h.longitude.toFixed(6);
     if (!$("vCity").value.trim() && h.city) $("vCity").value = h.city;
     if (h.country) $("vCountry").value = h.country;
+    if (!$("vState").value.trim() && h.state) $("vState").value = h.state;
 
     say(msg, "Found: " + h.label.split(",").slice(0,3).join(","), "ok");
     readiness();
@@ -1053,21 +1092,37 @@ $("vLng").addEventListener("input", () => {
   readiness();
 });
 
-// What is still missing before this could become a real course.
+// Which market this plan belongs to. It used to be whatever was left in
+// the search box, so a plan found by searching "japan" and then placed
+// at a Maryland gym was filed under japan. The city is what a market
+// actually is, so that wins, then the venue's own location, and only
+// then what was typed to find it.
+function marketFor(venue) {
+  const city = $("vCity").value.trim();
+  if (city) return city;
+  if (venue && venue.location_raw) {
+    const first = String(venue.location_raw).split(",")[0].trim();
+    if (first) return first;
+  }
+  return String(market || "").trim();
+}
+
+// What is still missing before this could become a real course. The
+// coach is not on this list: weekends are planned first and staffed
+// afterwards, so a plan with nobody against it is not incomplete.
 function readiness() {
   const need = [];
   if (!$("hEmail").value.trim())  need.push("host email");
   if (!$("vLat").value.trim() || !$("vLng").value.trim()) need.push("coordinates");
   if (!$("sCap").value.trim())    need.push("capacity");
   if (!$("sPrice").value.trim())  need.push("price");
-  if (!$("pCoach").value)         need.push("a coach");
 
   $("ready").innerHTML = need.length
     ? `<p class="missing">Still needed before this can go live:
         <b>${need.map(esc).join(", ")}</b>. None of it is required to save the plan.</p>`
     : '<p class="missing">Everything needed to create the course is here.</p>';
 }
-for (const id of ["hEmail","vLat","vLng","sCap","sPrice","pCoach"]) {
+for (const id of ["hEmail","vLat","vLng","sCap","sPrice"]) {
   $(id).addEventListener("input", readiness);
   $(id).addEventListener("change", readiness);
 }
@@ -1080,9 +1135,8 @@ $("save").addEventListener("click", async () => {
 
   const vid = $("pVenue").value;
   const isNew = vid === "__new";
-  const venueName = isNew
-    ? $("pNewVenue").value.trim()
-    : (marketVenues.find(v => v.id === vid) || {}).name;
+  const venue = isNew ? null : marketVenues.find(v => v.id === vid);
+  const venueName = isNew ? $("pNewVenue").value.trim() : (venue || {}).name;
 
   if (isNew && !venueName) { say(msg, "Name the gym.", "err"); return; }
 
@@ -1096,9 +1150,10 @@ $("save").addEventListener("click", async () => {
   const txt = (id) => $(id).value.trim() || null;
 
   const price = num("sPrice");
+  const state = txt("vState");
 
   const { error } = await db.from("planned_seminars").insert({
-    market: market.toLowerCase(),
+    market: marketFor(venue),
     venue_id: isNew ? null : vid,
     venue_name: venueName || null,
     brand: $("pBrand").value,
@@ -1116,6 +1171,7 @@ $("save").addEventListener("click", async () => {
     address: txt("vAddress"),
     city: txt("vCity"),
     country: $("vCountry").value || null,
+    state: state ? state.toUpperCase() : null,
     latitude: num("vLat"),
     longitude: num("vLng"),
 
@@ -1134,7 +1190,7 @@ $("save").addEventListener("click", async () => {
 
   say(msg, "Added to the plan.", "ok");
   for (const id of ["pNote","hName","hEmail","hInsta","hPhone",
-                    "vAddress","vCity","vLat","vLng","sCap"]) {
+                    "vAddress","vCity","vState","vLat","vLng","sCap"]) {
     $(id).value = "";
   }
   $("vCountry").value = "";
@@ -1177,6 +1233,17 @@ async function loadPlan() {
     return;
   }
 
+  // Which of these have already become courses. Read from the table
+  // rather than the view, so this does not depend on what v_plan
+  // happens to expose.
+  const promoted = new Map();
+  const ids = data.map(p => p.id).filter(Boolean);
+  if (ids.length) {
+    const { data: links } = await db.from("planned_seminars")
+      .select("id, course_id").in("id", ids);
+    for (const r of links || []) if (r.course_id) promoted.set(r.id, r.course_id);
+  }
+
   let html = "", lastMonth = "";
   for (const p of data) {
     const mn = monthLabel(p.weekend_start);
@@ -1186,18 +1253,24 @@ async function loadPlan() {
         <tr><th>Weekend</th><th>What</th><th>Where</th><th>Coach</th><th></th><th></th></tr>`;
       lastMonth = mn;
     }
-    const stage =
-      p.stage === "confirmed" ? '<span class="pill on">confirmed</span>'
-      : p.stage === "pencilled" ? '<span class="pill warn">pencilled</span>'
-      : '<span class="pill">idea</span>';
+
+    const courseId = promoted.get(p.id);
+    // A promoted plan is the trail showing how a course came about, so
+    // it is not offered for removal — and removing it would not touch
+    // the course either way.
+    const action = !isAdmin ? ""
+      : courseId
+        ? `<a class="btn tiny" href="/portal/?course=${esc(courseId)}">Open the course</a>`
+        : `<button class="btn tiny danger" data-drop="${p.id}">Remove</button>`;
+
     html += `<tr>
       <td>${esc(weekendLabel(p.weekend_start))}</td>
       <td>${esc((p.brand||"").toUpperCase())} ${esc(p.level||"")}</td>
       <td>${esc(p.venue || p.market)}${
         p.venue_avg ? `<div class="hint">avg ${p.venue_avg}, ${p.venue_runs} run${p.venue_runs===1?"":"s"}</div>` : ""}</td>
       <td>${esc(p.coach || "—")}</td>
-      <td>${stage}</td>
-      <td class="num">${isAdmin ? `<button class="btn tiny danger" data-drop="${p.id}">Remove</button>` : ""}</td>
+      <td>${stagePill(courseId ? "live" : p.stage)}</td>
+      <td class="num">${action}</td>
     </tr>`;
   }
   html += "</table></div>";
