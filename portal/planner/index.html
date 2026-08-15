@@ -94,6 +94,17 @@
   .monthhead { font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase;
                color:var(--muted); font-weight:600; margin:1.2rem 0 0.4rem; }
   .empty { color:var(--muted); font-size:0.88rem; padding:0.6rem 0; }
+  details.more { border:1px solid var(--rule); border-radius:5px; padding:0.5rem 0.7rem;
+                 margin:0.8rem 0; background:#fbfaf8; }
+  details.more summary { font-size:0.82rem; font-weight:650; cursor:pointer; }
+  details.more[open] summary { margin-bottom:0.7rem; }
+  h3.sect { font-size:0.68rem; letter-spacing:0.11em; text-transform:uppercase;
+            color:var(--muted); font-weight:650; margin:0.9rem 0 0.4rem; }
+  h3.sect:first-of-type { margin-top:0.2rem; }
+  .missing { font-size:0.8rem; color:var(--muted); border-left:3px solid var(--rule);
+             padding:0.4rem 0.7rem; margin:0.6rem 0; background:#faf9f7;
+             border-radius:0 4px 4px 0; }
+  .missing b { color:var(--ink); }
   .hidden { display:none !important; }
 </style>
 </head>
@@ -184,11 +195,14 @@
 
       <div class="row2">
         <div class="field">
-          <label for="pStage">How firm</label>
+          <label for="pStage">Where this has got to</label>
           <select id="pStage">
             <option value="idea">Idea — thinking about it</option>
+            <option value="talking">Talking to the host</option>
             <option value="pencilled" selected>Pencilled — intend to run it</option>
             <option value="confirmed">Confirmed — host has agreed</option>
+            <option value="at_risk">Subject to cancellation</option>
+            <option value="date_changed">Date changed</option>
           </select>
         </div>
         <div class="field">
@@ -196,6 +210,109 @@
           <input id="pNote" type="text" placeholder="waiting to hear back from Anna">
         </div>
       </div>
+
+      <details class="more" id="pMore">
+        <summary>Host and venue details
+          <span class="hint">— fill in what you know; nothing here is required</span></summary>
+
+        <h3 class="sect">The host</h3>
+        <div class="row2">
+          <div class="field">
+            <label for="hName">Name</label>
+            <input id="hName" type="text" placeholder="Anna">
+          </div>
+          <div class="field">
+            <label for="hEmail">Email</label>
+            <input id="hEmail" type="email" placeholder="anna@crossfitsomewhere.com"
+                   autocapitalize="off" autocorrect="off">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="hInsta">Instagram</label>
+            <input id="hInsta" type="text" placeholder="@crossfitsomewhere"
+                   autocapitalize="off" autocorrect="off">
+          </div>
+          <div class="field">
+            <label for="hPhone">Phone <span class="hint">optional</span></label>
+            <input id="hPhone" type="text" placeholder="+34 600 000 000">
+          </div>
+        </div>
+
+        <h3 class="sect">Where</h3>
+        <div class="field">
+          <label for="vAddress">Address <span class="hint">— then tap Look up to place it on the map</span></label>
+          <input id="vAddress" type="text" placeholder="Calle Mayor 1, Madrid, Spain">
+        </div>
+        <div class="row2">
+          <div class="field" style="flex:0 0 8rem">
+            <label for="lookup">&nbsp;</label>
+            <button class="btn ghost wide" id="lookup" type="button">Look up</button>
+          </div>
+          <div class="field">
+            <label for="vCity">City</label>
+            <input id="vCity" type="text" placeholder="Madrid">
+          </div>
+          <div class="field" style="flex:0 0 7rem">
+            <label for="vCountry">Country <span class="hint">2 letters</span></label>
+            <input id="vCountry" type="text" maxlength="2" placeholder="ES"
+                   autocapitalize="characters" autocorrect="off">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="vLat">Latitude</label>
+            <input id="vLat" type="text" inputmode="decimal" placeholder="40.416775">
+          </div>
+          <div class="field">
+            <label for="vLng">Longitude</label>
+            <input id="vLng" type="text" inputmode="decimal" placeholder="-3.703790">
+          </div>
+        </div>
+        <p class="msg" id="geomsg"></p>
+
+        <h3 class="sect">The seminar</h3>
+        <div class="row2">
+          <div class="field">
+            <label for="sLang">Language</label>
+            <select id="sLang">
+              <option value="en">English</option><option value="es">Spanish</option>
+              <option value="fr">French</option><option value="it">Italian</option>
+              <option value="de">German</option><option value="pl">Polish</option>
+              <option value="pt">Portuguese</option><option value="ja">Japanese</option>
+              <option value="ko">Korean</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="sCap">Capacity</label>
+            <input id="sCap" type="number" inputmode="numeric" min="1" placeholder="24">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="sHostSpots">Host spots</label>
+            <input id="sHostSpots" type="number" inputmode="numeric" min="0" value="2">
+          </div>
+          <div class="field">
+            <label for="sPrepaid">Prepaid spots</label>
+            <input id="sPrepaid" type="number" inputmode="numeric" min="0" value="0">
+          </div>
+          <div class="field">
+            <label for="sPrice">Price <span class="hint">whole units</span></label>
+            <input id="sPrice" type="number" inputmode="numeric" min="0" placeholder="595">
+          </div>
+          <div class="field" style="flex:0 0 6.5rem">
+            <label for="sCurrency">Currency</label>
+            <select id="sCurrency">
+              <option value="EUR">EUR</option><option value="GBP">GBP</option>
+              <option value="USD">USD</option><option value="AUD">AUD</option>
+              <option value="JPY">JPY</option><option value="ZAR">ZAR</option>
+            </select>
+          </div>
+        </div>
+      </details>
+
+      <div id="ready"></div>
 
       <button class="btn wide" id="save" type="button">Add to the plan</button>
       <p class="msg" id="smsg"></p>
@@ -309,11 +426,14 @@ if (!session) {
 
   // Everyone can look. Only an admin can add — and the database
   // enforces that too, so this is tidiness rather than security.
+  // Hiding a panel is not access control. The planner is where host
+  // conversations and money live, so it is admin only end to end.
   if (!isAdmin) {
-    $("pencilPanel").classList.add("hidden");
-    document.querySelector(".sub").textContent =
-      "Search a market to see what it has done and what is planned there. " +
-      "Planning is admin only — this is a read-only view.";
+    document.querySelector(".wrap").innerHTML =
+      '<h1>Not available</h1><p class="sub">The seminar planner is admin only. ' +
+      'The schedule is on <a href="/portal/year/">Scheduling planner</a>, and you can ' +
+      'mark the weekends you cannot work on <a href="/portal/availability/">My availability</a>.</p>';
+    throw new Error("planner is admin only");
   }
 
   buildWeekends();
@@ -791,6 +911,63 @@ function runChecks() {
     : '<div class="flag ok"><b>Nothing flagged</b>Weekend, coach and spacing all look clear.</div>';
 }
 
+/* ---------- placing it on the map ---------- */
+
+// OpenStreetMap's own geocoder. No key, no account, and their terms ask
+// for one request at a time and an identifiable caller, which is why
+// this only runs when the button is tapped.
+$("lookup").addEventListener("click", async () => {
+  const q = $("vAddress").value.trim();
+  const msg = $("geomsg");
+  if (q.length < 4) { say(msg, "Type an address first.", "err"); return; }
+
+  $("lookup").disabled = true;
+  say(msg, "Looking it up\u2026");
+  try {
+    const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q="
+              + encodeURIComponent(q);
+    const res = await fetch(url, { headers: { "Accept": "application/json" } });
+    const hits = await res.json();
+    if (!hits.length) { say(msg, "Nothing found. Try a simpler address.", "err"); return; }
+
+    const h = hits[0];
+    $("vLat").value = Number(h.lat).toFixed(6);
+    $("vLng").value = Number(h.lon).toFixed(6);
+
+    const a = h.address || {};
+    if (!$("vCity").value.trim()) {
+      $("vCity").value = a.city || a.town || a.village || a.municipality || "";
+    }
+    if (!$("vCountry").value.trim() && a.country_code) {
+      $("vCountry").value = a.country_code.toUpperCase();
+    }
+    say(msg, "Found: " + (h.display_name || "").split(",").slice(0,3).join(","), "ok");
+  } catch (e) {
+    say(msg, "Could not reach the lookup service. Type the coordinates by hand.", "err");
+  } finally {
+    $("lookup").disabled = false;
+  }
+});
+
+// What is still missing before this could become a real course.
+function readiness() {
+  const need = [];
+  if (!$("hEmail").value.trim())  need.push("host email");
+  if (!$("vLat").value.trim() || !$("vLng").value.trim()) need.push("coordinates");
+  if (!$("sCap").value.trim())    need.push("capacity");
+  if (!$("sPrice").value.trim())  need.push("price");
+  if (!$("pCoach").value)         need.push("a coach");
+
+  $("ready").innerHTML = need.length
+    ? `<p class="missing">Still needed before this can go live:
+        <b>${need.map(esc).join(", ")}</b>. None of it is required to save the plan.</p>`
+    : '<p class="missing">Everything needed to create the course is here.</p>';
+}
+for (const id of ["hEmail","vLat","vLng","sCap","sPrice","pCoach"]) {
+  $(id).addEventListener("input", readiness);
+  $(id).addEventListener("change", readiness);
+}
+
 /* ---------- saving ---------- */
 
 $("save").addEventListener("click", async () => {
@@ -808,6 +985,14 @@ $("save").addEventListener("click", async () => {
   $("save").disabled = true;
   say(msg, "Saving…");
 
+  const num = (id) => {
+    const v = $(id).value.trim();
+    return v === "" ? null : Number(v);
+  };
+  const txt = (id) => $(id).value.trim() || null;
+
+  const price = num("sPrice");
+
   const { error } = await db.from("planned_seminars").insert({
     market: market.toLowerCase(),
     venue_id: isNew ? null : vid,
@@ -817,7 +1002,26 @@ $("save").addEventListener("click", async () => {
     weekend_start: $("pWeekend").value,
     coach_staff_id: $("pCoach").value || null,
     stage: $("pStage").value,
-    note: $("pNote").value.trim() || null,
+    note: txt("pNote"),
+
+    host_name: txt("hName"),
+    host_email: txt("hEmail"),
+    host_instagram: txt("hInsta"),
+    host_phone: txt("hPhone"),
+
+    address: txt("vAddress"),
+    city: txt("vCity"),
+    country: $("vCountry").value.trim().toUpperCase() || null,
+    latitude: num("vLat"),
+    longitude: num("vLng"),
+
+    language: $("sLang").value,
+    capacity: num("sCap"),
+    host_spots: num("sHostSpots"),
+    prepaid_spots: num("sPrepaid"),
+    price_cents: price == null ? null : Math.round(price * 100),
+    currency: price == null ? null : $("sCurrency").value,
+
     created_by: me ? me.id : null,
   });
 
@@ -825,7 +1029,12 @@ $("save").addEventListener("click", async () => {
   if (error) { say(msg, "Could not save: " + error.message, "err"); return; }
 
   say(msg, "Added to the plan.", "ok");
-  $("pNote").value = "";
+  for (const id of ["pNote","hName","hEmail","hInsta","hPhone",
+                    "vAddress","vCity","vCountry","vLat","vLng","sCap","sPrice"]) {
+    $(id).value = "";
+  }
+  $("geomsg").textContent = "";
+  readiness();
   await renderNear(market, lastSpellings);
   runChecks();
   await loadPlan();
