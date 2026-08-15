@@ -135,9 +135,10 @@
   td.cell.m0 { border-left:2px solid var(--rule); }
   td.cell.off { background:repeating-linear-gradient(45deg,#f4f3f0,#f4f3f0 3px,#e6e3de 3px,#e6e3de 6px); }
   td.cell.past { background:#faf9f7; }
-  tr.small td.cell, tr.small th.who { height:1.15rem; }
-  tr.small .tgt, tr.small .rowtools { display:none; }
-  tr.small .chip { font-size:0.5rem; padding:0.02rem 0; }
+  .hiddenbar { display:flex; gap:0.35rem; flex-wrap:wrap; align-items:center;
+               padding:0 1.1rem 0.7rem; }
+  .hiddenbar .lab { font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase;
+                    color:var(--muted); font-weight:600; }
   tr.unassigned td, tr.unassigned th.who { background:#fffdf5; }
 
   .chip { display:block; margin:1px; border-radius:3px; color:#fff;
@@ -219,6 +220,7 @@
 </div>
 
 <div class="sched" id="sched"><div class="empty">Loading the year…</div></div>
+<div class="hiddenbar hidden" id="hiddenbar"></div>
 <div class="gridwrap hidden" id="gridwrap"></div>
 
 <script type="module">
@@ -244,7 +246,7 @@ let showPlanned = true;
 let showBlank = false;
 let mode = "sched";
 let weekends = [];
-let small = new Set();       // coach ids drawn at half height
+let hiddenCoaches = new Set(); // coach rows folded away, kept on this device
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const FULL = ["January","February","March","April","May","June","July",
@@ -303,8 +305,8 @@ if (!session) {
     $("planLink").classList.add("hidden");
   }
 
-  try { small = new Set(JSON.parse(localStorage.getItem("bb.year.small") || "[]")); }
-  catch (e) { small = new Set(); }
+  try { hiddenCoaches = new Set(JSON.parse(localStorage.getItem("bb.year.hidden") || "[]")); }
+  catch (e) { hiddenCoaches = new Set(); }
 
   buildYearPicker();
   await loadAll();
@@ -540,6 +542,10 @@ function wireSchedule() {
 
 /* ---------- coach grid ---------- */
 
+function saveHidden() {
+  localStorage.setItem("bb.year.hidden", JSON.stringify([...hiddenCoaches]));
+}
+
 function coachOrder() {
   const withT = staff.filter(s => profiles.get(s.id)?.target_min != null);
   const rest  = staff.filter(s => profiles.get(s.id)?.target_min == null);
@@ -585,22 +591,35 @@ function renderGrid() {
   }).join("") + `</tr></thead>`;
 
   const order = coachOrder();
+  const shown = order.filter(s => !hiddenCoaches.has(s.id));
   let body = "<tbody>";
-  order.forEach((s, idx) => {
-    body += gridRow(s, cells.get(s.id), months, idx, order.length);
+  shown.forEach((s, idx) => {
+    body += gridRow(s, cells.get(s.id), months, idx, shown.length);
   });
   body += gridRow({ id:"none", full_name:"No coach yet" }, cells.get("none"), months, -1, 0, true);
   body += "</tbody>";
 
   $("gridwrap").innerHTML = `<table class="grid">${head}${body}</table>`;
 
+  // Anybody folded away, with a tap to bring them back.
+  const away = order.filter(s => hiddenCoaches.has(s.id));
+  $("hiddenbar").innerHTML = away.length
+    ? `<span class="lab">Hidden:</span>` + away.map(s =>
+        `<button class="btn tiny" data-show="${s.id}">${esc(s.full_name)} +</button>`).join("") +
+      `<button class="btn tiny" id="showAll">Show everyone</button>`
+    : "";
+  $("hiddenbar").classList.toggle("hidden", !away.length);
+  $("hiddenbar").querySelectorAll("[data-show]").forEach(b =>
+    b.addEventListener("click", () => { hiddenCoaches.delete(b.dataset.show); saveHidden(); renderGrid(); }));
+  const sa = $("showAll");
+  if (sa) sa.addEventListener("click", () => { hiddenCoaches.clear(); saveHidden(); renderGrid(); });
+
   $("gridwrap").querySelectorAll("[data-move]").forEach(b =>
     b.addEventListener("click", () => moveCoach(b.dataset.move, +b.dataset.dir)));
-  $("gridwrap").querySelectorAll("[data-small]").forEach(b =>
+  $("gridwrap").querySelectorAll("[data-hide]").forEach(b =>
     b.addEventListener("click", () => {
-      const id = b.dataset.small;
-      if (small.has(id)) small.delete(id); else small.add(id);
-      localStorage.setItem("bb.year.small", JSON.stringify([...small]));
+      hiddenCoaches.add(b.dataset.hide);
+      saveHidden();
       renderGrid();
     }));
 
@@ -610,7 +629,6 @@ function renderGrid() {
 
 function gridRow(person, row, months, idx, total, unassigned) {
   const p = profiles.get(person.id);
-  const isSmall = small.has(person.id);
 
   let target = "";
   if (p && p.is_reserve_only) target = '<span class="tgt">reserve only</span>';
@@ -626,7 +644,7 @@ function gridRow(person, row, months, idx, total, unassigned) {
     tools = `<span class="rowtools">
       ${isAdmin && idx > 0 ? `<button data-move="${person.id}" data-dir="-1" title="Move up">▲</button>` : ""}
       ${isAdmin && idx >= 0 && idx < total-1 ? `<button data-move="${person.id}" data-dir="1" title="Move down">▼</button>` : ""}
-      <button data-small="${person.id}" title="${isSmall?"Full height":"Half height"}">${isSmall?"▢":"▬"}</button>
+      <button data-hide="${person.id}" title="Hide this row">✕</button>
     </span>`;
   }
 
@@ -651,7 +669,7 @@ function gridRow(person, row, months, idx, total, unassigned) {
     tds += `<td class="${cls}">${inner}</td>`;
   }
 
-  return `<tr class="${isSmall?"small ":""}${unassigned?"unassigned":""}">
+  return `<tr class="${unassigned?"unassigned":""}">
     <th class="who"><span class="nm">${esc(person.full_name)}</span>${target}${tools}</th>
     ${tds}</tr>`;
 }
@@ -672,10 +690,14 @@ function countYear(staffId) {
 }
 
 async function moveCoach(id, dir) {
+  // Move past the next VISIBLE coach, so the arrows do what they look
+  // like they do when somebody in between is hidden.
   const order = coachOrder();
   const i = order.findIndex(s => s.id === id);
-  const j = i + dir;
-  if (i < 0 || j < 0 || j >= order.length) return;
+  if (i < 0) return;
+  let j = i + dir;
+  while (j >= 0 && j < order.length && hiddenCoaches.has(order[j].id)) j += dir;
+  if (j < 0 || j >= order.length) return;
 
   // Renumber the whole list so the order is unambiguous afterwards.
   const swapped = order.slice();
