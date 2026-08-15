@@ -25,97 +25,134 @@
                padding:0.28rem 0.65rem; text-decoration:none; white-space:nowrap; }
   .bar .back:hover { color:#fff; border-color:#55595e; }
 
-  .head { padding:1rem 1.1rem 0; }
+  .head { padding:0.9rem 1.1rem 0; }
   h1 { font-size:1.15rem; letter-spacing:-0.02em; margin:0 0 0.2rem; font-weight:600; }
-  .sub { color:var(--muted); font-size:0.85rem; margin:0 0 0.9rem; }
+  .sub { color:var(--muted); font-size:0.85rem; margin:0 0 0.8rem; }
 
-  /* ---------- controls ---------- */
   .controls { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end;
-              padding:0 1.1rem 0.9rem; }
+              padding:0 1.1rem 0.8rem; }
   .ctl { display:flex; flex-direction:column; gap:0.2rem; }
   .ctl label { font-size:0.68rem; letter-spacing:0.09em; text-transform:uppercase;
                color:var(--muted); font-weight:600; }
   select, input[type=text] { font:inherit; font-size:0.85rem; padding:0.35rem 0.5rem;
     border:1px solid var(--rule); border-radius:4px; background:#fff; color:var(--ink); }
   .btn { font:inherit; font-size:0.85rem; font-weight:600; background:var(--ink);
-         color:#fff; border:0; border-radius:4px; padding:0.4rem 0.8rem; cursor:pointer; }
+         color:#fff; border:0; border-radius:4px; padding:0.4rem 0.8rem;
+         cursor:pointer; text-decoration:none; display:inline-block; }
   .btn:hover { background:#000; }
   .btn.ghost { background:#fff; color:var(--ink); border:1px solid var(--rule); font-weight:500; }
   .btn.ghost:hover { background:#f7f6f3; }
-  .btn.ghost.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .btn.tiny { font-size:0.72rem; padding:0.18rem 0.45rem; font-weight:500;
+              background:#fff; color:var(--ink); border:1px solid var(--rule); }
+  .btn.tiny:hover { background:#f7f6f3; }
   .spacer { flex:1 1 auto; }
 
-  /* ---------- the grid ---------- */
-  .gridwrap { overflow:auto; -webkit-overflow-scrolling:touch;
-              border-top:1px solid var(--rule); background:var(--card); }
-  table.grid { border-collapse:separate; border-spacing:0; font-size:0.78rem; }
+  .modes { display:flex; border:1px solid var(--rule); border-radius:5px; overflow:hidden; }
+  .modes button { font:inherit; font-size:0.85rem; padding:0.4rem 0.9rem; border:0;
+                  background:#fff; color:var(--muted); cursor:pointer; font-weight:600; }
+  .modes button.on { background:var(--ink); color:#fff; }
 
-  .grid th, .grid td { padding:0; border-right:1px solid var(--rule);
-                       border-bottom:1px solid var(--rule); }
+  .msg { font-size:0.85rem; padding:0 1.1rem 0.7rem; min-height:1.2em; }
+  .msg.err { color:var(--bad); } .msg.ok { color:var(--good); }
 
-  /* the coach column stays put while the year scrolls past it */
-  .grid .who { position:sticky; left:0; z-index:3; background:var(--card);
-               min-width:9.5rem; max-width:9.5rem; padding:0.35rem 0.5rem;
-               border-right:2px solid var(--rule); text-align:left;
-               vertical-align:middle; }
-  .grid thead th { position:sticky; top:0; z-index:2; background:#faf9f7; }
-  .grid thead th.who { z-index:4; }
+  /* ---------- schedule ---------- */
+  .sched { padding:0 1.1rem 5rem; }
+  .mgroup { margin-top:1.1rem; }
+  .mtitle { font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase;
+            color:var(--muted); font-weight:700; margin:0 0 0.4rem;
+            display:flex; align-items:baseline; gap:0.6rem; }
+  .mtitle .n { font-weight:500; letter-spacing:0; text-transform:none; }
 
-  .mhead { font-size:0.68rem; letter-spacing:0.08em; text-transform:uppercase;
-           color:var(--muted); font-weight:700; padding:0.3rem 0.4rem;
-           text-align:center; background:#f0eeea; white-space:nowrap;
-           border-right:2px solid var(--rule); }
-  .whead { font-size:0.64rem; color:var(--muted); font-weight:600;
-           padding:0.25rem 0.15rem; text-align:center; min-width:2.1rem;
-           white-space:nowrap; }
-  .whead.m0 { border-left:2px solid var(--rule); }
+  .wk { background:var(--card); border:1px solid var(--rule); border-radius:6px;
+        margin-bottom:0.45rem; overflow:hidden; }
+  .wk.blank { background:none; border-style:dashed; }
+  .wkhead { display:flex; align-items:center; gap:0.6rem; padding:0.4rem 0.7rem;
+            background:#faf9f7; border-bottom:1px solid var(--rule);
+            font-size:0.78rem; font-weight:650; }
+  .wk.blank .wkhead { background:none; border-bottom:0; color:var(--muted); font-weight:500; }
+  .wkhead .free { margin-left:auto; font-size:0.72rem; font-weight:500; color:var(--muted); }
 
-  .grid .nm { font-weight:650; display:block; overflow:hidden;
-              text-overflow:ellipsis; white-space:nowrap; }
-  .grid .tgt { font-size:0.66rem; color:var(--muted); }
-  .grid .tgt.over { color:var(--bad); font-weight:650; }
-  .grid .tgt.on   { color:var(--good); font-weight:650; }
-
-  td.cell { min-width:2.1rem; height:2.1rem; text-align:center; vertical-align:middle;
-            position:relative; cursor:default; }
-  td.cell.m0 { border-left:2px solid var(--rule); }
-  td.cell.off { background:repeating-linear-gradient(45deg,#f4f3f0,#f4f3f0 3px,#e6e3de 3px,#e6e3de 6px); }
-  td.cell.past { background:#faf9f7; }
-
-  .chip { display:block; margin:1px; border-radius:3px; color:#fff;
-          font-size:0.6rem; font-weight:700; letter-spacing:0.02em;
-          padding:0.15rem 0.1rem; line-height:1.15; cursor:pointer;
-          overflow:hidden; white-space:nowrap; }
-  .chip.plan { opacity:0.55; border:1px dashed rgba(255,255,255,0.7); }
-  .chip.idea { opacity:0.32; }
+  .sem { display:flex; align-items:flex-start; gap:0.6rem; padding:0.55rem 0.7rem;
+         border-bottom:1px solid var(--rule); }
+  .sem:last-child { border-bottom:0; }
+  .sem .tag { flex:none; width:3.1rem; text-align:center; border-radius:3px;
+              color:#fff; font-size:0.66rem; font-weight:700; padding:0.2rem 0;
+              letter-spacing:0.02em; }
+  .sem .body { flex:1 1 auto; min-width:0; }
+  .sem .where { font-weight:600; font-size:0.9rem;
+                overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sem .line { font-size:0.78rem; color:var(--muted); }
+  .sem .right { flex:none; display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap;
+                justify-content:flex-end; max-width:14rem; }
+  .sem.plan { background:#fcfbf9; }
 
   .b-tcc { background:var(--tcc); } .b-tgc { background:var(--tgc); }
   .b-tec { background:var(--tec); } .b-twc { background:var(--twc); color:#3a2a00; }
   .b-none{ background:#8a9099; }
 
-  /* unassigned row sits apart from the coaches */
-  tr.unassigned td, tr.unassigned th { background:#fffdf5; }
-  tr.unassigned .who { background:#fffdf5; }
+  .pill { display:inline-block; font-size:0.66rem; letter-spacing:0.07em;
+          text-transform:uppercase; padding:0.12rem 0.4rem; border-radius:3px;
+          border:1px solid var(--rule); color:var(--muted); white-space:nowrap; }
+  .pill.on   { border-color:var(--good); color:var(--good); }
+  .pill.warn { border-color:var(--warn); color:var(--warn); }
+  .pill.bad  { border-color:var(--bad); color:var(--bad); font-weight:650; }
+  .pill.ink  { background:var(--ink); border-color:var(--ink); color:#fff; font-weight:650; }
+  .pill.need { border-color:var(--bad); color:var(--bad); font-weight:700;
+               background:#fdf1f0; }
 
-  /* ---------- key and detail ---------- */
+  .coachsel { font-size:0.78rem; padding:0.2rem 0.35rem; max-width:9.5rem; }
+
+  /* ---------- coach grid ---------- */
+  .gridwrap { overflow:auto; -webkit-overflow-scrolling:touch;
+              border-top:1px solid var(--rule); background:var(--card); }
+  table.grid { border-collapse:separate; border-spacing:0; font-size:0.78rem; }
+  .grid th, .grid td { padding:0; border-right:1px solid var(--rule);
+                       border-bottom:1px solid var(--rule); }
+  .grid .who { position:sticky; left:0; z-index:3; background:var(--card);
+               min-width:10.5rem; max-width:10.5rem; padding:0.3rem 0.45rem;
+               border-right:2px solid var(--rule); text-align:left; vertical-align:middle; }
+  .grid thead th { position:sticky; top:0; z-index:2; background:#faf9f7; }
+  .grid thead th.who { z-index:4; }
+  .mhead { font-size:0.68rem; letter-spacing:0.08em; text-transform:uppercase;
+           color:var(--muted); font-weight:700; padding:0.28rem 0.35rem;
+           text-align:center; background:#f0eeea; white-space:nowrap;
+           border-right:2px solid var(--rule); }
+  .whead { font-size:0.64rem; color:var(--muted); font-weight:600;
+           padding:0.22rem 0.12rem; text-align:center; min-width:2rem; white-space:nowrap; }
+  .whead.m0 { border-left:2px solid var(--rule); }
+  .grid .nm { font-weight:650; display:block; overflow:hidden;
+              text-overflow:ellipsis; white-space:nowrap; font-size:0.8rem; }
+  .grid .tgt { font-size:0.66rem; color:var(--muted); }
+  .grid .tgt.over { color:var(--bad); font-weight:650; }
+  .grid .tgt.on { color:var(--good); font-weight:650; }
+  .rowtools { display:flex; gap:0.15rem; margin-top:0.15rem; }
+  .rowtools button { font:inherit; font-size:0.62rem; line-height:1; padding:0.12rem 0.28rem;
+    border:1px solid var(--rule); background:#fff; border-radius:3px; cursor:pointer;
+    color:var(--muted); }
+  .rowtools button:hover { color:var(--ink); }
+
+  td.cell { min-width:2rem; height:2rem; text-align:center; vertical-align:middle; }
+  td.cell.m0 { border-left:2px solid var(--rule); }
+  td.cell.off { background:repeating-linear-gradient(45deg,#f4f3f0,#f4f3f0 3px,#e6e3de 3px,#e6e3de 6px); }
+  td.cell.past { background:#faf9f7; }
+  tr.small td.cell, tr.small th.who { height:1.15rem; }
+  tr.small .tgt, tr.small .rowtools { display:none; }
+  tr.small .chip { font-size:0.5rem; padding:0.02rem 0; }
+  tr.unassigned td, tr.unassigned th.who { background:#fffdf5; }
+
+  .chip { display:block; margin:1px; border-radius:3px; color:#fff;
+          font-size:0.58rem; font-weight:700; padding:0.12rem 0.08rem; line-height:1.1;
+          cursor:pointer; overflow:hidden; white-space:nowrap; }
+  .chip.plan { opacity:0.55; border:1px dashed rgba(255,255,255,0.7); }
+  .chip.idea { opacity:0.32; }
+
   .key { display:flex; gap:0.9rem; flex-wrap:wrap; align-items:center;
-         padding:0.7rem 1.1rem; font-size:0.75rem; color:var(--muted); }
+         padding:0.6rem 1.1rem; font-size:0.74rem; color:var(--muted); }
   .key span.sw { display:inline-block; width:0.8rem; height:0.8rem; border-radius:2px;
                  vertical-align:-1px; margin-right:0.25rem; }
 
-  .detail { position:fixed; inset:auto 0 0 0; z-index:20; background:var(--card);
-            border-top:1px solid var(--rule); box-shadow:0 -8px 26px rgba(0,0,0,0.14);
-            padding:0.9rem 1.1rem 1.1rem; max-height:52vh; overflow-y:auto; }
-  .detail h3 { margin:0 0 0.2rem; font-size:1rem; letter-spacing:-0.01em; }
-  .detail .meta { font-size:0.85rem; color:var(--muted); margin-bottom:0.6rem; }
-  .detail .row { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.6rem; }
-  .detail .close { position:absolute; top:0.6rem; right:0.9rem; font-size:1.3rem;
-                   background:none; border:0; color:var(--muted); cursor:pointer; }
   .empty { padding:2rem 1.1rem; color:var(--muted); font-size:0.9rem; }
   .hidden { display:none !important; }
-  .msg { font-size:0.85rem; padding:0 1.1rem 0.8rem; min-height:1.2em; }
-  .msg.err { color:var(--bad); }
-  .msg.ok  { color:var(--good); }
 </style>
 </head>
 <body>
@@ -128,12 +165,15 @@
 
 <div class="head">
   <h1>The year</h1>
-  <p class="sub" id="lede">Every coach down the side, every weekend across the top.
-     Solid blocks are on sale. Faded blocks are planned. Hatched cells are weekends
-     somebody has said they cannot work.</p>
+  <p class="sub" id="lede">Every seminar in date order. A coach can be added whenever
+     you know who is going — a seminar without one still sits on the calendar.</p>
 </div>
 
 <div class="controls">
+  <div class="modes">
+    <button id="mSched" class="on" type="button">Schedule</button>
+    <button id="mGrid" type="button">By coach</button>
+  </div>
   <div class="ctl">
     <label for="year">Year</label>
     <select id="year"></select>
@@ -154,43 +194,32 @@
     <label for="brand">Brand</label>
     <select id="brand">
       <option value="">All brands</option>
-      <option value="tcc">TCC</option>
-      <option value="tgc">TGC</option>
-      <option value="tec">TEC</option>
-      <option value="twc">TWC</option>
+      <option value="tcc">TCC</option><option value="tgc">TGC</option>
+      <option value="tec">TEC</option><option value="twc">TWC</option>
     </select>
   </div>
   <div class="ctl">
     <label for="q">Filter</label>
-    <input id="q" type="text" placeholder="coach or place" autocomplete="off" style="width:9rem">
+    <input id="q" type="text" placeholder="coach or place" autocomplete="off" style="width:8.5rem">
   </div>
   <div class="spacer"></div>
   <button class="btn ghost" id="togglePlanned" type="button">Planned: on</button>
-  <a class="btn" href="/portal/planner/">Plan a seminar</a>
+  <button class="btn ghost hidden" id="toggleBlank" type="button">Empty weekends: off</button>
+  <a class="btn" href="/portal/planner/" id="planLink">Plan a seminar</a>
 </div>
 
 <p class="msg" id="msg"></p>
 
-<div class="key">
+<div class="key" id="key">
   <span><span class="sw b-tcc"></span>TCC</span>
   <span><span class="sw b-tgc"></span>TGC</span>
   <span><span class="sw b-tec"></span>TEC</span>
   <span><span class="sw b-twc"></span>TWC</span>
-  <span style="opacity:0.55"><span class="sw b-tgc"></span>faded = planned</span>
-  <span>hatched = unavailable</span>
+  <span>faded = planned · hatched = coach unavailable</span>
 </div>
 
-<div class="gridwrap" id="gridwrap">
-  <div class="empty" id="loading">Loading the year…</div>
-</div>
-
-<div class="detail hidden" id="detail">
-  <button class="close" id="detailClose" type="button">&times;</button>
-  <h3 id="dTitle"></h3>
-  <p class="meta" id="dMeta"></p>
-  <div id="dBody"></div>
-  <div class="row" id="dActions"></div>
-</div>
+<div class="sched" id="sched"><div class="empty">Loading the year…</div></div>
+<div class="gridwrap hidden" id="gridwrap"></div>
 
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
@@ -202,65 +231,65 @@ const db = createClient(
 
 const $ = (id) => document.getElementById(id);
 
-/* ---------- state, all declared before anything runs ---------- */
+/* ---------- state, declared before anything runs ---------- */
 let me = null;
 let isAdmin = false;
-let staff = [];              // active staff
-let profiles = new Map();    // staff_id -> coach_profiles row
-let courses = [];            // live courses
-let courseStaff = new Map(); // course_id -> [{staff_id, role}]
-let plans = [];              // planned_seminars
-let unavail = new Map();     // staff_id -> Map(saturday -> row)
+let staff = [];
+let profiles = new Map();
+let courses = [];
+let courseStaff = new Map();
+let plans = [];
+let unavail = new Map();
 let showPlanned = true;
-let weekends = [];           // the Saturdays currently on screen
+let showBlank = false;
+let mode = "sched";
+let weekends = [];
+let small = new Set();       // coach ids drawn at half height
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const FULL = ["January","February","March","April","May","June","July",
+              "August","September","October","November","December"];
 
-/* ---------- helpers ---------- */
 const esc = (s) => String(s == null ? "" : s)
   .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 
 function iso(d) {
-  return d.getFullYear() + "-" +
-         String(d.getMonth()+1).padStart(2,"0") + "-" +
-         String(d.getDate()).padStart(2,"0");
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") +
+         "-" + String(d.getDate()).padStart(2,"0");
 }
-// Saturday of the week containing d. Same arithmetic as the availability
-// page and weekend_of() in SQL, so all three agree on which weekend a
-// date belongs to.
+// Saturday of the week containing d — the same arithmetic as the
+// availability page and weekend_of() in SQL, so all three agree.
 function saturdayOf(d) {
   const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const dow = (x.getDay() + 6) % 7;
   x.setDate(x.getDate() - dow + 5);
   return x;
 }
-function addDays(isoDate, n) {
-  const [y,m,d] = isoDate.split("-").map(Number);
-  const x = new Date(y, m-1, d + n);
-  return iso(x);
+function addDays(w, n) {
+  const [y,m,d] = w.split("-").map(Number);
+  return iso(new Date(y, m-1, d + n));
 }
 function weekendLabel(w) {
   const [y,m,d] = w.split("-").map(Number);
-  const sat = new Date(y, m-1, d), sun = new Date(y, m-1, d+1);
-  const mon = (x) => MONTHS[x.getMonth()];
+  const sat = new Date(y,m-1,d), sun = new Date(y,m-1,d+1);
   return sat.getMonth() === sun.getMonth()
-    ? `Sat ${sat.getDate()} – Sun ${sun.getDate()} ${mon(sat)} ${y}`
-    : `Sat ${sat.getDate()} ${mon(sat)} – Sun ${sun.getDate()} ${mon(sun)} ${y}`;
+    ? `Sat ${sat.getDate()} – Sun ${sun.getDate()} ${MONTHS[sat.getMonth()]}`
+    : `Sat ${sat.getDate()} ${MONTHS[sat.getMonth()]} – Sun ${sun.getDate()} ${MONTHS[sun.getMonth()]}`;
 }
-function say(text, cls) {
+function say(t, cls) {
   const el = $("msg");
   el.className = "msg" + (cls ? " " + cls : "");
-  el.textContent = text || "";
+  el.textContent = t || "";
 }
-const brandClass = (b) => ["tcc","tgc","tec","twc"].includes(b) ? "b-" + b : "b-none";
-const shortLevel = (l) => String(l || "").replace(/[^0-9]/g, "");
+const brandClass = (b) => ["tcc","tgc","tec","twc"].includes(b) ? "b-"+b : "b-none";
+const lvl = (l) => String(l || "").replace(/[^0-9]/g, "");
 
 /* ---------- load ---------- */
 
 const { data: { session } } = await db.auth.getSession();
 
 if (!session) {
-  $("gridwrap").innerHTML =
+  $("sched").innerHTML =
     '<div class="empty">Open the portal, sign in, then come back to this page.</div>';
 } else {
   const { data: staffRow } = await db.from("staff")
@@ -269,9 +298,13 @@ if (!session) {
   isAdmin = !!staffRow && staffRow.role === "admin";
   if (!isAdmin) {
     $("lede").textContent =
-      "Every coach down the side, every weekend across the top. Read only — " +
-      "mark your own weekends on the My availability page.";
+      "Every seminar in date order, across the whole team. Read only — " +
+      "mark the weekends you cannot work on the My availability page.";
+    $("planLink").classList.add("hidden");
   }
+
+  try { small = new Set(JSON.parse(localStorage.getItem("bb.year.small") || "[]")); }
+  catch (e) { small = new Set(); }
 
   buildYearPicker();
   await loadAll();
@@ -281,47 +314,39 @@ if (!session) {
 
 function buildYearPicker() {
   const now = new Date().getFullYear();
-  const sel = $("year");
-  sel.innerHTML = "";
+  $("year").innerHTML = "";
   for (let y = now - 1; y <= now + 2; y++) {
-    sel.innerHTML += `<option value="${y}"${y === now ? " selected" : ""}>${y}</option>`;
+    $("year").innerHTML += `<option value="${y}"${y===now?" selected":""}>${y}</option>`;
   }
   buildFromPicker();
 }
-
 function buildFromPicker() {
-  const sel = $("from");
-  const keep = sel.value;
+  const sel = $("from"), keep = sel.value;
   sel.innerHTML = MONTHS.map((m,i) => `<option value="${i}">${m}</option>`).join("");
-  // Default to the quarter we are in, since that is what needs filling.
-  const now = new Date();
-  const y = parseInt($("year").value, 10);
-  sel.value = keep !== "" && keep != null && sel.querySelector(`option[value="${keep}"]`)
+  const now = new Date(), y = parseInt($("year").value, 10);
+  sel.value = (keep && sel.querySelector(`option[value="${keep}"]`))
     ? keep
     : (y === now.getFullYear() ? String(Math.floor(now.getMonth()/3)*3) : "0");
 }
 
 async function loadAll() {
   const year = parseInt($("year").value, 10);
-  const from = `${year - 1}-11-01`;
-  const to   = `${year + 1}-02-01`;
+  const from = `${year-1}-11-01`, to = `${year+1}-02-01`;
 
   const [st, pr, co, pl, un] = await Promise.all([
     db.from("staff").select("id, full_name, role").eq("active", true).order("full_name"),
-    db.from("coach_profiles").select("staff_id, target_min, target_max, is_reserve_only"),
+    db.from("coach_profiles").select("staff_id, target_min, target_max, is_reserve_only, display_order"),
     db.from("courses")
       .select("id, title, brand, level, city, country, venue_name, starts_at, timezone, status, archived, capacity")
-      .eq("archived", false)
-      .gte("starts_at", from).lt("starts_at", to),
+      .eq("archived", false).gte("starts_at", from).lt("starts_at", to),
     db.from("planned_seminars")
       .select("id, market, venue_name, brand, level, weekend_start, stage, coach_staff_id, note")
-      .neq("stage", "dropped")
-      .gte("weekend_start", from).lt("weekend_start", to),
+      .neq("stage","dropped").gte("weekend_start", from).lt("weekend_start", to),
     db.from("coach_unavailability").select("staff_id, starts_on, note, source"),
   ]);
 
-  staff  = (st.data || []).filter(s => s.role !== "support");
-  plans  = pl.data || [];
+  staff = (st.data || []).filter(s => s.role !== "support");
+  plans = pl.data || [];
   courses = (co.data || []).filter(c => c.status !== "cancelled");
 
   profiles = new Map();
@@ -337,7 +362,7 @@ async function loadAll() {
   const ids = courses.map(c => c.id);
   for (let i = 0; i < ids.length; i += 40) {
     const { data } = await db.from("course_staff")
-      .select("course_id, staff_id, role").in("course_id", ids.slice(i, i + 40));
+      .select("course_id, staff_id, role").in("course_id", ids.slice(i, i+40));
     for (const r of data || []) {
       if (!courseStaff.has(r.course_id)) courseStaff.set(r.course_id, []);
       courseStaff.get(r.course_id).push(r);
@@ -345,307 +370,376 @@ async function loadAll() {
   }
 }
 
-/* ---------- which weekends are on screen ---------- */
-
 function buildWeekends() {
-  const year  = parseInt($("year").value, 10);
-  const start = parseInt($("from").value, 10) || 0;
-  const span  = parseInt($("span").value, 10);
-
+  const year = parseInt($("year").value,10);
+  const start = parseInt($("from").value,10) || 0;
+  const span = parseInt($("span").value,10);
   weekends = [];
   let w = iso(saturdayOf(new Date(year, start, 1)));
-  const endMonth = start + span;
-  const end = new Date(year, endMonth, 1);
-  while (new Date(w.split("-")[0], +w.split("-")[1]-1, +w.split("-")[2]) < end) {
+  const end = new Date(year, start + span, 1);
+  while (new Date(+w.slice(0,4), +w.slice(5,7)-1, +w.slice(8,10)) < end) {
     weekends.push(w);
     w = addDays(w, 7);
   }
 }
 
-/* ---------- what sits in each cell ---------- */
+/* ---------- gathering seminars ---------- */
 
 // A course belongs to the weekend its local start date falls in.
-function courseWeekend(c) {
-  const local = new Date(c.starts_at);
-  return iso(saturdayOf(local));
-}
+const courseWeekend = (c) => iso(saturdayOf(new Date(c.starts_at)));
 
-function buildCells() {
+function items() {
   const brand = $("brand").value;
   const q = $("q").value.trim().toLowerCase();
-
-  // staff_id (or "none") -> weekend -> [items]
-  const cells = new Map();
-  const put = (who, wk, item) => {
-    if (!cells.has(who)) cells.set(who, new Map());
-    const row = cells.get(who);
-    if (!row.has(wk)) row.set(wk, []);
-    row.get(wk).push(item);
-  };
+  const out = [];
 
   for (const c of courses) {
     if (brand && c.brand !== brand) continue;
-    const wk = courseWeekend(c);
-    const where = [c.city, c.venue_name, c.title].filter(Boolean).join(" ").toLowerCase();
-    const team = courseStaff.get(c.id) || [];
-    const item = {
-      kind: "course", id: c.id, brand: c.brand, level: c.level,
-      label: [c.city || c.venue_name || c.title].join(""),
-      title: c.title, status: c.status, weekend: wk, where,
-      team: team.map(t => t.staff_id),
-    };
-    if (!team.length) put("none", wk, item);
-    else for (const t of team) put(t.staff_id, wk, item);
+    const team = (courseStaff.get(c.id) || []);
+    const names = team.map(t => {
+      const s = staff.find(x => x.id === t.staff_id);
+      return { id: t.staff_id, name: s ? s.full_name : "someone", role: t.role };
+    });
+    out.push({
+      kind:"course", id:c.id, weekend:courseWeekend(c), brand:c.brand, level:c.level,
+      where:[c.city, c.venue_name].filter(Boolean).join(" — ") || c.title,
+      title:c.title, status:c.status, team:names,
+      hay:[c.city,c.venue_name,c.title,...names.map(n=>n.name)].join(" ").toLowerCase(),
+    });
   }
 
   if (showPlanned) {
     for (const p of plans) {
       if (brand && p.brand !== brand) continue;
-      const where = [p.venue_name, p.market].filter(Boolean).join(" ").toLowerCase();
-      const item = {
-        kind: "plan", id: p.id, brand: p.brand, level: p.level,
-        label: p.venue_name || p.market, stage: p.stage, note: p.note,
-        weekend: p.weekend_start, where,
-      };
-      put(p.coach_staff_id || "none", p.weekend_start, item);
+      const s = staff.find(x => x.id === p.coach_staff_id);
+      out.push({
+        kind:"plan", id:p.id, weekend:p.weekend_start, brand:p.brand, level:p.level,
+        where:p.venue_name || p.market, stage:p.stage, note:p.note,
+        team: s ? [{ id:s.id, name:s.full_name, role:"lead_coach" }] : [],
+        coachId: p.coach_staff_id,
+        hay:[p.venue_name,p.market,s?s.full_name:""].join(" ").toLowerCase(),
+      });
     }
   }
 
-  // Filter text applies to the coach name or where the seminar is.
-  if (q) {
-    for (const [who, row] of cells) {
-      const person = staff.find(s => s.id === who);
-      const nameHit = person && person.full_name.toLowerCase().includes(q);
-      if (nameHit) continue;
-      for (const [wk, items] of row) {
-        const kept = items.filter(i => i.where.includes(q));
-        if (kept.length) row.set(wk, kept); else row.delete(wk);
-      }
-      if (!row.size) cells.delete(who);
-    }
-  }
-
-  return cells;
+  const filtered = q ? out.filter(i => i.hay.includes(q)) : out;
+  filtered.sort((a,b) => a.weekend.localeCompare(b.weekend) ||
+                          String(a.where).localeCompare(String(b.where)));
+  return filtered;
 }
 
-/* ---------- draw ---------- */
+/* ---------- schedule ---------- */
 
-function render() {
-  $("loading")?.remove();
-  const cells = buildCells();
-  const q = $("q").value.trim().toLowerCase();
-  const today = iso(new Date());
-  const year = parseInt($("year").value, 10);
-
-  // Months present, so the header can span them.
-  const months = [];
-  for (const w of weekends) {
-    const m = +w.split("-")[1] - 1;
-    const y = +w.split("-")[0];
-    const last = months[months.length - 1];
-    if (!last || last.m !== m || last.y !== y) months.push({ m, y, n: 1 });
-    else last.n++;
+function renderSchedule() {
+  const all = items();
+  const byWeekend = new Map();
+  for (const i of all) {
+    if (!byWeekend.has(i.weekend)) byWeekend.set(i.weekend, []);
+    byWeekend.get(i.weekend).push(i);
   }
 
-  let head = `<thead>
-    <tr><th class="who" rowspan="2" style="background:#f0eeea">Coach</th>`;
-  head += months.map(x =>
-    `<th class="mhead" colspan="${x.n}">${MONTHS[x.m]}${x.y !== year ? " " + String(x.y).slice(2) : ""}</th>`
-  ).join("");
+  const today = iso(new Date());
+  let html = "", lastMonth = "";
+
+  for (const w of weekends) {
+    const list = byWeekend.get(w) || [];
+    if (!list.length && !showBlank) continue;
+
+    const mKey = w.slice(0,7);
+    if (mKey !== lastMonth) {
+      if (lastMonth) html += "</div>";
+      const inMonth = weekends.filter(x => x.slice(0,7) === mKey);
+      const n = inMonth.reduce((t,x) => t + (byWeekend.get(x)?.length || 0), 0);
+      html += `<div class="mgroup"><p class="mtitle">${FULL[+mKey.slice(5,7)-1]} ${mKey.slice(0,4)}
+        <span class="n">${n} seminar${n===1?"":"s"}</span></p>`;
+      lastMonth = mKey;
+    }
+
+    if (!list.length) {
+      html += `<div class="wk blank"><div class="wkhead">${weekendLabel(w)}
+        <span class="free">nothing planned</span></div></div>`;
+      continue;
+    }
+
+    const freeCount = staff.filter(s => !unavail.get(s.id)?.has(w)).length;
+    html += `<div class="wk"><div class="wkhead">${weekendLabel(w)}
+      <span class="free">${w < today ? "past" : freeCount + " coaches free"}</span></div>`;
+
+    for (const i of list) html += semRow(i);
+    html += "</div>";
+  }
+  if (lastMonth) html += "</div>";
+
+  $("sched").innerHTML = html || '<div class="empty">Nothing in this range.</div>';
+  wireSchedule();
+
+  const nc = all.filter(i => i.kind === "course").length;
+  const np = all.length - nc;
+  say(`${nc} on sale, ${np} planned in this view.`);
+}
+
+function semRow(i) {
+  const tag = (i.brand || "").toUpperCase() + lvl(i.level);
+  const planned = i.kind === "plan";
+
+  let right = "";
+  if (planned) {
+    right += i.stage === "confirmed" ? '<span class="pill on">confirmed</span>'
+           : i.stage === "pencilled" ? '<span class="pill warn">pencilled</span>'
+           : '<span class="pill">idea</span>';
+    if (isAdmin) {
+      const opts = ['<option value="">— no coach yet —</option>']
+        .concat(staff.map(s =>
+          `<option value="${s.id}"${s.id === i.coachId ? " selected" : ""}>${esc(s.full_name)}</option>`))
+        .join("");
+      right += `<select class="coachsel" data-plan="${i.id}">${opts}</select>`;
+    } else {
+      right += i.team.length
+        ? `<span class="pill">${esc(i.team[0].name)}</span>`
+        : '<span class="pill need">no coach</span>';
+    }
+  } else {
+    right += i.status === "draft"
+      ? '<span class="pill">draft</span>'
+      : '<span class="pill ink">on sale</span>';
+    right += i.team.length
+      ? i.team.map(t => `<span class="pill${t.role==="lead_coach"?" on":""}">${esc(t.name)}</span>`).join("")
+      : '<span class="pill need">no coach</span>';
+  }
+
+  // Anybody down that weekend who is assigned to it anyway.
+  const clash = i.team.filter(t => unavail.get(t.id)?.has(i.weekend))
+    .map(t => t.name);
+
+  return `<div class="sem${planned ? " plan" : ""}">
+    <span class="tag ${brandClass(i.brand)}">${esc(tag)}</span>
+    <span class="body">
+      <span class="where">${esc(i.where)}</span>
+      <span class="line">${planned ? "planned" : esc(i.title)}${
+        i.note ? " · " + esc(i.note) : ""}${
+        clash.length ? ' · <b style="color:var(--bad)">' + esc(clash.join(", ")) +
+                       " marked unavailable</b>" : ""}</span>
+    </span>
+    <span class="right">${right}</span>
+  </div>`;
+}
+
+function wireSchedule() {
+  $("sched").querySelectorAll("[data-plan]").forEach(sel =>
+    sel.addEventListener("change", async () => {
+      const { error } = await db.from("planned_seminars")
+        .update({ coach_staff_id: sel.value || null, updated_at: new Date().toISOString() })
+        .eq("id", sel.dataset.plan);
+      if (error) { say("Could not save: " + error.message, "err"); return; }
+      const p = plans.find(x => x.id === sel.dataset.plan);
+      if (p) p.coach_staff_id = sel.value || null;
+      say("Saved.", "ok");
+      if (mode === "grid") render();
+    }));
+}
+
+/* ---------- coach grid ---------- */
+
+function coachOrder() {
+  const withT = staff.filter(s => profiles.get(s.id)?.target_min != null);
+  const rest  = staff.filter(s => profiles.get(s.id)?.target_min == null);
+  const byOrder = (a,b) => {
+    const oa = profiles.get(a.id)?.display_order ?? 9999;
+    const ob = profiles.get(b.id)?.display_order ?? 9999;
+    return oa - ob || a.full_name.localeCompare(b.full_name);
+  };
+  return [...withT.sort(byOrder), ...rest.sort(byOrder)];
+}
+
+function renderGrid() {
+  const all = items();
+  const cells = new Map();
+  const put = (who, wk, it) => {
+    if (!cells.has(who)) cells.set(who, new Map());
+    const row = cells.get(who);
+    if (!row.has(wk)) row.set(wk, []);
+    row.get(wk).push(it);
+  };
+  for (const i of all) {
+    if (!i.team.length) put("none", i.weekend, i);
+    else for (const t of i.team) put(t.id, i.weekend, i);
+  }
+
+  const months = [];
+  for (const w of weekends) {
+    const m = +w.slice(5,7)-1, y = +w.slice(0,4);
+    const last = months[months.length-1];
+    if (!last || last.m !== m || last.y !== y) months.push({m,y,n:1}); else last.n++;
+  }
+  const year = parseInt($("year").value,10);
+
+  let head = `<thead><tr><th class="who" rowspan="2" style="background:#f0eeea">Coach</th>`;
+  head += months.map(x => `<th class="mhead" colspan="${x.n}">${MONTHS[x.m]}${
+    x.y !== year ? " " + String(x.y).slice(2) : ""}</th>`).join("");
   head += `</tr><tr>`;
   let mi = 0, seen = 0;
-  head += weekends.map((w) => {
-    const first = seen === 0;
-    seen++;
+  head += weekends.map(w => {
+    const first = seen === 0; seen++;
     if (seen >= months[mi].n) { seen = 0; mi++; }
-    return `<th class="whead${first ? " m0" : ""}">${+w.split("-")[2]}</th>`;
-  }).join("");
-  head += `</tr></thead>`;
+    return `<th class="whead${first?" m0":""}">${+w.slice(8,10)}</th>`;
+  }).join("") + `</tr></thead>`;
 
-  // Rows: coaches with a target first, then everybody else, then the
-  // unassigned row at the foot.
-  const withTarget = staff.filter(s => profiles.get(s.id)?.target_min != null);
-  const rest = staff.filter(s => profiles.get(s.id)?.target_min == null);
-  const order = [...withTarget, ...rest];
-
-  const shown = q
-    ? order.filter(s => s.full_name.toLowerCase().includes(q) || cells.has(s.id))
-    : order;
-
+  const order = coachOrder();
   let body = "<tbody>";
-  for (const s of shown) body += rowFor(s, cells.get(s.id), today, months);
-  body += rowFor({ id: "none", full_name: "Nobody assigned" },
-                 cells.get("none"), today, months, true);
+  order.forEach((s, idx) => {
+    body += gridRow(s, cells.get(s.id), months, idx, order.length);
+  });
+  body += gridRow({ id:"none", full_name:"No coach yet" }, cells.get("none"), months, -1, 0, true);
   body += "</tbody>";
 
   $("gridwrap").innerHTML = `<table class="grid">${head}${body}</table>`;
 
-  $("gridwrap").querySelectorAll("[data-item]").forEach(el =>
-    el.addEventListener("click", () => openDetail(el.dataset.item)));
+  $("gridwrap").querySelectorAll("[data-move]").forEach(b =>
+    b.addEventListener("click", () => moveCoach(b.dataset.move, +b.dataset.dir)));
+  $("gridwrap").querySelectorAll("[data-small]").forEach(b =>
+    b.addEventListener("click", () => {
+      const id = b.dataset.small;
+      if (small.has(id)) small.delete(id); else small.add(id);
+      localStorage.setItem("bb.year.small", JSON.stringify([...small]));
+      renderGrid();
+    }));
 
-  const total = courses.length + (showPlanned ? plans.length : 0);
-  say(`${courses.length} on sale, ${plans.length} planned in this year.`);
+  const nc = all.filter(i => i.kind === "course").length;
+  say(`${nc} on sale, ${all.length - nc} planned in this view.`);
 }
 
-function rowFor(person, row, today, months, unassigned) {
+function gridRow(person, row, months, idx, total, unassigned) {
   const p = profiles.get(person.id);
+  const isSmall = small.has(person.id);
+
   let target = "";
   if (p && p.is_reserve_only) target = '<span class="tgt">reserve only</span>';
   else if (p && p.target_min != null) {
-    // Count the whole year, not only what is on screen.
     const n = countYear(person.id);
     const min = p.target_min, max = p.target_max ?? p.target_min;
     const cls = n > max ? " over" : n >= min ? " on" : "";
-    target = `<span class="tgt${cls}">${n} of ${min === max ? min : min + "–" + max}</span>`;
+    target = `<span class="tgt${cls}">${n} of ${min===max?min:min+"–"+max}</span>`;
   } else if (!unassigned) target = '<span class="tgt">no target</span>';
 
-  let tds = "";
-  let mi = 0, seen = 0;
+  let tools = "";
+  if (!unassigned) {
+    tools = `<span class="rowtools">
+      ${isAdmin && idx > 0 ? `<button data-move="${person.id}" data-dir="-1" title="Move up">▲</button>` : ""}
+      ${isAdmin && idx >= 0 && idx < total-1 ? `<button data-move="${person.id}" data-dir="1" title="Move down">▼</button>` : ""}
+      <button data-small="${person.id}" title="${isSmall?"Full height":"Half height"}">${isSmall?"▢":"▬"}</button>
+    </span>`;
+  }
+
+  const today = iso(new Date());
+  let tds = "", mi = 0, seen = 0;
   for (const w of weekends) {
-    const first = seen === 0;
-    seen++;
+    const first = seen === 0; seen++;
     if (seen >= months[mi].n) { seen = 0; mi++; }
-
-    const items = row ? row.get(w) : null;
+    const list = row ? row.get(w) : null;
     const off = !unassigned && unavail.get(person.id)?.has(w);
-    const past = w < today;
-
-    const cls = ["cell", first ? "m0" : "", off && !items ? "off" : "", past ? "past" : ""]
+    const cls = ["cell", first?"m0":"", off && !list ? "off":"", w < today ? "past":""]
       .filter(Boolean).join(" ");
-
     let inner = "";
-    if (items) {
-      inner = items.map(i => {
-        const lvl = shortLevel(i.level);
-        const tag = (i.brand || "").toUpperCase() + (lvl ? lvl : "");
-        const kind = i.kind === "course" ? "" :
-                     (i.stage === "idea" ? " idea" : " plan");
-        const title = `${i.brand?.toUpperCase() || ""} ${i.level || ""} — ${i.label}` +
-                      (i.kind === "plan" ? ` (${i.stage})` : " (on sale)");
+    if (list) {
+      inner = list.map(i => {
+        const tag = (i.brand||"").toUpperCase() + lvl(i.level);
+        const kind = i.kind === "course" ? "" : (i.stage === "idea" ? " idea" : " plan");
         return `<span class="chip ${brandClass(i.brand)}${kind}"
-                      data-item="${i.kind}:${i.id}" title="${esc(title)}">${esc(tag)}</span>`;
+                 title="${esc(tag + " — " + i.where)}">${esc(tag)}</span>`;
       }).join("");
-    } else if (off) {
-      inner = "";
     }
     tds += `<td class="${cls}">${inner}</td>`;
   }
 
-  return `<tr${unassigned ? ' class="unassigned"' : ""}>
-    <th class="who"><span class="nm">${esc(person.full_name)}</span>${target}</th>
+  return `<tr class="${isSmall?"small ":""}${unassigned?"unassigned":""}">
+    <th class="who"><span class="nm">${esc(person.full_name)}</span>${target}${tools}</th>
     ${tds}</tr>`;
 }
 
-// A coach's whole year, on sale plus planned, whatever is on screen.
 function countYear(staffId) {
-  const year = parseInt($("year").value, 10);
+  const year = parseInt($("year").value,10);
   let n = 0;
   for (const c of courses) {
     if (new Date(c.starts_at).getFullYear() !== year) continue;
-    if ((courseStaff.get(c.id) || []).some(t => t.staff_id === staffId)) n++;
+    if ((courseStaff.get(c.id)||[]).some(t => t.staff_id === staffId)) n++;
   }
   for (const p of plans) {
-    if (p.coach_staff_id !== staffId) continue;
+    if (p.coach_staff_id !== staffId || p.stage === "idea") continue;
     if (+p.weekend_start.slice(0,4) !== year) continue;
-    if (p.stage === "idea") continue;
     n++;
   }
   return n;
 }
 
-/* ---------- tapping a block ---------- */
+async function moveCoach(id, dir) {
+  const order = coachOrder();
+  const i = order.findIndex(s => s.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= order.length) return;
 
-function openDetail(ref) {
-  const [kind, id] = ref.split(":");
-  const box = $("detail");
+  // Renumber the whole list so the order is unambiguous afterwards.
+  const swapped = order.slice();
+  [swapped[i], swapped[j]] = [swapped[j], swapped[i]];
 
-  if (kind === "course") {
-    const c = courses.find(x => x.id === id);
-    if (!c) return;
-    const team = (courseStaff.get(c.id) || []).map(t => {
-      const s = staff.find(x => x.id === t.staff_id);
-      return (s ? s.full_name : "someone") + (t.role === "lead_coach" ? " (lead)" : "");
-    });
-    $("dTitle").textContent = c.title;
-    $("dMeta").textContent = [
-      weekendLabel(courseWeekend(c)),
-      [c.city, c.country].filter(Boolean).join(", "),
-      c.status === "draft" ? "Draft — not on sale" : "On sale",
-    ].filter(Boolean).join(" · ");
-    $("dBody").innerHTML = team.length
-      ? `<div>Coaching: ${esc(team.join(", "))}</div>`
-      : '<div style="color:var(--bad)">No coach assigned yet.</div>';
-    $("dActions").innerHTML =
-      `<a class="btn ghost" href="/portal/">Open in the portal</a>`;
-  } else {
-    const p = plans.find(x => x.id === id);
-    if (!p) return;
-    const who = staff.find(s => s.id === p.coach_staff_id);
-    $("dTitle").textContent =
-      `${(p.brand || "").toUpperCase()} ${p.level || ""} — ${p.venue_name || p.market}`;
-    $("dMeta").textContent = [
-      weekendLabel(p.weekend_start),
-      p.stage,
-      who ? who.full_name : "no coach yet",
-    ].filter(Boolean).join(" · ");
-    $("dBody").innerHTML = p.note ? `<div>${esc(p.note)}</div>` : "";
-    $("dActions").innerHTML = isAdmin
-      ? `<button class="btn ghost" data-stage="pencilled">Mark pencilled</button>
-         <button class="btn ghost" data-stage="confirmed">Mark confirmed</button>
-         <button class="btn ghost" data-drop="1">Remove</button>`
-      : "";
-    $("dActions").querySelectorAll("[data-stage]").forEach(b =>
-      b.addEventListener("click", () => setStage(p.id, b.dataset.stage)));
-    const drop = $("dActions").querySelector("[data-drop]");
-    if (drop) drop.addEventListener("click", () => dropPlan(p.id));
+  const rows = swapped.map((s, n) => ({ staff_id: s.id, display_order: n + 1 }));
+  for (const r of rows) {
+    const p = profiles.get(r.staff_id);
+    if (p) p.display_order = r.display_order;
+    else profiles.set(r.staff_id, { staff_id: r.staff_id, display_order: r.display_order });
   }
+  renderGrid();
 
-  box.classList.remove("hidden");
+  const { error } = await db.from("coach_profiles")
+    .upsert(rows, { onConflict: "staff_id" });
+  if (error) say("Order not saved: " + error.message, "err");
 }
 
-$("detailClose").addEventListener("click", () => $("detail").classList.add("hidden"));
+/* ---------- switching and controls ---------- */
 
-async function setStage(id, stage) {
-  const { error } = await db.from("planned_seminars")
-    .update({ stage, updated_at: new Date().toISOString() }).eq("id", id);
-  if (error) { say("Could not save: " + error.message, "err"); return; }
-  const p = plans.find(x => x.id === id);
-  if (p) p.stage = stage;
-  $("detail").classList.add("hidden");
-  render();
-  say("Saved.", "ok");
+function render() {
+  if (mode === "sched") {
+    $("sched").classList.remove("hidden");
+    $("gridwrap").classList.add("hidden");
+    $("toggleBlank").classList.remove("hidden");
+    $("key").classList.add("hidden");
+    renderSchedule();
+  } else {
+    $("sched").classList.add("hidden");
+    $("gridwrap").classList.remove("hidden");
+    $("toggleBlank").classList.add("hidden");
+    $("key").classList.remove("hidden");
+    renderGrid();
+  }
 }
 
-async function dropPlan(id) {
-  if (!window.confirm("Remove this from the plan?")) return;
-  const { error } = await db.from("planned_seminars")
-    .update({ stage: "dropped", updated_at: new Date().toISOString() }).eq("id", id);
-  if (error) { say("Could not remove it: " + error.message, "err"); return; }
-  plans = plans.filter(x => x.id !== id);
-  $("detail").classList.add("hidden");
-  render();
-  say("Removed.", "ok");
-}
-
-/* ---------- controls ---------- */
-
-$("year").addEventListener("change", async () => {
-  buildFromPicker();
-  say("Loading…");
-  await loadAll();
-  buildWeekends();
+$("mSched").addEventListener("click", () => {
+  mode = "sched";
+  $("mSched").classList.add("on"); $("mGrid").classList.remove("on");
   render();
 });
-for (const id of ["span", "from"]) {
+$("mGrid").addEventListener("click", () => {
+  mode = "grid";
+  $("mGrid").classList.add("on"); $("mSched").classList.remove("on");
+  render();
+});
+
+$("year").addEventListener("change", async () => {
+  buildFromPicker(); say("Loading…");
+  await loadAll(); buildWeekends(); render();
+});
+for (const id of ["span","from"]) {
   $(id).addEventListener("change", () => { buildWeekends(); render(); });
 }
-for (const id of ["brand", "q"]) {
-  $(id).addEventListener("input", render);
-}
+for (const id of ["brand","q"]) $(id).addEventListener("input", render);
+
 $("togglePlanned").addEventListener("click", () => {
   showPlanned = !showPlanned;
   $("togglePlanned").textContent = "Planned: " + (showPlanned ? "on" : "off");
-  $("togglePlanned").classList.toggle("on", !showPlanned);
+  render();
+});
+$("toggleBlank").addEventListener("click", () => {
+  showBlank = !showBlank;
+  $("toggleBlank").textContent = "Empty weekends: " + (showBlank ? "on" : "off");
   render();
 });
 </script>
