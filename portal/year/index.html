@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The year — BirdBox Coaching</title>
+<title>Scheduling planner — BirdBox Coaching</title>
 <style>
   :root { --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
           --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0; --good:#1f8a54;
@@ -182,12 +182,9 @@
   .notelist .n .who { font-size:0.72rem; color:var(--muted); }
   .sem { cursor:pointer; }
   .sem:hover { background:#faf9f7; }
-  .sem.locked { cursor:default; }
+  .sem.locked, .chip.locked { cursor:default; }
   .sem.locked:hover { background:none; }
   .chip { cursor:pointer; }
-  .chip.locked { cursor:default; }
-  .sem.noopen, .chip.noopen { cursor:default; }
-  .sem.noopen:hover { background:none; }
   .hidden { display:none !important; }
 </style>
 </head>
@@ -200,7 +197,7 @@
 </div>
 
 <div class="head">
-  <h1>The year</h1>
+  <h1>Scheduling planner</h1>
   <p class="sub" id="lede">Every seminar in date order. A coach can be added whenever
      you know who is going — a seminar without one still sits on the calendar.</p>
 </div>
@@ -254,7 +251,7 @@
   <span>faded = planned · hatched = coach unavailable</span>
 </div>
 
-<div class="sched" id="sched"><div class="empty">Loading the year…</div></div>
+<div class="sched" id="sched"><div class="empty">Loading…</div></div>
 <div class="hiddenbar hidden" id="hiddenbar"></div>
 <div class="gridwrap hidden" id="gridwrap"></div>
 
@@ -617,7 +614,7 @@ function wireSchedule() {
   };
 
   $("sched").querySelectorAll("[data-open]").forEach(row => {
-    if (!canOpen(row.dataset.open)) { row.classList.add("noopen"); return; }
+    if (!canOpen(row.dataset.open)) { row.classList.add("locked"); return; }
     row.addEventListener("click", (e) => {
       // The coach dropdown lives on the row; using it should not also
       // open the panel.
@@ -733,7 +730,7 @@ function renderGrid() {
   $("gridwrap").querySelectorAll("[data-open]").forEach(ch => {
     const [k, id] = ch.dataset.open.split(":");
     const it = glist.find(x => x.kind === k && x.id === id);
-    if (!it || !maySeeDetail(it)) { ch.classList.add("noopen"); return; }
+    if (!it || !maySeeDetail(it)) { ch.classList.add("locked"); return; }
     ch.addEventListener("click", () => openSheet(k, id));
   });
 
@@ -929,7 +926,7 @@ function openSheet(kind, id) {
     if (priv && c.host_email) {
       html += `<a class="btn ghost" href="mailto:${esc(c.host_email)}">Email the host</a>`;
     }
-    html += `<a class="btn ghost" href="/portal/">Open in the portal</a></div>`;
+    html += `<a class="btn ghost" href="/portal/?course=${esc(c.id)}">Open in the portal</a></div>`;
 
   } else {
     const p = plans.find(x => x.id === id);
