@@ -17,6 +17,10 @@
           display:grid; place-items:center; flex:none; }
   .mark img { width:26px; height:26px; object-fit:contain; display:block; }
   .brandname { font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; color:#9aa1a9; }
+  .bar .back { margin-left:auto; font-size:0.8rem; color:#cfd4d9;
+               border:1px solid #33373c; border-radius:3px;
+               padding:0.3rem 0.7rem; text-decoration:none; white-space:nowrap; }
+  .bar .back:hover { color:#fff; border-color:#55595e; }
   .wrap { max-width:34rem; margin:1.5rem auto 4rem; padding:0 1rem; }
   h1 { font-size:1.2rem; letter-spacing:-0.02em; margin:0 0 0.3rem; font-weight:600; }
   .sub { color:var(--muted); font-size:0.88rem; margin:0 0 1.25rem; }
@@ -70,6 +74,7 @@
 <div class="bar">
   <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
   <span class="brandname">Coach Portal</span>
+  <a class="back" href="/portal/">Back to the portal</a>
 </div>
 
 <div class="wrap">
