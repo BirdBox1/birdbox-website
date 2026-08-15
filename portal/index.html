@@ -2900,13 +2900,16 @@ async function start() {
   await loadFeedbackManuals();
   await loadCourses();
 
-  // A link from the year view can name a course, so the portal opens
-  // straight onto it rather than making somebody scroll for it.
-  const wanted = new URLSearchParams(location.search).get("course");
-  if (wanted) {
-    const { data: one } = await db.from("courses").select("*").eq("id", wanted).maybeSingle();
-    if (one) openCourse(one);
-  }
+      // A link from the scheduling planner names a course, so the portal
+    // opens straight onto it rather than making somebody scroll.
+    const wanted = new URLSearchParams(location.search).get("course");
+    if (wanted) {
+      const { data: one, error: oneErr } = await db.from("courses")
+        .select("*").eq("id", wanted).maybeSingle();
+      if (oneErr) window.alert("Deep link failed: " + oneErr.message);
+      else if (!one) window.alert("Deep link: no course found for that id.");
+      else openCourse(one);
+    }
 }
 
 /* ---------------- courses ---------------- */
