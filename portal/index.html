@@ -680,6 +680,7 @@
     <a class="linkbtn hidden" id="codeslink" href="/portal/codes/">Discount codes</a>
     <button id="messagesbtn" class="hidden" type="button">Messages</button>
           <button id="broadcastbtn" class="hidden" type="button">Message the team</button>
+          <button id="plannerbtn" class="hidden" type="button">Seminar planner</button>
 
     <button id="profilebtn" class="hidden" type="button">My profile</button>
     <span class="who" id="who"></span>
@@ -2864,6 +2865,8 @@ async function start() {
   $("messagesbtn").classList.remove("hidden");
       $("broadcastbtn").classList.toggle("hidden", !admin);
     $("broadcastbtn").onclick = () => { location.href = "/portal/broadcast/"; };
+      $("plannerbtn").classList.remove("hidden");
+    $("plannerbtn").onclick = () => { location.href = "/portal/planner/"; };
 
   refreshUnreadFlag();
   listenForMessages();
