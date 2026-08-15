@@ -2753,6 +2753,7 @@ async function loadMyArchive() {
 }
 
 const isAdmin = () => me && me.role === "admin";
+const isSupport = () => me && me.role === "support";
 const amLeadOn = (courseId) => isAdmin() || myRoles[courseId] === "lead_coach";
 const isPast = (c) => !!c.archived || c.status === "cancelled" || c.status === "complete";
 
@@ -2962,7 +2963,7 @@ async function loadCourses() {
   const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, currency, status, slug, archived, grants_online_course, completed_at, issues_certificate, host_name, host_email, host_spots, prepaid_spots, created_at";
 
   let all = [];
-  if (isAdmin()) {
+    if (isAdmin() || isSupport()) {
     const { data, error } = await db.from("courses").select(cols)
       .order("starts_at", { ascending: true });
     if (error) { list.innerHTML = '<p class="empty">Could not load courses.</p>'; return; }
@@ -8372,7 +8373,7 @@ async function allReportableCourses() {
                "host_name, host_email, starts_at, ends_at, timezone, capacity, " +
                "price_cents, currency, status, archived, completed_at, slug";
 
-  if (isAdmin()) {
+    if (isAdmin() || isSupport()) {
     const { data, error } = await db.from("courses").select(cols)
       .order("starts_at", { ascending: true });
     if (error) throw new Error(error.message);
