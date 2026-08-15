@@ -53,6 +53,41 @@
   }
   .bar button:hover, .bar a.linkbtn:hover { color: #fff; border-color: #55595e; }
 
+    /* The bar ran out of room at about six items. Everything except the
+     brand name now lives behind one button. */
+  .bar { position: relative; }
+  .menubtn { position: relative; }
+  .menubtn .dot {
+    position: absolute; top: -4px; right: -4px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--bad); border: 1.5px solid var(--shell);
+  }
+  .menu-panel {
+    position: absolute; top: calc(100% + 0.4rem); right: 1.25rem; z-index: 50;
+    background: var(--shell); border: 1px solid #33373c; border-radius: 6px;
+    padding: 0.35rem; min-width: 13rem;
+    display: flex; flex-direction: column; align-items: stretch;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.4);
+  }
+  .menu-panel button, .menu-panel a.linkbtn {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; text-align: left; border: 0; border-radius: 4px;
+    padding: 0.5rem 0.65rem; font-size: 0.88rem; color: #cfd4d9;
+    background: none; white-space: nowrap;
+  }
+  .menu-panel button:hover, .menu-panel a.linkbtn:hover {
+    background: #1c1e21; color: #fff; border: 0;
+  }
+  .menu-panel .who {
+    width: 100%; padding: 0.6rem 0.65rem 0.4rem;
+    margin-top: 0.35rem; border-top: 1px solid #33373c;
+    font-size: 0.78rem; color: #9aa1a9;
+  }
+  @media (max-width: 46rem) {
+    .menu-panel { right: 0.9rem; left: 0.9rem; min-width: 0; }
+  }
+
+
   .wrap { max-width: 56rem; margin: 0 auto; padding: 1.25rem 1.25rem 4rem; }
 
   /* ---------------- team banner ---------------- */
@@ -634,16 +669,20 @@
     <span class="brandname">Coach Portal</span>
   </span>
   <span class="right">
+        <button id="menubtn" class="menubtn hidden" type="button">Menu</button>
+    <div class="menu-panel hidden" id="menupanel">
     <a class="linkbtn hidden" id="bloglink" href="/portal/blog/">Blog</a>
     <a class="linkbtn hidden" id="feedbacklink" href="/portal/feedback/">Feedback</a>
     <a class="linkbtn hidden" id="docslink" href="/portal/documents/">My documents</a>
         <a class="linkbtn" id="agreementslink" href="/portal/agreements/">Agreements</a>
+        <a class="linkbtn hidden" id="availlink" href="/portal/availability/">My availability</a>
     <a class="linkbtn hidden" id="reflectlink" href="/portal/reflections/">Reflections</a>
     <a class="linkbtn hidden" id="codeslink" href="/portal/codes/">Discount codes</a>
     <button id="messagesbtn" class="hidden" type="button">Messages</button>
     <button id="profilebtn" class="hidden" type="button">My profile</button>
     <span class="who" id="who"></span>
     <button id="signout" class="hidden" type="button">Sign out</button>
+        </div>
   </span>
 </div>
 
@@ -2782,12 +2821,15 @@ $("signout").addEventListener("click", async () => {
   myRoles = {};
   $("who").textContent = "";
   $("signout").classList.add("hidden");
+      $("menubtn").classList.add("hidden");
+    $("menupanel").classList.add("hidden");
   $("profilebtn").classList.add("hidden");
   $("messagesbtn").classList.add("hidden");
   if (dmChannel) { db.removeChannel(dmChannel); dmChannel = null; }
   const toast = document.getElementById("dm-toast");
   if (toast) toast.remove();
   $("codeslink").classList.add("hidden");
+      $("availlink").classList.add("hidden");
   $("bloglink").classList.add("hidden");
   $("feedbacklink").classList.add("hidden");
   $("password").value = "";
@@ -2814,7 +2856,7 @@ async function start() {
   me = staff;
   const admin = staff.role === "admin";
   $("who").textContent = staff.full_name;
-  $("signout").classList.remove("hidden");
+  $("signout").classList.remove("hidden");    $("menubtn").classList.remove("hidden");
   $("profilebtn").classList.remove("hidden");
   $("messagesbtn").classList.remove("hidden");
   refreshUnreadFlag();
@@ -2830,6 +2872,7 @@ async function start() {
   $("reportsbtn").classList.remove("hidden");
   // Every coach keeps their own; an admin also reads what comes in.
   $("reflectlink").classList.remove("hidden");
+      $("availlink").classList.remove("hidden");
   // Private to whoever is signed in, so everybody gets it.
   $("docslink").classList.remove("hidden");
   refreshReflectionFlag();
@@ -10050,6 +10093,49 @@ $("another").addEventListener("click", () => {
   openForm();
 });
 
+  /* ---------------- the menu ---------------- */
+
+// Everything that used to sit across the top bar. The buttons and
+// links are unchanged — they have only moved inside a panel, so every
+// handler and every .hidden toggle elsewhere still works untouched.
+function wireMenu() {
+  const btn = $("menubtn");
+  const panel = $("menupanel");
+  const close = () => panel.classList.add("hidden");
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    panel.classList.toggle("hidden");
+  });
+
+  // Tapping anything in the menu closes it, including links that
+  // navigate away — otherwise it is still open on the way back.
+  panel.addEventListener("click", (e) => {
+    if (e.target.closest("button, a")) close();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!panel.contains(e.target) && e.target !== btn) close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") close();
+  });
+
+  // The unread counts are now out of sight, so a dot on the button
+  // says there is something in there. Watched rather than called,
+  // because five different places add those flags.
+  const dot = document.createElement("span");
+  dot.className = "dot hidden";
+  btn.append(dot);
+
+  const check = () =>
+    dot.classList.toggle("hidden", !panel.querySelector(".unread-flag"));
+
+  new MutationObserver(check).observe(panel, { childList: true, subtree: true });
+  check();
+}
+
+
 /* ---------------- go ---------------- */
 wireParticipantControls();
 wireSignature();
@@ -10072,6 +10158,7 @@ wireHostEmail();
 wireFollowup();
 wirePeople();
 wireExport();
+    wireMenu();
 start();
 </script>
 <script type="module" src="/portal/agreements-flag.js"></script>
