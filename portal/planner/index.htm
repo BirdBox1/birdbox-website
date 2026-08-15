@@ -472,7 +472,11 @@ async function loadEverything() {
 
   venueIndex = new Map();
   for (const v of allVenues) {
-    venueIndex.set(v.id, { venue: v, rows: [], words: new Set([fold(v.name), fold(v.location_raw)]) });
+    venueIndex.set(v.id, {
+      venue: v, rows: [],
+      words: new Set([fold(v.name), fold(v.location_raw)]),
+      locWords: new Set(fold(v.location_raw).split(" ").filter(Boolean)),
+    });
   }
   for (const h of allHistory) {
     const e = venueIndex.get(h.venue_id);
@@ -482,6 +486,7 @@ async function loadEverything() {
     // one of them finds it.
     e.words.add(fold(h.location_raw));
     e.words.add(fold(h.venue_raw));
+    fold(h.location_raw).split(" ").filter(Boolean).forEach(w => e.locWords.add(w));
   }
   for (const e of venueIndex.values()) {
     e.haystack = [...e.words].filter(Boolean).join(" | ");
@@ -495,10 +500,10 @@ function findVenues(q) {
   for (const e of venueIndex.values()) {
     const hit = terms.some(t => {
       if (!t) return false;
-      // Short terms are state codes and the like — "in" would
-      // otherwise match inside half the gym names in the country,
-      // so those have to be whole words.
-      if (t.length <= 3) return e.wordSet.has(t);
+      // Short terms are state codes and the like. They have to be
+      // whole words, and only from the location — otherwise "CO"
+      // matches the .co.uk in a Lancashire gym's email address.
+      if (t.length <= 3) return e.locWords.has(t);
       return e.haystack.includes(t);
     });
     if (hit) out.push(e);
