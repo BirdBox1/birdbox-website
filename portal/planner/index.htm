@@ -249,6 +249,10 @@ let market = null;          // what was searched
 let marketVenues = [];      // venues matching it
 let weekends = [];          // Saturdays offered in the picker
 
+let allVenues = [];         // every venue, loaded once
+let allHistory = [];        // every historical seminar, loaded once
+let venueIndex = new Map(); // venue id -> { venue, rows, haystack, wordSet }
+
 const WEEKS_AHEAD = 78;     // eighteen months, so a whole planning year fits
 const SPACING_DAYS = 90;    // your rule: 2 to 3 months between brands in a market
 
@@ -368,10 +372,6 @@ async function loadUnavailable() {
 // 38 US state codes standing in for the country — so matching in SQL
 // would mean an endless list of aliases. Folding accents and matching
 // here is both simpler and more reliable.
-
-let allVenues = [];
-let allHistory = [];
-let venueIndex = new Map();   // venue id -> { venue, rows, haystack }
 
 // "Munchen" and "Munchen" and "MUNICH" all reduce to the same thing.
 function fold(s) {
