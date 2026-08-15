@@ -28,9 +28,13 @@ export default async (req) => {
     const { slug, code } = await req.json();
     if (!slug || !code) return json({ ok: false, error: "Missing details" }, 400);
 
+    // starts_at is required: codes with a relative expiry (early bird)
+    // are measured back from the course start, so leaving it out here
+    // made every such code look inapplicable on this path, even though
+    // create-checkout passes it through fine.
     const { data: course } = await supabase
       .from("courses")
-      .select("id, brand, type, price_cents, deposit_cents, currency, status")
+      .select("id, brand, type, price_cents, deposit_cents, currency, status, starts_at")
       .eq("slug", slug)
       .single();
 
@@ -66,11 +70,10 @@ export async function priceWithDiscount(course, code) {
 
   if (!rows || !rows.length) return { error: "That code isn't recognised" };
 
-  // The same code now exists on many courses — every seminar carries
-  // its own EB10, each expiring 28 days before its own start date. So
-  // the row for THIS course wins, and a code with no course at all is
-  // the fallback. Taking rows[0] would hand a Munich customer the
-  // Warsaw row and then refuse it as not applying.
+  // A code may exist both as a row for one specific course and as a
+  // global row covering everything. The specific row wins; the global
+  // one is the fallback. Taking rows[0] would hand a Munich customer
+  // the Warsaw row and then refuse it as not applying.
   const row = rows.find((r) => r.course_id === course.id) ||
               rows.find((r) => !r.course_id);
 
@@ -84,6 +87,29 @@ export async function priceWithDiscount(course, code) {
   if (row.expires_at && new Date(row.expires_at) < now) {
     return { error: "That code has expired" };
   }
+
+  // Relative expiry — "stops working N days before the course starts".
+  // This is what lets ONE global row (EB10) serve every seminar: the
+  // deadline is worked out against whichever course is being bought,
+  // instead of being a single fixed date shared by all of them.
+  //
+  // It is checked as well as expires_at, not instead of it, so a code
+  // can carry both a hard end date and a per-course cut-off.
+  const daysBefore = row.expires_days_before_course;
+  if (daysBefore !== null && daysBefore !== undefined && daysBefore !== "") {
+    // No start date means the cut-off cannot be worked out. Refusing is
+    // the safe direction: the alternative is honouring an early bird
+    // discount with no deadline at all.
+    if (!course.starts_at) {
+      return { error: "That code doesn't apply to this course" };
+    }
+    const cutoff = new Date(course.starts_at);
+    cutoff.setDate(cutoff.getDate() - Number(daysBefore));
+    if (cutoff < now) {
+      return { error: "The early booking period for this course has closed" };
+    }
+  }
+
   if (row.max_redemptions !== null && row.times_redeemed >= row.max_redemptions) {
     return { error: "That code has already been used" };
   }
