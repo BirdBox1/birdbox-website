@@ -540,6 +540,20 @@
   }
   .dm-person:hover { background: #faf9f7; }
   .dm-person.on { background: #eef4fb; }
+    .dm-person .txt { flex:1 1 auto; min-width:0; }
+  .dm-person .toprow {
+    display:flex; align-items:baseline; gap:0.5rem; justify-content:space-between;
+  }
+  .dm-person .when {
+    flex:none; font-size:0.72rem; color:var(--muted); white-space:nowrap;
+  }
+  .dm-person .peek {
+    font-size:0.8rem; color:var(--muted);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .dm-person .peek.unread { color:var(--ink); font-weight:600; }
+  .dm-person .nm.unread { font-weight:700; }
+
   .dm-person .nm {
     flex: 1 1 auto; min-width: 0; font-size: 0.9rem;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -10163,6 +10177,121 @@ wireHostEmail();
 wireFollowup();
 wirePeople();
 wireExport();
+  /* ---------------- messages, newest first ---------------- */
+
+// The people list was alphabetical, which is no use once there are
+// conversations — you want whoever you spoke to last at the top, with
+// enough of the message to know what it was about. Declared after the
+// original, so this is the one that runs.
+
+let dmLast = new Map();   // other person's id -> { body, at, mine }
+
+async function loadLastMessages() {
+  dmLast = new Map();
+  if (!me) return;
+
+  const { data, error } = await db
+    .from("direct_messages")
+    .select("sender_id, recipient_id, body, created_at")
+    .or(`sender_id.eq.${me.id},recipient_id.eq.${me.id}`)
+    .order("created_at", { ascending: false })
+    .limit(1000);
+
+  if (error) { console.error("Could not load conversations:", error.message); return; }
+
+  // Newest first, so the first time we see somebody is their latest.
+  for (const m of data || []) {
+    const other = m.sender_id === me.id ? m.recipient_id : m.sender_id;
+    if (dmLast.has(other)) continue;
+    dmLast.set(other, { body: m.body, at: m.created_at, mine: m.sender_id === me.id });
+  }
+}
+
+// Today shows a time, this week a day, anything older a date.
+function dmWhen(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  if ((now - d) < 6 * 86400000) return d.toLocaleDateString(undefined, { weekday: "short" });
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
+async function renderPeople() {
+  const box = $("dm-people");
+  if (!box) return;
+
+  await loadLastMessages();
+
+  const others = staffList.filter((p) => p.id !== me.id);
+
+  // Whoever you spoke to most recently, first. Anybody you have never
+  // written to sits below, alphabetically, so starting a new
+  // conversation is still easy.
+  others.sort((a, b) => {
+    const la = dmLast.get(a.id), lb = dmLast.get(b.id);
+    if (la && lb) return new Date(lb.at) - new Date(la.at);
+    if (la) return -1;
+    if (lb) return 1;
+    return a.full_name.localeCompare(b.full_name);
+  });
+
+  box.innerHTML = "";
+
+  if (!others.length) {
+    box.innerHTML = '<p class="chat-none">Nobody else on the team yet.</p>';
+    return;
+  }
+
+  for (const person of others) {
+    const last = dmLast.get(person.id);
+    const unread = dmUnread[person.id] || 0;
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "dm-person" + (dmWith && dmWith.id === person.id ? " on" : "");
+
+    const txt = document.createElement("span");
+    txt.className = "txt";
+
+    const toprow = document.createElement("span");
+    toprow.className = "toprow";
+
+    const nm = document.createElement("span");
+    nm.className = "nm" + (unread ? " unread" : "");
+    nm.textContent = person.full_name;
+    toprow.append(nm);
+
+    if (last) {
+      const when = document.createElement("span");
+      when.className = "when";
+      when.textContent = dmWhen(last.at);
+      toprow.append(when);
+    }
+
+    txt.append(toprow);
+
+    const peek = document.createElement("span");
+    peek.className = "peek" + (unread ? " unread" : "");
+    peek.textContent = last
+      ? (last.mine ? "You: " : "") + String(last.body).replace(/\s+/g, " ").trim()
+      : "No messages yet";
+    txt.append(peek);
+
+    btn.append(avatar(person, 34), txt);
+
+    if (unread) {
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      dot.textContent = String(unread);
+      btn.append(dot);
+    }
+
+    btn.onclick = () => openThread(person);
+    box.append(btn);
+  }
+}
+
     wireMenu();
 start();
 </script>
