@@ -182,7 +182,12 @@
   .notelist .n .who { font-size:0.72rem; color:var(--muted); }
   .sem { cursor:pointer; }
   .sem:hover { background:#faf9f7; }
+  .sem.locked { cursor:default; }
+  .sem.locked:hover { background:none; }
   .chip { cursor:pointer; }
+  .chip.locked { cursor:default; }
+  .sem.noopen, .chip.noopen { cursor:default; }
+  .sem.noopen:hover { background:none; }
   .hidden { display:none !important; }
 </style>
 </head>
@@ -588,7 +593,9 @@ function semRow(i) {
   const clash = i.team.filter(t => unavail.get(t.id)?.has(i.weekend))
     .map(t => t.name);
 
-  return `<div class="sem${planned ? " plan" : ""}" data-open="${i.kind}:${i.id}">
+  const mine = maySeeDetail(i);
+  return `<div class="sem${planned ? " plan" : ""}${mine ? "" : " locked"}"
+               ${mine ? `data-open="${i.kind}:${i.id}"` : ""}>
     <span class="tag ${brandClass(i.brand)}">${esc(tag)}</span>
     <span class="body">
       <span class="where">${esc(i.where)}</span>
@@ -602,14 +609,23 @@ function semRow(i) {
 }
 
 function wireSchedule() {
-  $("sched").querySelectorAll("[data-open]").forEach(row =>
+  const list = items();
+  const canOpen = (ref) => {
+    const [k, id] = ref.split(":");
+    const it = list.find(x => x.kind === k && x.id === id);
+    return it ? maySeeDetail(it) : false;
+  };
+
+  $("sched").querySelectorAll("[data-open]").forEach(row => {
+    if (!canOpen(row.dataset.open)) { row.classList.add("noopen"); return; }
     row.addEventListener("click", (e) => {
       // The coach dropdown lives on the row; using it should not also
       // open the panel.
       if (e.target.closest("select")) return;
       const [k, id] = row.dataset.open.split(":");
       openSheet(k, id);
-    }));
+    });
+  });
 
   $("sched").querySelectorAll("[data-plan]").forEach(sel =>
     sel.addEventListener("change", async () => {
@@ -713,11 +729,13 @@ function renderGrid() {
 
   $("gridwrap").querySelectorAll("[data-move]").forEach(b =>
     b.addEventListener("click", () => moveCoach(b.dataset.move, +b.dataset.dir)));
-  $("gridwrap").querySelectorAll("[data-open]").forEach(ch =>
-    ch.addEventListener("click", () => {
-      const [k, id] = ch.dataset.open.split(":");
-      openSheet(k, id);
-    }));
+  const glist = items();
+  $("gridwrap").querySelectorAll("[data-open]").forEach(ch => {
+    const [k, id] = ch.dataset.open.split(":");
+    const it = glist.find(x => x.kind === k && x.id === id);
+    if (!it || !maySeeDetail(it)) { ch.classList.add("noopen"); return; }
+    ch.addEventListener("click", () => openSheet(k, id));
+  });
 
   $("gridwrap").querySelectorAll("[data-hide]").forEach(b =>
     b.addEventListener("click", () => {
@@ -769,8 +787,9 @@ function gridRow(person, row, months, idx, total, unassigned) {
       inner = list.map(i => {
         const tag = (i.brand||"").toUpperCase() + lvl(i.level);
         const kind = i.kind === "course" ? "" : (i.stage === "idea" ? " idea" : " plan");
-        return `<span class="chip ${brandClass(i.brand)}${kind}"
-                 data-open="${i.kind}:${i.id}"
+        const mine = maySeeDetail(i);
+        return `<span class="chip ${brandClass(i.brand)}${kind}${mine ? "" : " locked"}"
+                 ${mine ? `data-open="${i.kind}:${i.id}"` : ""}
                  title="${esc(tag + " — " + i.where)}">${esc(tag)}</span>`;
       }).join("");
     }
@@ -848,7 +867,11 @@ function openSheet(kind, id) {
   const it = list.find(x => x.kind === kind && x.id === id);
   if (!it) return;
 
-  const priv = maySeeDetail(it);
+  // Everybody sees the whole calendar. Opening a seminar is for the
+  // admin and the people actually working it.
+  if (!maySeeDetail(it)) return;
+
+  const priv = true;
   let html = "";
 
   if (kind === "course") {
@@ -906,7 +929,7 @@ function openSheet(kind, id) {
     if (priv && c.host_email) {
       html += `<a class="btn ghost" href="mailto:${esc(c.host_email)}">Email the host</a>`;
     }
-    html += `<a class="btn ghost" href="/portal/?course=${esc(c.id)}">Open in the portal</a></div>`;
+    html += `<a class="btn ghost" href="/portal/">Open in the portal</a></div>`;
 
   } else {
     const p = plans.find(x => x.id === id);
