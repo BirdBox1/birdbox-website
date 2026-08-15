@@ -2986,7 +2986,7 @@ async function loadCourses() {
     for (const r of mine || []) myRoles[r.course_id] = r.role;
   } else {
     const { data, error } = await db.from("course_staff")
-      .select(`role, courses (${cols})`);
+        .select(`role, courses (${cols})`).eq("staff_id", me.id);
     if (error) { list.innerHTML = '<p class="empty">Could not load courses.</p>'; return; }
 
     myRoles = {};
