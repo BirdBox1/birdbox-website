@@ -286,6 +286,8 @@ async function onCheckoutCompleted(session) {
       collection_method: "charge_automatically",
       default_payment_method: paymentMethod || undefined,
       // Stripe finalises and charges on this date — no cron of ours.
+      // auto_advance must be on, or Stripe rejects the date outright.
+      auto_advance: true,
       automatically_finalizes_at: finaliseAt,
       currency: full.currency,
       description: `Balance for ${meta.course_slug}`,
