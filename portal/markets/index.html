@@ -249,6 +249,7 @@ function scoreMarket(m, comp) {
   if (comp) {
     if (comp.trail_state === "ripe")     { score += 20; parts.push({ label: "their window is open", weight: 20 }); }
     else if (comp.trail_state === "too soon") { score += 6; parts.push({ label: "their window opens later", weight: 6 }); }
+    else if (comp.trail_state === "not yet run") { score += 8; parts.push({ label: "their course still to come", weight: 8 }); }
     if (comp.sold_out)                   { score += 15; parts.push({ label: "they sold out here", weight: 15 }); }
   }
 
@@ -428,12 +429,16 @@ function marketCard(r, brand) {
   const flags = [];
 
   if (m.missingBrand) flags.push(`<span class="pill acc">${esc(brand.toUpperCase())} never run here</span>`);
+  if (m.runs >= 2 && m.hosts === 1)
+    flags.push('<span class="pill warn">one host only</span>');
   if (m.status === "watch" ) flags.push('<span class="pill warn">watch</span>');
   if (m.status === "ruled_out") flags.push('<span class="pill bad">ruled out</span>');
   if (r.comp && r.comp.trail_state === "ripe")
     flags.push('<span class="pill on">their window open</span>');
   if (r.comp && r.comp.trail_state === "too soon")
     flags.push('<span class="pill">their window opens later</span>');
+  if (r.comp && r.comp.trail_state === "not yet run")
+    flags.push('<span class="pill acc">their course still to come</span>');
   if (m.sold_out) flags.push('<span class="pill warn">they sold out</span>');
   if (m.parent_code) flags.push(`<span class="pill">${esc(m.language || "")}</span>`);
 
@@ -460,9 +465,17 @@ function marketCard(r, brand) {
       (m.months_since != null ? ` · ${m.months_since} months since` : "")
     : "Nothing on record since January 2023";
 
-  const theirs = r.comp && r.comp.courses_known
-    ? ` · CrossFit ran there ${r.comp.months_since_them} months ago`
-    : "";
+  // A course of theirs still to come reads as a negative number of
+  // months since, which is nonsense as a sentence.
+  let theirs = "";
+  if (r.comp && r.comp.courses_known) {
+    const ms = Number(r.comp.months_since_them);
+    theirs = ms < 0
+      ? ` · CrossFit runs there in ${Math.abs(ms)} months`
+      : ms === 0
+        ? " · CrossFit is there this month"
+        : ` · CrossFit ran there ${ms} months ago`;
+  }
 
   const reasons = r.parts.length
     ? `<div class="who">${esc(r.parts.map((p) => p.label).join(" · "))}</div>` : "";
