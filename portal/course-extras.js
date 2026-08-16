@@ -143,7 +143,11 @@ async function renderTravel(courseId) {
     .select("staff_id, role, travel_booked, travel_booked_at, staff ( full_name )")
     .eq("course_id", courseId);
 
-  if (error) { box.innerHTML = '<p class="whenline">Could not load who is coaching this.</p>'; return; }
+  if (error) {
+    box.innerHTML = '<p class="whenline bad">Travel could not load: ' + esc(error.message) +
+      '</p><p class="whenline">If that mentions travel_booked, step 26 has not been run.</p>';
+    return;
+  }
 
   const rows = data || [];
   if (!rows.length) {
@@ -202,7 +206,14 @@ async function renderMedia(courseId) {
     .eq("course_id", courseId)
     .order("created_at", { ascending: false });
 
-  if (error) { console.error("Could not load media:", error.message); return; }
+  if (error) {
+    const note = '<p class="whenline bad">Media could not load: ' + esc(error.message) +
+      '</p><p class="whenline">If that mentions seminar_media, step 25 has not been run.</p>';
+    for (const id of ["ex-promo", "ex-photos", "ex-links"]) {
+      if ($(id)) $(id).innerHTML = note;
+    }
+    return;
+  }
   const rows = data || [];
 
   drawFiles($("ex-promo"), rows.filter((r) => r.kind === "promo"),
@@ -390,7 +401,23 @@ async function mount() {
   if (!view || view.classList.contains("hidden")) return;
 
   const id = window.__birdboxCourseId;
-  if (!id) return;
+  if (!id) {
+    // The one line in openCourse has not been added, or has not
+    // deployed. Say so on the page rather than showing nothing.
+    const wrapNow = view.querySelector(".wrap");
+    if (wrapNow && !document.getElementById(PANEL_ID)) {
+      const warn = document.createElement("div");
+      warn.id = PANEL_ID;
+      warn.className = "panel";
+      warn.style.marginTop = "1.5rem";
+      warn.innerHTML =
+        "<h3>Media and travel</h3><p class=\"whenline\">Waiting on the course id. " +
+        "The line <code>window.__birdboxCourseId = course.id;</code> needs to be " +
+        "inside openCourse in portal/index.html.</p>";
+      wrapNow.appendChild(warn);
+    }
+    return;
+  }
   if (document.getElementById(PANEL_ID) && currentCourseId === id) return;
 
   currentCourseId = id;
@@ -409,6 +436,14 @@ async function mount() {
   else wrap.appendChild(panel);
 
   wirePanel();
+
+  if (!me) {
+    const t = $("ex-travel");
+    if (t) t.innerHTML =
+      '<p class="whenline bad">Not signed in as far as this panel can tell, ' +
+      'so nothing below will load. Sign out and back in.</p>';
+  }
+
   await renderTravel(id);
   await renderMedia(id);
 }
@@ -459,7 +494,7 @@ async function paintList() {
 }
 
 async function run() {
-  if (!(await whoAmI())) return;
+  await whoAmI();
 
   // The portal swaps views in and out rather than navigating, so there
   // is nothing to hook. Watching is the only honest way to know when a
