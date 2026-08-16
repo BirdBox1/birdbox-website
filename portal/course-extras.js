@@ -23,6 +23,31 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ
 
 const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+// Proof of life, written synchronously as the module runs, before
+// anything can await or throw. If this bar never appears the file is
+// not executing at all, and the problem is the script tag rather than
+// anything in here. It is removed the moment the panel mounts.
+function beacon(text, tone) {
+  let el = document.getElementById("extras-beacon");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "extras-beacon";
+    el.style.cssText =
+      "position:fixed;left:0;right:0;bottom:0;z-index:9999;padding:0.5rem 0.9rem;" +
+      "font:13px ui-sans-serif,-apple-system,sans-serif;color:#fff;text-align:center";
+    document.body.appendChild(el);
+  }
+  el.style.background = tone === "bad" ? "#b3261e" : "#0d0e10";
+  el.textContent = text;
+}
+
+function beaconGone() {
+  const el = document.getElementById("extras-beacon");
+  if (el) el.remove();
+}
+
+beacon("course-extras: loaded");
+
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? "" : s)
   .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -435,6 +460,7 @@ async function mount() {
   if (adminPanel && adminPanel.parentNode === wrap) wrap.insertBefore(panel, adminPanel);
   else wrap.appendChild(panel);
 
+  beaconGone();
   wirePanel();
 
   if (!me) {
@@ -494,7 +520,20 @@ async function paintList() {
 }
 
 async function run() {
-  await whoAmI();
+  beacon("course-extras: starting");
+
+  // getSession can hang when two Supabase clients share one session, so
+  // it is raced against a timer rather than trusted to come back.
+  try {
+    await Promise.race([
+      whoAmI(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("sign-in check timed out")), 4000)),
+    ]);
+    beacon("course-extras: signed in as " + (me ? me.full_name : "nobody"));
+  } catch (err) {
+    beacon("course-extras: " + err.message + " — opening the panel anyway", "bad");
+  }
 
   // The portal swaps views in and out rather than navigating, so there
   // is nothing to hook. Watching is the only honest way to know when a
