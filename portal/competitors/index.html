@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Their courses — BirdBox Coaching</title>
+<style>
+  :root { --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+          --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0; --good:#1f8a54;
+          --warn:#b4610f; --bad:#b3261e; }
+  *,*::before,*::after { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+         font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .bar { background:var(--shell); color:#fff; padding:0.7rem 1.25rem;
+         display:flex; align-items:center; gap:0.75rem; position:sticky; top:0; z-index:5; }
+  .mark { width:34px; height:34px; border-radius:4px; background:#fff;
+          display:grid; place-items:center; flex:none; }
+  .mark img { width:26px; height:26px; object-fit:contain; display:block; }
+  .brandname { font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; color:#9aa1a9; }
+  .bar .back { margin-left:auto; font-size:0.8rem; color:#cfd4d9;
+               border:1px solid #33373c; border-radius:3px;
+               padding:0.3rem 0.7rem; text-decoration:none; white-space:nowrap; }
+  .wrap { max-width:52rem; margin:1.5rem auto 5rem; padding:0 1rem; }
+  h1 { font-size:1.25rem; letter-spacing:-0.02em; margin:0 0 0.3rem; font-weight:600; }
+  .sub { color:var(--muted); font-size:0.88rem; margin:0 0 1.25rem; }
+  .panel { background:var(--card); border:1px solid var(--rule); border-radius:6px;
+           padding:1rem 1.1rem; margin-bottom:1.1rem; }
+  .panel h2 { font-size:0.75rem; letter-spacing:0.12em; text-transform:uppercase;
+              color:var(--muted); margin:0 0 0.8rem; font-weight:600; }
+  label { display:block; font-size:0.8rem; font-weight:600; margin-bottom:0.3rem; }
+  .hint { font-weight:400; color:var(--muted); font-size:0.78rem; }
+  input, select, textarea { width:100%; font:inherit; padding:0.5rem 0.6rem;
+    border:1px solid var(--rule); border-radius:4px; background:#fff; color:var(--ink); }
+  textarea { min-height:9rem; resize:vertical;
+             font-family:ui-monospace,Menlo,Consolas,monospace; font-size:0.85rem; }
+  .field { margin-bottom:0.8rem; }
+  .row2 { display:flex; gap:0.6rem; flex-wrap:wrap; }
+  .row2 > * { flex:1 1 10rem; }
+  .btn { font:inherit; font-weight:600; background:var(--ink); color:#fff; border:0;
+         border-radius:4px; padding:0.55rem 1rem; cursor:pointer; }
+  .btn:hover { background:#000; }
+  .btn[disabled] { opacity:0.45; cursor:default; }
+  .btn.wide { width:100%; }
+  .btn.ghost { background:#fff; color:var(--ink); border:1px solid var(--rule); font-weight:500; }
+  .btn.tiny { font-size:0.76rem; padding:0.25rem 0.55rem; font-weight:500;
+              background:#fff; color:var(--ink); border:1px solid var(--rule); }
+  .btn.tiny.danger { color:var(--bad); border-color:#e6c9c7; }
+  .msg { font-size:0.85rem; margin-top:0.6rem; min-height:1.2em; }
+  .msg.err { color:var(--bad); } .msg.ok { color:var(--good); }
+  table { width:100%; border-collapse:collapse; font-size:0.86rem; }
+  th { text-align:left; font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase;
+       color:var(--muted); font-weight:600; padding:0.3rem 0.5rem 0.3rem 0;
+       border-bottom:1px solid var(--rule); white-space:nowrap; }
+  td { padding:0.4rem 0.5rem 0.4rem 0; border-bottom:1px solid var(--rule); vertical-align:top; }
+  tr:last-child td { border-bottom:0; }
+  td input, td select { padding:0.3rem 0.4rem; font-size:0.84rem; }
+  .num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .pill { display:inline-block; font-size:0.66rem; letter-spacing:0.08em;
+          text-transform:uppercase; padding:0.14rem 0.45rem; border-radius:3px;
+          border:1px solid var(--rule); color:var(--muted); white-space:nowrap; }
+  .pill.on { border-color:var(--good); color:var(--good); }
+  .pill.warn { border-color:var(--warn); color:var(--warn); }
+  .pill.bad { border-color:var(--bad); color:var(--bad); font-weight:650; }
+  .pill.ink { background:var(--ink); border-color:var(--ink); color:#fff; font-weight:650; }
+  .note { border-left:3px solid var(--rule); padding:0.5rem 0.8rem; background:#faf9f7;
+          border-radius:0 5px 5px 0; font-size:0.85rem; margin:0.6rem 0; color:var(--muted); }
+  .note b { color:var(--ink); }
+  .empty { color:var(--muted); font-size:0.88rem; padding:0.6rem 0; }
+  .monthhead { font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase;
+               color:var(--muted); font-weight:600; margin:1.2rem 0 0.4rem; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+  <span class="brandname">Coach Portal</span>
+  <a class="back" href="/portal/">Back to the portal</a>
+</div>
+
+<div class="wrap">
+  <h1>Their courses</h1>
+  <p class="sub">Where CrossFit is running its own courses. You are a licensed
+     provider, not a competitor to them — their Level 1 creates the trainers
+     who then come looking for continuing education, and the record says
+     following about six months behind works. This is where that gets tracked.</p>
+
+  <div class="note">
+    <b>A sold-out course is the signal worth catching.</b> Where their card
+    reads WAITLIST ONLY, that market wanted more than they supplied — which
+    is exactly the market to be in five to seven months later. Tick it.
+  </div>
+
+  <div class="note">
+    <b>Filled in by hand, on purpose.</b> Their course list is drawn by
+    JavaScript and their training site refuses automated access, so nothing
+    here is scraped. Open their course map, copy what you see, paste it below.
+    Because it is hand-fed it will always be partial — a market with nothing
+    recorded means nobody has looked, never that they have not been.
+  </div>
+
+  <div class="panel">
+    <h2>Paste from their course map</h2>
+    <div class="field">
+      <label for="paste">Anything copied off the page
+        <span class="hint">— their cards paste as separate lines and that is
+          what this expects; one course per line also works</span></label>
+      <textarea id="paste" placeholder="OCT
+10-11
+Amarillo, TX
+CrossFit 806 &#8226; 163 miles
+English
+REGISTER NOW"></textarea>
+    </div>
+    <div class="row2">
+      <div class="field" style="flex:0 0 9rem">
+        <label for="pSource">Whose</label>
+        <select id="pSource">
+          <option value="crossfit">CrossFit</option>
+          <option value="other">Somebody else</option>
+        </select>
+      </div>
+      <div class="field" style="flex:0 0 9rem">
+        <label for="pTab">Which tab
+          <span class="hint">— their cards do not say</span></label>
+        <select id="pTab">
+          <option value="L1">Level 1</option>
+          <option value="L2">Level 2</option>
+          <option value="kids">Kids</option>
+        </select>
+      </div>
+      <div class="field" style="flex:0 0 9rem">
+        <label for="pRead">&nbsp;</label>
+        <button class="btn wide" id="pRead" type="button">Read it</button>
+      </div>
+    </div>
+    <p class="msg" id="pmsg"></p>
+  </div>
+
+  <div class="panel hidden" id="previewPanel">
+    <h2>Check before saving</h2>
+    <p class="sub" style="margin:0 0 0.7rem">Everything is editable. Untick anything
+       that is not a course.</p>
+    <div class="scroll"><table id="preview"></table></div>
+    <div class="row2" style="margin-top:0.9rem">
+      <button class="btn" id="saveRows" type="button">Save these</button>
+      <button class="btn ghost" id="clearRows" type="button">Start again</button>
+    </div>
+    <p class="msg" id="smsg"></p>
+  </div>
+
+  <div class="panel hidden" id="leftoverPanel">
+    <h2>Could not read these</h2>
+    <p class="sub" style="margin:0 0 0.5rem">No date found, so nothing was assumed.
+       Add any of them by hand below.</p>
+    <div id="leftover"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Add one by hand</h2>
+    <div class="row2">
+      <div class="field" style="flex:0 0 7rem">
+        <label for="mType">Course</label>
+        <select id="mType">
+          <option value="L1">L1</option><option value="L2">L2</option>
+          <option value="kids">Kids</option><option value="other">Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="mCity">City</label>
+        <input id="mCity" type="text" placeholder="Aarhus">
+      </div>
+      <div class="field" style="flex:0 0 8rem">
+        <label for="mCountry">Country</label>
+        <input id="mCountry" type="text" placeholder="DK">
+      </div>
+      <div class="field" style="flex:0 0 11rem">
+        <label for="mDate">Date</label>
+        <input id="mDate" type="date">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="mVenue">Gym <span class="hint">optional</span></label>
+        <input id="mVenue" type="text" placeholder="CrossFit Aarhus">
+      </div>
+      <div class="field" style="flex:0 0 5rem">
+        <label for="mLang">Lang</label>
+        <input id="mLang" type="text" placeholder="en" maxlength="3">
+      </div>
+      <div class="field" style="flex:0 0 8rem">
+        <label>&nbsp;</label>
+        <label style="font-weight:400;font-size:0.82rem;display:flex;
+               align-items:center;gap:0.4rem;padding:0.5rem 0">
+          <input type="checkbox" id="mFull" style="width:1.1rem"> They sold out
+        </label>
+      </div>
+      <div class="field" style="flex:0 0 8rem">
+        <label for="mAdd">&nbsp;</label>
+        <button class="btn wide" id="mAdd" type="button">Add</button>
+      </div>
+    </div>
+    <p class="msg" id="mmsg"></p>
+  </div>
+
+  <div class="panel">
+    <h2>What we know about</h2>
+    <div class="row2" style="margin-bottom:0.7rem">
+      <div class="field" style="margin:0">
+        <label for="fFrom">From</label>
+        <input id="fFrom" type="date">
+      </div>
+      <div class="field" style="margin:0">
+        <label for="fTo">To</label>
+        <input id="fTo" type="date">
+      </div>
+      <div class="field" style="margin:0;flex:0 0 6rem">
+        <label>&nbsp;</label>
+        <button class="btn ghost wide" id="fGo" type="button">Show</button>
+      </div>
+    </div>
+    <div id="list"></div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient(
+  "https://yvdmazpxtpuvidlcifnq.supabase.co",
+  "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+);
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? "" : s)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+let me = null;
+let parsed = [];
+
+const MONTHS = {
+  jan:1, feb:2, mar:3, apr:4, may:5, jun:6,
+  jul:7, aug:8, sep:9, oct:10, nov:11, dec:12,
+};
+
+// "June 12-13, 2026" / "12 June 2026" / "2026-06-12" / "12/06/2026"
+const PATTERNS = [
+  // 2026-06-12
+  { re: /\b(\d{4})-(\d{2})-(\d{2})\b/,
+    read: (m) => ({ y:+m[1], mo:+m[2], d:+m[3] }) },
+  // June 12, 2026 / June 12-13, 2026 / Jun 12 2026
+  { re: /\b([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:\s*[-–—]\s*\d{1,2})?,?\s+(\d{4})\b/,
+    read: (m) => ({ y:+m[3], mo:MONTHS[m[1].slice(0,3).toLowerCase()], d:+m[2] }) },
+  // 12 June 2026 / 12-13 June 2026
+  { re: /\b(\d{1,2})(?:\s*[-–—]\s*\d{1,2})?\s+([A-Za-z]{3,9})\.?,?\s+(\d{4})\b/,
+    read: (m) => ({ y:+m[3], mo:MONTHS[m[2].slice(0,3).toLowerCase()], d:+m[1] }) },
+  // 12/06/2026 — day first, because the record is mostly European
+  { re: /\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/,
+    read: (m) => ({ y:+m[3], mo:+m[2], d:+m[1] }) },
+];
+
+function findDate(text) {
+  for (const p of PATTERNS) {
+    const m = text.match(p.re);
+    if (!m) continue;
+    const got = p.read(m);
+    if (!got.mo || got.mo < 1 || got.mo > 12) continue;
+    if (!got.d || got.d < 1 || got.d > 31) continue;
+    if (got.y < 2000 || got.y > 2100) continue;
+    return {
+      iso: `${got.y}-${String(got.mo).padStart(2,"0")}-${String(got.d).padStart(2,"0")}`,
+      matched: m[0],
+    };
+  }
+  return null;
+}
+
+// L1, L2, Kids and the rest, however they wrote it.
+function findType(text) {
+  const t = text.toLowerCase();
+  if (/\bl\s*-?\s*2\b|level\s*2|\blevel two\b/.test(t)) return "L2";
+  if (/\bl\s*-?\s*1\b|level\s*1|\blevel one\b/.test(t)) return "L1";
+  if (/\bkids?\b/.test(t)) return "kids";
+  if (/scaling|adaptive|gymnastics|weightlifting|judge|anatomy/.test(t)) return "other";
+  return "L1";   // their in-person calendar is overwhelmingly L1
+}
+
+// What is left once the date and the course name are taken out.
+function findPlace(text, dateMatched) {
+  let rest = text;
+  if (dateMatched) rest = rest.replace(dateMatched, " ");
+  rest = rest
+    .replace(/\bcrossfit\b/ig, " ")
+    .replace(/\blevel\s*(one|two|1|2)\b/ig, " ")
+    .replace(/\bl\s*-?\s*[12]\b/ig, " ")
+    .replace(/\b(certificate|course|seminar|trainer)\b/ig, " ")
+    .replace(/[|•\u2022]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .replace(/^[\s,\-–—:]+|[\s,\-–—:]+$/g, "")
+    .trim();
+  return rest;
+}
+
+// "Aarhus, Denmark" -> city and country. Two letters at the end is
+// taken as a code; a longer word is a country name and left for the
+// market matching to deal with.
+function splitPlace(place) {
+  const bits = place.split(",").map((s) => s.trim()).filter(Boolean);
+  if (!bits.length) return { city: null, country: null };
+  if (bits.length === 1) return { city: bits[0], country: null };
+  const tail = bits[bits.length - 1];
+  return {
+    city: bits.slice(0, -1).join(", "),
+    country: tail.length <= 3 ? tail.toUpperCase() : tail,
+  };
+}
+
+function parseListing(raw) {
+  const lines = String(raw || "")
+    .split(/\r?\n/)
+    .map((l) => l.replace(/\t+/g, " ").trim())
+    .filter(Boolean);
+
+  const rows = [];
+  const leftover = [];
+  let pending = null;   // a line with a place but no date yet
+
+  for (const line of lines) {
+    const date = findDate(line);
+
+    if (!date) {
+      // A place with no date: hold it, in case the date is the next line.
+      if (pending) leftover.push(pending);
+      pending = line;
+      continue;
+    }
+
+    // A date, with a place either on this line or on the one before it.
+    // Either way it gets the same cleaning — the line above is just as
+    // likely to read "CrossFit Aarhus" as the line the date is on.
+    const here = findPlace(line, date.matched);
+    const place = here || (pending ? findPlace(pending, null) : "");
+    if (!place) { leftover.push(line); pending = null; continue; }
+
+    // A gym name is worth keeping rather than scrubbing: it is often
+    // the only thing that identifies which venue in a big city.
+    const venueSource = /crossfit/i.test(line) ? line : (pending || "");
+    const venue = /crossfit/i.test(venueSource)
+      ? venueSource.replace(date.matched || "", " ")
+          .replace(/\s{2,}/g, " ").trim()
+      : null;
+
+    const { city, country } = splitPlace(place);
+    rows.push({
+      course_type: findType(line + " " + (pending || "")),
+      city,
+      country,
+      venue_name: venue,
+      location_raw: place,
+      starts_on: date.iso,
+    });
+    pending = null;
+  }
+
+  if (pending) leftover.push(pending);
+  return { rows, leftover };
+}
+
+/* ---------- their card layout ---------- */
+
+// A card off their course map copies as separate lines, with no year:
+//
+//   OCT
+//   10-11
+//   Amarillo, TX
+//   CrossFit 806 • 163 miles
+//   English
+//   REGISTER NOW
+//
+// So the month, the day, the place, the gym and the language each arrive
+// on their own line and have to be reassembled.
+
+const MONTH_LINE = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?$/i;
+const DAY_LINE   = /^(\d{1,2})\s*(?:[-–—]\s*\d{1,2})?$/;
+const LANGUAGES = {
+  english:"en", "español":"es", espanol:"es", "português":"pt", portugues:"pt",
+  "français":"fr", francais:"fr", deutsch:"de", italiano:"it", "中文":"zh",
+  "日本語":"ja", "한국어":"ko", polski:"pl", nederlands:"nl",
+};
+const SKIP_LINE = /^(register now|waitlist only|sold out|sort by|distance away|in person|online|level [12]|kids|search by location)/i;
+
+// No year is printed, so it is inferred: the next time that month comes
+// round. In August, OCT is this year and JAN is next.
+function yearFor(monthIndex, today) {
+  const now = today || new Date();
+  return monthIndex >= now.getMonth() ? now.getFullYear() : now.getFullYear() + 1;
+}
+
+function parseCards(raw, today) {
+  const lines = String(raw || "")
+    .split(/\r?\n/)
+    .map((l) => l.replace(/\t+/g, " ").trim())
+    .filter(Boolean);
+
+  const rows = [];
+  const leftover = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const m = lines[i].match(MONTH_LINE);
+    if (!m) {
+      if (!SKIP_LINE.test(lines[i])) leftover.push(lines[i]);
+      i++;
+      continue;
+    }
+
+    const mo = MONTHS[m[1].slice(0,3).toLowerCase()];
+    const dayMatch = (lines[i+1] || "").match(DAY_LINE);
+    if (!mo || !dayMatch) { leftover.push(lines[i]); i++; continue; }
+
+    const d = +dayMatch[1];
+    const y = yearFor(mo - 1, today);
+    const starts_on = `${y}-${String(mo).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+
+    // Everything until the next month line, or until the card ends.
+    let j = i + 2;
+    const body = [];
+    while (j < lines.length && !MONTH_LINE.test(lines[j])) {
+      body.push(lines[j]);
+      j++;
+    }
+
+    let place = null, venue = null, language = null;
+    let waitlist = false;
+
+    for (const line of body) {
+      if (/^waitlist only/i.test(line)) { waitlist = true; continue; }
+      if (SKIP_LINE.test(line)) continue;
+
+      const lang = LANGUAGES[line.toLowerCase().trim()];
+      if (lang) { language = lang; continue; }
+
+      // "CrossFit 806 • 163 miles" — the gym, then how far away it is
+      // from wherever their map was centred, which is of no use here.
+      if (line.includes("•") || /\b\d+\+?\s*(km|miles)\b/i.test(line)) {
+        venue = line.split("•")[0].trim() || null;
+        continue;
+      }
+
+      if (!place) place = line;
+    }
+
+    if (place) {
+      const { city, country } = splitPlace(place);
+      rows.push({
+        course_type: "L1",     // set from the tab they were looking at
+        city, country,
+        venue_name: venue,
+        language,
+        waitlist,
+        location_raw: place,
+        starts_on,
+      });
+    } else {
+      leftover.push(lines[i] + " " + (lines[i+1] || ""));
+    }
+
+    i = j;
+  }
+
+  return { rows, leftover };
+}
+
+// Their cards first, since that is what a copy off the map gives. If
+// nothing comes back it was pasted from somewhere else, so fall back to
+// reading whole lines.
+function parseAny(raw, today) {
+  const cards = parseCards(raw, today);
+  if (cards.rows.length) return cards;
+  return parseListing(raw);
+}
+
+/* ---------- helpers ---------- */
+
+function iso(d) {
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") +
+         "-" + String(d.getDate()).padStart(2,"0");
+}
+function dayLabel(isoDate) {
+  const [y,m,d] = String(isoDate).slice(0,10).split("-").map(Number);
+  return new Date(y, m-1, d).toLocaleDateString("en-GB",
+    { day:"numeric", month:"short", year:"numeric" });
+}
+function monthLabel(isoDate) {
+  const [y,m] = String(isoDate).split("-").map(Number);
+  return new Date(y, m-1, 1).toLocaleDateString("en-GB",{month:"long",year:"numeric"});
+}
+function say(el, text, cls) {
+  el.className = "msg" + (cls ? " " + cls : "");
+  el.textContent = text;
+}
+// Five to seven months behind them is the window that has worked.
+function windowFor(isoDate) {
+  const [y,m,d] = String(isoDate).split("-").map(Number);
+  const open  = new Date(y, m-1+5, d);
+  const close = new Date(y, m-1+7, d);
+  return { open: iso(open), close: iso(close) };
+}
+
+/* ---------- who is here ---------- */
+
+const { data: { session } } = await db.auth.getSession();
+
+if (!session) {
+  document.querySelector(".wrap").innerHTML =
+    '<h1>Please sign in</h1><p class="sub">Open the portal, sign in, then come back.</p>';
+} else {
+  const { data: staffRow } = await db.from("staff")
+    .select("id, full_name, role").eq("id", session.user.id).maybeSingle();
+  me = staffRow;
+  if (!staffRow) {
+    document.querySelector(".wrap").innerHTML =
+      '<h1>Not available</h1><p class="sub">This login is not set up as staff.</p>';
+    throw new Error("not staff");
+  }
+  const today = new Date();
+  $("fFrom").value = iso(new Date(today.getFullYear(), today.getMonth()-12, 1));
+  $("fTo").value   = iso(new Date(today.getFullYear(), today.getMonth()+12, 1));
+  await loadList();
+}
+
+/* ---------- reading a paste ---------- */
+
+$("pRead").addEventListener("click", () => {
+  const raw = $("paste").value;
+  if (!raw.trim()) { say($("pmsg"), "Nothing pasted yet.", "err"); return; }
+
+  const out = parseAny(raw);
+  const tab = $("pTab").value;
+  parsed = out.rows.map((r) => ({
+    ...r,
+    course_type: r.course_type === "L1" ? tab : (r.course_type || tab),
+    keep: true,
+  }));
+
+  if (!parsed.length) {
+    say($("pmsg"), "No dates found in that. Add them by hand below.", "err");
+  } else {
+    say($("pmsg"),
+      `${parsed.length} course${parsed.length === 1 ? "" : "s"} read` +
+      (out.leftover.length ? `, ${out.leftover.length} line${out.leftover.length === 1 ? "" : "s"} not understood.` : "."),
+      "ok");
+  }
+
+  renderPreview();
+
+  $("leftoverPanel").classList.toggle("hidden", !out.leftover.length);
+  $("leftover").innerHTML = out.leftover.length
+    ? out.leftover.map((l) => `<div class="hint">${esc(l)}</div>`).join("")
+    : "";
+});
+
+$("clearRows").addEventListener("click", () => {
+  parsed = [];
+  $("paste").value = "";
+  $("previewPanel").classList.add("hidden");
+  $("leftoverPanel").classList.add("hidden");
+  say($("pmsg"), "");
+});
+
+function renderPreview() {
+  const box = $("preview");
+  $("previewPanel").classList.toggle("hidden", !parsed.length);
+  if (!parsed.length) { box.innerHTML = ""; return; }
+
+  let html = `<tr><th></th><th>Course</th><th>City</th><th>Country</th>
+    <th>Date</th><th>Gym</th><th>Lang</th><th>Full</th></tr>`;
+  parsed.forEach((r, i) => {
+    html += `<tr>
+      <td><input type="checkbox" data-keep="${i}" ${r.keep ? "checked" : ""}
+           style="width:1.1rem"></td>
+      <td><select data-f="course_type" data-i="${i}" style="width:5.5rem">
+        ${["L1","L2","kids","other"].map(t =>
+          `<option value="${t}"${r.course_type === t ? " selected" : ""}>${t}</option>`).join("")}
+      </select></td>
+      <td><input data-f="city" data-i="${i}" value="${esc(r.city || "")}"></td>
+      <td><input data-f="country" data-i="${i}" value="${esc(r.country || "")}"
+           style="width:6rem"></td>
+      <td><input data-f="starts_on" data-i="${i}" type="date"
+           value="${esc(r.starts_on)}" style="width:9rem"></td>
+      <td><input data-f="venue_name" data-i="${i}" value="${esc(r.venue_name || "")}"></td>
+      <td><input data-f="language" data-i="${i}" value="${esc(r.language || "")}"
+           style="width:3.5rem"></td>
+      <td><input type="checkbox" data-full="${i}" ${r.waitlist ? "checked" : ""}
+           style="width:1.1rem" title="Their course was full"></td>
+    </tr>`;
+  });
+  box.innerHTML = html;
+
+  box.querySelectorAll("[data-full]").forEach(cb =>
+    cb.addEventListener("change", () => { parsed[+cb.dataset.full].waitlist = cb.checked; }));
+  box.querySelectorAll("[data-keep]").forEach(cb =>
+    cb.addEventListener("change", () => { parsed[+cb.dataset.keep].keep = cb.checked; }));
+  box.querySelectorAll("[data-f]").forEach(el =>
+    el.addEventListener("input", () => {
+      parsed[+el.dataset.i][el.dataset.f] = el.value.trim() || null;
+    }));
+}
+
+/* ---------- saving ---------- */
+
+$("saveRows").addEventListener("click", async () => {
+  const msg = $("smsg");
+  const rows = parsed.filter(r => r.keep && r.starts_on && (r.city || r.location_raw));
+  if (!rows.length) { say(msg, "Nothing ticked to save.", "err"); return; }
+
+  $("saveRows").disabled = true;
+  say(msg, "Saving…");
+
+  const payload = rows.map(r => ({
+    source: $("pSource").value,
+    course_type: r.course_type || "L1",
+    city: r.city || null,
+    country: r.country ? String(r.country).toUpperCase().slice(0, 3) : null,
+    venue_name: r.venue_name || null,
+    location_raw: r.location_raw || null,
+    starts_on: r.starts_on,
+    language: r.language || null,
+    waitlist: !!r.waitlist,
+    added_by: me ? me.id : null,
+  }));
+
+  // The same course pasted twice across two sittings is the likeliest
+  // mistake, and the database refuses it. Say so plainly rather than
+  // showing a constraint name.
+  const { error } = await db.from("competitor_seminars").insert(payload);
+
+  $("saveRows").disabled = false;
+
+  if (error) {
+    say(msg, /duplicate|unique/i.test(error.message)
+      ? "Some of those are already recorded. Untick the ones you have entered before, or save them one at a time."
+      : "Could not save: " + error.message, "err");
+    return;
+  }
+
+  say(msg, `${payload.length} saved.`, "ok");
+  parsed = [];
+  $("paste").value = "";
+  renderPreview();
+  $("leftoverPanel").classList.add("hidden");
+  await loadList();
+});
+
+/* ---------- one by hand ---------- */
+
+$("mAdd").addEventListener("click", async () => {
+  const msg = $("mmsg");
+  if (!$("mDate").value) { say(msg, "A date is needed.", "err"); return; }
+  if (!$("mCity").value.trim()) { say(msg, "A city is needed.", "err"); return; }
+
+  $("mAdd").disabled = true;
+  say(msg, "Saving…");
+
+  const { error } = await db.from("competitor_seminars").insert({
+    source: $("pSource").value,
+    course_type: $("mType").value,
+    city: $("mCity").value.trim(),
+    country: $("mCountry").value.trim().toUpperCase() || null,
+    venue_name: $("mVenue").value.trim() || null,
+    location_raw: [$("mCity").value.trim(), $("mCountry").value.trim()]
+      .filter(Boolean).join(", "),
+    starts_on: $("mDate").value,
+    language: $("mLang").value.trim().toLowerCase() || null,
+    waitlist: $("mFull").checked,
+    added_by: me ? me.id : null,
+  });
+
+  $("mAdd").disabled = false;
+  if (error) {
+    say(msg, /duplicate|unique/i.test(error.message)
+      ? "That one is already recorded."
+      : "Could not save: " + error.message, "err");
+    return;
+  }
+
+  say(msg, "Added.", "ok");
+  for (const id of ["mCity","mCountry","mVenue"]) $(id).value = "";
+  $("mFull").checked = false;
+  await loadList();
+});
+
+/* ---------- what we know ---------- */
+
+$("fGo").addEventListener("click", loadList);
+
+async function loadList() {
+  const box = $("list");
+  box.innerHTML = '<p class="empty">Loading…</p>';
+
+  let q = db.from("competitor_seminars")
+    .select("id, source, course_type, city, country, venue_name, starts_on, note, language, waitlist")
+    .order("starts_on", { ascending: true });
+  if ($("fFrom").value) q = q.gte("starts_on", $("fFrom").value);
+  if ($("fTo").value)   q = q.lte("starts_on", $("fTo").value);
+
+  const { data, error } = await q;
+  if (error) { box.innerHTML = '<p class="empty">Could not load: ' + esc(error.message) + '</p>'; return; }
+  if (!data || !data.length) {
+    box.innerHTML = '<p class="empty">Nothing recorded in that range yet.</p>';
+    return;
+  }
+
+  // Anything of ours already in the same city, so a clash or a filled
+  // window is visible without opening another page.
+  const cities = [...new Set(data.map(r => (r.city || "").toLowerCase()).filter(Boolean))];
+  const ours = new Map();
+  if (cities.length) {
+    const { data: cs } = await db.from("courses")
+      .select("city, starts_at, brand, level, status, archived")
+      .eq("archived", false);
+    for (const c of cs || []) {
+      if (!c.city) continue;
+      const k = c.city.toLowerCase();
+      if (!ours.has(k)) ours.set(k, []);
+      ours.get(k).push(c);
+    }
+  }
+
+  const today = iso(new Date());
+  let html = "", lastMonth = "";
+  for (const r of data) {
+    const mn = monthLabel(r.starts_on);
+    if (mn !== lastMonth) {
+      if (lastMonth) html += "</table></div>";
+      html += `<div class="monthhead">${esc(mn)}</div><div class="scroll"><table>
+        <tr><th>Date</th><th>Course</th><th>Where</th><th>Our window</th><th></th></tr>`;
+      lastMonth = mn;
+    }
+
+    const w = windowFor(r.starts_on);
+    let state, cls;
+    if (today < w.open)       { state = "opens " + dayLabel(w.open); cls = ""; }
+    else if (today > w.close) { state = "window passed";             cls = ""; }
+    else                      { state = "open now";                  cls = "on"; }
+
+    // Have we already put something into that window, or run against them?
+    const mine = ours.get((r.city || "").toLowerCase()) || [];
+    const inWindow = mine.filter(c => {
+      const d = String(c.starts_at).slice(0,10);
+      return d >= w.open && d <= w.close;
+    }).length;
+    const tooClose = mine.filter(c => {
+      const d = new Date(String(c.starts_at).slice(0,10));
+      return Math.abs((d - new Date(r.starts_on)) / 86400000) <= 60;
+    }).length;
+
+    html += `<tr>
+      <td>${esc(dayLabel(r.starts_on))}</td>
+      <td><span class="pill ink">${esc(r.course_type)}</span>
+        ${r.language ? ` <span class="pill">${esc(r.language)}</span>` : ""}
+        ${r.waitlist ? ' <span class="pill warn">they sold out</span>' : ""}</td>
+      <td>${esc([r.city, r.country].filter(Boolean).join(", "))}
+        ${r.venue_name ? `<div class="hint">${esc(r.venue_name)}</div>` : ""}</td>
+      <td><span class="pill ${cls}">${esc(state)}</span>
+        ${inWindow ? ` <span class="pill on">${inWindow} of ours booked</span>` : ""}
+        ${tooClose ? ` <span class="pill bad">${tooClose} of ours within 60 days</span>` : ""}
+        <div class="hint">${esc(dayLabel(w.open))} – ${esc(dayLabel(w.close))}</div></td>
+      <td class="num"><button class="btn tiny danger" data-del="${r.id}">Remove</button></td>
+    </tr>`;
+  }
+  html += "</table></div>";
+  box.innerHTML = html;
+
+  box.querySelectorAll("[data-del]").forEach(b =>
+    b.addEventListener("click", async () => {
+      if (!window.confirm("Remove this course from the record?")) return;
+      const { error } = await db.from("competitor_seminars").delete().eq("id", b.dataset.del);
+      if (error) { window.alert("Could not remove it: " + error.message); return; }
+      await loadList();
+    }));
+}
+</script>
+
+</body>
+</html>
