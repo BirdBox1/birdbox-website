@@ -9,11 +9,11 @@
 // Participants are emailed individually, from the lead coach, with
 // info@ copied. Nobody ever appears in anyone else's To line.
 //
-// A host email is different in two ways, both deliberate. It goes to
-// one address — the gym — rather than to a list. And any coach working
-// that seminar may send it, not only the lead: a coach needs to be able
-// to ask the gym about Saturday morning without going through the
-// office.
+// A host email goes to one address — the gym — rather than to a list.
+// It is still the lead coach's to send: the gym has one point of
+// contact, and an assistant emailing them separately would give them
+// two. The RLS policy on course_emails says the same thing, so this
+// check and the database agree.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -67,16 +67,11 @@ export default async (req) => {
 
     const toHost = email.kind === "host";
 
-    // Participants are the lead coach's business. The host is anybody's
-    // who is actually working that seminar.
-    const allowed = toHost
-      ? await isOnCourseOrAdmin(staff, email.course_id)
-      : await isLeadOrAdmin(staff, email.course_id);
-
-    if (!allowed) {
+    // The same rule either way: the lead coach, or an admin.
+    if (!(await isLeadOrAdmin(staff, email.course_id))) {
       return json({
         error: toHost
-          ? "Only an admin or a coach on this course can email the host"
+          ? "Only the lead coach can email the host"
           : "Only the lead coach can send to participants",
       }, 403);
     }
@@ -247,20 +242,6 @@ async function isLeadOrAdmin(staff, courseId) {
     .eq("staff_id", staff.id)
     .maybeSingle();
   return data?.role === "lead_coach";
-}
-
-// Any coach on the course, whatever their role on it. An assistant who
-// is standing in the gym on Saturday morning needs to be able to reach
-// the host as much as the lead does.
-async function isOnCourseOrAdmin(staff, courseId) {
-  if (staff.role === "admin") return true;
-  const { data } = await supabase
-    .from("course_staff")
-    .select("role")
-    .eq("course_id", courseId)
-    .eq("staff_id", staff.id)
-    .maybeSingle();
-  return !!data;
 }
 
 function senderFor(staff) {
