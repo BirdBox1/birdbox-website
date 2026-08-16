@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where to go — BirdBox Coaching</title>
+<style>
+  :root { --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+          --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0; --good:#1f8a54;
+          --warn:#b4610f; --bad:#b3261e; }
+  *,*::before,*::after { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+         font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .bar { background:var(--shell); color:#fff; padding:0.7rem 1.25rem;
+         display:flex; align-items:center; gap:0.75rem; position:sticky; top:0; z-index:5; }
+  .mark { width:34px; height:34px; border-radius:4px; background:#fff;
+          display:grid; place-items:center; flex:none; }
+  .mark img { width:26px; height:26px; object-fit:contain; display:block; }
+  .brandname { font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; color:#9aa1a9; }
+  .bar .back { margin-left:auto; font-size:0.8rem; color:#cfd4d9;
+               border:1px solid #33373c; border-radius:3px;
+               padding:0.3rem 0.7rem; text-decoration:none; white-space:nowrap; }
+  .wrap { max-width:56rem; margin:1.5rem auto 5rem; padding:0 1rem; }
+  h1 { font-size:1.25rem; letter-spacing:-0.02em; margin:0 0 0.3rem; font-weight:600; }
+  .sub { color:var(--muted); font-size:0.88rem; margin:0 0 1.25rem; }
+  .panel { background:var(--card); border:1px solid var(--rule); border-radius:6px;
+           padding:1rem 1.1rem; margin-bottom:1.1rem; }
+  .panel h2 { font-size:0.75rem; letter-spacing:0.12em; text-transform:uppercase;
+              color:var(--muted); margin:0 0 0.8rem; font-weight:600; }
+  label { display:block; font-size:0.8rem; font-weight:600; margin-bottom:0.3rem; }
+  .hint { font-weight:400; color:var(--muted); font-size:0.78rem; }
+  input, select { width:100%; font:inherit; padding:0.5rem 0.6rem;
+    border:1px solid var(--rule); border-radius:4px; background:#fff; color:var(--ink); }
+  .field { margin-bottom:0.8rem; }
+  .row2 { display:flex; gap:0.6rem; flex-wrap:wrap; }
+  .row2 > * { flex:1 1 10rem; }
+  .btn { font:inherit; font-weight:600; background:var(--ink); color:#fff; border:0;
+         border-radius:4px; padding:0.55rem 1rem; cursor:pointer; text-decoration:none;
+         display:inline-block; }
+  .btn:hover { background:#000; }
+  .btn.wide { width:100%; }
+  .btn.ghost { background:#fff; color:var(--ink); border:1px solid var(--rule); font-weight:500; }
+  .btn.tiny { font-size:0.74rem; padding:0.22rem 0.5rem; font-weight:500;
+              background:#fff; color:var(--ink); border:1px solid var(--rule); }
+  .msg { font-size:0.85rem; margin-top:0.6rem; min-height:1.2em; }
+  .msg.err { color:var(--bad); } .msg.ok { color:var(--good); }
+
+  .bandhead { display:flex; align-items:baseline; gap:0.6rem; margin:1.6rem 0 0.5rem; }
+  .bandhead h3 { font-size:0.82rem; letter-spacing:0.02em; margin:0; font-weight:700; }
+  .bandhead .why { font-size:0.78rem; color:var(--muted); }
+  .bandhead .n { font-size:0.72rem; color:var(--muted); margin-left:auto; white-space:nowrap; }
+
+  .mk { background:var(--card); border:1px solid var(--rule); border-radius:6px;
+        padding:0.7rem 0.85rem; margin-bottom:0.5rem; display:flex; gap:0.8rem;
+        align-items:flex-start; }
+  .mk.cant { opacity:0.55; }
+  .mk .score { flex:none; width:2.6rem; text-align:center; }
+  .mk .score b { display:block; font-size:1.15rem; font-weight:700; letter-spacing:-0.02em;
+                 line-height:1.1; font-variant-numeric:tabular-nums; }
+  .mk .score span { font-size:0.6rem; letter-spacing:0.08em; text-transform:uppercase;
+                    color:var(--muted); }
+  .mk .body { flex:1 1 auto; min-width:0; }
+  .mk .nm { font-weight:650; }
+  .mk .nm .reg { font-weight:400; color:var(--muted); font-size:0.84rem; }
+  .mk .line { font-size:0.82rem; color:var(--muted); margin-top:0.1rem; }
+  .mk .flags { display:flex; gap:0.3rem; flex-wrap:wrap; margin-top:0.35rem; }
+  .mk .who { font-size:0.78rem; color:var(--muted); margin-top:0.3rem; }
+  .mk .who b { color:var(--ink); font-weight:600; }
+
+  .pill { display:inline-block; font-size:0.64rem; letter-spacing:0.07em;
+          text-transform:uppercase; padding:0.12rem 0.4rem; border-radius:3px;
+          border:1px solid var(--rule); color:var(--muted); white-space:nowrap; }
+  .pill.on   { border-color:var(--good); color:var(--good); }
+  .pill.warn { border-color:var(--warn); color:var(--warn); }
+  .pill.bad  { border-color:var(--bad); color:var(--bad); font-weight:650; }
+  .pill.ink  { background:var(--ink); border-color:var(--ink); color:#fff; font-weight:650; }
+  .pill.acc  { border-color:var(--accent); color:var(--accent); font-weight:650; }
+
+  .note { border-left:3px solid var(--rule); padding:0.5rem 0.8rem; background:#faf9f7;
+          border-radius:0 5px 5px 0; font-size:0.84rem; margin:0.7rem 0; color:var(--muted); }
+  .note b { color:var(--ink); }
+  .empty { color:var(--muted); font-size:0.88rem; padding:0.5rem 0; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+  <span class="brandname">Coach Portal</span>
+  <a class="back" href="/portal/">Back to the portal</a>
+</div>
+
+<div class="wrap">
+  <h1>Where to go</h1>
+  <p class="sub">The planner asks "is this weekend safe in this market". This asks
+     the other way round: given a course to run, which markets are worth it.
+     Countries, not cities — pick one here, then use the seminar planner to
+     choose the host and the weekend.</p>
+
+  <div class="panel">
+    <h2>What are you placing</h2>
+    <div class="row2">
+      <div class="field">
+        <label for="qBrand">Brand</label>
+        <select id="qBrand">
+          <option value="tcc">TCC — The Coaches Course</option>
+          <option value="tgc">TGC — The Gymnastics Course</option>
+          <option value="tec">TEC — The Endurance Course</option>
+          <option value="twc">TWC — The Weightlifting Course</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="qLevel">Level</label>
+        <select id="qLevel">
+          <option value="L1">Level 1</option>
+          <option value="L2">Level 2</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="qCoach">Coach <span class="hint">— optional</span></label>
+        <select id="qCoach"><option value="">Anyone</option></select>
+      </div>
+      <div class="field" style="flex:0 0 8rem">
+        <label for="qGo">&nbsp;</label>
+        <button class="btn wide" id="qGo" type="button">Show</button>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field" style="margin:0">
+        <label class="hint" style="display:flex;align-items:center;gap:0.4rem;font-weight:400">
+          <input type="checkbox" id="qDeliverable" checked style="width:1.1rem">
+          Only markets somebody can actually lead in
+        </label>
+      </div>
+      <div class="field" style="margin:0">
+        <label class="hint" style="display:flex;align-items:center;gap:0.4rem;font-weight:400">
+          <input type="checkbox" id="qTranslate" checked style="width:1.1rem">
+          Count a translator as making a market reachable
+        </label>
+      </div>
+    </div>
+    <p class="msg" id="qmsg"></p>
+  </div>
+
+  <div class="note" id="caveat">
+    <b>Two things this cannot know.</b> The record starts January 2023, so
+    "never run" means "not since 2023" — Russia was a strong market and reads
+    here as untouched. And a market with no CrossFit courses recorded means
+    nobody has looked on their map, not that they have not been.
+  </div>
+
+  <div id="results"></div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient(
+  "https://yvdmazpxtpuvidlcifnq.supabase.co",
+  "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+);
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? "" : s)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+let me = null;
+let isAdmin = false;
+let markets = [];        // v_market_gaps
+let competitor = [];     // v_competitor_by_market
+let caps = [];           // coach_capabilities
+let staff = [];
+
+/* ---------- who could deliver this ---------- */
+
+// A capability row applies if the brand matches or is the wildcard, and
+// the level matches or is unset. Level is written L1 and L2 here, which
+// is what the courses use too.
+function capApplies(c, brand, level) {
+  const brandOk = c.brand === brand || c.brand === "*";
+  const lvl = (v) => String(v == null ? "" : v).replace(/\D/g, "");
+  const levelOk = c.level == null || lvl(c.level) === lvl(level);
+  return brandOk && levelOk;
+}
+
+const langsOf = (c) => Array.isArray(c.languages) ? c.languages : [];
+
+// Who can lead this course, and in which languages. Somebody marked
+// 'future' is not counted — they are not ready — and 'avoid' is counted
+// but flagged, because it is a judgement rather than a bar.
+function leadersFor(brand, level) {
+  return caps.filter((c) =>
+    c.cap_role === "lead" &&
+    ["active", "developing", "avoid"].includes(c.status) &&
+    capApplies(c, brand, level));
+}
+
+function translatorsFor() {
+  return caps.filter((c) => c.cap_role === "translate" && c.status === "active");
+}
+
+const nameOf = (id) => {
+  const s = staff.find((x) => x.id === id);
+  return s ? s.full_name : "somebody";
+};
+
+/* ---------- ranking ---------- */
+
+// Deliberately not one opaque number. Every part of this is shown on the
+// card as a reason, so a suggestion can be argued with rather than
+// merely obeyed.
+function scoreMarket(m, comp) {
+  const parts = [];
+  let score = 0;
+
+  // How well it has performed, where there is anything to go on.
+  if (m.avg_pax != null) {
+    const n = Number(m.avg_pax);
+    score += Math.min(n, 25) * 2;
+    parts.push({ label: `averages ${n}`, weight: Math.round(Math.min(n, 25) * 2) });
+  }
+
+  // Host decay, from the record: inside 6 months 11.1, 13–24 months 9.8,
+  // beyond 24 months 6.4. So a gap is not fatal, but it costs.
+  if (m.months_since != null) {
+    const ms = Number(m.months_since);
+    if (ms <= 6)       { score -= 10; parts.push({ label: "very recently there", weight: -10 }); }
+    else if (ms <= 12) { score += 8;  parts.push({ label: "due a return", weight: 8 }); }
+    else if (ms <= 24) { score += 12; parts.push({ label: `${ms} months since`, weight: 12 }); }
+    else               { score += 4;  parts.push({ label: `cold, ${ms} months`, weight: 4 }); }
+  }
+
+  // More hosts is more resilience: one gym is one relationship.
+  if (m.hosts > 1) {
+    const h = Math.min(m.hosts, 8) * 1.5;
+    score += h;
+    parts.push({ label: `${m.hosts} hosts on record`, weight: Math.round(h) });
+  }
+
+  // A proven audience that has never seen this brand.
+  if (m.missingBrand) {
+    score += 18;
+    parts.push({ label: "this brand never run here", weight: 18 });
+  }
+
+  // Their course creates the trainers who then want ours.
+  if (comp) {
+    if (comp.trail_state === "ripe")     { score += 20; parts.push({ label: "their window is open", weight: 20 }); }
+    else if (comp.trail_state === "too soon") { score += 6; parts.push({ label: "their window opens later", weight: 6 }); }
+    if (comp.sold_out)                   { score += 15; parts.push({ label: "they sold out here", weight: 15 }); }
+  }
+
+  // Never run at all: worth surfacing, but there is nothing to stand on.
+  if (m.band === "never run") {
+    score += comp ? 10 : 0;
+    if (comp) parts.push({ label: "no history, but they run here", weight: 10 });
+  }
+
+  return { score: Math.round(score), parts };
+}
+
+/* ---------- the bands ---------- */
+
+const BANDS = [
+  { key: "ripe",    title: "Ripe now",
+    why: "Proven market, due a return, or their window is open." },
+  { key: "brand",   title: "Proven market, this brand never run",
+    why: "The audience is there and has not seen this course." },
+  { key: "cold",    title: "Cold, but it worked",
+    why: "Over two years since. Close to a cold start, but the record is good." },
+  { key: "never",   title: "Never run",
+    why: "Not since January 2023. Judgement, not data — but where CrossFit runs, there are trainers." },
+  { key: "recent",  title: "Been there recently",
+    why: "Worth leaving alone for now." },
+  { key: "ruled",   title: "Ruled out",
+    why: "Deliberately, with a reason." },
+];
+
+function bandFor(m, comp) {
+  if (m.status === "ruled_out") return "ruled";
+  if (m.band === "never run")   return "never";
+  if (m.missingBrand && m.runs > 0) return "brand";
+  if (m.band === "cold")        return "cold";
+  if (m.months_since != null && Number(m.months_since) <= 6) return "recent";
+  return "ripe";
+}
+
+/* ---------- load ---------- */
+
+const { data: { session } } = await db.auth.getSession();
+
+if (!session) {
+  document.querySelector(".wrap").innerHTML =
+    '<h1>Please sign in</h1><p class="sub">Open the portal, sign in, then come back.</p>';
+} else {
+  const { data: staffRow } = await db.from("staff")
+    .select("id, full_name, role").eq("id", session.user.id).maybeSingle();
+  me = staffRow;
+  isAdmin = !!staffRow && staffRow.role === "admin";
+
+  if (!isAdmin) {
+    document.querySelector(".wrap").innerHTML =
+      '<h1>Not available</h1><p class="sub">This page is admin only. ' +
+      'The schedule is on <a href="/portal/year/">Scheduling planner</a>.</p>';
+    throw new Error("admin only");
+  }
+
+  await loadAll();
+  render();
+}
+
+async function loadAll() {
+  const [g, c, cp, st] = await Promise.all([
+    db.from("v_market_gaps").select("*"),
+    db.from("v_competitor_by_market").select("*"),
+    db.from("coach_capabilities").select("staff_id, brand, level, cap_role, languages, can_solo, status"),
+    db.from("staff").select("id, full_name, country, languages").eq("active", true).order("full_name"),
+  ]);
+
+  markets = g.data || [];
+  competitor = c.data || [];
+  caps = cp.data || [];
+  staff = st.data || [];
+
+  $("qCoach").innerHTML = '<option value="">Anyone</option>' +
+    staff.map((s) => `<option value="${s.id}">${esc(s.full_name)}</option>`).join("");
+
+  // The competitor table is new and may well be empty, which changes what
+  // this page can tell you. Say so rather than quietly ranking without it.
+  if (!competitor.some((x) => x.courses_known > 0)) {
+    $("caveat").innerHTML =
+      '<b>No CrossFit courses recorded yet.</b> Everything below is ranked on ' +
+      'your own history alone. Once some of their courses are entered on ' +
+      '<a href="/portal/competitors/">Their courses</a>, the markets they are ' +
+      'warming up will rise to the top — which is the half of this the record ' +
+      'cannot see.';
+  }
+}
+
+/* ---------- render ---------- */
+
+for (const id of ["qBrand","qLevel","qCoach","qDeliverable","qTranslate"]) {
+  $(id).addEventListener("change", render);
+}
+$("qGo").addEventListener("click", render);
+
+function render() {
+  const brand = $("qBrand").value;
+  const level = $("qLevel").value;
+  const onlyCoach = $("qCoach").value;
+  const onlyDeliverable = $("qDeliverable").checked;
+  const allowTranslate = $("qTranslate").checked;
+
+  const leads = leadersFor(brand, level);
+  const trans = translatorsFor();
+
+  // Sold-out markets, matched by country code where the competitor view
+  // has one.
+  const compBy = new Map();
+  for (const c of competitor) compBy.set(c.code, c);
+
+  const rows = markets.map((m) => {
+    const comp = compBy.get(m.code);
+    const untried = Array.isArray(m.brands_untried) ? m.brands_untried : [];
+    const missingBrand = untried.includes(brand.toUpperCase());
+
+    const lang = m.language || "en";
+
+    // Who could lead it, in the language that market runs in.
+    let canLead = leads.filter((c) => langsOf(c).includes(lang));
+    if (onlyCoach) canLead = canLead.filter((c) => c.staff_id === onlyCoach);
+
+    // Anybody who leads it at all, even without the language — with a
+    // translator that may be enough.
+    let anyLead = leads;
+    if (onlyCoach) anyLead = anyLead.filter((c) => c.staff_id === onlyCoach);
+    const canTranslate = trans.filter((c) => langsOf(c).includes(lang));
+
+    const reachable = canLead.length > 0 ||
+      (allowTranslate && anyLead.length > 0 && canTranslate.length > 0);
+
+    const enriched = { ...m, missingBrand, sold_out: comp && comp.sold_out };
+    const { score, parts } = scoreMarket(enriched, comp);
+
+    return { m: enriched, comp, score, parts, canLead, canTranslate,
+             anyLead, reachable, lang };
+  });
+
+  const shown = onlyDeliverable ? rows.filter((r) => r.reachable) : rows;
+
+  const grouped = new Map();
+  for (const r of shown) {
+    const b = bandFor(r.m, r.comp);
+    if (!grouped.has(b)) grouped.set(b, []);
+    grouped.get(b).push(r);
+  }
+  for (const list of grouped.values()) list.sort((a, b) => b.score - a.score);
+
+  let html = "";
+  for (const band of BANDS) {
+    const list = grouped.get(band.key) || [];
+    if (!list.length) continue;
+    html += `<div class="bandhead"><h3>${esc(band.title)}</h3>
+      <span class="why">${esc(band.why)}</span>
+      <span class="n">${list.length}</span></div>`;
+    // The ruled-out band is a reminder, not a suggestion, so it stays short.
+    const cap = band.key === "ruled" ? 6 : 12;
+    for (const r of list.slice(0, cap)) html += marketCard(r, brand);
+    if (list.length > cap) {
+      html += `<p class="empty">${list.length - cap} more not shown.</p>`;
+    }
+  }
+
+  $("results").innerHTML = html || '<p class="empty">Nothing matches that.</p>';
+
+  const total = shown.length;
+  const hidden = rows.length - shown.length;
+  $("qmsg").className = "msg";
+  $("qmsg").textContent =
+    `${total} market${total === 1 ? "" : "s"} shown` +
+    (hidden ? `, ${hidden} hidden because nobody can lead ${brand.toUpperCase()} ${level} there.` : ".");
+}
+
+function marketCard(r, brand) {
+  const m = r.m;
+  const flags = [];
+
+  if (m.missingBrand) flags.push(`<span class="pill acc">${esc(brand.toUpperCase())} never run here</span>`);
+  if (m.status === "watch" ) flags.push('<span class="pill warn">watch</span>');
+  if (m.status === "ruled_out") flags.push('<span class="pill bad">ruled out</span>');
+  if (r.comp && r.comp.trail_state === "ripe")
+    flags.push('<span class="pill on">their window open</span>');
+  if (r.comp && r.comp.trail_state === "too soon")
+    flags.push('<span class="pill">their window opens later</span>');
+  if (m.sold_out) flags.push('<span class="pill warn">they sold out</span>');
+  if (m.parent_code) flags.push(`<span class="pill">${esc(m.language || "")}</span>`);
+
+  // Who could take it. This is the part that turns a suggestion into a
+  // decision, so it is spelled out rather than implied.
+  let who;
+  if (r.canLead.length) {
+    const names = [...new Set(r.canLead.map((c) => nameOf(c.staff_id)))];
+    who = `<b>${esc(names.slice(0, 4).join(", "))}</b>` +
+          (names.length > 4 ? ` and ${names.length - 4} more` : "") +
+          ` can lead this in ${esc(r.lang)}`;
+  } else if (r.anyLead.length && r.canTranslate.length) {
+    const names = [...new Set(r.canTranslate.map((c) => nameOf(c.staff_id)))];
+    who = `Nobody leads this in ${esc(r.lang)} — but <b>${esc(names.join(", "))}</b>` +
+          ` can translate.`;
+  } else {
+    who = `Nobody on the team leads this in ${esc(r.lang)}.`;
+  }
+
+  const record = m.runs > 0
+    ? `${m.runs} run${m.runs === 1 ? "" : "s"} across ${m.hosts} host${m.hosts === 1 ? "" : "s"}` +
+      (m.avg_pax != null ? `, averaging ${m.avg_pax}` : "") +
+      (m.best_pax != null ? `, best ${m.best_pax}` : "") +
+      (m.months_since != null ? ` · ${m.months_since} months since` : "")
+    : "Nothing on record since January 2023";
+
+  const theirs = r.comp && r.comp.courses_known
+    ? ` · CrossFit ran there ${r.comp.months_since_them} months ago`
+    : "";
+
+  const reasons = r.parts.length
+    ? `<div class="who">${esc(r.parts.map((p) => p.label).join(" · "))}</div>` : "";
+
+  return `<div class="mk${r.reachable ? "" : " cant"}">
+    <span class="score"><b>${r.score}</b><span>score</span></span>
+    <span class="body">
+      <div class="nm">${esc(m.name)} <span class="reg">${esc(m.region)}</span></div>
+      <div class="line">${esc(record)}${esc(theirs)}</div>
+      <div class="flags">${flags.join("")}</div>
+      <div class="who">${who}</div>
+      ${reasons}
+      ${m.status_note ? `<div class="who">${esc(m.status_note)}</div>` : ""}
+    </span>
+  </div>`;
+}
+</script>
+
+</body>
+</html>
