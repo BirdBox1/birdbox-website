@@ -682,6 +682,7 @@
           <button id="broadcastbtn" class="hidden" type="button">Message the team</button>
           <button id="plannerbtn" class="hidden" type="button">Seminar planner</button>
     <button id="yearbtn" class="hidden" type="button">Scheduling planner</button>
+    <button id="compbtn" class="hidden" type="button">Their courses</button>
 
     <button id="profilebtn" class="hidden" type="button">My profile</button>
     <span class="who" id="who"></span>
@@ -2870,6 +2871,8 @@ async function start() {
     $("plannerbtn").onclick = () => { location.href = "/portal/planner/"; };
       $("yearbtn").classList.remove("hidden");
     $("yearbtn").onclick = () => { location.href = "/portal/year/"; };
+    $("compbtn").classList.toggle("hidden", !admin);
+    $("compbtn").onclick = () => { location.href = "/portal/competitors/"; };
 
   refreshUnreadFlag();
   listenForMessages();
