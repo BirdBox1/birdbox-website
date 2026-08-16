@@ -206,6 +206,30 @@
   .sem.locked:hover { background:none; }
   .sem.plan.locked:hover { background:#f5f4f1; }
   .chip { cursor:pointer; }
+  /* ---------- emailing the host ---------- */
+  .cwrap { position:fixed; inset:0; z-index:60; background:rgba(13,14,16,0.55);
+           display:flex; align-items:center; justify-content:center; padding:1rem;
+           overflow-y:auto; }
+  .cbox { background:var(--card); width:100%; max-width:38rem; border-radius:10px;
+          padding:1.2rem; max-height:90vh; overflow-y:auto; position:relative;
+          box-shadow:0 18px 50px rgba(0,0,0,0.3); }
+  .cbox h3 { margin:0 0 0.15rem; font-size:1.05rem; padding-right:2rem; }
+  .cbox .who { color:var(--muted); font-size:0.85rem; margin:0 0 0.9rem; }
+  .cbox label { display:block; font-size:0.8rem; font-weight:600; margin-bottom:0.3rem; }
+  .cbox input, .cbox textarea { width:100%; font:inherit; padding:0.5rem 0.6rem;
+    border:1px solid var(--rule); border-radius:4px; background:#fff; color:var(--ink); }
+  .cbox textarea { min-height:11rem; resize:vertical; }
+  .cbox .field { margin-bottom:0.8rem; }
+  .cbox .foot { display:flex; gap:0.5rem; justify-content:flex-end; flex-wrap:wrap;
+                margin-top:0.9rem; }
+  .cbox .msg { font-size:0.85rem; margin-top:0.6rem; min-height:1.2em; }
+  .cbox .msg.err { color:var(--bad); } .cbox .msg.ok { color:var(--good); }
+  .cbox .note { border-left:3px solid var(--rule); padding:0.45rem 0.7rem;
+                background:#faf9f7; border-radius:0 4px 4px 0; font-size:0.8rem;
+                color:var(--muted); margin:0 0 0.9rem; }
+  .hist { font-size:0.82rem; color:var(--muted); margin-top:0.5rem; }
+  .hist .h { border-left:2px solid var(--rule); padding:0.1rem 0 0.1rem 0.6rem;
+             margin-bottom:0.3rem; }
   .hidden { display:none !important; }
 </style>
 </head>
@@ -275,6 +299,28 @@
 <div class="sched" id="sched"><div class="empty">Loading…</div></div>
 <div class="hiddenbar hidden" id="hiddenbar"></div>
 <div class="gridwrap hidden" id="gridwrap"></div>
+
+<div class="cwrap hidden" id="cwrap">
+  <div class="cbox">
+    <h3 id="c-h">Email the host</h3>
+    <p class="who" id="c-who"></p>
+    <p class="note" id="c-note"></p>
+    <div class="field">
+      <label for="c-subject">Subject</label>
+      <input id="c-subject" type="text">
+    </div>
+    <div class="field">
+      <label for="c-body">Message</label>
+      <textarea id="c-body"
+        placeholder="Hi,&#10;&#10;Quick one about Saturday — what is the door code for the morning?&#10;&#10;Thanks"></textarea>
+    </div>
+    <p class="msg" id="c-msg"></p>
+    <div class="foot">
+      <button class="btn ghost" id="c-close" type="button">Cancel</button>
+      <button class="btn" id="c-send" type="button">Send</button>
+    </div>
+  </div>
+</div>
 
 <div class="sheet hidden" id="sheet">
   <div class="sheetbox">
@@ -989,9 +1035,13 @@ function openSheet(kind, id) {
       html += `<button class="btn ghost" data-copy="${esc(link)}">Copy link</button>`;
     }
     if (priv && c.host_email) {
-      html += `<a class="btn ghost" href="mailto:${esc(c.host_email)}">Email the host</a>`;
+      // Sent through the portal rather than out of a mail app, so it is
+      // on the record and the next coach can see it happened. Replies
+      // still come back to whoever sent it.
+      html += `<button class="btn ghost" data-host="${esc(c.id)}">Email the host</button>`;
     }
     html += `<a class="btn ghost" href="/portal/?course=${esc(c.id)}">Open in the portal</a></div>`;
+    html += `<div class="hist" id="host-hist"></div>`;
 
   } else {
     const p = plans.find(x => x.id === id);
@@ -1037,6 +1087,14 @@ function openSheet(kind, id) {
   }
 
   $("sheetBody").innerHTML = html;
+
+  $("sheetBody").querySelectorAll("[data-host]").forEach(b =>
+    b.addEventListener("click", () => openHostCompose(b.dataset.host)));
+
+  // What has already gone to this gym, so two coaches do not both ask
+  // about the door code.
+  if ($("host-hist")) loadHostHistory(id);
+
   $("sheetBody").querySelectorAll("[data-copy]").forEach(b =>
     b.addEventListener("click", async () => {
       try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Copied"; }
@@ -1044,6 +1102,121 @@ function openSheet(kind, id) {
     }));
   $("sheet").classList.remove("hidden");
 }
+
+/* ---------- emailing the host ---------- */
+
+let hostCourse = null;
+
+async function loadHostHistory(courseId) {
+  const box = $("host-hist");
+  if (!box) return;
+
+  const { data, error } = await db.from("course_emails")
+    .select("subject, sent_at, status, sent_by, staff:sent_by ( full_name )")
+    .eq("course_id", courseId).eq("kind", "host")
+    .order("sent_at", { ascending: false }).limit(5);
+
+  if (error || !data || !data.length) { box.innerHTML = ""; return; }
+
+  box.innerHTML = "<b>Already sent to the host</b>" + data.map((r) => {
+    const who = (r.staff && r.staff.full_name) || "somebody";
+    const when = r.sent_at
+      ? new Date(r.sent_at).toLocaleDateString("en-GB",
+          { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" })
+      : "not sent";
+    return `<div class="h">${esc(r.subject || "(no subject)")}<br>` +
+           `${esc(who)} · ${esc(when)}` +
+           (r.status === "failed" ? ' · <b style="color:var(--bad)">failed</b>' : "") +
+           `</div>`;
+  }).join("");
+}
+
+function openHostCompose(courseId) {
+  const c = courses.find((x) => x.id === courseId);
+  if (!c) return;
+  hostCourse = c;
+
+  $("c-h").textContent = "Email the host";
+  $("c-who").textContent =
+    `${c.host_name ? c.host_name + " — " : ""}${c.host_email} · ${c.title}`;
+  $("c-note").textContent =
+    "Sends from your own address with info@ copied, so a reply comes back " +
+    "to you. It is recorded against the course.";
+  $("c-subject").value = c.title || "";
+  $("c-body").value = "";
+  $("c-msg").textContent = "";
+  $("c-msg").className = "msg";
+  $("c-send").disabled = false;
+  $("cwrap").classList.remove("hidden");
+  setTimeout(() => $("c-body").focus(), 50);
+}
+
+function closeHostCompose() {
+  $("cwrap").classList.add("hidden");
+  hostCourse = null;
+}
+
+$("c-close").addEventListener("click", closeHostCompose);
+$("cwrap").addEventListener("click", (e) => {
+  if (e.target === $("cwrap")) closeHostCompose();
+});
+
+$("c-send").addEventListener("click", async () => {
+  if (!hostCourse) return;
+  const msg = $("c-msg");
+  const subject = $("c-subject").value.trim();
+  const body = $("c-body").value.trim();
+
+  if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return; }
+  if (!body) { msg.className = "msg err"; msg.textContent = "There is nothing to send."; return; }
+
+  if (!window.confirm(
+    `Send this to ${hostCourse.host_email}?\n\nIt cannot be unsent.`
+  )) return;
+
+  $("c-send").disabled = true;
+  msg.className = "msg";
+  msg.textContent = "Sending…";
+
+  try {
+    // The row is written first, then sent, so a failure leaves a draft
+    // rather than nothing at all.
+    const { data: row, error } = await db.from("course_emails").insert({
+      course_id: hostCourse.id,
+      registration_id: null,
+      kind: "host",
+      subject,
+      body,
+      status: "draft",
+    }).select("id").single();
+
+    if (error) throw new Error(error.message);
+
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) throw new Error("Your session has expired — sign in again.");
+
+    const res = await fetch("/.netlify/functions/course-email-send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + session.access_token,
+      },
+      body: JSON.stringify({ emailId: row.id }),
+    });
+    const out = await res.json();
+    if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+    msg.className = "msg ok";
+    msg.textContent = `Sent to ${out.sentTo}, as ${out.sentAs}.`;
+
+    const id = hostCourse.id;
+    setTimeout(() => { closeHostCompose(); loadHostHistory(id); }, 1600);
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = err.message;
+    $("c-send").disabled = false;
+  }
+});
 
 /* ---------- switching and controls ---------- */
 
