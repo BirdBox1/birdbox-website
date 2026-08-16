@@ -1,12 +1,19 @@
 // netlify/functions/course-email-send.mjs
 //
-// Sends a lead coach's emails to participants.
+// Sends a coach's emails out of the portal.
 //
 //   POST { emailId }                  the pre-course email, to everyone
 //   POST { emailId, registrationId }  a welcome, to one person
+//   POST { emailId }  where kind='host'   to the course's host
 //
-// Each participant is emailed individually, from the lead coach, with
+// Participants are emailed individually, from the lead coach, with
 // info@ copied. Nobody ever appears in anyone else's To line.
+//
+// A host email is different in two ways, both deliberate. It goes to
+// one address — the gym — rather than to a list. And any coach working
+// that seminar may send it, not only the lead: a coach needs to be able
+// to ask the gym about Saturday morning without going through the
+// office.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -58,16 +65,70 @@ export default async (req) => {
     if (email.status === "sent") return json({ error: "This has already been sent." }, 409);
     if (!email.body || !email.body.trim()) return json({ error: "There is nothing to send." }, 409);
 
-    if (!(await isLeadOrAdmin(staff, email.course_id))) {
-      return json({ error: "Only the lead coach can send to participants" }, 403);
+    const toHost = email.kind === "host";
+
+    // Participants are the lead coach's business. The host is anybody's
+    // who is actually working that seminar.
+    const allowed = toHost
+      ? await isOnCourseOrAdmin(staff, email.course_id)
+      : await isLeadOrAdmin(staff, email.course_id);
+
+    if (!allowed) {
+      return json({
+        error: toHost
+          ? "Only an admin or a coach on this course can email the host"
+          : "Only the lead coach can send to participants",
+      }, 403);
     }
 
     const { data: course } = await supabase
       .from("courses")
-      .select("id, brand, title, city, country, starts_at")
+      .select("id, brand, title, city, country, starts_at, host_name, host_email")
       .eq("id", email.course_id)
       .single();
 
+    const sender = senderFor(staff);
+    const brand = BRAND_LOGO[String(course.brand || "").toLowerCase()] || null;
+
+    // ---------- the host ----------
+    if (toHost) {
+      if (!course.host_email) {
+        return json({
+          error: "There is no host email on this course. Add one under Edit course details.",
+        }, 409);
+      }
+
+      const subject = (email.subject || "").trim() || `${course.title}`;
+      const text = personalise(email.body, {
+        first_name: String(course.host_name || "there").split(" ")[0],
+        last_name: "",
+      });
+
+      const ok = await sendEmail({
+        to: course.host_email,
+        sender,
+        subject,
+        text,
+        brand,
+      });
+
+      await supabase.from("course_emails").update({
+        status: ok ? "sent" : "failed",
+        sent_at: new Date().toISOString(),
+        sent_by: staff.id,
+        send_error: ok ? null : "The email was rejected",
+        updated_at: new Date().toISOString(),
+      }).eq("id", email.id);
+
+      if (!ok) return json({ error: "The email was rejected. Check the host address." }, 502);
+
+      return json({
+        ok: true, sent: 1, failed: 0, problems: [],
+        sentTo: course.host_email, sentAs: sender.from,
+      });
+    }
+
+    // ---------- participants ----------
     // A welcome goes to one person; the pre-course email to everyone
     // still on the course; the follow-up only to those who turned up.
     let people = [];
@@ -103,8 +164,6 @@ export default async (req) => {
       }, 409);
     }
 
-    const sender = senderFor(staff);
-    const brand = BRAND_LOGO[String(course.brand || "").toLowerCase()] || null;
     const subject = (email.subject || "").trim() ||
       (email.kind === "welcome"
         ? `Looking forward to seeing you at ${course.title}`
@@ -190,6 +249,20 @@ async function isLeadOrAdmin(staff, courseId) {
   return data?.role === "lead_coach";
 }
 
+// Any coach on the course, whatever their role on it. An assistant who
+// is standing in the gym on Saturday morning needs to be able to reach
+// the host as much as the lead does.
+async function isOnCourseOrAdmin(staff, courseId) {
+  if (staff.role === "admin") return true;
+  const { data } = await supabase
+    .from("course_staff")
+    .select("role")
+    .eq("course_id", courseId)
+    .eq("staff_id", staff.id)
+    .maybeSingle();
+  return !!data;
+}
+
 function senderFor(staff) {
   const email = (staff.email || "").trim().toLowerCase();
   const domain = email.split("@")[1] || "";
@@ -204,7 +277,8 @@ function senderFor(staff) {
 }
 
 // The body is written once with {{first_name}} where the greeting
-// goes, so one draft still reads personally to each participant.
+// goes, so one draft still reads personally to each participant. On a
+// host email the same fields carry the host's own name.
 function personalise(body, person) {
   return String(body)
     .replace(/\{\{\s*first_name\s*\}\}/gi, person.first_name || "there")
