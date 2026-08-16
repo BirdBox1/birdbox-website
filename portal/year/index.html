@@ -206,7 +206,185 @@
   .sem.locked:hover { background:none; }
   .sem.plan.locked:hover { background:#f5f4f1; }
   .chip { cursor:pointer; }
-  /* ---------- emailing the host ---------- */
+  /* ---------- the map ---------- */
+
+// Not a page of its own: the schedule is where the work happens, and the
+// map answers one question — where are the gaps — so it opens over the
+// top and closes again.
+//
+// Leaflet is fetched the first time it is opened rather than on every
+// page load, because most visits never open it. CARTO tiles need no key.
+
+let mapPoints = null;   // v_map_points, loaded once
+let theMap = null;
+let pinLayer = null;
+let showLive = true;
+let showPlans = true;
+
+const BRAND_COLOUR = { tcc:"#2f7fd0", tgc:"#9e2029", tec:"#1c6b3f", twc:"#e8a317" };
+
+function loadOnce(tag, attrs) {
+  return new Promise((resolve, reject) => {
+    const el = document.createElement(tag);
+    Object.assign(el, attrs);
+    el.onload = () => resolve();
+    el.onerror = () => reject(new Error("Could not load the map library"));
+    document.head.appendChild(el);
+  });
+}
+
+async function ensureLeaflet() {
+  if (window.L) return;
+  await loadOnce("link", {
+    rel: "stylesheet",
+    href: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+  });
+  await loadOnce("script", {
+    src: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+  });
+  if (!window.L) throw new Error("The map library did not load");
+}
+
+async function loadMapPoints() {
+  if (mapPoints) return mapPoints;
+  const { data, error } = await db.from("v_map_points").select("*");
+  if (error) throw new Error(error.message);
+  mapPoints = (data || []).filter((p) =>
+    p.latitude != null && p.longitude != null);
+  return mapPoints;
+}
+
+// Only what the page is already showing: same year, same brand filter,
+// same search. A map that disagreed with the list underneath it would be
+// worse than no map.
+function pointsInView() {
+  if (!mapPoints) return [];
+  const brand = $("brand").value;
+  const q = $("q").value.trim().toLowerCase();
+  const from = weekends[0];
+  const to = weekends.length ? addDays(weekends[weekends.length - 1], 6) : null;
+
+  return mapPoints.filter((p) => {
+    if (brand && p.brand !== brand) return false;
+    if (p.kind === "course" && !showLive) return false;
+    if (p.kind === "plan" && !showPlans) return false;
+    if (from && p.on_date && p.on_date < from) return false;
+    if (to && p.on_date && p.on_date > to) return false;
+    if (q) {
+      const hay = [p.label, p.city, p.venue, p.country].join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function popupHtml(p) {
+  const when = p.on_date ? weekendLabel(iso(saturdayOf(
+    new Date(+p.on_date.slice(0,4), +p.on_date.slice(5,7)-1, +p.on_date.slice(8,10))
+  ))) : "";
+  return `<div class="pt">${esc(p.label || p.venue || p.city)}</div>` +
+    `<div class="pl">${esc([p.venue, p.city, p.country].filter(Boolean).join(", "))}</div>` +
+    `<div class="pl">${esc(when)}${p.kind === "plan" ? " · " + esc(p.stage || "planned") : ""}</div>` +
+    `<button data-open="${esc(p.kind)}:${esc(p.id)}">Open</button>`;
+}
+
+async function openMap() {
+  const wrap = $("mapwrap");
+  wrap.classList.remove("hidden");
+  $("mapfoot").textContent = "Loading…";
+
+  try {
+    await ensureLeaflet();
+    await loadMapPoints();
+  } catch (err) {
+    $("mapfoot").textContent = err.message;
+    return;
+  }
+
+  if (!theMap) {
+    theMap = window.L.map("mapcanvas", { worldCopyJump: true }).setView([25, 5], 2);
+    window.L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      { attribution: "&copy; OpenStreetMap, &copy; CARTO", maxZoom: 18 }
+    ).addTo(theMap);
+    pinLayer = window.L.layerGroup().addTo(theMap);
+  }
+  // The container was hidden when the map was made, so it has to be told
+  // its own size once it is on screen.
+  setTimeout(() => theMap.invalidateSize(), 60);
+
+  drawPins();
+}
+
+function drawPins() {
+  if (!theMap || !pinLayer) return;
+  pinLayer.clearLayers();
+
+  const pts = pointsInView();
+  const bounds = [];
+
+  for (const p of pts) {
+    const colour = BRAND_COLOUR[p.brand] || "#8a9099";
+    const size = p.kind === "plan" ? 12 : 14;
+    const icon = window.L.divIcon({
+      className: "",
+      html: `<div class="pin${p.kind === "plan" ? " plan" : ""}"
+              style="width:${size}px;height:${size}px;background:${colour}"></div>`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+    });
+
+    const m = window.L.marker([p.latitude, p.longitude], { icon })
+      .bindPopup(popupHtml(p));
+    m.addTo(pinLayer);
+    bounds.push([p.latitude, p.longitude]);
+  }
+
+  if (bounds.length) theMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 6 });
+
+  const missing = mapPoints ? 0 : 0;
+  $("mapcount").textContent =
+    `${pts.length} pin${pts.length === 1 ? "" : "s"}`;
+
+  // Anything without coordinates is invisible here, which would otherwise
+  // look like an empty market rather than a missing map pin.
+  const all = mapPoints ? mapPoints.length : 0;
+  $("mapfoot").textContent = pts.length
+    ? "Solid is on sale, dashed is planned. Only seminars with a map pin appear — " +
+      "add coordinates on the course to place the rest."
+    : "Nothing with a map pin in this range. Coordinates are set on the course " +
+      "or the plan, under Look up from address.";
+}
+
+// The popup is drawn by Leaflet, so its button is wired when it opens
+// rather than up front.
+document.addEventListener("click", (e) => {
+  const b = e.target.closest && e.target.closest("[data-open]");
+  if (!b || !$("mapwrap") || $("mapwrap").classList.contains("hidden")) return;
+  const [k, id] = b.dataset.open.split(":");
+  const list = items();
+  const found = list.find((x) => x.kind === k && x.id === id);
+  if (found) {
+    $("mapwrap").classList.add("hidden");
+    openSheet(k, id);
+  } else if (k === "course") {
+    // Outside the range the page has loaded, so hand it to the portal.
+    location.href = "/portal/?course=" + encodeURIComponent(id);
+  }
+});
+
+$("mapBtn").addEventListener("click", openMap);
+$("mapClose").addEventListener("click", () => $("mapwrap").classList.add("hidden"));
+for (const [id, set] of [["mapLive", (v) => showLive = v], ["mapPlans", (v) => showPlans = v]]) {
+  $(id).addEventListener("click", () => {
+    const on = !$(id).classList.contains("on");
+    $(id).classList.toggle("on", on);
+    set(on);
+    drawPins();
+  });
+}
+
+/* ---------- emailing the host ---------- */
   .cwrap { position:fixed; inset:0; z-index:60; background:rgba(13,14,16,0.55);
            display:flex; align-items:center; justify-content:center; padding:1rem;
            overflow-y:auto; }
@@ -230,6 +408,32 @@
   .hist { font-size:0.82rem; color:var(--muted); margin-top:0.5rem; }
   .hist .h { border-left:2px solid var(--rule); padding:0.1rem 0 0.1rem 0.6rem;
              margin-bottom:0.3rem; }
+  /* ---------- the map ---------- */
+  .mapwrap { position:fixed; inset:0; z-index:70; background:var(--paper);
+             display:flex; flex-direction:column; }
+  .maphead { background:var(--shell); color:#fff; padding:0.6rem 1rem;
+             display:flex; align-items:center; gap:0.7rem; flex-wrap:wrap; }
+  .maphead .t { font-weight:650; font-size:0.9rem; }
+  .maphead .n { font-size:0.78rem; color:#9aa1a9; }
+  .maphead .sp { flex:1 1 auto; }
+  .maphead button { font:inherit; font-size:0.8rem; background:none; color:#cfd4d9;
+                    border:1px solid #33373c; border-radius:3px;
+                    padding:0.28rem 0.7rem; cursor:pointer; }
+  .maphead button:hover { color:#fff; border-color:#55595e; }
+  .maphead button.on { background:#fff; color:var(--ink); border-color:#fff; }
+  #mapcanvas { flex:1 1 auto; min-height:0; background:#0d0e10; }
+  .mapfoot { padding:0.4rem 1rem; font-size:0.75rem; color:var(--muted);
+             background:var(--card); border-top:1px solid var(--rule); }
+
+  /* A plan is drawn hollow, the way it is on the grid. */
+  .pin { border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px rgba(0,0,0,0.4); }
+  .pin.plan { border-style:dashed; opacity:0.75; }
+  .leaflet-popup-content { margin:0.7rem 0.9rem; font-size:0.86rem; }
+  .leaflet-popup-content .pt { font-weight:650; }
+  .leaflet-popup-content .pl { color:var(--muted); font-size:0.8rem; }
+  .leaflet-popup-content button { font:inherit; font-size:0.78rem; margin-top:0.4rem;
+    background:var(--ink); color:#fff; border:0; border-radius:3px;
+    padding:0.25rem 0.6rem; cursor:pointer; }
   .hidden { display:none !important; }
 </style>
 </head>
@@ -283,6 +487,7 @@
   <div class="spacer"></div>
   <button class="btn ghost" id="togglePlanned" type="button">Planned: on</button>
   <button class="btn ghost hidden" id="toggleBlank" type="button">Empty weekends: off</button>
+  <button class="btn ghost" id="mapBtn" type="button">Map</button>
   <a class="btn" href="/portal/planner/" id="planLink">Plan a seminar</a>
 </div>
 
@@ -299,6 +504,19 @@
 <div class="sched" id="sched"><div class="empty">Loading…</div></div>
 <div class="hiddenbar hidden" id="hiddenbar"></div>
 <div class="gridwrap hidden" id="gridwrap"></div>
+
+<div class="mapwrap hidden" id="mapwrap">
+  <div class="maphead">
+    <span class="t">Where everything is</span>
+    <span class="n" id="mapcount"></span>
+    <span class="sp"></span>
+    <button id="mapLive" class="on" type="button">Live</button>
+    <button id="mapPlans" class="on" type="button">Planned</button>
+    <button id="mapClose" type="button">Close</button>
+  </div>
+  <div id="mapcanvas"></div>
+  <p class="mapfoot" id="mapfoot"></p>
+</div>
 
 <div class="cwrap hidden" id="cwrap">
   <div class="cbox">
@@ -1101,6 +1319,184 @@ function openSheet(kind, id) {
       catch (e) { window.prompt("Copy this link", b.dataset.copy); }
     }));
   $("sheet").classList.remove("hidden");
+}
+
+/* ---------- the map ---------- */
+
+// Not a page of its own: the schedule is where the work happens, and the
+// map answers one question — where are the gaps — so it opens over the
+// top and closes again.
+//
+// Leaflet is fetched the first time it is opened rather than on every
+// page load, because most visits never open it. CARTO tiles need no key.
+
+let mapPoints = null;   // v_map_points, loaded once
+let theMap = null;
+let pinLayer = null;
+let showLive = true;
+let showPlans = true;
+
+const BRAND_COLOUR = { tcc:"#2f7fd0", tgc:"#9e2029", tec:"#1c6b3f", twc:"#e8a317" };
+
+function loadOnce(tag, attrs) {
+  return new Promise((resolve, reject) => {
+    const el = document.createElement(tag);
+    Object.assign(el, attrs);
+    el.onload = () => resolve();
+    el.onerror = () => reject(new Error("Could not load the map library"));
+    document.head.appendChild(el);
+  });
+}
+
+async function ensureLeaflet() {
+  if (window.L) return;
+  await loadOnce("link", {
+    rel: "stylesheet",
+    href: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+  });
+  await loadOnce("script", {
+    src: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+  });
+  if (!window.L) throw new Error("The map library did not load");
+}
+
+async function loadMapPoints() {
+  if (mapPoints) return mapPoints;
+  const { data, error } = await db.from("v_map_points").select("*");
+  if (error) throw new Error(error.message);
+  mapPoints = (data || []).filter((p) =>
+    p.latitude != null && p.longitude != null);
+  return mapPoints;
+}
+
+// Only what the page is already showing: same year, same brand filter,
+// same search. A map that disagreed with the list underneath it would be
+// worse than no map.
+function pointsInView() {
+  if (!mapPoints) return [];
+  const brand = $("brand").value;
+  const q = $("q").value.trim().toLowerCase();
+  const from = weekends[0];
+  const to = weekends.length ? addDays(weekends[weekends.length - 1], 6) : null;
+
+  return mapPoints.filter((p) => {
+    if (brand && p.brand !== brand) return false;
+    if (p.kind === "course" && !showLive) return false;
+    if (p.kind === "plan" && !showPlans) return false;
+    if (from && p.on_date && p.on_date < from) return false;
+    if (to && p.on_date && p.on_date > to) return false;
+    if (q) {
+      const hay = [p.label, p.city, p.venue, p.country].join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function popupHtml(p) {
+  const when = p.on_date ? weekendLabel(iso(saturdayOf(
+    new Date(+p.on_date.slice(0,4), +p.on_date.slice(5,7)-1, +p.on_date.slice(8,10))
+  ))) : "";
+  return `<div class="pt">${esc(p.label || p.venue || p.city)}</div>` +
+    `<div class="pl">${esc([p.venue, p.city, p.country].filter(Boolean).join(", "))}</div>` +
+    `<div class="pl">${esc(when)}${p.kind === "plan" ? " · " + esc(p.stage || "planned") : ""}</div>` +
+    `<button data-open="${esc(p.kind)}:${esc(p.id)}">Open</button>`;
+}
+
+async function openMap() {
+  const wrap = $("mapwrap");
+  wrap.classList.remove("hidden");
+  $("mapfoot").textContent = "Loading…";
+
+  try {
+    await ensureLeaflet();
+    await loadMapPoints();
+  } catch (err) {
+    $("mapfoot").textContent = err.message;
+    return;
+  }
+
+  if (!theMap) {
+    theMap = window.L.map("mapcanvas", { worldCopyJump: true }).setView([25, 5], 2);
+    window.L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      { attribution: "&copy; OpenStreetMap, &copy; CARTO", maxZoom: 18 }
+    ).addTo(theMap);
+    pinLayer = window.L.layerGroup().addTo(theMap);
+  }
+  // The container was hidden when the map was made, so it has to be told
+  // its own size once it is on screen.
+  setTimeout(() => theMap.invalidateSize(), 60);
+
+  drawPins();
+}
+
+function drawPins() {
+  if (!theMap || !pinLayer) return;
+  pinLayer.clearLayers();
+
+  const pts = pointsInView();
+  const bounds = [];
+
+  for (const p of pts) {
+    const colour = BRAND_COLOUR[p.brand] || "#8a9099";
+    const size = p.kind === "plan" ? 12 : 14;
+    const icon = window.L.divIcon({
+      className: "",
+      html: `<div class="pin${p.kind === "plan" ? " plan" : ""}"
+              style="width:${size}px;height:${size}px;background:${colour}"></div>`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+    });
+
+    const m = window.L.marker([p.latitude, p.longitude], { icon })
+      .bindPopup(popupHtml(p));
+    m.addTo(pinLayer);
+    bounds.push([p.latitude, p.longitude]);
+  }
+
+  if (bounds.length) theMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 6 });
+
+  const missing = mapPoints ? 0 : 0;
+  $("mapcount").textContent =
+    `${pts.length} pin${pts.length === 1 ? "" : "s"}`;
+
+  // Anything without coordinates is invisible here, which would otherwise
+  // look like an empty market rather than a missing map pin.
+  const all = mapPoints ? mapPoints.length : 0;
+  $("mapfoot").textContent = pts.length
+    ? "Solid is on sale, dashed is planned. Only seminars with a map pin appear — " +
+      "add coordinates on the course to place the rest."
+    : "Nothing with a map pin in this range. Coordinates are set on the course " +
+      "or the plan, under Look up from address.";
+}
+
+// The popup is drawn by Leaflet, so its button is wired when it opens
+// rather than up front.
+document.addEventListener("click", (e) => {
+  const b = e.target.closest && e.target.closest("[data-open]");
+  if (!b || !$("mapwrap") || $("mapwrap").classList.contains("hidden")) return;
+  const [k, id] = b.dataset.open.split(":");
+  const list = items();
+  const found = list.find((x) => x.kind === k && x.id === id);
+  if (found) {
+    $("mapwrap").classList.add("hidden");
+    openSheet(k, id);
+  } else if (k === "course") {
+    // Outside the range the page has loaded, so hand it to the portal.
+    location.href = "/portal/?course=" + encodeURIComponent(id);
+  }
+});
+
+$("mapBtn").addEventListener("click", openMap);
+$("mapClose").addEventListener("click", () => $("mapwrap").classList.add("hidden"));
+for (const [id, set] of [["mapLive", (v) => showLive = v], ["mapPlans", (v) => showPlans = v]]) {
+  $(id).addEventListener("click", () => {
+    const on = !$(id).classList.contains("on");
+    $(id).classList.toggle("on", on);
+    set(on);
+    drawPins();
+  });
 }
 
 /* ---------- emailing the host ---------- */
