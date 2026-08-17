@@ -447,14 +447,20 @@ const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const DEPOSIT_RATE = 0.25;
 const BALANCE_DAYS_BEFORE = 14;
 
-// Klarna is not available everywhere; these are the countries where
-// we offer it. Anywhere else sees full payment and deposit only.
-const KLARNA_COUNTRIES = [
-  "united kingdom", "uk", "ireland", "france", "germany", "spain", "italy",
-  "netherlands", "belgium", "austria", "portugal", "poland", "sweden",
-  "norway", "denmark", "finland", "switzerland", "czechia", "greece",
-  "united states", "usa", "us", "canada", "australia", "new zealand",
-];
+// Klarna is decided by the CURRENCY, not the country.
+//
+// We sell from the Irish company, and Stripe will only let a European
+// business take Klarna when the price is shown in the currency of the
+// buyer's own country. So a euro course works for a buyer anywhere in
+// the eurozone and a sterling course works for a buyer in the UK, but
+// a dollar price can never take Klarna from an Irish account — Stripe
+// rejects the whole session rather than just hiding the option.
+//
+// This used to test course.country against a list of country NAMES,
+// while the database stores codes like "DE" and "US". "us" happened to
+// be in the list and "de" did not, so Klarna appeared on exactly the
+// courses where it cannot work and vanished from the ones where it can.
+const KLARNA_CURRENCIES = ["EUR", "GBP", "SEK", "NOK", "DKK", "CHF", "PLN", "CZK"];
 
 const BRAND = {
   birdbox: { icon: "/brand/birdBox.png", colour: "#2f7fd0", label: "BirdBox" },
@@ -614,8 +620,8 @@ async function load() {
   // — links get shared and indexed — but it stops selling.
   state.finished = new Date(course.ends_at || course.starts_at) < new Date();
   state.isFull = course.status === "full" || left === 0;
-  state.klarnaOk = KLARNA_COUNTRIES.includes(
-    String(course.country || "").trim().toLowerCase()
+  state.klarnaOk = KLARNA_CURRENCIES.includes(
+    String(course.currency || "").trim().toUpperCase()
   );
   state.total = course.price_cents;
   state.deposit = course.deposit_cents || Math.round(course.price_cents * DEPOSIT_RATE);
@@ -811,11 +817,14 @@ function renderBuyBox() {
     });
   }
 
+  // Even on a euro or sterling course, Klarna is only offered to buyers
+  // in Europe and the UK — so say so, rather than letting somebody
+  // choose it and hit a wall on Stripe's own page.
   if (state.klarnaOk) {
     options.push({
       key: "klarna",
       label: "Spread the cost with Klarna",
-      note: "Klarna splits the payment for you — subject to their approval",
+      note: "For customers in Europe and the UK — subject to Klarna's approval",
       amount: money(total),
     });
   }
