@@ -23,30 +23,6 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ
 
 const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-// Proof of life, written synchronously as the module runs, before
-// anything can await or throw. If this bar never appears the file is
-// not executing at all, and the problem is the script tag rather than
-// anything in here. It is removed the moment the panel mounts.
-function beacon(text, tone) {
-  let el = document.getElementById("extras-beacon");
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "extras-beacon";
-    el.style.cssText =
-      "position:fixed;left:0;right:0;bottom:0;z-index:9999;padding:0.5rem 0.9rem;" +
-      "font:13px ui-sans-serif,-apple-system,sans-serif;color:#fff;text-align:center";
-    document.body.appendChild(el);
-  }
-  el.style.background = tone === "bad" ? "#b3261e" : "#0d0e10";
-  el.textContent = text;
-}
-
-function beaconGone() {
-  const el = document.getElementById("extras-beacon");
-  if (el) el.remove();
-}
-
-beacon("course-extras: loaded");
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? "" : s)
@@ -460,7 +436,6 @@ async function mount() {
   if (adminPanel && adminPanel.parentNode === wrap) wrap.insertBefore(panel, adminPanel);
   else wrap.appendChild(panel);
 
-  beaconGone();
   wirePanel();
 
   if (!me) {
@@ -519,20 +494,86 @@ async function paintList() {
   }
 }
 
-async function run() {
-  beacon("course-extras: starting");
+/* ---------- who has actually signed in ---------- */
 
-  // getSession can hang when two Supabase clients share one session, so
-  // it is raced against a timer rather than trusted to come back.
+// Five accounts have never been used, and until this was visible there
+// was no way to tell a coach who has not got round to it from an invite
+// that never arrived. Admin only — it reads auth data through a
+// SECURITY DEFINER function that checks is_admin() itself.
+
+let signIns = null;
+
+function agoText(iso) {
+  if (!iso) return null;
+  const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 14) return days + " days ago";
+  if (days < 60) return Math.round(days / 7) + " weeks ago";
+  return Math.round(days / 30.44) + " months ago";
+}
+
+async function loadSignIns() {
+  const { data, error } = await db.rpc("staff_sign_ins");
+  if (error) { console.warn("Sign-ins unavailable:", error.message); return null; }
+  const by = new Map();
+  for (const r of data || []) by.set(String(r.email || "").toLowerCase(), r.last_sign_in);
+  return by;
+}
+
+async function paintTeam() {
+  if (!isAdmin()) return;
+  const lists = ["tm-list", "tm-gone"]
+    .map((id) => document.getElementById(id)).filter(Boolean);
+  if (!lists.length) return;
+
+  const rows = [];
+  for (const l of lists) rows.push(...l.querySelectorAll(".inv-row"));
+  if (!rows.length) return;
+
+  if (!signIns) signIns = await loadSignIns();
+  if (!signIns) return;
+
+  for (const row of rows) {
+    if (row.querySelector(".signin-note")) continue;
+
+    // The rows carry no id, so they are matched on the email address
+    // already printed under the name.
+    let hit = null;
+    const text = (row.textContent || "").toLowerCase();
+    for (const [email, when] of signIns.entries()) {
+      if (email && text.includes(email)) { hit = { email, when }; break; }
+    }
+    if (!hit) continue;
+
+    const who = row.querySelector(".who");
+    if (!who) continue;
+
+    const note = document.createElement("div");
+    note.className = "signin-note whenline";
+    note.style.marginTop = "0.15rem";
+    if (hit.when) {
+      note.textContent = "Last signed in " + agoText(hit.when);
+    } else {
+      note.style.color = "var(--bad)";
+      note.style.fontWeight = "650";
+      note.textContent = "Never signed in";
+    }
+    who.appendChild(note);
+  }
+}
+
+async function run() {
+  // Raced against a timer: getSession can hang when two Supabase clients
+  // share one session, and a hang here would take the whole file with it.
   try {
     await Promise.race([
       whoAmI(),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error("sign-in check timed out")), 4000)),
     ]);
-    beacon("course-extras: signed in as " + (me ? me.full_name : "nobody"));
   } catch (err) {
-    beacon("course-extras: " + err.message + " — opening the panel anyway", "bad");
+    console.warn("course-extras:", err.message);
   }
 
   // The portal swaps views in and out rather than navigating, so there
@@ -541,12 +582,14 @@ async function run() {
   const observer = new MutationObserver(() => {
     mount().catch(() => {});
     paintList().catch(() => {});
+    paintTeam().catch(() => {});
   });
   observer.observe(document.body, { childList: true, subtree: true, attributes: true,
     attributeFilter: ["class"] });
 
   mount().catch(() => {});
   paintList().catch(() => {});
+  paintTeam().catch(() => {});
 }
 
 run();
