@@ -28,6 +28,20 @@ const VERIFIED_DOMAINS = ["birdboxcoaching.com"];
 const FALLBACK_FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
 const OFFICE = "info@birdboxcoaching.com";
 
+// Resend allows ten requests a second. Firing a whole course off at
+// once trips that and the surplus emails are simply dropped — which is
+// what happened on TGC L1 Cumming, where three participants never got
+// the pre-course email. So we go a few at a time with a gap in
+// between, and retry anything that still comes back rate limited.
+//
+// Five at a time keeps the peak at half the allowance. Do not raise
+// this without also raising the gap.
+const CHUNK_SIZE = 5;
+const CHUNK_GAP_MS = 800;
+const MAX_RETRIES = 3;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 // Logos have to be absolute URLs — an email client has no idea what
 // site the message came from. Change this one line if the custom
 // domain goes live.
@@ -99,7 +113,7 @@ export default async (req) => {
         last_name: "",
       });
 
-      const ok = await sendEmail({
+      const result = await sendEmail({
         to: course.host_email,
         sender,
         subject,
@@ -108,14 +122,16 @@ export default async (req) => {
       });
 
       await supabase.from("course_emails").update({
-        status: ok ? "sent" : "failed",
+        status: result.ok ? "sent" : "failed",
         sent_at: new Date().toISOString(),
         sent_by: staff.id,
-        send_error: ok ? null : "The email was rejected",
+        send_error: result.ok ? null : result.error,
         updated_at: new Date().toISOString(),
       }).eq("id", email.id);
 
-      if (!ok) return json({ error: "The email was rejected. Check the host address." }, 502);
+      if (!result.ok) {
+        return json({ error: `The email was not sent: ${result.error}` }, 502);
+      }
 
       return json({
         ok: true, sent: 1, failed: 0, problems: [],
@@ -168,29 +184,46 @@ export default async (req) => {
     let failed = 0;
     const problems = [];
 
+    // Somebody with no address at all is not a send that can be tried,
+    // so they come out of the list before we start.
+    const sendable = [];
     for (const p of people) {
       if (!p.email) {
         failed++;
         problems.push(`${p.first_name} ${p.last_name}: no email address`);
-        continue;
+      } else {
+        sendable.push(p);
+      }
+    }
+
+    for (let i = 0; i < sendable.length; i += CHUNK_SIZE) {
+      const chunk = sendable.slice(i, i + CHUNK_SIZE);
+
+      const results = await Promise.all(
+        chunk.map(async (p) => {
+          // Greet each person by name, whatever the body says.
+          const text = personalise(email.body, p);
+          const result = await sendEmail({
+            to: p.email,
+            sender,
+            subject,
+            text,
+            brand,
+          });
+          return { person: p, result };
+        })
+      );
+
+      for (const { person, result } of results) {
+        if (result.ok) {
+          sent++;
+        } else {
+          failed++;
+          problems.push(`${person.first_name} ${person.last_name}: ${result.error}`);
+        }
       }
 
-      // Greet each person by name, whatever the body says.
-      const text = personalise(email.body, p);
-
-      const ok = await sendEmail({
-        to: p.email,
-        sender,
-        subject,
-        text,
-        brand,
-      });
-
-      if (ok) sent++;
-      else {
-        failed++;
-        problems.push(`${p.first_name} ${p.last_name}: the email was rejected`);
-      }
+      if (i + CHUNK_SIZE < sendable.length) await sleep(CHUNK_GAP_MS);
     }
 
     await supabase.from("course_emails").update({
@@ -320,33 +353,80 @@ function escapeHtml(s) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
+// Turn whatever Resend said into something a coach reading the summary
+// email can act on. The raw body is still written to the log.
+function describeFailure(status, detail) {
+  let message = "";
+  try {
+    const parsed = JSON.parse(detail);
+    message = parsed?.message || parsed?.error?.message || "";
+  } catch {
+    message = "";
+  }
+
+  if (status === 429) return "still rate limited after retrying";
+  if (status === 422) return message || "the address was not accepted";
+  if (status === 403) return message || "Resend refused the send";
+  if (status === 401) return "the Resend key was not accepted";
+  return message || `rejected (HTTP ${status})`;
+}
+
 async function sendEmail({ to, sender, subject, text, brand }) {
   const key = process.env.RESEND_API_KEY;
-  if (!key) { console.warn("No Resend key; not sending to", to); return false; }
-
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: sender.from,
-        to: [to],
-        cc: [OFFICE],
-        reply_to: sender.replyTo,
-        subject,
-        text,
-        html: template(text, brand),
-      }),
-    });
-    if (!res.ok) {
-      console.error("Resend rejected", to, await res.text());
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error("Could not send to", to, err.message);
-    return false;
+  if (!key) {
+    console.warn("No Resend key; not sending to", to);
+    return { ok: false, error: "no Resend key is configured" };
   }
+
+  const payload = JSON.stringify({
+    from: sender.from,
+    to: [to],
+    cc: [OFFICE],
+    reply_to: sender.replyTo,
+    subject,
+    text,
+    html: template(text, brand),
+  });
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+        body: payload,
+      });
+
+      if (res.ok) return { ok: true };
+
+      const detail = await res.text();
+
+      // Rate limited. Wait as long as Resend asks, or a little longer
+      // each go, and try again — the message is fine, we were just
+      // too quick.
+      if (res.status === 429 && attempt < MAX_RETRIES) {
+        const retryAfter = Number(res.headers.get("retry-after"));
+        const wait = Number.isFinite(retryAfter) && retryAfter > 0
+          ? retryAfter * 1000
+          : 1000 * (attempt + 1);
+        console.warn(`Rate limited sending to ${to}; waiting ${wait}ms and retrying`);
+        await sleep(wait);
+        continue;
+      }
+
+      console.error("Resend rejected", to, res.status, detail);
+      return { ok: false, error: describeFailure(res.status, detail) };
+    } catch (err) {
+      if (attempt < MAX_RETRIES) {
+        console.warn("Send to", to, "failed, retrying:", err.message);
+        await sleep(1000 * (attempt + 1));
+        continue;
+      }
+      console.error("Could not send to", to, err.message);
+      return { ok: false, error: err.message || "the connection failed" };
+    }
+  }
+
+  return { ok: false, error: "still rate limited after retrying" };
 }
 
 async function officeSummary(course, staff, sender, sent, failed, problems) {
