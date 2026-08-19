@@ -2,9 +2,11 @@
 //
 // Sends a coach's emails out of the portal.
 //
-//   POST { emailId }                  the pre-course email, to everyone
-//   POST { emailId, registrationId }  a welcome, to one person
-//   POST { emailId }  where kind='host'   to the course's host
+//   POST { emailId }                        the pre-course email, to everyone
+//   POST { emailId, registrationId }        one person: a welcome, or a
+//                                           pre-course resend to somebody
+//                                           the first send did not reach
+//   POST { emailId }  where kind='host'     to the course's host
 //
 // Participants are emailed individually, from the lead coach, with
 // info@ copied. Nobody ever appears in anyone else's To line.
@@ -66,18 +68,32 @@ export default async (req) => {
     const staff = await requireStaff(req);
     if (!staff) return json({ error: "Not authorised" }, 401);
 
-    const { emailId, attendedOnly } = await req.json();
+    const { emailId, attendedOnly, registrationId } = await req.json();
     if (!emailId) return json({ error: "Missing email" }, 400);
 
     const { data: email } = await supabase
       .from("course_emails")
-      .select("id, course_id, registration_id, kind, subject, body, status")
+      .select("id, course_id, registration_id, kind, subject, body, status, " +
+              "failed_registration_ids")
       .eq("id", emailId)
       .single();
 
     if (!email) return json({ error: "Email not found" }, 404);
-    if (email.status === "sent") return json({ error: "This has already been sent." }, 409);
-    if (!email.body || !email.body.trim()) return json({ error: "There is nothing to send." }, 409);
+
+    // A pre-course email that has gone out is finished as far as the
+    // course is concerned, but one named person may still be owed it —
+    // somebody the first send did not reach. That is the only way past
+    // the guard below, and it sends to them alone.
+    const resendTo = email.kind === "precourse" && registrationId
+      ? registrationId
+      : null;
+
+    if (email.status === "sent" && !resendTo) {
+      return json({ error: "This has already been sent." }, 409);
+    }
+    if (!email.body || !email.body.trim()) {
+      return json({ error: "There is nothing to send." }, 409);
+    }
 
     const toHost = email.kind === "host";
 
@@ -140,10 +156,21 @@ export default async (req) => {
     }
 
     // ---------- participants ----------
-    // A welcome goes to one person; the pre-course email to everyone
-    // still on the course; the follow-up only to those who turned up.
+    // One named person on a resend; one on a welcome; otherwise
+    // everyone still on the course, or only those who turned up.
     let people = [];
-    if (email.registration_id) {
+
+    if (resendTo) {
+      const { data } = await supabase
+        .from("registrations")
+        .select("id, first_name, last_name, email, payment_status, status, attended")
+        .eq("id", resendTo)
+        .eq("course_id", email.course_id);
+      people = data || [];
+      if (!people.length) {
+        return json({ error: "That participant is not on this course." }, 404);
+      }
+    } else if (email.registration_id) {
       const { data } = await supabase
         .from("registrations")
         .select("id, first_name, last_name, email, payment_status, status, attended")
@@ -184,12 +211,18 @@ export default async (req) => {
     let failed = 0;
     const problems = [];
 
+    // Who did not get it, by id rather than by name. A sentence of
+    // text cannot be matched back to a person; this can, which is what
+    // lets the portal offer a resend beside the right name.
+    const failedIds = [];
+
     // Somebody with no address at all is not a send that can be tried,
     // so they come out of the list before we start.
     const sendable = [];
     for (const p of people) {
       if (!p.email) {
         failed++;
+        failedIds.push(String(p.id));
         problems.push(`${p.first_name} ${p.last_name}: no email address`);
       } else {
         sendable.push(p);
@@ -219,6 +252,7 @@ export default async (req) => {
           sent++;
         } else {
           failed++;
+          failedIds.push(String(person.id));
           problems.push(`${person.first_name} ${person.last_name}: ${result.error}`);
         }
       }
@@ -226,11 +260,38 @@ export default async (req) => {
       if (i + CHUNK_SIZE < sendable.length) await sleep(CHUNK_GAP_MS);
     }
 
+    // ---------- a resend to one person ----------
+    // The course email itself is already sent and stays that way. All
+    // that changes is whether this person is still owed it.
+    if (resendTo) {
+      const outstanding = (email.failed_registration_ids || []).map(String);
+      const remaining = sent
+        ? outstanding.filter((id) => id !== String(resendTo))
+        : outstanding;
+
+      await supabase.from("course_emails").update({
+        failed_registration_ids: remaining,
+        send_error: remaining.length
+          ? `${remaining.length} still to reach after resending`
+          : null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", email.id);
+
+      return json({
+        ok: true, sent, failed, problems,
+        sentAs: sender.from,
+        resend: true,
+        remainingFailed: remaining.length,
+      });
+    }
+
+    // ---------- the ordinary send ----------
     await supabase.from("course_emails").update({
       status: failed && !sent ? "failed" : "sent",
       sent_at: new Date().toISOString(),
       sent_by: staff.id,
       send_error: problems.length ? problems.join("; ") : null,
+      failed_registration_ids: failedIds,
       updated_at: new Date().toISOString(),
     }).eq("id", email.id);
 
@@ -443,7 +504,10 @@ async function officeSummary(course, staff, sender, sent, failed, problems) {
         text:
           `${staff.full_name} sent the pre-course email for ${course.title}.\n\n` +
           `Sent as: ${sender.from}\nSent: ${sent}\nFailed: ${failed}\n` +
-          (problems.length ? "\nNEEDS ATTENTION:\n" + problems.map((p) => "  " + p).join("\n") : ""),
+          (problems.length
+            ? "\nNEEDS ATTENTION:\n" + problems.map((p) => "  " + p).join("\n") +
+              "\n\nThe coach can resend to these people from the course in the portal."
+            : ""),
       }),
     });
   } catch (err) {
