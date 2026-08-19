@@ -304,7 +304,22 @@ async function toggleShared(link) {
       h.style.cssText = "font-weight:650;color:var(--ink);margin:0 0 0.4rem";
       h.textContent = files.length + (files.length === 1 ? " file" : " files");
       panel.append(h);
-      for (const f of files) panel.append(sharedRow(f));
+
+      // Pictures first, as pictures. A screenshot is recognised at a
+      // glance and never by its filename.
+      const images = files.filter((f) => /^image\//.test(f.mime_type || ""));
+      const rest = files.filter((f) => !/^image\//.test(f.mime_type || ""));
+
+      if (images.length) {
+        const grid = document.createElement("div");
+        grid.style.cssText =
+          "display:grid;gap:0.4rem;margin-bottom:0.7rem;" +
+          "grid-template-columns:repeat(auto-fill,minmax(7rem,1fr))";
+        for (const f of images) grid.append(thumb(f));
+        panel.append(grid);
+      }
+
+      for (const f of rest) panel.append(sharedRow(f));
     }
     if (links.length) {
       const h = document.createElement("div");
@@ -315,19 +330,83 @@ async function toggleShared(link) {
       for (const l of links) {
         const row = document.createElement("div");
         row.className = "rc-row";
+
+        // A real preview would mean fetching the page, which the
+        // browser will not do for somebody else's site. The domain and
+        // its icon are honest about what this is, and enough to
+        // recognise a link you have seen before.
+        let host = "";
+        try { host = new URL(l.url).hostname.replace(/^www\./, ""); } catch (e) {}
+
+        if (host) {
+          const icon = document.createElement("img");
+          icon.src = "https://" + host + "/favicon.ico";
+          icon.alt = "";
+          icon.style.cssText = "flex:none;width:16px;height:16px;object-fit:contain";
+          icon.onerror = () => icon.remove();
+          row.append(icon);
+        }
+
+        const wrap = document.createElement("span");
+        wrap.style.cssText = "flex:1 1 auto;min-width:0";
         const a = document.createElement("a");
         a.href = l.url;
         a.target = "_blank";
         a.rel = "noopener";
         a.textContent = l.url;
-        a.style.cssText = "flex:1 1 auto;min-width:0;overflow-wrap:anywhere";
-        row.append(a);
+        a.style.cssText = "display:block;overflow-wrap:anywhere";
+        const meta = document.createElement("div");
+        meta.className = "hint";
+        meta.textContent = [host, (l.mine ? "you" : "them"),
+          new Date(l.when).toLocaleDateString("en-GB",
+            { day: "numeric", month: "short", year: "numeric" })]
+          .filter(Boolean).join(" \u00b7 ");
+        wrap.append(a, meta);
+        row.append(wrap);
         panel.append(row);
       }
     }
   }
 
   list.parentNode.insertBefore(panel, list.nextSibling);
+}
+
+// One picture in the grid. The link is asked for as it is drawn rather
+// than up front, so opening the panel does not wait on twenty of them.
+function thumb(m) {
+  const box = document.createElement("button");
+  box.type = "button";
+  box.style.cssText =
+    "padding:0;border:1px solid var(--rule);border-radius:5px;overflow:hidden;" +
+    "background:#f0eeea;cursor:pointer;display:block;width:100%;text-align:left";
+
+  const frame = document.createElement("span");
+  frame.style.cssText =
+    "display:block;aspect-ratio:1/1;background:#f0eeea";
+  box.append(frame);
+
+  const cap = document.createElement("span");
+  cap.className = "hint";
+  cap.style.cssText =
+    "display:block;padding:0.3rem 0.4rem;overflow:hidden;" +
+    "text-overflow:ellipsis;white-space:nowrap";
+  cap.textContent = (m.sender_id === me.id ? "You" : "Them") + " \u00b7 " +
+    new Date(m.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  box.append(cap);
+
+  db.storage.from("chat-files").createSignedUrl(m.file_path, 3600).then(({ data }) => {
+    if (!data?.signedUrl) { cap.textContent = m.file_name || "file"; return; }
+    const img = document.createElement("img");
+    img.src = data.signedUrl;
+    img.alt = m.file_name || "";
+    img.loading = "lazy";
+    img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block";
+    frame.append(img);
+    box.title = m.file_name || "";
+    box.addEventListener("click", () => window.open(data.signedUrl, "_blank"));
+  });
+
+  return box;
 }
 
 function sharedRow(m) {
