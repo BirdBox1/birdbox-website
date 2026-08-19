@@ -36,6 +36,7 @@ let me = null;
 let pending = null;      // the file chosen but not yet sent
 let lastThread = null;   // who the box was last typed into
 let showingFiles = false;
+let mountingFiles = false;
 
 /* ---------- who is signed in ---------- */
 
@@ -160,6 +161,16 @@ async function restoreDraft() {
   const to = await currentThread();
   if (!to || to === lastThread) return;
   lastThread = to;
+
+  // A new conversation starts on its messages, not on the last
+  // person's file list.
+  if (showingFiles) {
+    showingFiles = false;
+    const panel = document.getElementById("dmf-panel");
+    if (panel) panel.remove();
+    const list = $("dm-list");
+    if (list) list.style.display = "";
+  }
   const draft = readDraft(to);
   // Never write over something already in the box.
   if (draft && !box.value) box.value = draft;
@@ -207,20 +218,35 @@ const FILES_ID = "dmf-shared";
 async function mountFilesLink() {
   const heading = $("dm-with");
   if (!heading) return;
-  // openThread rewrites this heading, which takes the button with it,
-  // so its presence is checked inside the heading rather than globally.
-  if (heading.querySelector && heading.querySelector("#" + FILES_ID)) return;
-  const to = await currentThread();
-  if (!to) return;
 
-  const link = document.createElement("button");
-  link.id = FILES_ID;
-  link.type = "button";
-  link.className = "btn ghost tiny";
-  link.style.cssText = "margin-left:0.6rem;vertical-align:middle";
-  link.textContent = "Files";
-  link.addEventListener("click", () => toggleShared(link));
-  heading.appendChild(link);
+  // The observer fires several times in a row, and this function waits
+  // on a lookup before it appends. Without a guard taken BEFORE the
+  // wait, every one of those calls passes the "is it there?" test and
+  // five buttons appear. The flag is set synchronously; the check
+  // inside the heading is repeated afterwards for the same reason.
+  if (mountingFiles) return;
+  if (heading.querySelector && heading.querySelector("." + FILES_ID)) return;
+
+  mountingFiles = true;
+  try {
+    const to = await currentThread();
+    if (!to) return;
+    if (heading.querySelector && heading.querySelector("." + FILES_ID)) return;
+
+    // Belt and braces: anything left over from an earlier race goes.
+    for (const old of heading.querySelectorAll("." + FILES_ID)) old.remove();
+
+    const link = document.createElement("button");
+    link.id = FILES_ID;
+    link.className = "btn ghost tiny " + FILES_ID;
+    link.type = "button";
+    link.style.cssText = "margin-left:0.6rem;vertical-align:middle";
+    link.textContent = showingFiles ? "Back to messages" : "Files";
+    link.addEventListener("click", () => toggleShared(link));
+    heading.appendChild(link);
+  } finally {
+    mountingFiles = false;
+  }
 }
 
 async function toggleShared(link) {
@@ -260,6 +286,9 @@ async function toggleShared(link) {
   showingFiles = true;
   link.textContent = "Back to messages";
   list.style.display = "none";
+
+  // Never two panels, however many buttons were pressed.
+  for (const old of document.querySelectorAll("#dmf-panel")) old.remove();
 
   const panel = document.createElement("div");
   panel.id = "dmf-panel";
