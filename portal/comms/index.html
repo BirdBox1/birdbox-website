@@ -1,906 +1,523 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Participant emails — BirdBox Coaching</title>
-<style>
-  :root {
-    --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
-    --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0;
-    --good:#1f8a54; --warn:#b4610f; --bad:#b3261e; --flag:#d9b310;
-  }
-  *,*::before,*::after{box-sizing:border-box}
-  body{margin:0;background:var(--paper);color:var(--ink);
-    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+// netlify/functions/course-email-send.mjs
+//
+// Sends a coach's emails out of the portal.
+//
+//   POST { emailId }                        the pre-course email, to everyone
+//   POST { emailId, registrationId }        one person: a welcome, or a
+//                                           pre-course resend to somebody
+//                                           the first send did not reach
+//   POST { emailId }  where kind='host'     to the course's host
+//
+// Participants are emailed individually, from the lead coach, with
+// info@ copied. Nobody ever appears in anyone else's To line.
+//
+// A host email goes to one address — the gym — rather than to a list.
+// It is still the lead coach's to send: the gym has one point of
+// contact, and an assistant emailing them separately would give them
+// two. The RLS policy on course_emails says the same thing, so this
+// check and the database agree.
 
-  .bar{background:var(--shell);color:#fff;padding:0.7rem 1.25rem;
-    display:flex;align-items:center;justify-content:space-between;gap:1rem}
-  .bar .left{display:flex;align-items:center;gap:0.75rem;min-width:0}
-  .mark{width:34px;height:34px;border-radius:4px;background:#fff;
-    display:grid;place-items:center;flex:none}
-  .mark img{width:26px;height:26px;object-fit:contain;display:block}
-  .bar .brandname{font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;
-    color:#9aa1a9;white-space:nowrap}
-  .bar a{font:inherit;font-size:0.8rem;color:#cfd4d9;border:1px solid #33373c;
-    padding:0.3rem 0.7rem;border-radius:3px;text-decoration:none;white-space:nowrap}
-  .bar a:hover{color:#fff;border-color:#55595e}
+import { createClient } from "@supabase/supabase-js";
 
-  .wrap{max-width:56rem;margin:0 auto;padding:1.5rem 1.25rem 5rem}
-  h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0 0 0.2rem;font-weight:600}
-  .sub{color:var(--muted);font-size:0.9rem;margin:0 0 1.25rem}
-  .back{display:inline-block;font-size:0.85rem;color:var(--accent);
-    text-decoration:none;margin-bottom:1rem;cursor:pointer;background:none;border:0;
-    font-family:inherit;padding:0}
-  .back:hover{text-decoration:underline}
-
-  .btn{font:inherit;font-weight:600;background:var(--ink);color:#fff;border:0;
-    border-radius:4px;padding:0.6rem 1.1rem;cursor:pointer}
-  .btn:hover{background:#000}
-  .btn[disabled]{opacity:0.45;cursor:default}
-  .btn.small{font-size:0.82rem;padding:0.4rem 0.8rem}
-  .btn.ghost{background:none;color:var(--ink);border:1px solid var(--rule);font-weight:500}
-  .btn.ghost:hover{background:#fff;border-color:var(--muted)}
-  .btn.go{background:var(--good)}
-  .btn.go:hover{background:#176e43}
-  .btn.wide{width:100%}
-
-  .card{background:var(--card);border:1px solid var(--rule);border-radius:6px;
-    margin-bottom:0.7rem;overflow:hidden}
-  .row{display:flex;align-items:center;gap:0.9rem;width:100%;text-align:left;
-    font:inherit;background:none;border:0;padding:0.9rem 1.05rem;cursor:pointer}
-  .row:hover{background:#faf9f7}
-  .row .thumb{flex:none;width:40px;height:40px;border-radius:5px;overflow:hidden;
-    border:1px solid var(--rule);background:#eceae6}
-  .row .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-  .row .who{flex:1 1 auto;min-width:0}
-  /* name and meta are their own lines — run together they read
-     "Nathan BirdRegistered today" */
-  .row .name{display:block;font-weight:650}
-  .row .meta{display:block;font-size:0.82rem;color:var(--muted)}
-
-  .pill{display:inline-block;font-size:0.66rem;letter-spacing:0.09em;
-    text-transform:uppercase;padding:0.16rem 0.45rem;border:1px solid var(--rule);
-    border-radius:3px;color:var(--muted);white-space:nowrap}
-  .pill.ok{background:var(--good);border-color:var(--good);color:#fff;font-weight:700}
-  .pill.due{background:#f3cf3d;border-color:#d9b310;color:#33280a;font-weight:700}
-  .pill.late{background:var(--warn);border-color:var(--warn);color:#fff;font-weight:700}
-
-  .panel{background:var(--card);border:1px solid var(--rule);border-radius:6px;
-    padding:1.25rem;margin-bottom:1rem}
-  .panel h3{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;
-    color:var(--muted);margin:0 0 0.8rem;font-weight:600}
-  .panel .lead-in{font-size:0.88rem;color:var(--muted);margin:0 0 0.9rem}
-
-  /* the two halves of the pre-course email */
-  .stage{display:grid;gap:0.5rem}
-  .stage .num{
-    display:inline-grid;place-items:center;width:1.35rem;height:1.35rem;
-    border-radius:50%;background:var(--ink);color:#fff;font-size:0.75rem;
-    font-weight:700;margin-right:0.45rem;vertical-align:-3px}
-  .standard{
-    background:#fbfaf8;border:1px solid var(--rule);border-radius:5px;
-    padding:0.85rem 0.95rem;font-size:0.9rem;white-space:pre-wrap;color:#3c4147}
-  .standard .cap{
-    display:block;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;
-    color:var(--muted);font-weight:650;margin-bottom:0.4rem}
-
-  label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.3rem}
-  .hint{font-weight:400;color:var(--muted);font-size:0.78rem}
-  input[type=text],textarea{width:100%;font:inherit;padding:0.55rem 0.65rem;
-    border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink)}
-  textarea{resize:vertical;line-height:1.6}
-  .field{margin-bottom:1rem}
-
-  .alert{background:#fffbe8;border:1px solid #eddfa4;border-left:3px solid var(--flag);
-    border-radius:6px;padding:0.9rem 1.05rem;margin-bottom:1rem;font-size:0.9rem}
-  .alert.warn{background:#fff8f0;border-color:#efd6b8;border-left-color:var(--warn)}
-  .alert.bad{background:#fdf4f3;border-color:#e6c9c7;border-left-color:var(--bad)}
-  .alert b{display:block;margin-bottom:0.2rem}
-  .alert code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.85em}
-
-  .msg{font-size:0.85rem;margin-top:0.9rem;min-height:1.2em}
-  .msg.err{color:var(--bad)}
-  .msg.ok{color:var(--good)}
-  .empty{background:var(--card);border:1px dashed var(--rule);border-radius:6px;
-    padding:2rem 1.25rem;text-align:center;color:var(--muted);font-size:0.9rem}
-  .counts{font-size:0.85rem;color:var(--muted);margin-bottom:1rem}
-  .hidden{display:none!important}
-</style>
-</head>
-<body>
-
-<div class="bar">
-  <span class="left">
-    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
-    <span class="brandname">Participant emails</span>
-  </span>
-  <a href="/portal/">← Portal</a>
-</div>
-
-<div class="wrap">
-  <div id="loading"><p class="sub">Loading…</p></div>
-
-  <section id="view-courses" class="hidden">
-    <h1>Participant emails</h1>
-    <p class="sub">Courses you are lead coach on.</p>
-    <div id="courselist"></div>
-  </section>
-
-  <section id="view-course" class="hidden">
-    <button class="back" id="back-courses" type="button">← All courses</button>
-    <h1 id="c-title"></h1>
-    <p class="sub" id="c-meta"></p>
-
-    <!-- welcome-overdue notices live here -->
-    <div id="alerts"></div>
-    <!-- pre-course notices live here, and are cleared on every redraw
-         so they cannot stack up -->
-    <div id="pre-alerts"></div>
-
-    <!-- ===== the pre-course email ===== -->
-    <div class="panel">
-      <h3>Before the course</h3>
-      <p class="lead-in" id="pre-when"></p>
-
-      <!-- step 1: their part -->
-      <div class="stage" id="pre-step1">
-        <label for="pre-personal">
-          <span class="num">1</span>Your part
-          <span class="hint">— the bit only you can write</span>
-        </label>
-        <p class="hint" style="margin:0 0 0.5rem">
-          Why you are looking forward to it, when you arrive, dinner plans,
-          anything that makes them feel expected. The greeting, times, venue
-          and sign-off are added for you.
-        </p>
-        <textarea id="pre-personal" style="min-height:9rem"
-          placeholder="This is Nathan, your lead coach for the weekend. I am really looking forward to meeting you all on Saturday morning…"></textarea>
-
-        <div class="standard" id="pre-standard">
-          <span class="cap">Then this is added automatically</span>
-          <span id="pre-standard-text"></span>
-        </div>
-
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-top:0.6rem">
-          <button class="btn small" id="pre-build" type="button">Save and build the email</button>
-          <span class="hint">You will see the whole thing next, and can still change it.</span>
-        </div>
-      </div>
-
-      <!-- step 2: check and send -->
-      <div class="stage hidden" id="pre-step2" style="margin-top:1.25rem">
-        <div class="field">
-          <label for="pre-subject"><span class="num">2</span>Subject</label>
-          <input id="pre-subject" type="text">
-        </div>
-        <div class="field">
-          <label for="pre-body">The finished email
-            <span class="hint">— read it through, change anything</span>
-          </label>
-          <textarea id="pre-body" style="min-height:24rem"></textarea>
-        </div>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
-          <button class="btn small ghost" id="pre-save" type="button">Save</button>
-          <button class="btn small ghost" id="pre-rebuild" type="button">Start again</button>
-          <button class="btn small go" id="pre-send" type="button">Send to everyone</button>
-          <span class="hint" id="pre-hint"></span>
-        </div>
-      </div>
-
-      <p class="msg" id="pre-msg"></p>
-    </div>
-
-    <!-- ===== welcomes ===== -->
-    <h3 style="font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;
-               color:var(--muted);margin:1.75rem 0 0.6rem;font-weight:600">
-      Welcome emails</h3>
-    <p class="counts" id="w-counts"></p>
-    <div id="peoplelist"></div>
-  </section>
-
-  <section id="view-welcome" class="hidden">
-    <button class="back" id="back-course" type="button">← Back to the course</button>
-    <h1 id="w-name"></h1>
-    <p class="sub" id="w-meta"></p>
-
-    <div class="panel">
-      <h3>Your welcome to them</h3>
-      <p class="lead-in">
-        This one is yours entirely. Something that connects — why you are looking
-        forward to the area, what you have planned, anything that makes them feel
-        expected rather than processed.
-      </p>
-
-      <div class="field">
-        <label for="w-subject">Subject</label>
-        <input id="w-subject" type="text">
-      </div>
-
-      <div class="field">
-        <label for="w-body">The email</label>
-        <textarea id="w-body" style="min-height:18rem"></textarea>
-      </div>
-
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
-        <button class="btn small ghost" id="w-save" type="button">Save</button>
-        <button class="btn small go" id="w-send" type="button">Send it</button>
-      </div>
-      <p class="msg" id="w-msg"></p>
-    </div>
-  </section>
-</div>
-
-<script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-
-const db = createClient(
-  "https://yvdmazpxtpuvidlcifnq.supabase.co",
-  "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  { auth: { persistSession: false } }
 );
 
-const WELCOME_DAYS = 3;
-const PRECOURSE_WINDOW_DAYS = 6;
+// Domains verified in Resend, where we may send as the coach.
+const VERIFIED_DOMAINS = ["birdboxcoaching.com"];
+const FALLBACK_FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
+const OFFICE = "info@birdboxcoaching.com";
 
-// Times used to be calculated from starts_at — registration was start
-// minus thirty minutes, lunch was start plus three and a half hours.
-// One course entered from the wrong time zone therefore told everybody
-// the wrong hour for everything. The shape of a seminar day is a
-// company standard, so it is now stored text and simply true. These
-// are the placeholders that used to do the calculating; if a template
-// still contains one, the email is not safe to send.
-const RETIRED_KEYS = ["reg1", "reg2", "start", "end", "lunch"];
+// Resend allows ten requests a second. Firing a whole course off at
+// once trips that and the surplus emails are simply dropped — which is
+// what happened on TGC L1 Cumming, where three participants never got
+// the pre-course email. So we go a few at a time with a gap in
+// between, and retry anything that still comes back rate limited.
+//
+// Five at a time keeps the peak at half the allowance. Do not raise
+// this without also raising the gap.
+const CHUNK_SIZE = 5;
+const CHUNK_GAP_MS = 800;
+const MAX_RETRIES = 3;
 
-const $ = (id) => document.getElementById(id);
-const show = (n) => {
-  for (const v of ["courses", "course", "welcome"]) {
-    $("view-" + v).classList.toggle("hidden", v !== n);
-  }
-  $("loading").classList.add("hidden");
-  window.scrollTo({ top: 0 });
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Logos have to be absolute URLs — an email client has no idea what
+// site the message came from. Change this one line if the custom
+// domain goes live.
+const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.app")
+  .replace(/\/+$/, "");
+
+// The brand the participant actually registered for, so the email
+// carries the right identity. Filenames are case-sensitive on Netlify.
+const BRAND_LOGO = {
+  tcc: { file: "tcc.png", alt: "The Coaches Course" },
+  tgc: { file: "tgc.png", alt: "The Gymnastics Course" },
+  tec: { file: "tec.png", alt: "The Endurance Course" },
+  twc: { file: "twc.png", alt: "The Weightlifting Course" },
 };
 
-let me = null;
-let course = null;
-let template = null;
-let people = [];
-let emails = {};
-let precourse = null;
-let photoUrls = {};
-let current = null;
+export default async (req) => {
+  if (req.method !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
+  }
 
-// A course's date is read in the course's own city. A Tokyo seminar
-// starting Saturday morning is a Saturday seminar, whatever day it is
-// where the coach happens to be sitting.
-const fmtDate = (iso, tz) => iso
-  ? new Date(iso).toLocaleDateString(undefined, {
-      day: "numeric", month: "short", year: "numeric", timeZone: safeZone(tz),
-    })
-  : "";
+  try {
+    const staff = await requireStaff(req);
+    if (!staff) return json({ error: "Not authorised" }, 401);
 
-function safeZone(tz) {
-  if (!tz) return undefined;
-  try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return tz; }
-  catch { return undefined; }
-}
+    const { emailId, attendedOnly, registrationId } = await req.json();
+    if (!emailId) return json({ error: "Missing email" }, 400);
 
-const daysUntil = (iso) => Math.ceil((new Date(iso) - new Date()) / 86400000);
-const daysSince = (iso) => Math.floor((new Date() - new Date(iso)) / 86400000);
+    const { data: email } = await supabase
+      .from("course_emails")
+      .select("id, course_id, registration_id, kind, subject, body, status, " +
+              "failed_registration_ids")
+      .eq("id", emailId)
+      .single();
 
-start();
+    if (!email) return json({ error: "Email not found" }, 404);
 
-async function start() {
-  const { data: { session } } = await db.auth.getSession();
-  if (!session) { location.href = "/portal/"; return; }
+    // A pre-course email that has gone out is finished as far as the
+    // course is concerned, but one named person may still be owed it —
+    // somebody the first send did not reach. That is the only way past
+    // the guard below, and it sends to them alone.
+    const resendTo = email.kind === "precourse" && registrationId
+      ? registrationId
+      : null;
 
-  const { data: staff } = await db.from("staff")
+    if (email.status === "sent" && !resendTo) {
+      return json({ error: "This has already been sent." }, 409);
+    }
+    if (!email.body || !email.body.trim()) {
+      return json({ error: "There is nothing to send." }, 409);
+    }
+
+    const toHost = email.kind === "host";
+
+    // The same rule either way: the lead coach, or an admin.
+    if (!(await isLeadOrAdmin(staff, email.course_id))) {
+      return json({
+        error: toHost
+          ? "Only the lead coach can email the host"
+          : "Only the lead coach can send to participants",
+      }, 403);
+    }
+
+    const { data: course } = await supabase
+      .from("courses")
+      .select("id, brand, title, city, country, starts_at, host_name, host_email")
+      .eq("id", email.course_id)
+      .single();
+
+    const sender = senderFor(staff);
+    const brand = BRAND_LOGO[String(course.brand || "").toLowerCase()] || null;
+
+    // ---------- the host ----------
+    if (toHost) {
+      if (!course.host_email) {
+        return json({
+          error: "There is no host email on this course. Add one under Edit course details.",
+        }, 409);
+      }
+
+      const subject = (email.subject || "").trim() || `${course.title}`;
+      const text = personalise(email.body, {
+        first_name: String(course.host_name || "there").split(" ")[0],
+        last_name: "",
+      });
+
+      const result = await sendEmail({
+        to: course.host_email,
+        sender,
+        subject,
+        text,
+        brand,
+      });
+
+      await supabase.from("course_emails").update({
+        status: result.ok ? "sent" : "failed",
+        sent_at: new Date().toISOString(),
+        sent_by: staff.id,
+        send_error: result.ok ? null : result.error,
+        updated_at: new Date().toISOString(),
+      }).eq("id", email.id);
+
+      if (!result.ok) {
+        return json({ error: `The email was not sent: ${result.error}` }, 502);
+      }
+
+      return json({
+        ok: true, sent: 1, failed: 0, problems: [],
+        sentTo: course.host_email, sentAs: sender.from,
+      });
+    }
+
+    // ---------- participants ----------
+    // One named person on a resend; one on a welcome; otherwise
+    // everyone still on the course, or only those who turned up.
+    let people = [];
+
+    if (resendTo) {
+      const { data } = await supabase
+        .from("registrations")
+        .select("id, first_name, last_name, email, payment_status, status, attended")
+        .eq("id", resendTo)
+        .eq("course_id", email.course_id);
+      people = data || [];
+      if (!people.length) {
+        return json({ error: "That participant is not on this course." }, 404);
+      }
+    } else if (email.registration_id) {
+      const { data } = await supabase
+        .from("registrations")
+        .select("id, first_name, last_name, email, payment_status, status, attended")
+        .eq("id", email.registration_id);
+      people = data || [];
+    } else {
+      const { data } = await supabase
+        .from("registrations")
+        .select("id, first_name, last_name, email, payment_status, status, attended")
+        .eq("course_id", email.course_id)
+        .not("payment_status", "in", '("refunded","failed")')
+        .order("last_name");
+
+      // Somebody cancelled or archived is no longer on the course, so
+      // they should not be hearing about it. Filtered here rather than
+      // in the query because older rows have no status at all.
+      people = (data || []).filter((r) => (r.status || "active") === "active");
+
+      // The follow-up talks about putting the weekend into practice,
+      // which reads badly to somebody who did not attend it.
+      if (attendedOnly) people = people.filter((r) => r.attended === true);
+    }
+
+    if (!people.length) {
+      return json({
+        error: attendedOnly
+          ? "Nobody on this course is ticked as attended."
+          : "There is nobody to send to.",
+      }, 409);
+    }
+
+    const subject = (email.subject || "").trim() ||
+      (email.kind === "welcome"
+        ? `Looking forward to seeing you at ${course.title}`
+        : `${course.title} — this weekend`);
+
+    let sent = 0;
+    let failed = 0;
+    const problems = [];
+
+    // Who did not get it, by id rather than by name. A sentence of
+    // text cannot be matched back to a person; this can, which is what
+    // lets the portal offer a resend beside the right name.
+    const failedIds = [];
+
+    // Somebody with no address at all is not a send that can be tried,
+    // so they come out of the list before we start.
+    const sendable = [];
+    for (const p of people) {
+      if (!p.email) {
+        failed++;
+        failedIds.push(String(p.id));
+        problems.push(`${p.first_name} ${p.last_name}: no email address`);
+      } else {
+        sendable.push(p);
+      }
+    }
+
+    for (let i = 0; i < sendable.length; i += CHUNK_SIZE) {
+      const chunk = sendable.slice(i, i + CHUNK_SIZE);
+
+      const results = await Promise.all(
+        chunk.map(async (p) => {
+          // Greet each person by name, whatever the body says.
+          const text = personalise(email.body, p);
+          const result = await sendEmail({
+            to: p.email,
+            sender,
+            subject,
+            text,
+            brand,
+          });
+          return { person: p, result };
+        })
+      );
+
+      for (const { person, result } of results) {
+        if (result.ok) {
+          sent++;
+        } else {
+          failed++;
+          failedIds.push(String(person.id));
+          problems.push(`${person.first_name} ${person.last_name}: ${result.error}`);
+        }
+      }
+
+      if (i + CHUNK_SIZE < sendable.length) await sleep(CHUNK_GAP_MS);
+    }
+
+    // ---------- a resend to one person ----------
+    // The course email itself is already sent and stays that way. All
+    // that changes is whether this person is still owed it.
+    if (resendTo) {
+      const outstanding = (email.failed_registration_ids || []).map(String);
+      const remaining = sent
+        ? outstanding.filter((id) => id !== String(resendTo))
+        : outstanding;
+
+      await supabase.from("course_emails").update({
+        failed_registration_ids: remaining,
+        send_error: remaining.length
+          ? `${remaining.length} still to reach after resending`
+          : null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", email.id);
+
+      return json({
+        ok: true, sent, failed, problems,
+        sentAs: sender.from,
+        resend: true,
+        remainingFailed: remaining.length,
+      });
+    }
+
+    // ---------- the ordinary send ----------
+    await supabase.from("course_emails").update({
+      status: failed && !sent ? "failed" : "sent",
+      sent_at: new Date().toISOString(),
+      sent_by: staff.id,
+      send_error: problems.length ? problems.join("; ") : null,
+      failed_registration_ids: failedIds,
+      updated_at: new Date().toISOString(),
+    }).eq("id", email.id);
+
+    if (email.kind === "precourse") {
+      await officeSummary(course, staff, sender, sent, failed, problems);
+    }
+
+    return json({ ok: true, sent, failed, problems, sentAs: sender.from });
+  } catch (err) {
+    console.error("course-email-send failed:", err);
+    return json({ error: err.message || "Something went wrong" }, 500);
+  }
+};
+
+// ---------------------------------------------------------------
+// who is asking
+// ---------------------------------------------------------------
+async function requireStaff(req) {
+  const auth = req.headers.get("authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) return null;
+
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user) return null;
+
+  const { data: staff } = await supabase
+    .from("staff")
     .select("id, full_name, email, role, active")
-    .eq("id", session.user.id).maybeSingle();
+    .eq("id", data.user.id)
+    .maybeSingle();
 
-  if (!staff || !staff.active) { location.href = "/portal/"; return; }
-  me = staff;
-
-  await loadCourses();
+  if (!staff || !staff.active) return null;
+  return staff;
 }
 
-/* ---------------- courses ---------------- */
-
-const COURSE_COLS =
-  "id, brand, type, level, title, city, country, venue_name, address, " +
-  "starts_at, ends_at, timezone, status, archived, day_shape_override";
-
-async function loadCourses() {
-  show("courses");
-  const list = $("courselist");
-  list.innerHTML = '<p class="empty">Loading…</p>';
-
-  let rows = [];
-  if (me.role === "admin") {
-    const { data } = await db.from("courses").select(COURSE_COLS)
-      .eq("archived", false).order("starts_at", { ascending: true });
-    rows = data || [];
-  } else {
-    const { data } = await db.from("course_staff")
-      .select(`role, courses (${COURSE_COLS})`)
-      .eq("staff_id", me.id).eq("role", "lead_coach");
-    rows = (data || []).map((r) => r.courses).filter((c) => c && !c.archived);
-    rows.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
-  }
-
-  if (!rows.length) {
-    list.innerHTML = '<p class="empty">No courses you are leading.</p>';
-    return;
-  }
-
-  const ids = rows.map((r) => r.id);
-  const { data: allEmails } = await db.from("course_emails")
-    .select("course_id, registration_id, kind, status").in("course_id", ids);
-  const { data: allRegs } = await db.from("registrations")
-    .select("id, course_id, created_at, payment_status").in("course_id", ids);
-
-  const sentWelcome = new Set();
-  const sentPre = new Set();
-  for (const e of allEmails || []) {
-    if (e.status !== "sent") continue;
-    if (e.kind === "welcome") sentWelcome.add(e.registration_id);
-    else sentPre.add(e.course_id);
-  }
-
-  const owed = {};
-  for (const r of allRegs || []) {
-    if (r.payment_status === "refunded" || r.payment_status === "failed") continue;
-    if (sentWelcome.has(r.id)) continue;
-    owed[r.course_id] = (owed[r.course_id] || 0) + 1;
-  }
-
-  list.innerHTML = "";
-  for (const c of rows) {
-    const el = document.createElement("div");
-    el.className = "card";
-    el.innerHTML = `<button class="row" type="button">
-      <span class="who"><span class="name"></span><span class="meta"></span></span>
-      <span class="pill"></span></button>`;
-    el.querySelector(".name").textContent = c.title;
-    el.querySelector(".meta").textContent =
-      [fmtDate(c.starts_at, c.timezone), [c.city, c.country].filter(Boolean).join(", ")]
-        .filter(Boolean).join(" · ");
-
-    const days = daysUntil(c.starts_at);
-    const pill = el.querySelector(".pill");
-
-    if (owed[c.id]) {
-      pill.textContent = `${owed[c.id]} welcome${owed[c.id] === 1 ? "" : "s"} to write`;
-      pill.className = "pill late";
-    } else if (!sentPre.has(c.id) && days >= 0 && days <= PRECOURSE_WINDOW_DAYS) {
-      pill.textContent = "pre-course email due";
-      pill.className = "pill due";
-    } else if (sentPre.has(c.id)) {
-      pill.textContent = "all sent"; pill.className = "pill ok";
-    } else {
-      pill.textContent = days >= 0 ? `${days}d away` : "past";
-      pill.className = "pill";
-    }
-
-    el.querySelector(".row").addEventListener("click", () => openCourse(c));
-    list.append(el);
-  }
+async function isLeadOrAdmin(staff, courseId) {
+  if (staff.role === "admin") return true;
+  const { data } = await supabase
+    .from("course_staff")
+    .select("role")
+    .eq("course_id", courseId)
+    .eq("staff_id", staff.id)
+    .maybeSingle();
+  return data?.role === "lead_coach";
 }
 
-/* ---------------- one course ---------------- */
+function senderFor(staff) {
+  const email = (staff.email || "").trim().toLowerCase();
+  const domain = email.split("@")[1] || "";
+  const verified = VERIFIED_DOMAINS.includes(domain);
 
-async function openCourse(c) {
-  course = c;
-  show("course");
-  $("c-title").textContent = c.title;
-  $("c-meta").textContent =
-    [fmtDate(c.starts_at, c.timezone),
-     [c.venue_name, c.city, c.country].filter(Boolean).join(", ")]
-      .filter(Boolean).join(" · ");
-  $("alerts").innerHTML = "";
-  $("pre-alerts").innerHTML = "";
-  $("pre-msg").textContent = "";
-  $("peoplelist").innerHTML = '<p class="empty">Loading…</p>';
-
-  const lvl = String(c.level || "").replace(/\D/g, "");
-  const { data: tpls } = await db.from("course_templates")
-    .select("level, precourse_body, day_shape").eq("brand", c.brand).eq("type", c.type);
-  template = (tpls || []).find(
-    (t) => String(t.level || "").replace(/\D/g, "") === lvl
-  ) || (tpls || [])[0] || null;
-
-  const { data: regs } = await db.from("registrations")
-    .select("id, first_name, last_name, email, created_at, payment_status, photo_path")
-    .eq("course_id", c.id).order("created_at");
-
-  people = (regs || []).filter(
-    (r) => r.payment_status !== "refunded" && r.payment_status !== "failed"
-  );
-
-  const { data: es } = await db.from("course_emails").select("*").eq("course_id", c.id);
-  emails = {};
-  precourse = null;
-  for (const e of es || []) {
-    if (e.kind === "precourse") precourse = e;
-    else emails[e.registration_id] = e;
-  }
-
-  await loadPhotos();
-
-  // Each half is drawn separately, so a problem in one cannot leave
-  // the other stuck on "Loading…".
-  try { renderPrecourse(); }
-  catch (err) {
-    console.error("Pre-course panel failed:", err);
-    $("pre-msg").className = "msg err";
-    $("pre-msg").textContent = "Could not build the draft: " + err.message;
-  }
-
-  try { renderPeople(); }
-  catch (err) {
-    console.error("Welcome list failed:", err);
-    $("peoplelist").innerHTML = '<p class="empty">Could not load participants.</p>';
-  }
+  return {
+    from: verified
+      ? `${staff.full_name} <${email}>`
+      : `${staff.full_name} (BirdBox Coaching) <${FALLBACK_FROM}>`,
+    replyTo: email || OFFICE,
+  };
 }
 
-async function loadPhotos() {
-  photoUrls = {};
-  const paths = people.map((p) => p.photo_path).filter(Boolean);
-  if (!paths.length) return;
+// The body is written once with {{first_name}} where the greeting
+// goes, so one draft still reads personally to each participant. On a
+// host email the same fields carry the host's own name.
+function personalise(body, person) {
+  return String(body)
+    .replace(/\{\{\s*first_name\s*\}\}/gi, person.first_name || "there")
+    .replace(/\{\{\s*last_name\s*\}\}/gi, person.last_name || "")
+    .replace(/\{\{\s*full_name\s*\}\}/gi,
+      [person.first_name, person.last_name].filter(Boolean).join(" "));
+}
+
+// ---------------------------------------------------------------
+// email
+// ---------------------------------------------------------------
+
+function template(text, brand) {
+  const paras = String(text)
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) =>
+      `<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#16181b">${
+        escapeHtml(p).replace(/\n/g, "<br>")
+      }</p>`
+    )
+    .join("");
+
+  // The brand logo sits on its own white band under the black bar.
+  // The marks are dark lettering, so they would disappear on black.
+  const logoBand = brand
+    ? `<tr><td style="padding:18px 28px 14px;border-bottom:1px solid #e0ddd7;background:#ffffff">
+          <img src="${SITE_URL}/brand/${brand.file}" alt="${escapeHtml(brand.alt)}"
+               height="44" style="height:44px;width:auto;display:block;border:0">
+        </td></tr>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#f4f3f0">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3f0">
+    <tr><td align="center" style="padding:32px 16px">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+             style="max-width:600px;background:#ffffff;border:1px solid #e0ddd7;border-radius:6px">
+        <tr><td style="padding:14px 28px;background:#0d0e10;border-radius:5px 5px 0 0">
+          <span style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#9aa1a9;
+                       font-family:Helvetica,Arial,sans-serif">BirdBox Coaching</span>
+        </td></tr>
+        ${logoBand}
+        <tr><td style="padding:28px;font-family:Helvetica,Arial,sans-serif">${paras}</td></tr>
+        <tr><td style="padding:18px 28px;border-top:1px solid #e0ddd7;
+                       font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6c7178">
+          BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+// Turn whatever Resend said into something a coach reading the summary
+// email can act on. The raw body is still written to the log.
+function describeFailure(status, detail) {
+  let message = "";
   try {
-    const { data } = await db.storage
-      .from("participant-photos").createSignedUrls(paths, 3600);
-    for (const item of data || []) {
-      if (item.signedUrl && !item.error) photoUrls[item.path] = item.signedUrl;
+    const parsed = JSON.parse(detail);
+    message = parsed?.message || parsed?.error?.message || "";
+  } catch {
+    message = "";
+  }
+
+  if (status === 429) return "still rate limited after retrying";
+  if (status === 422) return message || "the address was not accepted";
+  if (status === 403) return message || "Resend refused the send";
+  if (status === 401) return "the Resend key was not accepted";
+  return message || `rejected (HTTP ${status})`;
+}
+
+async function sendEmail({ to, sender, subject, text, brand }) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) {
+    console.warn("No Resend key; not sending to", to);
+    return { ok: false, error: "no Resend key is configured" };
+  }
+
+  const payload = JSON.stringify({
+    from: sender.from,
+    to: [to],
+    cc: [OFFICE],
+    reply_to: sender.replyTo,
+    subject,
+    text,
+    html: template(text, brand),
+  });
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+        body: payload,
+      });
+
+      if (res.ok) return { ok: true };
+
+      const detail = await res.text();
+
+      // Rate limited. Wait as long as Resend asks, or a little longer
+      // each go, and try again — the message is fine, we were just
+      // too quick.
+      if (res.status === 429 && attempt < MAX_RETRIES) {
+        const retryAfter = Number(res.headers.get("retry-after"));
+        const wait = Number.isFinite(retryAfter) && retryAfter > 0
+          ? retryAfter * 1000
+          : 1000 * (attempt + 1);
+        console.warn(`Rate limited sending to ${to}; waiting ${wait}ms and retrying`);
+        await sleep(wait);
+        continue;
+      }
+
+      console.error("Resend rejected", to, res.status, detail);
+      return { ok: false, error: describeFailure(res.status, detail) };
+    } catch (err) {
+      if (attempt < MAX_RETRIES) {
+        console.warn("Send to", to, "failed, retrying:", err.message);
+        await sleep(1000 * (attempt + 1));
+        continue;
+      }
+      console.error("Could not send to", to, err.message);
+      return { ok: false, error: err.message || "the connection failed" };
     }
+  }
+
+  return { ok: false, error: "still rate limited after retrying" };
+}
+
+async function officeSummary(course, staff, sender, sent, failed, problems) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return;
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: `BirdBox <${FALLBACK_FROM}>`,
+        to: [OFFICE],
+        subject: `[BirdBox] Pre-course email sent: ${course.title}`,
+        text:
+          `${staff.full_name} sent the pre-course email for ${course.title}.\n\n` +
+          `Sent as: ${sender.from}\nSent: ${sent}\nFailed: ${failed}\n` +
+          (problems.length
+            ? "\nNEEDS ATTENTION:\n" + problems.map((p) => "  " + p).join("\n") +
+              "\n\nThe coach can resend to these people from the course in the portal."
+            : ""),
+      }),
+    });
   } catch (err) {
-    console.error("Could not sign photo links:", err);
+    console.error("Could not send office summary:", err.message);
   }
 }
 
-/* ---------------- the pre-course email ---------------- */
-
-function dayName(iso, tz) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("en-GB", {
-    weekday: "long", timeZone: safeZone(tz),
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
   });
 }
-
-// The standard day shape: the same for every two-day seminar across
-// all four brands, so it lives on the template. A course that genuinely
-// runs different hours carries its own text in day_shape_override.
-function dayShape() {
-  return String(course.day_shape_override || template?.day_shape || "").trim();
-}
-
-// Anything left in the template that used to be a calculated time.
-function retiredInTemplate() {
-  const body = String(template?.precourse_body || "");
-  return RETIRED_KEYS.filter(
-    (k) => new RegExp("\\{\\{\\s*" + k + "\\s*\\}\\}").test(body)
-  );
-}
-
-// What is wrong, if anything, with the standard half of this email.
-function standardProblem() {
-  if (!template || !template.precourse_body) {
-    return "There is no standard text set up for this brand and course type yet.";
-  }
-  const stale = retiredInTemplate();
-  if (stale.length) {
-    return "template-still-calculates:" + stale.join(", ");
-  }
-  if (/\{\{\s*day_shape\s*\}\}/.test(template.precourse_body) && !dayShape()) {
-    return "The template asks for the day shape, but no day shape is stored " +
-           "for this course type.";
-  }
-  return null;
-}
-
-// The standard half, with the course's own details filled in.
-function buildStandard() {
-  if (!template || !template.precourse_body) {
-    return "[No standard text is set up for this course type yet. " +
-           "An admin can add it to the course template.]";
-  }
-
-  const tz = course.timezone;
-  const start = course.starts_at;
-  const end = course.ends_at;
-  const dayTwo = new Date(new Date(start).getTime() + 86400000).toISOString();
-  const twoDay = end && Math.round((new Date(end) - new Date(start)) / 86400000) >= 1;
-
-  const values = {
-    day_shape: dayShape(),
-    day1: dayName(start, tz),
-    day2: dayName(twoDay ? end : dayTwo, tz),
-    venue: course.venue_name || "the host gym",
-    address: [course.address, course.city, course.country].filter(Boolean).join(", "),
-    city: course.city || "",
-  };
-
-  return String(template.precourse_body).replace(
-    /\{\{\s*(\w+)\s*\}\}/g,
-    (whole, key) => (values[key] !== undefined ? values[key] : whole)
-  );
-}
-
-// Their part, wrapped in the greeting and sign-off.
-function assemble(personal) {
-  return [
-    "Good afternoon {{first_name}},",
-    "",
-    String(personal || "").trim(),
-    "",
-    buildStandard(),
-    "",
-    "Many thanks",
-    me.full_name,
-  ].join("\n");
-}
-
-function renderPrecourse() {
-  $("pre-alerts").innerHTML = "";
-
-  const days = daysUntil(course.starts_at);
-  const open = days <= PRECOURSE_WINDOW_DAYS;
-  const sent = precourse?.status === "sent";
-  const built = !!(precourse && precourse.body);
-  const problem = standardProblem();
-  const blocked = !!problem && !sent;
-
-  $("pre-when").textContent = sent
-    ? `Sent ${fmtDate(precourse.sent_at, course.timezone)} to everyone on the course.`
-    : open
-      ? `This can go now — the course is ${days} day${days === 1 ? "" : "s"} away. Send it by the Wednesday before.`
-      : `Opens ${PRECOURSE_WINDOW_DAYS} days before the course, which is ${days - PRECOURSE_WINDOW_DAYS} day${days - PRECOURSE_WINDOW_DAYS === 1 ? "" : "s"} from now. You can write it in the meantime.`;
-
-  $("pre-standard-text").textContent = buildStandard();
-  $("pre-personal").value = precourse?.personal_note || "";
-
-  // Once built, the whole email is shown for checking.
-  $("pre-step1").classList.toggle("hidden", built || sent);
-  $("pre-step2").classList.toggle("hidden", !built && !sent);
-
-  if (built || sent) {
-    $("pre-subject").value = precourse.subject || `${course.title} — this weekend`;
-    $("pre-body").value = precourse.body || "";
-  }
-
-  $("pre-subject").disabled = sent;
-  $("pre-body").disabled = sent;
-  $("pre-save").disabled = sent;
-  $("pre-rebuild").disabled = sent;
-  $("pre-build").disabled = blocked;
-  $("pre-send").disabled = sent || !open || blocked;
-  $("pre-hint").textContent = sent
-    ? "Already sent."
-    : blocked
-      ? "The standard text needs fixing first."
-      : open
-        ? `Goes to ${people.length} participant${people.length === 1 ? "" : "s"}, one email each.`
-        : "Not yet — too far out to send.";
-
-  if (blocked) {
-    const el = document.createElement("div");
-    el.className = "alert bad";
-    if (problem.startsWith("template-still-calculates:")) {
-      const keys = problem.split(":")[1];
-      el.innerHTML =
-        `<b>The standard text still works out the times itself</b>
-         It refers to <code></code>, which used to be calculated from the
-         start date. Those are gone — a single wrong date could put the wrong
-         hour in front of everybody. Replace them in
-         <code>course_templates.precourse_body</code> with
-         <code>{{day_shape}}</code>, which inserts the standard day.`;
-      el.querySelector("code").textContent =
-        keys.split(", ").map((k) => "{{" + k + "}}").join(", ");
-    } else {
-      el.innerHTML = `<b>This email cannot be built yet</b><span></span>`;
-      el.querySelector("span").textContent = problem;
-    }
-    $("pre-alerts").append(el);
-    return;
-  }
-
-  if (!sent && open) {
-    const el = document.createElement("div");
-    el.className = "alert";
-    el.innerHTML = `<b>The pre-course email is due</b>
-      Send it by the end of Wednesday. ${people.length} participant${people.length === 1 ? "" : "s"} on the course.`;
-    $("pre-alerts").append(el);
-  }
-}
-
-$("pre-build").addEventListener("click", async () => {
-  const personal = $("pre-personal").value.trim();
-  if (!personal) {
-    $("pre-msg").className = "msg err";
-    $("pre-msg").textContent = "Write your part first — that is the point of it.";
-    return;
-  }
-  await savePrecourse({
-    personal_note: personal,
-    body: assemble(personal),
-    subject: $("pre-subject").value.trim() || `${course.title} — this weekend`,
-  }, "Built. Read it through before sending.");
-  renderPrecourse();
-});
-
-$("pre-rebuild").addEventListener("click", () => {
-  if (!window.confirm("Start again from your personal part? Any edits to the full email will be lost.")) return;
-  $("pre-step2").classList.add("hidden");
-  $("pre-step1").classList.remove("hidden");
-  $("pre-msg").textContent = "";
-});
-
-$("pre-save").addEventListener("click", () => savePrecourse({
-  subject: $("pre-subject").value.trim(),
-  body: $("pre-body").value,
-}, "Saved."));
-
-$("pre-send").addEventListener("click", sendPrecourse);
-
-async function savePrecourse(patch, note) {
-  const msg = $("pre-msg");
-  msg.className = "msg"; msg.textContent = "Saving…";
-
-  const row = {
-    course_id: course.id,
-    registration_id: null,
-    kind: "precourse",
-    updated_at: new Date().toISOString(),
-    ...patch,
-  };
-
-  let result;
-  if (precourse) {
-    result = await db.from("course_emails").update(row).eq("id", precourse.id).select().single();
-  } else {
-    result = await db.from("course_emails").insert(row).select().single();
-  }
-
-  if (result.error) {
-    msg.className = "msg err";
-    msg.textContent = "Could not save: " + result.error.message;
-    return null;
-  }
-  precourse = result.data;
-  msg.className = "msg ok";
-  msg.textContent = note || "Saved.";
-  return precourse;
-}
-
-async function sendPrecourse() {
-  if (!$("pre-body").value.trim()) {
-    $("pre-msg").className = "msg err";
-    $("pre-msg").textContent = "There is nothing to send.";
-    return;
-  }
-
-  // A last look at what is actually in the box, in case an old draft
-  // was built before the template was fixed.
-  const leftover = $("pre-body").value.match(/\{\{\s*\w+\s*\}\}/g) || [];
-  const unresolved = leftover.filter((t) => !/first_name/.test(t));
-  if (unresolved.length) {
-    $("pre-msg").className = "msg err";
-    $("pre-msg").textContent =
-      `This still contains ${unresolved.join(", ")}, which would go out exactly like that. ` +
-      `Press "Start again" to rebuild it.`;
-    return;
-  }
-
-  if (!window.confirm(
-    `Send this to ${people.length} participant${people.length === 1 ? "" : "s"}?\n\n` +
-    "Each gets their own email, addressed to them. This cannot be undone."
-  )) return;
-
-  const saved = await savePrecourse({
-    subject: $("pre-subject").value.trim(),
-    body: $("pre-body").value,
-  }, "Sending…");
-  if (!saved) return;
-
-  $("pre-send").disabled = true;
-  const msg = $("pre-msg");
-
-  try {
-    const r = await callSend({ emailId: saved.id });
-    msg.className = r.failed ? "msg err" : "msg ok";
-    msg.textContent = r.failed
-      ? `${r.sent} sent, ${r.failed} failed. ${(r.problems || []).join("; ")}`
-      : `Sent to ${r.sent} participant${r.sent === 1 ? "" : "s"} as ${r.sentAs}.`;
-    setTimeout(() => openCourse(course), 1500);
-  } catch (err) {
-    msg.className = "msg err";
-    msg.textContent = err.message;
-    $("pre-send").disabled = false;
-  }
-}
-
-/* ---------------- welcomes ---------------- */
-
-function renderPeople() {
-  const list = $("peoplelist");
-  if (!people.length) {
-    list.innerHTML = '<p class="empty">Nobody has registered yet.</p>';
-    $("w-counts").textContent = "";
-    return;
-  }
-
-  let sent = 0, due = 0, late = 0;
-  list.innerHTML = "";
-
-  for (const r of people) {
-    const e = emails[r.id];
-    const done = e?.status === "sent";
-    const age = daysSince(r.created_at);
-
-    if (done) sent++;
-    else if (age > WELCOME_DAYS) late++;
-    else due++;
-
-    const el = document.createElement("div");
-    el.className = "card";
-    el.innerHTML = `<button class="row" type="button">
-      <span class="thumb"></span>
-      <span class="who"><span class="name"></span><span class="meta"></span></span>
-      <span class="pill"></span></button>`;
-
-    const thumb = el.querySelector(".thumb");
-    const url = r.photo_path && photoUrls[r.photo_path];
-    if (url) {
-      const img = document.createElement("img");
-      img.src = url; img.alt = "";
-      thumb.append(img);
-    }
-
-    el.querySelector(".name").textContent = `${r.first_name} ${r.last_name}`;
-    el.querySelector(".meta").textContent = done
-      ? `Welcomed ${fmtDate(e.sent_at, course.timezone)}`
-      : `Registered ${age === 0 ? "today" : age === 1 ? "yesterday" : age + " days ago"}`;
-
-    const pill = el.querySelector(".pill");
-    if (done) { pill.textContent = "welcomed"; pill.className = "pill ok"; }
-    else if (age > WELCOME_DAYS) { pill.textContent = `${age} days waiting`; pill.className = "pill late"; }
-    else { pill.textContent = "to write"; pill.className = "pill due"; }
-
-    el.querySelector(".row").addEventListener("click", () => openWelcome(r));
-    list.append(el);
-  }
-
-  $("w-counts").textContent =
-    `${people.length} participant${people.length === 1 ? "" : "s"} · ${sent} welcomed` +
-    (due ? ` · ${due} to write` : "") +
-    (late ? ` · ${late} overdue` : "");
-
-  if (late) {
-    const el = document.createElement("div");
-    el.className = "alert warn";
-    el.innerHTML = `<b>${late} participant${late === 1 ? " has" : "s have"} been waiting more than ${WELCOME_DAYS} days</b>
-      We said we would write to people within two or three days of them registering.`;
-    $("alerts").append(el);
-  }
-}
-
-async function openWelcome(reg) {
-  current = reg;
-  show("welcome");
-  $("w-name").textContent = `${reg.first_name} ${reg.last_name}`;
-  $("w-meta").textContent = reg.email;
-  $("w-msg").textContent = "";
-
-  const e = emails[reg.id];
-  const sent = e?.status === "sent";
-
-  $("w-subject").value = e?.subject
-    || `Looking forward to seeing you in ${course.city || "person"}`;
-  $("w-body").value = e?.body || [
-    `Hello ${reg.first_name},`,
-    "",
-    "",
-    "Many thanks",
-    me.full_name,
-  ].join("\n");
-
-  $("w-subject").disabled = sent;
-  $("w-body").disabled = sent;
-  $("w-save").disabled = sent;
-  $("w-send").disabled = sent;
-
-  if (sent) {
-    $("w-msg").className = "msg";
-    $("w-msg").textContent =
-      `Sent ${fmtDate(e.sent_at, course.timezone)}. This cannot be changed.`;
-  }
-}
-
-$("w-save").addEventListener("click", () => saveWelcome("Saved."));
-$("w-send").addEventListener("click", sendWelcome);
-
-async function saveWelcome(note) {
-  const msg = $("w-msg");
-  msg.className = "msg"; msg.textContent = "Saving…";
-
-  const existing = emails[current.id];
-  const row = {
-    course_id: course.id,
-    registration_id: current.id,
-    kind: "welcome",
-    subject: $("w-subject").value.trim(),
-    body: $("w-body").value,
-    updated_at: new Date().toISOString(),
-  };
-
-  let result;
-  if (existing) {
-    result = await db.from("course_emails").update(row).eq("id", existing.id).select().single();
-  } else {
-    result = await db.from("course_emails").insert(row).select().single();
-  }
-
-  if (result.error) {
-    msg.className = "msg err";
-    msg.textContent = "Could not save: " + result.error.message;
-    return null;
-  }
-  emails[current.id] = result.data;
-  msg.className = "msg ok";
-  msg.textContent = note || "Saved.";
-  return result.data;
-}
-
-async function sendWelcome() {
-  if (!$("w-body").value.trim()) {
-    $("w-msg").className = "msg err";
-    $("w-msg").textContent = "There is nothing to send.";
-    return;
-  }
-  if (!window.confirm(`Send this to ${current.first_name}?`)) return;
-
-  const saved = await saveWelcome("Sending…");
-  if (!saved) return;
-
-  $("w-send").disabled = true;
-  const msg = $("w-msg");
-
-  try {
-    const r = await callSend({ emailId: saved.id, registrationId: current.id });
-    msg.className = r.failed ? "msg err" : "msg ok";
-    msg.textContent = r.failed
-      ? `That did not send. ${(r.problems || []).join("; ")}`
-      : `Sent to ${current.first_name}.`;
-    setTimeout(() => openCourse(course), 1200);
-  } catch (err) {
-    msg.className = "msg err";
-    msg.textContent = err.message;
-    $("w-send").disabled = false;
-  }
-}
-
-/* ---------------- shared ---------------- */
-
-async function callSend(payload) {
-  const { data: { session } } = await db.auth.getSession();
-  if (!session) throw new Error("Your session has expired — sign in again.");
-
-  const res = await fetch("/.netlify/functions/course-email-send", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + session.access_token,
-    },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json();
-  if (!res.ok || data.error) throw new Error(data.error || "That did not work.");
-  return data;
-}
-
-$("back-courses").addEventListener("click", loadCourses);
-$("back-course").addEventListener("click", () => openCourse(course));
-</script>
-
-</body>
-</html>
