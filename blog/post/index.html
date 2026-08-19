@@ -76,7 +76,14 @@
   .art__who { font-size: 14px; font-weight: 700; }
   .art__when { font-size: 13px; color: var(--muted); }
 
-  .art__hero { width: 100%; height: auto; border: 1px solid var(--line); margin-bottom: 34px; }
+  /* A portrait photograph at this column width comes out around a
+     thousand pixels tall and fills the whole screen before a word has
+     been read. The hero is capped and centre-cropped instead, so a
+     photograph taken any way up still reads as a banner. */
+  .art__hero {
+    width: 100%; height: auto; max-height: 62vh; object-fit: cover;
+    border: 1px solid var(--line); margin-bottom: 34px;
+  }
 
   .art h2 {
     font-size: clamp(21px, 2.8vw, 28px); font-weight: 800;
@@ -98,11 +105,25 @@
     margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw);
   }
   figure.full img, figure.full .vid { width: 100%; }
-  figure img { width: 100%; height: auto; border: 1px solid var(--line); }
+
+  /* Landscape still fills the column. Portrait is held to a sensible
+     height and centred, rather than stretched to the column width and
+     pushing everything else off the screen. */
+  figure img {
+    max-width: 100%; width: auto; height: auto; max-height: 78vh;
+    margin: 0 auto; border: 1px solid var(--line);
+  }
+  /* Full-bleed is a band across the page, so it is cropped rather than
+     allowed to become a wall. */
+  figure.full img { width: 100%; max-height: 72vh; object-fit: cover; }
+
   figcaption {
     font-size: 13px; color: var(--muted); margin-top: 9px; line-height: 1.5;
   }
   figure.full figcaption { max-width: 46rem; margin: 9px auto 0; padding: 0 24px; }
+  /* A centred portrait needs its caption centred under it rather than
+     stranded at the left edge of the column. */
+  figure.portrait figcaption { text-align: center; }
 
   .vid { width: 100%; display: block; background: #0E0B0C; border: 1px solid var(--line); }
   .embed {
@@ -177,6 +198,15 @@
   .bb-footer__staff {
     display: block; margin-top: 10px; font-size: 12px;
     letter-spacing: 0.06em; text-transform: uppercase;
+  }
+
+  /* On a phone the column is already narrow, so a portrait image is
+     less of a problem — but a 78vh image still means scrolling past
+     nothing else, so it is held tighter. */
+  @media (max-width: 620px) {
+    .art__hero { max-height: 50vh; }
+    figure img { max-height: 66vh; }
+    figure.full img { max-height: 58vh; }
   }
 </style>
 </head>
@@ -312,6 +342,12 @@
       img.src = url;
       img.alt = b.caption || "";
       img.loading = "lazy";
+      // Marked once the file is actually measured, so the caption can be
+      // centred under a centred picture. The CSS already holds the
+      // height; this is only about how it sits on the page.
+      img.addEventListener("load", () => {
+        if (img.naturalHeight > img.naturalWidth) fig.classList.add("portrait");
+      });
       fig.append(img);
       if (b.caption) {
         const cap = document.createElement("figcaption");
