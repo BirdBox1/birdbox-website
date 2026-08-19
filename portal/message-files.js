@@ -92,7 +92,17 @@ async function loadStaff() {
 async function currentThread() {
   const heading = $("dm-with");
   if (!heading) return null;
-  const name = (heading.textContent || "").trim();
+
+  // Only the text the portal itself wrote. The Files button lives in
+  // this same heading, so reading textContent would ask for somebody
+  // called "Michaela DotterweichFiles" and find nobody.
+  let name = "";
+  for (const node of heading.childNodes || []) {
+    if (node.nodeType === 3) name += node.textContent || "";
+  }
+  name = name.trim();
+  if (!name) name = (heading.textContent || "").replace(/Files$|Back to messages$/, "").trim();
+
   if (!name || name.startsWith("Choose")) return null;
   await loadStaff();
   const hit = staffList.find((s) => s.full_name === name);
@@ -196,7 +206,10 @@ const FILES_ID = "dmf-shared";
 
 async function mountFilesLink() {
   const heading = $("dm-with");
-  if (!heading || document.getElementById(FILES_ID)) return;
+  if (!heading) return;
+  // openThread rewrites this heading, which takes the button with it,
+  // so its presence is checked inside the heading rather than globally.
+  if (heading.querySelector && heading.querySelector("#" + FILES_ID)) return;
   const to = await currentThread();
   if (!to) return;
 
