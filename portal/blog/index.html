@@ -276,6 +276,7 @@
       <button class="btn go" id="publish" type="button">Publish</button>
       <button class="btn ghost" id="unpublish" type="button">Take offline</button>
       <button class="btn danger" id="sendback" type="button">Send back</button>
+      <button class="btn danger" id="mydelete" type="button">Delete this draft</button>
       <span class="msg" id="p-msg"></span>
     </div>
   </section>
@@ -489,6 +490,19 @@ function openRow(row) {
   renderBlocks();
   applyLock();
   updateUrlHint();
+  markSeen();
+}
+
+// A post an admin has sent back is news to the writer. Opening it is
+// what counts as having seen it, and that is what clears the flag on
+// the Blog link in the portal.
+async function markSeen() {
+  if (!post || isAdmin()) return;
+  if (post.status !== "rejected" || post.seen_by_coach_at) return;
+  const stamp = new Date().toISOString();
+  await db.from("blog_posts")
+    .update({ seen_by_coach_at: stamp }).eq("id", post.id);
+  post.seen_by_coach_at = stamp;
 }
 
 // A submitted post is out of the writer's hands until it comes back.
@@ -534,6 +548,13 @@ function applyLock() {
   if (back) $("sent-back-why").textContent = post.admin_note;
 
   $("adminpanel").classList.toggle("hidden", !admin);
+
+  // A writer's own post, and only while it is still theirs to delete:
+  // a draft, or one sent back to them. The database refuses anything
+  // else, so the button only appears where it would actually work.
+  $("mydelete").classList.toggle("hidden",
+    admin || !(post.created_by === me.id &&
+               (post.status === "draft" || post.status === "rejected")));
 }
 
 function updateUrlHint() {
@@ -1049,6 +1070,31 @@ $("submit").addEventListener("click", async () => {
   if (ok) setTimeout(loadList, 1400);
 });
 
+// A writer can bin their own post while it is still theirs — a draft,
+// or one sent back to them. The database refuses anything else.
+$("mydelete").addEventListener("click", async () => {
+  if (!window.confirm(
+    `Delete "${post.title || "this draft"}" for good?\n\n` +
+    "The post and its images are removed. This cannot be undone."
+  )) return;
+
+  const paths = [
+    post.hero_path,
+    post.author_photo_path,
+    ...blocks.map((b) => b.path),
+  ].filter(Boolean);
+  if (paths.length) await db.storage.from("blog").remove(paths);
+
+  const { error } = await db.from("blog_posts").delete().eq("id", post.id);
+  if (error) {
+    $("p-msg").className = "msg err";
+    $("p-msg").textContent = "Could not delete: " + error.message;
+    return;
+  }
+  post = null;
+  await loadList();
+});
+
 /* ---------------- admin ---------------- */
 
 $("publish").addEventListener("click", async () => {
@@ -1098,6 +1144,9 @@ $("sendback").addEventListener("click", async () => {
     admin_note: note,
     reviewed_by: me.id,
     reviewed_at: new Date().toISOString(),
+    // Cleared, so the writer gets a count on the Blog link until they
+    // open it. Otherwise the only way to find out is to go looking.
+    seen_by_coach_at: null,
   }, "Sent back to the writer.");
   if (ok) setTimeout(loadList, 1400);
 });
