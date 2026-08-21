@@ -5902,7 +5902,21 @@ async function loadUnread() {
 async function refreshBlogFlag() {
   const link = $("bloglink");
   link.textContent = "Blog";
-  if (!isAdmin()) return;
+  // An admin sees what is waiting on them. A coach sees what has come
+  // back to them and they have not opened yet — otherwise the only way
+  // to find out is to go and look.
+  if (!isAdmin()) {
+    const { data } = await db.from("blog_posts").select("id")
+      .eq("created_by", me.id).eq("status", "rejected")
+      .is("seen_by_coach_at", null);
+    const n = (data || []).length;
+    if (!n) return;
+    const mine = document.createElement("span");
+    mine.className = "unread-flag";
+    mine.textContent = n > 9 ? "9+" : String(n);
+    link.append(mine);
+    return;
+  }
 
   const { count, error } = await db.from("blog_posts")
     .select("id", { count: "exact", head: true })
