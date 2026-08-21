@@ -13,6 +13,8 @@ const db = createClient(
 );
 
 // admin: only shown to an admin. The rest everybody gets.
+// Messages is a view inside the portal rather than a page of its own,
+// so it is reached with ?view= and the portal opens straight onto it.
 const LINKS = [
   { href: "/portal/",             label: "All courses" },
   { href: "/portal/blog/",        label: "Blog" },
@@ -23,6 +25,7 @@ const LINKS = [
   { href: "/portal/reflections/", label: "Reflections" },
   { href: "/portal/workshops/",   label: "Workshops" },
   { href: "/portal/codes/",       label: "Discount codes", admin: true },
+  { href: "/portal/?view=messages", label: "Messages" },
   { href: "/portal/broadcast/",   label: "Message the team", admin: true },
   { href: "/portal/planner/",     label: "Seminar planner", admin: true },
   { href: "/portal/year/",        label: "Scheduling planner" },
@@ -112,7 +115,10 @@ function build() {
     a.href = l.href;
     a.textContent = l.label;
     if (l.admin) a.dataset.admin = "1";
-    if (l.href.replace(/\/+$/, "") === here) a.className = "here";
+    // Query strings never mark the page you are on — only real paths.
+    if (!l.href.includes("?") && l.href.replace(/\/+$/, "") === here) {
+      a.className = "here";
+    }
     panel.appendChild(a);
   }
 
@@ -150,9 +156,7 @@ function build() {
       .select("full_name, role").eq("id", session.user.id).maybeSingle();
     if (!staff) return;
     who.textContent = staff.full_name;
-    if (staff.role === "admin") {
-      panel.querySelectorAll("[data-admin]").forEach((a) => { a.dataset.admin = "ok"; });
-    } else {
+    if (staff.role !== "admin") {
       panel.querySelectorAll('[data-admin="1"]').forEach((a) => a.remove());
     }
   });
