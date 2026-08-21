@@ -2910,7 +2910,10 @@ async function start() {
 
       // A link from the scheduling planner names a course, so the portal
     // opens straight onto it rather than making somebody scroll.
-    const wanted = new URLSearchParams(location.search).get("course");
+      const view = new URLSearchParams(location.search).get("view");
+    if (view === "messages") openMessages();
+    if (view === "broadcast") location.href = "/portal/broadcast/"; 
+  const wanted = new URLSearchParams(location.search).get("course");
     if (wanted) {
       const { data: one, error: oneErr } = await db.from("courses")
         .select("*").eq("id", wanted).maybeSingle();
