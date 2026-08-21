@@ -846,12 +846,64 @@ function swap(a, c) {
 
 /* ---------------- files ---------------- */
 
+// Photographs arrive off a phone or a camera at 4000px and ten megabytes
+// or more. Nothing on the site or in the weekly email ever displays one
+// larger than about 1600px wide, and an author's face is shown at 62px.
+// So the browser redraws the picture at a sensible size before it is sent.
+// The writer does nothing differently — the upload simply gets far faster.
+//
+// Anything that is not a photograph is left alone: videos, PDFs and other
+// documents, plus GIFs (which would lose their animation) and SVGs (which
+// are already tiny and would be ruined by being turned into a bitmap).
+const MAX_WIDTH = { hero: 1600, image: 1600, author: 600 };
+
+async function shrinkImage(file, prefix) {
+  const cap = MAX_WIDTH[prefix];
+  if (!cap) return null;
+  if (!/^image\//.test(file.type || "")) return null;
+  if (/gif|svg/.test(file.type)) return null;
+
+  let bitmap;
+  try {
+    // from-image keeps a photograph the right way up — phones record
+    // rotation as a tag rather than rotating the pixels.
+    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch {
+    return null; // a format the browser cannot read; send the original
+  }
+
+  const scale = Math.min(1, cap / bitmap.width);
+  const w = Math.round(bitmap.width * scale);
+  const h = Math.round(bitmap.height * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, w, h);
+  if (bitmap.close) bitmap.close();
+
+  const smaller = await new Promise((done) => canvas.toBlob(done, "image/jpeg", 0.82));
+  if (!smaller) return null;
+
+  // An image that was already small can come out larger as a JPEG.
+  // In that case the original was the better file all along.
+  if (smaller.size >= file.size) return null;
+
+  return smaller;
+}
+
 async function uploadFile(file, prefix) {
-  const ext = (file.name.split(".").pop() || "bin")
-    .toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 6);
+  const smaller = await shrinkImage(file, prefix);
+  const body = smaller || file;
+  const type = smaller ? "image/jpeg" : (file.type || "application/octet-stream");
+  const ext = smaller
+    ? "jpg"
+    : (file.name.split(".").pop() || "bin")
+        .toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 6);
+
   const path = `${post.id}/${prefix}-${Date.now()}.${ext}`;
-  const { error } = await db.storage.from("blog").upload(path, file, {
-    contentType: file.type || "application/octet-stream",
+  const { error } = await db.storage.from("blog").upload(path, body, {
+    contentType: type,
     upsert: false,
   });
   if (error) throw new Error(error.message);
