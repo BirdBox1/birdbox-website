@@ -1,0 +1,23 @@
+/* Portal UI fixes — loaded by every /portal/ page */
+
+/* Messages: long text ran off the side below 704px.
+   1fr takes its minimum from the content, so the column
+   could not shrink. minmax(0,1fr) lets it. */
+.dm { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 44rem) {
+  .dm { grid-template-columns: 15rem minmax(0, 1fr); }
+}
+.dm > * { min-width: 0; }
+.dm-thread { min-width: 0; }
+
+.chat { grid-template-columns: minmax(0, 1fr); }
+.chat-msg { min-width: 0; }
+.chat-msg > * { min-width: 0; }
+.chat-msg .meta { min-width: 0; flex-wrap: wrap; }
+.chat-msg .body {
+  min-width: 0;
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
