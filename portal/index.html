@@ -8987,8 +8987,15 @@ function openCertDialog(course) {
   $("certwrap").classList.remove("hidden");
 }
 
+// Which round of a batched send we are on. Zero means the coach has
+// just pressed the button themselves.
+let certRound = 0;
+
 function wireCertificates() {
-  $("cert-open").onclick = () => { if (currentCourse) openCertDialog(currentCourse); };
+  $("cert-open").onclick = () => {
+    certRound = 0;
+    if (currentCourse) openCertDialog(currentCourse);
+  };
   $("cert-close").onclick = () => { $("certwrap").classList.add("hidden"); };
   $("certwrap").addEventListener("click", (e) => {
     if (e.target === $("certwrap")) $("certwrap").classList.add("hidden");
@@ -9000,7 +9007,9 @@ function wireCertificates() {
 
     const noCert = currentCourse.issues_certificate === false;
 
-    if (!window.confirm(
+    // Asked once. The rounds after the first are the same send
+    // continuing, not a new decision.
+    if (!certRound && !window.confirm(
       noCert
         ? `Mark "${currentCourse.title}" as complete?\n\n` +
           "No certificates are sent — they come from the online course after the exam."
@@ -9008,6 +9017,7 @@ function wireCertificates() {
           "This emails each person their certificate as a PDF. It cannot be undone."
     )) return;
 
+    certRound++;
     $("cert-go").disabled = true;
     msg.className = "msg";
     msg.textContent = noCert
