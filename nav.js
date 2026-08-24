@@ -7,10 +7,30 @@
 // The nav styling still lives in each page's own <style> block, because it
 // differs slightly between the dark pages and the portal. This script only
 // fills in the links, so nothing visual changes when a page is converted.
-
+//
+// The Meta pixel also loads from here, so every page that carries the nav
+// reports a PageView. Dataset 2663209040595150, owned by the BirdBox
+// Coaching business portfolio.
 (function () {
   "use strict";
 
+  // ---- Meta pixel -------------------------------------------------------
+  // Guarded so that a page which also hard-codes the pixel does not load it
+  // twice and count every visit as two.
+  if (!window.fbq) {
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window,document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '2663209040595150');
+    fbq('track', 'PageView');
+  }
+
+  // ---- Navigation -------------------------------------------------------
   var LINKS = [
     { href: "/merch", text: "Merch Store" },
     { href: "/blog", text: "Blog" },
@@ -18,7 +38,6 @@
     { href: "/birdbox-team/", text: "Meet the Team" },
     { href: "/about", text: "About" }
   ];
-
   // "/tcc/level-1/" and "/tcc/level-1" are the same page. Trailing slashes
   // are stripped so the active check does not depend on how the visitor
   // happened to type the address. The site root stays as "/".
@@ -28,7 +47,6 @@
     if (p.length > 1) p = p.replace(/\/+$/, "");
     return p || "/";
   }
-
   function isCurrent(href, here) {
     var target = tidy(href);
     if (target === here) return true;
@@ -36,17 +54,14 @@
     // is marked current while reading a page inside that folder.
     return target !== "/" && here.indexOf(target + "/") === 0;
   }
-
   function build() {
     var nav = document.querySelector("nav.bb-topbar");
     if (!nav) return;
     // Guard against a page that both ships hard-coded links and loads this
     // file during the changeover, which would otherwise show them twice.
     if (nav.getAttribute("data-nav-built") === "yes") return;
-
     var here = tidy(window.location.pathname);
     nav.textContent = "";
-
     for (var i = 0; i < LINKS.length; i++) {
       var item = LINKS[i];
       var a = document.createElement("a");
@@ -58,10 +73,8 @@
       }
       nav.append(a);
     }
-
     nav.setAttribute("data-nav-built", "yes");
   }
-
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", build);
   } else {
