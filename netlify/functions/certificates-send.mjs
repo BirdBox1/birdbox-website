@@ -11,6 +11,14 @@
 // The design is a background image with three things drawn on top:
 // the name, the date, and the reference. That means a new certificate
 // design is a file swap rather than a code change.
+//
+// Sent in batches. Netlify stops waiting for a function at 26 seconds,
+// and a certificate takes close to two of them, so a full seminar in
+// one call runs past the limit — the work finished, but the reply
+// never arrived and the coach was shown a failure for a send that had
+// actually worked. Each call now takes on a few, says how many are
+// left, and the portal calls again until there are none. Anyone who
+// already has theirs is skipped, so calling twice can never send twice.
 
 import { createClient } from "@supabase/supabase-js";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
@@ -26,6 +34,11 @@ const OFFICE = "info@birdboxcoaching.com";
 const FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
 const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.app")
   .replace(/\/+$/, "");
+
+// How many to take on in one call. Six at roughly two seconds each is
+// about twelve, leaving comfortable room under Netlify's 26 for the
+// artwork fetch and startup before the loop begins.
+const BATCH = 6;
 
 // Each design has its own artwork and its own positions, measured from
 // the file itself. Positions are in artwork pixels so they can be read
@@ -294,6 +307,7 @@ export default async (request) => {
         failed: 0,
         failures: [],
         skipped: 0,
+        remaining: 0,
         completedOnly: true,
         attended: attended.length,
       });
@@ -320,10 +334,15 @@ export default async (request) => {
       }, 400);
     }
 
-    const todo = eligible.filter((r) => !r.certificate_sent_at);
-    if (!todo.length) {
+    const outstanding = eligible.filter((r) => !r.certificate_sent_at);
+    if (!outstanding.length) {
       return json({ error: "Everyone who attended already has their certificate." }, 400);
     }
+
+    // Only as many as will comfortably finish inside the time limit.
+    // The rest are picked up by the next call, which re-reads the
+    // table and so cannot send to anyone already done.
+    const todo = outstanding.slice(0, BATCH);
 
     // ---- the template and the wording -------------------------
     const artwork = await loadArtwork(course);
@@ -427,8 +446,15 @@ export default async (request) => {
       }
     }
 
+    // Anyone still without one, including any that failed just now —
+    // a failure is not finished business.
+    const remaining = outstanding.length - sent;
+
     // ---- mark the seminar closed out --------------------------
-    if (sent && !course.completed_at) {
+    // Only once nobody is left waiting. Marking it complete halfway
+    // through would tell the rest of the portal the course is done
+    // while certificates are still going out.
+    if (sent && !remaining && !course.completed_at) {
       await supabase
         .from("courses")
         .update({ completed_at: new Date().toISOString(), completed_by: me.id })
@@ -439,7 +465,8 @@ export default async (request) => {
       sent,
       failed: failures.length,
       failures,
-      skipped: eligible.length - todo.length,
+      skipped: eligible.length - outstanding.length,
+      remaining,
     });
   } catch (err) {
     console.error("certificates-send failed:", err);
