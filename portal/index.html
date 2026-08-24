@@ -9026,7 +9026,27 @@ function wireCertificates() {
         },
         body: JSON.stringify({ courseId: currentCourse.id }),
       });
-      const out = await res.json();
+            const raw = await res.text();
+      let out = null;
+      try { out = JSON.parse(raw); } catch (e) { out = null; }
+
+      // A full course takes half a minute, and what comes back is not
+      // always JSON — a gateway timeout returns an HTML page. Reading
+      // it as text first means a send that actually worked can never
+      // be reported to the coach as a failure.
+      if (!out) {
+        msg.className = "msg";
+        msg.textContent =
+          "Still sending. This can take a minute on a full course — " +
+          "close this and reopen the course to see how far it got. " +
+          "Do not press send again.";
+        setTimeout(() => {
+          $("certwrap").classList.add("hidden");
+          openCourse(currentCourse);
+        }, 3000);
+        return;
+      }
+
       if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
 
       msg.className = out.failed ? "msg err" : "msg ok";
