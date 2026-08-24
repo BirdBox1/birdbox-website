@@ -9047,7 +9047,19 @@ function wireCertificates() {
         return;
       }
 
-      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+           if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      // More to do than one call could finish in the time Netlify
+      // allows. Anyone already done is skipped, so going round again
+      // can never send to the same person twice.
+      if (out.remaining) {
+        msg.className = "msg";
+        msg.textContent =
+          `${out.sent} sent, ${out.remaining} to go — keep this open…`;
+        setTimeout(() => { $("cert-go").click(); }, 800);
+        return;
+      }
+
 
       msg.className = out.failed ? "msg err" : "msg ok";
       msg.textContent = out.completedOnly
