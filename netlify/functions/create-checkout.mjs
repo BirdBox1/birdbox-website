@@ -13,6 +13,21 @@
 // use automatic_tax, which would tax the buyer's country instead, and
 // which cannot be combined with tax_rates anyway.
 // Courses in countries with no vat_rates row are charged no tax.
+//
+// INVOICES: every purchase also creates a real numbered invoice with
+// a PDF, not just a Stripe receipt. A receipt has no invoice number
+// and no net/VAT breakdown, so a business buyer cannot put it in
+// their books — which is exactly what a German gym owner asked for.
+// Stripe numbers them sequentially and pulls the company address and
+// VAT number off the account.
+//
+// The invoice is created silently: it sits against the customer for
+// whoever asks, rather than emailing a formal document to every
+// individual who buys a place for themselves.
+//
+// Switzerland is excluded (see NO_AUTO_INVOICE). An invoice asserts a
+// VAT treatment in a way a receipt does not, and the Swiss position
+// is unresolved, so those are raised by hand for now.
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
@@ -30,6 +45,11 @@ const BALANCE_DAYS_BEFORE = 14;
 
 // Stripe rejects a custom field label longer than this.
 const LABEL_MAX = 50;
+
+// Venue countries that get no automatic invoice, by ISO code.
+// Delete an entry once its VAT position is settled and every seminar
+// there starts invoicing itself. Nothing else needs changing.
+const NO_AUTO_INVOICE = ["CH"];
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -299,6 +319,32 @@ export default async (req) => {
       success_url: `${origin}/registration-complete/?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/c/${course.slug}/`,
     };
+
+    // ---- the invoice -------------------------------------------
+    // Created automatically for every venue country except those on
+    // NO_AUTO_INVOICE. The participant's name goes in the description
+    // so an invoice for a coach booked by their gym owner names the
+    // right person, not the cardholder — but the custom fields are
+    // only known after payment, so this carries the course and the
+    // buyer sorts the rest.
+    const venueCountry = (course.country || "").trim().toUpperCase();
+    if (!NO_AUTO_INVOICE.includes(venueCountry)) {
+      session.invoice_creation = {
+        enabled: true,
+        invoice_data: {
+          description:
+            option === "deposit"
+              ? `Deposit — ${course.title}`
+              : course.title,
+          metadata: {
+            course_id: course.id,
+            course_slug: course.slug,
+            payment_option: option,
+            discount_code: appliedCode || "",
+          },
+        },
+      };
+    }
 
     // Only card payments can be saved for the balance charge.
     if (option !== "klarna") {
