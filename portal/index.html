@@ -5250,7 +5250,12 @@ async function openHostEmail(course) {
   $("host-eb-hint").textContent =
     "stops " + fmtDate(ends.toISOString(), full.timezone) + ", four weeks before the course";
 
-  $("host-subject").value = `${full.title} is live — your host codes`;
+  // A workshop host gets no codes by default, so promising them in the
+  // subject line reads as a mistake to the person receiving it.
+  const hostSpots = Number($("host-uses").value) || 0;
+  $("host-subject").value = (workshop && !hostSpots)
+    ? `${full.title} is live`
+    : `${full.title} is live — your host codes`;
   $("host-body").value = hostEmailBody(full);
   $("host-note").textContent =
     "Sending creates the codes and copies the media team, the office, and any coach already assigned to this course.";
