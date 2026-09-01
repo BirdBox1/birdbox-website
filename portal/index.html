@@ -3769,6 +3769,48 @@ async function openCourse(course) {
 // Taken at the desk while they show their registration. It exists so
 // the coach can put a face to a name when writing feedback, and is
 // deleted automatically once the feedback has gone out.
+// A 54px thumbnail is enough to tick somebody off a register and not
+// enough to recognise them by, which is what a coach actually needs
+// while writing that person's feedback. Tapping the photo opens it
+// full size. Tapping anywhere, or Escape, closes it again.
+function openPhotoViewer(src, name) {
+  const wrap = document.createElement("div");
+  wrap.className = "overlay";
+  wrap.style.placeItems = "center";
+
+  const box = document.createElement("div");
+  box.style.cssText = "text-align:center;max-width:min(90vw,640px)";
+
+  const img = document.createElement("img");
+  img.src = src;
+  img.alt = name || "";
+  img.style.cssText =
+    "max-width:100%;max-height:78vh;object-fit:contain;display:block;" +
+    "border-radius:8px;box-shadow:0 18px 50px rgba(0,0,0,0.45)";
+
+  const cap = document.createElement("div");
+  cap.textContent = name || "";
+  cap.style.cssText =
+    "color:#fff;font-size:0.95rem;font-weight:650;margin-top:0.8rem";
+
+  const hint = document.createElement("div");
+  hint.textContent = "Tap anywhere to close";
+  hint.style.cssText = "color:#b9c0c7;font-size:0.8rem;margin-top:0.25rem";
+
+  box.append(img, cap, hint);
+  wrap.append(box);
+
+  const close = () => {
+    wrap.remove();
+    document.removeEventListener("keydown", onKey);
+  };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+
+  wrap.addEventListener("click", close);
+  document.addEventListener("keydown", onKey);
+  document.body.append(wrap);
+}
+
 function renderShot(box, course, reg) {
   box.innerHTML = `
     <div class="frame" title="Photo for identifying this participant">${CAMERA_SVG}</div>
@@ -3778,6 +3820,7 @@ function renderShot(box, course, reg) {
   const frame = box.querySelector(".frame");
   const cap = box.querySelector(".cap");
   const input = box.querySelector("input");
+  let shown = null;
 
   if (reg.photo_path) showExisting();
 
@@ -3788,11 +3831,19 @@ function renderShot(box, course, reg) {
     if (!data?.signedUrl) return;
     frame.innerHTML = `<img alt="">`;
     frame.querySelector("img").src = data.signedUrl;
+    frame.title = "Tap to see this photo full size";
+    shown = data.signedUrl;
     cap.textContent = "Retake";
     cap.className = "cap";
   }
 
-  frame.addEventListener("click", () => input.click());
+  // With a photo, the frame opens it big — that is what it is for.
+  // Without one, it is still the quickest way to the camera. Retake
+  // underneath is how a photo gets replaced either way.
+  frame.addEventListener("click", () => {
+    if (shown) openPhotoViewer(shown, `${reg.first_name} ${reg.last_name}`);
+    else input.click();
+  });
   cap.addEventListener("click", () => input.click());
 
   input.addEventListener("change", async () => {
@@ -5901,12 +5952,28 @@ async function loadUnread() {
 
 // A count on the Messages button, so an unread message is visible from
 // anywhere in the portal rather than only when you go looking.
+// Draws the label and its count together, in one go. Every one of the
+// refreshers below used to clear the label, wait on a query, then add
+// the badge — so two runs overlapping cleared twice and added twice,
+// which is how a button ends up wearing two red counts. Clearing and
+// drawing in the same breath, after the waiting is done, makes that
+// impossible however many times it runs.
+function setFlag(el, label, count) {
+  if (!el) return;
+  el.textContent = label;
+  if (!count) return;
+  const flag = document.createElement("span");
+  flag.className = "unread-flag";
+  flag.textContent = count > 9 ? "9+" : String(count);
+  el.append(flag);
+}
+
 // A red count on the Blog button when posts are waiting for review,
 // so a submission is visible from the portal rather than only once
 // somebody opens the blog. Admin only — a coach has nothing to review.
 async function refreshBlogFlag() {
   const link = $("bloglink");
-  link.textContent = "Blog";
+  if (!link || !me) return;
   // An admin sees what is waiting on them. A coach sees what has come
   // back to them and they have not opened yet — otherwise the only way
   // to find out is to go and look.
@@ -5914,12 +5981,7 @@ async function refreshBlogFlag() {
     const { data } = await db.from("blog_posts").select("id")
       .eq("created_by", me.id).eq("status", "rejected")
       .is("seen_by_coach_at", null);
-    const n = (data || []).length;
-    if (!n) return;
-    const mine = document.createElement("span");
-    mine.className = "unread-flag";
-    mine.textContent = n > 9 ? "9+" : String(n);
-    link.append(mine);
+    setFlag(link, "Blog", (data || []).length);
     return;
   }
 
@@ -5927,12 +5989,7 @@ async function refreshBlogFlag() {
     .select("id", { count: "exact", head: true })
     .eq("status", "submitted");
 
-  if (error || !count) return;
-
-  const flag = document.createElement("span");
-  flag.className = "unread-flag";
-  flag.textContent = count > 9 ? "9+" : String(count);
-  link.append(flag);
+  setFlag(link, "Blog", error ? 0 : count);
 }
 
 // A count on the Workshops button. For an admin it is work waiting on
@@ -5944,7 +6001,6 @@ async function refreshBlogFlag() {
 async function refreshReflectionFlag() {
   const link = $("reflectlink");
   if (!link || !me) return;
-  link.textContent = "Reflections";
 
   let total = 0;
   try {
@@ -5961,20 +6017,14 @@ async function refreshReflectionFlag() {
     }
   } catch (err) {
     console.error("Could not count reflections:", err.message);
-    return;
   }
 
-  if (!total) return;
-  const flag = document.createElement("span");
-  flag.className = "unread-flag";
-  flag.textContent = total > 9 ? "9+" : String(total);
-  link.append(flag);
+  setFlag(link, "Reflections", total);
 }
 
 async function refreshWorkshopFlag() {
   const btn = $("workshopsbtn");
   if (!btn || !me) return;
-  btn.textContent = "Workshops";
 
   let total = 0;
   try {
@@ -5997,27 +6047,15 @@ async function refreshWorkshopFlag() {
     }
   } catch (err) {
     console.error("Could not count workshops:", err.message);
-    return;
   }
 
-  if (!total) return;
-  const flag = document.createElement("span");
-  flag.className = "unread-flag";
-  flag.textContent = total > 9 ? "9+" : String(total);
-  btn.append(flag);
+  setFlag(btn, "Workshops", total);
 }
 
   async function refreshUnreadFlag() {
 
   const total = await loadUnread();
-  const btn = $("messagesbtn");
-  btn.textContent = "Messages";
-  if (total) {
-    const flag = document.createElement("span");
-    flag.className = "unread-flag";
-    flag.textContent = total > 9 ? "9+" : String(total);
-    btn.append(flag);
-  }
+  setFlag($("messagesbtn"), "Messages", total);
 }
 
 async function openMessages() {
@@ -10256,6 +10294,34 @@ function wireMenu() {
   check();
 }
 
+
+/* ---------------- keeping the counts honest ---------------- */
+
+// The counts are worked out once, as the portal loads. Going off to the
+// workshops page and pressing back does not load it again — the browser
+// restores the page exactly as it was, red badge and all — so a coach
+// who has already dealt with everything still sees a 3 sitting there.
+// Counting again whenever the page comes back into view puts that
+// right without anybody having to refresh.
+async function refreshAllFlags() {
+  if (!me) return;
+  await Promise.all([
+    refreshUnreadFlag(),
+    refreshWorkshopFlag(),
+    refreshReflectionFlag(),
+    refreshBlogFlag(),
+  ]);
+}
+
+// persisted means it came back from the cache rather than loading
+// fresh, which is the case the counts get stranded by.
+window.addEventListener("pageshow", (e) => { if (e.persisted) refreshAllFlags(); });
+
+// And for a coach who left the tab open on their phone and came back
+// to it an hour later.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") refreshAllFlags();
+});
 
 /* ---------------- go ---------------- */
 wireParticipantControls();
