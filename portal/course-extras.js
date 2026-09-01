@@ -278,6 +278,7 @@ async function renderAdverts(courseId) {
       const { error: e } = await db.from("course_adverts")
         .delete().eq("id", b.dataset.adDel);
       if (e) { window.alert("Could not remove it: " + e.message); b.disabled = false; return; }
+      adsByCourse = null;
       renderAdverts(courseId);
     });
   }
@@ -296,6 +297,7 @@ async function renderAdverts(courseId) {
         .update({ spend_cents: value, updated_at: new Date().toISOString() })
         .eq("id", row.id);
       if (e) { window.alert("Could not save: " + e.message); b.disabled = false; return; }
+      adsByCourse = null;
       renderAdverts(courseId);
     });
   }
@@ -639,6 +641,7 @@ function wirePanel() {
     for (const id of ["ex-ad-label", "ex-ad-objid", "ex-ad-budget", "ex-ad-spend"]) {
       $(id).value = "";
     }
+    adsByCourse = null;   // the list pill is now out of date
     msg.style.color = "var(--good)";
     msg.textContent = "Added.";
     setTimeout(() => { msg.textContent = ""; msg.style.color = ""; }, 4000);
@@ -747,6 +750,29 @@ async function loadTravel() {
   return by;
 }
 
+// Which seminars are being advertised, and what has gone on them.
+// Admin only — the query would be refused for a coach anyway, but not
+// asking at all saves a pointless request on every list they open.
+let adsByCourse = null;
+
+async function loadAdverts() {
+  if (!isAdmin()) return new Map();
+  const { data, error } = await db.from("course_adverts")
+    .select("course_id, spend_cents, currency, status");
+  if (error) return null;
+
+  const by = new Map();
+  for (const r of data || []) {
+    const t = by.get(r.course_id) || { count: 0, live: 0, spend: {} };
+    t.count++;
+    if (r.status === "live") t.live++;
+    const cur = r.currency || "EUR";
+    t.spend[cur] = (t.spend[cur] || 0) + (r.spend_cents || 0);
+    by.set(r.course_id, t);
+  }
+  return by;
+}
+
 async function paintList() {
   const list = document.getElementById("courses-list");
   if (!list) return;
@@ -754,21 +780,48 @@ async function paintList() {
   if (!cards.length) return;
 
   if (!travelByCourse) travelByCourse = await loadTravel();
+  if (!adsByCourse) adsByCourse = await loadAdverts();
   if (!travelByCourse) return;
 
   for (const card of cards) {
     const flags = card.querySelector(".flags");
-    if (!flags || flags.querySelector(".travel-pill")) continue;
+    if (!flags) continue;
 
-    const t = travelByCourse.get(card.dataset.courseId);
-    if (!t || !t.total) continue;
+    if (!flags.querySelector(".travel-pill")) {
+      const t = travelByCourse.get(card.dataset.courseId);
+      if (t && t.total) {
+        const s = document.createElement("span");
+        s.className = "pill travel-pill" + (t.done === t.total ? " done" : " warn");
+        s.textContent = t.done === t.total
+          ? "travel booked"
+          : `travel ${t.done} of ${t.total}`;
+        flags.append(s);
+      }
+    }
 
-    const s = document.createElement("span");
-    s.className = "pill travel-pill" + (t.done === t.total ? " done" : " warn");
-    s.textContent = t.done === t.total
-      ? "travel booked"
-      : `travel ${t.done} of ${t.total}`;
-    flags.append(s);
+    // Whether a seminar is being advertised is worth seeing from the
+    // list, because the ones with nothing behind them are exactly the
+    // ones that quietly fail to fill.
+    if (isAdmin() && adsByCourse && !flags.querySelector(".ad-pill")) {
+      const a = adsByCourse.get(card.dataset.courseId);
+      const s = document.createElement("span");
+      s.className = "pill ad-pill" + (a ? (a.live ? " on" : "") : " warn");
+
+      if (!a) {
+        s.textContent = "no advert";
+      } else {
+        const spent = Object.entries(a.spend)
+          .filter(([, c]) => c)
+          .map(([cur, c]) => new Intl.NumberFormat(undefined, {
+            style: "currency", currency: cur, maximumFractionDigits: 0,
+          }).format(c / 100))
+          .join(" · ");
+        s.textContent = spent ? "advert " + spent : "advert set up";
+        s.title = `${a.count} advert${a.count === 1 ? "" : "s"}` +
+          `${a.live ? `, ${a.live} live` : ""}`;
+      }
+      flags.append(s);
+    }
   }
 }
 
