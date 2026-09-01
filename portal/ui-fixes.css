@@ -60,3 +60,54 @@
   }
   .sem .coachsel { max-width: 100%; }
 }
+
+/* ---------- Messages, on a phone ---------- */
+
+/* The list and the thread cannot share a narrow screen. Until a
+   conversation is chosen you get the list; choosing one hands the
+   screen over to it, with a link back. Above 44rem both show side by
+   side as before and none of this applies. */
+.dm-back { display: none; }
+
+@media (max-width: 44rem) {
+  .dm .dm-thread { display: none; }
+  .dm.thread-open #dm-side { display: none; }
+  .dm.thread-open .dm-thread { display: block; }
+  .dm.thread-open .dm-back {
+    display: inline-block;
+    margin-bottom: 0.6rem;
+    font-size: 0.9rem;
+  }
+  /* Sitting inside its own scrolling box on a phone means two
+     scrollbars fighting. Let the page scroll instead. */
+  .dm.thread-open .chat { max-height: none; overflow: visible; }
+  .dm-people { max-height: none; }
+}
+
+/* Name, then a line of what was last said, then when. */
+.dm-person { align-items: center; gap: 0.6rem; }
+.dm-person .nm-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.3;
+}
+.dm-person .prev {
+  font-size: 0.78rem;
+  color: var(--muted);
+  max-width: 100%;
+}
+.dm-person.on .prev { color: var(--ink); }
+.dm-person .when {
+  flex: none;
+  font-size: 0.7rem;
+  color: var(--muted);
+  align-self: flex-start;
+  padding-top: 0.15rem;
+}
+
+/* The compose box grows with the message rather than scrolling what
+   was typed a moment ago out of sight. */
+#dm-box { max-height: 180px; }
