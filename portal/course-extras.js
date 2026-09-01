@@ -804,23 +804,24 @@ async function paintList() {
     // ones that quietly fail to fill.
     if (isAdmin() && adsByCourse && !flags.querySelector(".ad-pill")) {
       const a = adsByCourse.get(card.dataset.courseId);
-      const s = document.createElement("span");
-      s.className = "pill ad-pill" + (a ? (a.live ? " on" : "") : " warn");
+      // Nothing recorded means no pill at all. Across 150 seminars a
+      // row of "no advert" labels is noise on every card, and the eye
+      // stops reading them.
+      if (a) {
+        const s = document.createElement("span");
+        s.className = "pill ad-pill" + (a.live ? " on" : "");
 
-      if (!a) {
-        s.textContent = "no advert";
-      } else {
         const spent = Object.entries(a.spend)
-          .filter(([, c]) => c)
           .map(([cur, c]) => new Intl.NumberFormat(undefined, {
             style: "currency", currency: cur, maximumFractionDigits: 0,
           }).format(c / 100))
           .join(" · ");
-        s.textContent = spent ? "advert " + spent : "advert set up";
+
+        s.textContent = "advert " + spent;
         s.title = `${a.count} advert${a.count === 1 ? "" : "s"}` +
           `${a.live ? `, ${a.live} live` : ""}`;
+        flags.append(s);
       }
-      flags.append(s);
     }
   }
 }
