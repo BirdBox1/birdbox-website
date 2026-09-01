@@ -856,12 +856,13 @@
 
     <div class="panel">
       <div class="dm">
-        <div>
+        <div id="dm-side">
           <div class="whenline" style="font-weight:650;color:var(--ink);margin-bottom:0.4rem">The team</div>
           <div class="dm-people" id="dm-people"></div>
         </div>
 
         <div class="dm-thread">
+          <button class="textlink dm-back" id="dm-back" type="button">&larr; The team</button>
           <div class="whenline" style="font-weight:650;color:var(--ink);margin-bottom:0.4rem" id="dm-with">
             Choose somebody to write to
           </div>
@@ -2650,6 +2651,15 @@ function instantToZoned(iso, tz) {
 }
 
 const MY_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+// A phone keyboard has no shift key to hold, so Enter-to-send leaves no
+// way at all to start a second line. On a touch screen Enter breaks the
+// line and the Send button sends, which is what every phone messenger
+// does. A desktop keyboard keeps Enter-to-send.
+const TOUCH_INPUT = (() => {
+  try { return window.matchMedia("(pointer: coarse)").matches; }
+  catch (e) { return false; }
+})();
 
 const BIN_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -5935,6 +5945,49 @@ function wireExport() {
 let dmWith = null;
 let dmUnread = {};
 
+// The last thing said in each conversation, so the list can be ordered
+// the way every other messenger orders it — most recent at the top —
+// and show a line of it under the name. Without this the newest message
+// in the portal can sit halfway down an alphabetical list.
+let dmLast = {};
+
+async function loadThreads() {
+  dmLast = {};
+  if (!me) return;
+
+  const { data, error } = await db
+    .from("direct_messages")
+    .select("sender_id, recipient_id, body, created_at")
+    .or(`sender_id.eq.${me.id},recipient_id.eq.${me.id}`)
+    .order("created_at", { ascending: false })
+    .limit(400);
+
+  if (error) { console.error("Could not load conversations:", error.message); return; }
+
+  for (const m of data || []) {
+    const them = m.sender_id === me.id ? m.recipient_id : m.sender_id;
+    // Ordered newest first, so the first one seen for a person is theirs.
+    if (dmLast[them]) continue;
+    dmLast[them] = {
+      body: m.body,
+      at: m.created_at,
+      mine: m.sender_id === me.id,
+    };
+  }
+}
+
+// "Yesterday" and "14:32" are what a person wants here, not a full date.
+function dmWhen(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const yesterday = new Date(now.getTime() - 86400000);
+  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+  if (now - d < 7 * 86400000) return d.toLocaleDateString(undefined, { weekday: "short" });
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
 async function loadUnread() {
   dmUnread = {};
   if (!me) return 0;
@@ -6067,7 +6120,7 @@ async function openMessages() {
     staffList = data || [];
   }
 
-  await loadUnread();
+  await Promise.all([loadUnread(), loadThreads()]);
   renderPeople();
 
   if (dmWith) await openThread(dmWith);
@@ -6077,12 +6130,18 @@ function renderPeople() {
   const box = $("dm-people");
   box.innerHTML = "";
 
-  // Anyone with unread messages floats to the top; the rest stay
-  // alphabetical so people are where you expect them.
+  // Whoever you spoke to last is at the top, the way every messenger
+  // does it. People you have never written to fall in underneath,
+  // alphabetically, so they are still findable.
   const others = staffList
     .filter((p) => p.id !== me.id)
-    .sort((a, b) => (dmUnread[b.id] || 0) - (dmUnread[a.id] || 0) ||
-                    a.full_name.localeCompare(b.full_name));
+    .sort((a, b) => {
+      const la = dmLast[a.id], lb = dmLast[b.id];
+      if (la && lb) return lb.at.localeCompare(la.at);
+      if (la) return -1;
+      if (lb) return 1;
+      return a.full_name.localeCompare(b.full_name);
+    });
 
   if (!others.length) {
     box.innerHTML = '<p class="chat-none">Nobody else on the team yet.</p>';
@@ -6093,12 +6152,36 @@ function renderPeople() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "dm-person" + (dmWith && dmWith.id === person.id ? " on" : "");
+    // messages-refresh.js finds the open conversation by this.
+    btn.dataset.msPersonId = person.id;
+
+    const text = document.createElement("span");
+    text.className = "nm-wrap";
 
     const nm = document.createElement("span");
     nm.className = "nm";
     nm.textContent = person.full_name;
+    text.append(nm);
 
-    btn.append(avatar(person, 28), nm);
+    // A line of what was last said, so you can find a conversation
+    // without opening four of them.
+    const last = dmLast[person.id];
+    if (last) {
+      const prev = document.createElement("span");
+      prev.className = "prev";
+      prev.textContent = (last.mine ? "You: " : "") +
+        String(last.body || "").replace(/\s+/g, " ").trim();
+      text.append(prev);
+    }
+
+    btn.append(avatar(person, 28), text);
+
+    if (last) {
+      const when = document.createElement("span");
+      when.className = "when";
+      when.textContent = dmWhen(last.at);
+      btn.append(when);
+    }
 
     if (dmUnread[person.id]) {
       const dot = document.createElement("span");
@@ -6115,6 +6198,11 @@ function renderPeople() {
 async function openThread(person) {
   dmWith = person;
   renderPeople();
+
+  // On a phone the list and the thread cannot both fit, so opening a
+  // conversation hands the screen over to it. The back link returns.
+  const panel = document.querySelector(".dm");
+  if (panel) panel.classList.add("thread-open");
 
   $("dm-with").textContent = person.full_name;
   $("dm-compose").classList.remove("hidden");
@@ -6301,7 +6389,11 @@ function showToast(from, body) {
 
 function wireMessages() {
   $("messagesbtn").onclick = openMessages;
-  $("back-messages").onclick = loadCourses;
+  $("back-messages").onclick = () => {
+    const panel = document.querySelector(".dm");
+    if (panel) panel.classList.remove("thread-open");
+    loadCourses();
+  };
 
   const send = async () => {
     if (!dmWith) return;
@@ -6330,8 +6422,26 @@ function wireMessages() {
 
   $("dm-send").onclick = send;
   $("dm-box").addEventListener("keydown", (e) => {
+    if (TOUCH_INPUT) return;   // Enter is a new line; Send sends
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   });
+
+  // Back to the list of people, on a phone.
+  $("dm-back").onclick = () => {
+    const panel = document.querySelector(".dm");
+    if (panel) panel.classList.remove("thread-open");
+    dmWith = null;
+    renderPeople();
+  };
+
+  // The box grows with the message instead of hiding what was typed
+  // three lines ago.
+  const grow = () => {
+    const box = $("dm-box");
+    box.style.height = "auto";
+    box.style.height = Math.min(box.scrollHeight, 180) + "px";
+  };
+  $("dm-box").addEventListener("input", grow);
 }
 
 /* ---------- the course chat ---------- */
@@ -10349,7 +10459,6 @@ wireExport();
 start();
 </script>
 <script type="module" src="/portal/agreements-flag.js"></script>
-<script type="module" src="/portal/messages-sort.js"></script>
 <script type="module" src="/portal/plan-prefill.js"></script>
       <script type="module" src="/portal/course-extras.js"></script>
   <script type="module" src="/portal/message-files.js"></script>
