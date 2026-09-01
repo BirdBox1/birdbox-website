@@ -9128,7 +9128,7 @@ async function loadWelcomes(courseId) {
   welcomeByReg = {};
   const { data, error } = await db
     .from("course_emails")
-    .select("id, registration_id, status, sent_at, subject")
+    .select("id, registration_id, status, sent_at, subject, body")
     .eq("course_id", courseId)
     .eq("kind", "welcome");
 
@@ -9173,7 +9173,7 @@ function openWelcome(course, reg) {
 
   const draft = welcomeDraft(course, reg);
   $("wc-subject").value = already ? (already.subject || draft.subject) : draft.subject;
-  $("wc-body").value = draft.body;
+  $("wc-body").value = (already && already.body) || draft.body;
 
   $("wc-note").textContent =
     "Write it in your own words — this is only a starting point.";
@@ -9205,14 +9205,38 @@ function wireWelcome() {
       // The row is written first, then sent. That is the same order the
       // pre-course email uses, so a send that fails leaves a draft
       // rather than nothing at all.
-      const { data: row, error } = await db.from("course_emails").insert({
-        course_id: currentCourse.id,
-        registration_id: wcReg.id,
-        kind: "welcome",
-        subject,
-        body,
-        status: "draft",
-      }).select("id").single();
+      //
+      // Which means a second attempt has to reuse that draft. Only one
+      // welcome row per registration is allowed, so inserting a fresh
+      // one after a failed send fails on the unique index and the coach
+      // can never try again.
+      const { data: existing, error: findErr } = await db.from("course_emails")
+        .select("id, status")
+        .eq("registration_id", wcReg.id)
+        .eq("kind", "welcome")
+        .maybeSingle();
+
+      if (findErr) throw new Error(findErr.message);
+
+      let row, error;
+      if (existing) {
+        ({ data: row, error } = await db.from("course_emails").update({
+          course_id: currentCourse.id,
+          subject,
+          body,
+          status: "draft",
+          send_error: null,
+        }).eq("id", existing.id).select("id").single());
+      } else {
+        ({ data: row, error } = await db.from("course_emails").insert({
+          course_id: currentCourse.id,
+          registration_id: wcReg.id,
+          kind: "welcome",
+          subject,
+          body,
+          status: "draft",
+        }).select("id").single());
+      }
 
       if (error) throw new Error(error.message);
 
