@@ -38,6 +38,11 @@ let myRole = null;
 let currentCourseId = null;
 let staffList = [];
 
+// What is already on this course. Held so an upload can tell the coach
+// they are about to add the same photo twice, which is the thing that
+// actually happened on the Mexico seminar.
+let mediaRows = [];
+
 /* ---------- who is signed in ---------- */
 
 async function whoAmI() {
@@ -213,9 +218,11 @@ async function renderMedia(courseId) {
     for (const id of ["ex-promo", "ex-photos", "ex-links"]) {
       if ($(id)) $(id).innerHTML = note;
     }
+    mediaRows = [];
     return;
   }
   const rows = data || [];
+  mediaRows = rows;
 
   drawFiles($("ex-promo"), rows.filter((r) => r.kind === "promo"),
     "Nothing yet. Sarah adds the artwork here once the course is live.");
@@ -295,11 +302,16 @@ function wireFileButtons(box) {
     }));
 }
 
-async function uploadFiles(files, kind, shrinkIt) {
+async function uploadFiles(files, kind, shrinkIt, onStep) {
   const out = [];
+  let done = 0;
   for (const file of files) {
     let body = file;
     let name = file.name;
+
+    // A phone photo over gym wifi is a long wait with nothing to look
+    // at, so say which one is going up and how far through we are.
+    if (onStep) onStep(done + 1, files.length, name);
 
     // Only photos, and only when asked. Artwork and PDFs are left alone.
     if (shrinkIt && /^image\//.test(file.type)) {
@@ -322,6 +334,7 @@ async function uploadFiles(files, kind, shrinkIt) {
       size_bytes: body.size || file.size || null,
       uploaded_by: me ? me.id : null,
     });
+    done++;
   }
 
   if (out.length) {
@@ -331,20 +344,69 @@ async function uploadFiles(files, kind, shrinkIt) {
   return out.length;
 }
 
+// The button is the thing they just pressed, so the button is where
+// the progress goes. A grey line underneath it wraps onto its own row
+// on a phone and is missed — which is how the same seminar ended up
+// with the group photo uploaded twice.
+function runUpload(btnId, msgId, files, kind, shrinkIt, after) {
+  const btn = $(btnId);
+  const msg = $(msgId);
+  const label = btn.textContent;
+
+  btn.disabled = true;
+  msg.style.color = "";
+  msg.textContent = files.length > 1
+    ? `Uploading ${files.length} files — this can take a minute on gym wifi.`
+    : "Uploading — this can take a minute on gym wifi.";
+  btn.textContent = "Uploading…";
+
+  return uploadFiles(files, kind, shrinkIt, (i, total, name) => {
+    btn.textContent = total > 1 ? `Uploading ${i}/${total}…` : "Uploading…";
+    msg.textContent = `Sending ${name}…`;
+  }).then(async (n) => {
+    btn.textContent = "Uploaded";
+    msg.style.color = "var(--good)";
+    msg.textContent = n === 1
+      ? "Done — it is in the list above."
+      : `Done — ${n} added to the list above.`;
+    await after();
+    // Long enough to be read from across a gym floor.
+    setTimeout(() => {
+      btn.textContent = label;
+      msg.style.color = "";
+    }, 6000);
+  }).catch((err) => {
+    btn.textContent = label;
+    msg.style.color = "var(--bad)";
+    msg.textContent = "Could not upload: " + err.message;
+  }).finally(() => {
+    btn.disabled = false;
+  });
+}
+
+// Same name and same size already on this course is nearly always a
+// second press rather than a second photo.
+function alreadyThere(files) {
+  return files.filter((f) =>
+    mediaRows.some((r) => r.file_name === f.name)).map((f) => f.name);
+}
+
 function wirePanel() {
   $("ex-promo-up").addEventListener("click", async () => {
     const msg = $("ex-promo-msg");
     const files = Array.from($("ex-promo-file").files || []);
     if (!files.length) { msg.textContent = "Choose a file first."; return; }
-    $("ex-promo-up").disabled = true;
-    msg.textContent = "Uploading…";
-    try {
-      const n = await uploadFiles(files, "promo", false);
-      msg.textContent = `${n} added.`;
+
+    const dupes = alreadyThere(files);
+    if (dupes.length && !window.confirm(
+      `${dupes.join(", ")} ${dupes.length === 1 ? "is" : "are"} already on this course.\n\n` +
+      "Upload again anyway?"
+    )) return;
+
+    await runUpload("ex-promo-up", "ex-promo-msg", files, "promo", false, async () => {
       $("ex-promo-file").value = "";
       await renderMedia(currentCourseId);
-    } catch (err) { msg.textContent = "Could not upload: " + err.message; }
-    $("ex-promo-up").disabled = false;
+    });
   });
 
   $("ex-photo-up").addEventListener("click", async () => {
@@ -356,16 +418,26 @@ function wirePanel() {
       msg.textContent = "The group photo is one photo. Untick it to add several.";
       return;
     }
-    $("ex-photo-up").disabled = true;
-    msg.textContent = "Uploading…";
-    try {
-      const n = await uploadFiles(files, group ? "group" : "photo", !$("ex-photo-full").checked);
-      msg.textContent = `${n} added.`;
-      $("ex-photo-file").value = "";
-      $("ex-photo-group").checked = false;
-      await renderMedia(currentCourseId);
-    } catch (err) { msg.textContent = "Could not upload: " + err.message; }
-    $("ex-photo-up").disabled = false;
+
+    const dupes = alreadyThere(files);
+    if (dupes.length && !window.confirm(
+      `${dupes.join(", ")} ${dupes.length === 1 ? "is" : "are"} already on this course.\n\n` +
+      "Upload again anyway?"
+    )) return;
+
+    // There can only be one group photo, and the second one silently
+    // replacing nothing is worse than being asked.
+    if (group && mediaRows.some((r) => r.kind === "group") && !window.confirm(
+      "This course already has a group photo.\n\n" +
+      "Adding another leaves two marked as the group photo. Continue?"
+    )) return;
+
+    await runUpload("ex-photo-up", "ex-photo-msg", files,
+      group ? "group" : "photo", !$("ex-photo-full").checked, async () => {
+        $("ex-photo-file").value = "";
+        $("ex-photo-group").checked = false;
+        await renderMedia(currentCourseId);
+      });
   });
 
   $("ex-link-add").addEventListener("click", async () => {
