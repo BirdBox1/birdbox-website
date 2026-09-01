@@ -17,6 +17,16 @@
 
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
+// A phone keyboard has no shift key, so Enter-to-send leaves no way to
+// start a second line. The portal treats Enter as a new line on a touch
+// screen; these two listeners have to agree with it or Enter would
+// still send.
+const TOUCH_INPUT = (() => {
+  try { return window.matchMedia("(pointer: coarse)").matches; }
+  catch (e) { return false; }
+})();
+
+
 const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
 
@@ -149,6 +159,7 @@ async function wireDraft() {
   const send = $("dm-send");
   if (send) send.addEventListener("click", () => setTimeout(clear, 300));
   box.addEventListener("keydown", (e) => {
+    if (TOUCH_INPUT) return;
     if (e.key === "Enter" && !e.shiftKey) setTimeout(clear, 300);
   });
 }
@@ -495,6 +506,7 @@ function mountButton() {
   const box = $("dm-box");
   if (box) {
     box.addEventListener("keydown", (e) => {
+      if (TOUCH_INPUT) return;
       if (e.key === "Enter" && !e.shiftKey) onSend();
     }, true);
   }
