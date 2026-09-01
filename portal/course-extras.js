@@ -135,8 +135,170 @@ function buildPanel() {
              style="flex:0 1 12rem;min-width:0">
       <button class="btn small" id="ex-link-add" type="button">Add link</button>
       <span class="why" id="ex-link-msg"></span>
+    </div>
+
+    <div id="ex-ads-wrap" class="hidden">
+      <div class="sep"></div>
+      <h3 style="margin-top:0">Adverts
+        <span class="hint" style="text-transform:none;letter-spacing:0">— admin only, never shown to coaches</span></h3>
+      <div id="ex-ads"></div>
+      <div class="admin-row" style="margin-top:0.5rem">
+        <input type="text" id="ex-ad-label" placeholder="What it is — e.g. Meta, San Antonio, Aug"
+               style="flex:1 1 14rem;min-width:0">
+        <select id="ex-ad-kind" style="flex:0 1 9rem">
+          <option value="campaign">Campaign</option>
+          <option value="adset">Ad set</option>
+          <option value="ad">Ad</option>
+        </select>
+        <input type="text" id="ex-ad-objid" placeholder="Meta ID (optional for now)"
+               style="flex:0 1 12rem;min-width:0">
+      </div>
+      <div class="admin-row" style="margin-top:0.4rem">
+        <input type="number" id="ex-ad-budget" placeholder="Budget" step="0.01" min="0"
+               style="flex:0 1 8rem">
+        <input type="number" id="ex-ad-spend" placeholder="Spent so far" step="0.01" min="0"
+               style="flex:0 1 8rem">
+        <select id="ex-ad-cur" style="flex:0 1 7rem">
+          <option>EUR</option><option>USD</option><option>GBP</option>
+          <option>AUD</option><option>CAD</option>
+        </select>
+        <select id="ex-ad-status" style="flex:0 1 9rem">
+          <option value="live">Live</option>
+          <option value="planned">Planned</option>
+          <option value="paused">Paused</option>
+          <option value="finished">Finished</option>
+        </select>
+        <button class="btn small" id="ex-ad-add" type="button">Add advert</button>
+        <span class="why" id="ex-ad-msg"></span>
+      </div>
+      <p class="whenline" id="ex-ad-total" style="margin-top:0.6rem"></p>
     </div>`;
   return el;
+}
+
+/* ---------- adverts ---------- */
+
+// Admin only, by policy as well as by hiding the panel: the RLS on
+// course_adverts refuses a coach outright, so a coach who went looking
+// would find nothing rather than find it hidden.
+//
+// Spend is typed for now. The columns the nightly Meta sync will write
+// — impressions, clicks, synced_at — already exist, so wiring the API
+// later changes nothing here except where the numbers come from.
+
+const cents = (v) => {
+  const n = parseFloat(String(v == null ? "" : v).replace(",", "."));
+  return Number.isFinite(n) ? Math.round(n * 100) : null;
+};
+
+const showMoney = (c, cur) => c == null ? "—" :
+  new Intl.NumberFormat(undefined, { style: "currency", currency: cur || "EUR" })
+    .format(c / 100);
+
+async function renderAdverts(courseId) {
+  const wrap = $("ex-ads-wrap");
+  if (!wrap) return;
+  wrap.classList.toggle("hidden", !isAdmin());
+  if (!isAdmin()) return;
+
+  const box = $("ex-ads");
+  const { data, error } = await db.from("course_adverts")
+    .select("id, label, meta_object_id, meta_object_kind, status, budget_cents, spend_cents, currency, impressions, clicks, synced_at, notes, started_on, ended_on")
+    .eq("course_id", courseId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    box.innerHTML = '<p class="whenline bad">Adverts could not load: ' + esc(error.message) + "</p>";
+    return;
+  }
+
+  const rows = data || [];
+  if (!rows.length) {
+    box.innerHTML = '<p class="whenline">No advert recorded for this seminar.</p>';
+    $("ex-ad-total").textContent = "";
+    return;
+  }
+
+  box.innerHTML = rows.map((r) => {
+    const meta = r.synced_at
+      ? `${r.impressions == null ? "" : r.impressions + " seen · "}` +
+        `${r.clicks == null ? "" : r.clicks + " clicks · "}from Meta`
+      : (r.meta_object_id ? "not synced yet" : "typed by hand");
+    return `<div class="rc-row">
+      <span class="desc" style="flex:1 1 12rem">
+        ${esc(r.label || "Advert")}
+        <span class="pill">${esc(r.status)}</span>
+        <div class="hint">${esc(showMoney(r.spend_cents, r.currency))} spent` +
+        `${r.budget_cents != null ? " of " + esc(showMoney(r.budget_cents, r.currency)) : ""}` +
+        ` · ${esc(meta)}</div>
+      </span>
+      <button class="btn ghost tiny" data-ad-edit="${r.id}" type="button">Update spend</button>
+      <button class="btn ghost tiny danger" data-ad-del="${r.id}" type="button">Remove</button>
+    </div>`;
+  }).join("");
+
+  // Spend and takings are usually in different currencies — the ad
+  // account bills in euro, a San Antonio seminar sells in dollars — so
+  // they are shown side by side rather than converted into a number
+  // that would look precise and be wrong.
+  const byCur = {};
+  for (const r of rows) {
+    const c = r.currency || "EUR";
+    byCur[c] = (byCur[c] || 0) + (r.spend_cents || 0);
+  }
+  const spentText = Object.entries(byCur)
+    .map(([cur, c]) => showMoney(c, cur)).join(" · ");
+
+  let takings = "";
+  const { data: regs } = await db.from("registrations")
+    .select("amount_paid_cents, currency, status, payment_status")
+    .eq("course_id", courseId);
+  const live = (regs || []).filter((r) =>
+    (r.status || "active") === "active" &&
+    r.payment_status !== "refunded" && r.payment_status !== "failed");
+  if (live.length) {
+    const cur = live[0].currency || "EUR";
+    const total = live.reduce((n, r) => n + (r.amount_paid_cents || 0), 0);
+    takings = ` · ${live.length} registration${live.length === 1 ? "" : "s"}` +
+      ` worth ${showMoney(total, cur)}`;
+    // Cost per registration only where one currency is in play, since
+    // dividing euro by dollars means nothing.
+    if (Object.keys(byCur).length === 1 && Object.keys(byCur)[0] === cur) {
+      const per = Math.round(byCur[cur] / live.length);
+      takings += ` · ${showMoney(per, cur)} of advertising per registration`;
+    }
+  }
+
+  $("ex-ad-total").textContent = spentText + " spent" + takings + ".";
+
+  for (const b of box.querySelectorAll("[data-ad-del]")) {
+    b.addEventListener("click", async () => {
+      if (!window.confirm("Remove this advert record?")) return;
+      b.disabled = true;
+      const { error: e } = await db.from("course_adverts")
+        .delete().eq("id", b.dataset.adDel);
+      if (e) { window.alert("Could not remove it: " + e.message); b.disabled = false; return; }
+      renderAdverts(courseId);
+    });
+  }
+
+  for (const b of box.querySelectorAll("[data-ad-edit]")) {
+    b.addEventListener("click", async () => {
+      const row = rows.find((r) => r.id === b.dataset.adEdit);
+      const typed = window.prompt(
+        `Spend so far on "${row.label || "this advert"}", in ${row.currency}:`,
+        row.spend_cents == null ? "" : (row.spend_cents / 100).toFixed(2));
+      if (typed === null) return;
+      const value = cents(typed);
+      if (value === null) { window.alert("That is not a number."); return; }
+      b.disabled = true;
+      const { error: e } = await db.from("course_adverts")
+        .update({ spend_cents: value, updated_at: new Date().toISOString() })
+        .eq("id", row.id);
+      if (e) { window.alert("Could not save: " + e.message); b.disabled = false; return; }
+      renderAdverts(courseId);
+    });
+  }
 }
 
 /* ---------- travel ---------- */
@@ -440,6 +602,49 @@ function wirePanel() {
       });
   });
 
+  const adAdd = $("ex-ad-add");
+  if (adAdd) adAdd.addEventListener("click", async () => {
+    const msg = $("ex-ad-msg");
+    const label = $("ex-ad-label").value.trim();
+    if (!label) { msg.textContent = "Give it a name you will recognise."; return; }
+
+    adAdd.disabled = true;
+    msg.style.color = "";
+    msg.textContent = "Saving…";
+
+    const { error } = await db.from("course_adverts").insert({
+      course_id: currentCourseId,
+      label,
+      meta_object_id: $("ex-ad-objid").value.trim() || null,
+      meta_object_kind: $("ex-ad-kind").value,
+      status: $("ex-ad-status").value,
+      budget_cents: cents($("ex-ad-budget").value),
+      spend_cents: cents($("ex-ad-spend").value) || 0,
+      currency: $("ex-ad-cur").value,
+      created_by: me ? me.id : null,
+    });
+
+    adAdd.disabled = false;
+
+    if (error) {
+      msg.style.color = "var(--bad)";
+      // The unique index is the likeliest failure, and it is worth
+      // saying plainly rather than showing the raw constraint name.
+      msg.textContent = /course_adverts_object_uniq/.test(error.message)
+        ? "That Meta ID is already attached to another seminar."
+        : "Could not save: " + error.message;
+      return;
+    }
+
+    for (const id of ["ex-ad-label", "ex-ad-objid", "ex-ad-budget", "ex-ad-spend"]) {
+      $(id).value = "";
+    }
+    msg.style.color = "var(--good)";
+    msg.textContent = "Added.";
+    setTimeout(() => { msg.textContent = ""; msg.style.color = ""; }, 4000);
+    await renderAdverts(currentCourseId);
+  });
+
   $("ex-link-add").addEventListener("click", async () => {
     const msg = $("ex-link-msg");
     const url = $("ex-link-url").value.trim();
@@ -519,6 +724,7 @@ async function mount() {
 
   await renderTravel(id);
   await renderMedia(id);
+  await renderAdverts(id);
 }
 
 /* ---------- travel, at a glance on the list ---------- */
