@@ -145,6 +145,21 @@ async function onCheckoutCompleted(session) {
   // A deposit is not full payment — the balance is still owed.
   const paymentStatus = option === "deposit" ? "deposit_paid" : "paid_in_full";
 
+  // Cheaper than relying on the constraint, and it keeps the log
+  // honest: a redelivered event stops here rather than looking like a
+  // failure further down.
+  {
+    const { data: already } = await supabase
+      .from("registrations")
+      .select("id")
+      .eq("stripe_session_id", full.id)
+      .maybeSingle();
+    if (already) {
+      console.log("Session already handled, nothing to do", { session: full.id });
+      return;
+    }
+  }
+
   const { data: registration, error } = await supabase
     .from("registrations")
     .insert({
@@ -169,6 +184,17 @@ async function onCheckoutCompleted(session) {
     .single();
 
   if (error) {
+    // 23505 = this session is already registered. Stripe redelivers an
+    // event whenever a handler returns 500, and the unique index on
+    // stripe_session_id then refuses the second insert. That is the
+    // retry working exactly as intended, not a person who paid and got
+    // nothing — so it must not raise an alarm telling somebody to
+    // refund a participant who is correctly on the course.
+    if (error.code === "23505") {
+      console.log("Already registered, ignoring retry", { session: full.id });
+      return;
+    }
+
     // 23514 = the capacity trigger fired: paid but no seat.
     // Nothing to retry — this needs a human and a refund.
     console.error("REGISTRATION FAILED AFTER PAYMENT", {
