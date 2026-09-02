@@ -407,7 +407,49 @@ async function maybeEnrol({ registrationId, meta, email, firstName, lastName, la
 // ---------------------------------------------------------------
 async function onInvoicePaid(invoice) {
   const registrationId = invoice.metadata?.registration_id;
-  if (!registrationId) return;
+
+  // An invoice carrying a course rather than a registration is money
+  // that arrived outside the checkout — a gym prepaying for a block of
+  // places, most often. It belongs to the course, not to any one
+  // person on it, so it is recorded separately and never touched by
+  // the refund or cancellation paths that walk `payments`.
+  if (!registrationId) {
+    const courseId = invoice.metadata?.course_id;
+    if (!courseId) return;
+
+    const line = (invoice.lines?.data && invoice.lines.data[0]) || {};
+
+    // Stripe reports the total including tax; the portal stores prices
+    // net, so the two are kept apart rather than added together.
+    const tax = invoice.tax ?? invoice.total_tax_amounts?.[0]?.amount ?? null;
+    const gross = invoice.amount_paid ?? invoice.total ?? 0;
+    const net = tax == null ? gross : gross - tax;
+
+    const spaces = parseInt(invoice.metadata?.spaces, 10);
+
+    const { error } = await supabase
+      .from("course_payments")
+      .upsert({
+        course_id: courseId,
+        kind: invoice.metadata?.kind || "host_invoice",
+        description: invoice.metadata?.description || line.description || null,
+        payer_name: invoice.customer_name || null,
+        payer_email: invoice.customer_email || null,
+        amount_cents: net,
+        vat_cents: tax,
+        currency: (invoice.currency || "eur").toUpperCase(),
+        spaces: Number.isFinite(spaces) ? spaces : null,
+        stripe_invoice_id: invoice.id,
+        status: "paid",
+        paid_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "stripe_invoice_id" });
+
+    // Stripe retries on a 500, and an upsert on the invoice id means a
+    // retry cannot record the same money twice.
+    if (error) throw new Error("course_payments: " + error.message);
+    return;
+  }
 
   await supabase
     .from("payments")
