@@ -6241,6 +6241,38 @@ async function openThread(person) {
   }
 }
 
+// Land on the newest message, not the oldest.
+//
+// Setting scrollTop once is not enough. Every row carries an avatar
+// that arrives after the rows are drawn, so the list grows taller
+// underneath the scroll and leaves you halfway up a long conversation.
+// And on a phone the thread is not its own scrolling box — the page
+// scrolls — so moving scrollTop does nothing at all there.
+//
+// So: go to the bottom, go again as the pictures land, and if the list
+// is not the thing that scrolls, put the last message on screen
+// instead.
+function jumpToNewest(list) {
+  if (!list) return;
+
+  const go = () => {
+    list.scrollTop = list.scrollHeight;
+    const scrolls = list.scrollHeight > list.clientHeight + 4;
+    if (!scrolls) {
+      const last = list.lastElementChild;
+      if (last && last.scrollIntoView) last.scrollIntoView({ block: "end" });
+    }
+  };
+
+  go();
+  requestAnimationFrame(go);
+  for (const img of list.querySelectorAll("img")) {
+    img.addEventListener("load", go, { once: true });
+  }
+  // A backstop for anything that changes height without firing load.
+  setTimeout(go, 300);
+}
+
 function renderThread(rows, person) {
   const list = $("dm-list");
   list.innerHTML = "";
@@ -6299,7 +6331,7 @@ function renderThread(rows, person) {
     list.append(row);
   }
 
-  list.scrollTop = list.scrollHeight;
+  jumpToNewest(list);
 }
 
 // Messages arrive while you are somewhere else in the portal, so the
@@ -6532,7 +6564,7 @@ function renderChat(rows) {
   }
 
   // Newest at the foot, which is where the eye goes.
-  list.scrollTop = list.scrollHeight;
+  jumpToNewest(list);
 }
 
 function wireChat() {
