@@ -10,13 +10,41 @@
 // It is safe to load this alongside nav.js: both guard on window.fbq, so
 // whichever runs first wins and a visit is never counted twice.
 //
-// Events sent:
+// Nothing here fires until the visitor has accepted cookies. consent.js is
+// pulled in by this file, so neither page needs editing. No answer, or a
+// no, means no pixel, no cookie and no events.
+//
+// Events sent, once consent is given:
 //   PageView         every page that loads this file
 //   ViewContent      a course page once the course has rendered
 //   InitiateCheckout when someone presses a pay button
 //   Purchase         the registration-complete page, once payment is shown
 (function () {
   "use strict";
+
+  // ---- Consent gate -----------------------------------------------------
+  function withConsent(fn) {
+    if (window.bbConsent) { window.bbConsent.whenGranted(fn); return; }
+
+    (window.__bbConsentQueue = window.__bbConsentQueue || []).push(fn);
+
+    if (!document.getElementById("bb-consent-js")) {
+      var s = document.createElement("script");
+      s.id = "bb-consent-js";
+      s.src = "/consent.js";
+      s.onload = function () {
+        var q = window.__bbConsentQueue || [];
+        window.__bbConsentQueue = [];
+        for (var i = 0; i < q.length; i++) window.bbConsent.whenGranted(q[i]);
+      };
+      document.head.appendChild(s);
+    }
+  }
+
+  // Everything below runs only after an accept. If they accept part way
+  // through reading a course page the page has already rendered, so the
+  // ViewContent check passes straight away and the event still goes.
+  withConsent(function () {
 
   // ---- Pixel ------------------------------------------------------------
   if (!window.fbq) {
@@ -148,4 +176,6 @@
       }
     );
   }
+
+  });
 })();
