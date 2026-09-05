@@ -10,14 +10,38 @@
 //
 // The Meta pixel also loads from here, so every page that carries the nav
 // reports a PageView. Dataset 2663209040595150, owned by the BirdBox
-// Coaching business portfolio.
+// Coaching business portfolio. It now waits for consent — see consent.js,
+// which this file pulls in itself, so no page needs changing.
 (function () {
   "use strict";
+
+  // ---- Consent gate -----------------------------------------------------
+  // Nothing to do with advertising runs until the visitor has agreed. This
+  // loads consent.js if it is not already on the page and holds the work
+  // until then; no answer, or a no, means the callback never runs.
+  function withConsent(fn) {
+    if (window.bbConsent) { window.bbConsent.whenGranted(fn); return; }
+
+    (window.__bbConsentQueue = window.__bbConsentQueue || []).push(fn);
+
+    if (!document.getElementById("bb-consent-js")) {
+      var s = document.createElement("script");
+      s.id = "bb-consent-js";
+      s.src = "/consent.js";
+      s.onload = function () {
+        var q = window.__bbConsentQueue || [];
+        window.__bbConsentQueue = [];
+        for (var i = 0; i < q.length; i++) window.bbConsent.whenGranted(q[i]);
+      };
+      document.head.appendChild(s);
+    }
+  }
 
   // ---- Meta pixel -------------------------------------------------------
   // Guarded so that a page which also hard-codes the pixel does not load it
   // twice and count every visit as two.
-  if (!window.fbq) {
+  withConsent(function () {
+    if (window.fbq) return;
     !function(f,b,e,v,n,t,s)
     {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
     n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -28,7 +52,7 @@
     'https://connect.facebook.net/en_US/fbevents.js');
     fbq('init', '2663209040595150');
     fbq('track', 'PageView');
-  }
+  });
 
   // ---- Navigation -------------------------------------------------------
   var LINKS = [
