@@ -529,11 +529,13 @@
     display: block; font-size: 11px; letter-spacing: 0.1em;
     text-transform: uppercase; color: var(--muted); margin-bottom: 5px;
   }
-  .hr-f input, .hr-f select {
+  .hr-f--wide { grid-column: 1 / -1; }
+  .hr-f input, .hr-f select, .hr-f textarea {
     width: 100%; border: 1px solid var(--line); background: #171214;
     color: var(--ink); padding: 10px 12px; font-size: 15px; font-family: inherit;
     border-radius: 0; -webkit-appearance: none; appearance: none;
   }
+  .hr-f textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
   .hr-f select {
     background-image:
       linear-gradient(45deg, transparent 50%, var(--muted) 50%),
@@ -543,7 +545,7 @@
     background-repeat: no-repeat;
     padding-right: 34px;
   }
-  .hr-f input:focus, .hr-f select:focus { outline: none; border-color: var(--tcc); }
+  .hr-f input:focus, .hr-f select:focus, .hr-f textarea:focus { outline: none; border-color: var(--tcc); }
   .hr-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 18px; }
   .hr-btn {
     border: 1px solid var(--tcc); background: var(--tcc); color: #0C1116;
@@ -674,6 +676,14 @@
             <option value="tec">TEC &mdash; The Endurance Course</option>
             <option value="twc">TWC &mdash; The Weightlifting Course</option>
           </select>
+        </div>
+        <div class="hr-f">
+          <label for="hr-num">How many people would you register?</label>
+          <input id="hr-num" type="number" min="0" max="500" step="1" inputmode="numeric" placeholder="Approximate is fine">
+        </div>
+        <div class="hr-f hr-f--wide">
+          <label for="hr-msg-in">Anything else we should know? (optional)</label>
+          <textarea id="hr-msg-in" rows="4" maxlength="2000" placeholder="Facilities, equipment, dates that suit you, anything else."></textarea>
         </div>
       </div>
 
@@ -1184,8 +1194,11 @@
         gym_location: val("hr-loc"),
         gym_country: val("hr-country"),
         nearest_airport: val("hr-air"),
-        interest: val("hr-int") || "any"
+        interest: val("hr-int") || "any",
+        expected_numbers: val("hr-num") ? parseInt(val("hr-num"), 10) : null,
+        message: val("hr-msg-in") || null
       };
+      if (isNaN(row.expected_numbers)) row.expected_numbers = null;
 
       if (!row.contact_name || !row.contact_email || !row.gym_name || !row.gym_location || !row.gym_country) {
         msg.className = "hr-msg err";
@@ -1224,6 +1237,30 @@
         console.error("host request:", err);
       });
     });
+
+    /* The map and the seminar list load after the page does, and they
+       grow above this section — so the browser's own jump to #host lands
+       short and the visitor has to scroll. Keep pulling the form back
+       into view until the page settles, and stop the moment they scroll
+       themselves. */
+    var wanted = (location.hash || "").toLowerCase();
+    if (wanted === "#host" || wanted === "#hosts" || wanted === "#host-a-seminar") {
+      var section = document.getElementById("host");
+      var stop = false;
+      var quit = function () { stop = true; };
+      window.addEventListener("wheel", quit, { passive: true, once: true });
+      window.addEventListener("touchstart", quit, { passive: true, once: true });
+      window.addEventListener("keydown", quit, { once: true });
+
+      var pull = function () {
+        if (stop || !section) return;
+        section.scrollIntoView({ block: "start" });
+      };
+
+      pull();
+      [150, 400, 800, 1400, 2200, 3000].forEach(function (t) { setTimeout(pull, t); });
+      window.addEventListener("load", pull);
+    }
   })();
 </script>
 
