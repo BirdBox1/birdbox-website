@@ -291,16 +291,16 @@
     .bb-signup__sub { flex: 1 1 100%; }
   }
 
-  /* Map tiles. CARTO started requiring an API key for its dark basemap in
-     September 2026, so unkeyed tiles came back stamped "API KEY REQUIRED".
-     These are plain OpenStreetMap tiles, inverted to a neutral dark grey so
-     the map still matches the page. No hue rotation — rotating the hue turns
-     OpenStreetMap's beige land green once it has been inverted. Only the tile
-     images are filtered; the pins sit in Leaflet's marker pane and keep their
-     real colour. */
-  .bb-dark-tiles {
-    filter: invert(1) grayscale(1) brightness(0.86) contrast(1.05);
-  }
+  /* The map carries no tiles at all. CARTO began requiring an API key for
+     its dark basemap in September 2026, and plain OpenStreetMap tiles are a
+     general-purpose map — every town, road and border — which reads as clutter
+     behind a handful of pins however it is recoloured. So the land is drawn
+     straight from country outlines in /world.json instead: no tile service,
+     no key, no licence question, and it matches the page exactly.
+     The trade-off is that there is no street detail, which is why the map
+     stops zooming at 7 — the venue address has its own map on the course
+     page. */
+  .bb-world { fill: #1c2126; stroke: #333a42; stroke-width: 0.6; }
 </style>
 <style>
   /* ---------- Level 1 page ---------- */
@@ -386,7 +386,7 @@
 
   /* map */
   .l1-map-wrap { border: 1px solid var(--line); background: var(--panel); padding: 4px; }
-  #l1-map { height: 460px; width: 100%; background: #10131A; }
+  #l1-map { height: 460px; width: 100%; background: #101215; }
   .l1-map-note { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
   .leaflet-popup-content-wrapper, .leaflet-popup-tip {
     background: #1C1719; color: var(--ink); border: 1px solid var(--line);
@@ -868,15 +868,31 @@
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
   }
 
-  const map = L.map("l1-map", { scrollWheelZoom: false }).setView([25, 10], 2);
-  L.tileLayer(
-    "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    {
-      attribution: "&copy; OpenStreetMap contributors",
-      maxZoom: 19,
-      className: "bb-dark-tiles",
-    }
-  ).addTo(map);
+  const map = L.map("l1-map", {
+    scrollWheelZoom: false,
+    minZoom: 1,
+    maxZoom: 7,
+    worldCopyJump: true,
+  }).setView([25, 10], 2);
+
+  // Land, drawn from country outlines rather than fetched as map tiles.
+  // It goes into the overlay pane, which sits below the marker pane, so the
+  // pins stay on top of it however late it arrives. A failure here leaves a
+  // flat dark rectangle with the pins still on it, which is survivable — so
+  // it fails quietly rather than breaking the page.
+  fetch("/world.json")
+    .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+    .then((geo) => {
+      L.geoJSON(geo, {
+        className: "bb-world",
+        style: { fillOpacity: 1 },
+        interactive: false,
+      }).addTo(map);
+      map.attributionControl.addAttribution(
+        'Boundaries <a href="https://www.naturalearthdata.com/">Natural Earth</a>'
+      );
+    })
+    .catch(() => {});
 
   const pin = L.divIcon({
     className: "",
