@@ -291,9 +291,32 @@ async function sendResult(to, r) {
   }
 }
 
+// ------------------------------------------------------------ interest list
+//
+// The quiz does not talk to Brevo directly. It writes a row to
+// interest_signups, and the existing brevo-sync database webhook does the
+// rest — country to region, region list, brand list, the General list and
+// LIFECYCLE. Duplicating that region map here would guarantee it drifts out
+// of step with the weekly digest eventually.
+//
+// The country comes from Netlify's geo lookup, so nobody has to be asked for
+// it and every quiz lead carries one — useful for deciding where the next
+// seminar goes as much as for which regional digest they receive.
+export async function fileInterest(supabase, { email, firstName, lastName, archetype, country }) {
+  const { error } = await supabase.from("interest_signups").insert({
+    brand: "tcc",
+    email,
+    name: [firstName, lastName].filter(Boolean).join(" ") || null,
+    country: country || null,
+    source: "quiz",
+    archetype,
+  });
+  if (error) console.error("interest_signups insert failed", error);
+}
+
 // ---------------------------------------------------------------- handler
 
-export default async (req) => {
+export default async (req, context) => {
   if (req.method !== "POST") return json({ error: "Use POST" }, 405);
 
   try {
@@ -379,6 +402,18 @@ export default async (req) => {
       } catch (e) {
         // A failed enrolment must never cost somebody their result.
         console.error("Chain enrolment failed for", email, e);
+      }
+
+      try {
+        await fileInterest(supabase, {
+          email,
+          firstName,
+          lastName,
+          archetype: key,
+          country: context?.geo?.country?.code ?? null,
+        });
+      } catch (e) {
+        console.error("interest_signups failed for", email, e);
       }
     }
 
