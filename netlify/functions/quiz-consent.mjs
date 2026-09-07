@@ -31,7 +31,7 @@ const supabase = createClient(
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CHAINS = ["explorer", "builder", "refiner", "leader"];
 
-export default async (req) => {
+export default async (req, context) => {
   if (req.method !== "POST") return json({ error: "Use POST" }, 405);
 
   try {
@@ -47,7 +47,7 @@ export default async (req) => {
         consent_at: new Date().toISOString(),
       })
       .eq("id", id)
-      .select("email, first_name, archetype");
+      .select("email, first_name, last_name, archetype");
 
     if (error) {
       console.error("quiz-consent update failed", error);
@@ -86,6 +86,22 @@ export default async (req) => {
       // Consent is already recorded at this point. A failed enrolment is
       // worth logging loudly but must not report failure to the person.
       console.error("Chain enrolment failed for", row.email, e);
+    }
+
+    // Same as the submit path: file them through interest_signups and let the
+    // brevo-sync webhook do the region lookup and the list assignment.
+    try {
+      const { error: intErr } = await supabase.from("interest_signups").insert({
+        brand: "tcc",
+        email: row.email,
+        name: [row.first_name, row.last_name].filter(Boolean).join(" ") || null,
+        country: context?.geo?.country?.code ?? null,
+        source: "quiz",
+        archetype: row.archetype,
+      });
+      if (intErr) console.error("interest_signups insert failed", intErr);
+    } catch (e) {
+      console.error("interest_signups failed for", row.email, e);
     }
 
     return json({ ok: true });
