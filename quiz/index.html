@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coaching Self-Assessment — BirdBox Coaching</title>
+<meta name="description" content="Twelve questions, two minutes. Find out which stage of the coaching journey you are in, and what to work on next.">
+<meta property="og:title" content="What kind of coach are you?">
+<meta property="og:description" content="Twelve questions, two minutes. Find your coaching stage and the one thing to work on next.">
+<meta property="og:type" content="website">
+<style>
+  :root {
+    --ink:    #eceae6;
+    --paper:  #101215;
+    --panel:  #191c20;
+    --shell:  #0d0e10;
+    --rule:   rgba(255,255,255,0.14);
+    --muted:  #99a0a8;
+    --accent: #2f7fd0;
+    --good:   #6fbf87;
+    --bad:    #e0736a;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px; line-height: 1.65; -webkit-font-smoothing: antialiased;
+  }
+
+  .bar {
+    background: var(--shell); padding: 0.7rem 1.25rem;
+    display: flex; align-items: center; gap: 0.75rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .mark { width: 32px; height: 32px; border-radius: 4px; background: #fff;
+          display: grid; place-items: center; flex: none; }
+  .mark img { width: 24px; height: 24px; object-fit: contain; }
+  .bar .name { font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9; }
+
+  .wrap { max-width: 40rem; margin: 0 auto; padding: 0 1.25rem 5rem; }
+
+  /* ---- progress ---- */
+  .prog { height: 3px; background: rgba(255,255,255,0.08); margin: 0 0 2.2rem; }
+  .prog__fill {
+    height: 100%; width: 0; background: var(--accent);
+    transition: width 0.28s ease;
+  }
+  .prog.hidden, .hidden { display: none !important; }
+
+  /* ---- intro ---- */
+  .lede { color: var(--muted); font-size: 1.02rem; }
+  h1 {
+    font-size: clamp(1.7rem, 5.5vw, 2.4rem); line-height: 1.12;
+    letter-spacing: -0.025em; font-weight: 700; margin: 2.6rem 0 0.8rem;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.6rem 0 2rem; }
+  .chips span {
+    border: 1px solid var(--rule); border-radius: 4px; padding: 0.35rem 0.65rem;
+    font-size: 0.84rem; color: var(--muted);
+  }
+  .btn {
+    font: inherit; font-weight: 650; font-size: 0.92rem; cursor: pointer;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 0.95rem 1.7rem; border: 0; border-radius: 5px;
+    background: var(--accent); color: #fff;
+  }
+  .btn:hover { filter: brightness(1.12); }
+  .btn[disabled] { opacity: 0.5; cursor: default; filter: none; }
+  .btn--ghost {
+    background: transparent; color: var(--muted); border: 1px solid var(--rule);
+  }
+  .btn--ghost:hover { color: var(--ink); border-color: rgba(255,255,255,0.32); filter: none; }
+
+  /* ---- questions ---- */
+  .qcount {
+    font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600;
+  }
+  .qtext {
+    font-size: clamp(1.25rem, 3.6vw, 1.55rem); line-height: 1.3;
+    letter-spacing: -0.015em; font-weight: 650; margin: 0.5rem 0 1.5rem;
+  }
+  .opts { display: grid; gap: 0.65rem; }
+  .opt {
+    display: block; width: 100%; text-align: left; font: inherit;
+    cursor: pointer; color: var(--ink); background: var(--panel);
+    border: 1px solid var(--rule); border-radius: 6px;
+    padding: 1rem 1.1rem; line-height: 1.45;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .opt:hover { border-color: rgba(255,255,255,0.34); background: #1e2227; }
+  .opt.is-on { border-color: var(--accent); background: rgba(47,127,208,0.12); }
+  .navrow { display: flex; align-items: center; gap: 0.8rem; margin-top: 1.6rem; }
+
+  /* ---- details ---- */
+  label.f { display: block; font-size: 0.78rem; font-weight: 650; margin: 0 0 0.3rem; }
+  input[type=text], input[type=email] {
+    width: 100%; font: inherit; font-size: 1rem;
+    padding: 0.75rem 0.85rem; margin-bottom: 1rem;
+    background: rgba(255,255,255,0.06); color: #fff;
+    border: 1px solid rgba(255,255,255,0.18); border-radius: 5px;
+  }
+  input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .two { display: grid; gap: 0 0.8rem; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 480px) { .two { grid-template-columns: 1fr; } }
+  .tick {
+    display: flex; gap: 0.7rem; align-items: flex-start;
+    font-size: 0.9rem; line-height: 1.5; margin: 0.4rem 0 1.4rem;
+    color: var(--muted); cursor: pointer;
+  }
+  .tick input { width: 1.15rem; height: 1.15rem; margin-top: 0.15rem; flex: none; }
+  .said { font-size: 0.9rem; margin: 0.9rem 0 0; }
+  .said.err { color: var(--bad); }
+
+  /* ---- result ---- */
+  .stage {
+    margin: 1.6rem 0 1.8rem; padding: 1.1rem 1.3rem;
+    background: var(--panel); border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent); border-radius: 5px;
+  }
+  .stage .k {
+    font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
+  }
+  .stage .v { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+  .result p { margin: 0 0 1rem; }
+  .result ul { margin: 0 0 1.3rem; padding: 0; list-style: none; }
+  .result li {
+    padding: 0.4rem 0 0.4rem 1.35rem; position: relative;
+    border-bottom: 1px solid var(--rule);
+  }
+  .result li::before {
+    content: ""; position: absolute; left: 0; top: 1.1em;
+    width: 0.7rem; height: 2px; background: var(--accent);
+  }
+  h2 {
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; margin: 2.2rem 0 0.7rem;
+  }
+  .video { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 6px; overflow: hidden; }
+  .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .nextstep {
+    display: block; margin-top: 1.8rem; padding: 1.1rem 1.25rem;
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 6px;
+    color: var(--ink); text-decoration: none;
+  }
+  .nextstep:hover { border-color: rgba(255,255,255,0.32); }
+  .nextstep .k {
+    font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
+    display: block; margin-bottom: 0.2rem;
+  }
+  .nextstep .v { font-weight: 650; }
+  .sent { color: var(--good); font-size: 0.92rem; margin-top: 1.6rem; }
+
+  footer {
+    margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--rule);
+    font-size: 0.82rem; color: var(--muted);
+  }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+  <span class="name">BirdBox Coaching</span>
+</div>
+
+<div class="wrap">
+  <div class="prog hidden" id="prog"><div class="prog__fill" id="progfill"></div></div>
+
+  <!-- ---------- intro ---------- -->
+  <main id="intro">
+    <h1>What kind of coach are you right now?</h1>
+    <p class="lede">
+      Twelve questions about how you coach today. At the end you will get your
+      current stage, what it means, and the one thing worth working on next.
+    </p>
+    <div class="chips">
+      <span>12 questions</span>
+      <span>1–2 minutes</span>
+      <span>Free</span>
+    </div>
+    <button class="btn" type="button" id="start">Start the assessment</button>
+  </main>
+
+  <!-- ---------- questions ---------- -->
+  <main id="quiz" class="hidden">
+    <p class="qcount" id="qcount"></p>
+    <p class="qtext" id="qtext"></p>
+    <div class="opts" id="opts"></div>
+    <div class="navrow">
+      <button class="btn btn--ghost" type="button" id="back">Back</button>
+    </div>
+  </main>
+
+  <!-- ---------- details ---------- -->
+  <main id="details" class="hidden">
+    <p class="qcount">Almost there</p>
+    <p class="qtext">Where should we send your result?</p>
+    <div class="two">
+      <div>
+        <label class="f" for="first">First name</label>
+        <input id="first" type="text" autocomplete="given-name">
+      </div>
+      <div>
+        <label class="f" for="last">Last name</label>
+        <input id="last" type="text" autocomplete="family-name">
+      </div>
+    </div>
+    <label class="f" for="email">Email</label>
+    <input id="email" type="email" autocomplete="email" inputmode="email">
+    <label class="tick">
+      <input id="consent" type="checkbox">
+      <span>Also send me coaching tips and upcoming seminar dates. You can
+        unsubscribe at any time.</span>
+    </label>
+    <button class="btn" type="button" id="finish">See my result</button>
+    <p class="said" id="said"></p>
+    <p class="said" style="color:var(--muted);margin-top:1.2rem">
+      We use your email to send your result. Nothing else without the tick above.
+    </p>
+  </main>
+
+  <!-- ---------- result ---------- -->
+  <main id="result" class="hidden">
+    <p class="qcount">Your coaching self-assessment</p>
+    <div class="stage">
+      <span class="k">Your stage</span>
+      <div class="v" id="stagename"></div>
+    </div>
+    <div class="result" id="resultbody"></div>
+
+    <h2>Learn more on effective coaching</h2>
+    <div class="video"><iframe id="video" title="Your stage" allowfullscreen
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"></iframe></div>
+
+    <div class="result" id="resultclosing" style="margin-top:1.8rem"></div>
+
+    <a class="nextstep" id="nextstep" href="/">
+      <span class="k">Your next step</span>
+      <span class="v" id="nextsteptext"></span>
+    </a>
+
+    <p class="sent" id="sent"></p>
+  </main>
+
+  <footer>
+    <p>BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland ·
+      <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a></p>
+  </footer>
+</div>
+
+<script src="/pixel.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // Twelve questions, four rungs of one ladder each, scored 1-4. The wording
+  // is carried over from the JotForm this replaces. The score is recomputed
+  // on the server from the raw answers — what is sent is only which option
+  // was picked, never the result.
+  var QUESTIONS = [
+    { q: "How would you describe your current coaching system or approach?",
+      a: ["I don’t really have one yet, I am still figuring it out.",
+          "I have a system but I am still refining how to apply it.",
+          "I have a system I trust but I’m working on making it more efficient.",
+          "My system is dialed in and scales well across athletes or staff."] },
+    { q: "When you watch someone move, what’s your first reaction?",
+      a: ["I feel unsure about what to look for",
+          "I can usually tell what’s wrong but not always why",
+          "I can identify root causes and subtle compensations",
+          "I can spot issues instantly and know how to coach them effectively"] },
+    { q: "How do you apply educational content you’ve consumed (courses, seminars, videos)?",
+      a: ["I watch a lot but don’t always use what I learn",
+          "I try to apply things but struggle with consistency",
+          "I’m selective, test ideas, and track what works",
+          "I translate key insights into systems that work in real-time"] },
+    { q: "How confident are you in giving movement cues or corrections?",
+      a: ["I’m not confident yet — I often hesitate",
+          "I give cues but often try several before one lands",
+          "I know which cues to use, but I’m working on delivery and timing",
+          "I can deliver precise cues that reliably create change"] },
+    { q: "How do you know if your coaching is working?",
+      a: ["I go mostly by how things feel or look",
+          "I look for progress but don’t track it systematically",
+          "I collect feedback and observe patterns to adjust",
+          "I use specific markers and structured reflection to assess outcomes"] },
+    { q: "What’s your biggest challenge right now?",
+      a: ["I feel overwhelmed and don’t know where to start",
+          "I want more consistency and confidence in my coaching",
+          "I want to sharpen what I already do well",
+          "I’m focused on scaling my impact and influence"] },
+    { q: "How often do you seek feedback on your coaching or performance?",
+      a: ["Rarely — I’m not sure who to ask or what to ask for",
+          "Occasionally — I ask when things feel off",
+          "Regularly — I have people I trust to give real feedback",
+          "Continuously — I build feedback into my systems"] },
+    { q: "When helping someone improve movement, what’s your approach?",
+      a: ["I try a few things and see what sticks",
+          "I follow a process but often adapt on the fly",
+          "I use a structured approach but adjust based on nuance",
+          "I use an efficient, tested process that creates reliable results"] },
+    { q: "How clear are you on your coaching identity?",
+      a: ["I’m still trying to figure out who I am as a coach",
+          "I have a sense of my style but still compare myself to others",
+          "I’m confident in my style and working on refining it",
+          "I have a strong, unique voice as a coach and lead others with it"] },
+    { q: "How do you prepare for coaching sessions or training design?",
+      a: ["I often improvise or look for inspiration last-minute",
+          "I prepare a plan but sometimes feel unsure about the details",
+          "I use a consistent planning system but occasionally tweak things last-minute",
+          "I follow a robust system that scales easily across clients or groups"] },
+    { q: "What’s your approach to professional development right now?",
+      a: ["I’m trying to absorb as much as I can",
+          "I’m focused on applying what I learn in real situations",
+          "I’m focused on refining what already works for me",
+          "I’m focused on elevating others and scaling my systems"] },
+    { q: "What describes your typical coaching conversation?",
+      a: ["I give basic feedback or instructions and hope it helps",
+          "I try to explain what’s wrong and offer options to improve",
+          "I focus on asking better questions and drawing out ownership",
+          "I coach the person, not just the performance, with clarity and purpose"] }
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var answers = new Array(QUESTIONS.length).fill(null);
+  var at = 0;
+
+  // Where they came from, so a registration weeks later can be traced back
+  // to the ad that started it.
+  var params = new URLSearchParams(location.search);
+  var utm = {
+    source:   params.get("utm_source"),
+    medium:   params.get("utm_medium"),
+    campaign: params.get("utm_campaign"),
+    content:  params.get("utm_content"),
+    term:     params.get("utm_term")
+  };
+
+  function show(id) {
+    ["intro", "quiz", "details", "result"].forEach(function (s) {
+      $(s).classList.toggle("hidden", s !== id);
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function progress(done) {
+    $("prog").classList.remove("hidden");
+    $("progfill").style.width = Math.round((done / (QUESTIONS.length + 1)) * 100) + "%";
+  }
+
+  function paint() {
+    var item = QUESTIONS[at];
+    $("qcount").textContent = "Question " + (at + 1) + " of " + QUESTIONS.length;
+    $("qtext").textContent = item.q;
+    $("back").style.visibility = at === 0 ? "hidden" : "visible";
+
+    var box = $("opts");
+    box.textContent = "";
+    item.a.forEach(function (text, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "opt" + (answers[at] === i + 1 ? " is-on" : "");
+      b.textContent = text;
+      b.addEventListener("click", function () {
+        answers[at] = i + 1;
+        // A short beat so the selection is visible before the next question.
+        b.classList.add("is-on");
+        setTimeout(next, 160);
+      });
+      box.append(b);
+    });
+    progress(at);
+  }
+
+  function next() {
+    if (at < QUESTIONS.length - 1) { at++; paint(); return; }
+    progress(QUESTIONS.length);
+    show("details");
+    $("first").focus();
+  }
+
+  $("start").addEventListener("click", function () { show("quiz"); paint(); });
+  $("back").addEventListener("click", function () { if (at > 0) { at--; paint(); } });
+
+  $("finish").addEventListener("click", async function () {
+    var said = $("said");
+    var first = $("first").value.trim();
+    var last = $("last").value.trim();
+    var email = $("email").value.trim();
+
+    if (!first || !last) {
+      said.className = "said err"; said.textContent = "Both names, please."; return;
+    }
+    if (!email || !/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(email)) {
+      said.className = "said err";
+      said.textContent = "We need a valid email address to send your result to.";
+      return;
+    }
+
+    $("finish").disabled = true;
+    said.className = "said"; said.textContent = "Working out your stage…";
+
+    try {
+      var res = await fetch("/.netlify/functions/quiz-submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          answers: answers,
+          firstName: first,
+          lastName: last,
+          email: email,
+          marketingConsent: $("consent").checked,
+          utm: utm,
+          referer: document.referrer || null
+        })
+      });
+      var data = await res.json();
+      if (!res.ok || data.error) {
+        said.className = "said err";
+        said.textContent = data.error || "That did not work. Please try again.";
+        $("finish").disabled = false;
+        return;
+      }
+      render(data);
+    } catch (e) {
+      said.className = "said err";
+      said.textContent = "Could not reach us just then. Please try again.";
+      $("finish").disabled = false;
+    }
+  });
+
+  function paras(target, list) {
+    list.forEach(function (t) {
+      var p = document.createElement("p");
+      p.textContent = t;
+      target.append(p);
+    });
+  }
+
+  function bullets(target, list) {
+    if (!list || !list.length) return;
+    var ul = document.createElement("ul");
+    list.forEach(function (t) {
+      var li = document.createElement("li");
+      li.textContent = t;
+      ul.append(li);
+    });
+    target.append(ul);
+  }
+
+  function render(data) {
+    var r = data.result;
+
+    $("stagename").textContent = r.name;
+
+    var body = $("resultbody");
+    body.textContent = "";
+    paras(body, r.body);
+    bullets(body, r.bullets);
+    paras(body, r.after);
+    bullets(body, r.bullets2);
+    paras(body, r.after2);
+
+    $("video").src = "https://www.youtube-nocookie.com/embed/" + r.videoId + "?rel=0";
+
+    var closing = $("resultclosing");
+    closing.textContent = "";
+    paras(closing, r.closing);
+
+    $("nextstep").href = r.next.href;
+    $("nextsteptext").textContent = r.next.text;
+
+    $("sent").textContent = data.emailed
+      ? "A copy is on its way to your inbox."
+      : "";
+
+    $("prog").classList.add("hidden");
+    show("result");
+
+    // Meta counts this as the conversion, so ads can be optimised toward
+    // completed assessments rather than clicks.
+    if (window.fbq) {
+      window.fbq("track", "Lead", { content_name: "Coaching self-assessment" });
+    }
+  }
+})();
+</script>
+
+</body>
+</html>
