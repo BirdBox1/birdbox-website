@@ -342,6 +342,46 @@ export default async (req) => {
     // twelve questions for it. Log it and carry on.
     if (insErr) console.error("quiz_responses insert failed", insErr);
 
+    // ---- the follow-up chain ------------------------------------
+    // Only people who ticked the box. The result email above is the thing
+    // they asked for and goes either way; this is marketing and does not.
+    //
+    // Week 1 goes out seven days from now, which leaves the result email
+    // and the video a clear run first.
+    //
+    // Nobody sits on two archetype chains at once. If somebody retakes the
+    // assessment and lands somewhere else, the original enrolment stands —
+    // being moved mid-series would restart them at week 1 of a chain they
+    // are three weeks into the equivalent of.
+    if (consent) {
+      try {
+        const { data: already } = await supabase
+          .from("drip_enrollments")
+          .select("id")
+          .eq("email", email)
+          .in("chain", ["explorer", "builder", "refiner", "leader"])
+          .limit(1);
+
+        if (!already || !already.length) {
+          const start = new Date();
+          start.setDate(start.getDate() + 7);
+
+          const { error: enrErr } = await supabase.from("drip_enrollments").insert({
+            email,
+            first_name: firstName,
+            chain: key,
+            start_date: start.toISOString().slice(0, 10),
+            status: "active",
+            source: "quiz",
+          });
+          if (enrErr) console.error("drip_enrollments insert failed", enrErr);
+        }
+      } catch (e) {
+        // A failed enrolment must never cost somebody their result.
+        console.error("Chain enrolment failed for", email, e);
+      }
+    }
+
     const result = resultFor(key, firstName);
     const sent = await sendResult(email, result);
 
