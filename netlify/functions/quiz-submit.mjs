@@ -110,7 +110,7 @@ const STAGES = {
     name: "Refiner",
     video: "https://www.youtube.com/watch?v=8AHdAOmuqs4",
     videoId: "8AHdAOmuqs4",
-    next: { text: "The Gymnastics Course — Level 1", href: "/tgc/level-1/" },
+    next: { text: "The Coaches Course — Level 1", href: "/tcc/level-1/" },
     body: [
       "Your assessment places you in the Refiner phase — a powerful but often overlooked stage in a coach’s journey. You’re not figuring things out anymore — you’re fine-tuning them. And that’s where some of the deepest breakthroughs happen.",
       "You’ve got real-world experience. You understand movement, you know your systems, and you’ve coached or trained enough to recognize patterns. Your decisions aren’t guesses — they’re informed by principle and practice. You’re not reacting — you’re responding with clarity.",
@@ -140,7 +140,7 @@ const STAGES = {
     name: "Leader",
     video: "https://youtu.be/SrHLFHbW9j0",
     videoId: "SrHLFHbW9j0",
-    next: { text: "The Gymnastics Course — Level 2", href: "/tgc/level-2/" },
+    next: { text: "The Coaches Course — Level 1", href: "/tcc/level-1/" },
     body: [
       "Based on your assessment, you’re operating in the Leader phase — and that’s no small thing. You’ve likely invested time, energy, and thought into your development, and it shows.",
       "You have clarity in your approach, you recognize the value of biomechanics, and you’re not just reacting — you’re observing, guiding, and executing with intention. You probably have systems in place, a strong grasp of movement principles, and a feedback loop that’s shaping your athletes or your own growth.",
@@ -352,7 +352,7 @@ export default async (req) => {
         .eq("id", row.id);
     }
 
-    return json({ ok: true, emailed: sent, score, result });
+    return json({ ok: true, id: row ? row.id : null, emailed: sent, score, result });
   } catch (e) {
     console.error("quiz-submit failed", e);
     return json({ error: "Something went wrong. Please try again." }, 500);
