@@ -38,7 +38,13 @@
   .mark img { width: 24px; height: 24px; object-fit: contain; }
   .bar .name { font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9; }
 
-  .wrap { max-width: 40rem; margin: 0 auto; padding: 0 1.25rem 5rem; }
+  .wrap {
+    max-width: 46rem; margin: 0 auto; padding: 0 1.25rem 5rem;
+    transition: max-width 0.2s ease;
+  }
+  /* The result is a long read with a video in it, so it gets more room than
+     the one-question-at-a-time screens do. */
+  .wrap.wide { max-width: 54rem; }
 
   /* ---- progress ---- */
   .prog { height: 3px; background: rgba(255,255,255,0.08); margin: 0 0 2.2rem; }
@@ -151,6 +157,16 @@
   }
   .nextstep .v { font-weight: 650; }
   .sent { color: var(--good); font-size: 0.92rem; margin-top: 1.6rem; }
+  .secondask {
+    margin-top: 2.2rem; padding: 1.4rem 1.5rem;
+    background: var(--panel); border: 1px solid var(--rule);
+    border-top: 3px solid var(--accent); border-radius: 6px;
+  }
+  .secondask .k {
+    font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 0.4rem;
+  }
+  .secondask__lede { margin: 0 0 1.2rem; }
 
   footer {
     margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--rule);
@@ -212,8 +228,8 @@
     <input id="email" type="email" autocomplete="email" inputmode="email">
     <label class="tick">
       <input id="consent" type="checkbox">
-      <span>Also send me coaching tips and upcoming seminar dates. You can
-        unsubscribe at any time.</span>
+      <span>Send me practical coaching content and the occasional course
+        update. You can unsubscribe at any time.</span>
     </label>
     <button class="btn" type="button" id="finish">See my result</button>
     <p class="said" id="said"></p>
@@ -243,6 +259,16 @@
     </a>
 
     <p class="sent" id="sent"></p>
+
+    <!-- Shown only to people who did not tick the box on the previous
+         screen. By this point they know their stage, so the offer can name
+         it — which is a far better ask than a generic newsletter box. -->
+    <div class="secondask hidden" id="secondask">
+      <p class="k" id="secondaskhead"></p>
+      <p class="secondask__lede" id="secondasklede"></p>
+      <button class="btn" type="button" id="secondaskgo">Yes, send it</button>
+      <p class="said" id="secondasksaid"></p>
+    </div>
   </main>
 
   <footer>
@@ -476,7 +502,46 @@
       ? "A copy is on its way to your inbox."
       : "";
 
+    // The second ask, only for people who left the box unticked.
+    if (!$("consent").checked && data.id) {
+      var plural = r.name + "s";
+      $("secondaskhead").textContent = "More for " + plural;
+      $("secondasklede").textContent =
+        "Want more like this? We will send practical coaching content and the " +
+        "occasional course update, aimed at where you are now.";
+      $("secondask").classList.remove("hidden");
+
+      $("secondaskgo").addEventListener("click", async function () {
+        var said = $("secondasksaid");
+        $("secondaskgo").disabled = true;
+        said.className = "said";
+        said.textContent = "Saving…";
+        try {
+          var res = await fetch("/.netlify/functions/quiz-consent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: data.id })
+          });
+          var out = await res.json();
+          if (!res.ok || out.error) {
+            said.className = "said err";
+            said.textContent = out.error || "That did not save. Please try again.";
+            $("secondaskgo").disabled = false;
+            return;
+          }
+          $("secondaskgo").classList.add("hidden");
+          said.className = "sent";
+          said.textContent = "Done — you are on the list.";
+        } catch (e) {
+          said.className = "said err";
+          said.textContent = "Could not reach us just then. Please try again.";
+          $("secondaskgo").disabled = false;
+        }
+      });
+    }
+
     $("prog").classList.add("hidden");
+    document.querySelector(".wrap").classList.add("wide");
     show("result");
 
     // Meta counts this as the conversion, so ads can be optimised toward
