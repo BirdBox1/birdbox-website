@@ -287,6 +287,17 @@
     .tcc-steps { grid-template-columns: repeat(2, 1fr); }
     .bb-signup__sub { flex: 1 1 100%; }
   }
+
+  /* Map tiles. CARTO started requiring an API key for its dark basemap in
+     September 2026, so unkeyed tiles came back stamped "API KEY REQUIRED".
+     These are plain OpenStreetMap tiles, inverted to a neutral dark grey so
+     the map still matches the page. No hue rotation — rotating the hue turns
+     OpenStreetMap's beige land green once it has been inverted. Only the tile
+     images are filtered; the pins sit in Leaflet's marker pane and keep their
+     real colour. */
+  .bb-dark-tiles {
+    filter: invert(1) grayscale(1) brightness(0.86) contrast(1.05);
+  }
 </style>
 <style>
   /* ---------- Level 1 page ---------- */
@@ -1096,10 +1107,14 @@
     }
 
     map = L.map("sm-map", { scrollWheelZoom: false }).setView([25, 10], 2);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
-      maxZoom: 18,
-    }).addTo(map);
+    L.tileLayer(
+      "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        attribution: "&copy; OpenStreetMap contributors",
+        maxZoom: 19,
+        className: "bb-dark-tiles",
+      }
+    ).addTo(map);
 
     const bounds = [];
     for (const c of placed) {
