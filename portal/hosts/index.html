@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Host requests — BirdBox Coaching</title>
+<style>
+  :root {
+    --ink:    #16181b;
+    --paper:  #f4f3f0;
+    --card:   #ffffff;
+    --shell:  #0d0e10;
+    --rule:   #e0ddd7;
+    --muted:  #6c7178;
+    --accent: #2f7fd0;
+    --good:   #1f8a54;
+    --warn:   #b4610f;
+    --bad:    #b3261e;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+  }
+  .hidden { display: none !important; }
+
+  /* ---------------- top bar ---------------- */
+  .bar {
+    background: var(--shell); color: #fff; padding: 0.7rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  .bar .left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+  .mark { width: 34px; height: 34px; border-radius: 4px; background: #fff; display: grid; place-items: center; flex: none; }
+  .mark img { width: 26px; height: 26px; object-fit: contain; display: block; }
+  .bar .brandname { font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9; white-space: nowrap; }
+  .bar a.linkbtn, .bar button {
+    font: inherit; font-size: 0.8rem; background: none; color: #cfd4d9;
+    border: 1px solid #33373c; padding: 0.3rem 0.7rem; border-radius: 3px;
+    cursor: pointer; text-decoration: none; white-space: nowrap;
+  }
+  .bar a.linkbtn:hover, .bar button:hover { color: #fff; border-color: #55595e; }
+
+  .wrap { max-width: 76rem; margin: 0 auto; padding: 1.25rem 1.25rem 4rem; }
+  h1 { font-size: 1.4rem; letter-spacing: -0.02em; margin: 0 0 0.2rem; font-weight: 600; }
+  .sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.25rem; }
+
+  .msg { font-size: 0.9rem; margin: 0.6rem 0; }
+  .msg.err { color: var(--bad); }
+  .msg.ok  { color: var(--good); }
+
+  /* ---------------- tabs ---------------- */
+  .tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .tabs button {
+    font: inherit; font-size: 0.85rem; background: var(--card); color: var(--muted);
+    border: 1px solid var(--rule); padding: 0.4rem 0.9rem; border-radius: 999px; cursor: pointer;
+  }
+  .tabs button.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .count { color: var(--muted); font-size: 0.8rem; }
+
+  /* ---------------- sheet ---------------- */
+  .sheetwrap { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; overflow-x: auto; }
+  table.sheet { border-collapse: collapse; width: 100%; min-width: 68rem; font-size: 0.9rem; }
+  table.sheet th, table.sheet td {
+    border-bottom: 1px solid var(--rule); padding: 0.55rem 0.7rem; text-align: left; vertical-align: middle;
+  }
+  table.sheet th {
+    position: sticky; top: 0; background: #faf9f7; z-index: 2;
+    font-size: 0.7rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); font-weight: 600;
+    white-space: nowrap;
+  }
+  table.sheet th.tick, table.sheet td.tick { text-align: center; width: 6.5rem; }
+  table.sheet tbody tr:hover { background: #fbfaf8; }
+  table.sheet tr.done { background: #f3f7f3; }
+  td.nowrap { white-space: nowrap; }
+  td .who { font-weight: 600; }
+  td a { color: var(--accent); text-decoration: none; }
+  td a:hover { text-decoration: underline; }
+  .when { color: var(--muted); font-size: 0.78rem; white-space: nowrap; }
+  .pill {
+    display: inline-block; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;
+    border: 1px solid var(--rule); border-radius: 999px; padding: 0.12rem 0.55rem; color: var(--muted); white-space: nowrap;
+  }
+  .pill.tgc { color: #8c1c2b; border-color: #e6c6cb; }
+  .pill.tcc { color: #1f5f96; border-color: #c2dcf0; }
+  .pill.tec { color: #1f6b45; border-color: #c3e2d1; }
+  .pill.twc { color: #8a6a10; border-color: #ecdcb0; }
+  input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
+  input.note {
+    width: 14rem; font: inherit; font-size: 0.85rem; border: 1px solid transparent;
+    background: none; padding: 0.3rem 0.4rem; border-radius: 3px; color: var(--ink);
+  }
+  input.note:hover { border-color: var(--rule); }
+  input.note:focus { outline: none; border-color: var(--accent); background: #fff; }
+  button.del {
+    font: inherit; font-size: 0.9rem; line-height: 1; background: none; border: 1px solid var(--rule);
+    color: var(--bad); border-radius: 3px; padding: 0.3rem 0.5rem; cursor: pointer;
+  }
+  button.del:hover { border-color: var(--bad); }
+  .empty { padding: 2.5rem 1rem; text-align: center; color: var(--muted); }
+
+  /* ---------------- gate ---------------- */
+  .gate { max-width: 26rem; margin: 4rem auto; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 1.5rem; text-align: center; }
+  .gate a { color: var(--accent); }
+
+  @media (max-width: 46rem) {
+    .wrap { padding: 1rem 0.75rem 3rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="left">
+    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+    <span class="brandname">Host requests</span>
+  </span>
+  <span class="right">
+    <a class="linkbtn" href="/portal/">Back to portal</a>
+  </span>
+</div>
+
+<section id="view-gate" class="gate hidden">
+  <p id="gate-text">Checking your access…</p>
+</section>
+
+<section id="view-main" class="wrap hidden">
+  <h1>Host requests</h1>
+  <p class="sub" id="sub">Gyms who asked to host a seminar, newest first.</p>
+
+  <div class="tabs">
+    <button type="button" data-tab="open" class="on">To action</button>
+    <button type="button" data-tab="live">Date set</button>
+    <button type="button" data-tab="all">Everything</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="msg" id="msg"></div>
+
+  <div class="sheetwrap">
+    <table class="sheet">
+      <thead>
+        <tr>
+          <th>Received</th>
+          <th>Contact</th>
+          <th>Email</th>
+          <th>Gym</th>
+          <th>Location</th>
+          <th>Country</th>
+          <th>Nearest airport</th>
+          <th>Interest</th>
+          <th class="tick">Suitable</th>
+          <th class="tick">Contacted</th>
+          <th class="tick">Date set</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="rows">
+        <tr><td colspan="13" class="empty">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const $ = (id) => document.getElementById(id);
+const show = (which) => {
+  $("view-gate").classList.toggle("hidden", which !== "gate");
+  $("view-main").classList.toggle("hidden", which !== "main");
+};
+const gate = (text) => { $("gate-text").innerHTML = text; show("gate"); };
+
+const LABEL = {
+  any: "Any seminar",
+  tgc: "TGC",
+  tcc: "TCC",
+  tec: "TEC",
+  twc: "TWC"
+};
+
+let all = [];
+let tab = "open";
+
+/* ---------------- access ---------------- */
+async function start() {
+  show("gate");
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) {
+    return gate('You are not signed in. <a href="/portal/">Sign in to the portal</a>, then come back to this page.');
+  }
+  const { data: staff, error } = await db
+    .from("staff").select("id, full_name, role, active")
+    .eq("id", session.user.id).maybeSingle();
+
+  if (error || !staff) return gate("This login is not set up as a staff member.");
+  if (!staff.active)   return gate("This account is no longer active.");
+  if (staff.role !== "admin") {
+    return gate('Host requests are admin only. <a href="/portal/">Back to the portal</a>.');
+  }
+  show("main");
+  await load();
+}
+
+/* ---------------- data ---------------- */
+async function load() {
+  const { data, error } = await db
+    .from("host_requests")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    $("msg").className = "msg err";
+    $("msg").textContent = "Could not load requests: " + error.message;
+    return;
+  }
+  all = data || [];
+  render();
+}
+
+function visible() {
+  if (tab === "open") return all.filter((r) => !r.date_set);
+  if (tab === "live") return all.filter((r) => r.date_set);
+  return all;
+}
+
+function render() {
+  const rows = visible();
+  const body = $("rows");
+  body.innerHTML = "";
+
+  $("count").textContent =
+    rows.length + (rows.length === 1 ? " request" : " requests") +
+    (tab === "all" ? "" : " of " + all.length);
+
+  if (!rows.length) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = '<td colspan="13" class="empty">Nothing here yet.</td>';
+    body.appendChild(tr);
+    return;
+  }
+
+  for (const r of rows) body.appendChild(rowEl(r));
+}
+
+function rowEl(r) {
+  const tr = document.createElement("tr");
+  if (r.date_set) tr.classList.add("done");
+
+  const when = new Date(r.created_at).toLocaleDateString("en-GB", {
+    day: "2-digit", month: "short", year: "numeric"
+  });
+
+  const td = (html, cls) => {
+    const c = document.createElement("td");
+    if (cls) c.className = cls;
+    c.innerHTML = html;
+    return c;
+  };
+  const esc = (s) => (s == null ? "" : String(s).replace(/[<>&"]/g, (m) =>
+    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[m])));
+
+  tr.appendChild(td('<span class="when">' + when + "</span>", "nowrap"));
+  tr.appendChild(td('<span class="who">' + esc(r.contact_name) + "</span>"));
+  tr.appendChild(td('<a href="mailto:' + esc(r.contact_email) + '">' + esc(r.contact_email) + "</a>"));
+  tr.appendChild(td(esc(r.gym_name)));
+  tr.appendChild(td(esc(r.gym_location)));
+  tr.appendChild(td(esc(r.gym_country), "nowrap"));
+  tr.appendChild(td(esc(r.nearest_airport || "—")));
+  tr.appendChild(td('<span class="pill ' + esc(r.interest) + '">' + (LABEL[r.interest] || esc(r.interest)) + "</span>", "nowrap"));
+
+  for (const field of ["suitable", "contacted", "date_set"]) {
+    const cell = document.createElement("td");
+    cell.className = "tick";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = !!r[field];
+    box.title = field.replace("_", " ");
+    box.addEventListener("change", () => save(r, field, box.checked, box));
+    cell.appendChild(box);
+    tr.appendChild(cell);
+  }
+
+  const noteCell = document.createElement("td");
+  const note = document.createElement("input");
+  note.className = "note";
+  note.type = "text";
+  note.placeholder = "Notes…";
+  note.value = r.notes || "";
+  note.addEventListener("change", () => save(r, "notes", note.value.trim(), note));
+  noteCell.appendChild(note);
+  tr.appendChild(noteCell);
+
+  const delCell = document.createElement("td");
+  const del = document.createElement("button");
+  del.type = "button";
+  del.className = "del";
+  del.textContent = "Delete";
+  del.addEventListener("click", () => remove(r, tr));
+  delCell.appendChild(del);
+  tr.appendChild(delCell);
+
+  return tr;
+}
+
+async function save(r, field, value, el) {
+  el.disabled = true;
+  const patch = {}; patch[field] = value;
+  const { error } = await db.from("host_requests").update(patch).eq("id", r.id);
+  el.disabled = false;
+
+  if (error) {
+    $("msg").className = "msg err";
+    $("msg").textContent = "Could not save: " + error.message;
+    if (el.type === "checkbox") el.checked = !!r[field];
+    return;
+  }
+  r[field] = value;
+  $("msg").className = "msg ok";
+  $("msg").textContent = "Saved.";
+  setTimeout(() => { if ($("msg").textContent === "Saved.") $("msg").textContent = ""; }, 1500);
+
+  if (field === "date_set") {
+    const row = el.closest("tr");
+    row.classList.toggle("done", !!value);
+    if (tab !== "all") { render(); }
+  }
+}
+
+async function remove(r, tr) {
+  if (!confirm("Delete the request from " + r.gym_name + "? This cannot be undone.")) return;
+  const { error } = await db.from("host_requests").delete().eq("id", r.id);
+  if (error) {
+    $("msg").className = "msg err";
+    $("msg").textContent = "Could not delete: " + error.message;
+    return;
+  }
+  all = all.filter((x) => x.id !== r.id);
+  render();
+}
+
+/* ---------------- tabs ---------------- */
+document.querySelectorAll(".tabs button").forEach((b) => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll(".tabs button").forEach((x) => x.classList.remove("on"));
+    b.classList.add("on");
+    tab = b.dataset.tab;
+    render();
+  });
+});
+
+start();
+</script>
+</body>
+</html>
