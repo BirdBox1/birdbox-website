@@ -290,6 +290,17 @@
     .tcc-steps { grid-template-columns: repeat(2, 1fr); }
     .bb-signup__sub { flex: 1 1 100%; }
   }
+
+  /* Map tiles. CARTO started requiring an API key for its dark basemap in
+     September 2026, so unkeyed tiles came back stamped "API KEY REQUIRED".
+     These are plain OpenStreetMap tiles, inverted to a neutral dark grey so
+     the map still matches the page. No hue rotation — rotating the hue turns
+     OpenStreetMap's beige land green once it has been inverted. Only the tile
+     images are filtered; the pins sit in Leaflet's marker pane and keep their
+     real colour. */
+  .bb-dark-tiles {
+    filter: invert(1) grayscale(1) brightness(0.86) contrast(1.05);
+  }
 </style>
 <style>
   /* ---------- Level 1 page ---------- */
@@ -591,7 +602,7 @@
       <div class="l1-dates__bar">
         <div class="l1-dates__field">
           <label for="l1-f-country">Country</label>
-          <select id="l1-f-country"><option value="">All countries</option></select>
+          <select id="l1-f-country"><option value="">Select a country</option></select>
         </div>
         <div class="l1-dates__field">
           <label for="l1-f-language">Language</label>
@@ -858,10 +869,14 @@
   }
 
   const map = L.map("l1-map", { scrollWheelZoom: false }).setView([25, 10], 2);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    maxZoom: 18
-  }).addTo(map);
+  L.tileLayer(
+    "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+      attribution: "&copy; OpenStreetMap contributors",
+      maxZoom: 19,
+      className: "bb-dark-tiles",
+    }
+  ).addTo(map);
 
   const pin = L.divIcon({
     className: "",
@@ -892,6 +907,20 @@
       (!c || x.country === c) && (!l || x.language === l));
 
     listEl.textContent = "";
+
+    // The full list of dates is long enough to push the rest of the page
+    // out of sight, so nothing is listed until a country is picked. The
+    // map above still carries every pin, so no date is hidden — this only
+    // decides what the list underneath it shows.
+    if (!c && courses.length) {
+      const prompt = document.createElement("p");
+      prompt.className = "l1-dates__state";
+      prompt.textContent =
+        "Select a country to see dates \u2014 or choose a pin on the map above.";
+      listEl.append(prompt);
+      countEl.textContent = "";
+      return;
+    }
 
     if (!shown.length) {
       const p = document.createElement("p");
