@@ -61,7 +61,7 @@
 
   /* ---------------- sheet ---------------- */
   .sheetwrap { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; overflow-x: auto; }
-  table.sheet { border-collapse: collapse; width: 100%; min-width: 68rem; font-size: 0.9rem; }
+  table.sheet { border-collapse: collapse; width: 100%; min-width: 82rem; font-size: 0.9rem; }
   table.sheet th, table.sheet td {
     border-bottom: 1px solid var(--rule); padding: 0.55rem 0.7rem; text-align: left; vertical-align: middle;
   }
@@ -103,6 +103,14 @@
   }
   button.del:hover { border-color: var(--bad); }
   .empty { padding: 2.5rem 1rem; text-align: center; color: var(--muted); }
+  td.num { text-align: center; font-variant-numeric: tabular-nums; }
+  .theirs {
+    max-width: 20rem; font-size: 0.85rem; color: var(--muted); line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; cursor: pointer;
+  }
+  .theirs.open { display: block; -webkit-line-clamp: unset; overflow: visible; color: var(--ink); }
+  .theirs.none { cursor: default; }
 
   /* ---------------- gate ---------------- */
   .gate { max-width: 26rem; margin: 4rem auto; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 1.5rem; text-align: center; }
@@ -154,6 +162,8 @@
           <th>Country</th>
           <th>Nearest airport</th>
           <th>Interest</th>
+          <th>People</th>
+          <th>Their message</th>
           <th class="tick">Suitable</th>
           <th class="tick">Contacted</th>
           <th class="tick">Date set</th>
@@ -162,7 +172,7 @@
         </tr>
       </thead>
       <tbody id="rows">
-        <tr><td colspan="13" class="empty">Loading…</td></tr>
+        <tr><td colspan="15" class="empty">Loading…</td></tr>
       </tbody>
     </table>
   </div>
@@ -262,7 +272,7 @@ function render() {
 
   if (!rows.length) {
     const tr = document.createElement("tr");
-    tr.innerHTML = '<td colspan="13" class="empty">Nothing here yet.</td>';
+    tr.innerHTML = '<td colspan="15" class="empty">Nothing here yet.</td>';
     body.appendChild(tr);
     return;
   }
@@ -299,15 +309,28 @@ function rowEl(r) {
   tr.appendChild(td(esc(r.nearest_airport || "—")));
   tr.appendChild(td('<span class="pill ' + esc(r.interest) + '">' + (LABEL[r.interest] || esc(r.interest)) + "</span>", "nowrap"));
 
+  tr.appendChild(td(r.expected_numbers == null ? "—" : String(r.expected_numbers), "num"));
+
+  const theirs = document.createElement("td");
+  const box = document.createElement("div");
+  box.className = "theirs" + (r.message ? "" : " none");
+  box.textContent = r.message || "—";
+  if (r.message) {
+    box.title = "Tap to show it all";
+    box.addEventListener("click", () => box.classList.toggle("open"));
+  }
+  theirs.appendChild(box);
+  tr.appendChild(theirs);
+
   for (const field of ["suitable", "contacted", "date_set"]) {
     const cell = document.createElement("td");
     cell.className = "tick";
-    const box = document.createElement("input");
-    box.type = "checkbox";
-    box.checked = !!r[field];
-    box.title = field.replace("_", " ");
-    box.addEventListener("change", () => save(r, field, box.checked, box));
-    cell.appendChild(box);
+    const tick = document.createElement("input");
+    tick.type = "checkbox";
+    tick.checked = !!r[field];
+    tick.title = field.replace("_", " ");
+    tick.addEventListener("change", () => save(r, field, tick.checked, tick));
+    cell.appendChild(tick);
     tr.appendChild(cell);
   }
 
