@@ -519,6 +519,49 @@
     .sm-row__go { display: none; }
   }
 </style>
+<style>
+  /* ---------- host a seminar ---------- */
+  #host { scroll-margin-top: 20px; }
+  .hr-form { border: 1px solid var(--line); background: var(--panel); padding: 20px 22px 24px; }
+  .hr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 16px; }
+  .hr-f { display: block; min-width: 0; }
+  .hr-f label {
+    display: block; font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 5px;
+  }
+  .hr-f input, .hr-f select {
+    width: 100%; border: 1px solid var(--line); background: #171214;
+    color: var(--ink); padding: 10px 12px; font-size: 15px; font-family: inherit;
+    border-radius: 0; -webkit-appearance: none; appearance: none;
+  }
+  .hr-f select {
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+      linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 34px;
+  }
+  .hr-f input:focus, .hr-f select:focus { outline: none; border-color: var(--tcc); }
+  .hr-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 18px; }
+  .hr-btn {
+    border: 1px solid var(--tcc); background: var(--tcc); color: #0C1116;
+    font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 13px 26px; cursor: pointer; font-family: inherit;
+  }
+  .hr-btn:hover { background: transparent; color: var(--accentText); }
+  .hr-btn[disabled] { opacity: 0.55; cursor: default; }
+  .hr-msg { font-size: 14px; color: #C9C4C5; }
+  .hr-msg.err { color: #E8837C; }
+  .hr-done { border: 1px solid var(--line); background: var(--panel); padding: 34px 24px; text-align: center; }
+  .hr-done h3 { font-size: 20px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px; }
+  .hr-done p { font-size: 15px; color: #C9C4C5; margin: 0; }
+  .hr-pot { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+  @media (max-width: 900px) { .hr-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 620px) { .hr-grid { grid-template-columns: 1fr; } }
+</style>
   <script type="module" src="/portal/menu.js"></script>
 </head>
 <body>
@@ -590,6 +633,61 @@
       <a href="/twc">The Weightlifting Course</a>
     </div>
   </div>
+
+  <section class="l1-section" id="host">
+    <p class="l1-label">Bring Us To You</p>
+    <h2 class="l1-h2">Host A Seminar</h2>
+    <p class="l1-lede">Want a BirdBox seminar at your gym? Send us your details and we will come back to you about dates, numbers and what hosting involves.</p>
+
+    <form class="hr-form" id="hr-form" novalidate>
+      <div class="hr-grid">
+        <div class="hr-f">
+          <label for="hr-name">Contact name</label>
+          <input id="hr-name" type="text" autocomplete="name" required>
+        </div>
+        <div class="hr-f">
+          <label for="hr-email">Contact email</label>
+          <input id="hr-email" type="email" autocomplete="email" inputmode="email" required>
+        </div>
+        <div class="hr-f">
+          <label for="hr-gym">Gym name</label>
+          <input id="hr-gym" type="text" required>
+        </div>
+        <div class="hr-f">
+          <label for="hr-loc">Gym location (city / town)</label>
+          <input id="hr-loc" type="text" required>
+        </div>
+        <div class="hr-f">
+          <label for="hr-country">Gym country</label>
+          <select id="hr-country" required><option value="">Select a country</option></select>
+        </div>
+        <div class="hr-f">
+          <label for="hr-air">Nearest international airport</label>
+          <input id="hr-air" type="text" placeholder="e.g. Dublin (DUB)">
+        </div>
+        <div class="hr-f">
+          <label for="hr-int">Seminar of interest</label>
+          <select id="hr-int">
+            <option value="any">Any seminar</option>
+            <option value="tgc">TGC &mdash; The Gymnastics Course</option>
+            <option value="tcc">TCC &mdash; The Coaches Course</option>
+            <option value="tec">TEC &mdash; The Endurance Course</option>
+            <option value="twc">TWC &mdash; The Weightlifting Course</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="hr-pot">
+        <label for="hr-web">Leave this empty</label>
+        <input id="hr-web" type="text" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="hr-actions">
+        <button class="hr-btn" id="hr-send" type="submit">Send request</button>
+        <span class="hr-msg" id="hr-msg"></span>
+      </div>
+    </form>
+  </section>
 
 </main>
 
@@ -1035,6 +1133,98 @@
   }
 
   load();
+</script>
+
+<script>
+  /* ---------- host a seminar ----------
+     Writes to public.host_requests. The publishable key can only insert
+     into that table — reading it back is admin-only, in the portal.
+     Deep link for social: https://birdboxcoaching.com/seminars/#host */
+  (function () {
+    var URL_BASE = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+    var KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+
+    var COUNTRIES = ("Afghanistan|Albania|Algeria|Andorra|Angola|Argentina|Armenia|Australia|Austria|Azerbaijan|" +
+      "Bahamas|Bahrain|Bangladesh|Barbados|Belarus|Belgium|Belize|Benin|Bolivia|Bosnia and Herzegovina|Botswana|" +
+      "Brazil|Brunei|Bulgaria|Burkina Faso|Cambodia|Cameroon|Canada|Cape Verde|Chad|Chile|China|Colombia|" +
+      "Costa Rica|Croatia|Cuba|Cyprus|Czechia|Denmark|Dominican Republic|Ecuador|Egypt|El Salvador|Estonia|" +
+      "Eswatini|Ethiopia|Fiji|Finland|France|Gabon|Georgia|Germany|Ghana|Greece|Guatemala|Honduras|Hong Kong|" +
+      "Hungary|Iceland|India|Indonesia|Iraq|Ireland|Israel|Italy|Ivory Coast|Jamaica|Japan|Jordan|Kazakhstan|" +
+      "Kenya|Kosovo|Kuwait|Latvia|Lebanon|Liechtenstein|Lithuania|Luxembourg|Macau|Madagascar|Malaysia|Maldives|" +
+      "Malta|Mauritius|Mexico|Moldova|Monaco|Mongolia|Montenegro|Morocco|Mozambique|Namibia|Nepal|Netherlands|" +
+      "New Zealand|Nicaragua|Nigeria|North Macedonia|Norway|Oman|Pakistan|Panama|Papua New Guinea|Paraguay|Peru|" +
+      "Philippines|Poland|Portugal|Qatar|Romania|Rwanda|Saudi Arabia|Senegal|Serbia|Singapore|Slovakia|Slovenia|" +
+      "South Africa|South Korea|Spain|Sri Lanka|Sweden|Switzerland|Taiwan|Tanzania|Thailand|Trinidad and Tobago|" +
+      "Tunisia|Turkey|Uganda|Ukraine|United Arab Emirates|United Kingdom|United States|Uruguay|Uzbekistan|" +
+      "Venezuela|Vietnam|Zambia|Zimbabwe|Other").split("|");
+
+    var sel = document.getElementById("hr-country");
+    for (var i = 0; i < COUNTRIES.length; i++) {
+      var o = document.createElement("option");
+      o.value = COUNTRIES[i];
+      o.textContent = COUNTRIES[i];
+      sel.appendChild(o);
+    }
+
+    var form = document.getElementById("hr-form");
+    var msg = document.getElementById("hr-msg");
+    var btn = document.getElementById("hr-send");
+    var val = function (id) { return (document.getElementById(id).value || "").trim(); };
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      msg.className = "hr-msg";
+
+      if (val("hr-web")) return; // bot trap
+
+      var row = {
+        contact_name: val("hr-name"),
+        contact_email: val("hr-email"),
+        gym_name: val("hr-gym"),
+        gym_location: val("hr-loc"),
+        gym_country: val("hr-country"),
+        nearest_airport: val("hr-air"),
+        interest: val("hr-int") || "any"
+      };
+
+      if (!row.contact_name || !row.contact_email || !row.gym_name || !row.gym_location || !row.gym_country) {
+        msg.className = "hr-msg err";
+        msg.textContent = "Please fill in name, email, gym, location and country.";
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.contact_email)) {
+        msg.className = "hr-msg err";
+        msg.textContent = "That email address does not look right.";
+        return;
+      }
+
+      btn.disabled = true;
+      msg.textContent = "Sending…";
+
+      fetch(URL_BASE + "/rest/v1/host_requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: KEY,
+          Authorization: "Bearer " + KEY,
+          Prefer: "return=minimal"
+        },
+        body: JSON.stringify(row)
+      }).then(function (r) {
+        if (!r.ok) return r.text().then(function (t) { throw new Error(t || r.status); });
+        var done = document.createElement("div");
+        done.className = "hr-done";
+        done.innerHTML = "<h3>Thank you &mdash; request received</h3>" +
+          "<p>We have your details and will be in touch by email about hosting.</p>";
+        form.replaceWith(done);
+      }).catch(function (err) {
+        btn.disabled = false;
+        msg.className = "hr-msg err";
+        msg.textContent = "Sorry — that did not send. Please email info@birdboxcoaching.com instead.";
+        console.error("host request:", err);
+      });
+    });
+  })();
 </script>
 
 <script src="/nav.js"></script>
