@@ -580,7 +580,7 @@
       <div class="l1-dates__bar">
         <div class="l1-dates__field">
           <label for="l1-f-country">Country</label>
-          <select id="l1-f-country"><option value="">All countries</option></select>
+          <select id="l1-f-country"><option value="">Select a country</option></select>
         </div>
         <div class="l1-dates__field">
           <label for="l1-f-language">Language</label>
@@ -976,6 +976,20 @@
       (!c || x.country === c) && (!l || x.language === l));
 
     listEl.textContent = "";
+
+    // The full list of dates is long enough to push the rest of the page
+    // out of sight, so nothing is listed until a country is picked. The
+    // map above still carries every pin, so no date is hidden — this only
+    // decides what the list underneath it shows.
+    if (!c && courses.length) {
+      const prompt = document.createElement("p");
+      prompt.className = "l1-dates__state";
+      prompt.textContent =
+        "Select a country to see dates \u2014 or choose a pin on the map above.";
+      listEl.append(prompt);
+      countEl.textContent = "";
+      return;
+    }
 
     if (!shown.length) {
       const p = document.createElement("p");
