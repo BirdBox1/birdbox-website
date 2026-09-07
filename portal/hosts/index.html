@@ -86,6 +86,10 @@
   .pill.tcc { color: #1f5f96; border-color: #c2dcf0; }
   .pill.tec { color: #1f6b45; border-color: #c3e2d1; }
   .pill.twc { color: #8a6a10; border-color: #ecdcb0; }
+  .pill.new {
+    background: var(--bad); border-color: var(--bad); color: #fff;
+    font-weight: 700; margin-left: 0.4rem;
+  }
   input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
   input.note {
     width: 14rem; font: inherit; font-size: 0.85rem; border: 1px solid transparent;
@@ -188,6 +192,9 @@ const LABEL = {
 
 let all = [];
 let tab = "open";
+// Requests that were still unread when this page opened. They keep a red
+// New tag for the rest of the visit, and the menu badge clears behind them.
+let fresh = new Set();
 
 /* ---------------- access ---------------- */
 async function start() {
@@ -222,7 +229,20 @@ async function load() {
     return;
   }
   all = data || [];
+  fresh = new Set(all.filter((r) => !r.seen_at).map((r) => r.id));
   render();
+  markSeen();
+}
+
+// Opening this page is what counts as having seen them, so the red
+// count on the portal menu clears itself.
+async function markSeen() {
+  if (!fresh.size) return;
+  const { error } = await db
+    .from("host_requests")
+    .update({ seen_at: new Date().toISOString() })
+    .is("seen_at", null);
+  if (error) console.error("Could not mark host requests seen:", error.message);
 }
 
 function visible() {
@@ -268,7 +288,10 @@ function rowEl(r) {
     ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[m])));
 
   tr.appendChild(td('<span class="when">' + when + "</span>", "nowrap"));
-  tr.appendChild(td('<span class="who">' + esc(r.contact_name) + "</span>"));
+  tr.appendChild(td(
+    '<span class="who">' + esc(r.contact_name) + "</span>" +
+    (fresh.has(r.id) ? '<span class="pill new">New</span>' : "")
+  ));
   tr.appendChild(td('<a href="mailto:' + esc(r.contact_email) + '">' + esc(r.contact_email) + "</a>"));
   tr.appendChild(td(esc(r.gym_name)));
   tr.appendChild(td(esc(r.gym_location)));
