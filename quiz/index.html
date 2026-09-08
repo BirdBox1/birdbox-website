@@ -438,7 +438,13 @@
           lastName: last,
           email: email,
           marketingConsent: $("consent").checked,
+          // Whether the Meta pixel is allowed to run for this visitor.
+          // consent.js decides: true after an explicit yes, and true outside
+          // Europe where no yes is needed. If it is false the server reports
+          // nothing to Meta either.
+          pixelAllowed: !!(window.bbConsent && window.bbConsent.granted()),
           utm: utm,
+          pageUrl: location.href,
           referer: document.referrer || null
         })
       });
@@ -546,8 +552,19 @@
 
     // Meta counts this as the conversion, so ads can be optimised toward
     // completed assessments rather than clicks.
-    if (window.fbq) {
-      window.fbq("track", "Lead", { content_name: "Coaching self-assessment" });
+    //
+    // The server has already reported the same Lead through the Conversions
+    // API and handed back the id it used. Passing it here as eventID is what
+    // stops the two being counted as two conversions — Meta keeps whichever
+    // arrives first and discards the duplicate. No id means the pixel was
+    // not allowed to run, in which case nothing is sent from either side.
+    if (window.fbq && data.eventId) {
+      window.fbq(
+        "track",
+        "Lead",
+        { content_name: "Coaching self-assessment" },
+        { eventID: data.eventId }
+      );
     }
   }
 })();
