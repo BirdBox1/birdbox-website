@@ -34,9 +34,11 @@
     display: flex; align-items: center; gap: 0.75rem;
     border-bottom: 1px solid var(--rule);
   }
-  .mark { width: 32px; height: 32px; border-radius: 4px; background: #fff;
-          display: grid; place-items: center; flex: none; }
-  .mark img { width: 24px; height: 24px; object-fit: contain; }
+  /* The TGC mark is a wordmark built for dark backgrounds, not a square
+     icon. Boxing it on white and shrinking it to 24px turned it into an
+     illegible red blob, so it gets its own height and no container. */
+  .mark { display: grid; place-items: center; flex: none; }
+  .mark img { height: 34px; width: auto; display: block; }
   .bar .name { font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9; }
 
   .wrap {
