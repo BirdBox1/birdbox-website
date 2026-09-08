@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Your Coaching Needs Next — The Gymnastics Course</title>
+<meta name="description" content="Twelve questions, two minutes. Find out what your gymnastics coaching needs next, and the one thing worth working on now.">
+<meta property="og:title" content="What does your gymnastics coaching need next?">
+<meta property="og:description" content="Twelve questions, two minutes. Find your focus and the one thing to work on next.">
+<meta property="og:type" content="website">
+<style>
+  :root {
+    --ink:    #eceae6;
+    --paper:  #101215;
+    --panel:  #191c20;
+    --shell:  #0d0e10;
+    --rule:   rgba(255,255,255,0.14);
+    --muted:  #99a0a8;
+    --accent: #D8393D;
+    --accentText: #F0797D;
+    --good:   #6fbf87;
+    --bad:    #e0736a;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px; line-height: 1.65; -webkit-font-smoothing: antialiased;
+  }
+
+  .bar {
+    background: var(--shell); padding: 0.7rem 1.25rem;
+    display: flex; align-items: center; gap: 0.75rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .mark { width: 32px; height: 32px; border-radius: 4px; background: #fff;
+          display: grid; place-items: center; flex: none; }
+  .mark img { width: 24px; height: 24px; object-fit: contain; }
+  .bar .name { font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9; }
+
+  .wrap {
+    max-width: 46rem; margin: 0 auto; padding: 0 1.25rem 5rem;
+    transition: max-width 0.2s ease;
+  }
+  /* The result is a long read with a video in it, so it gets more room than
+     the one-question-at-a-time screens do. */
+  .wrap.wide { max-width: 54rem; }
+
+  /* ---- progress ---- */
+  .prog { height: 3px; background: rgba(255,255,255,0.08); margin: 0 0 2.2rem; }
+  .prog__fill {
+    height: 100%; width: 0; background: var(--accent);
+    transition: width 0.28s ease;
+  }
+  .prog.hidden, .hidden { display: none !important; }
+
+  /* ---- intro ---- */
+  .lede { color: var(--muted); font-size: 1.02rem; }
+  h1 {
+    font-size: clamp(1.7rem, 5.5vw, 2.4rem); line-height: 1.12;
+    letter-spacing: -0.025em; font-weight: 700; margin: 2.6rem 0 0.8rem;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.6rem 0 2rem; }
+  .chips span {
+    border: 1px solid var(--rule); border-radius: 4px; padding: 0.35rem 0.65rem;
+    font-size: 0.84rem; color: var(--muted);
+  }
+  .btn {
+    font: inherit; font-weight: 650; font-size: 0.92rem; cursor: pointer;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 0.95rem 1.7rem; border: 0; border-radius: 5px;
+    background: var(--accent); color: #fff;
+  }
+  .btn:hover { filter: brightness(1.12); }
+  .btn[disabled] { opacity: 0.5; cursor: default; filter: none; }
+  .btn--ghost {
+    background: transparent; color: var(--muted); border: 1px solid var(--rule);
+  }
+  .btn--ghost:hover { color: var(--ink); border-color: rgba(255,255,255,0.32); filter: none; }
+
+  /* ---- questions ---- */
+  .qcount {
+    font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600;
+  }
+  .qtext {
+    font-size: clamp(1.25rem, 3.6vw, 1.55rem); line-height: 1.3;
+    letter-spacing: -0.015em; font-weight: 650; margin: 0.5rem 0 1.5rem;
+  }
+  .opts { display: grid; gap: 0.65rem; }
+  .opt {
+    display: block; width: 100%; text-align: left; font: inherit;
+    cursor: pointer; color: var(--ink); background: var(--panel);
+    border: 1px solid var(--rule); border-radius: 6px;
+    padding: 1rem 1.1rem; line-height: 1.45;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .opt:hover { border-color: rgba(255,255,255,0.34); background: #1e2227; }
+  .opt.is-on { border-color: var(--accent); background: rgba(216,57,61,0.14); }
+  .navrow { display: flex; align-items: center; gap: 0.8rem; margin-top: 1.6rem; }
+
+  /* ---- details ---- */
+  label.f { display: block; font-size: 0.78rem; font-weight: 650; margin: 0 0 0.3rem; }
+  input[type=text], input[type=email] {
+    width: 100%; font: inherit; font-size: 1rem;
+    padding: 0.75rem 0.85rem; margin-bottom: 1rem;
+    background: rgba(255,255,255,0.06); color: #fff;
+    border: 1px solid rgba(255,255,255,0.18); border-radius: 5px;
+  }
+  input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .two { display: grid; gap: 0 0.8rem; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 480px) { .two { grid-template-columns: 1fr; } }
+  .tick {
+    display: flex; gap: 0.7rem; align-items: flex-start;
+    font-size: 0.9rem; line-height: 1.5; margin: 0.4rem 0 1.4rem;
+    color: var(--muted); cursor: pointer;
+  }
+  .tick input { width: 1.15rem; height: 1.15rem; margin-top: 0.15rem; flex: none; }
+  .said { font-size: 0.9rem; margin: 0.9rem 0 0; }
+  .said.err { color: var(--bad); }
+
+  /* ---- result ---- */
+  .stage {
+    margin: 1.6rem 0 1.8rem; padding: 1.1rem 1.3rem;
+    background: var(--panel); border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent); border-radius: 5px;
+  }
+  .stage .k {
+    font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
+  }
+  .stage .v { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+  .result p { margin: 0 0 1rem; }
+  .result ul { margin: 0 0 1.3rem; padding: 0; list-style: none; }
+  .result li {
+    padding: 0.4rem 0 0.4rem 1.35rem; position: relative;
+    border-bottom: 1px solid var(--rule);
+  }
+  .result li::before {
+    content: ""; position: absolute; left: 0; top: 1.1em;
+    width: 0.7rem; height: 2px; background: var(--accent);
+  }
+  h2 {
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; margin: 2.2rem 0 0.7rem;
+  }
+  .video { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 6px; overflow: hidden; }
+  .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .nextstep {
+    display: block; margin-top: 1.8rem; padding: 1.1rem 1.25rem;
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 6px;
+    color: var(--ink); text-decoration: none;
+  }
+  .nextstep:hover { border-color: rgba(255,255,255,0.32); }
+  .nextstep .k {
+    font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
+    display: block; margin-bottom: 0.2rem;
+  }
+  .nextstep .v { font-weight: 650; }
+  .sent { color: var(--good); font-size: 0.92rem; margin-top: 1.6rem; }
+  .secondask {
+    margin-top: 2.2rem; padding: 1.4rem 1.5rem;
+    background: var(--panel); border: 1px solid var(--rule);
+    border-top: 3px solid var(--accent); border-radius: 6px;
+  }
+  .secondask .k {
+    font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 0.4rem;
+  }
+  .secondask__lede { margin: 0 0 1.2rem; }
+
+  footer {
+    margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--rule);
+    font-size: 0.82rem; color: var(--muted);
+  }
+  footer a { color: var(--muted); }
+
+  /* --- TGC additions ------------------------------------------------ */
+  .ladder { margin: 1.6rem 0 0; }
+  .ladder h3 {
+    font-size: .74rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--muted); font-weight: 700; margin: 0 0 .7rem;
+  }
+  .rung {
+    display: grid; grid-template-columns: 1fr auto; gap: .5rem 1rem;
+    align-items: center; padding: .55rem 0; border-top: 1px solid var(--rule);
+  }
+  .rung:last-child { border-bottom: 1px solid var(--rule); }
+  .rung__name { font-size: .95rem; color: var(--muted); }
+  .rung.is-focus .rung__name { color: var(--ink); font-weight: 700; }
+  .rung__bar { grid-column: 1 / -1; height: 5px; background: rgba(255,255,255,.09); }
+  .rung__fill { height: 100%; background: var(--muted); }
+  .rung.is-focus .rung__fill { background: var(--accent); }
+  .rung__score { font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .panel {
+    margin: 1.8rem 0; padding: 1.1rem 1.2rem;
+    background: var(--panel); border: 1px solid var(--rule);
+  }
+  .panel h3 {
+    font-size: .74rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--muted); font-weight: 700; margin: 0 0 .6rem;
+  }
+  .panel p { margin: 0 0 .8rem; }
+  .panel p:last-child { margin-bottom: 0; }
+  .panel--dark { background: #07080a; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="mark"><img src="/brand/tgc-mark.png" alt=""></span>
+  <span class="name">The Gymnastics Course</span>
+</div>
+
+<div class="wrap">
+  <div class="prog hidden" id="prog"><div class="prog__fill" id="progfill"></div></div>
+
+  <!-- ---------- intro ---------- -->
+  <main id="intro">
+    <h1>What does your gymnastics coaching need next?</h1>
+    <p class="lede">
+      Gymnastics coaching is an order of operations. Twelve questions about how
+      you coach today, and you will know which rung you are standing on, why it
+      matters, and one thing to do about it this week.
+    </p>
+    <div class="chips">
+      <span>12 questions</span>
+      <span>1–2 minutes</span>
+      <span>Free</span>
+    </div>
+    <button class="btn" type="button" id="start">Start the assessment</button>
+  </main>
+
+  <!-- ---------- questions ---------- -->
+  <main id="quiz" class="hidden">
+    <p class="qcount" id="qcount"></p>
+    <p class="qtext" id="qtext"></p>
+    <div class="opts" id="opts"></div>
+    <div class="navrow">
+      <button class="btn btn--ghost" type="button" id="back">Back</button>
+    </div>
+  </main>
+
+  <!-- ---------- details ---------- -->
+  <main id="details" class="hidden">
+    <p class="qcount">Almost there</p>
+    <p class="qtext">Where should we send your result?</p>
+    <div class="two">
+      <div>
+        <label class="f" for="first">First name</label>
+        <input id="first" type="text" autocomplete="given-name">
+      </div>
+      <div>
+        <label class="f" for="last">Last name</label>
+        <input id="last" type="text" autocomplete="family-name">
+      </div>
+    </div>
+    <label class="f" for="email">Email</label>
+    <input id="email" type="email" autocomplete="email" inputmode="email">
+    <label class="tick">
+      <input id="consent" type="checkbox">
+      <span>Send me practical coaching content and the occasional course
+        update. You can unsubscribe at any time.</span>
+    </label>
+    <button class="btn" type="button" id="finish">See my result</button>
+    <p class="said" id="said"></p>
+    <p class="said" style="color:var(--muted);margin-top:1.2rem">
+      We use your email to send your result. Nothing else without the tick above.
+    </p>
+  </main>
+
+  <!-- ---------- result ---------- -->
+  <main id="result" class="hidden">
+    <p class="qcount">Your gymnastics coaching focus</p>
+    <div class="stage">
+      <span class="k">Your focus</span>
+      <div class="v" id="stagename"></div>
+      <div class="lede" id="stagelede" style="margin:.5rem 0 0;font-size:.98rem"></div>
+    </div>
+
+    <div class="result" id="resultbody"></div>
+
+    <div class="panel" id="trypanel">
+      <h3>Try this week</h3>
+      <div id="trybody"></div>
+    </div>
+
+    <!-- The four rungs, so they can see the whole ladder and where they sit
+         on it. The focus is the first one below the line, not the lowest. -->
+    <div class="ladder">
+      <h3>The ladder</h3>
+      <div id="ladder"></div>
+    </div>
+
+    <div class="panel panel--dark">
+      <h3>Where this is taught</h3>
+      <p id="taught"></p>
+    </div>
+
+    <!-- Kept for the films when they are made. Hidden until then, so adding
+         them later is a content job rather than a rebuild. -->
+    <div id="videowrap" class="hidden">
+      <h2>Watch</h2>
+      <div class="video"><iframe id="video" title="Your focus" allowfullscreen
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"></iframe></div>
+    </div>
+
+    <div class="result" id="resultclosing" style="margin-top:1.8rem"></div>
+
+    <a class="nextstep" id="nextstep" href="/tgc/level-1/">
+      <span class="k">Your next step</span>
+      <span class="v" id="nextsteptext"></span>
+    </a>
+
+    <p class="sent" id="sent"></p>
+
+    <div class="secondask hidden" id="secondask">
+      <p class="k" id="secondaskhead"></p>
+      <p class="secondask__lede" id="secondasklede"></p>
+      <button class="btn" type="button" id="secondaskgo">Yes, send it</button>
+      <p class="said" id="secondasksaid"></p>
+    </div>
+  </main>
+
+  <footer>
+    <p>BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland ·
+      <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a></p>
+  </footer>
+</div>
+
+<script src="/pixel.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // Twelve questions, three per rung, in ladder order. The page never scores
+  // anything — it posts the raw answers and the function works out the focus,
+  // so editing this file cannot change anybody's result.
+  var QUESTIONS = [
+    // --- rung 1, The Coach's Eye ---
+    {
+      q: "An athlete's swing looks wrong. What usually happens next?",
+      a: [
+        "I can tell something is off but not what",
+        "I can name the fault after watching a few reps",
+        "I see it on the first rep and can name it",
+        "I see it, name it, and know which position it traces back to"
+      ]
+    },
+    {
+      q: "Two athletes fail the same movement for different reasons. How often do you catch that?",
+      a: [
+        "Rarely — they tend to get the same cue",
+        "Sometimes, usually thinking about it afterwards",
+        "Usually, while it is happening",
+        "Always — I go in expecting it and look for it"
+      ]
+    },
+    {
+      q: "You demonstrate a shape. How do your athletes' versions come back?",
+      a: [
+        "All over the place",
+        "Roughly similar, hard to say what is off",
+        "Close, and I can pick out the gaps",
+        "Consistent, because I check the same reference points every time"
+      ]
+    },
+
+    // --- rung 2, The Application Methodology ---
+    {
+      q: "How do you decide what an athlete works on next?",
+      a: [
+        "Whatever the class programme has that day",
+        "Whatever they are struggling with most",
+        "A progression I follow for that movement",
+        "A defined order I could explain and justify for any athlete"
+      ]
+    },
+    {
+      q: "An athlete wants muscle-ups and cannot hold a hollow. What do you do?",
+      a: [
+        "Let them work muscle-ups and keep the volume low",
+        "Give them some hollow work alongside",
+        "Hold the muscle-up work until the position is there",
+        "Take them back and rebuild the sequence in order"
+      ]
+    },
+    {
+      q: "If another coach took your athletes for a month, could they carry on?",
+      a: [
+        "No — most of it is in my head",
+        "Roughly, from what is on the whiteboard",
+        "Yes, the progression is written down",
+        "Yes, and they would know why each step comes where it does"
+      ]
+    },
+
+    // --- rung 3, Dynamic Technical Coaching ---
+    {
+      q: "An athlete has strict strength but an inconsistent kip. Your approach?",
+      a: [
+        "More reps until it clicks",
+        "Show it again, slower",
+        "Break the timing into components and drill those",
+        "Work out which component is mistimed and coach that one"
+      ]
+    },
+    {
+      q: "How do you coach rhythm and timing?",
+      a: [
+        "I do not really — it comes with practice",
+        "Counting or tempo cues",
+        "Drills that isolate the timing",
+        "Constraints that make the right timing the only option available"
+      ]
+    },
+    {
+      q: "A dynamic skill falls apart under fatigue. What is your read?",
+      a: [
+        "They are tired",
+        "A conditioning problem",
+        "The timing degrades before the strength does",
+        "I know which part of the sequence goes first for that athlete"
+      ]
+    },
+
+    // --- rung 4, Progression Periodisation ---
+    {
+      q: "How do you decide how much gymnastics volume an athlete gets?",
+      a: [
+        "Whatever is in the class workout",
+        "More for the ones who need it",
+        "A set weekly amount by level",
+        "Prescribed against what they are adapting to, and adjusted as it changes"
+      ]
+    },
+    {
+      q: "An athlete has clean positions and good timing but has stopped progressing. Why?",
+      a: [
+        "Not sure",
+        "Probably needs to train more",
+        "The dose is not matched to the adaptation",
+        "I would know which variable to change, and by how much"
+      ]
+    },
+    {
+      q: "How do you manage gymnastics intensity across a week?",
+      a: [
+        "It is not separated from the rest of their training",
+        "I keep an informal eye on it",
+        "I plan harder and easier days",
+        "I prescribe it deliberately against everything else they are doing"
+      ]
+    }
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var answers = new Array(QUESTIONS.length).fill(0);
+  var at = 0;
+
+  // Carried through to the function so an ad-driven lead can be told apart
+  // from an organic one in quiz_responses.
+  var utm = (function () {
+    var p = new URLSearchParams(location.search);
+    return {
+      source: p.get("utm_source"),
+      medium: p.get("utm_medium"),
+      campaign: p.get("utm_campaign"),
+      content: p.get("utm_content"),
+      term: p.get("utm_term")
+    };
+  })();
+
+  function show(which) {
+    ["intro", "quiz", "details", "result"].forEach(function (id) {
+      $(id).classList.toggle("hidden", id !== which);
+    });
+    window.scrollTo(0, 0);
+  }
+
+  function progress(n) {
+    $("prog").classList.remove("hidden");
+    $("progfill").style.width = Math.round((n / QUESTIONS.length) * 100) + "%";
+  }
+
+  function paint() {
+    var q = QUESTIONS[at];
+    progress(at);
+    $("qcount").textContent = "Question " + (at + 1) + " of " + QUESTIONS.length;
+    $("qtext").textContent = q.q;
+    $("back").style.visibility = at === 0 ? "hidden" : "visible";
+
+    var box = $("opts");
+    box.textContent = "";
+    q.a.forEach(function (text, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "opt" + (answers[at] === i + 1 ? " is-on" : "");
+      b.textContent = text;
+      b.addEventListener("click", function () {
+        answers[at] = i + 1;
+        if (at < QUESTIONS.length - 1) { at++; paint(); }
+        else { details(); }
+      });
+      box.append(b);
+    });
+  }
+
+  function details() {
+    progress(QUESTIONS.length);
+    show("details");
+    $("first").focus();
+  }
+
+  $("start").addEventListener("click", function () { show("quiz"); paint(); });
+  $("back").addEventListener("click", function () { if (at > 0) { at--; paint(); } });
+
+  $("finish").addEventListener("click", async function () {
+    var said = $("said");
+    var first = $("first").value.trim();
+    var last = $("last").value.trim();
+    var email = $("email").value.trim();
+
+    if (!first || !last) {
+      said.className = "said err"; said.textContent = "Both names, please."; return;
+    }
+    if (!email || !/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(email)) {
+      said.className = "said err";
+      said.textContent = "We need a valid email address to send your result to.";
+      return;
+    }
+
+    $("finish").disabled = true;
+    said.className = "said"; said.textContent = "Working out your focus…";
+
+    try {
+      var res = await fetch("/.netlify/functions/tgc-quiz-submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          answers: answers,
+          firstName: first,
+          lastName: last,
+          email: email,
+          marketingConsent: $("consent").checked,
+          // Whether the Meta pixel is allowed to run for this visitor.
+          // consent.js decides: true after an explicit yes, and true outside
+          // Europe where no yes is needed. If false, the server reports
+          // nothing to Meta either.
+          pixelAllowed: !!(window.bbConsent && window.bbConsent.granted()),
+          utm: utm,
+          pageUrl: location.href,
+          referer: document.referrer || null
+        })
+      });
+      var data = await res.json();
+      if (!res.ok || data.error) {
+        said.className = "said err";
+        said.textContent = data.error || "That did not work. Please try again.";
+        $("finish").disabled = false;
+        return;
+      }
+      render(data);
+    } catch (e) {
+      said.className = "said err";
+      said.textContent = "Could not reach us just then. Please try again.";
+      $("finish").disabled = false;
+    }
+  });
+
+  function paras(target, list) {
+    target.textContent = "";
+    (list || []).forEach(function (t) {
+      var p = document.createElement("p");
+      p.textContent = t;
+      target.append(p);
+    });
+  }
+
+  function ladder(rungs, focusKey) {
+    var box = $("ladder");
+    box.textContent = "";
+    rungs.forEach(function (r) {
+      var row = document.createElement("div");
+      row.className = "rung" + (r.key === focusKey ? " is-focus" : "");
+
+      var name = document.createElement("div");
+      name.className = "rung__name";
+      name.textContent = r.name;
+
+      var score = document.createElement("div");
+      score.className = "rung__score";
+      score.textContent = r.score + " / 12";
+
+      var bar = document.createElement("div");
+      bar.className = "rung__bar";
+      var fill = document.createElement("div");
+      fill.className = "rung__fill";
+      // 3 is the floor, not 0 — every rung scores at least 3.
+      fill.style.width = Math.round(((r.score - 3) / 9) * 100) + "%";
+      bar.append(fill);
+
+      row.append(name, score, bar);
+      box.append(row);
+    });
+  }
+
+  function render(data) {
+    var r = data.result;
+
+    $("stagename").textContent = r.name;
+    $("stagelede").textContent = r.lede;
+
+    paras($("resultbody"), r.body);
+    paras($("trybody"), r.tryThis);
+    $("taught").textContent = r.taught;
+    ladder(r.rungs, r.key);
+    paras($("resultclosing"), r.closing);
+
+    $("nextstep").href = r.next.href;
+    $("nextsteptext").textContent = r.next.text;
+
+    $("sent").textContent = data.emailed
+      ? "A copy is on its way to your inbox."
+      : "";
+
+    // The second ask, only for people who left the box unticked. By now they
+    // know their focus, so the offer can name it.
+    if (!$("consent").checked && data.id) {
+      $("secondaskhead").textContent = "More on " + r.name;
+      $("secondasklede").textContent =
+        "Five short emails on this, one a week. Things worth thinking about, and " +
+        "things you can try with the athletes in front of you.";
+      $("secondask").classList.remove("hidden");
+
+      $("secondaskgo").addEventListener("click", async function () {
+        var said = $("secondasksaid");
+        $("secondaskgo").disabled = true;
+        said.className = "said";
+        said.textContent = "Saving…";
+        try {
+          var res = await fetch("/.netlify/functions/tgc-quiz-consent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: data.id })
+          });
+          var out = await res.json();
+          if (!res.ok || out.error) {
+            said.className = "said err";
+            said.textContent = out.error || "That did not save. Please try again.";
+            $("secondaskgo").disabled = false;
+            return;
+          }
+          $("secondaskgo").classList.add("hidden");
+          said.className = "sent";
+          said.textContent = "Done — you are on the list.";
+        } catch (e) {
+          said.className = "said err";
+          said.textContent = "Could not reach us just then. Please try again.";
+          $("secondaskgo").disabled = false;
+        }
+      });
+    }
+
+    $("prog").classList.add("hidden");
+    document.querySelector(".wrap").classList.add("wide");
+    show("result");
+
+    // Meta counts this as the conversion, so ads optimise toward completed
+    // assessments rather than clicks. The server has already reported the
+    // same Lead through the Conversions API and handed back the id it used —
+    // passing it as eventID is what stops the two being counted twice. No id
+    // means the pixel was not allowed to run, and nothing is sent.
+    if (window.fbq && data.eventId) {
+      window.fbq(
+        "track",
+        "Lead",
+        { content_name: "Gymnastics coaching focus" },
+        { eventID: data.eventId }
+      );
+    }
+  }
+})();
+</script>
+
+</body>
+</html>
