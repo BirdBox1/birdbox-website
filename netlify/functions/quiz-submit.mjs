@@ -14,6 +14,7 @@
 // Nathan's, carried over verbatim; only the scoring is rebuilt.
 
 import { createClient } from "@supabase/supabase-js";
+import { createHash, randomUUID } from "node:crypto";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -314,6 +315,124 @@ export async function fileInterest(supabase, { email, firstName, lastName, arche
   if (error) console.error("interest_signups insert failed", error);
 }
 
+// ------------------------------------------------------- Conversions API
+//
+// The same Lead the browser reports, sent again from here.
+//
+// Why bother sending it twice: the browser copy is lost whenever an ad
+// blocker, Safari's tracking prevention or a locked-down corporate network
+// gets in the way, which on a fitness audience is a large minority. This
+// copy leaves a server and always arrives. Meta then collapses the two into
+// one using event_id, so the campaign is optimising on a complete count
+// rather than whatever survived the round trip.
+//
+// It is also a better-identified event. The browser knows a cookie; this
+// knows the email address the person just typed, hashed before it leaves.
+// Meta matches hashes against its own and never sees the address itself —
+// which is the only form in which any of this should be sent.
+//
+// Consent still decides. The page tells us whether the pixel was allowed to
+// run for this visitor, and if it was not, nothing below happens. Sending
+// from a server does not sidestep a European visitor's refusal, and this
+// must never become the back door that does.
+
+const CAPI_VERSION = "v25.0";
+const PIXEL_ID = process.env.META_PIXEL_ID || "2663209040595150";
+
+const sha256 = (v) => createHash("sha256").update(String(v)).digest("hex");
+
+// Meta wants these normalised before hashing — trimmed and lower case —
+// or the hash will not match the one it holds.
+const norm = (v) => String(v || "").trim().toLowerCase();
+
+function readCookie(header, name) {
+  if (!header) return null;
+  const parts = header.split(";");
+  for (const p of parts) {
+    const i = p.indexOf("=");
+    if (i < 0) continue;
+    if (p.slice(0, i).trim() === name) {
+      try { return decodeURIComponent(p.slice(i + 1).trim()); } catch (e) { return null; }
+    }
+  }
+  return null;
+}
+
+export async function sendLeadToMeta(req, context, info) {
+  const token = process.env.META_CAPI_TOKEN;
+  if (!token) {
+    console.error("META_CAPI_TOKEN is not set — the server-side Lead was not sent");
+    return false;
+  }
+
+  const cookies = req.headers.get("cookie") || "";
+  const country = norm(context?.geo?.country?.code);
+
+  const user_data = {
+    em: [sha256(norm(info.email))],
+    fn: [sha256(norm(info.firstName))],
+    ln: [sha256(norm(info.lastName))],
+  };
+
+  // Not hashed, and not optional if the match rate is to be any good.
+  const ip = context?.ip || req.headers.get("x-nf-client-connection-ip") || null;
+  const ua = req.headers.get("user-agent") || null;
+  if (ip) user_data.client_ip_address = ip;
+  if (ua) user_data.client_user_agent = ua;
+  if (country) user_data.country = [sha256(country)];
+
+  // The pixel's own cookies, when the browser was allowed to set them.
+  // _fbc carries the click that brought them here, which is what ties this
+  // lead back to the advert that paid for it.
+  const fbp = readCookie(cookies, "_fbp");
+  const fbc = readCookie(cookies, "_fbc");
+  if (fbp) user_data.fbp = fbp;
+  if (fbc) user_data.fbc = fbc;
+
+  const payload = {
+    data: [
+      {
+        event_name: "Lead",
+        event_time: Math.floor(Date.now() / 1000),
+        event_id: info.eventId,
+        event_source_url: info.pageUrl,
+        action_source: "website",
+        user_data,
+        custom_data: {
+          content_name: "Coaching self-assessment",
+          content_category: info.archetype,
+        },
+      },
+    ],
+  };
+
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/${CAPI_VERSION}/${PIXEL_ID}/events`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    const out = await res.json().catch(() => null);
+    if (!res.ok) {
+      console.error("Meta rejected the Lead", res.status, JSON.stringify(out));
+      return false;
+    }
+    // events_received should be 1. Anything else is worth seeing in the log.
+    console.log("Lead sent to Meta", JSON.stringify(out));
+    return true;
+  } catch (e) {
+    console.error("Meta Conversions API call failed", e);
+    return false;
+  }
+}
+
 // ---------------------------------------------------------------- handler
 
 export default async (req, context) => {
@@ -339,6 +458,19 @@ export default async (req, context) => {
     }
 
     const consent = body.marketingConsent === true;
+
+    // Whether the Meta pixel was allowed to run in this browser. Set by
+    // consent.js — true after an explicit yes, and true outside Europe where
+    // no yes is needed. If it is false, nothing is reported to Meta from
+    // either side.
+    const pixelAllowed = body.pixelAllowed === true;
+
+    // One id shared by the browser's Lead and the one sent from here, so
+    // Meta counts a single conversion rather than two. Generated server-side
+    // and handed back in the response, so there is only ever one source of
+    // it.
+    const eventId = randomUUID();
+
     const score = answers.reduce((a, b) => a + b, 0);
     const key = bandFor(score);
     const utm = body.utm && typeof body.utm === "object" ? body.utm : {};
@@ -417,6 +549,30 @@ export default async (req, context) => {
       }
     }
 
+    // ---- tell Meta ----------------------------------------------
+    // Everyone who finishes is a lead, whether or not they wanted the
+    // emails — the advert did its job either way, and that is what the
+    // campaign is being optimised against. Consent to be tracked is a
+    // separate question from consent to be written to, and only the first
+    // one is being asked here.
+    //
+    // Deliberately not awaited into the response path below: a slow or
+    // failing Meta must not keep somebody waiting for their result.
+    if (pixelAllowed) {
+      try {
+        await sendLeadToMeta(req, context, {
+          eventId,
+          email,
+          firstName,
+          lastName,
+          archetype: key,
+          pageUrl: cut(body.pageUrl) || `${SITE}/quiz/`,
+        });
+      } catch (e) {
+        console.error("Server-side Lead failed for", email, e);
+      }
+    }
+
     const result = resultFor(key, firstName);
     const sent = await sendResult(email, result);
 
@@ -427,7 +583,17 @@ export default async (req, context) => {
         .eq("id", row.id);
     }
 
-    return json({ ok: true, id: row ? row.id : null, emailed: sent, score, result });
+    // eventId goes back so the browser's own Lead can carry the same one and
+    // be deduplicated against the copy sent above. Null when the pixel is
+    // not allowed to run, in which case the page fires nothing.
+    return json({
+      ok: true,
+      id: row ? row.id : null,
+      emailed: sent,
+      score,
+      result,
+      eventId: pixelAllowed ? eventId : null,
+    });
   } catch (e) {
     console.error("quiz-submit failed", e);
     return json({ error: "Something went wrong. Please try again." }, 500);
