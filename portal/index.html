@@ -2768,7 +2768,7 @@ async function loadMyArchive() {
   for (const r of data || []) myArchived.add(r.course_id);
 }
 
-const isAdmin = () => me && me.role === "admin";
+const isAdmin = () => me && me.role === "admin" && !window.bbCoachView;
 const isSupport = () => me && me.role === "support";
 const amLeadOn = (courseId) => isAdmin() || myRoles[courseId] === "lead_coach";
 const isPast = (c) => !!c.archived || c.status === "cancelled" || c.status === "complete";
@@ -10497,5 +10497,6 @@ start();
   <script src="/portal/pwa.js"></script>
   <script type="module" src="/portal/messages-refresh.js"></script>
   <script src="/portal/hosts-link.js"></script>
+  <script src="/portal/viewas.js"></script>
 </body>
 </html>
