@@ -1,202 +1,230 @@
 // netlify/functions/outreach-send.mjs
 //
-// One-off cold outreach sender for the Ipswich TCC L1 seminar.
-// Sends 13 individual emails via Resend. Each recipient gets exactly one
-// message addressed only to them — no CC, no BCC of other recipients.
+// Cold outreach sender. Multiple named campaigns live in this one file.
 //
 // USAGE
-//   Dry run (default — sends nothing, shows what would go):
-//     https://birdboxcoaching.com/.netlify/functions/outreach-send?key=YOUR_KEY
+//   Dry run:  ?key=KEY&campaign=tgc-london-central
+//   Send:     ?key=KEY&campaign=tgc-london-central&send=1
+//   Retry:    ...&send=1&only=3,7
+//   List:     ?key=KEY            (shows campaigns, sends nothing)
 //
-//   Send for real:
-//     ...?key=YOUR_KEY&send=1
+// A campaign name is REQUIRED before anything sends. An old bookmarked
+// URL without one cannot fire a new list.
 //
-//   Send only certain ones (1-based, matches the numbering in the drafts):
-//     ...?key=YOUR_KEY&send=1&only=6,10,12
-//
-// ENV VARS REQUIRED
-//   RESEND_API_KEY    already set for the rest of the site
-//   OUTREACH_KEY      set this to any random string; it guards the endpoint
-//   CONFIRM_FROM      optional, defaults to info@birdboxcoaching.com
+// ENV
+//   RESEND_API_KEY   required
+//   OUTREACH_KEY     required, guards the endpoint
+//   CONFIRM_FROM     optional, defaults to info@birdboxcoaching.com
+//   SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
+//                    optional. If both are set, every send is logged to
+//                    public.outreach_sent and an address already logged
+//                    for that campaign is SKIPPED. Without them the
+//                    function still works, but with no duplicate guard.
 
 const FROM     = process.env.CONFIRM_FROM || "info@birdboxcoaching.com";
 const REPLY_TO = "info@birdboxcoaching.com";
+const BCC      = "info@birdboxcoaching.com";
 
-// Set to an address to keep a copy of every send. Leave null for none.
-// Using the sending address means copies land back in the same inbox.
-const BCC = "info@birdboxcoaching.com";
+// Signature: TGC logo, then name and credentials. Dark logo on white.
+const TGC_LOGO = "https://birdbox-train.netlify.app/logos/tgc-dark.png";
 
-
-const SIGNATURE = `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; width:520px; max-width:520px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-  <tr>
-    <td bgcolor="#14100F" style="background-color:#14100F; padding:14px 20px;">
-      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-        <tr>
-          <td valign="middle" style="padding-right:18px;">
-            <img src="https://birdbox-train.netlify.app/logos/birdbox-light.png" alt="BirdBox Coaching" width="43" height="46" style="width:43px; height:46px; display:block; border:0;">
-          </td>
-          <td valign="middle" style="border-left:1px solid #3A3436; padding-left:18px;">
-            <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-              <tr>
-                <td valign="top" style="padding-right:24px;"><a href="https://www.birdboxcoaching.com/tcc" style="text-decoration:none;"><img src="https://birdbox-train.netlify.app/logos/tcc.png" alt="The Coaches Course" width="67" height="31" style="width:67px; height:31px; display:block; border:0;"></a></td>
-                <td valign="top" style="padding-right:24px;"><a href="https://www.birdboxcoaching.com/tgc" style="text-decoration:none;"><img src="https://birdbox-train.netlify.app/logos/tgc.png" alt="The Gymnastics Course" width="49" height="40" style="width:49px; height:40px; display:block; border:0;"></a></td>
-                <td valign="top" style="padding-right:24px;"><a href="https://www.birdboxcoaching.com/tec" style="text-decoration:none;"><img src="https://birdbox-train.netlify.app/logos/tec.png" alt="The Endurance Course" width="52" height="32" style="width:52px; height:32px; display:block; border:0;"></a></td>
-                <td valign="top"><a href="https://www.birdboxcoaching.com/twc" style="text-decoration:none;"><img src="https://birdbox-train.netlify.app/logos/twc.png" alt="The Weightlifting Course" width="67" height="30" style="width:67px; height:30px; display:block; border:0;"></a></td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-
-  <tr>
-    <td style="padding:16px 0 0 0;">
-      <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:21px; line-height:25px; font-weight:bold; color:#14100F; text-transform:uppercase; letter-spacing:0.01em;">Nathan Bird</div>
-      <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:12px; line-height:18px; color:#6E7378; letter-spacing:0.04em; padding-top:4px;">BSc, MSc, PhD Candidate, CSCS, CCFT</div>
-      <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; line-height:16px; color:#2B87CE; text-transform:uppercase; letter-spacing:0.09em; font-weight:bold; padding-top:8px;">Founder &amp; CEO</div>
-      <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px; line-height:19px; color:#14100F;">BirdBox Coaching</div>
-    </td>
-  </tr>
-
-  <tr>
-    <td style="padding:16px 0 0 0;">
-      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; width:520px;">
-        <tr>
-          <td valign="middle" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:12px; line-height:20px; color:#6E7378; padding-right:24px;">
-            <a href="https://www.birdboxcoaching.com" style="color:#14100F; text-decoration:none;">birdboxcoaching.com</a><br>
-            <a href="https://www.instagram.com/birdbox_coaching" style="color:#6E7378; text-decoration:none;">@birdbox_coaching</a>
-          </td>
-          <td valign="middle" align="right">
-            <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-              <tr>
-                <td bgcolor="#4FA8DE" style="background-color:#4FA8DE; padding:10px 20px;">
-                  <a href="https://www.birdboxcoaching.com/seminars/" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:12px; line-height:14px; font-weight:bold; color:#0C1116; text-decoration:none; text-transform:uppercase; letter-spacing:0.08em;">Upcoming seminars</a>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-
-  <tr>
-    <td style="padding:14px 0 0 0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:10px; line-height:15px; color:#9AA0A6;">
-      BirdBox Coaching Ltd &mdash; The Coaches Course, The Gymnastics Course, The Endurance Course, The Weightlifting Course
-    </td>
-  </tr>
-</table>`;
-
-const RECIPIENTS = [
-  {
-    gym: "HUNTER STRENGTH AND FITNESS",
-    to: "info@hunterstrengthandfitness.com",
-    subject: "Coaching seminar down the road this weekend",
-    body: "Hi,\n\nI run BirdBox Coaching. We're at Orwell Fitness on Peppers Lane this\nSaturday and Sunday with The Coaches Course Level 1.\n\nThe two days are built around one distinction: an instructor delivers\na session, a coach changes what happens in it. We cover movement\nmastery, the biomechanical principles behind it, and the interventions\nthat actually fix a fault — plus the leadership and communication side\nthat decides whether any of it lands.\n\nYou've got serious lifters and serious knowledge in that building. The\nquestion this course answers is how you transfer it to someone else.\n\nTwo days, £600. We can spread it over eight months with no interest —\nnot on the booking page, so just say the word.\n\nhttps://birdboxcoaching.com/c/tcc-l1-ipswich-0926/\n\nEven if this weekend's wrong, worth a reply. We run UK dates through\n2027 and it's easier to plan with notice."
-  },
-  {
-    gym: "FORTITUDE FITNESS",
-    to: "hello@fortitudefitness.co",
-    subject: "Coaching seminar in Ipswich this weekend",
-    body: "Hi Jemma,\n\nNathan from BirdBox Coaching. We're running The Coaches Course Level 1\nat Orwell Fitness this Saturday and Sunday.\n\nTwo days on the difference between an instructor and a coach. Movement\nmastery and the biomechanical principles underneath it, the\ninterventions that change what someone's doing, and a framework for\nthinking like a coach rather than working from a script.\n\nAnyone can run a class off a plan. The skill is spotting the person\nwho needs something different and knowing what to do about it.\n\n£600. If cost is the sticking point we can spread it over eight months\nwith no interest — reply and I'll set it up.\n\nhttps://birdboxcoaching.com/c/tcc-l1-ipswich-0926/\n\nThree days' notice is short. Reply either way and I'll tell you when\nwe're next nearby — most people say they'd have come if they'd known."
-  },
-  {
-    gym: "RESHAPE",
-    to: "team@reshapeclub.com",
-    subject: "Coach development seminar, Ipswich this weekend",
-    body: "Hi,\n\nNathan from BirdBox Coaching. We're at Orwell Fitness this Saturday and\nSunday with The Coaches Course Level 1.\n\nThe course is built around the gap between an instructor and a coach.\nMovement mastery, biomechanical principles, interventions that actually\nchange what a person does, and a framework for thinking like a coach —\nalongside leadership, communication and individualised coaching.\n\nYou've built the business on coaches carrying people through a long\nprocess. That's a coaching job, not an instructing one, and this is the\nmaterial that separates the two.\n\n£600. We can arrange eight monthly payments with no interest, useful if\nyou're sending more than one — just ask.\n\nhttps://birdboxcoaching.com/c/tcc-l1-ipswich-0926/\n\nIf this weekend doesn't work, reply and I'll send our UK dates for next\nyear."
-  },
-  {
-    gym: "AIRBORNE FIT",
-    to: "enquiries@airbornefit.com",
-    subject: "Coach development seminar at Orwell Fitness this weekend",
-    body: "Hi Luke,\n\nNathan from BirdBox Coaching. We're running The Coaches Course Level 1\nat Orwell Fitness this Saturday and Sunday.\n\nTwo days on what separates a coach from an instructor. Movement\nmastery, biomechanical principles, interventions, and a framework for\nthinking like a coach — plus leadership, communication and coaching\nphilosophy, which is the part that makes a room work.\n\nThe community at Airborne is clearly built rather than lucky. That's a\ncoaching skill, and it's one nobody teaches formally. We do. Might suit\nMJ or whoever else is leading sessions.\n\n£600. We can split it into eight interest-free monthly payments if that\nmakes sending a couple of coaches easier — reply and I'll sort it.\n\nhttps://birdboxcoaching.com/c/tcc-l1-ipswich-0926/\n\nThree days' notice is nothing, I realise. Worth a reply anyway — we\nplan UK dates well ahead."
-  },
-  {
-    gym: "GRANGE FITNESS & PERFORMANCE",
-    to: "gym@grangefitness.com",
-    subject: "Coach development seminar in Ipswich this weekend",
-    body: "Hi,\n\nNathan from BirdBox Coaching. We're at Orwell Fitness this Saturday and\nSunday running The Coaches Course Level 1 — a CrossFit approved course.\n\nThe two days are about becoming a coach rather than an instructor.\nMovement mastery, the biomechanical principles behind it, interventions\nthat fix rather than just flag a fault, and a framework for thinking\nlike a coach — with leadership, communication and coaching styles\nrunning through it.\n\nRelevant to you specifically: your coaches move between CrossFit,\nboxing and the kids programme. The technical knowledge transfers. The\ncoaching approach doesn't, not automatically — that's the material\nhere.\n\nWe also run a gymnastics course, which given the kids programme may be\nthe better fit longer term. Happy to send details.\n\n£600, and we can arrange eight monthly payments with no interest —\nit isn't on the page, so just ask.\n\nhttps://birdboxcoaching.com/c/tcc-l1-ipswich-0926/"
-  },
-  {
-    gym: "CLAYDON CROSSFIT",
-    to: "ben@claydoncrossfit.co.uk",
-    subject: "Coach development seminar at Orwell Fitness this weekend",
-    body: "Hi Ben,\n\nNathan from BirdBox Coaching. We're at Orwell Fitness on Peppers Lane\nthis Saturday and Sunday with The Coaches Course Level 1 — a CrossFit\napproved course.\n\nWriting rather than assuming you're covered, because this isn't a\nrepeat of the L1. It's built on the difference between an instructor\nand a coach: movement mastery and the biomechanical principles behind\nit, the interventions that change what someone's actually doing, and a\nframework for thinking like a coach instead of running a script.\n\nThe L1 tells your coaches what a good air squat looks like. It doesn't\ntell them what to do about the one that still isn't fixed after the\nthird cue.\n\n£600. If you want to send more than one, we can spread the cost over\neight months with no interest — reply and I'll set that up.\n\nhttps://birdboxcoaching.com/c/tcc-l1-ipswich-0926/"
-  },
-  {
-    gym: "BREAKTHROUGH FITNESS",
-    to: "josh@breakthroughfitness.co.uk",
-    subject: "Coach development seminar, Ipswich this weekend",
-    body: "Hi Josh,\n\nNathan from BirdBox Coaching. We're running The Coaches Course Level 1\nat Orwell Fitness this Saturday and Sunday.\n\nTwo days on coaching rather than instructing. Movement mastery,\nbiomechanical principles, interventions, individualised coaching, and a\nframework for thinking like a coach when the plan meets a real person.\n\nGiven who you work with, you're already doing the hardest version of\nthis daily — the standard progression doesn't apply and you have to\nreason from principles instead. That's exactly what the course builds.\n\n£600. We can also do eight monthly payments with no interest if that's\neasier — just ask, it isn't on the booking page.\n\nhttps://birdboxcoaching.com/c/tcc-l1-ipswich-0926/\n\nVery short notice. Reply either way and I'll flag our next UK dates."
-  },
-  {
-    gym: "ATP FITNESS FELIXSTOWE",
-    to: "george@atpfitnessfelixstowe.com",
-    subject: "Coach development seminar in Ipswich this weekend",
-    body: "Hi George,\n\nNathan from BirdBox Coaching. We're at Orwell Fitness this Saturday and\nSunday with The Coaches Course Level 1.\n\nThe two days are built on the split between an instructor and a coach.\nMovement mastery, biomechanical principles, the interventions that\nactually shift a fault, and a framework for coaching a group where\neveryone needs something slightly different.\n\nYou cap classes at ten or twelve, which means you're coaching them\nrather than counting reps. That's where interventions matter — you can\nsee everyone, so there's nowhere to hide from the fault you spotted.\n\n£600, and we can spread it over eight interest-free monthly payments —\nreply and I'll arrange it.\n\nhttps://birdboxcoaching.com/c/tcc-l1-ipswich-0926/\n\nTwenty-minute drive and three days' notice. If not this time, reply and\nI'll let you know when we're back."
-  },
-  {
-    gym: "THE TRAINING GROUND",
-    to: "woolener@hotmail.co.uk",
-    subject: "Coach development seminar in Ipswich this weekend",
-    body: "Hi Chris,\n\nNathan from BirdBox Coaching. We're running The Coaches Course Level 1\nat Orwell Fitness this Saturday and Sunday.\n\nMovement mastery, biomechanical principles, interventions, and a\nframework for thinking like a coach rather than an instructor —\nalongside leadership, communication and individualised coaching.\n\nTen years in, you'll have most of this in your hands already. What\nexperienced coaches tend to take from it is the framework — being able\nto explain why you're doing something, which matters as much for\nselling the session as delivering it.\n\n£600. We can split it into eight monthly payments with no interest if\nthat suits better — just say.\n\nhttps://birdboxcoaching.com/c/tcc-l1-ipswich-0926/"
-  },
-  {
-    gym: "CROSSFIT COLCHESTER",
-    to: "info@crossfitcolchester.com",
-    subject: "Coach development seminar at Orwell Fitness, Ipswich",
-    body: "Hi Chris,\n\nNathan from BirdBox Coaching. We're at Orwell Fitness in Ipswich this\nSaturday and Sunday with The Coaches Course Level 1 — a CrossFit approved\ncourse.\n\nIt sits alongside the CrossFit pathway rather than repeating it. The\ntwo days are built on the difference between an instructor and a coach:\nmovement mastery, biomechanical principles, interventions that resolve\na fault instead of just naming it, and a framework for thinking like a\ncoach.\n\nYou've been going long enough to have coaches at very different stages.\nThis is usually most valuable for the ones who know the mechanics cold\nand still can't get a member to change anything.\n\n£600. If you're sending more than one, we can spread the cost over\neight months with no interest — reply and I'll arrange it.\n\nhttps://birdboxcoaching.com/c/tcc-l1-ipswich-0926/\n\nForty minutes up the A12 and short notice. Reply either way and I'll\nsend our 2027 UK dates."
-  },
-  {
-    gym: "FORTIFY FITNESS",
-    to: "fortifyfitnesslimited@outlook.com",
-    subject: "Coach development seminar, Ipswich this weekend",
-    body: "Hi,\n\nNathan from BirdBox Coaching. We're running The Coaches Course Level 1\nat Orwell Fitness in Ipswich this Saturday and Sunday.\n\nMovement mastery, biomechanical principles, interventions, and a\nframework for thinking like a coach rather than an instructor — plus\nleadership, communication and individualised coaching.\n\nYou've got Ben, Connor and Lleyton all coaching, from what I can see.\nA shared framework is where this pays off — it's the difference\nbetween three good coaches and a gym that coaches consistently.\n\n£600 each. We can spread that over eight interest-free monthly\npayments, which makes sending a few far easier to absorb — just ask.\n\nhttps://birdboxcoaching.com/c/tcc-l1-ipswich-0926/\n\nFair drive from Sudbury and I'm giving you three days. Reply and I'll\nmake sure you know about the next one properly in advance."
-  },
-  {
-    gym: "T800 CROSSFIT",
-    to: "training@t800crossfit.co.uk",
-    subject: "Coach development seminar in Ipswich this weekend",
-    body: "Hi Paul,\n\nNathan from BirdBox Coaching. We're at Orwell Fitness in Ipswich this\nSaturday and Sunday with The Coaches Course Level 1 — a CrossFit approved\ncourse.\n\nIt's the coaching layer rather than the methodology: movement mastery,\nbiomechanical principles, the interventions that change what someone's\ndoing, and a framework for thinking like a coach rather than an\ninstructor.\n\nI gather your members run from four years old to seventy-two. Coaching\nthat range isn't a scaling problem — the same intervention has to be\ndelivered completely differently depending on who's in front of you.\nThat's most of these two days.\n\n£600. We can arrange eight monthly payments with no interest if you\nwant to bring Thomas and Emily too — reply and I'll set it up.\n\nhttps://birdboxcoaching.com/c/tcc-l1-ipswich-0926/\n\nShort notice and a drive from Eye. Reply either way — I'd rather you\nhad proper warning next time."
-  },
-  {
-    gym: "CROSSFIT BEORN",
-    to: "info@crossfitbeorn.com",
-    subject: "Coach development seminar in Ipswich this weekend",
-    body: "Hi Richard,\n\nNathan from BirdBox Coaching. We're running The Coaches Course Level 1\nat Orwell Fitness in Ipswich this Saturday and Sunday — a CrossFit\napproved course.\n\nIt complements the CrossFit pathway rather than duplicating it. Two\ndays on movement mastery and the biomechanical principles behind it,\nthe interventions that resolve a fault, and a framework for thinking\nlike a coach instead of an instructor.\n\nYou've said form and technique are the focus at Beorn. This adds the\nnext bit: what you do when someone understands the movement perfectly\nand still isn't performing it. Knowing the fault and fixing it are\ndifferent skills.\n\n£600, and we can spread it over eight months with no interest — just\nask, it isn't on the booking page.\n\nhttps://birdboxcoaching.com/c/tcc-l1-ipswich-0926/\n\nBury to Ipswich with three days' notice is a big ask. Reply and I'll\nmake sure you get the 2027 dates early."
-  }
-];
-
-// Plain text -> simple HTML. Blank-line separated paragraphs, bare URLs linked.
-function toHtml(text) {
-  const esc = (s) => s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
-  const paras = text.split(/\n\s*\n/).map((p) => {
-    // Rejoin the hard-wrapped lines so the email reflows on any screen.
-    let joined = esc(p.split("\n").map((l) => l.trim()).join(" ")).trim();
-    joined = joined.replace(
-      /(https?:\/\/[^\s<]+)/g,
-      '<a href="$1" style="color:#2B87CE;">$1</a>'
-    );
-    return `<p style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:23px; color:#14100F; margin:0 0 16px 0;">${joined}</p>`;
-  });
-
-  return `<div style="max-width:520px;">
-${paras.join("\n")}
-<div style="padding-top:12px;">
-${SIGNATURE}
-</div>
+const SIGNATURE = `
+<div style="padding-top:22px;">
+  <img src="${TGC_LOGO}" alt="The Gymnastics Course" width="120"
+       style="width:120px;height:auto;display:block;border:0;">
+  <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+              font-size:15px;line-height:21px;color:#14100F;
+              font-weight:bold;padding-top:14px;">Nathan Bird</div>
+  <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+              font-size:12px;line-height:18px;color:#6E7378;">
+    BSc, MSc, PhD Candidate, CSCS, CCFT</div>
+  <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+              font-size:12px;line-height:18px;color:#6E7378;padding-top:6px;">
+    BirdBox Coaching ·
+    <a href="https://www.birdboxcoaching.com"
+       style="color:#6E7378;">birdboxcoaching.com</a></div>
 </div>`;
+
+const SIGNATURE_TEXT =
+  "\n\n--\nNathan Bird\nBSc, MSc, PhD Candidate, CSCS, CCFT\n" +
+  "BirdBox Coaching\nbirdboxcoaching.com\n";
+
+const CAMPAIGNS = {
+  // Sent 9 Sept 2026. Locked so it can never fire again.
+  "tcc-ipswich": {
+    label: "TCC L1 Ipswich — SENT, LOCKED",
+    locked: true,
+    recipients: []
+  },
+
+  "tgc-london-central": {
+    label: "TGC L1 London — central, wave one",
+    recipients: [
+    {
+      gym: "FORT TRAINING",
+      to: "info@fort.training",
+      subject: "Gymnastics course in Southwark, 26-27 September",
+      body: "Hi Anthony,\n\nNathan from BirdBox Coaching. We're running The Gymnastics Course Level\n1 at CrossFit Central London on Ewer Street, 26-27 September — about\nfifteen minutes from you, so I thought you'd want to know it was on.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "CROSSFIT SHAPESMITHS",
+      to: "lee@crossfitshapesmiths.co.uk",
+      subject: "Gymnastics coaching course, London, 26-27 September",
+      body: "Hi Lee,\n\nNathan from BirdBox Coaching. We're at CrossFit Central London on 26-27\nSeptember with The Gymnastics Course Level 1. With the size of your\ncoaching team I thought it worth putting on your radar rather than\nletting you find out afterwards.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "CROSSFIT ALDGATE & FARRINGDON",
+      to: "adambaileypt@hotmail.co.uk",
+      subject: "Gymnastics coaching course, 26-27 September",
+      body: "Hi Adam,\n\nNathan from BirdBox Coaching. We're running The Gymnastics Course Level\n1 at CrossFit Central London, 26-27 September. Writing to you once\nrather than to Aldgate and Farringdon separately.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "CROSSFIT VAUXHALL",
+      to: "mike@crossfitvauxhall.co.uk",
+      subject: "Gymnastics course down the road, 26-27 September",
+      body: "Hi Michael,\n\nNathan from BirdBox Coaching. We're at CrossFit Central London with The\nGymnastics Course Level 1 on 26-27 September — a short hop from Miles\nStreet.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "SLEVEN CROSSFIT",
+      to: "support@slevenfitness.com",
+      subject: "Gymnastics coaching course, 26-27 September",
+      body: "Hi Nicolas,\n\nNathan from BirdBox Coaching. We're running The Gymnastics Course Level\n1 at CrossFit Central London on 26-27 September, ten minutes up the road\nfrom Albert Embankment.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "GYMNASIUM",
+      to: "nic@gymnasium.fit",
+      subject: "Gymnastics coaching course, London, 26-27 September",
+      body: "Hi Nic,\n\nNathan from BirdBox Coaching. Could you pass this to Jack if he's the\nright person? We're running The Gymnastics Course Level 1 at CrossFit\nCentral London on 26-27 September. With four sites there may be a\nconversation about doing this across the group rather than one coach at\na time.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "CROSSFIT ISLINGTON",
+      to: "hello@crossfitislington.co.uk",
+      subject: "Gymnastics coaching course, 26-27 September",
+      body: "Hi Adam,\n\nNathan from BirdBox Coaching. We're at CrossFit Central London on 26-27\nSeptember with The Gymnastics Course Level 1. I noticed you already run\ngymnastics as a specialist class, which puts you ahead of most\naffiliates.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "CROSSFIT TUFNELL PARK",
+      to: "info@crossfittufnellpark.com",
+      subject: "Gymnastics coaching course, London, 26-27 September",
+      body: "Hi Chi,\n\nNathan from BirdBox Coaching. We're running The Gymnastics Course Level\n1 at CrossFit Central London, 26-27 September. You describe the box as\nforged by members for members, which suggests your coaches came up\nthrough the gym — that's who this tends to suit best.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "THE WICK CROSSFIT",
+      to: "harriet@thewickcrossfit.com",
+      subject: "Gymnastics coaching course, 26-27 September",
+      body: "Hi Harriet,\n\nNathan from BirdBox Coaching. We're at CrossFit Central London with The\nGymnastics Course Level 1 on 26-27 September. Happy to talk about\nWalthamstow too if it's the same team.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "E1 CROSSFIT",
+      to: "ryan@e1crossfit.co.uk",
+      subject: "Gymnastics coaching course, 26-27 September",
+      body: "Hi Ryan,\n\nNathan from BirdBox Coaching. We're running The Gymnastics Course Level\n1 at CrossFit Central London on 26-27 September. Your beginners\nprogramme gets a lot of mentions, and that's the setting where this\nmaterial earns its keep.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "CROSSFIT NEON",
+      to: "support@neoncrossfit.com",
+      subject: "Gymnastics coaching course, London, 26-27 September",
+      body: "Hi Mark,\n\nNathan from BirdBox Coaching. We're at CrossFit Central London on 26-27\nSeptember with The Gymnastics Course Level 1. Your members talk about\nthe coaching being attentive to detail on technique, which is the harder\nhalf of the job.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "CROSSFIT ONE MORE REP",
+      to: "michaelbernardeli@hotmail.com",
+      subject: "Gymnastics coaching course, 26-27 September",
+      body: "Hi Michael,\n\nNathan from BirdBox Coaching. We're running The Gymnastics Course Level\n1 at CrossFit Central London, 26-27 September. You already list\ngymnastics alongside the CrossFit, Hyrox and weightlifting, so it's on\nthe timetable already.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "CROSSFIT 1864",
+      to: "alfredo.e.yepes@gmail.com",
+      subject: "Gymnastics coaching course, London, 26-27 September",
+      body: "Hi Alfredo,\n\nNathan from BirdBox Coaching. We're at CrossFit Central London with The\nGymnastics Course Level 1 on 26-27 September. Twelve years affiliated\nand a big competitive roster, so you'll have athletes across a wide\nspan.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "LIVERPOOL ST CROSSFIT / 24N",
+      to: "info@24nfitness.com",
+      subject: "Gymnastics coaching course, 26-27 September",
+      body: "Hi Ryan,\n\nNathan from BirdBox Coaching. We're running The Gymnastics Course Level\n1 at CrossFit Central London on 26-27 September. You already run\nspecialist gymnastics classes alongside the Olympic lifting, which most\naffiliates don't.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "CROSSFIT GMT",
+      to: "mwilliams145@msn.com",
+      subject: "Gymnastics coaching course, London, 26-27 September",
+      body: "Hi Michael,\n\nNathan from BirdBox Coaching. We're at CrossFit Central London on 26-27\nSeptember with The Gymnastics Course Level 1 — an easy run from\nGreenwich. Your members single out the programming, which tells me you\nthink carefully about what goes up.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    },
+    {
+      gym: "CRANK / THE YARD PECKHAM",
+      to: "train@crossfitpeckham.com",
+      subject: "Gymnastics coaching course, 26-27 September",
+      body: "Hi,\n\nNathan from BirdBox Coaching. We're running The Gymnastics Course Level\n1 at CrossFit Central London on 26-27 September — writing once rather\nthan to Crank and The Yard separately.\n\nThe Gymnastics Course isn't a weekend of drills to take home. It's a\nmethodology for reading movement and knowing what to do about it —\nso you can look at any athlete, on any apparatus, work out whether\nwhat's stopping them is mobility, strength or coordination, and pick\nthe intervention that actually changes it. That process is the thing\nyou leave with, and it applies to movements we never touch.\n\nWe build it across the whole catalogue: floor work, push-ups, rings\nfrom low through to strict and kipping muscle-ups, bar work, and\ninversions from headstand to handstand walking — underpinned by the\nbiomechanics of why a position breaks and where the force goes when\nit does. Spotting and self-spotting run through the whole weekend,\nboth as scaling tools and as the safest route to mastery. We finish\non programming: the rules, the variables, and how all of it changes\nwhat you write on the whiteboard on Monday morning.\n\nRunning alongside is the coaching craft itself — developing the\ncoach's eye so you see more across a busy room, external versus\ninternal cueing and what the evidence actually says, growth mindset\nand the language that builds it, and when feedback lands and when it\ndoesn't. It's for coaches who want the reasoning, not just the reps.\n\nTwo days, mostly on the floor. 14 CrossFit CEUs, no prerequisite.\n\nhttps://birdboxcoaching.com/c/tgc-l1-london-0926/\n\n£560, or £140 to hold a place. We can also split it over eight months\nwith no interest added — about £70 a month. That isn't on the booking\npage, so just ask if it would help.\n\nNo pitch — just so you know it's happening. Reply any time if you'd\nlike to talk it through."
+    }
+  ]
+  }
+};
+
+// Blank-line separated paragraphs, hard wraps rejoined, URLs linked.
+function toHtml(text) {
+  const esc = (s) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const paras = text.split(/\n\s*\n/).map((p) => {
+    let j = esc(p.split("\n").map((l) => l.trim()).join(" ")).trim();
+    j = j.replace(/(https?:\/\/[^\s<]+)/g,
+      '<a href="$1" style="color:#A31621;">$1</a>');
+    return `<p style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;` +
+           `font-size:15px;line-height:23px;color:#14100F;margin:0 0 16px 0;">${j}</p>`;
+  });
+  return `<div style="max-width:520px;">\n${paras.join("\n")}\n${SIGNATURE}\n</div>`;
 }
 
-// Plain-text alternative, for clients that won't render HTML.
-function toText(text) {
-  return text + "\n\n--\nNathan Bird\nBSc, MSc, PhD Candidate, CSCS, CCFT\nFounder & CEO, BirdBox Coaching\nbirdboxcoaching.com\n";
+// Tries the usual names rather than assuming one, so a slightly
+// different variable name doesn't silently disable the guard.
+const URL_NAMES = ["SUPABASE_URL", "SUPABASE_PROJECT_URL", "SUPABASE_API_URL"];
+const KEY_NAMES = ["SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_KEY",
+                   "SUPABASE_SERVICE_ROLE", "SERVICE_ROLE_KEY"];
+
+const pick = (names) => {
+  for (const n of names) if (process.env[n]) return { name: n, value: process.env[n] };
+  return null;
+};
+
+const sb = () => {
+  const u = pick(URL_NAMES);
+  const k = pick(KEY_NAMES);
+  if (!u || !k) return null;
+  return { url: u.value.replace(/\/$/, ""), key: k.value,
+           via: `${u.name} + ${k.name}` };
+};
+
+async function alreadySent(campaign) {
+  const s = sb();
+  if (!s) return null;
+  try {
+    const res = await fetch(
+      `${s.url}/rest/v1/outreach_sent?campaign=eq.${encodeURIComponent(campaign)}&select=email`,
+      { headers: { apikey: s.key, Authorization: `Bearer ${s.key}` } }
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return new Set(rows.map((r) => String(r.email).toLowerCase()));
+  } catch {
+    return null;
+  }
+}
+
+async function logSend(campaign, email, resendId) {
+  const s = sb();
+  if (!s) return;
+  try {
+    await fetch(`${s.url}/rest/v1/outreach_sent`, {
+      method: "POST",
+      headers: {
+        apikey: s.key,
+        Authorization: `Bearer ${s.key}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal"
+      },
+      body: JSON.stringify({ campaign, email, resend_id: resendId })
+    });
+  } catch {
+    // Logging must never break a send that already succeeded.
+  }
 }
 
 async function sendOne(r) {
@@ -209,86 +237,107 @@ async function sendOne(r) {
     body: JSON.stringify({
       from: `Nathan Bird <${FROM}>`,
       to: [r.to],
-      ...(BCC ? { bcc: [BCC] } : {}),
+      bcc: [BCC],
       reply_to: REPLY_TO,
       subject: r.subject,
       html: toHtml(r.body),
-      text: toText(r.body)
+      text: r.body + SIGNATURE_TEXT
     })
   });
-
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data?.message || `Resend returned ${res.status}`);
-  }
+  if (!res.ok) throw new Error(data?.message || `Resend returned ${res.status}`);
   return data.id || "sent";
 }
 
 export default async (request) => {
   const url = new URL(request.url);
-
-  // Guard. Without this the endpoint is public and anyone could fire it.
   const expected = process.env.OUTREACH_KEY;
   if (!expected || url.searchParams.get("key") !== expected) {
     return new Response("Not found", { status: 404 });
   }
 
+  const name = url.searchParams.get("campaign");
+
+  if (!name) {
+    return Response.json({
+      error: "No campaign named. Nothing sent.",
+      campaigns: Object.entries(CAMPAIGNS).map(([k, c]) => ({
+        campaign: k, label: c.label,
+        recipients: c.recipients.length,
+        locked: !!c.locked
+      }))
+    }, { status: 400 });
+  }
+
+  const campaign = CAMPAIGNS[name];
+  if (!campaign) {
+    return Response.json({
+      error: `Unknown campaign "${name}"`,
+      known: Object.keys(CAMPAIGNS)
+    }, { status: 400 });
+  }
+  if (campaign.locked) {
+    return Response.json({
+      error: `Campaign "${name}" is locked and cannot be sent again.`
+    }, { status: 400 });
+  }
   if (!process.env.RESEND_API_KEY) {
     return Response.json({ error: "RESEND_API_KEY is not set" }, { status: 500 });
   }
 
   const live = url.searchParams.get("send") === "1";
-
-  // ?only=6,10 restricts to those numbers. Useful for re-running failures.
   const onlyParam = url.searchParams.get("only");
   const only = onlyParam
     ? onlyParam.split(",").map((n) => parseInt(n.trim(), 10)).filter(Boolean)
     : null;
 
-  const queue = RECIPIENTS
+  const conn = sb();
+  const sentSet = await alreadySent(name);
+
+  const queue = campaign.recipients
     .map((r, i) => ({ ...r, n: i + 1 }))
     .filter((r) => !only || only.includes(r.n));
 
   const results = [];
 
   for (const r of queue) {
-    if (!live) {
-      results.push({
-        n: r.n, gym: r.gym, to: r.to, subject: r.subject,
-        status: "dry-run", chars: r.body.length
-      });
+    if (sentSet && sentSet.has(r.to.toLowerCase())) {
+      results.push({ n: r.n, gym: r.gym, to: r.to, status: "skipped-already-sent" });
       continue;
     }
-
+    if (!live) {
+      results.push({ n: r.n, gym: r.gym, to: r.to, subject: r.subject, status: "dry-run" });
+      continue;
+    }
     try {
       const id = await sendOne(r);
+      await logSend(name, r.to, id);
       results.push({ n: r.n, gym: r.gym, to: r.to, status: "sent", id });
     } catch (err) {
-      results.push({
-        n: r.n, gym: r.gym, to: r.to, status: "FAILED",
-        error: String(err.message || err)
-      });
+      results.push({ n: r.n, gym: r.gym, to: r.to, status: "FAILED",
+                     error: String(err.message || err) });
     }
-
-    // Small gap so we stay well inside Resend's rate limit.
-    // 13 x 250ms is about 3 seconds of waiting, comfortably inside the
-    // 10 second function timeout even with the API calls on top.
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    await new Promise((res) => setTimeout(res, 250));
   }
 
-  const sent   = results.filter((r) => r.status === "sent").length;
   const failed = results.filter((r) => r.status === "FAILED");
 
   return Response.json({
+    campaign: name,
+    label: campaign.label,
     mode: live ? "LIVE" : "dry-run",
-    from: FROM,
-    replyTo: REPLY_TO,
-    bcc: BCC || "(none)",
+    duplicateGuard: sentSet
+      ? `on — via ${conn.via}`
+      : conn
+        ? "OFF — Supabase env vars found but the outreach_sent table did not respond. Run the SQL."
+        : `OFF — no Supabase env vars matched. Looked for: ${URL_NAMES.join("/")} and ${KEY_NAMES.join("/")}`,
+    from: FROM, replyTo: REPLY_TO, bcc: BCC,
     queued: queue.length,
-    sent,
+    sent: results.filter((r) => r.status === "sent").length,
+    skipped: results.filter((r) => r.status === "skipped-already-sent").length,
     failed: failed.length,
     retryFailedWith: failed.length
-      ? `?key=...&send=1&only=${failed.map((f) => f.n).join(",")}`
+      ? `?key=...&campaign=${name}&send=1&only=${failed.map((f) => f.n).join(",")}`
       : null,
     results
   });
