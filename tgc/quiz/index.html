@@ -299,8 +299,8 @@
       <p id="taught"></p>
     </div>
 
-    <!-- Kept for the films when they are made. Hidden until then, so adding
-         them later is a content job rather than a rebuild. -->
+    <!-- Shown only when the focus has a film. The id comes from the function,
+         so swapping a video is a change there and not here. -->
     <div id="videowrap" class="hidden">
       <h2>Watch</h2>
       <div class="video"><iframe id="video" title="Your focus" allowfullscreen
@@ -618,6 +618,16 @@
     $("taught").textContent = r.taught;
     ladder(r.rungs, r.key);
     paras($("resultclosing"), r.closing);
+
+    // The film for this focus. Built from the id the function sends, and
+    // left hidden if a focus has none.
+    if (r.video) {
+      var frame = $("video");
+      frame.src = "https://www.youtube-nocookie.com/embed/" + r.video +
+        "?rel=0&modestbranding=1&playsinline=1";
+      frame.title = r.name;
+      $("videowrap").classList.remove("hidden");
+    }
 
     $("nextstep").href = r.next.href;
     $("nextsteptext").textContent = r.next.text;
