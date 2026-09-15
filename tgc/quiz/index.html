@@ -582,30 +582,39 @@
   function ladder(rungs, focusKey) {
     var box = $("ladder");
     box.textContent = "";
-    rungs.forEach(function (r) {
+
+    // This is a position on a ladder, not four separate scores. Showing each
+    // rung's own percentage read as mastery — somebody told to work on rung 2
+    // saw 89% against rung 4 and came away thinking they had already cleared
+    // it, which is the opposite of what the ladder says. So the bar is now how
+    // far up the climb that rung sits: everything up to and including the
+    // focus is filled, in steps, and everything above it is an empty track
+    // they have not reached yet. The focus is therefore always the longest
+    // bar and always the red one. The raw scores are still stored and still
+    // decide the result — they are just not a leaderboard on the page.
+    var focusIdx = 0;
+    rungs.forEach(function (r, i) { if (r.key === focusKey) focusIdx = i; });
+
+    rungs.forEach(function (r, i) {
+      var isFocus = i === focusIdx;
       var row = document.createElement("div");
-      row.className = "rung" + (r.key === focusKey ? " is-focus" : "");
+      row.className = "rung" + (isFocus ? " is-focus" : "");
 
       var name = document.createElement("div");
       name.className = "rung__name";
       name.textContent = r.name;
 
-      // Three questions per rung, each 1-4, so the raw score runs 3-12 and can
-      // never be 0. Shown as a percentage of the range instead: the bottom
-      // option on all three reads 0%, the top option on all three reads 100%,
-      // and the number now agrees with the bar rather than sitting on a
-      // different scale to it.
-      var pct = Math.round(((r.score - 3) / 9) * 100);
-
       var score = document.createElement("div");
       score.className = "rung__score";
-      score.textContent = pct + "%";
+      score.textContent = isFocus ? "Your focus" : (i < focusIdx ? "Cleared" : "Ahead of you");
 
       var bar = document.createElement("div");
       bar.className = "rung__bar";
       var fill = document.createElement("div");
       fill.className = "rung__fill";
-      fill.style.width = pct + "%";
+      fill.style.width = i <= focusIdx
+        ? Math.round(((i + 1) / rungs.length) * 100) + "%"
+        : "0%";
       bar.append(fill);
 
       row.append(name, score, bar);
