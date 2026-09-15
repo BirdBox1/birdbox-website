@@ -100,6 +100,7 @@ const FOCUS = {
     ],
     taught:
       "Movement Assessment is one of the four things TGC Level 1 is built around. Two days of learning to see and correct movement more simply, with your hands on real athletes and coaches watching you do it.",
+    video: "sLuDeOaHzY4",
   },
 
   methodology: {
@@ -117,6 +118,7 @@ const FOCUS = {
     ],
     taught:
       "TGC Level 1 opens on the coaching methodology and the hierarchy of development — the reasoning underneath the steps rather than the steps themselves, and why the order is the order.",
+    video: "2by6dy4x_c0",
   },
 
   dynamic: {
@@ -135,6 +137,7 @@ const FOCUS = {
     ],
     taught:
       "TGC Level 1 teaches spotting and self-spotting, which is the best form of scaling there is. Spotting an athlete through a dynamic movement is how they find the smoothness — and the understanding that comes with it — without you having to talk them through it.",
+    video: "U368eHfdfwY",
   },
 
   periodisation: {
@@ -152,6 +155,7 @@ const FOCUS = {
     ],
     taught:
       "Programming and scaling is the fourth thing TGC Level 1 is built around. Gymnastics programming doesn’t need to be hard — it needs to be often, and prescribed against everything else the athlete is doing.",
+    video: "o7NEH0azJOA",
   },
 };
 
@@ -167,6 +171,8 @@ function resultFor(key, firstName, scores) {
     body: f.body,
     tryThis: f.tryThis,
     taught: f.taught,
+    video: f.video,
+    videoUrl: "https://youtu.be/" + f.video,
     next: NEXT,
     closing: CLOSING,
     scores,
@@ -217,6 +223,15 @@ function emailHtml(r) {
                   margin-bottom:8px">Where this is taught</div>
       <p style="margin:0;font-size:15px;line-height:1.6;color:#e8eaed">${esc(r.taught)}</p>
     </div>
+    ${r.video ? `<div style="margin:26px 0;padding:18px;background:#f7f7f5;border:1px solid #e2e2de">
+      <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#5b636d;
+                  margin-bottom:10px">Watch</div>
+      <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#1d2126">A few minutes on
+        ${esc(r.name)}, and what it looks like on the floor.</p>
+      <a href="${esc(r.videoUrl)}"
+         style="display:inline-block;background:#101215;color:#ffffff;text-decoration:none;
+                font-weight:700;font-size:14px;padding:11px 18px">&#9654;&nbsp; Watch the video</a>
+    </div>` : ""}
     ${r.closing.map(p).join("")}
     <p style="margin:26px 0 0">
       <a href="${SITE}${esc(r.next.href)}"
@@ -245,6 +260,7 @@ function emailText(r) {
     ...r.tryThis, "",
     "WHERE THIS IS TAUGHT", "",
     r.taught, "",
+    ...(r.video ? ["WATCH", "", r.videoUrl, ""] : []),
     ...r.closing, "",
     "Next step: " + r.next.text + " " + SITE + r.next.href,
   ].join("\n");
