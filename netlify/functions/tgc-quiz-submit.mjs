@@ -237,8 +237,8 @@ function emailHtml(r) {
         <tr><td align="center">
           <a href="${esc(r.videoUrl)}" style="text-decoration:none;display:block">
             <img src="https://i.ytimg.com/vi/${esc(r.video)}/hqdefault.jpg"
-                 width="528" alt="Watch: ${esc(r.name)}"
-                 style="display:block;width:100%;max-width:528px;height:auto;border:0">
+                 width="480" height="360" alt="Watch: ${esc(r.name)}"
+                 style="display:block;width:480px;max-width:100%;height:auto;border:0">
           </a>
         </td></tr>
       </table>
