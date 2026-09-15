@@ -39,28 +39,38 @@ const SITE = "https://www.birdboxcoaching.com";
 // Ladder order. Questions 1-3 are rung 1, 4-6 rung 2, and so on.
 const RUNGS = ["eye", "methodology", "dynamic", "periodisation"];
 
-// A rung passes at 8 of a possible 12 — an average of a little under 3.
-// This is a starting guess. Once a few hundred responses are in, the
-// distribution in quiz_responses will say whether it is pitched right: if
-// almost everybody lands on the eye, that may simply be true, or it may mean
-// the rung-1 questions are too hard.
-const PASS = 8;
+// The result is the level the coach most often chose across the twelve
+// questions — the mode, not the lowest rung.
+//
+// The earlier rule was "the first rung scoring below 8, walking up". It was
+// too severe: a coach answering at level 3 and 4 almost everywhere could dip
+// on three questions and be told their focus was the most basic rung, which
+// is not the advice anyone in the room would give them.
+//
+// Twelve answers, so a tie is possible. A tie goes to the LOWER level: if
+// somebody splits evenly between working on their eye and working on their
+// methodology, the eye comes first, because a rung above is not usefully
+// worked on until the one below it is there.
+function focusFor(answers) {
+  const counts = [0, 0, 0, 0];
+  answers.forEach((a) => { counts[a - 1]++; });
 
+  let best = 0;
+  for (let i = 1; i < 4; i++) {
+    if (counts[i] > counts[best]) best = i;
+  }
+  return RUNGS[best];
+}
+
+// Kept for the record rather than the result: the three answers belonging to
+// each rung, stored alongside the raw answers so the banding can be looked at
+// again once there are a few hundred responses.
 function rungScores(answers) {
   const out = [];
   for (let i = 0; i < 4; i++) {
     out.push(answers[i * 3] + answers[i * 3 + 1] + answers[i * 3 + 2]);
   }
   return out;
-}
-
-// The first rung below the pass mark, walking up from the bottom. Somebody
-// who clears all four gets the top rung as a refinement rather than a gap.
-function focusFor(scores) {
-  for (let i = 0; i < RUNGS.length; i++) {
-    if (scores[i] < PASS) return RUNGS[i];
-  }
-  return "periodisation";
 }
 
 // ---------------------------------------------------------------- content
@@ -444,7 +454,7 @@ export default async (req, context) => {
 
     const scores = rungScores(answers);
     const total = answers.reduce((a, b) => a + b, 0);
-    const key = focusFor(scores);
+    const key = focusFor(answers);
 
     const utm = body.utm && typeof body.utm === "object" ? body.utm : {};
     const cut = (v) => (v == null ? null : String(v).slice(0, 200));
