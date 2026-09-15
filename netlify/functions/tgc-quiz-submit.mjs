@@ -228,9 +228,24 @@ function emailHtml(r) {
                   margin-bottom:10px">Watch</div>
       <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#1d2126">A few minutes on
         ${esc(r.name)}, and what it looks like on the floor.</p>
-      <a href="${esc(r.videoUrl)}"
-         style="display:inline-block;background:#101215;color:#ffffff;text-decoration:none;
-                font-weight:700;font-size:14px;padding:11px 18px">&#9654;&nbsp; Watch the video</a>
+      <!-- No email client plays video inline, so this is the thumbnail as a
+           link. The cell is black because YouTube's hqdefault is 4:3 and
+           letterboxes a 16:9 film — on black the bars disappear. hqdefault is
+           used rather than maxresdefault because it exists for every upload. -->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+             style="background:#000000">
+        <tr><td align="center">
+          <a href="${esc(r.videoUrl)}" style="text-decoration:none;display:block">
+            <img src="https://i.ytimg.com/vi/${esc(r.video)}/hqdefault.jpg"
+                 width="528" alt="Watch: ${esc(r.name)}"
+                 style="display:block;width:100%;max-width:528px;height:auto;border:0">
+          </a>
+        </td></tr>
+      </table>
+      <p style="margin:12px 0 0;font-size:14px;line-height:1.5">
+        <a href="${esc(r.videoUrl)}" style="color:#D8393D;font-weight:700;text-decoration:none">
+          &#9654;&nbsp; Watch on YouTube</a>
+      </p>
     </div>` : ""}
     ${r.closing.map(p).join("")}
     <p style="margin:26px 0 0">
