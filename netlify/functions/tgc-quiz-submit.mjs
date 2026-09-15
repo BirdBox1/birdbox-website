@@ -173,11 +173,6 @@ function resultFor(key, firstName, scores) {
     taught: f.taught,
     video: f.video,
     videoUrl: "https://youtu.be/" + f.video,
-    // The still is served from our own domain rather than i.ytimg.com. The
-    // YouTube copy exists and loads in a browser, but mail clients proxy
-    // remote images and Gmail would not fetch it. Same-origin images are the
-    // reliable option, and they are ours to change.
-    videoStill: SITE + "/brand/quiz/" + key + ".jpg",
     next: NEXT,
     closing: CLOSING,
     scores,
@@ -233,24 +228,12 @@ function emailHtml(r) {
                   margin-bottom:10px">Watch</div>
       <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#1d2126">A few minutes on
         ${esc(r.name)}, and what it looks like on the floor.</p>
-      <!-- No email client plays video inline, so this is the thumbnail as a
-           link. The cell is black because YouTube's hqdefault is 4:3 and
-           letterboxes a 16:9 film — on black the bars disappear. hqdefault is
-           used rather than maxresdefault because it exists for every upload. -->
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-             style="background:#000000">
-        <tr><td align="center">
-          <a href="${esc(r.videoUrl)}" style="text-decoration:none;display:block">
-            <img src="${esc(r.videoStill)}"
-                 width="480" height="360" alt="Watch: ${esc(r.name)}"
-                 style="display:block;width:480px;max-width:100%;height:auto;border:0">
-          </a>
-        </td></tr>
-      </table>
-      <p style="margin:12px 0 0;font-size:14px;line-height:1.5">
-        <a href="${esc(r.videoUrl)}" style="color:#D8393D;font-weight:700;text-decoration:none">
-          &#9654;&nbsp; Watch on YouTube</a>
-      </p>
+      <!-- A link, not an embed. No mainstream mail client plays video inline,
+           and a remote still is at the mercy of whatever image proxy the
+           reader's client uses. A button always renders. -->
+      <a href="${esc(r.videoUrl)}"
+         style="display:inline-block;background:#101215;color:#ffffff;text-decoration:none;
+                font-weight:700;font-size:14px;padding:11px 18px">&#9654;&nbsp; Watch the video</a>
     </div>` : ""}
     ${r.closing.map(p).join("")}
     <p style="margin:26px 0 0">
