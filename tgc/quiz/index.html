@@ -183,17 +183,40 @@
     font-size: .74rem; letter-spacing: .16em; text-transform: uppercase;
     color: var(--muted); font-weight: 700; margin: 0 0 .7rem;
   }
+  /* A ladder, not four scores. Progress bars were read two ways, both wrong:
+     a full bar on a rung above the focus looked like mastery of it, and a
+     part-filled bar on rung one looked like an unfinished quiz. So the rung
+     is marked rather than measured — a step you have passed, the step you are
+     on, or a step still ahead. */
   .rung {
-    display: grid; grid-template-columns: 1fr auto; gap: .5rem 1rem;
-    align-items: center; padding: .55rem 0; border-top: 1px solid var(--rule);
+    display: grid; grid-template-columns: 26px 1fr auto; gap: .5rem .9rem;
+    align-items: center; padding: .8rem 0; border-top: 1px solid var(--rule);
   }
   .rung:last-child { border-bottom: 1px solid var(--rule); }
+  .rung__mark { position: relative; width: 26px; height: 26px; }
+  /* The rail runs behind the dots, so the four read as one climb. Trimmed at
+     the top of the first rung and the bottom of the last. */
+  .rung__mark::before {
+    content: ""; position: absolute; left: 50%; margin-left: -1px;
+    top: -.8rem; bottom: -.8rem; width: 2px; background: rgba(255,255,255,.10);
+  }
+  .rung:first-child .rung__mark::before { top: 50%; }
+  .rung:last-child .rung__mark::before { bottom: 50%; }
+  .rung__dot {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    width: 11px; height: 11px; border-radius: 50%;
+    background: var(--panel); border: 2px solid rgba(255,255,255,.22);
+  }
+  .rung.is-done .rung__dot { background: var(--muted); border-color: var(--muted); }
+  .rung.is-focus .rung__dot {
+    width: 17px; height: 17px; background: var(--accent); border-color: var(--accent);
+    box-shadow: 0 0 0 5px rgba(216,57,61,.20);
+  }
   .rung__name { font-size: .95rem; color: var(--muted); }
+  .rung.is-done .rung__name { color: var(--ink); }
   .rung.is-focus .rung__name { color: var(--ink); font-weight: 700; }
-  .rung__bar { grid-column: 1 / -1; height: 5px; background: rgba(255,255,255,.09); }
-  .rung__fill { height: 100%; background: var(--muted); }
-  .rung.is-focus .rung__fill { background: var(--accent); }
-  .rung__score { font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .rung__score { font-size: .8rem; color: var(--muted); }
+  .rung.is-focus .rung__score { color: var(--accent); font-weight: 700; }
   .panel {
     margin: 1.8rem 0; padding: 1.1rem 1.2rem;
     background: var(--panel); border: 1px solid var(--rule);
@@ -583,41 +606,31 @@
     var box = $("ladder");
     box.textContent = "";
 
-    // This is a position on a ladder, not four separate scores. Showing each
-    // rung's own percentage read as mastery — somebody told to work on rung 2
-    // saw 89% against rung 4 and came away thinking they had already cleared
-    // it, which is the opposite of what the ladder says. So the bar is now how
-    // far up the climb that rung sits: everything up to and including the
-    // focus is filled, in steps, and everything above it is an empty track
-    // they have not reached yet. The focus is therefore always the longest
-    // bar and always the red one. The raw scores are still stored and still
-    // decide the result — they are just not a leaderboard on the page.
     var focusIdx = 0;
     rungs.forEach(function (r, i) { if (r.key === focusKey) focusIdx = i; });
 
     rungs.forEach(function (r, i) {
       var isFocus = i === focusIdx;
+      var done = i < focusIdx;
+
       var row = document.createElement("div");
-      row.className = "rung" + (isFocus ? " is-focus" : "");
+      row.className = "rung" + (isFocus ? " is-focus" : done ? " is-done" : "");
+
+      var mark = document.createElement("div");
+      mark.className = "rung__mark";
+      var dot = document.createElement("div");
+      dot.className = "rung__dot";
+      mark.append(dot);
 
       var name = document.createElement("div");
       name.className = "rung__name";
       name.textContent = r.name;
 
-      var score = document.createElement("div");
-      score.className = "rung__score";
-      score.textContent = isFocus ? "Your focus" : (i < focusIdx ? "Cleared" : "Ahead of you");
+      var status = document.createElement("div");
+      status.className = "rung__score";
+      status.textContent = isFocus ? "You are here" : done ? "Behind you" : "Ahead of you";
 
-      var bar = document.createElement("div");
-      bar.className = "rung__bar";
-      var fill = document.createElement("div");
-      fill.className = "rung__fill";
-      fill.style.width = i <= focusIdx
-        ? Math.round(((i + 1) / rungs.length) * 100) + "%"
-        : "0%";
-      bar.append(fill);
-
-      row.append(name, score, bar);
+      row.append(mark, name, status);
       box.append(row);
     });
   }
