@@ -173,6 +173,11 @@ function resultFor(key, firstName, scores) {
     taught: f.taught,
     video: f.video,
     videoUrl: "https://youtu.be/" + f.video,
+    // The still is served from our own domain rather than i.ytimg.com. The
+    // YouTube copy exists and loads in a browser, but mail clients proxy
+    // remote images and Gmail would not fetch it. Same-origin images are the
+    // reliable option, and they are ours to change.
+    videoStill: SITE + "/brand/quiz/" + key + ".jpg",
     next: NEXT,
     closing: CLOSING,
     scores,
@@ -236,7 +241,7 @@ function emailHtml(r) {
              style="background:#000000">
         <tr><td align="center">
           <a href="${esc(r.videoUrl)}" style="text-decoration:none;display:block">
-            <img src="https://i.ytimg.com/vi/${esc(r.video)}/hqdefault.jpg"
+            <img src="${esc(r.videoStill)}"
                  width="480" height="360" alt="Watch: ${esc(r.name)}"
                  style="display:block;width:480px;max-width:100%;height:auto;border:0">
           </a>
