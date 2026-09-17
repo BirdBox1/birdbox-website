@@ -694,7 +694,16 @@ function buildFromPicker() {
 
 async function loadAll() {
   const year = parseInt($("year").value, 10);
-  const from = `${year-1}-11-01`, to = `${year+1}-02-01`;
+  // The fetch window has to cover every weekend the grid actually draws,
+  // not just the calendar year. A Jul start with a twelve-month span runs
+  // to the following June, so a fixed year-based window silently dropped
+  // everything past 31 January. One month of padding either side.
+  const startM = parseInt($("from").value, 10) || 0;
+  const spanM  = parseInt($("span").value, 10) || 12;
+  const firstOf = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  const from = firstOf(new Date(year, startM - 1, 1));
+  const to   = firstOf(new Date(year, startM + spanM + 1, 1));
 
   const [st, pr, co, pl, un] = await Promise.all([
     db.from("staff").select("id, full_name, role").eq("active", true).order("full_name"),
@@ -1704,7 +1713,12 @@ $("year").addEventListener("change", async () => {
   await loadAll(); buildWeekends(); render();
 });
 for (const id of ["span","from"]) {
-  $(id).addEventListener("change", () => { buildWeekends(); render(); });
+  // These move the window, so the data has to be fetched again — not just
+  // redrawn from whatever was already in memory.
+  $(id).addEventListener("change", async () => {
+    say("Loading…");
+    await loadAll(); buildWeekends(); render();
+  });
 }
 for (const id of ["brand","q"]) $(id).addEventListener("input", render);
 
