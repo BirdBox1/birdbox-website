@@ -19,7 +19,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
-import { sendConfirmation, sendNamesForm } from "./stripe-webhook.mjs";
+import { sendConfirmation, sendNamesForm, sendPlanEmail } from "./stripe-webhook.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -60,6 +60,9 @@ export default async (request) => {
       case "match":           return await matchInvoice(body, me);
       case "ignore":          return await ignoreInvoice(body, me);
       case "adopt":           return await adoptInvoice(body, me);
+      case "create_plan":     return await createPlan(body, me);
+      case "cancel_plan":     return await cancelPlan(body);
+      case "resend_plan":     return await resendPlan(body);
       default:
         return json({ error: `Unknown action "${body.action}".` }, 400);
     }
@@ -325,7 +328,7 @@ export async function addPlace({ invoiceId, first, last, email, phone, addedBy =
 
   const { data: inv, error } = await supabase
     .from("invoices")
-    .select("id, course_id, status, places, total_cents, vat_rate, currency, unit_price_cents, discount_code, discount_percent, discount_amount_cents, payer_name, business_name, stripe_invoice_number")
+    .select("id, course_id, status, kind, plan_state, paid_cents, places, total_cents, vat_rate, currency, unit_price_cents, discount_code, discount_percent, discount_amount_cents, payer_name, business_name, stripe_invoice_number")
     .eq("id", invoiceId)
     .single();
   if (error || !inv) return { error: "Invoice not found.", status: 404 };
@@ -344,8 +347,11 @@ export async function addPlace({ invoiceId, first, last, email, phone, addedBy =
   }
 
   // Each person carries their share of what was actually paid, so the
-  // course's income adds up to the invoice.
-  const share = Math.round((inv.total_cents || 0) / inv.places);
+  // course's income adds up to the invoice. On a payment plan that is
+  // their share of what has come in so far; later instalments add to
+  // it as they are paid.
+  const isPlan = inv.kind === "plan";
+  const share = Math.round(((isPlan ? inv.paid_cents : inv.total_cents) || 0) / inv.places);
   const vatFactor = 1 + (Number(inv.vat_rate) || 0) / 100;
   const discountEach = inv.discount_amount_cents
     ? Math.round(inv.discount_amount_cents / inv.places * vatFactor)
@@ -361,8 +367,10 @@ export async function addPlace({ invoiceId, first, last, email, phone, addedBy =
       phone,
       status: "active",
       source: "manual",
-      source_note: ("Invoice " + (inv.stripe_invoice_number || "") + " — " + (inv.business_name || inv.payer_name)).replace(/\s+—/, " —"),
-      payment_status: "paid_in_full",
+      source_note: isPlan
+        ? "Payment plan — " + (inv.business_name || inv.payer_name)
+        : ("Invoice " + (inv.stripe_invoice_number || "") + " — " + (inv.business_name || inv.payer_name)).replace(/\s+—/, " —"),
+      payment_status: isPlan && inv.plan_state !== "completed" ? "deposit_paid" : "paid_in_full",
       amount_paid_cents: share,
       currency: String(inv.currency || "EUR").toUpperCase(),
       discount_code: inv.discount_code,
@@ -412,6 +420,220 @@ async function voidInvoice(b) {
   }
   await supabase.from("invoices").update({ status: "void" }).eq("id", inv.id);
   return json({ voided: true });
+}
+
+// ---------------------------------------------------------------
+// payment plans: a deposit now, then monthly instalments
+// ---------------------------------------------------------------
+// Nothing is charged here. The payer gets a link to /plan/, reads the
+// schedule and the commitment, agrees, and pays the deposit through
+// Stripe Checkout (plan-public.mjs). The webhook then saves the card
+// and schedules every instalment in Stripe.
+
+// The commitment the payer agrees to. Placeholder wording — change it
+// here once the accountant has approved it. {…} parts are filled in.
+const PLAN_TERMS =
+  "I agree to pay {total} for {places} on {course}: a deposit of {deposit} today, then " +
+  "{count} monthly payments on the dates shown, taken automatically from the card I use " +
+  "to pay the deposit. I understand this is a commitment to pay the full amount. If I " +
+  "cancel, transfer or do not attend, the remaining payments are still due under BirdBox " +
+  "Coaching's terms. If a payment fails it will be retried, and I will be emailed so I can " +
+  "pay or change card.";
+
+function addMonths(isoDate, months) {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const target = new Date(Date.UTC(y, m - 1 + months, 1));
+  const last = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(d, last));
+  return target.toISOString().slice(0, 10);
+}
+
+async function createPlan(b, me) {
+  const courseId = b.course_id;
+  if (!courseId) return json({ error: "No course given." }, 400);
+
+  const payerName = clean(b.payer_name);
+  const payerEmail = clean(b.payer_email);
+  const business = clean(b.business_name);
+  if (!payerName) return json({ error: "A name is needed." }, 400);
+  if (!payerEmail || !payerEmail.includes("@")) return json({ error: "A valid email is needed." }, 400);
+
+  const places = parseInt(b.places, 10);
+  if (!Number.isFinite(places) || places < 1) return json({ error: "Number of places must be at least 1." }, 400);
+  const unitCents = Math.round(Number(b.unit_price) * 100);
+  if (!Number.isFinite(unitCents) || unitCents <= 0) return json({ error: "Price per place must be more than zero." }, 400);
+
+  const depositPct = Number(b.deposit_percent);
+  if (!(depositPct > 0 && depositPct < 100)) return json({ error: "The deposit must be between 1% and 99%." }, 400);
+  const count = parseInt(b.instalments, 10);
+  if (!(count >= 1 && count <= 12)) return json({ error: "Choose between 1 and 12 instalments." }, 400);
+
+  const first = String(b.first_instalment_date || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(first)) return json({ error: "Choose the date of the first instalment." }, 400);
+  const tomorrow = new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 10);
+  if (first < tomorrow) return json({ error: "The first instalment must be at least a day from now." }, 400);
+
+  const { data: course } = await supabase
+    .from("courses").select("id, title, brand, country, currency").eq("id", courseId).single();
+  if (!course) return json({ error: "Course not found." }, 404);
+  const currency = String(course.currency || "EUR").toUpperCase();
+
+  const noVat = String(b.vat_country || "").toUpperCase() === "NONE";
+  const vatCountry = noVat ? "" : String(b.vat_country || course.country || "").toUpperCase();
+  let vatRate = 0;
+  if (vatCountry) {
+    const { data: vr } = await supabase
+      .from("vat_rates").select("rate, stripe_tax_rate_id").eq("code", vatCountry).maybeSingle();
+    if (vr && Number(vr.rate) > 0) {
+      vatRate = Number(vr.rate) <= 1 ? Number(vr.rate) * 100 : Number(vr.rate);
+      if (!vr.stripe_tax_rate_id || !vr.stripe_tax_rate_id.startsWith("txr_")) {
+        return json({ error: `The VAT rate for ${vatCountry} has no Stripe tax rate set up.` }, 400);
+      }
+    }
+  }
+
+  const subtotal = unitCents * places;
+  const typedPct = Number(b.discount_percent) || 0;
+  const typedAmt = Math.round((Number(b.discount_amount) || 0) * 100);
+  if (typedPct < 0 || typedPct > 100) return json({ error: "A percentage discount must be between 0 and 100." }, 400);
+  if (typedAmt < 0 || typedAmt > subtotal) return json({ error: "Check the discount amount." }, 400);
+  const discount = typedPct > 0 ? Math.round(subtotal * typedPct / 100) : typedAmt;
+  const discountPercent = typedPct > 0 ? typedPct : (discount ? Math.round(discount / subtotal * 10000) / 100 : 0);
+
+  // Every part is worked out before VAT and has VAT added on its own,
+  // which is how Stripe charges each one. Rounding lands on the last
+  // instalment so the parts add up exactly.
+  const net = subtotal - discount;
+  const depositNet = Math.round(net * depositPct / 100);
+  const rest = net - depositNet;
+  const each = Math.floor(rest / count);
+  const vatOf = (c) => Math.round(c * vatRate / 100);
+
+  const schedule = [{
+    n: 0, kind: "deposit", due_date: null,
+    net_cents: depositNet, vat_cents: vatOf(depositNet), gross_cents: depositNet + vatOf(depositNet),
+    status: "pending",
+  }];
+  for (let i = 1; i <= count; i++) {
+    const partNet = i === count ? rest - each * (count - 1) : each;
+    schedule.push({
+      n: i, kind: "instalment", due_date: addMonths(first, i - 1),
+      net_cents: partNet, vat_cents: vatOf(partNet), gross_cents: partNet + vatOf(partNet),
+      status: "pending",
+    });
+  }
+  const total = schedule.reduce((sum, x) => sum + x.gross_cents, 0);
+  const vatTotal = schedule.reduce((sum, x) => sum + x.vat_cents, 0);
+
+  const money = (c) => `${currency} ${(c / 100).toFixed(2)}`;
+  const terms = PLAN_TERMS
+    .replace("{total}", money(total))
+    .replace("{places}", `${places} place${places === 1 ? "" : "s"}`)
+    .replace("{course}", course.title)
+    .replace("{deposit}", money(schedule[0].gross_cents))
+    .replace("{count}", String(count));
+
+  const customer = await stripe.customers.create({
+    name: business || payerName,
+    email: payerEmail,
+    address: clean(b.address_line1) ? {
+      line1: clean(b.address_line1), line2: clean(b.address_line2) || undefined,
+      city: clean(b.city) || undefined, postal_code: clean(b.postcode) || undefined,
+      country: clean(b.address_country) || undefined,
+    } : undefined,
+  });
+
+  const { data: row, error } = await supabase
+    .from("invoices")
+    .insert({
+      kind: "plan",
+      plan_state: "awaiting_deposit",
+      status: "sent",
+      course_id: courseId,
+      payer_name: payerName,
+      business_name: business,
+      payer_email: payerEmail,
+      address_line1: clean(b.address_line1),
+      address_line2: clean(b.address_line2),
+      city: clean(b.city),
+      postcode: clean(b.postcode),
+      address_country: clean(b.address_country),
+      vat_number: clean(b.vat_number),
+      vat_country: vatCountry || null,
+      vat_rate: vatRate,
+      places,
+      unit_price_cents: unitCents,
+      currency,
+      discount_percent: discountPercent,
+      discount_amount_cents: discount,
+      subtotal_cents: net,
+      vat_cents: vatTotal,
+      total_cents: total,
+      deposit_percent: depositPct,
+      deposit_cents: schedule[0].gross_cents,
+      instalments: count,
+      first_instalment_date: first,
+      schedule,
+      agreement_text: terms,
+      stripe_customer_id: customer.id,
+      created_by: me.id,
+    })
+    .select("*")
+    .single();
+  if (error) return json({ error: "Could not save the plan: " + error.message }, 500);
+
+  const emailed = b.send_email === false ? false : await sendPlanEmail(row, course);
+  return json({ sent: true, emailed, total_cents: total, currency, token: row.names_token });
+}
+
+async function resendPlan(b) {
+  const { data: row } = await supabase
+    .from("invoices").select("*, courses ( title, brand )").eq("id", b.invoice_id).maybeSingle();
+  if (!row || row.kind !== "plan") return json({ error: "Plan not found." }, 404);
+  if (row.plan_state !== "awaiting_deposit") return json({ error: "The deposit is already paid." }, 400);
+  const emailed = await sendPlanEmail(row, row.courses || {});
+  if (!emailed) return json({ error: "The email did not send. Use Copy plan link instead." }, 502);
+  return json({ emailed: true });
+}
+
+async function cancelPlan(b) {
+  const { data: row } = await supabase
+    .from("invoices").select("id, kind, plan_state, schedule, checkout_session_id").eq("id", b.invoice_id).maybeSingle();
+  if (!row || row.kind !== "plan") return json({ error: "Plan not found." }, 404);
+  if (["cancelled", "completed"].includes(row.plan_state)) return json({ error: "This plan is already " + row.plan_state + "." }, 400);
+
+  if (row.checkout_session_id && row.plan_state === "awaiting_deposit") {
+    try { await stripe.checkout.sessions.expire(row.checkout_session_id); } catch (_) { /* already used or expired */ }
+  }
+
+  // Stop every instalment that has not been paid. Drafts are deleted;
+  // anything Stripe has already finalised is voided.
+  const schedule = Array.isArray(row.schedule) ? row.schedule.map((x) => ({ ...x })) : [];
+  const problems = [];
+  for (const item of schedule) {
+    if (item.kind === "deposit" || item.status === "paid" || !item.stripe_invoice_id) {
+      if (item.kind !== "deposit" && item.status !== "paid") item.status = "cancelled";
+      continue;
+    }
+    try {
+      const inv = await stripe.invoices.retrieve(item.stripe_invoice_id);
+      if (inv.status === "draft") await stripe.invoices.del(inv.id);
+      else if (inv.status === "open") await stripe.invoices.voidInvoice(inv.id);
+      else if (inv.status === "paid") { item.status = "paid"; continue; }
+      item.status = "cancelled";
+    } catch (err) {
+      problems.push(`Instalment ${item.n}: ${err.message}`);
+    }
+  }
+
+  await supabase.from("invoices").update({
+    plan_state: "cancelled",
+    status: row.plan_state === "awaiting_deposit" ? "void" : "paid",
+    schedule,
+  }).eq("id", row.id);
+
+  if (problems.length) return json({ cancelled: true, warning: "Some instalments need stopping in Stripe by hand: " + problems.join("; ") });
+  return json({ cancelled: true });
 }
 
 // ---------------------------------------------------------------
