@@ -2185,9 +2185,18 @@
         <input id="gi-places" type="number" min="1" step="1" value="1" inputmode="numeric">
       </div>
     </div>
-    <div class="field">
-      <label for="gi-code">Discount code <span class="hint" id="gi-codehint">optional</span></label>
-      <input id="gi-code" type="text" autocomplete="off" style="text-transform:uppercase">
+    <div class="grid2">
+      <div class="field">
+        <label for="gi-disc">Discount <span class="hint">optional</span></label>
+        <input id="gi-disc" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0">
+      </div>
+      <div class="field">
+        <label for="gi-disctype">Type</label>
+        <select id="gi-disctype">
+          <option value="pct">% off</option>
+          <option value="amt" id="gi-amtopt">off the total (excl. VAT)</option>
+        </select>
+      </div>
     </div>
 
     <div id="gi-sum"></div>
@@ -9755,22 +9764,21 @@ async function renderGroupInvoices(course) {
 }
 
 let giCourse = null;
-let giCode = { code: null, percent: 0 };
 
 async function openInvoiceForm(course) {
   giCourse = course;
-  giCode = { code: null, percent: 0 };
   await loadVatRates();
 
   $("gi-course").textContent = course.title;
-  for (const id of ["gi-name", "gi-biz", "gi-email", "gi-a1", "gi-a2", "gi-city", "gi-post", "gi-vatno", "gi-code"]) $(id).value = "";
+  for (const id of ["gi-name", "gi-biz", "gi-email", "gi-a1", "gi-a2", "gi-city", "gi-post", "gi-vatno", "gi-disc"]) $(id).value = "";
+  $("gi-disctype").value = "pct";
+  $("gi-amtopt").textContent = `${course.currency || "EUR"} off the total (excl. VAT)`;
   $("gi-places").value = "1";
   // The course list does not carry the price, so ask for it.
   const { data: priced } = await db.from("courses").select("price_cents").eq("id", course.id).maybeSingle();
   const pc = priced ? priced.price_cents : null;
   $("gi-price").value = pc != null ? (pc / 100).toFixed(2) : "";
   $("gi-cur").textContent = (course.currency || "EUR") + ", excl. VAT";
-  $("gi-codehint").textContent = "optional";
   $("gi-msg").textContent = ""; $("gi-msg").className = "msg";
 
   const names = COUNTRY_CODES.map((code) => ({ code, name: countryName(code) }))
@@ -9782,7 +9790,7 @@ async function openInvoiceForm(course) {
   ac.value = String(course.country || "").toUpperCase();
 
   const vs = $("gi-vat");
-  vs.innerHTML = '<option value="">No VAT</option>';
+  vs.innerHTML = '<option value="NONE">No VAT</option>';
   for (const r of names.filter((n) => vatByCode[n.code])) {
     const o = document.createElement("option");
     o.value = r.code;
@@ -9790,12 +9798,11 @@ async function openInvoiceForm(course) {
     vs.append(o);
   }
   const home = String(course.country || "").toUpperCase();
-  vs.value = vatByCode[home] ? home : "";
+  vs.value = vatByCode[home] ? home : "NONE";
 
-  for (const id of ["gi-price", "gi-places", "gi-vat"]) $(id).oninput = giSummary;
+  for (const id of ["gi-price", "gi-places", "gi-vat", "gi-disc"]) $(id).oninput = giSummary;
   $("gi-vat").onchange = giSummary;
-  $("gi-code").onchange = giCheckCode;
-  $("gi-code").onblur = giCheckCode;
+  $("gi-disctype").onchange = giSummary;
 
   giSummary();
   $("gi-close").onclick = () => $("giwrap").classList.add("hidden");
@@ -9804,36 +9811,22 @@ async function openInvoiceForm(course) {
   $("giwrap").classList.remove("hidden");
 }
 
-async function giCheckCode() {
-  const raw = $("gi-code").value.trim().toUpperCase();
-  $("gi-code").value = raw;
-  giCode = { code: null, percent: 0 };
-  if (!raw) { $("gi-codehint").textContent = "optional"; giSummary(); return; }
-
-  const { data } = await db.from("discount_codes").select("*").ilike("code", raw)
-    .or(`course_id.eq.${giCourse.id},course_id.is.null`);
-  const hit = (data || []).find((r) => r.course_id === giCourse.id) || (data || [])[0];
-  const pct = hit ? Number(hit.percent_off) : 0;
-  if (!hit) $("gi-codehint").textContent = "not found for this course";
-  else if (hit.active === false) $("gi-codehint").textContent = "switched off";
-  else if (hit.expires_at && new Date(hit.expires_at) < new Date()) $("gi-codehint").textContent = "expired";
-  else if (!(pct > 0)) $("gi-codehint").textContent = "not a percentage code";
-  else { giCode = { code: hit.code, percent: pct }; $("gi-codehint").textContent = `${pct}% off`; }
-  giSummary();
-}
-
 function giSummary() {
   const cur = giCourse.currency || "EUR";
   const unit = Math.round(Number($("gi-price").value) * 100) || 0;
   const places = parseInt($("gi-places").value, 10) || 0;
   const rate = vatByCode[$("gi-vat").value] || 0;
   const sub = unit * places;
-  const disc = Math.round(sub * giCode.percent / 100);
+  const dval = Number($("gi-disc").value) || 0;
+  const isPct = $("gi-disctype").value === "pct";
+  const disc = dval <= 0 ? 0 : isPct
+    ? Math.round(sub * Math.min(dval, 100) / 100)
+    : Math.min(Math.round(dval * 100), sub);
   const taxable = sub - disc;
   const vat = Math.round(taxable * rate / 100);
   const lines = [
     `${places} × ${money(unit, cur)} = ${money(sub, cur)}`,
-    disc ? `Discount ${giCode.code} (${giCode.percent}%): −${money(disc, cur)}` : null,
+    disc ? `Discount${isPct ? " " + dval + "%" : ""}: −${money(disc, cur)}` : null,
     rate ? `VAT ${Number(rate.toFixed(2))}%: ${money(vat, cur)}` : "No VAT",
   ].filter(Boolean);
   $("gi-sum").innerHTML = lines.map((l) => `<div>${l}</div>`).join("") +
@@ -9842,8 +9835,9 @@ function giSummary() {
 
 async function giSend() {
   const msg = $("gi-msg");
-  const codeTyped = $("gi-code").value.trim();
-  if (codeTyped && !giCode.code) { msg.className = "msg err"; msg.textContent = "That discount code does not work for this course — fix or clear it."; return; }
+  const dval = Number($("gi-disc").value) || 0;
+  const isPct = $("gi-disctype").value === "pct";
+  if (dval < 0 || (isPct && dval > 100)) { msg.className = "msg err"; msg.textContent = "Check the discount — a percentage must be between 0 and 100."; return; }
   if (!window.confirm(`Send this invoice to ${$("gi-email").value.trim()}?\n\n${$("gi-sum").innerText}`)) return;
 
   $("gi-send").disabled = true;
@@ -9864,7 +9858,8 @@ async function giSend() {
       vat_country: $("gi-vat").value,
       unit_price: $("gi-price").value,
       places: $("gi-places").value,
-      discount_code: giCode.code,
+      discount_percent: isPct && dval > 0 ? dval : 0,
+      discount_amount: !isPct && dval > 0 ? dval : 0,
     });
     msg.className = "msg ok";
     msg.textContent = `Sent${r.number ? " — invoice " + r.number : ""}, ${money(r.total_cents, r.currency)}.`;
