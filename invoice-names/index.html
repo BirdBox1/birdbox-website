@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Name your participants — BirdBox Coaching</title>
+<style>
+  :root {
+    --ink: #16181b; --muted: #6b7078; --rule: #e3e5e8; --bg: #f5f6f7; --card: #fff;
+    --accent: #2f7fd0; --good: #1f7a45; --bad: #b3261e;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  header { background: #0d0e10; color: #fff; padding: 1.1rem 1.25rem; display: flex; align-items: center; gap: .8rem; }
+  header img { height: 34px; width: auto; }
+  header .name { font-weight: 700; letter-spacing: .02em; }
+  main { max-width: 40rem; margin: 0 auto; padding: 1.5rem 1.1rem 4rem; }
+  h1 { font-size: 1.4rem; margin: 0 0 .3rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 1.4rem; }
+  .card { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 1.1rem; margin-bottom: 1rem; }
+  .card h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 0 0 .7rem; }
+  .done { margin: 0; padding-left: 1.1rem; }
+  .done li { margin: .15rem 0; }
+  .person { border-top: 1px solid var(--rule); padding-top: 1rem; margin-top: 1rem; }
+  .person:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+  .person .n { font-weight: 700; margin-bottom: .5rem; }
+  .grid { display: grid; gap: .7rem; grid-template-columns: 1fr; }
+  @media (min-width: 30rem) { .grid { grid-template-columns: 1fr 1fr; } }
+  label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: .2rem; }
+  input { width: 100%; font: inherit; padding: .6rem .7rem; border: 1px solid #cfd3d8; border-radius: 6px; background: #fff; }
+  input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+  .hint { font-size: .82rem; color: var(--muted); margin: .6rem 0 0; }
+  button { font: inherit; font-weight: 700; background: var(--accent); color: #fff; border: 0; border-radius: 6px;
+    padding: .8rem 1.3rem; cursor: pointer; width: 100%; }
+  button:disabled { opacity: .5; cursor: default; }
+  .msg { margin: .9rem 0 0; font-size: .92rem; }
+  .msg.err { color: var(--bad); }
+  .msg.ok { color: var(--good); }
+  .hidden { display: none; }
+  footer { color: var(--muted); font-size: .8rem; text-align: center; padding: 0 1rem 2rem; }
+</style>
+</head>
+<body>
+<header>
+  <img id="logo" alt="" src="/brand/birdbox.png" onerror="this.style.display='none'">
+  <span class="name">BirdBox Coaching</span>
+</header>
+
+<main>
+  <p id="loading">Loading…</p>
+
+  <div id="bad" class="card hidden">
+    <h1>This link does not work</h1>
+    <p id="bad-msg" class="sub" style="margin:0"></p>
+  </div>
+
+  <div id="page" class="hidden">
+    <h1>Who is coming?</h1>
+    <p class="sub" id="lead"></p>
+
+    <div class="card hidden" id="named-card">
+      <h2>Already registered</h2>
+      <ul class="done" id="named"></ul>
+    </div>
+
+    <div class="card hidden" id="form-card">
+      <h2 id="form-h">Participants</h2>
+      <div id="people"></div>
+      <p class="hint">Names appear exactly as typed on each certificate. Each person is emailed their confirmation as soon as you submit. You can use this link again later if you do not have every name yet.</p>
+      <div style="margin-top:1rem"><button id="go" type="button">Register these people</button></div>
+      <p class="msg" id="msg"></p>
+    </div>
+
+    <div class="card hidden" id="full-card">
+      <h2>All done</h2>
+      <p style="margin:0">Every place on this invoice is filled, and everyone has been sent their confirmation. Thank you — see you on the course.</p>
+    </div>
+  </div>
+</main>
+
+<footer>BirdBox Coaching Limited · Questions? <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a></footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const ACCENT = { tcc: "#2f7fd0", tgc: "#9e2029", tec: "#1c6b3f", twc: "#e8a317" };
+const token = new URLSearchParams(location.search).get("t") || "";
+const API = "/.netlify/functions/invoice-names";
+const justPaid = new URLSearchParams(location.search).get("paid") === "1";
+let tries = 0;
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+function draw(d) {
+  $("loading").classList.add("hidden");
+  $("page").classList.remove("hidden");
+  if (ACCENT[d.brand]) document.documentElement.style.setProperty("--accent", ACCENT[d.brand]);
+  if (d.brand) { const l = $("logo"); l.style.display = ""; l.src = "/brand/" + d.brand + ".png"; }
+
+  $("lead").textContent =
+    `${d.payer} paid for ${d.places} place${d.places === 1 ? "" : "s"} on ${d.course}` +
+    (d.when ? `, ${d.when}` : "") + ". Please give us each person's details.";
+
+  const named = d.named || [];
+  $("named-card").classList.toggle("hidden", !named.length);
+  $("named").innerHTML = named.map((n) => `<li>${esc(n)}</li>`).join("");
+
+  const left = d.places - named.length;
+  if (!d.paid) {
+    $("form-card").classList.add("hidden");
+    $("full-card").classList.add("hidden");
+    // Straight back from paying: Stripe's confirmation can take a few
+    // seconds to reach us, so wait for it rather than say "not paid".
+    if (justPaid && tries < 20) {
+      tries++;
+      $("lead").textContent = "Payment received — setting up your places. This takes a few seconds…";
+      setTimeout(load, 3000);
+      return;
+    }
+    $("bad").classList.remove("hidden");
+    $("bad-msg").textContent = "This invoice has not been paid yet. Once it is, this page will let you name your participants.";
+    return;
+  }
+  $("full-card").classList.toggle("hidden", left > 0);
+  $("form-card").classList.toggle("hidden", left <= 0);
+  $("form-h").textContent = `${left} place${left === 1 ? "" : "s"} to name`;
+
+  // Keep whatever has already been typed in the boxes that remain.
+  const box = $("people");
+  const filled = (p) => !!(p.first_name || p.last_name || p.email || p.phone);
+  const before = collect(true).sort((a, b) => filled(b) - filled(a));
+  box.innerHTML = "";
+  for (let i = 0; i < left; i++) {
+    const p = before[i] || {};
+    const div = document.createElement("div");
+    div.className = "person";
+    div.innerHTML = `
+      <div class="n">Person ${named.length + i + 1}</div>
+      <div class="grid">
+        <div><label>First name</label><input data-k="first_name" autocomplete="off" value="${esc(p.first_name)}"></div>
+        <div><label>Last name</label><input data-k="last_name" autocomplete="off" value="${esc(p.last_name)}"></div>
+        <div><label>Email</label><input data-k="email" type="email" autocomplete="off" value="${esc(p.email)}"></div>
+        <div><label>Phone</label><input data-k="phone" type="tel" autocomplete="off" value="${esc(p.phone)}"></div>
+      </div>`;
+    box.append(div);
+  }
+}
+
+// Rows with nothing typed are skipped, so they can name some now and
+// the rest later.
+function collect(keepBlank) {
+  const out = [];
+  for (const div of document.querySelectorAll("#people .person")) {
+    const p = {};
+    for (const inp of div.querySelectorAll("input")) p[inp.dataset.k] = inp.value.trim();
+    const any = p.first_name || p.last_name || p.email || p.phone;
+    if (any || keepBlank) out.push(p);
+  }
+  return out;
+}
+
+async function load() {
+  try {
+    const res = await fetch(API + "?t=" + encodeURIComponent(token), { cache: "no-store" });
+    const d = await res.json();
+    if (!res.ok || d.error) throw new Error(d.error || "This link is not valid.");
+    draw(d);
+  } catch (err) {
+    $("loading").classList.add("hidden");
+    $("bad").classList.remove("hidden");
+    $("bad-msg").textContent = err.message;
+  }
+}
+
+$("go").onclick = async () => {
+  const msg = $("msg");
+  const people = collect(false);
+  if (!people.length) { msg.className = "msg err"; msg.textContent = "Fill in at least one person."; return; }
+  for (const p of people) {
+    if (!p.first_name || !p.last_name || !p.email || !p.phone) {
+      msg.className = "msg err";
+      msg.textContent = "Each person needs a first name, last name, email and phone number.";
+      return;
+    }
+  }
+
+  $("go").disabled = true;
+  msg.className = "msg"; msg.textContent = "Registering…";
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ t: token, people }),
+    });
+    const d = await res.json();
+    if (!res.ok || d.error) throw new Error(d.error || "That did not work.");
+
+    const failed = (d.results || []).filter((r) => !r.ok);
+    const done = (d.results || []).filter((r) => r.ok);
+
+    // Clear the rows that went through; failed ones stay for fixing.
+    const failedNames = new Set(failed.map((r) => r.name));
+    for (const div of document.querySelectorAll("#people .person")) {
+      const v = {};
+      for (const inp of div.querySelectorAll("input")) v[inp.dataset.k] = inp.value.trim();
+      if (!failedNames.has(`${v.first_name} ${v.last_name}`)) for (const inp of div.querySelectorAll("input")) inp.value = "";
+    }
+    draw(d);
+
+    msg.className = failed.length ? "msg err" : "msg ok";
+    msg.textContent =
+      (done.length ? `${done.length} registered and sent their confirmation. ` : "") +
+      failed.map((r) => `${r.name}: ${r.error}`).join(" ");
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = err.message;
+  }
+  $("go").disabled = false;
+};
+
+load();
+</script>
+</body>
+</html>
