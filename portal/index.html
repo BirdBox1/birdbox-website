@@ -1450,6 +1450,15 @@
 
       <div class="sep"></div>
 
+      <h3>Participant invoices</h3>
+      <div class="admin-row">
+        <button class="btn small" id="gi-open" type="button">Send an invoice</button>
+        <span class="why">For a gym or company paying for places. VAT is charged for where the seminar runs.</span>
+      </div>
+      <div id="gi-list"></div>
+
+      <div class="sep"></div>
+
       <h3>Coach invoices</h3>
       <div id="inv-admin"></div>
 
@@ -2103,6 +2112,118 @@
     <div class="row">
       <button class="btn ghost" id="wc-close" type="button">Cancel</button>
       <button class="btn" id="wc-send" type="button">Send it</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* The shared dialog style shouts its inputs (built for typed
+     confirmations). Names, emails and addresses read normally here. */
+  #giwrap .dialog input, #gpwrap .dialog input {
+    letter-spacing: normal; font-weight: 400; text-transform: none;
+  }
+  #gi-sum { background: var(--bg, #f6f6f6); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 0.7rem 0.9rem; font-size: 0.9rem; line-height: 1.6; margin: 0.4rem 0 0.8rem; }
+  #gi-sum .tot { font-weight: 700; font-size: 1rem; }
+</style>
+
+<div class="overlay hidden" id="giwrap">
+  <div class="dialog" style="max-width:40rem" role="dialog" aria-modal="true" aria-labelledby="gi-h">
+    <h3 id="gi-h">Send an invoice</h3>
+    <p class="sub" id="gi-course" style="margin-bottom:1rem"></p>
+
+    <div class="grid2">
+      <div class="field">
+        <label for="gi-name">Name</label>
+        <input id="gi-name" type="text" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="gi-biz">Business name <span class="hint">optional</span></label>
+        <input id="gi-biz" type="text" autocomplete="off">
+      </div>
+    </div>
+    <div class="field">
+      <label for="gi-email">Email <span class="hint">the invoice is sent here</span></label>
+      <input id="gi-email" type="email" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="gi-a1">Address</label>
+      <input id="gi-a1" type="text" autocomplete="off" placeholder="Street">
+      <input id="gi-a2" type="text" autocomplete="off" placeholder="Line 2 (optional)" style="margin-top:.4rem">
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label for="gi-city">Town / city</label>
+        <input id="gi-city" type="text" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="gi-post">Postcode</label>
+        <input id="gi-post" type="text" autocomplete="off">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label for="gi-acountry">Country (address)</label>
+        <select id="gi-acountry"></select>
+      </div>
+      <div class="field">
+        <label for="gi-vatno">Their VAT number <span class="hint">optional</span></label>
+        <input id="gi-vatno" type="text" autocomplete="off">
+      </div>
+    </div>
+    <div class="field">
+      <label for="gi-vat">VAT charged <span class="hint">defaults to where the seminar runs</span></label>
+      <select id="gi-vat"></select>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label for="gi-price">Price per place <span class="hint" id="gi-cur">excl. VAT</span></label>
+        <input id="gi-price" type="number" min="0" step="0.01" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label for="gi-places">Number of places</label>
+        <input id="gi-places" type="number" min="1" step="1" value="1" inputmode="numeric">
+      </div>
+    </div>
+    <div class="field">
+      <label for="gi-code">Discount code <span class="hint" id="gi-codehint">optional</span></label>
+      <input id="gi-code" type="text" autocomplete="off" style="text-transform:uppercase">
+    </div>
+
+    <div id="gi-sum"></div>
+    <p class="whenline">Due in 7 days. Stripe emails it with a link to pay. Once paid, the payer is automatically emailed a form to name each person, and each one is registered and sent their confirmation.</p>
+    <p class="msg" id="gi-msg"></p>
+
+    <div class="row">
+      <button class="btn ghost" id="gi-close" type="button">Cancel</button>
+      <button class="btn" id="gi-send" type="button">Send invoice</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="gpwrap">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="gp-h">
+    <h3 id="gp-h">Add a participant</h3>
+    <p class="sub" id="gp-sub" style="margin-bottom:1rem"></p>
+    <div class="grid2">
+      <div class="field">
+        <label for="gp-first">First name</label>
+        <input id="gp-first" type="text" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="gp-last">Last name</label>
+        <input id="gp-last" type="text" autocomplete="off">
+      </div>
+    </div>
+    <div class="field">
+      <label for="gp-email">Email</label>
+      <input id="gp-email" type="email" autocomplete="off">
+    </div>
+    <p class="whenline">They are added as paid and sent the registration confirmation straight away.</p>
+    <p class="msg" id="gp-msg"></p>
+    <div class="row">
+      <button class="btn ghost" id="gp-close" type="button">Close</button>
+      <button class="btn" id="gp-save" type="button">Add and send confirmation</button>
     </div>
   </div>
 </div>
@@ -9491,6 +9612,10 @@ function buildActions(box, course, reg, status) {
 
   add("Edit", "ghost small", () => openEdit(reg));
 
+  if (status === "active") {
+    add("Send confirmation", "ghost small", (b) => sendConfirmation(reg, b));
+  }
+
   if (status !== "active") {
     const pill = document.createElement("span");
     pill.className = "pill gone";
@@ -9515,6 +9640,303 @@ function buildActions(box, course, reg, status) {
   }
 
   add("Delete", "ghost small", (b) => deleteParticipant(reg, b));
+}
+
+/* ---------- participant invoices (places bought in bulk) ---------- */
+
+async function callInvoice(payload) {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) throw new Error("Your session has expired — sign in again.");
+  const res = await fetch("/.netlify/functions/invoice-admin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+    body: JSON.stringify(payload),
+  });
+  let data = {};
+  try { data = await res.json(); } catch (e) { /* no body */ }
+  if (!res.ok || data.error) throw new Error(data.error || "That did not work (" + res.status + ").");
+  return data;
+}
+
+const GI_STATUS = {
+  draft: ["draft", "Not sent"], sent: ["warn", "Awaiting payment"], paid: ["done", "Paid"],
+  void: ["draft", "Void"], uncollectible: ["bad", "Unpaid"],
+};
+
+async function renderGroupInvoices(course) {
+  const box = $("gi-list");
+  if (!box) return;
+  $("gi-open").onclick = () => openInvoiceForm(course);
+  box.innerHTML = '<p class="whenline">Loading…</p>';
+
+  const { data, error } = await db.from("invoices")
+    .select("id, payer_name, business_name, payer_email, places, total_cents, currency, status, due_date, paid_at, hosted_invoice_url, stripe_invoice_number, discount_code, created_at, names_token, names_emailed_at")
+    .eq("course_id", course.id)
+    .order("created_at", { ascending: false });
+
+  if (error) { box.innerHTML = '<p class="whenline bad">Could not load invoices: ' + error.message + '</p>'; return; }
+  const rows = data || [];
+  if (!rows.length) { box.innerHTML = '<p class="whenline">No invoices sent for this course yet.</p>'; return; }
+
+  const { data: used } = await db.from("registrations")
+    .select("invoice_id").in("invoice_id", rows.map((r) => r.id));
+  const usedBy = {};
+  for (const u of used || []) usedBy[u.invoice_id] = (usedBy[u.invoice_id] || 0) + 1;
+
+  box.innerHTML = "";
+  for (const inv of rows) {
+    const row = document.createElement("div");
+    row.className = "inv-row";
+
+    const who = document.createElement("span");
+    who.className = "who";
+    who.textContent = (inv.business_name || inv.payer_name) +
+      (inv.stripe_invoice_number ? " · " + inv.stripe_invoice_number : "");
+
+    const [cls, label] = GI_STATUS[inv.status] || ["draft", inv.status];
+    const state = document.createElement("span");
+    state.className = "pill " + cls;
+    state.textContent = label;
+
+    const amt = document.createElement("span");
+    amt.className = "amt";
+    const filled = usedBy[inv.id] || 0;
+    amt.textContent = money(inv.total_cents || 0, inv.currency) +
+      ` · ${inv.places} place${inv.places === 1 ? "" : "s"}` +
+      (inv.status === "paid" ? ` · ${filled} of ${inv.places} named` : "") +
+      (inv.status === "paid" && filled < inv.places
+        ? (inv.names_emailed_at ? " · names form sent" : " · names form NOT sent") : "") +
+      (inv.status === "sent" && inv.due_date ? ` · due ${inv.due_date}` : "");
+
+    const files = document.createElement("span");
+    files.className = "files";
+
+    if (inv.status === "paid" && filled < inv.places) {
+      const b = document.createElement("button");
+      b.className = "btn tiny go"; b.type = "button";
+      b.textContent = "Add participant";
+      b.onclick = () => openInvoicePerson(course, inv, inv.places - filled);
+      files.append(b);
+    }
+    if (inv.status === "paid" && filled < inv.places && inv.names_token) {
+      const b = document.createElement("button");
+      b.className = "btn ghost tiny"; b.type = "button";
+      b.textContent = "Copy form link";
+      b.onclick = async () => {
+        const link = location.origin + "/invoice-names/?t=" + inv.names_token;
+        try { await navigator.clipboard.writeText(link); b.textContent = "Link copied"; }
+        catch (e) { window.prompt("Copy this link:", link); }
+      };
+      files.append(b);
+    }
+    if (inv.hosted_invoice_url) {
+      const b = document.createElement("button");
+      b.className = "btn ghost tiny"; b.type = "button";
+      b.textContent = "View invoice";
+      b.onclick = () => window.open(inv.hosted_invoice_url, "_blank", "noopener");
+      files.append(b);
+    }
+    if (inv.status === "sent") {
+      const b = document.createElement("button");
+      b.className = "btn ghost tiny danger"; b.type = "button";
+      b.textContent = "Void";
+      b.onclick = async () => {
+        if (!window.confirm(`Void the invoice to ${inv.business_name || inv.payer_name}?\n\nThe pay link stops working. This cannot be undone.`)) return;
+        b.disabled = true;
+        try { await callInvoice({ action: "void", invoice_id: inv.id }); renderGroupInvoices(course); }
+        catch (err) { window.alert("That did not work: " + err.message); b.disabled = false; }
+      };
+      files.append(b);
+    }
+
+    row.append(who, state, amt, files);
+    box.append(row);
+  }
+}
+
+let giCourse = null;
+let giCode = { code: null, percent: 0 };
+
+async function openInvoiceForm(course) {
+  giCourse = course;
+  giCode = { code: null, percent: 0 };
+  await loadVatRates();
+
+  $("gi-course").textContent = course.title;
+  for (const id of ["gi-name", "gi-biz", "gi-email", "gi-a1", "gi-a2", "gi-city", "gi-post", "gi-vatno", "gi-code"]) $(id).value = "";
+  $("gi-places").value = "1";
+  // The course list does not carry the price, so ask for it.
+  const { data: priced } = await db.from("courses").select("price_cents").eq("id", course.id).maybeSingle();
+  const pc = priced ? priced.price_cents : null;
+  $("gi-price").value = pc != null ? (pc / 100).toFixed(2) : "";
+  $("gi-cur").textContent = (course.currency || "EUR") + ", excl. VAT";
+  $("gi-codehint").textContent = "optional";
+  $("gi-msg").textContent = ""; $("gi-msg").className = "msg";
+
+  const names = COUNTRY_CODES.map((code) => ({ code, name: countryName(code) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const ac = $("gi-acountry");
+  ac.innerHTML = '<option value="">Choose…</option>';
+  for (const r of names) { const o = document.createElement("option"); o.value = r.code; o.textContent = r.name; ac.append(o); }
+  ac.value = String(course.country || "").toUpperCase();
+
+  const vs = $("gi-vat");
+  vs.innerHTML = '<option value="">No VAT</option>';
+  for (const r of names.filter((n) => vatByCode[n.code])) {
+    const o = document.createElement("option");
+    o.value = r.code;
+    o.textContent = `${r.name} — ${Number(vatByCode[r.code].toFixed(2))}%`;
+    vs.append(o);
+  }
+  const home = String(course.country || "").toUpperCase();
+  vs.value = vatByCode[home] ? home : "";
+
+  for (const id of ["gi-price", "gi-places", "gi-vat"]) $(id).oninput = giSummary;
+  $("gi-vat").onchange = giSummary;
+  $("gi-code").onchange = giCheckCode;
+  $("gi-code").onblur = giCheckCode;
+
+  giSummary();
+  $("gi-close").onclick = () => $("giwrap").classList.add("hidden");
+  $("gi-send").disabled = false;
+  $("gi-send").onclick = giSend;
+  $("giwrap").classList.remove("hidden");
+}
+
+async function giCheckCode() {
+  const raw = $("gi-code").value.trim().toUpperCase();
+  $("gi-code").value = raw;
+  giCode = { code: null, percent: 0 };
+  if (!raw) { $("gi-codehint").textContent = "optional"; giSummary(); return; }
+
+  const { data } = await db.from("discount_codes").select("*").ilike("code", raw)
+    .or(`course_id.eq.${giCourse.id},course_id.is.null`);
+  const hit = (data || []).find((r) => r.course_id === giCourse.id) || (data || [])[0];
+  const pct = hit ? Number(hit.percent_off) : 0;
+  if (!hit) $("gi-codehint").textContent = "not found for this course";
+  else if (hit.active === false) $("gi-codehint").textContent = "switched off";
+  else if (hit.expires_at && new Date(hit.expires_at) < new Date()) $("gi-codehint").textContent = "expired";
+  else if (!(pct > 0)) $("gi-codehint").textContent = "not a percentage code";
+  else { giCode = { code: hit.code, percent: pct }; $("gi-codehint").textContent = `${pct}% off`; }
+  giSummary();
+}
+
+function giSummary() {
+  const cur = giCourse.currency || "EUR";
+  const unit = Math.round(Number($("gi-price").value) * 100) || 0;
+  const places = parseInt($("gi-places").value, 10) || 0;
+  const rate = vatByCode[$("gi-vat").value] || 0;
+  const sub = unit * places;
+  const disc = Math.round(sub * giCode.percent / 100);
+  const taxable = sub - disc;
+  const vat = Math.round(taxable * rate / 100);
+  const lines = [
+    `${places} × ${money(unit, cur)} = ${money(sub, cur)}`,
+    disc ? `Discount ${giCode.code} (${giCode.percent}%): −${money(disc, cur)}` : null,
+    rate ? `VAT ${Number(rate.toFixed(2))}%: ${money(vat, cur)}` : "No VAT",
+  ].filter(Boolean);
+  $("gi-sum").innerHTML = lines.map((l) => `<div>${l}</div>`).join("") +
+    `<div class="tot">Total ${money(taxable + vat, cur)}</div>`;
+}
+
+async function giSend() {
+  const msg = $("gi-msg");
+  const codeTyped = $("gi-code").value.trim();
+  if (codeTyped && !giCode.code) { msg.className = "msg err"; msg.textContent = "That discount code does not work for this course — fix or clear it."; return; }
+  if (!window.confirm(`Send this invoice to ${$("gi-email").value.trim()}?\n\n${$("gi-sum").innerText}`)) return;
+
+  $("gi-send").disabled = true;
+  msg.className = "msg"; msg.textContent = "Sending…";
+  try {
+    const r = await callInvoice({
+      action: "create_and_send",
+      course_id: giCourse.id,
+      payer_name: $("gi-name").value,
+      business_name: $("gi-biz").value,
+      payer_email: $("gi-email").value,
+      address_line1: $("gi-a1").value,
+      address_line2: $("gi-a2").value,
+      city: $("gi-city").value,
+      postcode: $("gi-post").value,
+      address_country: $("gi-acountry").value,
+      vat_number: $("gi-vatno").value,
+      vat_country: $("gi-vat").value,
+      unit_price: $("gi-price").value,
+      places: $("gi-places").value,
+      discount_code: giCode.code,
+    });
+    msg.className = "msg ok";
+    msg.textContent = `Sent${r.number ? " — invoice " + r.number : ""}, ${money(r.total_cents, r.currency)}.`;
+    setTimeout(() => { $("giwrap").classList.add("hidden"); renderGroupInvoices(giCourse); }, 1500);
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = err.message;
+    $("gi-send").disabled = false;
+  }
+}
+
+function openInvoicePerson(course, inv, left) {
+  $("gp-sub").textContent = `${inv.business_name || inv.payer_name} — ${left} place${left === 1 ? "" : "s"} left on this invoice.`;
+  for (const id of ["gp-first", "gp-last", "gp-email"]) $(id).value = "";
+  $("gp-msg").textContent = ""; $("gp-msg").className = "msg";
+  $("gp-save").disabled = false;
+  $("gp-close").onclick = () => {
+    $("gpwrap").classList.add("hidden");
+    openCourse(currentCourse);
+  };
+  $("gp-save").onclick = async () => {
+    const msg = $("gp-msg");
+    $("gp-save").disabled = true;
+    msg.className = "msg"; msg.textContent = "Adding…";
+    try {
+      const r = await callInvoice({
+        action: "add_participant",
+        invoice_id: inv.id,
+        first_name: $("gp-first").value,
+        last_name: $("gp-last").value,
+        email: $("gp-email").value,
+      });
+      const who = `${$("gp-first").value.trim()} ${$("gp-last").value.trim()}`;
+      left -= 1;
+      msg.className = r.confirmation === "failed" ? "msg err" : "msg ok";
+      msg.textContent = `${who} added. ` +
+        (r.confirmation === "sent" ? "Confirmation sent." :
+         r.confirmation === "skipped" ? "No confirmation email exists for this brand yet." :
+         "The confirmation email did NOT send — use Send confirmation on their row.") +
+        (left > 0 ? ` ${left} place${left === 1 ? "" : "s"} left.` : " All places filled.");
+      $("gp-sub").textContent = `${inv.business_name || inv.payer_name} — ${left} place${left === 1 ? "" : "s"} left on this invoice.`;
+      for (const id of ["gp-first", "gp-last", "gp-email"]) $(id).value = "";
+      $("gp-save").disabled = left <= 0;
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+      $("gp-save").disabled = false;
+    }
+  };
+  $("gpwrap").classList.remove("hidden");
+}
+
+// Sends (or resends) the registration confirmation to one person.
+// Uses the same server action as "Add participant", so if this works
+// the add-participant email works too, and if it fails the alert
+// shows the real reason.
+async function sendConfirmation(reg, btn) {
+  const who = `${reg.first_name} ${reg.last_name}`;
+  if (!window.confirm(`Send the registration confirmation email to ${who}?\n\nIt goes to ${reg.email}.`)) return;
+
+  btn.disabled = true;
+  const prev = btn.textContent;
+  btn.textContent = "Sending\u2026";
+  try {
+    await callAdmin({ action: "send_registration_email", registration_id: reg.id });
+    btn.textContent = "Confirmation sent";
+    window.alert(`Confirmation email sent to ${who} (${reg.email}).`);
+  } catch (err) {
+    window.alert(`The confirmation email to ${who} did not send.\n\nReason: ${err.message}`);
+    btn.textContent = prev;
+    btn.disabled = false;
+  }
 }
 
 async function setRegStatus(reg, status, btn) {
@@ -9708,6 +10130,14 @@ function wireParticipantControls() {
 
     pmMsg(notes.length ? "Added — " + notes.join(", ") + "." : "Added. No email was sent.");
 
+    // The form hides straight after this, which used to take the message
+    // with it — so a failed confirmation email was never seen. Failures
+    // now show as an alert that stays until it is dismissed.
+    const failures = notes.filter((n) => n.startsWith("but "));
+    if (failures.length) {
+      window.alert(`${first} ${last} was added, ` + failures.join(", and ") + ".");
+    }
+
     $("pm-form").classList.add("hidden");
     openCourse(currentCourse);
   };
@@ -9784,6 +10214,7 @@ async function wireAdmin(course, totalRegs, liveRegs) {
   for (const r of assignedRows || []) assigned[r.staff_id] = r.role;
   renderCoachPicker($("editcoaches"), assigned);
   renderInvoiceAdmin(course);
+  renderGroupInvoices(course);
   showHostBar(course);
 
   $("savecoaches").onclick = async () => {
