@@ -1456,6 +1456,10 @@
         <span class="why">For a gym or company paying for places. VAT is charged for where the seminar runs.</span>
       </div>
       <div id="gi-list"></div>
+      <div class="admin-row" style="margin-top:.6rem">
+        <button class="btn ghost small" id="sm-open" type="button">Match a Stripe payment</button>
+        <span class="why">For invoices made by hand in Stripe — records the money against the right people.</span>
+      </div>
 
       <div class="sep"></div>
 
@@ -2119,7 +2123,7 @@
 <style>
   /* The shared dialog style shouts its inputs (built for typed
      confirmations). Names, emails and addresses read normally here. */
-  #giwrap .dialog input, #gpwrap .dialog input {
+  #giwrap .dialog input, #gpwrap .dialog input, #smwrap .dialog input {
     letter-spacing: normal; font-weight: 400; text-transform: none;
   }
   #gi-sum { background: var(--bg, #f6f6f6); border: 1px solid var(--rule); border-radius: 6px;
@@ -2209,6 +2213,29 @@
     </div>
   </div>
 </div>
+
+<div class="overlay hidden" id="smwrap">
+  <div class="dialog" style="max-width:40rem" role="dialog" aria-modal="true" aria-labelledby="sm-h">
+    <h3 id="sm-h">Match a Stripe payment</h3>
+    <p class="sub" id="sm-sub" style="margin-bottom:1rem"></p>
+    <div id="sm-body"></div>
+    <p class="msg" id="sm-msg"></p>
+    <div class="row">
+      <button class="btn ghost" id="sm-back" type="button">Back</button>
+      <button class="btn ghost" id="sm-close" type="button">Close</button>
+      <button class="btn" id="sm-go" type="button">Match</button>
+    </div>
+  </div>
+</div>
+<style>
+  #sm-body .smi { display:flex; justify-content:space-between; gap:.8rem; align-items:center;
+    padding:.65rem 0; border-bottom:1px solid var(--rule); font-size:.9rem; }
+  #sm-body .smi:last-child { border-bottom:0; }
+  #sm-body .smi .who { font-weight:650; }
+  #sm-body .smi .det { color:var(--muted); font-size:.82rem; word-break:break-all; }
+  #sm-body label.smp { display:flex; gap:.6rem; align-items:center; padding:.45rem 0; font-size:.92rem; cursor:pointer; }
+  #sm-body label.smp input { width:1.15rem; height:1.15rem; }
+</style>
 
 <div class="overlay hidden" id="gpwrap">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="gp-h">
@@ -9912,6 +9939,214 @@ function openInvoicePerson(course, inv, left) {
   $("gpwrap").classList.remove("hidden");
 }
 
+/* ---------- matching hand-made Stripe invoices ---------- */
+
+let smList = [];
+
+async function openMatch(course) {
+  $("smwrap").classList.remove("hidden");
+  $("sm-close").onclick = () => { $("smwrap").classList.add("hidden"); openCourse(currentCourse); };
+  await smShowList(course);
+}
+
+async function smShowList(course) {
+  const body = $("sm-body");
+  $("sm-sub").textContent = "Paid Stripe invoices not yet linked to anyone. Tap the one that belongs to this course.";
+  $("sm-msg").textContent = ""; $("sm-msg").className = "msg";
+  $("sm-back").classList.add("hidden");
+  $("sm-go").classList.add("hidden");
+  $("sm-go").textContent = "Match";
+  body.innerHTML = '<p class="whenline">Loading from Stripe…</p>';
+
+  try {
+    const r = await callInvoice({ action: "list_unmatched" });
+    smList = r.invoices || [];
+  } catch (err) {
+    body.innerHTML = "";
+    $("sm-msg").className = "msg err"; $("sm-msg").textContent = err.message;
+    return;
+  }
+
+  if (!smList.length) { body.innerHTML = '<p class="whenline">Nothing left to match.</p>'; return; }
+
+  body.innerHTML = "";
+  for (const inv of smList) {
+    const row = document.createElement("div");
+    row.className = "smi";
+    const left = document.createElement("div");
+    left.innerHTML = `<div class="who"></div><div class="det"></div>`;
+    left.querySelector(".who").textContent = `${money(inv.amount_cents, inv.currency)} — ${inv.name || inv.email || "No name"}`;
+    left.querySelector(".det").textContent =
+      [inv.number, inv.email, new Date(inv.created).toLocaleDateString("en-GB", { day: "numeric", month: "short" }), inv.description]
+        .filter(Boolean).join(" · ");
+    const btns = document.createElement("div");
+    btns.style.cssText = "display:flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end";
+    const pick = document.createElement("button");
+    pick.className = "btn tiny"; pick.type = "button"; pick.textContent = "Match";
+    pick.onclick = () => smShowPeople(course, inv);
+    const adopt = document.createElement("button");
+    adopt.className = "btn ghost tiny"; adopt.type = "button"; adopt.textContent = "Payer names people";
+    adopt.onclick = () => smShowAdopt(course, inv);
+    const skip = document.createElement("button");
+    skip.className = "btn ghost tiny"; skip.type = "button"; skip.textContent = "Not a course place";
+    skip.onclick = async () => {
+      if (!window.confirm(`Hide ${inv.number} (${money(inv.amount_cents, inv.currency)}) from this list for good?`)) return;
+      skip.disabled = true;
+      try { await callInvoice({ action: "ignore", stripe_invoice_id: inv.id }); row.remove(); }
+      catch (err) { window.alert("That did not work: " + err.message); skip.disabled = false; }
+    };
+    btns.append(pick, adopt, skip);
+    row.append(left, btns);
+    body.append(row);
+  }
+}
+
+// For a payment covering several places where the payer should name
+// the people through the form. Anyone already registered for it is
+// ticked so they are not registered twice.
+function smShowAdopt(course, inv) {
+  const body = $("sm-body");
+  $("sm-sub").textContent =
+    `${inv.number} — ${money(inv.amount_cents, inv.currency)} from ${inv.name || inv.email}, for ${course.title}.`;
+  $("sm-msg").textContent = ""; $("sm-msg").className = "msg";
+  $("sm-back").classList.remove("hidden");
+  $("sm-back").onclick = () => smShowList(course);
+  $("sm-go").classList.remove("hidden");
+  $("sm-go").disabled = false;
+  $("sm-go").textContent = "Set up";
+
+  const people = (allRegistrations || [])
+    .filter((r) => (r.status || "active") === "active")
+    .sort((a, b) => `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`));
+
+  body.innerHTML = `
+    <div class="grid2">
+      <div class="field"><label for="sa-places">Places this payment covers</label>
+        <input id="sa-places" type="number" min="1" step="1" inputmode="numeric" value="1"></div>
+      <div class="field"><label for="sa-email">Payer email <span class="hint">the form goes here</span></label>
+        <input id="sa-email" type="email" autocomplete="off"></div>
+    </div>
+    <p class="whenline" style="margin:.4rem 0">Tick anyone <strong>already registered</strong> under this payment (for example with a free code). They fill a place and are not registered again. Leave everyone else unticked.</p>
+    <div id="sa-people"></div>
+    <label class="smp" style="margin-top:.6rem"><input type="checkbox" id="sa-send"> Email the payer the names form now</label>
+    <p class="whenline" id="sa-sum"></p>`;
+  $("sa-email").value = inv.email || "";
+
+  const list = $("sa-people");
+  if (!people.length) list.innerHTML = '<p class="whenline">Nobody registered on this course yet.</p>';
+  for (const r of people) {
+    const lab = document.createElement("label");
+    lab.className = "smp";
+    const box = document.createElement("input");
+    box.type = "checkbox"; box.value = r.id;
+    const t = document.createElement("span");
+    t.textContent = `${r.first_name} ${r.last_name}` +
+      (r.discount_code ? ` — code ${r.discount_code}` : "") +
+      (r.amount_paid_cents ? ` — ${money(r.amount_paid_cents, r.currency)} recorded` : "");
+    lab.append(box, t);
+    list.append(lab);
+  }
+
+  const sum = () => {
+    const places = parseInt($("sa-places").value, 10) || 0;
+    const ticked = list.querySelectorAll("input:checked").length;
+    const left = places - ticked;
+    $("sa-sum").textContent = left < 0
+      ? `You have ticked ${ticked} people but only ${places} places — fix before continuing.`
+      : `${places} places: ${ticked} already registered, ${left} for the payer to name.` +
+        ($("sa-send").checked ? " The form email goes out now." : " No email is sent — use Copy form link later.");
+  };
+  $("sa-places").oninput = sum;
+  $("sa-send").onchange = sum;
+  list.onchange = sum;
+  sum();
+
+  $("sm-go").onclick = async () => {
+    const places = parseInt($("sa-places").value, 10) || 0;
+    const ids = [...list.querySelectorAll("input:checked")].map((b) => b.value);
+    if (places < 1 || ids.length > places) { $("sm-msg").className = "msg err"; $("sm-msg").textContent = "Check the number of places."; return; }
+    if (!window.confirm($("sa-sum").textContent + "\n\nContinue?")) return;
+    $("sm-go").disabled = true;
+    $("sm-msg").className = "msg"; $("sm-msg").textContent = "Setting up…";
+    try {
+      const r = await callInvoice({
+        action: "adopt", stripe_invoice_id: inv.id, course_id: course.id,
+        places, registration_ids: ids, payer_email: $("sa-email").value, send_email: $("sa-send").checked,
+      });
+      $("sm-msg").className = r.left > 0 && $("sa-send").checked && !r.emailed ? "msg err" : "msg ok";
+      $("sm-msg").textContent = `Done — ${r.linked} linked, ${r.left} to be named. ` +
+        ($("sa-send").checked ? (r.emailed ? "Form emailed." : "The form email did NOT send — use Copy form link.") :
+          "Use Copy form link on the invoice when you are ready.");
+      renderGroupInvoices(course);
+      setTimeout(() => smShowList(course), 2500);
+    } catch (err) {
+      $("sm-msg").className = "msg err"; $("sm-msg").textContent = err.message;
+      $("sm-go").disabled = false;
+    }
+  };
+}
+
+function smShowPeople(course, inv) {
+  const body = $("sm-body");
+  $("sm-sub").textContent =
+    `${inv.number} — ${money(inv.amount_cents, inv.currency)} from ${inv.name || inv.email}. ` +
+    `Tick who it paid for. If you tick more than one, it is split evenly.`;
+  $("sm-msg").textContent = ""; $("sm-msg").className = "msg";
+  $("sm-back").classList.remove("hidden");
+  $("sm-back").onclick = () => smShowList(course);
+  $("sm-go").classList.remove("hidden");
+  $("sm-go").disabled = false;
+  $("sm-go").textContent = "Match";
+
+  const people = (allRegistrations || [])
+    .filter((r) => (r.status || "active") === "active")
+    .sort((a, b) => `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`));
+
+  body.innerHTML = "";
+  if (!people.length) { body.innerHTML = '<p class="whenline">This course has no active participants to match to.</p>'; return; }
+
+  const payerName = String(inv.name || "").toLowerCase();
+  const payerEmail = String(inv.email || "").toLowerCase();
+  for (const r of people) {
+    const lab = document.createElement("label");
+    lab.className = "smp";
+    const box = document.createElement("input");
+    box.type = "checkbox"; box.value = r.id;
+    // A likely match is pre-ticked, never assumed: same email, or same name.
+    const full = `${r.first_name} ${r.last_name}`.toLowerCase();
+    box.checked = (payerEmail && String(r.email || "").toLowerCase() === payerEmail) ||
+      (payerName && payerName.includes(String(r.last_name || "").toLowerCase()) && payerName.includes(String(r.first_name || "").toLowerCase()));
+    const t = document.createElement("span");
+    t.textContent = `${r.first_name} ${r.last_name}` +
+      (r.amount_paid_cents ? ` — ${money(r.amount_paid_cents, r.currency)} recorded` : " — nothing recorded");
+    lab.append(box, t);
+    body.append(lab);
+  }
+
+  $("sm-go").onclick = async () => {
+    const ids = [...body.querySelectorAll("input[type=checkbox]:checked")].map((b) => b.value);
+    if (!ids.length) { $("sm-msg").className = "msg err"; $("sm-msg").textContent = "Tick at least one person."; return; }
+    $("sm-go").disabled = true;
+    $("sm-msg").className = "msg"; $("sm-msg").textContent = "Matching…";
+    try {
+      const r = await callInvoice({ action: "match", stripe_invoice_id: inv.id, registration_ids: ids });
+      $("sm-msg").className = "msg ok";
+      $("sm-msg").textContent = `Matched — ${money(r.amount_cents, r.currency)} recorded against ${r.matched} ${r.matched === 1 ? "person" : "people"}.`;
+      // Reflect it straight away so the next match shows the new totals.
+      const { data } = await db.from("registrations")
+        .select("id, amount_paid_cents, currency, payment_status").in("id", ids);
+      for (const d of data || []) {
+        const reg = allRegistrations.find((x) => x.id === d.id);
+        if (reg) Object.assign(reg, d);
+      }
+      setTimeout(() => smShowList(course), 1200);
+    } catch (err) {
+      $("sm-msg").className = "msg err"; $("sm-msg").textContent = err.message;
+      $("sm-go").disabled = false;
+    }
+  };
+}
+
 // Sends (or resends) the registration confirmation to one person.
 // Uses the same server action as "Add participant", so if this works
 // the add-participant email works too, and if it fails the alert
@@ -10210,6 +10445,7 @@ async function wireAdmin(course, totalRegs, liveRegs) {
   renderCoachPicker($("editcoaches"), assigned);
   renderInvoiceAdmin(course);
   renderGroupInvoices(course);
+  $("sm-open").onclick = () => openMatch(course);
   showHostBar(course);
 
   $("savecoaches").onclick = async () => {
