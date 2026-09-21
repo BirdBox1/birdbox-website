@@ -10133,7 +10133,8 @@ async function smShowList(course) {
     left.querySelector(".who").textContent = `${money(inv.amount_cents, inv.currency)} — ${inv.name || inv.email || "No name"}`;
     left.querySelector(".det").textContent =
       [inv.number, inv.email, new Date(inv.created).toLocaleDateString("en-GB", { day: "numeric", month: "short" }), inv.description]
-        .filter(Boolean).join(" · ");
+        .filter(Boolean).join(" · ") +
+      (inv.online ? " · this customer also booked on the website — check it is not that payment" : "");
     const btns = document.createElement("div");
     btns.style.cssText = "display:flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end";
     const pick = document.createElement("button");
