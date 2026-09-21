@@ -673,9 +673,13 @@ async function listUnmatched() {
     : { data: [] };
   const onlineCustomers = new Set((online || []).map((r) => r.stripe_customer_id));
 
+  // A customer who also booked on the website used to be left out
+  // entirely, which hid real hand-made invoices (a gym owner who once
+  // booked himself, say). They are now shown, marked, and listed last.
   const out = handMade
-    .filter((i) => !doneIds.has(i.id) && !onlineCustomers.has(i.customer))
+    .filter((i) => !doneIds.has(i.id))
     .map((i) => ({
+      online: onlineCustomers.has(i.customer),
       id: i.id,
       number: i.number,
       name: i.customer_name || "",
@@ -686,6 +690,7 @@ async function listUnmatched() {
       description: i.description || (i.lines && i.lines.data && i.lines.data[0] && i.lines.data[0].description) || "",
     }));
 
+  out.sort((a, b) => (a.online === b.online ? 0 : a.online ? 1 : -1));
   return json({ invoices: out });
 }
 
