@@ -497,18 +497,45 @@ function isPng(bytes) {
     bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
 }
 
-async function loadArtwork(course) {
-  const base = SITE_URL + templateBase(course);
-  for (const ext of [".jpg", ".jpeg", ".png"]) {
+// Where the site's own files can be read from, best first. The public
+// domain can fail from inside Netlify — while DNS for a newly moved
+// domain settles, the function can still be sent to the old host —
+// so the deploy's own address (always this exact build) is tried
+// first, then the site's netlify.app address, then the domain.
+function siteBases() {
+  const list = [
+    process.env.DEPLOY_URL,
+    process.env.URL,
+    "https://warm-beijinho-9a5b1c.netlify.app",
+    SITE_URL,
+  ].filter(Boolean).map((u) => String(u).replace(/\/+$/, ""));
+  return [...new Set(list)];
+}
+
+async function fetchSiteFile(path) {
+  for (const base of siteBases()) {
     try {
-      const res = await fetch(base + ext);
-      if (!res.ok) continue;
+      const res = await fetch(base + path);
+      if (!res.ok) {
+        console.warn("Site file not at", base + path, res.status);
+        continue;
+      }
       const bytes = new Uint8Array(await res.arrayBuffer());
-      if (!bytes.length) continue;
+      // An HTML page (a 404 page served as 200) is not an image or font.
+      if (!bytes.length || bytes[0] === 0x3c) continue;
       return bytes;
     } catch (err) {
-      console.error("Could not fetch artwork:", base + ext, err.message);
+      console.error("Could not fetch", base + path, err.message);
     }
+  }
+  return null;
+}
+
+async function loadArtwork(course) {
+  const base = templateBase(course);
+  for (const ext of [".jpg", ".jpeg", ".png"]) {
+    const bytes = await fetchSiteFile(base + ext);
+    if (bytes) return bytes;
   }
   console.error("No artwork found for", base);
   return null;
@@ -518,17 +545,9 @@ async function loadArtwork(course) {
 // still generates in Helvetica Bold rather than failing — a plainer
 // certificate is better than none.
 async function loadNameFont() {
-  try {
-    const res = await fetch(SITE_URL + "/certificates/name-font.ttf");
-    if (!res.ok) {
-      console.warn("Name font not found; falling back to Helvetica Bold.");
-      return null;
-    }
-    return new Uint8Array(await res.arrayBuffer());
-  } catch (err) {
-    console.warn("Could not fetch the name font:", err.message);
-    return null;
-  }
+  const bytes = await fetchSiteFile("/certificates/name-font.ttf");
+  if (!bytes) console.warn("Name font not found; falling back to Helvetica Bold.");
+  return bytes;
 }
 
 async function loadTemplate(course) {
