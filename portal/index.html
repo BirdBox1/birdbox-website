@@ -1453,7 +1453,7 @@
       <h3>Participant invoices</h3>
       <div class="admin-row">
         <button class="btn small" id="gi-open" type="button">Send an invoice</button>
-        <span class="why">For a gym or company paying for places. VAT is charged for where the seminar runs.</span>
+        <span class="why">Pay in full or a payment plan, for one person or a group. VAT is charged for where the seminar runs.</span>
       </div>
       <div id="gi-list"></div>
       <div class="admin-row" style="margin-top:.6rem">
@@ -2203,8 +2203,34 @@
       </div>
     </div>
 
+    <div class="field">
+      <label for="gi-mode">Payment</label>
+      <select id="gi-mode">
+        <option value="full">Pay in full — invoice due in 7 days</option>
+        <option value="plan">Payment plan — deposit, then monthly</option>
+      </select>
+    </div>
+    <div id="gi-planbox" class="hidden">
+      <div class="grid2">
+        <div class="field">
+          <label for="gi-dep">Deposit <span class="hint">% of the total, paid today</span></label>
+          <input id="gi-dep" type="number" min="1" max="99" step="1" value="15" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="gi-count">Monthly payments</label>
+          <select id="gi-count">
+            <option>3</option><option>4</option><option>5</option><option selected>6</option><option>7</option><option>8</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="gi-first">First monthly payment</label>
+        <input id="gi-first" type="date">
+      </div>
+    </div>
+
     <div id="gi-sum"></div>
-    <p class="whenline">Due in 7 days. Stripe emails it with a link to pay. Once paid, the payer is automatically emailed a form to name each person, and each one is registered and sent their confirmation.</p>
+    <p class="whenline" id="gi-when">Due in 7 days. Stripe emails it with a link to pay. Once paid, the payer is automatically emailed a form to name each person, and each one is registered and sent their confirmation.</p>
     <p class="msg" id="gi-msg"></p>
 
     <div class="row">
@@ -9706,7 +9732,7 @@ async function renderGroupInvoices(course) {
   box.innerHTML = '<p class="whenline">Loading…</p>';
 
   const { data, error } = await db.from("invoices")
-    .select("id, payer_name, business_name, payer_email, places, total_cents, currency, status, due_date, paid_at, hosted_invoice_url, stripe_invoice_number, discount_code, created_at, names_token, names_emailed_at")
+    .select("id, payer_name, business_name, payer_email, places, total_cents, currency, status, due_date, paid_at, hosted_invoice_url, stripe_invoice_number, discount_code, created_at, names_token, names_emailed_at, kind, plan_state, schedule, paid_cents, instalments")
     .eq("course_id", course.id)
     .order("created_at", { ascending: false });
 
@@ -9729,7 +9755,19 @@ async function renderGroupInvoices(course) {
     who.textContent = (inv.business_name || inv.payer_name) +
       (inv.stripe_invoice_number ? " · " + inv.stripe_invoice_number : "");
 
-    const [cls, label] = GI_STATUS[inv.status] || ["draft", inv.status];
+    const isPlan = inv.kind === "plan";
+    const inst = isPlan && Array.isArray(inv.schedule) ? inv.schedule.filter((x) => x.kind !== "deposit") : [];
+    const instPaid = inst.filter((x) => x.status === "paid").length;
+    const nextDue = inst.find((x) => x.status !== "paid" && x.status !== "cancelled");
+    const [cls, label] = isPlan
+      ? ({
+          awaiting_deposit: ["warn", "Plan · awaiting deposit"],
+          active: ["done", `Plan · ${instPaid} of ${inst.length} paid`],
+          completed: ["done", "Plan · paid in full"],
+          failed: ["bad", "Plan · payment failed"],
+          cancelled: ["draft", "Plan · cancelled"],
+        }[inv.plan_state] || ["draft", "Plan"])
+      : (GI_STATUS[inv.status] || ["draft", inv.status]);
     const state = document.createElement("span");
     state.className = "pill " + cls;
     state.textContent = label;
@@ -9742,7 +9780,10 @@ async function renderGroupInvoices(course) {
       (inv.status === "paid" ? ` · ${filled} of ${inv.places} named` : "") +
       (inv.status === "paid" && filled < inv.places
         ? (inv.names_emailed_at ? " · names form sent" : " · names form NOT sent") : "") +
-      (inv.status === "sent" && inv.due_date ? ` · due ${inv.due_date}` : "");
+      (inv.status === "sent" && inv.due_date && !isPlan ? ` · due ${inv.due_date}` : "") +
+      (isPlan && inv.plan_state !== "awaiting_deposit" ? ` · ${money(inv.paid_cents || 0, inv.currency)} received` : "") +
+      (isPlan && ["active", "failed"].includes(inv.plan_state) && nextDue
+        ? ` · next ${nextDue.due_date}${nextDue.status === "retrying" ? " (retrying)" : ""}` : "");
 
     const files = document.createElement("span");
     files.className = "files";
@@ -9772,7 +9813,44 @@ async function renderGroupInvoices(course) {
       b.onclick = () => window.open(inv.hosted_invoice_url, "_blank", "noopener");
       files.append(b);
     }
-    if (inv.status === "sent") {
+    if (isPlan && inv.plan_state === "awaiting_deposit") {
+      const c = document.createElement("button");
+      c.className = "btn ghost tiny"; c.type = "button";
+      c.textContent = "Copy plan link";
+      c.onclick = async () => {
+        const link = location.origin + "/plan/?t=" + inv.names_token;
+        try { await navigator.clipboard.writeText(link); c.textContent = "Link copied"; }
+        catch (e) { window.prompt("Copy this link:", link); }
+      };
+      const r = document.createElement("button");
+      r.className = "btn ghost tiny"; r.type = "button";
+      r.textContent = "Resend email";
+      r.onclick = async () => {
+        r.disabled = true;
+        try { await callInvoice({ action: "resend_plan", invoice_id: inv.id }); r.textContent = "Sent"; }
+        catch (err) { window.alert(err.message); r.disabled = false; }
+      };
+      files.append(c, r);
+    }
+    if (isPlan && ["awaiting_deposit", "active", "failed"].includes(inv.plan_state)) {
+      const b = document.createElement("button");
+      b.className = "btn ghost tiny danger"; b.type = "button";
+      b.textContent = "Cancel plan";
+      b.onclick = async () => {
+        const warn = inv.plan_state === "awaiting_deposit"
+          ? "The plan link stops working. Nothing has been charged."
+          : "Every monthly payment not yet taken is stopped. Money already paid is NOT refunded, and nobody is removed from the course.";
+        if (!window.confirm(`Cancel the payment plan for ${inv.business_name || inv.payer_name}?\n\n${warn}`)) return;
+        b.disabled = true;
+        try {
+          const r = await callInvoice({ action: "cancel_plan", invoice_id: inv.id });
+          if (r.warning) window.alert(r.warning);
+          renderGroupInvoices(course);
+        } catch (err) { window.alert("That did not work: " + err.message); b.disabled = false; }
+      };
+      files.append(b);
+    }
+    if (inv.status === "sent" && !isPlan) {
       const b = document.createElement("button");
       b.className = "btn ghost tiny danger"; b.type = "button";
       b.textContent = "Void";
@@ -9798,6 +9876,14 @@ async function openInvoiceForm(course) {
 
   $("gi-course").textContent = course.title;
   for (const id of ["gi-name", "gi-biz", "gi-email", "gi-a1", "gi-a2", "gi-city", "gi-post", "gi-vatno", "gi-disc"]) $(id).value = "";
+  $("gi-mode").value = "full";
+  $("gi-dep").value = "15";
+  $("gi-count").value = "6";
+  $("gi-first").value = giAddMonths(new Date().toISOString().slice(0, 10), 1);
+  $("gi-mode").onchange = giMode;
+  for (const id of ["gi-dep", "gi-first"]) $(id).oninput = giSummary;
+  $("gi-count").onchange = giSummary;
+  giMode();
   $("gi-disctype").value = "pct";
   $("gi-amtopt").textContent = `${course.currency || "EUR"} off the total (excl. VAT)`;
   $("gi-places").value = "1";
@@ -9838,6 +9924,45 @@ async function openInvoiceForm(course) {
   $("giwrap").classList.remove("hidden");
 }
 
+const GI_WHEN_FULL = "Due in 7 days. Stripe emails it with a link to pay. Once paid, the payer is automatically emailed a form to name each person, and each one is registered and sent their confirmation.";
+const GI_WHEN_PLAN = "The payer is emailed a link to see the schedule, agree to it and pay the deposit by card. Their places are confirmed on the deposit, their card is saved, and each monthly payment is taken automatically. They are sent the form to name each person straight after paying.";
+
+function giAddMonths(isoDate, months) {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const t = new Date(Date.UTC(y, m - 1 + months, 1));
+  const last = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate();
+  t.setUTCDate(Math.min(d, last));
+  return t.toISOString().slice(0, 10);
+}
+
+function giMode() {
+  const plan = $("gi-mode").value === "plan";
+  $("gi-planbox").classList.toggle("hidden", !plan);
+  $("gi-when").textContent = plan ? GI_WHEN_PLAN : GI_WHEN_FULL;
+  $("gi-send").textContent = plan ? "Send payment plan" : "Send invoice";
+  giSummary();
+}
+
+// Mirrors createPlan() in invoice-admin.mjs, so what is shown here is
+// what the payer is charged.
+function giPlanSchedule(net, rate) {
+  const pct = Number($("gi-dep").value) || 0;
+  const count = parseInt($("gi-count").value, 10) || 1;
+  const first = $("gi-first").value;
+  const vatOf = (c) => Math.round(c * rate / 100);
+  const depNet = Math.round(net * pct / 100);
+  const rest = net - depNet;
+  const each = Math.floor(rest / count);
+  const out = [{ label: `Deposit (${pct}%) — today`, gross: depNet + vatOf(depNet) }];
+  for (let i = 1; i <= count; i++) {
+    const partNet = i === count ? rest - each * (count - 1) : each;
+    const when = first ? new Date(giAddMonths(first, i - 1) + "T12:00:00Z")
+      .toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—";
+    out.push({ label: `Payment ${i} — ${when}`, gross: partNet + vatOf(partNet) });
+  }
+  return out;
+}
+
 function giSummary() {
   const cur = giCourse.currency || "EUR";
   const unit = Math.round(Number($("gi-price").value) * 100) || 0;
@@ -9856,6 +9981,15 @@ function giSummary() {
     disc ? `Discount${isPct ? " " + dval + "%" : ""}: −${money(disc, cur)}` : null,
     rate ? `VAT ${Number(rate.toFixed(2))}%: ${money(vat, cur)}` : "No VAT",
   ].filter(Boolean);
+  if ($("gi-mode") && $("gi-mode").value === "plan") {
+    const sched = giPlanSchedule(taxable, rate);
+    const total = sched.reduce((a, x) => a + x.gross, 0);
+    $("gi-sum").innerHTML = lines.map((l) => `<div>${l}</div>`).join("") +
+      `<div class="tot">Total ${money(total, cur)}</div>` +
+      `<div style="margin-top:.5rem;border-top:1px solid var(--rule);padding-top:.5rem">` +
+      sched.map((x) => `<div>${x.label}: ${money(x.gross, cur)}</div>`).join("") + `</div>`;
+    return;
+  }
   $("gi-sum").innerHTML = lines.map((l) => `<div>${l}</div>`).join("") +
     `<div class="tot">Total ${money(taxable + vat, cur)}</div>`;
 }
@@ -9865,13 +9999,22 @@ async function giSend() {
   const dval = Number($("gi-disc").value) || 0;
   const isPct = $("gi-disctype").value === "pct";
   if (dval < 0 || (isPct && dval > 100)) { msg.className = "msg err"; msg.textContent = "Check the discount — a percentage must be between 0 and 100."; return; }
-  if (!window.confirm(`Send this invoice to ${$("gi-email").value.trim()}?\n\n${$("gi-sum").innerText}`)) return;
+  const plan = $("gi-mode").value === "plan";
+  if (plan) {
+    const pct = Number($("gi-dep").value);
+    if (!(pct >= 1 && pct <= 99)) { msg.className = "msg err"; msg.textContent = "The deposit must be between 1% and 99%."; return; }
+    if (!$("gi-first").value) { msg.className = "msg err"; msg.textContent = "Choose the date of the first monthly payment."; return; }
+  }
+  if (!window.confirm(`Send this ${plan ? "payment plan" : "invoice"} to ${$("gi-email").value.trim()}?\n\n${$("gi-sum").innerText}`)) return;
 
   $("gi-send").disabled = true;
   msg.className = "msg"; msg.textContent = "Sending…";
   try {
     const r = await callInvoice({
-      action: "create_and_send",
+      action: plan ? "create_plan" : "create_and_send",
+      deposit_percent: $("gi-dep").value,
+      instalments: $("gi-count").value,
+      first_instalment_date: $("gi-first").value,
       course_id: giCourse.id,
       payer_name: $("gi-name").value,
       business_name: $("gi-biz").value,
@@ -9888,8 +10031,11 @@ async function giSend() {
       discount_percent: isPct && dval > 0 ? dval : 0,
       discount_amount: !isPct && dval > 0 ? dval : 0,
     });
-    msg.className = "msg ok";
-    msg.textContent = `Sent${r.number ? " — invoice " + r.number : ""}, ${money(r.total_cents, r.currency)}.`;
+    msg.className = plan && !r.emailed ? "msg err" : "msg ok";
+    msg.textContent = plan
+      ? (r.emailed ? `Payment plan sent — ${money(r.total_cents, r.currency)} in total.`
+                   : "Plan saved, but the email did NOT send — use Copy plan link on the list.")
+      : `Sent${r.number ? " — invoice " + r.number : ""}, ${money(r.total_cents, r.currency)}.`;
     setTimeout(() => { $("giwrap").classList.add("hidden"); renderGroupInvoices(giCourse); }, 1500);
   } catch (err) {
     msg.className = "msg err";
