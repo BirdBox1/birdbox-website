@@ -631,9 +631,17 @@ async function onPlanDepositPaid(session) {
     .single();
   if (upErr) throw new Error("invoices: " + upErr.message);
 
+  // One place: the payer is the participant, so they are registered
+  // now. The names page they land on then shows them as registered.
+  let registered = false;
+  if (row.places === 1 && !saved.names_emailed_at) {
+    registered = await registerPayer({ ...row, plan_state: "active", paid_cents: full.amount_total || 0 });
+    if (registered) await supabase.from("invoices").update({ names_emailed_at: new Date().toISOString() }).eq("id", row.id);
+  }
+
   // The Checkout success page takes them straight to the names form;
   // this email is the copy they can come back to.
-  let emailed = !!saved.names_emailed_at;
+  let emailed = !!saved.names_emailed_at || registered;
   if (!emailed) {
     emailed = await sendNamesForm(saved, { number: "", id: session.id });
     if (emailed) await supabase.from("invoices").update({ names_emailed_at: new Date().toISOString() }).eq("id", row.id);
@@ -645,7 +653,9 @@ async function onPlanDepositPaid(session) {
     `${who} paid the deposit of ${((full.amount_total || 0) / 100).toFixed(2)} ${String(row.currency).toUpperCase()} ` +
     `for ${row.places} place${row.places === 1 ? "" : "s"} on ${course}. ` +
     `${row.instalments} monthly instalment${row.instalments === 1 ? "" : "s"} follow.\n\n` +
-    (emailed ? "They have been sent the form to name each person." : "The names form email did NOT send — copy the form link from the portal.") +
+    (registered ? `${row.payer_name} has been registered and sent their confirmation.`
+      : emailed ? "They have been sent the form to name each person."
+      : "The names form email did NOT send — copy the form link from the portal.") +
     (problems.length ? "\n\nThese instalments could not be set up in Stripe and need doing by hand:\n" + problems.join("\n") : "")
   );
 }
@@ -866,13 +876,28 @@ async function onGroupInvoicePaid(invoice) {
       last_error: null,
     })
     .eq("id", id)
-    .select("payer_name, business_name, payer_email, places, names_token, names_emailed_at, courses ( title, brand )")
+    .select("id, course_id, kind, plan_state, paid_cents, total_cents, currency, unit_price_cents, vat_rate, discount_code, discount_percent, discount_amount_cents, payer_name, business_name, payer_email, places, names_token, names_emailed_at, courses ( title, brand )")
     .maybeSingle();
 
   if (error) throw new Error("invoices: " + error.message);
   if (!row) {
     console.warn("Paid portal invoice has no row", { id, invoice: invoice.id });
     return;
+  }
+
+  // One place: the payer is the participant. Register them straight
+  // away instead of asking them to fill in a form for themselves.
+  if (row.places === 1 && !row.names_emailed_at) {
+    const done = await registerPayer(row);
+    if (done) {
+      await supabase.from("invoices").update({ names_emailed_at: new Date().toISOString() }).eq("id", id);
+      await alert(
+        "Invoice paid — registered",
+        `${row.payer_name} paid invoice ${invoice.number || invoice.id} for 1 place on ` +
+        `${(row.courses && row.courses.title) || "a course"} and has been registered and sent their confirmation.`
+      );
+      return;
+    }
   }
 
   const who = row.business_name || row.payer_name;
@@ -904,6 +929,57 @@ async function onGroupInvoicePaid(invoice) {
       `copy the form link to them yourself or add each person.`
     );
   }
+}
+
+// Registers the payer themselves on a one-place invoice or plan, the
+// same way the names form would. Returns false (and the names form is
+// used instead) if their name cannot be split into first and last, the
+// course is full, or anything else stops it.
+async function registerPayer(row) {
+  const parts = String(row.payer_name || "").trim().split(/\s+/);
+  const first = parts.shift() || "";
+  const last = parts.join(" ");
+  if (!first || !last || !row.payer_email) return false;
+
+  const { count } = await supabase
+    .from("registrations").select("id", { count: "exact", head: true }).eq("invoice_id", row.id);
+  if ((count || 0) > 0) return true;
+
+  const isPlan = row.kind === "plan";
+  const vatFactor = 1 + (Number(row.vat_rate) || 0) / 100;
+  const discountEach = row.discount_amount_cents
+    ? Math.round(row.discount_amount_cents * vatFactor)
+    : Math.round((row.unit_price_cents || 0) * (Number(row.discount_percent) || 0) / 100 * vatFactor);
+
+  const { error } = await supabase.from("registrations").insert({
+    course_id: row.course_id,
+    first_name: first,
+    last_name: last,
+    email: row.payer_email,
+    status: "active",
+    source: "manual",
+    source_note: isPlan ? "Payment plan — " + row.payer_name : "Invoice — " + row.payer_name,
+    payment_status: isPlan && row.plan_state !== "completed" ? "deposit_paid" : "paid_in_full",
+    amount_paid_cents: (isPlan ? row.paid_cents : row.total_cents) || 0,
+    currency: String(row.currency || "EUR").toUpperCase(),
+    discount_code: row.discount_code || null,
+    discount_cents: discountEach,
+    invoice_id: row.id,
+  });
+  if (error) {
+    console.error("Could not register payer", error);
+    return false;
+  }
+
+  await sendConfirmation({
+    courseId: row.course_id,
+    email: row.payer_email,
+    firstName: first,
+    option: "full",
+    balanceCents: 0,
+    online: null,
+  });
+  return true;
 }
 
 // The email to whoever paid, with the link to the names form.
