@@ -19,7 +19,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
-import { sendConfirmation } from "./stripe-webhook.mjs";
+import { sendConfirmation, sendNamesForm } from "./stripe-webhook.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -56,6 +56,10 @@ export default async (request) => {
       case "create_and_send": return await createAndSend(body, me);
       case "add_participant": return await addParticipant(body, me);
       case "void":            return await voidInvoice(body);
+      case "list_unmatched":  return await listUnmatched();
+      case "match":           return await matchInvoice(body, me);
+      case "ignore":          return await ignoreInvoice(body, me);
+      case "adopt":           return await adoptInvoice(body, me);
       default:
         return json({ error: `Unknown action "${body.action}".` }, 400);
     }
@@ -408,6 +412,246 @@ async function voidInvoice(b) {
   }
   await supabase.from("invoices").update({ status: "void" }).eq("id", inv.id);
   return json({ voided: true });
+}
+
+// ---------------------------------------------------------------
+// Stripe invoices made by hand in the dashboard
+// ---------------------------------------------------------------
+// They carry no link to anybody, so the money never reached the
+// portal. These actions list them and let an admin say who each one
+// was for. Anything the system made itself is left out: portal
+// invoices, balance invoices (they carry a registration), host
+// payments (they carry a course), and anything for a customer who
+// booked through the website checkout.
+
+const MATCH_SINCE = Math.floor(new Date("2026-08-01T00:00:00Z").getTime() / 1000);
+
+async function listUnmatched() {
+  const all = [];
+  for await (const inv of stripe.invoices.list({ status: "paid", limit: 100, created: { gte: MATCH_SINCE } })) {
+    all.push(inv);
+    if (all.length >= 500) break;
+  }
+
+  const handMade = all.filter((i) => {
+    const m = i.metadata || {};
+    return !m.registration_id && !m.portal_invoice_id && !m.course_id;
+  });
+  if (!handMade.length) return json({ invoices: [] });
+
+  const ids = handMade.map((i) => i.id);
+  const customers = [...new Set(handMade.map((i) => i.customer).filter(Boolean))];
+
+  const { data: done } = await supabase
+    .from("stripe_matches").select("stripe_invoice_id").in("stripe_invoice_id", ids);
+  const doneIds = new Set((done || []).map((d) => d.stripe_invoice_id));
+
+  const { data: online } = customers.length
+    ? await supabase.from("registrations").select("stripe_customer_id").in("stripe_customer_id", customers)
+    : { data: [] };
+  const onlineCustomers = new Set((online || []).map((r) => r.stripe_customer_id));
+
+  const out = handMade
+    .filter((i) => !doneIds.has(i.id) && !onlineCustomers.has(i.customer))
+    .map((i) => ({
+      id: i.id,
+      number: i.number,
+      name: i.customer_name || "",
+      email: i.customer_email || "",
+      amount_cents: i.amount_paid,
+      currency: String(i.currency || "").toUpperCase(),
+      created: new Date(i.created * 1000).toISOString(),
+      description: i.description || (i.lines && i.lines.data && i.lines.data[0] && i.lines.data[0].description) || "",
+    }));
+
+  return json({ invoices: out });
+}
+
+async function matchInvoice(b, me) {
+  const regIds = Array.isArray(b.registration_ids) ? [...new Set(b.registration_ids)] : [];
+  if (!b.stripe_invoice_id) return json({ error: "No invoice given." }, 400);
+  if (!regIds.length) return json({ error: "Tick at least one participant." }, 400);
+
+  const { data: already } = await supabase
+    .from("stripe_matches").select("id").eq("stripe_invoice_id", b.stripe_invoice_id).limit(1);
+  if (already && already.length) return json({ error: "That invoice has already been matched." }, 400);
+
+  const inv = await stripe.invoices.retrieve(b.stripe_invoice_id);
+  if (inv.status !== "paid") return json({ error: "That invoice is not paid." }, 400);
+  const currency = String(inv.currency || "").toUpperCase();
+
+  const { data: regs, error } = await supabase
+    .from("registrations")
+    .select("id, first_name, last_name, amount_paid_cents, currency, payment_status")
+    .in("id", regIds);
+  if (error) return json({ error: error.message }, 500);
+  if (!regs || regs.length !== regIds.length) return json({ error: "One of those participants could not be found." }, 404);
+
+  // A person already holding money in another currency cannot have
+  // this added to it without the total becoming meaningless.
+  for (const r of regs) {
+    if ((r.amount_paid_cents || 0) > 0 && r.currency && String(r.currency).toUpperCase() !== currency) {
+      return json({ error: `${r.first_name} ${r.last_name} already has a payment in ${r.currency}; this invoice is in ${currency}.` }, 400);
+    }
+  }
+
+  // Split evenly; any odd cent goes to the first person so the total
+  // still equals the invoice.
+  const n = regs.length;
+  const base = Math.floor(inv.amount_paid / n);
+  const extra = inv.amount_paid - base * n;
+
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    const r = regs[i];
+    const share = base + (i === 0 ? extra : 0);
+    const patch = {
+      amount_paid_cents: (r.amount_paid_cents || 0) + share,
+      currency,
+    };
+    if (!["paid_in_full", "refunded"].includes(r.payment_status)) patch.payment_status = "paid_in_full";
+
+    const { error: uErr } = await supabase.from("registrations").update(patch).eq("id", r.id);
+    if (uErr) return json({ error: `Could not update ${r.first_name}: ${uErr.message}` }, 500);
+
+    rows.push({
+      stripe_invoice_id: inv.id,
+      stripe_invoice_number: inv.number,
+      registration_id: r.id,
+      amount_cents: share,
+      currency,
+      matched_by: me.id,
+    });
+  }
+
+  const { error: mErr } = await supabase.from("stripe_matches").insert(rows);
+  if (mErr) return json({ error: "Amounts saved, but the match record failed: " + mErr.message }, 500);
+
+  return json({ matched: n, amount_cents: inv.amount_paid, currency });
+}
+
+// A hand-made invoice for a block of places, turned into a portal
+// invoice so the payer can name the people through the form. Anyone
+// already registered under this payment (by a discount code, or added
+// by hand) is ticked and linked, so they fill a place and are never
+// registered twice. Nobody new is created here — only the payer's
+// form does that.
+async function adoptInvoice(b, me) {
+  const places = parseInt(b.places, 10);
+  const linkIds = Array.isArray(b.registration_ids) ? [...new Set(b.registration_ids)] : [];
+  if (!b.stripe_invoice_id || !b.course_id) return json({ error: "Invoice or course missing." }, 400);
+  if (!Number.isFinite(places) || places < 1) return json({ error: "Number of places must be at least 1." }, 400);
+  if (linkIds.length > places) return json({ error: "More people ticked than places paid for." }, 400);
+
+  const { data: already } = await supabase
+    .from("stripe_matches").select("id").eq("stripe_invoice_id", b.stripe_invoice_id).limit(1);
+  if (already && already.length) return json({ error: "That invoice has already been matched." }, 400);
+
+  const inv = await stripe.invoices.retrieve(b.stripe_invoice_id);
+  if (inv.status !== "paid") return json({ error: "That invoice is not paid." }, 400);
+  const currency = String(inv.currency || "").toUpperCase();
+  const payerEmail = clean(b.payer_email) || inv.customer_email;
+  if (!payerEmail || !payerEmail.includes("@")) return json({ error: "A valid payer email is needed." }, 400);
+
+  const { data: course } = await supabase
+    .from("courses").select("id, title, brand, country").eq("id", b.course_id).single();
+  if (!course) return json({ error: "Course not found." }, 404);
+
+  let vatRate = 0;
+  const { data: vr } = await supabase
+    .from("vat_rates").select("rate").eq("code", String(course.country || "").toUpperCase()).maybeSingle();
+  if (vr && Number(vr.rate) > 0) vatRate = Number(vr.rate) <= 1 ? Number(vr.rate) * 100 : Number(vr.rate);
+
+  const total = inv.amount_paid;
+  const vat = typeof inv.tax === "number" ? inv.tax : (taxTotal(inv) || 0);
+  const net = total - vat;
+
+  let regs = [];
+  if (linkIds.length) {
+    const { data, error } = await supabase
+      .from("registrations")
+      .select("id, course_id, first_name, last_name, amount_paid_cents, currency, payment_status, invoice_id")
+      .in("id", linkIds);
+    if (error) return json({ error: error.message }, 500);
+    regs = data || [];
+    if (regs.length !== linkIds.length) return json({ error: "One of those participants could not be found." }, 404);
+    for (const r of regs) {
+      if (r.course_id !== course.id) return json({ error: `${r.first_name} ${r.last_name} is on a different course.` }, 400);
+      if (r.invoice_id) return json({ error: `${r.first_name} ${r.last_name} is already on another invoice.` }, 400);
+      if ((r.amount_paid_cents || 0) > 0 && r.currency && String(r.currency).toUpperCase() !== currency) {
+        return json({ error: `${r.first_name} ${r.last_name} already has a payment in ${r.currency}.` }, 400);
+      }
+    }
+  }
+
+  const { data: row, error: insErr } = await supabase
+    .from("invoices")
+    .insert({
+      course_id: course.id,
+      payer_name: inv.customer_name || payerEmail,
+      payer_email: payerEmail,
+      vat_country: String(course.country || "").toUpperCase() || null,
+      vat_rate: vatRate,
+      places,
+      unit_price_cents: Math.round(net / places),
+      currency,
+      subtotal_cents: net,
+      vat_cents: vat,
+      total_cents: total,
+      stripe_customer_id: typeof inv.customer === "string" ? inv.customer : null,
+      stripe_invoice_id: inv.id,
+      stripe_invoice_number: inv.number,
+      hosted_invoice_url: inv.hosted_invoice_url || null,
+      status: "paid",
+      paid_at: inv.status_transitions && inv.status_transitions.paid_at
+        ? new Date(inv.status_transitions.paid_at * 1000).toISOString() : new Date().toISOString(),
+      created_by: me.id,
+    })
+    .select("id, names_token, payer_name, payer_email, places")
+    .single();
+  if (insErr) return json({ error: "Could not set it up: " + insErr.message }, 500);
+
+  const share = Math.round(total / places);
+  const matchRows = [{
+    stripe_invoice_id: inv.id, stripe_invoice_number: inv.number, registration_id: null,
+    amount_cents: total, currency, matched_by: me.id,
+  }];
+  for (const r of regs) {
+    const patch = { invoice_id: row.id, amount_paid_cents: (r.amount_paid_cents || 0) + share, currency };
+    if (!["paid_in_full", "refunded"].includes(r.payment_status)) patch.payment_status = "paid_in_full";
+    const { error: uErr } = await supabase.from("registrations").update(patch).eq("id", r.id);
+    if (uErr) return json({ error: `Set up, but could not link ${r.first_name}: ${uErr.message}` }, 500);
+  }
+  await supabase.from("stripe_matches").insert(matchRows);
+
+  const left = places - regs.length;
+  let emailed = false;
+  if (b.send_email && left > 0) {
+    emailed = await sendNamesForm(
+      { ...row, courses: { title: course.title, brand: course.brand } },
+      { number: inv.number, id: inv.id }
+    );
+    if (emailed) await supabase.from("invoices").update({ names_emailed_at: new Date().toISOString() }).eq("id", row.id);
+  }
+
+  return json({ set_up: true, linked: regs.length, left, emailed });
+}
+
+// For a paid invoice that is not a course place at all.
+async function ignoreInvoice(b, me) {
+  if (!b.stripe_invoice_id) return json({ error: "No invoice given." }, 400);
+  const inv = await stripe.invoices.retrieve(b.stripe_invoice_id);
+  const { error } = await supabase.from("stripe_matches").insert({
+    stripe_invoice_id: inv.id,
+    stripe_invoice_number: inv.number,
+    registration_id: null,
+    amount_cents: inv.amount_paid,
+    currency: String(inv.currency || "").toUpperCase(),
+    ignored: true,
+    matched_by: me.id,
+  });
+  if (error) return json({ error: error.message }, 500);
+  return json({ ignored: true });
 }
 
 // ---------------------------------------------------------------
