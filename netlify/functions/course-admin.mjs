@@ -10,6 +10,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
+import { sendConfirmation } from "./stripe-webhook.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -271,6 +272,22 @@ async function sendRegistrationEmail({ registration_id }) {
 
   if (error || !reg) return json({ error: "Registration not found" }, 404);
   if (!reg.email) return json({ error: "That registration has no email address." }, 400);
+
+  // The same confirmation the website sends after checkout — dates,
+  // venue, what to bring, the manual. Only TCC and TGC have that copy;
+  // anything else falls through to the short version below.
+  const branded = await sendConfirmation({
+    courseId: reg.course_id,
+    email: reg.email,
+    firstName: reg.first_name || "there",
+    option: "full",
+    balanceCents: 0,
+    online: null,
+  });
+  if (branded === "sent") return json({ sent: 1 });
+  if (branded === "failed") {
+    return json({ error: "The email provider rejected it. Check the address is right, then try again." }, 502);
+  }
 
   const course = reg.courses || {};
   const tz = safeZone(course.timezone);
