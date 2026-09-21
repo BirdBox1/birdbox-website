@@ -518,7 +518,7 @@ async function onGroupInvoicePaid(invoice) {
       last_error: null,
     })
     .eq("id", id)
-    .select("payer_name, business_name, places, currency, total_cents, courses ( title )")
+    .select("payer_name, business_name, payer_email, places, names_token, names_emailed_at, courses ( title, brand )")
     .maybeSingle();
 
   if (error) throw new Error("invoices: " + error.message);
@@ -529,14 +529,97 @@ async function onGroupInvoicePaid(invoice) {
 
   const who = row.business_name || row.payer_name;
   const course = (row.courses && row.courses.title) || "a course";
-  await alert(
-    "Invoice paid — add the participants",
+  const paidLine =
     `${who} has paid invoice ${invoice.number || invoice.id} for ${row.places} ` +
     `place${row.places === 1 ? "" : "s"} on ${course}: ` +
-    `${((invoice.amount_paid || 0) / 100).toFixed(2)} ${(invoice.currency || "").toUpperCase()}.\n\n` +
-    `Open the course in the portal → Admin → Participant invoices, and add ` +
-    `each person. They get their confirmation email as they are added.`
-  );
+    `${((invoice.amount_paid || 0) / 100).toFixed(2)} ${(invoice.currency || "").toUpperCase()}.`;
+
+  // Stripe can deliver the same event twice; the payer gets one email.
+  if (row.names_emailed_at) return;
+
+  const sent = await sendNamesForm(row, invoice);
+  if (sent) {
+    await supabase.from("invoices").update({ names_emailed_at: new Date().toISOString() }).eq("id", id);
+    await alert(
+      "Invoice paid",
+      paidLine + "\n\n" +
+      `${row.payer_email} has been emailed the form to name each person. ` +
+      `Everyone is registered and sent their confirmation as they are named — ` +
+      `nothing to do unless they ask for help.`
+    );
+  } else {
+    await alert(
+      "Invoice paid — names form NOT sent",
+      paidLine + "\n\n" +
+      `The email asking ${row.payer_email} to name the participants did not send. ` +
+      `Open the course in the portal → Admin → Participant invoices, and either ` +
+      `copy the form link to them yourself or add each person.`
+    );
+  }
+}
+
+// The email to whoever paid, with the link to the names form.
+export async function sendNamesForm(row, invoice) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key || !row.names_token || !row.payer_email) return false;
+
+  const brandKey = String((row.courses && row.courses.brand) || "").toLowerCase();
+  const accent = (BRAND[brandKey] || {}).colour || "#2f7fd0";
+  const course = (row.courses && row.courses.title) || "the course";
+  const link = `${SITE_URL.replace(/\/+$/, "")}/invoice-names/?t=${row.names_token}`;
+  const first = String(row.payer_name || "").trim().split(/\s+/)[0] || "there";
+  const n = row.places;
+
+  const text = [
+    `Hi ${first},`,
+    "",
+    `Thank you — your payment for ${n} place${n === 1 ? "" : "s"} on ${course} has been received.`,
+    "",
+    `Please tell us who is coming. For each person we need their name as it should appear on their certificate, their email and a phone number:`,
+    link,
+    "",
+    `Each person is registered and emailed their confirmation as soon as you submit. If you do not have every name yet, fill in the ones you have and use the same link again later.`,
+    "",
+    "Any questions, just reply to this email.",
+    "",
+    "BirdBox Coaching",
+  ].join("\n");
+
+  const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;color:#16181b;font-size:16px;line-height:1.55;">
+  <p>Hi ${esc(first)},</p>
+  <p>Thank you — your payment for ${n} place${n === 1 ? "" : "s"} on <strong>${esc(course)}</strong> has been received.</p>
+  <p>Please tell us who is coming. For each person we need their name as it should appear on their certificate, their email and a phone number.</p>
+  <p style="margin:28px 0;"><a href="${link}" style="background:${accent};color:#fff;text-decoration:none;font-weight:700;padding:13px 22px;border-radius:6px;display:inline-block;">Name your participants</a></p>
+  <p>Each person is registered and emailed their confirmation as soon as you submit. If you do not have every name yet, fill in the ones you have and use the same link again later.</p>
+  <p>Any questions, just reply to this email.</p>
+  <p>BirdBox Coaching</p>
+  <p style="color:#888;font-size:13px;margin-top:32px;border-top:1px solid #e0e0e0;padding-top:16px;">
+    Invoice ${esc(invoice.number || "")} · BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland
+  </p>
+</div>`;
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: process.env.CONFIRM_FROM || process.env.ALERT_FROM || REPLY_TO,
+        to: [row.payer_email],
+        reply_to: REPLY_TO,
+        subject: `Who is coming? Name your participants — ${course}`,
+        text,
+        html,
+      }),
+    });
+    if (!res.ok) {
+      console.error("Names form email rejected", res.status, await res.text());
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Could not send names form email", err);
+    return false;
+  }
 }
 
 async function onGroupInvoiceOverdue(invoice) {
