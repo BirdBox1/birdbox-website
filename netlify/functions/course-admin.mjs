@@ -264,13 +264,22 @@ ${OFFICE}`,
 async function sendRegistrationEmail({ registration_id }) {
   if (!registration_id) return json({ error: "No registration given." }, 400);
 
-  const { data: reg, error } = await supabase
+  // The person and the course are read separately, and the course with
+  // "*", so a renamed or missing course column can never make a real
+  // registration look like it does not exist — which is what was
+  // happening before.
+  const { data: person, error } = await supabase
     .from("registrations")
-    .select("id, first_name, last_name, email, course_id, courses ( brand, title, starts_at, ends_at, timezone, venue_name, address, city, country, slug )")
+    .select("id, first_name, last_name, email, course_id")
     .eq("id", registration_id)
-    .single();
+    .maybeSingle();
 
-  if (error || !reg) return json({ error: "Registration not found" }, 404);
+  if (error) return json({ error: "Could not read the registration: " + error.message }, 500);
+  if (!person) return json({ error: "Registration not found" }, 404);
+
+  const { data: courseRow } = await supabase
+    .from("courses").select("*").eq("id", person.course_id).maybeSingle();
+  const reg = { ...person, courses: courseRow || {} };
   if (!reg.email) return json({ error: "That registration has no email address." }, 400);
 
   // The same confirmation the website sends after checkout — dates,
