@@ -90,9 +90,13 @@ export default async (req) => {
         await onInvoiceGivenUp(event.data.object);
         break;
       case "checkout.session.expired":
+        // A payment-plan deposit page left unpaid is not an abandoned
+        // booking — the payer can open their plan link again.
+        if (event.data.object.metadata?.kind === "plan_deposit") break;
         await onCheckoutAbandoned(event.data.object);
         break;
       case "payment_intent.payment_failed":
+        if (event.data.object.metadata?.kind === "plan_deposit") break;
         await onPaymentFailed(event.data.object);
         break;
       default:
@@ -110,6 +114,13 @@ export default async (req) => {
 // a purchase completed
 // ---------------------------------------------------------------
 async function onCheckoutCompleted(session) {
+  // A payment-plan deposit from the portal. It creates nobody — the
+  // payer names people afterwards — so it must never reach the
+  // website booking code below.
+  if (session.metadata?.kind === "plan_deposit") {
+    await onPlanDepositPaid(session);
+    return;
+  }
   const full = await stripe.checkout.sessions.retrieve(session.id, {
     expand: ["customer_details", "payment_intent"],
   });
@@ -436,7 +447,8 @@ async function onInvoicePaid(invoice) {
   // first, because it also carries a course_id and would otherwise be
   // filed as a host payment below.
   if (invoice.metadata?.portal_invoice_id) {
-    await onGroupInvoicePaid(invoice);
+    if (invoice.metadata.kind === "plan_instalment") await onPlanInstalmentPaid(invoice);
+    else await onGroupInvoicePaid(invoice);
     return;
   }
 
@@ -498,6 +510,342 @@ async function onInvoicePaid(invoice) {
     .from("registrations")
     .update({ payment_status: "paid_in_full" })
     .eq("id", registrationId);
+}
+
+// ---------------------------------------------------------------
+// payment plans sent from the portal
+// ---------------------------------------------------------------
+// The payer agrees on /plan/, pays the deposit through Stripe
+// Checkout, and their card is saved. From here Stripe charges each
+// instalment on its date by itself — every one is created now as a
+// draft that Stripe finalises and charges automatically, the same way
+// website deposit bookings charge their balance.
+
+function dueStamp(isoDate) {
+  // 09:00 UTC on the due day, so it lands in working hours in Europe.
+  return Math.floor(new Date(isoDate + "T09:00:00Z").getTime() / 1000);
+}
+
+async function onPlanDepositPaid(session) {
+  const id = session.metadata.portal_invoice_id;
+  const { data: row, error } = await supabase
+    .from("invoices")
+    .select("*, courses ( title, brand )")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error("invoices: " + error.message);
+  if (!row) { console.warn("Plan deposit for unknown invoice", id); return; }
+
+  // Stripe can send the same event twice, or again if this run is slow.
+  // Claiming the plan first means only one run ever schedules the
+  // instalments.
+  if (row.plan_state !== "awaiting_deposit") return;
+  const { data: claimed } = await supabase
+    .from("invoices")
+    .update({ plan_state: "active", status: "paid" })
+    .eq("id", row.id)
+    .eq("plan_state", "awaiting_deposit")
+    .select("id");
+  if (!claimed || !claimed.length) return;
+
+  const full = await stripe.checkout.sessions.retrieve(session.id, { expand: ["payment_intent"] });
+  const intent = full.payment_intent;
+  const paymentMethod = intent && typeof intent === "object" ? intent.payment_method : null;
+  const customer = full.customer || row.stripe_customer_id;
+
+  // Future instalments are charged to this card without the customer
+  // present, which is what they agreed to on the plan page.
+  if (customer && paymentMethod) {
+    try {
+      await stripe.customers.update(customer, { invoice_settings: { default_payment_method: paymentMethod } });
+    } catch (err) {
+      console.error("Could not set default card", err.message);
+    }
+  }
+
+  let taxRateId = null;
+  if (row.vat_country && Number(row.vat_rate) > 0) {
+    const { data: vr } = await supabase
+      .from("vat_rates").select("stripe_tax_rate_id").eq("code", row.vat_country).maybeSingle();
+    taxRateId = vr && vr.stripe_tax_rate_id ? vr.stripe_tax_rate_id : null;
+  }
+
+  const course = (row.courses && row.courses.title) || "course";
+  const schedule = Array.isArray(row.schedule) ? row.schedule.map((x) => ({ ...x })) : [];
+  const problems = [];
+
+  for (const item of schedule) {
+    if (item.kind === "deposit") {
+      item.status = "paid";
+      item.paid_at = new Date().toISOString();
+      item.paid_cents = full.amount_total;
+      continue;
+    }
+    try {
+      const inv = await stripe.invoices.create({
+        customer,
+        collection_method: "charge_automatically",
+        default_payment_method: paymentMethod || undefined,
+        auto_advance: true,
+        automatically_finalizes_at: dueStamp(item.due_date),
+        currency: String(row.currency).toLowerCase(),
+        default_tax_rates: taxRateId ? [taxRateId] : [],
+        description: `Instalment ${item.n} of ${row.instalments} — ${course}`,
+        metadata: {
+          portal_invoice_id: row.id,
+          course_id: row.course_id,
+          kind: "plan_instalment",
+          n: String(item.n),
+        },
+      });
+      await stripe.invoiceItems.create({
+        customer,
+        invoice: inv.id,
+        amount: item.net_cents,
+        currency: String(row.currency).toLowerCase(),
+        description: `${course} — instalment ${item.n} of ${row.instalments} (${row.places} place${row.places === 1 ? "" : "s"})`,
+      });
+      item.stripe_invoice_id = inv.id;
+      item.status = "scheduled";
+    } catch (err) {
+      console.error("Could not schedule instalment", item.n, err);
+      item.status = "not_scheduled";
+      item.error = err.message;
+      problems.push(`Instalment ${item.n} (${item.due_date}): ${err.message}`);
+    }
+  }
+
+  const { data: saved, error: upErr } = await supabase
+    .from("invoices")
+    .update({
+      status: "paid",
+      plan_state: "active",
+      paid_at: new Date().toISOString(),
+      paid_cents: full.amount_total || 0,
+      payment_method_id: paymentMethod,
+      stripe_customer_id: customer,
+      schedule,
+    })
+    .eq("id", row.id)
+    .select("payer_name, business_name, payer_email, places, names_token, names_emailed_at, courses ( title, brand )")
+    .single();
+  if (upErr) throw new Error("invoices: " + upErr.message);
+
+  // The Checkout success page takes them straight to the names form;
+  // this email is the copy they can come back to.
+  let emailed = !!saved.names_emailed_at;
+  if (!emailed) {
+    emailed = await sendNamesForm(saved, { number: "", id: session.id });
+    if (emailed) await supabase.from("invoices").update({ names_emailed_at: new Date().toISOString() }).eq("id", row.id);
+  }
+
+  const who = row.business_name || row.payer_name;
+  await alert(
+    problems.length ? "Payment plan started — SOME INSTALMENTS NOT SCHEDULED" : "Payment plan started",
+    `${who} paid the deposit of ${((full.amount_total || 0) / 100).toFixed(2)} ${String(row.currency).toUpperCase()} ` +
+    `for ${row.places} place${row.places === 1 ? "" : "s"} on ${course}. ` +
+    `${row.instalments} monthly instalment${row.instalments === 1 ? "" : "s"} follow.\n\n` +
+    (emailed ? "They have been sent the form to name each person." : "The names form email did NOT send — copy the form link from the portal.") +
+    (problems.length ? "\n\nThese instalments could not be set up in Stripe and need doing by hand:\n" + problems.join("\n") : "")
+  );
+}
+
+async function onPlanInstalmentPaid(invoice) {
+  const id = invoice.metadata.portal_invoice_id;
+  const n = Number(invoice.metadata.n);
+  const { data: row, error } = await supabase
+    .from("invoices")
+    .select("id, places, currency, instalments, paid_cents, schedule, plan_state, payer_name, business_name, courses ( title )")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error("invoices: " + error.message);
+  if (!row) return;
+
+  const schedule = Array.isArray(row.schedule) ? row.schedule.map((x) => ({ ...x })) : [];
+  const item = schedule.find((x) => x.n === n && x.kind !== "deposit");
+  if (!item || item.status === "paid") return; // retry of an event already handled
+
+  const amount = invoice.amount_paid || 0;
+  item.status = "paid";
+  item.paid_at = new Date().toISOString();
+  item.paid_cents = amount;
+  delete item.error;
+
+  const done = schedule.filter((x) => x.kind !== "deposit").every((x) => x.status === "paid");
+
+  await supabase.from("invoices").update({
+    schedule,
+    paid_cents: (row.paid_cents || 0) + amount,
+    plan_state: done ? "completed" : (row.plan_state === "failed" ? "active" : row.plan_state),
+  }).eq("id", row.id);
+
+  // Everyone named so far gets their share of this payment.
+  const { data: regs } = await supabase
+    .from("registrations").select("id, amount_paid_cents").eq("invoice_id", row.id);
+  const share = Math.round(amount / row.places);
+  for (const r of regs || []) {
+    const patch = { amount_paid_cents: (r.amount_paid_cents || 0) + share };
+    if (done) patch.payment_status = "paid_in_full";
+    await supabase.from("registrations").update(patch).eq("id", r.id);
+  }
+
+  if (done) {
+    await alert(
+      "Payment plan completed",
+      `${row.business_name || row.payer_name} has paid the final instalment for ` +
+      `${(row.courses && row.courses.title) || "a course"}. Everyone on it is now paid in full.`
+    );
+  }
+}
+
+async function onPlanInstalmentFailed(invoice) {
+  // Stripe retries a failed card several times. The payer and the
+  // office are told once, on the first failure, not on every retry.
+  if ((invoice.attempt_count || 0) > 1) return;
+
+  const id = invoice.metadata.portal_invoice_id;
+  const n = Number(invoice.metadata.n);
+  const { data: row } = await supabase
+    .from("invoices")
+    .select("id, schedule, payer_name, business_name, payer_email, instalments, currency, courses ( title, brand )")
+    .eq("id", id).maybeSingle();
+  if (!row) return;
+
+  const schedule = Array.isArray(row.schedule) ? row.schedule.map((x) => ({ ...x })) : [];
+  const item = schedule.find((x) => x.n === n && x.kind !== "deposit");
+  if (item) { item.status = "retrying"; item.error = "Card declined — Stripe is retrying"; }
+  await supabase.from("invoices").update({ schedule }).eq("id", row.id);
+
+  const course = (row.courses && row.courses.title) || "your course";
+  const amount = `${((invoice.amount_due || 0) / 100).toFixed(2)} ${String(row.currency).toUpperCase()}`;
+  const link = invoice.hosted_invoice_url;
+  const first = String(row.payer_name || "").trim().split(/\s+/)[0] || "there";
+
+  const key = process.env.RESEND_API_KEY;
+  if (key && row.payer_email) {
+    try {
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: process.env.CONFIRM_FROM || process.env.ALERT_FROM || REPLY_TO,
+          to: [row.payer_email],
+          reply_to: REPLY_TO,
+          subject: `Payment not taken — ${course}`,
+          text: [
+            `Hi ${first},`,
+            "",
+            `We tried to take instalment ${n} of ${row.instalments} (${amount}) for ${course}, but the card was declined.`,
+            "",
+            "We will try again automatically over the next few days. To pay now, or to use a different card:",
+            link || "(reply to this email and we will send you a link)",
+            "",
+            "Any questions, just reply to this email.",
+            "",
+            "BirdBox Coaching",
+          ].join("\n"),
+        }),
+      });
+    } catch (err) {
+      console.error("Could not email payer about failed instalment", err);
+    }
+  }
+
+  await alert(
+    "Payment plan instalment failed",
+    `Instalment ${n} of ${row.instalments} (${amount}) for ${row.business_name || row.payer_name} ` +
+    `(${row.payer_email}) on ${course} was declined. They have been emailed a link to pay or change card; ` +
+    `Stripe will keep retrying.` + (link ? `\n\n${link}` : "")
+  );
+}
+
+async function onPlanInstalmentGivenUp(invoice) {
+  const id = invoice.metadata.portal_invoice_id;
+  const n = Number(invoice.metadata.n);
+  const { data: row } = await supabase
+    .from("invoices")
+    .select("id, schedule, payer_name, business_name, payer_email, instalments, currency, courses ( title )")
+    .eq("id", id).maybeSingle();
+  if (!row) return;
+
+  const schedule = Array.isArray(row.schedule) ? row.schedule.map((x) => ({ ...x })) : [];
+  const item = schedule.find((x) => x.n === n && x.kind !== "deposit");
+  if (item && item.status === "paid") return;
+  if (item) { item.status = "failed"; item.error = "All retries failed"; }
+  await supabase.from("invoices").update({ schedule, plan_state: "failed" }).eq("id", row.id);
+
+  await alert(
+    "Payment plan instalment UNPAID",
+    `Stripe has stopped retrying instalment ${n} of ${row.instalments} ` +
+    `(${((invoice.amount_due || 0) / 100).toFixed(2)} ${String(row.currency).toUpperCase()}) ` +
+    `for ${row.business_name || row.payer_name} (${row.payer_email}) on ` +
+    `${(row.courses && row.courses.title) || "a course"}. This needs chasing by hand.` +
+    (invoice.hosted_invoice_url ? `\n\nPay link: ${invoice.hosted_invoice_url}` : "")
+  );
+}
+
+// The email that sends a payer their plan link, from the portal.
+export async function sendPlanEmail(row, course) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key || !row.names_token || !row.payer_email) return false;
+
+  const brandKey = String(course.brand || "").toLowerCase();
+  const accent = (BRAND[brandKey] || {}).colour || "#2f7fd0";
+  const link = `${SITE_URL.replace(/\/+$/, "")}/plan/?t=${row.names_token}`;
+  const first = String(row.payer_name || "").trim().split(/\s+/)[0] || "there";
+  const cur = String(row.currency).toUpperCase();
+  const m = (c) => `${cur} ${(c / 100).toFixed(2)}`;
+  const n = row.places;
+
+  const text = [
+    `Hi ${first},`,
+    "",
+    `Here is your payment plan for ${n} place${n === 1 ? "" : "s"} on ${course.title}: ` +
+    `${m(row.total_cents)} in total — a deposit of ${m(row.deposit_cents)} today, then ` +
+    `${row.instalments} monthly payment${row.instalments === 1 ? "" : "s"}.`,
+    "",
+    "Open the link to see the full schedule, agree to the plan and pay the deposit:",
+    link,
+    "",
+    "Your places are confirmed as soon as the deposit is paid.",
+    "",
+    "Any questions, just reply to this email.",
+    "",
+    "BirdBox Coaching",
+  ].join("\n");
+
+  const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;color:#16181b;font-size:16px;line-height:1.55;">
+  <p>Hi ${esc(first)},</p>
+  <p>Here is your payment plan for ${n} place${n === 1 ? "" : "s"} on <strong>${esc(course.title)}</strong>:
+  <strong>${esc(m(row.total_cents))}</strong> in total — a deposit of ${esc(m(row.deposit_cents))} today, then
+  ${row.instalments} monthly payment${row.instalments === 1 ? "" : "s"}.</p>
+  <p style="margin:28px 0;"><a href="${link}" style="background:${accent};color:#fff;text-decoration:none;font-weight:700;padding:13px 22px;border-radius:6px;display:inline-block;">See the plan and pay the deposit</a></p>
+  <p>Your places are confirmed as soon as the deposit is paid.</p>
+  <p>Any questions, just reply to this email.</p>
+  <p>BirdBox Coaching</p>
+  <p style="color:#888;font-size:13px;margin-top:32px;border-top:1px solid #e0e0e0;padding-top:16px;">
+    BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland
+  </p>
+</div>`;
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: process.env.CONFIRM_FROM || process.env.ALERT_FROM || REPLY_TO,
+        to: [row.payer_email],
+        reply_to: REPLY_TO,
+        subject: `Your payment plan — ${course.title}`,
+        text, html,
+      }),
+    });
+    if (!res.ok) { console.error("Plan email rejected", res.status, await res.text()); return false; }
+    return true;
+  } catch (err) {
+    console.error("Could not send plan email", err);
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------
@@ -643,6 +991,10 @@ async function onGroupInvoiceOverdue(invoice) {
 // an attempt failed — Stripe will keep retrying
 // ---------------------------------------------------------------
 async function onInvoiceFailed(invoice) {
+  if (invoice.metadata?.kind === "plan_instalment") {
+    await onPlanInstalmentFailed(invoice);
+    return;
+  }
   const reason =
     invoice.last_finalization_error?.message ||
     "Card declined — Stripe will retry";
@@ -658,7 +1010,8 @@ async function onInvoiceFailed(invoice) {
 // ---------------------------------------------------------------
 async function onInvoiceGivenUp(invoice) {
   if (invoice.metadata?.portal_invoice_id) {
-    await onGroupInvoiceOverdue(invoice);
+    if (invoice.metadata.kind === "plan_instalment") await onPlanInstalmentGivenUp(invoice);
+    else await onGroupInvoiceOverdue(invoice);
     return;
   }
 
