@@ -432,6 +432,14 @@ async function maybeEnrol({ registrationId, meta, email, firstName, lastName, la
 // the balance was collected
 // ---------------------------------------------------------------
 async function onInvoicePaid(invoice) {
+  // An invoice sent from the portal for a block of places. Checked
+  // first, because it also carries a course_id and would otherwise be
+  // filed as a host payment below.
+  if (invoice.metadata?.portal_invoice_id) {
+    await onGroupInvoicePaid(invoice);
+    return;
+  }
+
   const registrationId = invoice.metadata?.registration_id;
 
   // An invoice carrying a course rather than a registration is money
@@ -493,6 +501,62 @@ async function onInvoicePaid(invoice) {
 }
 
 // ---------------------------------------------------------------
+// a portal invoice for a block of places was paid
+// ---------------------------------------------------------------
+// Only the invoice is marked paid. People are added against it in the
+// portal afterwards, and each gets their confirmation as they are
+// added. Safe to run twice: a retry just writes the same values.
+async function onGroupInvoicePaid(invoice) {
+  const id = invoice.metadata.portal_invoice_id;
+
+  const { data: row, error } = await supabase
+    .from("invoices")
+    .update({
+      status: "paid",
+      paid_at: new Date().toISOString(),
+      total_cents: invoice.amount_paid ?? invoice.total ?? null,
+      last_error: null,
+    })
+    .eq("id", id)
+    .select("payer_name, business_name, places, currency, total_cents, courses ( title )")
+    .maybeSingle();
+
+  if (error) throw new Error("invoices: " + error.message);
+  if (!row) {
+    console.warn("Paid portal invoice has no row", { id, invoice: invoice.id });
+    return;
+  }
+
+  const who = row.business_name || row.payer_name;
+  const course = (row.courses && row.courses.title) || "a course";
+  await alert(
+    "Invoice paid — add the participants",
+    `${who} has paid invoice ${invoice.number || invoice.id} for ${row.places} ` +
+    `place${row.places === 1 ? "" : "s"} on ${course}: ` +
+    `${((invoice.amount_paid || 0) / 100).toFixed(2)} ${(invoice.currency || "").toUpperCase()}.\n\n` +
+    `Open the course in the portal → Admin → Participant invoices, and add ` +
+    `each person. They get their confirmation email as they are added.`
+  );
+}
+
+async function onGroupInvoiceOverdue(invoice) {
+  const id = invoice.metadata.portal_invoice_id;
+  const { data: row } = await supabase
+    .from("invoices")
+    .select("payer_name, business_name, payer_email, status, courses ( title )")
+    .eq("id", id)
+    .maybeSingle();
+  if (!row || row.status === "paid" || row.status === "void") return;
+
+  await alert(
+    "Invoice overdue",
+    `Invoice ${invoice.number || invoice.id} to ${row.business_name || row.payer_name} ` +
+    `(${row.payer_email}) for ${(row.courses && row.courses.title) || "a course"} is past its due date ` +
+    `and unpaid: ${((invoice.amount_due || 0) / 100).toFixed(2)} ${(invoice.currency || "").toUpperCase()}.`
+  );
+}
+
+// ---------------------------------------------------------------
 // an attempt failed — Stripe will keep retrying
 // ---------------------------------------------------------------
 async function onInvoiceFailed(invoice) {
@@ -510,6 +574,11 @@ async function onInvoiceFailed(invoice) {
 // Stripe has given up retrying
 // ---------------------------------------------------------------
 async function onInvoiceGivenUp(invoice) {
+  if (invoice.metadata?.portal_invoice_id) {
+    await onGroupInvoiceOverdue(invoice);
+    return;
+  }
+
   const registrationId = invoice.metadata?.registration_id;
   if (!registrationId) return;
 
@@ -689,8 +758,10 @@ async function recordAbandoned(session, reason, fallbackEmail) {
 // Exported so a free registration — a host claiming their place — gets
 // exactly the same confirmation as anyone who paid. Two copies of this
 // email would drift apart within a month.
+// Returns "sent", "skipped" (no copy for this brand) or "failed", so
+// the portal can say what happened. The checkout ignores the result.
 export async function sendConfirmation({ courseId, email, firstName, option, balanceCents, online }) {
-  if (!email) return;
+  if (!email) return "failed";
 
   try {
     const { data: course } = await supabase
@@ -701,7 +772,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
 
     if (!course) {
       console.warn("No course found for confirmation email", courseId);
-      return;
+      return "failed";
     }
 
     const brandKey = String(course.brand || "").toLowerCase();
@@ -712,13 +783,13 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       console.log("No confirmation copy for this course type — skipped", {
         courseId, brand: brandKey, type: course.type,
       });
-      return;
+      return "skipped";
     }
 
     const key = process.env.RESEND_API_KEY;
     if (!key) {
       console.warn("No RESEND_API_KEY — confirmation not sent to", email);
-      return;
+      return "failed";
     }
 
     const brand = BRAND[brandKey] || { name: "BirdBox Coaching", colour: "#2f7fd0" };
@@ -912,9 +983,12 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
         `Resend (${res.status}). They are registered, but have not been ` +
         `told. Response: ${body}`
       );
+      return "failed";
     }
+    return "sent";
   } catch (err) {
     console.error("Could not send confirmation email", email, err);
+    return "failed";
   }
 }
 
