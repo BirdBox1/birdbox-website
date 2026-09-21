@@ -638,7 +638,7 @@ async function refundRegistration({ courseId, registrationId, reason }, me) {
 
   const { data: reg } = await supabase
     .from("registrations")
-    .select("id, first_name, last_name, email, status, payment_status, currency")
+    .select("id, first_name, last_name, email, status, payment_status, currency, invoice_id, amount_paid_cents")
     .eq("id", registrationId)
     .eq("course_id", courseId)
     .maybeSingle();
@@ -700,6 +700,17 @@ async function refundRegistration({ courseId, registrationId, reason }, me) {
     if (error) problems.push(`could not stop the balance — ${error.message}`);
   }
 
+  // Paid through a portal invoice or payment plan rather than the
+  // website checkout: refund from those Stripe payments, and on a
+  // one-place plan stop every instalment not yet taken.
+  let planStopped = 0;
+  if (reg.invoice_id) {
+    const r = await refundInvoiceShare(reg);
+    refunded += r.refunded;
+    planStopped = r.stopped;
+    problems.push(...r.problems);
+  }
+
   // Charged but with no Stripe reference — cannot refund automatically.
   if (stuck.length) {
     const stuckCents = stuck.reduce((n, p) => n + (p.amount_cents || 0), 0);
@@ -732,7 +743,7 @@ Your place on ${course.title}, due to run on ${when}, has been cancelled.
 ${reason ? reason + "\n\n" : ""}WHAT HAPPENS WITH YOUR MONEY
 
 ${moneyLine}
-${toCancel.length ? "\nAny payment still scheduled has been stopped, so nothing further will be taken from your card.\n" : ""}
+${toCancel.length || planStopped ? "\nAny payment still scheduled has been stopped, so nothing further will be taken from your card.\n" : ""}
 If anything here is not what you expected, just reply to this email and we will sort it out.
 
 BirdBox Coaching
@@ -759,6 +770,109 @@ ${OFFICE}`,
 }
 
 // ---------------------------------------------------------------
+
+// The Stripe payment behind an invoice. Where it lives depends on the
+// Stripe API version, so each place is tried in turn.
+async function invoicePaymentIntent(invoiceId) {
+  const inv = await stripe.invoices.retrieve(invoiceId);
+  const direct = inv.payment_intent;
+  if (direct) return typeof direct === "string" ? direct : direct.id;
+  try {
+    const list = await stripe.invoicePayments.list({ invoice: invoiceId, limit: 5 });
+    for (const p of list.data || []) {
+      const pi = p.payment && p.payment.payment_intent;
+      if (pi) return typeof pi === "string" ? pi : pi.id;
+    }
+  } catch (_) { /* older API without invoice payments */ }
+  return null;
+}
+
+async function refundInvoiceShare(reg) {
+  const out = { refunded: 0, stopped: 0, problems: [] };
+  const { data: inv } = await supabase
+    .from("invoices")
+    .select("id, kind, places, plan_state, schedule, checkout_session_id, stripe_invoice_id, status")
+    .eq("id", reg.invoice_id).maybeSingle();
+  if (!inv) return out;
+
+  const sole = inv.places === 1;
+  const isPlan = inv.kind === "plan";
+
+  // Every Stripe payment behind this invoice, newest first, so a part
+  // refund comes off the latest money.
+  const intents = [];
+  try {
+    if (isPlan) {
+      const paid = (inv.schedule || []).filter((x) => x.kind !== "deposit" && x.status === "paid" && x.stripe_invoice_id);
+      for (const x of paid.reverse()) {
+        const pi = await invoicePaymentIntent(x.stripe_invoice_id);
+        if (pi) intents.push(pi);
+      }
+      if (inv.checkout_session_id) {
+        const sess = await stripe.checkout.sessions.retrieve(inv.checkout_session_id);
+        const pi = sess.payment_intent;
+        if (pi) intents.push(typeof pi === "string" ? pi : pi.id);
+      }
+    } else if (inv.stripe_invoice_id) {
+      const pi = await invoicePaymentIntent(inv.stripe_invoice_id);
+      if (pi) intents.push(pi);
+    }
+  } catch (err) {
+    out.problems.push("could not read the Stripe payments — " + err.message);
+  }
+
+  // One place: everything they paid. Several places: this person's
+  // share only, since the rest belongs to the other people on it.
+  let want = sole ? Infinity : (reg.amount_paid_cents || 0);
+  for (const id of intents) {
+    if (want <= 0) break;
+    try {
+      const pi = await stripe.paymentIntents.retrieve(id, { expand: ["latest_charge"] });
+      const ch = pi.latest_charge;
+      const refundable = ch && typeof ch === "object" ? ch.amount - (ch.amount_refunded || 0) : pi.amount_received;
+      const amount = Math.min(refundable, want);
+      if (amount <= 0) continue;
+      await stripe.refunds.create({ payment_intent: id, amount, reason: "requested_by_customer" });
+      out.refunded += amount;
+      want -= amount;
+    } catch (err) {
+      out.problems.push("refund failed — " + err.message);
+    }
+  }
+  if (!intents.length && (reg.amount_paid_cents || 0) > 0) {
+    out.problems.push("no Stripe payment found for this invoice — refund it by hand in Stripe.");
+  }
+
+  // A one-place plan belongs to this person alone, so its remaining
+  // instalments stop with them. A group plan carries on for the others.
+  if (isPlan && sole && ["awaiting_deposit", "active", "failed"].includes(inv.plan_state)) {
+    const schedule = (inv.schedule || []).map((x) => ({ ...x }));
+    for (const item of schedule) {
+      if (item.kind === "deposit" || item.status === "paid") continue;
+      if (item.stripe_invoice_id) {
+        try {
+          const si = await stripe.invoices.retrieve(item.stripe_invoice_id);
+          if (si.status === "paid") continue;
+          if (si.status === "draft") await stripe.invoices.del(si.id);
+          else if (si.status === "open") await stripe.invoices.voidInvoice(si.id);
+          out.stopped++;
+        } catch (err) {
+          out.problems.push(`instalment ${item.n} could not be stopped — ${err.message}`);
+          continue;
+        }
+      }
+      item.status = "cancelled";
+    }
+    await supabase.from("invoices").update({ plan_state: "cancelled", schedule }).eq("id", inv.id);
+  } else if (isPlan && !sole && ["active", "failed"].includes(inv.plan_state)) {
+    out.problems.push("this person was on a group payment plan, which carries on for the others — adjust it in Participant invoices if needed.");
+  }
+
+  await supabase.from("registrations")
+    .update({ payment_overdue_at: null, payment_overdue_note: null })
+    .eq("id", reg.id);
+  return out;
+}
 
 function longDate(iso, tz) {
   return new Date(iso).toLocaleDateString("en-GB", {
