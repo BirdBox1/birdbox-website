@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Your payment plan — BirdBox Coaching</title>
+<style>
+  :root {
+    --ink: #16181b; --muted: #6b7078; --rule: #e3e5e8; --bg: #f5f6f7; --card: #fff;
+    --accent: #2f7fd0; --good: #1f7a45; --bad: #b3261e;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  header { background: #0d0e10; color: #fff; padding: 1.1rem 1.25rem; display: flex; align-items: center; gap: .8rem; }
+  header img { height: 34px; width: auto; }
+  header .name { font-weight: 700; letter-spacing: .02em; }
+  main { max-width: 40rem; margin: 0 auto; padding: 1.5rem 1.1rem 4rem; }
+  h1 { font-size: 1.4rem; margin: 0 0 .3rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 1.4rem; }
+  .card { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 1.1rem; margin-bottom: 1rem; }
+  .card h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 0 0 .7rem; }
+  table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+  td { padding: .5rem 0; border-bottom: 1px solid var(--rule); }
+  tr:last-child td { border-bottom: 0; }
+  td.amt { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.total td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: 0; padding-top: .7rem; }
+  .paid { color: var(--good); font-size: .82rem; margin-left: .4rem; }
+  .terms { font-size: .92rem; line-height: 1.6; background: var(--bg); border-radius: 6px; padding: .8rem .9rem; margin: 0 0 1rem; }
+  label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: .2rem; }
+  input[type=text] { width: 100%; font: inherit; padding: .6rem .7rem; border: 1px solid #cfd3d8; border-radius: 6px; background: #fff; }
+  input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+  .agree { display: flex; gap: .6rem; align-items: flex-start; margin: 1rem 0; font-size: .95rem; cursor: pointer; }
+  .agree input { width: 1.25rem; height: 1.25rem; margin-top: .15rem; flex: none; }
+  button { font: inherit; font-weight: 700; background: var(--accent); color: #fff; border: 0; border-radius: 6px;
+    padding: .85rem 1.3rem; cursor: pointer; width: 100%; }
+  button:disabled { opacity: .5; cursor: default; }
+  .msg { margin: .9rem 0 0; font-size: .92rem; }
+  .msg.err { color: var(--bad); }
+  .hint { font-size: .82rem; color: var(--muted); margin: .7rem 0 0; }
+  .hidden { display: none; }
+  a { color: var(--accent); }
+  footer { color: var(--muted); font-size: .8rem; text-align: center; padding: 0 1rem 2rem; }
+</style>
+</head>
+<body>
+<header>
+  <img id="logo" alt="" src="" style="display:none" onerror="this.style.display='none'">
+  <span class="name">BirdBox Coaching</span>
+</header>
+
+<main>
+  <p id="loading">Loading…</p>
+
+  <div id="bad" class="card hidden">
+    <h1 id="bad-h">This link does not work</h1>
+    <p id="bad-msg" class="sub" style="margin:0"></p>
+  </div>
+
+  <div id="page" class="hidden">
+    <h1>Your payment plan</h1>
+    <p class="sub" id="lead"></p>
+
+    <div class="card">
+      <h2>Schedule</h2>
+      <table id="sched"></table>
+    </div>
+
+    <div class="card" id="agree-card">
+      <h2>Your commitment</h2>
+      <p class="terms" id="terms"></p>
+      <label for="name">Your full name</label>
+      <input id="name" type="text" autocomplete="name">
+      <label class="agree"><input type="checkbox" id="ok"> <span>I have read and agree to this payment plan.</span></label>
+      <button id="go" type="button">Agree and pay the deposit</button>
+      <p class="msg" id="msg"></p>
+      <p class="hint">You pay the deposit securely with Stripe. Your card is saved for the monthly payments.</p>
+    </div>
+
+    <div class="card hidden" id="done-card">
+      <h2>Deposit paid</h2>
+      <p style="margin:0">Your places are confirmed and the monthly payments are scheduled. <a id="names-link" href="#">Name your participants</a> if you have not already.</p>
+    </div>
+  </div>
+</main>
+
+<footer>BirdBox Coaching Limited · Questions? <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a></footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const ACCENT = { tcc: "#2f7fd0", tgc: "#9e2029", tec: "#1c6b3f", twc: "#e8a317" };
+const token = new URLSearchParams(location.search).get("t") || "";
+const API = "/.netlify/functions/plan-public";
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+function money(c, cur) {
+  try { return new Intl.NumberFormat("en-GB", { style: "currency", currency: cur }).format(c / 100); }
+  catch (e) { return cur + " " + (c / 100).toFixed(2); }
+}
+function day(iso) {
+  return new Date(iso + "T12:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function fail(h, m) {
+  $("loading").classList.add("hidden");
+  $("bad").classList.remove("hidden");
+  $("bad-h").textContent = h;
+  $("bad-msg").textContent = m;
+}
+
+function draw(d) {
+  $("loading").classList.add("hidden");
+  if (d.state === "cancelled") { fail("This plan has been cancelled", "Please reply to your plan email if you think this is a mistake."); return; }
+  $("page").classList.remove("hidden");
+  if (ACCENT[d.brand]) {
+    document.documentElement.style.setProperty("--accent", ACCENT[d.brand]);
+    const l = $("logo"); l.style.display = ""; l.src = "/brand/" + d.brand + ".png";
+  }
+
+  $("lead").textContent =
+    `${d.payer} — ${d.places} place${d.places === 1 ? "" : "s"} on ${d.course}` + (d.when ? `, ${d.when}` : "") + ".";
+
+  const rows = d.schedule.map((x) => {
+    const label = x.kind === "deposit" ? "Deposit — today" : `Payment ${x.n} — ${day(x.due_date)}`;
+    const paid = x.status === "paid" ? '<span class="paid">paid</span>' : "";
+    return `<tr><td>${esc(label)}${paid}</td><td class="amt">${esc(money(x.gross_cents, d.currency))}</td></tr>`;
+  });
+  rows.push(`<tr class="total"><td>Total${d.vat_rate ? ` (incl. ${Number(d.vat_rate.toFixed(2))}% VAT)` : ""}</td><td class="amt">${esc(money(d.total_cents, d.currency))}</td></tr>`);
+  $("sched").innerHTML = rows.join("");
+  $("terms").textContent = d.terms || "";
+
+  const waiting = d.state === "awaiting_deposit";
+  $("agree-card").classList.toggle("hidden", !waiting);
+  $("done-card").classList.toggle("hidden", waiting);
+  $("names-link").href = d.names_link;
+}
+
+async function load() {
+  try {
+    const res = await fetch(API + "?t=" + encodeURIComponent(token), { cache: "no-store" });
+    const d = await res.json();
+    if (!res.ok || d.error) throw new Error(d.error || "This link is not valid.");
+    draw(d);
+  } catch (err) {
+    fail("This link does not work", err.message);
+  }
+}
+
+$("go").onclick = async () => {
+  const msg = $("msg");
+  const name = $("name").value.trim();
+  if (name.length < 2) { msg.className = "msg err"; msg.textContent = "Please type your full name."; return; }
+  if (!$("ok").checked) { msg.className = "msg err"; msg.textContent = "Please tick to agree to the plan."; return; }
+
+  $("go").disabled = true;
+  msg.className = "msg"; msg.textContent = "Taking you to secure payment…";
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ t: token, name, agree: true }),
+    });
+    const d = await res.json();
+    if (!res.ok || d.error || !d.url) throw new Error(d.error || "That did not work.");
+    location.href = d.url;
+  } catch (err) {
+    msg.className = "msg err"; msg.textContent = err.message;
+    $("go").disabled = false;
+  }
+};
+
+load();
+</script>
+</body>
+</html>
