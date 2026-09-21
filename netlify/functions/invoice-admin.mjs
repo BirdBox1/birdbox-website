@@ -655,9 +655,13 @@ async function listUnmatched() {
     if (all.length >= 500) break;
   }
 
+  // Left out: invoices the system made for one person (a balance), and
+  // portal invoices and plans. Invoices tagged only with a course — a
+  // group or host payment for a block of places — are kept, because
+  // the people on them still need linking.
   const handMade = all.filter((i) => {
     const m = i.metadata || {};
-    return !m.registration_id && !m.portal_invoice_id && !m.course_id;
+    return !m.registration_id && !m.portal_invoice_id;
   });
   if (!handMade.length) return json({ invoices: [] });
 
