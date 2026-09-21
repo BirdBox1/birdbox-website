@@ -95,7 +95,9 @@ async function createAndSend(b, me) {
   const currency = String(course.currency || "EUR").toUpperCase();
 
   // VAT country defaults to where the seminar runs.
-  const vatCountry = String(b.vat_country || course.country || "").toUpperCase();
+  // "NONE" is an explicit choice of no VAT; blank means the seminar's country.
+  const noVat = String(b.vat_country || "").toUpperCase() === "NONE";
+  const vatCountry = noVat ? "" : String(b.vat_country || course.country || "").toUpperCase();
   let vatRate = 0;
   let taxRateId = null;
   if (vatCountry) {
@@ -114,22 +116,46 @@ async function createAndSend(b, me) {
     }
   }
 
-  // Discount code — checked against the same table the website uses.
+  const subtotal = unitCents * places;
+
+  // A discount is either typed straight in (a percentage, or an amount
+  // off the whole invoice before VAT) or taken from a discount code.
   let discountCode = null;
   let discountPercent = 0;
+  let discount = 0;
+  let couponSpec = null;
+
+  const typedPct = Number(b.discount_percent) || 0;
+  const typedAmt = Math.round((Number(b.discount_amount) || 0) * 100);
   const rawCode = clean(b.discount_code);
-  if (rawCode) {
+
+  if (typedPct < 0 || typedPct > 100) return json({ error: "A percentage discount must be between 0 and 100." }, 400);
+  if (typedAmt < 0) return json({ error: "A discount cannot be negative." }, 400);
+  if (typedAmt > subtotal) return json({ error: "The discount is more than the invoice." }, 400);
+
+  if (typedPct > 0) {
+    discountPercent = typedPct;
+    discount = Math.round(subtotal * typedPct / 100);
+    couponSpec = { percent_off: typedPct, name: `${typedPct}% discount` };
+  } else if (typedAmt > 0) {
+    discount = typedAmt;
+    discountPercent = Math.round(typedAmt / subtotal * 10000) / 100;
+    couponSpec = {
+      amount_off: typedAmt, currency: currency.toLowerCase(),
+      name: `${currency} ${(typedAmt / 100).toFixed(2)} discount`,
+    };
+  } else if (rawCode) {
     const found = await findCode(rawCode, courseId);
     if (found.error) return json({ error: found.error }, 400);
     discountCode = found.code;
     discountPercent = found.percent;
+    discount = Math.round(subtotal * found.percent / 100);
+    couponSpec = { percent_off: found.percent, name: found.code };
   }
 
   // Our own figures, used for the record and the preview. Stripe works
   // out the invoice itself; the two use the same order — discount off
   // the net price, then VAT on what is left.
-  const subtotal = unitCents * places;
-  const discount = Math.round(subtotal * discountPercent / 100);
   const taxable = subtotal - discount;
   const vat = Math.round(taxable * vatRate / 100);
   const total = taxable + vat;
@@ -154,6 +180,7 @@ async function createAndSend(b, me) {
       currency,
       discount_code: discountCode,
       discount_percent: discountPercent,
+      discount_amount_cents: discount,
       subtotal_cents: taxable,
       vat_cents: vat,
       total_cents: total,
@@ -189,12 +216,8 @@ async function createAndSend(b, me) {
     if (clean(b.vat_number)) customFields.push({ name: "Customer VAT no.", value: clean(b.vat_number).slice(0, 30) });
 
     let discounts;
-    if (discountPercent > 0) {
-      const coupon = await stripe.coupons.create({
-        percent_off: discountPercent,
-        duration: "once",
-        name: discountCode,
-      });
+    if (couponSpec) {
+      const coupon = await stripe.coupons.create({ ...couponSpec, duration: "once" });
       discounts = [{ coupon: coupon.id }];
     }
 
@@ -298,7 +321,7 @@ export async function addPlace({ invoiceId, first, last, email, phone, addedBy =
 
   const { data: inv, error } = await supabase
     .from("invoices")
-    .select("id, course_id, status, places, total_cents, vat_rate, currency, unit_price_cents, discount_code, discount_percent, payer_name, business_name, stripe_invoice_number")
+    .select("id, course_id, status, places, total_cents, vat_rate, currency, unit_price_cents, discount_code, discount_percent, discount_amount_cents, payer_name, business_name, stripe_invoice_number")
     .eq("id", invoiceId)
     .single();
   if (error || !inv) return { error: "Invoice not found.", status: 404 };
@@ -319,9 +342,10 @@ export async function addPlace({ invoiceId, first, last, email, phone, addedBy =
   // Each person carries their share of what was actually paid, so the
   // course's income adds up to the invoice.
   const share = Math.round((inv.total_cents || 0) / inv.places);
-  const discountEach = Math.round(
-    inv.unit_price_cents * (Number(inv.discount_percent) || 0) / 100 * (1 + (Number(inv.vat_rate) || 0) / 100)
-  );
+  const vatFactor = 1 + (Number(inv.vat_rate) || 0) / 100;
+  const discountEach = inv.discount_amount_cents
+    ? Math.round(inv.discount_amount_cents / inv.places * vatFactor)
+    : Math.round(inv.unit_price_cents * (Number(inv.discount_percent) || 0) / 100 * vatFactor);
 
   const { data: reg, error: regErr } = await supabase
     .from("registrations")
