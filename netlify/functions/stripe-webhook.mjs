@@ -510,6 +510,8 @@ async function onInvoicePaid(invoice) {
     .from("registrations")
     .update({ payment_status: "paid_in_full" })
     .eq("id", registrationId);
+
+  await clearOverdue({ registrationId });
 }
 
 // ---------------------------------------------------------------
@@ -520,6 +522,26 @@ async function onInvoicePaid(invoice) {
 // instalment on its date by itself — every one is created now as a
 // draft that Stripe finalises and charges automatically, the same way
 // website deposit bookings charge their balance.
+
+// A missed payment puts a flag on the person: the portal shows it in
+// red and asks before they are marked as attended. Cleared as soon as
+// the missing payment is taken.
+async function flagOverdue(filter, note) {
+  let q = supabase.from("registrations").update({
+    payment_overdue_at: new Date().toISOString(),
+    payment_overdue_note: note,
+  });
+  q = filter.invoiceId ? q.eq("invoice_id", filter.invoiceId) : q.eq("id", filter.registrationId);
+  const { error } = await q.is("payment_overdue_at", null);
+  if (error) console.error("Could not flag overdue payment", error.message);
+}
+
+async function clearOverdue(filter) {
+  let q = supabase.from("registrations").update({ payment_overdue_at: null, payment_overdue_note: null });
+  q = filter.invoiceId ? q.eq("invoice_id", filter.invoiceId) : q.eq("id", filter.registrationId);
+  const { error } = await q;
+  if (error) console.error("Could not clear overdue flag", error.message);
+}
 
 function dueStamp(isoDate) {
   // 09:00 UTC on the due day, so it lands in working hours in Europe.
@@ -682,6 +704,8 @@ async function onPlanInstalmentPaid(invoice) {
   delete item.error;
 
   const done = schedule.filter((x) => x.kind !== "deposit").every((x) => x.status === "paid");
+  const stillMissed = schedule.some((x) => x.kind !== "deposit" && ["retrying", "failed"].includes(x.status));
+  if (!stillMissed) await clearOverdue({ invoiceId: row.id });
 
   await supabase.from("invoices").update({
     schedule,
@@ -709,6 +733,11 @@ async function onPlanInstalmentPaid(invoice) {
 }
 
 async function onPlanInstalmentFailed(invoice) {
+  await flagOverdue(
+    { invoiceId: invoice.metadata.portal_invoice_id },
+    `Instalment ${invoice.metadata.n} declined ${new Date().toISOString().slice(0, 10)}`
+  );
+
   // Stripe retries a failed card several times. The payer and the
   // office are told once, on the first failure, not on every retry.
   if ((invoice.attempt_count || 0) > 1) return;
@@ -783,6 +812,7 @@ async function onPlanInstalmentGivenUp(invoice) {
   if (item && item.status === "paid") return;
   if (item) { item.status = "failed"; item.error = "All retries failed"; }
   await supabase.from("invoices").update({ schedule, plan_state: "failed" }).eq("id", row.id);
+  await flagOverdue({ invoiceId: row.id }, `Instalment ${n} unpaid — retries exhausted`);
 
   await alert(
     "Payment plan instalment UNPAID",
@@ -1079,6 +1109,13 @@ async function onInvoiceFailed(invoice) {
     .from("payments")
     .update({ last_error: reason })
     .eq("stripe_invoice_id", invoice.id);
+
+  if (invoice.metadata?.registration_id) {
+    await flagOverdue(
+      { registrationId: invoice.metadata.registration_id },
+      `Balance declined ${new Date().toISOString().slice(0, 10)}`
+    );
+  }
 }
 
 // ---------------------------------------------------------------
@@ -1093,6 +1130,8 @@ async function onInvoiceGivenUp(invoice) {
 
   const registrationId = invoice.metadata?.registration_id;
   if (!registrationId) return;
+
+  await flagOverdue({ registrationId }, "Balance unpaid — retries exhausted");
 
   await supabase
     .from("payments")
