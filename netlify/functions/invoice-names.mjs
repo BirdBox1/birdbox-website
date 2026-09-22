@@ -56,12 +56,21 @@ export default async (request) => {
           return json({ error: `A phone number is needed for ${first} ${last}.` }, 400);
         }
       }
+      const langs = await onlineLanguages(inv.courses || {});
+      if (langs.length) {
+        for (const p of people) {
+          if (!langs.some((l) => l.language === p.language)) {
+            return json({ error: `Choose the online course language for ${String(p.first_name).trim()} ${String(p.last_name).trim()}.` }, 400);
+          }
+        }
+      }
 
       const results = [];
       for (const p of people) {
         const r = await addPlace({
           invoiceId: inv.id,
           first: p.first_name, last: p.last_name, email: p.email, phone: p.phone,
+          language: p.language,
         });
         results.push({
           name: `${String(p.first_name).trim()} ${String(p.last_name).trim()}`,
@@ -85,7 +94,7 @@ async function byToken(t) {
   if (!TOKEN.test(String(t))) return null;
   const { data } = await supabase
     .from("invoices")
-    .select("id, status, places, payer_name, business_name, stripe_invoice_number, course_id, courses ( title, brand, city, starts_at, timezone )")
+    .select("id, status, places, payer_name, business_name, stripe_invoice_number, course_id, courses ( title, brand, level, city, starts_at, timezone, grants_online_course )")
     .eq("names_token", t)
     .maybeSingle();
   return data || null;
@@ -107,6 +116,7 @@ async function summary(inv) {
   } catch (_) {}
 
   return {
+    languages: await onlineLanguages(c),
     paid: inv.status === "paid",
     payer: inv.business_name || inv.payer_name,
     invoice: inv.stripe_invoice_number || null,
@@ -116,6 +126,22 @@ async function summary(inv) {
     places: inv.places,
     named: (regs || []).map((r) => `${r.first_name} ${r.last_name}`),
   };
+}
+
+// The online course languages this course's people can choose from —
+// the same list the website checkout offers. Empty when the course
+// does not include an online course, and then no question is asked.
+async function onlineLanguages(course) {
+  if (!course || !course.grants_online_course) return [];
+  const digits = String(course.level == null ? "" : course.level).replace(/\D/g, "");
+  const { data } = await supabase
+    .from("learnworlds_products")
+    .select("language, label, level")
+    .eq("brand", course.brand)
+    .eq("active", true);
+  return (data || [])
+    .filter((r) => String(r.level || "").replace(/\D/g, "") === digits)
+    .map((r) => ({ language: r.language, label: r.label || r.language }));
 }
 
 function json(body, status = 200) {
