@@ -103,9 +103,16 @@ async function createAndSend(b, me) {
   const currency = String(course.currency || "EUR").toUpperCase();
 
   // VAT country defaults to where the seminar runs.
-  // "NONE" is an explicit choice of no VAT; blank means the seminar's country.
-  const noVat = String(b.vat_country || "").toUpperCase() === "NONE";
+  // "NONE" is an explicit choice of no VAT, "REVERSE" is reverse charge
+  // for an EU business; blank means the seminar's country.
+  const reverse = String(b.vat_country || "").toUpperCase() === "REVERSE";
+  const noVat = reverse || String(b.vat_country || "").toUpperCase() === "NONE";
   const vatCountry = noVat ? "" : String(b.vat_country || course.country || "").toUpperCase();
+  const taxId = taxIdFor(b.vat_number, b.address_country);
+  if (reverse) {
+    const problem = reverseChargeProblem(taxId);
+    if (problem) return json({ error: problem }, 400);
+  }
   let vatRate = 0;
   let taxRateId = null;
   if (vatCountry) {
@@ -180,9 +187,10 @@ async function createAndSend(b, me) {
       city: clean(b.city),
       postcode: clean(b.postcode),
       address_country: clean(b.address_country),
-      vat_number: clean(b.vat_number),
+      vat_number: taxId ? taxId.value : clean(b.vat_number),
       vat_country: vatCountry || null,
       vat_rate: vatRate,
+      reverse_charge: reverse,
       places,
       unit_price_cents: unitCents,
       currency,
@@ -214,14 +222,22 @@ async function createAndSend(b, me) {
       name: business || payerName,
       email: payerEmail,
       address: hasAddress ? address : undefined,
+      tax_exempt: reverse ? "reverse" : "none",
       metadata: { portal_invoice_id: row.id },
     });
+
+    // Their VAT number goes on the customer, where Stripe prints it on
+    // every invoice. Reverse charge cannot go out without it.
+    const attached = await attachTaxId(customer.id, taxId);
+    if (reverse && !attached) {
+      throw new Error(`Stripe did not accept the VAT number ${taxId.value}. Check it and try again.`);
+    }
 
     // Shown on the invoice itself. Stripe caps each value at 30
     // characters.
     const customFields = [];
     if (business) customFields.push({ name: "Attention", value: payerName.slice(0, 30) });
-    if (clean(b.vat_number)) customFields.push({ name: "Customer VAT no.", value: clean(b.vat_number).slice(0, 30) });
+    if (clean(b.vat_number) && !attached) customFields.push({ name: "Customer VAT no.", value: clean(b.vat_number).slice(0, 30) });
 
     let discounts;
     if (couponSpec) {
@@ -525,8 +541,14 @@ async function createPlan(b, me) {
   if (!course) return json({ error: "Course not found." }, 404);
   const currency = String(course.currency || "EUR").toUpperCase();
 
-  const noVat = String(b.vat_country || "").toUpperCase() === "NONE";
+  const reverse = String(b.vat_country || "").toUpperCase() === "REVERSE";
+  const noVat = reverse || String(b.vat_country || "").toUpperCase() === "NONE";
   const vatCountry = noVat ? "" : String(b.vat_country || course.country || "").toUpperCase();
+  const taxId = taxIdFor(b.vat_number, b.address_country);
+  if (reverse) {
+    const problem = reverseChargeProblem(taxId);
+    if (problem) return json({ error: problem }, 400);
+  }
   let vatRate = 0;
   if (vatCountry) {
     const { data: vr } = await supabase
@@ -588,7 +610,14 @@ async function createPlan(b, me) {
       city: clean(b.city) || undefined, postal_code: clean(b.postcode) || undefined,
       country: clean(b.address_country) || undefined,
     } : undefined,
+    tax_exempt: reverse ? "reverse" : "none",
   });
+
+  const attached = await attachTaxId(customer.id, taxId);
+  if (reverse && !attached) {
+    try { await stripe.customers.del(customer.id); } catch (_) {}
+    return json({ error: `Stripe did not accept the VAT number ${taxId.value}. Check it and try again.` }, 400);
+  }
 
   const { data: row, error } = await supabase
     .from("invoices")
@@ -605,9 +634,10 @@ async function createPlan(b, me) {
       city: clean(b.city),
       postcode: clean(b.postcode),
       address_country: clean(b.address_country),
-      vat_number: clean(b.vat_number),
+      vat_number: taxId ? taxId.value : clean(b.vat_number),
       vat_country: vatCountry || null,
       vat_rate: vatRate,
+      reverse_charge: reverse,
       places,
       unit_price_cents: unitCents,
       currency,
@@ -708,7 +738,7 @@ async function listUnmatched() {
   // the people on them still need linking.
   const handMade = all.filter((i) => {
     const m = i.metadata || {};
-    return !m.registration_id && !m.portal_invoice_id;
+    return !m.registration_id && !m.portal_invoice_id && m.kind !== "plan_deposit_invoice";
   });
   if (!handMade.length) return json({ invoices: [] });
 
@@ -964,6 +994,45 @@ function taxTotal(inv) {
   if (Array.isArray(inv.total_tax_amounts)) return inv.total_tax_amounts.reduce((s, t) => s + (t.amount || 0), 0);
   if (typeof inv.tax === "number") return inv.tax;
   return null;
+}
+
+// A customer's VAT number, tidied and typed the way Stripe wants it.
+// Prefix added from their address when they leave it off; Greece's
+// VAT prefix is EL, not GR.
+const EU_VAT_PREFIXES = new Set(["AT","BE","BG","CY","CZ","DE","DK","EE","EL","ES","FI","FR","HR","HU","IE","IT","LT","LU","LV","MT","NL","PL","PT","RO","SE","SI","SK","XI"]);
+
+function taxIdFor(raw, addressCountry) {
+  let v = String(raw || "").toUpperCase().replace(/[\s.\-]/g, "");
+  if (!v) return null;
+  let prefix = /^[A-Z]{2}/.test(v) ? v.slice(0, 2) : String(addressCountry || "").toUpperCase();
+  if (prefix === "GR") prefix = "EL";
+  const body = /^[A-Z]{2}/.test(v) ? v.slice(2) : v;
+  const value = prefix + body;
+  if (EU_VAT_PREFIXES.has(prefix)) return { type: "eu_vat", value, eu: true, prefix };
+  if (prefix === "GB") return { type: "gb_vat", value, eu: false, prefix };
+  return { type: null, value: raw, eu: false, prefix };
+}
+
+// Reverse charge only applies to a VAT-registered business in another
+// EU country. Returns an error message, or null when it is fine.
+function reverseChargeProblem(taxId) {
+  if (!taxId) return "Reverse charge needs the customer's VAT number.";
+  if (!taxId.eu) return "Reverse charge is only for VAT-registered businesses in the EU.";
+  if (taxId.prefix === "IE") return "An Irish business is charged Irish VAT, not reverse charge.";
+  return null;
+}
+
+// Puts the VAT number on the Stripe customer so every invoice shows it.
+// Returns false if Stripe would not accept it.
+async function attachTaxId(customerId, taxId) {
+  if (!taxId || !taxId.type) return false;
+  try {
+    await stripe.customers.createTaxId(customerId, { type: taxId.type, value: taxId.value });
+    return true;
+  } catch (err) {
+    console.warn("Stripe rejected the VAT number", taxId.value, err.message);
+    return false;
+  }
 }
 
 function clean(v) {
