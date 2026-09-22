@@ -29,6 +29,7 @@
   .grid { display: grid; gap: .7rem; grid-template-columns: 1fr; }
   @media (min-width: 30rem) { .grid { grid-template-columns: 1fr 1fr; } }
   label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: .2rem; }
+  select { width: 100%; font: inherit; padding: .6rem .7rem; border: 1px solid #cfd3d8; border-radius: 6px; background: #fff; }
   input { width: 100%; font: inherit; padding: .6rem .7rem; border: 1px solid #cfd3d8; border-radius: 6px; background: #fff; }
   input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
   .hint { font-size: .82rem; color: var(--muted); margin: .6rem 0 0; }
@@ -88,6 +89,7 @@ const ACCENT = { tcc: "#2f7fd0", tgc: "#9e2029", tec: "#1c6b3f", twc: "#e8a317" 
 const token = new URLSearchParams(location.search).get("t") || "";
 const API = "/.netlify/functions/invoice-names";
 const justPaid = new URLSearchParams(location.search).get("paid") === "1";
+let langs = [];
 let tries = 0;
 
 function esc(s) {
@@ -128,6 +130,8 @@ function draw(d) {
   $("form-card").classList.toggle("hidden", left <= 0);
   $("form-h").textContent = `${left} place${left === 1 ? "" : "s"} to name`;
 
+  langs = d.languages || [];
+
   // Keep whatever has already been typed in the boxes that remain.
   const box = $("people");
   const filled = (p) => !!(p.first_name || p.last_name || p.email || p.phone);
@@ -144,6 +148,10 @@ function draw(d) {
         <div><label>Last name</label><input data-k="last_name" autocomplete="off" value="${esc(p.last_name)}"></div>
         <div><label>Email</label><input data-k="email" type="email" autocomplete="off" value="${esc(p.email)}"></div>
         <div><label>Phone</label><input data-k="phone" type="tel" autocomplete="off" value="${esc(p.phone)}"></div>
+        ${langs.length ? `<div><label>Online course language</label><select data-k="language">
+          <option value="">Choose…</option>
+          ${langs.map((l) => `<option value="${esc(l.language)}"${p.language === l.language ? " selected" : ""}>${esc(l.label)}</option>`).join("")}
+        </select></div>` : ""}
       </div>`;
     box.append(div);
   }
@@ -155,7 +163,7 @@ function collect(keepBlank) {
   const out = [];
   for (const div of document.querySelectorAll("#people .person")) {
     const p = {};
-    for (const inp of div.querySelectorAll("input")) p[inp.dataset.k] = inp.value.trim();
+    for (const inp of div.querySelectorAll("input, select")) p[inp.dataset.k] = inp.value.trim();
     const any = p.first_name || p.last_name || p.email || p.phone;
     if (any || keepBlank) out.push(p);
   }
@@ -185,6 +193,11 @@ $("go").onclick = async () => {
       msg.textContent = "Each person needs a first name, last name, email and phone number.";
       return;
     }
+    if (langs.length && !p.language) {
+      msg.className = "msg err";
+      msg.textContent = `Choose the online course language for ${p.first_name} ${p.last_name}.`;
+      return;
+    }
   }
 
   $("go").disabled = true;
@@ -205,8 +218,8 @@ $("go").onclick = async () => {
     const failedNames = new Set(failed.map((r) => r.name));
     for (const div of document.querySelectorAll("#people .person")) {
       const v = {};
-      for (const inp of div.querySelectorAll("input")) v[inp.dataset.k] = inp.value.trim();
-      if (!failedNames.has(`${v.first_name} ${v.last_name}`)) for (const inp of div.querySelectorAll("input")) inp.value = "";
+      for (const inp of div.querySelectorAll("input, select")) v[inp.dataset.k] = inp.value.trim();
+      if (!failedNames.has(`${v.first_name} ${v.last_name}`)) for (const inp of div.querySelectorAll("input, select")) inp.value = "";
     }
     draw(d);
 
