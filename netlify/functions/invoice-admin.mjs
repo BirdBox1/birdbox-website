@@ -474,15 +474,18 @@ async function voidInvoice(b) {
 // Stripe Checkout (plan-public.mjs). The webhook then saves the card
 // and schedules every instalment in Stripe.
 
-// The commitment the payer agrees to. Placeholder wording — change it
-// here once the accountant has approved it. {…} parts are filled in.
+// The commitment the payer agrees to, approved September 2026. {…}
+// parts are filled in for each plan. Plans already sent keep the
+// wording they were sent with.
 const PLAN_TERMS =
   "I agree to pay {total} for {places} on {course}: a deposit of {deposit} today, then " +
   "{count} monthly payments on the dates shown, taken automatically from the card I use " +
   "to pay the deposit. I understand this is a commitment to pay the full amount. If I " +
   "cancel, transfer or do not attend, the remaining payments are still due under BirdBox " +
-  "Coaching's terms. If a payment fails it will be retried, and I will be emailed so I can " +
-  "pay or change card.";
+  "Coaching's terms. If BirdBox Coaching cancels the course, I will receive a full refund. " +
+  "If BirdBox Coaching changes the course date, I can move to the new date or take a course " +
+  "credit. If a payment fails it will be retried, and I will be emailed so I can pay or " +
+  "change card.";
 
 function addMonths(isoDate, months) {
   const [y, m, d] = isoDate.split("-").map(Number);
