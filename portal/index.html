@@ -9912,7 +9912,8 @@ async function openInvoiceForm(course) {
   ac.value = String(course.country || "").toUpperCase();
 
   const vs = $("gi-vat");
-  vs.innerHTML = '<option value="NONE">No VAT</option>';
+  vs.innerHTML = '<option value="NONE">No VAT</option>' +
+    '<option value="REVERSE">Reverse charge — EU business with a VAT number</option>';
   for (const r of names.filter((n) => vatByCode[n.code])) {
     const o = document.createElement("option");
     o.value = r.code;
@@ -9924,6 +9925,7 @@ async function openInvoiceForm(course) {
 
   for (const id of ["gi-price", "gi-places", "gi-vat", "gi-disc"]) $(id).oninput = giSummary;
   $("gi-vat").onchange = giSummary;
+  $("gi-vatno").oninput = null;
   $("gi-disctype").onchange = giSummary;
 
   giSummary();
@@ -9976,7 +9978,8 @@ function giSummary() {
   const cur = giCourse.currency || "EUR";
   const unit = Math.round(Number($("gi-price").value) * 100) || 0;
   const places = parseInt($("gi-places").value, 10) || 0;
-  const rate = vatByCode[$("gi-vat").value] || 0;
+  const reverse = $("gi-vat").value === "REVERSE";
+  const rate = reverse ? 0 : (vatByCode[$("gi-vat").value] || 0);
   const sub = unit * places;
   const dval = Number($("gi-disc").value) || 0;
   const isPct = $("gi-disctype").value === "pct";
@@ -9988,7 +9991,8 @@ function giSummary() {
   const lines = [
     `${places} × ${money(unit, cur)} = ${money(sub, cur)}`,
     disc ? `Discount${isPct ? " " + dval + "%" : ""}: −${money(disc, cur)}` : null,
-    rate ? `VAT ${Number(rate.toFixed(2))}%: ${money(vat, cur)}` : "No VAT",
+    reverse ? "Reverse charge — no VAT; the customer accounts for it"
+      : rate ? `VAT ${Number(rate.toFixed(2))}%: ${money(vat, cur)}` : "No VAT",
   ].filter(Boolean);
   if ($("gi-mode") && $("gi-mode").value === "plan") {
     const sched = giPlanSchedule(taxable, rate);
@@ -10005,6 +10009,11 @@ function giSummary() {
 
 async function giSend() {
   const msg = $("gi-msg");
+  if ($("gi-vat").value === "REVERSE" && !$("gi-vatno").value.trim()) {
+    msg.className = "msg err";
+    msg.textContent = "Reverse charge needs the customer's VAT number.";
+    return;
+  }
   const dval = Number($("gi-disc").value) || 0;
   const isPct = $("gi-disctype").value === "pct";
   if (dval < 0 || (isPct && dval > 100)) { msg.className = "msg err"; msg.textContent = "Check the discount — a percentage must be between 0 and 100."; return; }
