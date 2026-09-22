@@ -74,6 +74,17 @@ export default async (request) => {
         }],
         // Saves the card for the instalments the payer has just agreed to.
         payment_intent_data: { setup_future_usage: "off_session", metadata: meta },
+        // A proper paid invoice for the deposit, not just a receipt, so
+        // a business has the invoice it needs for its accounts. Tagged
+        // so the webhook and the match list leave it alone.
+        invoice_creation: {
+          enabled: true,
+          invoice_data: {
+            description: `Deposit — ${course.title || "course"} (${row.places} place${row.places === 1 ? "" : "s"}), ` +
+              `then ${row.instalments} monthly payment${row.instalments === 1 ? "" : "s"}`,
+            metadata: { kind: "plan_deposit_invoice", plan_id: row.id },
+          },
+        },
         metadata: meta,
         success_url: `${SITE_URL}/invoice-names/?t=${row.names_token}&paid=1`,
         cancel_url: `${SITE_URL}/plan/?t=${row.names_token}`,
