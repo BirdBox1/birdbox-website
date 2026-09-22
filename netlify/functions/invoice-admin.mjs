@@ -20,6 +20,7 @@
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { sendConfirmation, sendNamesForm, sendPlanEmail } from "./stripe-webhook.mjs";
+import { grantOnlineCourse } from "./learnworlds.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -319,8 +320,9 @@ async function addParticipant(b, me) {
 
 // Shared with invoice-names.mjs, the public form the payer fills in,
 // so a place is added the same way whoever adds it.
-export async function addPlace({ invoiceId, first, last, email, phone, addedBy = null }) {
+export async function addPlace({ invoiceId, first, last, email, phone, language = null, addedBy = null }) {
   first = clean(first); last = clean(last); email = clean(email); phone = clean(phone);
+  language = clean(language);
   if (!first || !last) return { error: "First and last name are both needed — they go on the certificate." };
   if (!email || !email.includes("@") || email.startsWith("@") || email.endsWith("@")) {
     return { error: `A valid email is needed for ${first || "each person"}.` };
@@ -386,16 +388,58 @@ export async function addPlace({ invoiceId, first, last, email, phone, addedBy =
     return { error: "Could not add them: " + regErr.message, status: 500 };
   }
 
+  // The free online course, where the course includes one — the same
+  // enrolment a website booking gets, done before the confirmation so
+  // the academy emails arrive first and the confirmation can mention it.
+  const online = await enrolOnline({ courseId: inv.course_id, registrationId: reg.id, email, first, last, language });
+
   const confirmation = await sendConfirmation({
     courseId: inv.course_id,
     email,
     firstName: first,
     option: "full",
     balanceCents: 0,
-    online: null,
+    online,
   });
 
-  return { registration_id: reg.id, confirmation: confirmation || "unknown" };
+  return { registration_id: reg.id, confirmation: confirmation || "unknown", online: online ? online.status : null };
+}
+
+async function enrolOnline({ courseId, registrationId, email, first, last, language }) {
+  const { data: course } = await supabase
+    .from("courses").select("brand, level, title, grants_online_course").eq("id", courseId).maybeSingle();
+  if (!course || !course.grants_online_course) return null;
+
+  // No language given (an admin adding someone by hand): leave it for
+  // the Grant online access button rather than guess.
+  if (!language) {
+    await supabase.from("registrations").update({
+      learnworlds_status: "failed",
+      learnworlds_error: "No language given — grant it from the portal",
+    }).eq("id", registrationId);
+    return null;
+  }
+
+  let result;
+  try {
+    result = await grantOnlineCourse(supabase, {
+      email, firstName: first, lastName: last,
+      brand: course.brand, level: course.level, language,
+      justification: `Included free with ${course.title}`,
+    });
+  } catch (err) {
+    result = { status: "failed", error: err.message };
+  }
+
+  await supabase.from("registrations").update({
+    learnworlds_language: language,
+    learnworlds_status: result.status,
+    learnworlds_user_id: result.userId || null,
+    learnworlds_enrolled_at: result.status === "enrolled" ? new Date().toISOString() : null,
+    learnworlds_error: result.error || null,
+  }).eq("id", registrationId);
+
+  return result;
 }
 
 // ---------------------------------------------------------------
