@@ -971,6 +971,13 @@ async function registerPayer(row) {
   const last = parts.join(" ");
   if (!first || !last || !row.payer_email) return false;
 
+  // A course with a free online course needs the language chosen, which
+  // only the names form asks — so one place on such a course still
+  // goes through the form.
+  const { data: c } = await supabase
+    .from("courses").select("grants_online_course").eq("id", row.course_id).maybeSingle();
+  if (c && c.grants_online_course) return false;
+
   const { count } = await supabase
     .from("registrations").select("id", { count: "exact", head: true }).eq("invoice_id", row.id);
   if ((count || 0) > 0) return true;
