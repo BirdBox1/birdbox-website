@@ -16,6 +16,7 @@ const db = createClient(
 // Messages is a view inside the portal rather than a page of its own,
 // so it is reached with ?view= and the portal opens straight onto it.
 const LINKS = [
+  { href: "#train",               label: "Programming portal \u2197", train: true },
   { href: "/portal/",             label: "All courses" },
   { href: "/portal/blog/",        label: "Blog" },
   { href: "/portal/feedback/",    label: "Feedback" },
@@ -115,6 +116,14 @@ function build() {
     a.href = l.href;
     a.textContent = l.label;
     if (l.admin) a.dataset.admin = "1";
+    // Signs the coach straight into the programming portal — see
+    // /portal/switch.js.
+    if (l.train) {
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        import("/portal/switch.js").then((m) => m.openTrain(a));
+      });
+    }
     // Query strings never mark the page you are on — only real paths.
     if (!l.href.includes("?") && l.href.replace(/\/+$/, "") === here) {
       a.className = "here";
