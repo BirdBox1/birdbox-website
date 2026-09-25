@@ -2,7 +2,7 @@
 //
 // Moves a signed-in coach between the seminars portal
 // (birdboxcoaching.com/portal/) and the programming portal
-// (birdbox-train.netlify.app) without a second sign-in.
+// (app.birdboxcoaching.com) without a second sign-in.
 //
 // The two sites are on different addresses, so the browser keeps a
 // separate login for each. Handing the current session across would
@@ -24,13 +24,14 @@ const supabase = createClient(
 );
 
 const TARGETS = {
-  train: "https://birdbox-train.netlify.app/",
+  train: "https://app.birdboxcoaching.com/",
   portal: "https://www.birdboxcoaching.com/portal/",
 };
 
 // Where the request may come from. The programming portal calls this
 // across sites, so it needs CORS; the seminars portal is same-site.
 const ORIGINS = [
+  "https://app.birdboxcoaching.com",
   "https://birdbox-train.netlify.app",
   "https://www.birdboxcoaching.com",
   "https://birdboxcoaching.com",
