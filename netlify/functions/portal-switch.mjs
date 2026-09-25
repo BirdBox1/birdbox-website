@@ -25,7 +25,7 @@ const supabase = createClient(
 
 const TARGETS = {
   train: "https://app.birdboxcoaching.com/",
-  portal: "https://www.birdboxcoaching.com/portal/",
+  portal: "https://birdboxcoaching.com/portal/",
 };
 
 // Where the request may come from. The programming portal calls this
