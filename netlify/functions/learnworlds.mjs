@@ -18,6 +18,8 @@
 // productType, justification, price, send_enrollment_email. A sixth
 // is rejected with a 422.
 
+import { createClient } from "@supabase/supabase-js";
+
 const BASE = (process.env.LEARNWORLDS_BASE_URL || "").replace(/\/+$/, "");
 const ROOT = BASE.replace(/\/v2$/, "");
 const CLIENT_ID = process.env.LEARNWORLDS_CLIENT_ID || "";
@@ -186,6 +188,11 @@ export async function grantOnlineCourse(supabase, {
 export async function enrolById({
   email, firstName, lastName, productId, productType, justification,
 }) {
+  // Our own course area gets the same enrolment first, so every
+  // way of selling or granting a course also opens it on
+  // birdboxcoaching.com/learn/. Never throws.
+  await mirrorToLearn({ email, productId, justification });
+
   if (!learnworldsConfigured()) {
     return { status: "failed", error: "LearnWorlds is not configured" };
   }
@@ -245,4 +252,39 @@ export async function listCourses() {
   }
 
   return out.sort((a, b) => a.title.localeCompare(b.title));
+}
+
+// ---- BirdBox Learn ---------------------------------------------
+// Adds the person to learn_enrolments for every learn_courses row
+// whose lw_course_id is this LearnWorlds course. A course that has
+// not been set up in BirdBox Learn yet is simply skipped. Never throws:
+// a failure here must not stop the LearnWorlds enrolment or a payment.
+let learnDb = null;
+export async function mirrorToLearn({ email, productId, justification }) {
+  try {
+    if (!email || !productId) return { status: "skipped" };
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return { status: "skipped" };
+    if (!learnDb) {
+      learnDb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { persistSession: false } });
+    }
+    const { data: courses, error } = await learnDb
+      .from("learn_courses").select("id").eq("lw_course_id", String(productId)).eq("active", true);
+    if (error) throw error;
+    if (!courses || !courses.length) return { status: "skipped" };
+
+    const rows = courses.map((c) => ({
+      course_id: c.id,
+      email: String(email).trim().toLowerCase(),
+      source: String(justification || "auto").slice(0, 120),
+    }));
+    const { error: insErr } = await learnDb
+      .from("learn_enrolments")
+      .upsert(rows, { onConflict: "course_id,email", ignoreDuplicates: true });
+    if (insErr) throw insErr;
+    return { status: "enrolled", count: rows.length };
+  } catch (err) {
+    console.error("BirdBox Learn enrolment failed:", err && (err.message || err));
+    return { status: "failed", error: String((err && err.message) || err).slice(0, 300) };
+  }
 }
