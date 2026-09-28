@@ -44,7 +44,7 @@
 <body>
 
 <div class="bar">
-  <a href="/" style="border:0;padding:0"><img src="/brand/birdBox.png" alt="BirdBox"></a>
+  <a href="/learn/" style="border:0;padding:0"><img src="/brand/birdBox.png" alt="BirdBox"></a>
   <div class="t" id="title">BirdBox Learn</div>
   <div class="s" id="saved"></div>
   <button id="exit" type="button" class="hidden">Save &amp; exit</button>
@@ -70,6 +70,7 @@
   <div class="card">
     <h1 id="note-h"></h1>
     <p id="note-p"></p>
+    <button id="note-home" type="button">My courses</button>
     <button id="note-out" type="button" class="ghost">Log out</button>
   </div>
 </div>
@@ -92,6 +93,7 @@ function note(h, p) {
   $("note-p").textContent = p;
   show("note");
 }
+$("note-home").onclick = () => { location.href = "/learn/"; };
 $("note-out").onclick = async () => { await db.auth.signOut(); location.reload(); };
 
 // ---------------- login ----------------
@@ -114,6 +116,11 @@ $("l-link").addEventListener("click", async () => {
   const email = $("l-email").value.trim();
   if (!email) { msg.className = "msg err"; msg.textContent = "Type your email first."; return; }
   $("l-link").disabled = true;
+  try {
+    await fetch("/.netlify/functions/learn-access", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: email.toLowerCase() }),
+    });
+  } catch (e) {}
   const { error } = await db.auth.signInWithOtp({
     email, options: { shouldCreateUser: false, emailRedirectTo: location.href },
   });
@@ -296,7 +303,7 @@ db.auth.onAuthStateChange((_e, s) => { if (s) session = s; if (!started && s) st
 $("exit").addEventListener("click", async () => {
   $("exit").disabled = true;
   await saveNow();
-  location.href = "/";
+  location.href = "/learn/";
 });
 </script>
 </body>
