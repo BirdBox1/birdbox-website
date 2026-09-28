@@ -274,7 +274,11 @@ async function saveNow() {
   } else {
     attempt = { ...(attempt || {}), completed_at: r.completed_at || null };
     $("saved").className = "s ok";
-    $("saved").textContent = r.completed_at ? "Completed ✓" : "Progress saved";
+    if (r.completed_at) {
+      $("saved").innerHTML = 'Completed ✓ <a href="/learn/" style="color:inherit;border:0;padding:0;text-transform:none;letter-spacing:0;font-size:12px;text-decoration:underline">Get your certificate</a>';
+    } else {
+      $("saved").textContent = "Progress saved";
+    }
   }
   if (again) { again = false; saveNow(); }
 }
