@@ -23,6 +23,10 @@
 //   retry            try the enrolment again after a failure
 //   void             cancel an unpaid invoice
 //
+// The course list is read LIVE from LearnWorlds every time the form
+// opens, so a new course or a new language appears in the dropdown on
+// its own — nothing to add anywhere. Drafts are left out.
+//
 // VAT: the online course is an electronically supplied service, so it
 // is charged at the rate of the CUSTOMER's country (not a seminar's),
 // from the same vat_rates table the checkout uses. No rate for the
@@ -31,7 +35,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
-import { grantOnlineCourse } from "./learnworlds.mjs";
+import { enrolById, listCourses } from "./learnworlds.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -90,26 +94,20 @@ export default async (request) => {
 // ---------------------------------------------------------------
 
 async function options() {
-  const { data: products, error } = await supabase
-    .from("learnworlds_products")
-    .select("brand, level, language, product_id, label, active")
-    .eq("active", true);
-  if (error) return json({ error: "Could not load the online courses: " + error.message }, 500);
+  let courses;
+  try {
+    courses = (await listCourses()).map((c) => ({
+      product_id: c.id,
+      label: c.title,
+      access: c.access,
+    }));
+  } catch (err) {
+    return json({ error: err.message }, 502);
+  }
 
   const { data: rates } = await supabase
     .from("vat_rates")
     .select("code, rate");
-
-  const courses = (products || [])
-    .filter((p) => p.product_id)
-    .map((p) => ({
-      product_id: p.product_id,
-      brand: p.brand,
-      level: p.level,
-      language: p.language,
-      label: p.label || `${String(p.brand).toUpperCase()} L${p.level} — ${p.language}`,
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label));
 
   const vat = (rates || [])
     .map((r) => ({ code: String(r.code || "").toUpperCase(), rate: pct(r.rate) }))
@@ -150,18 +148,19 @@ async function createAndSend(b, me) {
   if (!Number.isFinite(priceCents) || priceCents <= 0) return json({ error: "The price must be more than zero." }, 400);
   const currency = (clean(b.currency) || "EUR").toUpperCase();
 
-  // The course, checked against the table rather than trusted from
-  // the browser, so an invoice can never name a course that cannot
-  // then be enrolled.
-  const { data: product } = await supabase
-    .from("learnworlds_products")
-    .select("brand, level, language, product_id, label, active")
-    .eq("product_id", b.product_id)
-    .eq("active", true)
-    .limit(1)
-    .maybeSingle();
-  if (!product) return json({ error: "Choose an online course." }, 400);
-  const label = product.label || `${String(product.brand).toUpperCase()} L${product.level} — ${product.language}`;
+  // The course, checked against the live academy list rather than
+  // trusted from the browser, so an invoice can never name a course
+  // that cannot then be enrolled.
+  const productId = clean(b.product_id);
+  if (!productId) return json({ error: "Choose an online course." }, 400);
+  let product;
+  try {
+    product = (await listCourses()).find((c) => c.id === productId);
+  } catch (err) {
+    return json({ error: err.message }, 502);
+  }
+  if (!product) return json({ error: "That course is no longer in the academy. Reopen the form and choose again." }, 400);
+  const label = product.title;
 
   // VAT: "AUTO" (or blank) = the customer's country, "NONE" = no VAT,
   // "REVERSE" = reverse charge for an EU business.
@@ -205,10 +204,7 @@ async function createAndSend(b, me) {
       country,
       business_name: business,
       vat_number: taxId ? taxId.value : clean(b.vat_number),
-      brand: String(product.brand),
-      level: String(product.level),
-      language: product.language,
-      product_id: product.product_id,
+      product_id: product.id,
       product_label: label,
       price_cents: priceCents,
       currency,
@@ -395,13 +391,12 @@ export async function onOnlineInvoiceOverdue(invoice) {
 }
 
 async function enrolAndEmail(row, invoiceNumber) {
-  const result = await grantOnlineCourse(supabase, {
+  const result = await enrolById({
     email: row.email,
     firstName: row.first_name,
     lastName: row.last_name,
-    brand: row.brand,
-    level: row.level,
-    language: row.language,
+    productId: row.product_id,
+    productType: "course",
     justification: `Paid by invoice ${invoiceNumber || ""}`.trim(),
   });
 
