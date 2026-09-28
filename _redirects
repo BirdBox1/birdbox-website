@@ -11,3 +11,10 @@
 # reads the slug and fetches that post. The list at /blog/ is a real
 # file, so it is matched first and never reaches this rule.
 /blog/*    /blog/post/index.html    200
+
+# BirdBox Learn: course package files (Rise SCORM exports) are stored in
+# the Supabase "learn" bucket but must load from our own address, or the
+# course cannot find the SCORM player around it. 200 = rewrite, so the
+# browser only ever sees birdboxcoaching.com. HTML files are caught first
+# by netlify/functions/learn-file.mjs, which serves them as real pages.
+/learn/c/*    https://yvdmazpxtpuvidlcifnq.supabase.co/storage/v1/object/public/learn/:splat    200
