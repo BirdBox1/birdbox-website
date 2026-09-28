@@ -60,7 +60,10 @@
     { href: "/blog", text: "Blog" },
     { href: "/trainer-directory", text: "Trainer Directory" },
     { href: "/birdbox-team/", text: "Meet the Team" },
-    { href: "/about", text: "About" }
+    { href: "/about", text: "About" },
+    // Where people who have bought an online course log in. Shown as an
+    // outlined button so returning students can find it on every page.
+    { href: "https://www.birdboxacademy.com", text: "Student Login", button: true }
   ];
   // "/tcc/level-1/" and "/tcc/level-1" are the same page. Trailing slashes
   // are stripped so the active check does not depend on how the visitor
@@ -91,6 +94,13 @@
       var a = document.createElement("a");
       a.href = item.href;
       a.textContent = item.text;
+      if (item.button) {
+        a.style.border = "1px solid currentColor";
+        a.style.padding = "4px 12px";
+        a.style.borderRadius = "3px";
+        a.style.color = "#ffffff";
+        a.style.fontWeight = "700";
+      }
       if (isCurrent(item.href, here)) {
         a.className = "is-active";
         a.setAttribute("aria-current", "page");
