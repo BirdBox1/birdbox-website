@@ -5,11 +5,11 @@
 // course; the money comes through our own Stripe.
 //
 //   GET  ?brand=tcc&level=1
-//        -> { currency, prices: { EUR: 65000, ... }, languages, months }
+//        -> { currency, country, prices: { EUR: 65000, ... }, languages, months: [3..8], vat }
 //        What the sales page shows. The currency is picked from where
 //        the visitor is (Netlify's geo lookup); they can change it.
 //
-//   POST { brand, level, language, currency, option: "full" | "plan", return_path }
+//   POST { brand, level, language, currency, country, option: "full" | "plan", months, return_path }
 //        -> { url }   the Stripe Checkout page
 //
 // After payment the Stripe webhook calls onOnlineSaleCompleted()
@@ -27,14 +27,16 @@
 //   Sales      online_sales — one row per purchase.
 //
 // VAT: an online course is an electronically supplied service, taxed
-// where the BUYER is. Every rate in vat_rates is passed to Checkout as
-// a dynamic tax rate, and Stripe picks the one for the billing country.
-// No matching rate (the US, Australia, Canada...) means no VAT. Prices
-// are shown and charged exclusive of VAT, the same as the seminars.
+// where the BUYER is. The buy box asks for their country (filled in
+// from where they are browsing), and that country's rate from
+// vat_rates is put on the line item, exclusive — added on top, the
+// same as the seminars. No rate for the country (the US, Australia,
+// Canada...) means no VAT. The country and the billing address are
+// both kept on the sale as the two pieces of location evidence.
 //
 // PAYMENT OPTIONS
 //   full   card or Klarna, once. Klarna pays us in full up front.
-//   plan   PLAN_MONTHS monthly card payments, as a Stripe subscription
+//   plan   3 to 8 monthly card payments (buyer's choice), as a Stripe subscription
 //          that cancels itself after the last one. Access is given on
 //          the first payment. A failed payment alerts the office.
 
@@ -50,9 +52,10 @@ const supabase = createClient(
   { auth: { persistSession: false } }
 );
 
-// Number of monthly payments on the plan. Change here and it changes
-// on the page too.
-const PLAN_MONTHS = 3;
+// The monthly plan lengths a buyer can choose. Change here and the
+// page changes too.
+const PLAN_CHOICES = [3, 4, 5, 6, 7, 8];
+const PLAN_MONTHS = 3; // fallback only
 
 const KIND = "online_course_sale";
 const ALERT_EMAIL = "info@birdboxcoaching.com";
@@ -138,6 +141,9 @@ async function offer(req, context) {
 
   let country = null;
   try { country = context?.geo?.country?.code || null; } catch (e) { country = null; }
+  country = country ? String(country).toUpperCase() : null;
+
+  const vat = await vatList();
   let currency = currencyForCountry(country);
   if (!prices[currency]) currency = prices.EUR ? "EUR" : Object.keys(prices)[0] || null;
 
@@ -145,8 +151,27 @@ async function offer(req, context) {
     currency,
     prices,
     languages: products.map((p) => ({ language: p.language, label: p.label })),
-    months: PLAN_MONTHS,
+    months: PLAN_CHOICES,
+    country,
+    vat,
   }, 200, { "Cache-Control": "no-store" });
+}
+
+// Every VAT rate we hold, as { code, rate, id }.
+async function vatList() {
+  const { data } = await supabase
+    .from("vat_rates")
+    .select("code, rate, stripe_tax_rate_id");
+  return (data || [])
+    .map((r) => {
+      const raw = Number(r.rate) || 0;
+      return {
+        code: String(r.code || "").toUpperCase(),
+        rate: raw <= 1 ? Math.round(raw * 10000) / 100 : raw,
+        id: r.stripe_tax_rate_id || null,
+      };
+    })
+    .filter((r) => r.code && r.rate > 0 && r.id && r.id.startsWith("txr_"));
 }
 
 // ---------------------------------------------------------------
@@ -160,6 +185,10 @@ async function checkout(req) {
   const language = String(body.language || "");
   const currency = String(body.currency || "").toUpperCase();
   const option = body.option === "plan" ? "plan" : "full";
+  const country = String(body.country || "").toUpperCase();
+  const months = option === "plan" ? parseInt(body.months, 10) : 1;
+  if (!/^[A-Z]{2}$/.test(country)) return json({ error: "Choose your country" }, 400);
+  if (option === "plan" && !PLAN_CHOICES.includes(months)) return json({ error: "Choose how many monthly payments" }, 400);
 
   if (!brand || !level) return json({ error: "Missing course" }, 400);
   if (!CURRENCIES.includes(currency)) return json({ error: "Choose a currency" }, 400);
@@ -171,20 +200,14 @@ async function checkout(req) {
   const price = prices[currency];
   if (!price) return json({ error: `This course is not on sale in ${currency}` }, 400);
 
-  // Every VAT rate we hold; Stripe applies the one for the billing
-  // country, or none.
-  const { data: rates } = await supabase
-    .from("vat_rates")
-    .select("stripe_tax_rate_id");
-  const dynamicRates = [...new Set((rates || [])
-    .map((r) => r.stripe_tax_rate_id)
-    .filter((id) => id && id.startsWith("txr_")))];
+  // The rate for the buyer's country, or none.
+  const vatRow = (await vatList()).find((v) => v.code === country) || null;
 
   const origin = new URL(req.url).origin;
   const back = typeof body.return_path === "string" && body.return_path.startsWith("/") && !body.return_path.startsWith("//")
     ? body.return_path : "/";
 
-  const each = Math.round(price / PLAN_MONTHS);
+  const each = Math.round(price / months);
   const name = product.label;
 
   const metadata = {
@@ -197,7 +220,9 @@ async function checkout(req) {
     currency,
     option,
     price_cents: String(price),
-    months: option === "plan" ? String(PLAN_MONTHS) : "1",
+    months: String(months),
+    country,
+    vat_percent: vatRow ? String(vatRow.rate) : "0",
   };
 
   const lineItem = {
@@ -206,13 +231,13 @@ async function checkout(req) {
       currency: currency.toLowerCase(),
       unit_amount: option === "plan" ? each : price,
       product_data: {
-        name: option === "plan" ? `${name} — ${PLAN_MONTHS} monthly payments` : name,
+        name: option === "plan" ? `${name} — ${months} monthly payments` : name,
         description: "Online course. Instant access — your login details are emailed as soon as you have paid.",
       },
     },
   };
   if (option === "plan") lineItem.price_data.recurring = { interval: "month" };
-  if (dynamicRates.length) lineItem.dynamic_tax_rates = dynamicRates;
+  if (vatRow) lineItem.tax_rates = [vatRow.id];
 
   const session = {
     mode: option === "plan" ? "subscription" : "payment",
@@ -234,13 +259,13 @@ async function checkout(req) {
 
   if (option === "plan") {
     session.subscription_data = {
-      description: `${name} — ${PLAN_MONTHS} monthly payments`,
+      description: `${name} — ${months} monthly payments`,
       metadata,
     };
     session.custom_text.submit = {
       message:
-        `You are paying the first of ${PLAN_MONTHS} monthly payments today. The other ` +
-        `${PLAN_MONTHS - 1} are taken from this card on the same day each month, then the plan ends by itself.`,
+        `You are paying the first of ${months} monthly payments today. The other ` +
+        `${months - 1} are taken from this card on the same day each month, then the plan ends by itself.`,
     };
   } else {
     session.customer_creation = "always";
