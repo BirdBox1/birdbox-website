@@ -225,6 +225,15 @@
       "VAT applies to buyers in the EU and UK, at the rate for the country you are based in. " +
       "As soon as you have paid, your BirdBox Academy login is emailed to you and the course is already in your account."));
 
+    var li = el("p", "ob-small");
+    li.appendChild(document.createTextNode("Already enrolled? "));
+    var la = el("a", null, "Log in to BirdBox Academy \u2192");
+    la.href = "https://www.birdboxacademy.com";
+    la.style.color = "var(--accentText)";
+    la.style.fontWeight = "700";
+    li.appendChild(la);
+    box.appendChild(li);
+
     var err = el("p", "ob-err");
     err.id = "ob-err";
     err.hidden = true;
