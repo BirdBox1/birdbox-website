@@ -116,18 +116,18 @@ $("l-link").addEventListener("click", async () => {
   const email = $("l-email").value.trim();
   if (!email) { msg.className = "msg err"; msg.textContent = "Type your email first."; return; }
   $("l-link").disabled = true;
+  let sent = false;
   try {
-    await fetch("/.netlify/functions/learn-access", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: email.toLowerCase() }),
+    const r = await fetch("/.netlify/functions/learn-access", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.toLowerCase(), next: location.pathname + location.search }),
     });
+    sent = r.ok;
   } catch (e) {}
-  const { error } = await db.auth.signInWithOtp({
-    email, options: { shouldCreateUser: false, emailRedirectTo: location.href },
-  });
   $("l-link").disabled = false;
-  if (error) { msg.className = "msg err"; msg.textContent = "We could not send a link to that address. Check it is the email you bought with, or write to info@birdboxcoaching.com."; return; }
+  if (!sent) { msg.className = "msg err"; msg.textContent = "Something went wrong sending the link. Try again, or write to info@birdboxcoaching.com."; return; }
   msg.className = "msg ok";
-  msg.textContent = "Check your email and tap the link. It opens this course.";
+  msg.textContent = "If that email has this course, a login link is on its way. Check your inbox (and junk) and tap the link. It opens this course.";
 });
 
 // ---------------- load ----------------
