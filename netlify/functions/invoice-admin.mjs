@@ -738,7 +738,7 @@ async function listUnmatched() {
   // the people on them still need linking.
   const handMade = all.filter((i) => {
     const m = i.metadata || {};
-    return !m.registration_id && !m.portal_invoice_id && m.kind !== "plan_deposit_invoice";
+    return !m.registration_id && !m.portal_invoice_id && m.kind !== "plan_deposit_invoice" && m.kind !== "online_course_invoice";
   });
   if (!handMade.length) return json({ invoices: [] });
 
