@@ -269,7 +269,6 @@ async function checkout(req) {
     };
   } else {
     session.customer_creation = "always";
-    session.allow_promotion_codes = true;
     session.invoice_creation = {
       enabled: true,
       invoice_data: { description: name, metadata: { kind: KIND, label: name } },
