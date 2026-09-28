@@ -738,7 +738,11 @@ async function listUnmatched() {
   // the people on them still need linking.
   const handMade = all.filter((i) => {
     const m = i.metadata || {};
-    return !m.registration_id && !m.portal_invoice_id && m.kind !== "plan_deposit_invoice" && m.kind !== "online_course_invoice";
+    const sub = (i.parent && i.parent.subscription_details && i.parent.subscription_details.metadata) ||
+                (i.subscription_details && i.subscription_details.metadata) || {};
+    return !m.registration_id && !m.portal_invoice_id && m.kind !== "plan_deposit_invoice" &&
+           m.kind !== "online_course_invoice" && m.kind !== "online_course_sale" &&
+           sub.kind !== "online_course_sale";
   });
   if (!handMade.length) return json({ invoices: [] });
 
