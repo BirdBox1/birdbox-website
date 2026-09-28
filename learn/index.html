@@ -49,6 +49,13 @@
   .prog div{height:100%;background:var(--c,#4FA8DE)}
   .course .btn{background:var(--c,#4FA8DE);border-color:var(--c,#4FA8DE)}
   .course .btn:hover{background:transparent;color:var(--c,#4FA8DE)}
+  .cert{margin-top:10px}
+  .cert .btn{width:100%;background:none;color:var(--ink);border-color:#6A6466}
+  .cert .btn:hover{border-color:var(--ink);color:var(--ink)}
+  .cert form{margin-top:10px}
+  .cert label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+  .cert input{width:100%;font:inherit;font-size:16px;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:10px}
+  .cert .hint{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 10px}
   .empty{background:var(--panel);border:1px solid var(--line);padding:24px;color:var(--muted);line-height:1.6;max-width:640px}
   .extra{margin-top:40px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
   .extra .box{background:var(--panel);border:1px solid var(--line);padding:20px 22px;font-size:15px;line-height:1.6;color:var(--muted)}
@@ -194,11 +201,14 @@ async function boot() {
   $("who-email").textContent = session.user.email;
   $("who").classList.remove("hidden");
 
-  const [{ data: isAdmin }, { data: enr }, { data: att }] = await Promise.all([
+  const [{ data: isAdmin }, { data: enr }, { data: att }, { data: certs }] = await Promise.all([
     db.rpc("learn_is_admin"),
     db.from("learn_enrolments").select("course_id, learn_courses(id, slug, title, brand, level, language, ceus, current_version, active)"),
     db.from("learn_attempts").select("course_id, completion_status, success_status, progress, score_scaled, completed_at, updated_at").eq("user_id", session.user.id),
+    db.from("learn_certificates").select("course_id, reference").eq("user_id", session.user.id),
   ]);
+  const certByCourse = new Map((certs || []).map((c) => [c.course_id, c]));
+  const defaultName = (session.user.user_metadata && (session.user.user_metadata.full_name || session.user.user_metadata.name)) || "";
 
   const map = new Map();
   for (const e of enr || []) if (e.learn_courses && e.learn_courses.active) map.set(e.learn_courses.id, { ...e.learn_courses, admin: false });
@@ -263,9 +273,85 @@ async function boot() {
     if (!c.current_version) { go.removeAttribute("href"); go.style.opacity = ".5"; }
 
     card.append(top, st, prog, go);
+    if (done && c.current_version) card.appendChild(certBlock(c, certByCourse.get(c.id), defaultName));
     box.appendChild(card);
   }
   view("home");
+}
+
+// ---------------- certificates ----------------
+
+function certBlock(course, cert, defaultName) {
+  const wrap = document.createElement("div");
+  wrap.className = "cert";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "btn";
+  btn.textContent = cert ? "Download certificate" : "Get my certificate";
+  const msg = document.createElement("div");
+  msg.className = "msg";
+  wrap.append(btn, msg);
+
+  if (cert) {
+    btn.onclick = () => fetchCert(course.id, null, btn, msg);
+    return wrap;
+  }
+
+  // First time: confirm the name to print.
+  const form = document.createElement("form");
+  form.className = "hidden";
+  form.innerHTML = '<label>Your full name, as it should appear</label><input autocomplete="name" maxlength="80">' +
+    '<p class="hint">Check the spelling — this is printed on your certificate and cannot be changed later without asking us.</p>' +
+    '<button class="btn" type="submit">Create my certificate</button>';
+  const input = form.querySelector("input");
+  input.value = defaultName;
+  wrap.insertBefore(form, msg);
+  btn.onclick = () => { btn.classList.add("hidden"); form.classList.remove("hidden"); input.focus(); };
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    const name = input.value.replace(/\s+/g, " ").trim();
+    if (name.length < 3) { msg.className = "msg err"; msg.textContent = "Type your full name."; return; }
+    fetchCert(course.id, name, form.querySelector("button"), msg, () => {
+      form.classList.add("hidden");
+      btn.textContent = "Download certificate";
+      btn.classList.remove("hidden");
+      btn.onclick = () => fetchCert(course.id, null, btn, msg);
+    });
+  };
+  return wrap;
+}
+
+async function fetchCert(courseId, name, btn, msg, onDone) {
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Making your certificate…";
+  msg.className = "msg"; msg.textContent = "";
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    const res = await fetch("/.netlify/functions/learn-certificate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
+      body: JSON.stringify(name ? { course_id: courseId, name } : { course_id: courseId }),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.pdf) throw new Error(d.error || "Something went wrong.");
+    const bytes = Uint8Array.from(atob(d.pdf), (ch) => ch.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = d.filename || "BirdBox certificate.pdf";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    msg.className = "msg ok";
+    msg.textContent = d.emailed ? "Done — it has downloaded and a copy is on its way to your email. Reference " + d.reference + "."
+                                : "Downloaded. Reference " + d.reference + ".";
+    if (onDone) onDone();
+  } catch (e) {
+    msg.className = "msg err";
+    msg.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    if (btn.textContent === "Making your certificate…") btn.textContent = label;
+  }
 }
 
 db.auth.onAuthStateChange((event) => {
