@@ -12,6 +12,9 @@
  * can see who has paid, who is enrolled, and act on the rest:
  * Resend, Mark paid (bank transfer), Retry enrolment, Void.
  *
+ * The course dropdown is read live from LearnWorlds each time the
+ * portal loads, so new courses and languages appear by themselves.
+ *
  * Nothing here reaches into portal/index.html beyond one script tag.
  * The button copies the Invoices button's visibility, which the portal
  * already shows to admins only.
@@ -195,7 +198,9 @@ function fillSelects() {
   for (const c of opts.courses) {
     const o = document.createElement("option");
     o.value = c.product_id;
-    o.textContent = c.label;
+    // Straight from the academy, so anything not on open sale says so.
+    const note = c.access && !["paid", "free"].includes(c.access) ? ` (${c.access.replace(/_/g, " ")})` : "";
+    o.textContent = c.label + note;
     course.append(o);
   }
 
