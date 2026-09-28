@@ -150,24 +150,17 @@ $("l-link").addEventListener("click", async () => {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.className = "msg err"; msg.textContent = "Type your email first."; return; }
   $("l-link").disabled = true;
   msg.className = "msg"; msg.textContent = "Sending…";
+  let sent = false;
   try {
-    await fetch("/.netlify/functions/learn-access", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }),
+    const r = await fetch("/.netlify/functions/learn-access", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, next: "/learn/" }),
     });
+    sent = r.ok;
   } catch (e) {}
-  const { error } = await db.auth.signInWithOtp({
-    email, options: { shouldCreateUser: false, emailRedirectTo: location.origin + "/learn/" },
-  });
   $("l-link").disabled = false;
-  if (error) {
-    msg.className = "msg err";
-    msg.textContent = /rate|seconds/i.test(error.message)
-      ? "A link was sent a moment ago. Wait a minute, then try again."
-      : "We could not find a course for that email. Check it is the one you paid with, or write to info@birdboxcoaching.com.";
-    return;
-  }
+  if (!sent) { msg.className = "msg err"; msg.textContent = "Something went wrong sending the link. Try again, or write to info@birdboxcoaching.com."; return; }
   msg.className = "msg ok";
-  msg.textContent = "Check your email (and junk folder) and tap the link. It brings you straight back here, logged in.";
+  msg.textContent = "If that email has a course, a login link is on its way. Check your inbox (and junk folder) and tap the link. Nothing after 5 minutes? Write to info@birdboxcoaching.com.";
 });
 
 $("logout").addEventListener("click", async () => { await db.auth.signOut(); location.reload(); });
