@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Level 1 Online Course | The Coaches Course | BirdBox Coaching</title>
-<meta name="description" content="The full BirdBox Level 1 coaching curriculum at your own pace. Video lessons, practical frameworks, 44 CEUs, and six languages.">
+<title>TGC Level 1 Online Course | The Gymnastics Course</title>
+<meta name="description" content="Learn the full TGC methodology at your own pace. Video instruction, proven progressions, 35 CEUs, and certification as a TGC L1 Trainer.">
 <style>
   :root {
     --paper: #14100F;
@@ -12,8 +12,8 @@
     --ink: #F2EFEF;
     --muted: #8A8385;
     --line: #342F31;
-    --tcc: #4FA8DE;
-    --accentText: #6FB9E8;
+    --tcc: #D8393D;
+    --accentText: #F0797D;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--paper); }
@@ -48,8 +48,8 @@
   .tcc-hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
   .tcc-hero__photo {
     position: absolute; inset: 0 0 0 34%;
-    background-image: url("NG-6229.jpg");
-    background-size: cover; background-position: 0% 40%; background-repeat: no-repeat;
+    background-image: url("../onlineimg.jpg");
+    background-size: cover; background-position: center 40%; background-repeat: no-repeat;
   }
   .tcc-hero__photo::after {
     content: ""; position: absolute; inset: 0;
@@ -75,7 +75,7 @@
   }
   .tcc-cta {
     display: inline-flex; align-items: center; gap: 10px;
-    padding: 13px 26px; background: var(--tcc); color: #0C1116;
+    padding: 13px 26px; background: var(--tcc); color: #FFFFFF;
     font-size: 13px; font-weight: 800; letter-spacing: 0.08em;
     text-transform: uppercase; text-decoration: none; border: 1px solid var(--tcc);
     transition: background 0.2s ease, color 0.2s ease;
@@ -173,7 +173,7 @@
     text-transform: uppercase; text-decoration: none; padding: 11px 14px;
     transition: background 0.2s ease, color 0.2s ease;
   }
-  .tcc-btn:hover { background: var(--tcc); color: #0C1116; }
+  .tcc-btn:hover { background: var(--tcc); color: #FFFFFF; }
   .tcc-btn--ghost { border-color: var(--line); color: #ADA6A8; margin-top: 0; margin-bottom: 4px; }
   .tcc-btn--ghost:hover { background: transparent; border-color: var(--tcc); color: var(--accentText); }
 
@@ -248,7 +248,7 @@
     padding: 9px 14px; font-size: 14px; min-width: 200px; font-family: inherit;
   }
   .bb-signup button {
-    border: 1px solid var(--tcc); background: var(--tcc); color: #0C1116;
+    border: 1px solid var(--tcc); background: var(--tcc); color: #FFFFFF;
     font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
     padding: 9px 20px; cursor: pointer; font-family: inherit;
   }
@@ -309,10 +309,20 @@
     background-repeat: no-repeat;
   }
   .l1-band > .l1-section:first-child { padding-top: 30px; }
-  .l1-band--risk {
+  .l1-band--why {
     background-image:
       linear-gradient(180deg, rgba(20,16,15,0.90) 0%, rgba(20,16,15,0.94) 100%),
-      url("../ng6510.jpeg");
+      url("_IC_7609.jpg");
+  }
+  .l1-band--study {
+    background-image:
+      linear-gradient(180deg, rgba(20,16,15,0.90) 0%, rgba(20,16,15,0.94) 100%),
+      url("band-study.jpeg");
+  }
+  .l1-band--pricing {
+    background-image:
+      linear-gradient(180deg, rgba(20,16,15,0.90) 0%, rgba(20,16,15,0.94) 100%),
+      url("IMG_5337.png");
   }
   @media (max-width: 620px) { .l1-band { padding: 4px 16px 18px; } }
   .l1-label {
@@ -328,20 +338,6 @@
   .l1-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
   .l1-grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
   .l1-grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-  /* Prose-only sections look thin at 70ch, so run them in two columns. */
-  .l1-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px; }
-  .l1-two .l1-lede { max-width: none; margin-bottom: 0; }
-  .l1-pull {
-    border-left: 3px solid var(--tcc);
-    padding: 4px 0 4px 20px;
-    margin-top: 22px;
-  }
-  .l1-pull h3 {
-    font-size: 18px; font-weight: 800; text-transform: uppercase;
-    letter-spacing: -0.01em; margin: 0 0 8px;
-  }
-  .l1-pull p { font-size: 15px; line-height: 1.6; color: #C9C4C5; margin: 0; max-width: 62ch; }
-  @media (max-width: 820px) { .l1-two { grid-template-columns: 1fr; } }
   .l1-card { border: 1px solid var(--line); background: var(--panel); padding: 20px 22px; }
   .l1-card__title {
     font-size: 15px; font-weight: 800; text-transform: uppercase;
@@ -443,7 +439,8 @@
   }
   @media (max-width: 620px) {
     .l1-grid2, .l1-grid4, .l1-rules, .l1-prices { grid-template-columns: 1fr; }
-    }
+    #l1-map { height: 380px; }
+  }
 </style>
 <style>
   /* Self-hosted video. preload="metadata" so the file isn't pulled until played. */
@@ -465,213 +462,169 @@
 </nav>
 
 <div class="bb-backbar">
-  <a class="bb-back" href="/tcc">&larr; The Coaches Course</a>
+  <a class="bb-back" href="/tgc">&larr; The Gymnastics Course</a>
 </div>
 
 <header class="tcc-hero">
   <div class="tcc-hero__photo" aria-hidden="true"></div>
   <div class="tcc-hero__inner">
-    <img class="tcc-hero__mark" src="../../brand/tcc-mark.png" alt="The Coaches Course">
+    <img class="tcc-hero__mark" src="../../brand/tgc-mark.png" alt="The Gymnastics Course">
     <p class="tcc-row__eyebrow">Level 1 &middot; Online Learning</p>
     <h1 class="tcc-hero__title">Learn it<em>from anywhere.</em></h1>
-    <p class="tcc-hero__lede">The BirdBox framework trusted by gyms worldwide, built for coaches who need the flexibility to learn on their own schedule.</p>
-    <a class="tcc-cta" href="#buy">Start The Online Course &rarr;</a>
+    <p class="tcc-hero__lede">Learn the full TGC methodology at your own pace, with world-class video instruction and proven progressions. Designed for coaches and athletes who want the system, not the guesswork.</p>
+    <a class="tcc-cta" href="#buy">Start the Online Course &rarr;</a>
   </div>
 </header>
 
 <main class="bb-wrap">
 
   <div class="l1-chips">
-    <div class="l1-chip"><div class="l1-chip__big">44 CEUs</div><div class="l1-chip__small">CrossFit&reg; Approved</div></div>
-    <div class="l1-chip"><div class="l1-chip__big">~60 Hours</div><div class="l1-chip__small">Self-Paced</div></div>
-    <div class="l1-chip"><div class="l1-chip__big">6 Languages</div><div class="l1-chip__small">Fully Translated</div></div>
-    <div class="l1-chip"><div class="l1-chip__big">None</div><div class="l1-chip__small">Prerequisites</div></div>
+    <div class="l1-chip"><div class="l1-chip__big">35 CEUs</div><div class="l1-chip__small">CrossFit&reg; Approved</div></div>
+    <div class="l1-chip"><div class="l1-chip__big">15+</div><div class="l1-chip__small">Modules</div></div>
+    <div class="l1-chip"><div class="l1-chip__big">Lifetime</div><div class="l1-chip__small">Access &amp; Updates</div></div>
+    <div class="l1-chip"><div class="l1-chip__big">4 Languages</div><div class="l1-chip__small">EN / FR / IT / ES</div></div>
   </div>
 
   <section class="l1-section">
-    <p class="l1-label">The Challenge</p>
-    <h2 class="l1-h2">Time, Travel And Cost Get In The Way</h2>
-    <div class="l1-two">
-      <p class="l1-lede">You want to keep growing, but live events don&rsquo;t always fit your schedule or your monthly development budget. Without structured guidance, progress stalls.</p>
-      <p class="l1-lede">Every coach deserves world-class education, no matter where they live. We&rsquo;ve distilled the BirdBox methodology into an online journey you can start today and revisit whenever you need it.</p>
+    <p class="l1-label">Who Should Take This?</p>
+    <h2 class="l1-h2">Built for Coaches and Athletes</h2>
+    <p class="l1-lede">Whether you&rsquo;re a coach seeking a step-by-step system to teach gymnastics, or an athlete looking to break through movement plateaus, the online version of The Gymnastics Course gives you the whole methodology in your own time.</p>
+  </section>
+
+  <div class="l1-band l1-band--why">
+  <section class="l1-section">
+    <p class="l1-label">Why Choose the Online Course?</p>
+    <h2 class="l1-h2">Learn On Your Terms</h2>
+    <div class="l1-grid3">
+      <div class="l1-card">
+        <h3 class="l1-card__title">Train On Your Schedule</h3>
+        <p class="l1-card__text">Access the full course anytime, from anywhere, with lifetime access and updates included.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Clear Video Instruction</h3>
+        <p class="l1-card__text">High-quality breakdowns of each movement, cue, drill, and regression, explained by expert coaches.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Proven, Structured Methodology</h3>
+        <p class="l1-card__text">No fluff. Just a proven system for learning and teaching gymnastics, built to get real results.</p>
+      </div>
     </div>
   </section>
 
+
   <section class="l1-section">
-    <p class="l1-label">What&rsquo;s Included</p>
-    <h2 class="l1-h2">Everything You Need, At Your Own Pace</h2>
+    <p class="l1-label">What&rsquo;s Inside the Course?</p>
+    <h2 class="l1-h2">Everything You Need to Learn It Properly</h2>
     <div class="l1-rules">
-      <div class="l1-rule">Full library of video lessons covering the Level 1 curriculum</div>
-      <div class="l1-rule">Practical tools and frameworks you can apply immediately</div>
-      <div class="l1-rule">Self-paced &mdash; start, pause, and revisit lessons whenever you need to</div>
-      <div class="l1-rule">Certificate of completion</div>
+      <div class="l1-rule">15+ modules covering positions, strength, shapes, and movement efficiency</div>
+      <div class="l1-rule">Progressions for pull-ups, toes-to-bar, ring and bar muscle-ups, handstands, pistols and more</div>
+      <div class="l1-rule">Principles of gymnastics programming, cueing, and progression layering</div>
+      <div class="l1-rule">Bonus movement breakdowns and warm-up planning frameworks</div>
+      <div class="l1-rule">Access to future updates and bonus content</div>
+    </div>
+  </section>
+
+  </div>
+
+  <section class="l1-section">
+    <p class="l1-label">How It Works</p>
+    <h2 class="l1-h2">Three Steps to Get Started</h2>
+    <div class="l1-grid3">
+      <div class="l1-card">
+        <h3 class="l1-card__title">Enrol Online</h3>
+        <p class="l1-card__text">Purchase once and start learning right away.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Watch &amp; Apply</h3>
+        <p class="l1-card__text">Follow each lesson with movement drills and coaching points you can implement immediately.</p>
+      </div>
+      <div class="l1-card">
+        <h3 class="l1-card__title">Revisit &amp; Progress</h3>
+        <p class="l1-card__text">Use it as a reference for your training and coaching, revisiting as needed at your own pace.</p>
+      </div>
     </div>
   </section>
 
   <section class="l1-section">
-    <p class="l1-label">Preview</p>
-    <h2 class="l1-h2">See How The Course Works</h2>
-    <video class="l1-vid" controls preload="metadata" playsinline poster="IMG_0043.jpeg">
-      <source src="Online%20Course%20BB.mp4" type="video/mp4">
+    <p class="l1-label">Watch</p>
+    <h2 class="l1-h2">Inside the Online Course</h2>
+    <video class="l1-vid" controls preload="metadata" playsinline poster="NG-4182.jpg">
+      <source src="Online%20Course%20TGC%20website.mp4" type="video/mp4">
       Your browser cannot play this video.
     </video>
   </section>
 
   <section class="l1-section">
-    <p class="l1-label">Study Topics</p>
-    <h2 class="l1-h2">A Complete Coaching Curriculum</h2>
-    <div class="l1-topics">
-      <div class="l1-topic">
-        <p class="l1-topic__name">Methodology</p>
-        <p class="l1-topic__text">Coaching definitions, coach hierarchies of needs, and shaping your personal coaching philosophy.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Know Yourself</p>
-        <p class="l1-topic__text">Understand your personality, traits, and behaviours to improve your coaching effectiveness.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Coach-Athlete Relationship</p>
-        <p class="l1-topic__text">Foundational concepts and academic models for building strong relationships.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Communication</p>
-        <p class="l1-topic__text">Different types of communication and skills training to improve your coaching practice.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Leadership</p>
-        <p class="l1-topic__text">What type of leader and coach you are, and how to improve your behaviours.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Biomechanics</p>
-        <p class="l1-topic__text">Principles of biomechanics and how they guide more effective coaching.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Dependence, Independence &amp; Interdependence</p>
-        <p class="l1-topic__text">Building athletes who become proficient in their own training.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Motivation</p>
-        <p class="l1-topic__text">What makes a coach motivational, and how to become more effective at it.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Applicable Coaching Models</p>
-        <p class="l1-topic__text">Major coaching models you can use directly in your own practice.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Identification and Interventions</p>
-        <p class="l1-topic__text">Developing your coach&rsquo;s eye and making positive coaching interventions.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Psychological Skills Training</p>
-        <p class="l1-topic__text">Interventions to help develop your athletes and your service to them.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Conflict</p>
-        <p class="l1-topic__text">Forms of conflict you may face as a coach, and psychological skills to deal with it.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Standards, Mastery &amp; Maximum Motor Potential</p>
-        <p class="l1-topic__text">Long-term athlete development and expressing maximum motor potential.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Burnout</p>
-        <p class="l1-topic__text">What it is, how to identify and avoid it, and how to support someone experiencing it.</p>
-      </div>
-      <div class="l1-topic">
-        <p class="l1-topic__name">Building or Refining Your Own Coaching Philosophy</p>
-        <p class="l1-topic__text">Developing a philosophy that guides you to execute your coaching effectively.</p>
-      </div>
+    <p class="l1-label">What You&rsquo;ll Gain</p>
+    <h2 class="l1-h2">A Clear Roadmap for Better Movement</h2>
+    <div class="l1-rules">
+      <div class="l1-rule">A clear roadmap for coaching or performing gymnastics skills</div>
+      <div class="l1-rule">Better movement patterns, stronger shapes, and less frustration</div>
+      <div class="l1-rule">The ability to program and scale gymnastics with purpose</div>
+      <div class="l1-rule">Lifetime access to a world-class gymnastics education</div>
     </div>
   </section>
 
   <section class="l1-section">
-    <p class="l1-label">Available Languages</p>
-    <h2 class="l1-h2">Study In Your Own Language</h2>
-    <p class="l1-lede">Fully translated into French, German, Spanish, Italian and Brazilian Portuguese.</p>
-    <div class="tcc-panel" style="padding: 6px 20px 10px;">
-      <table class="tcc-table">
-        <thead>
-          <tr>
-            <th scope="col" style="text-align:left;">Language</th>
-            <th scope="col">Duration</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><th scope="row">English</th><td>~60 hours</td></tr>
-          <tr><th scope="row">Fran&ccedil;ais</th><td>~40&ndash;50 hours</td></tr>
-          <tr><th scope="row">Deutsch</th><td>~40&ndash;50 hours</td></tr>
-          <tr><th scope="row">Espa&ntilde;ol</th><td>~40&ndash;50 hours</td></tr>
-          <tr><th scope="row">Italiano</th><td>~40&ndash;50 hours</td></tr>
-          <tr><th scope="row">Portugu&ecirc;s</th><td>~40&ndash;50 hours</td></tr>
-        </tbody>
-      </table>
+    <p class="l1-label">Overview</p>
+    <h2 class="l1-h2">Certification Requirements</h2>
+    <p class="l1-lede">The Gymnastics Course Online is designed for CrossFit&reg; coaches, strength and conditioning coaches, personal trainers, clinical practitioners and athletes. The course includes short knowledge checks at the end of each unit and is completed in order. Once finished, a thirty-question multiple-choice exam awards certification for the merit of &ldquo;TGC L1 Trainer&rdquo;.</p>
+  </section>
+
+  <div class="l1-band l1-band--study">
+  <section class="l1-section">
+    <p class="l1-label">Online Course Subjects</p>
+    <h2 class="l1-h2">What You&rsquo;ll Study</h2>
+    <div class="l1-rules">
+      <div class="l1-rule">What is gymnastics</div>
+      <div class="l1-rule">TGC methodology</div>
+      <div class="l1-rule">Warming up</div>
+      <div class="l1-rule">The hollow</div>
+      <div class="l1-rule">The arch</div>
+      <div class="l1-rule">Hollow and arch rocks</div>
+      <div class="l1-rule">L-sits and V-sits + conditioning</div>
+      <div class="l1-rule">Hang in hollow + strict toes-to-bar</div>
+      <div class="l1-rule">Strict pull-ups and beat swings</div>
+      <div class="l1-rule">Kipping toes-to-bar and kipping pull-ups</div>
+      <div class="l1-rule">Butterfly pull-ups and bar muscle-ups</div>
+      <div class="l1-rule">Pistols</div>
+      <div class="l1-rule">Push-ups and low rings</div>
+      <div class="l1-rule">Dips and ring muscle-ups</div>
+      <div class="l1-rule">Headstand, handstand, handstand push-up and handstand walk</div>
+      <div class="l1-rule">Programming</div>
     </div>
   </section>
 
-  <section class="l1-section">
-    <p class="l1-label">Enrol</p>
-    <h2 class="l1-h2">Start Today &mdash; Pay In Full Or Monthly</h2>
-    <div id="buy" class="ob" data-brand="tcc" data-level="1"></div>
-  </section>
 
-  <div class="l1-band l1-band--risk">
-  <section class="l1-section">
-    <p class="l1-label">What&rsquo;s At Risk</p>
-    <h2 class="l1-h2">Without A Plan, It&rsquo;s Easy To Slip Back Into Guesswork</h2>
-    <div class="l1-grid3">
-      <div class="l1-card">
-        <h3 class="l1-card__title">Recycled Cues</h3>
-        <p class="l1-card__text">Repeating ineffective cues and drills.</p>
-      </div>
-      <div class="l1-card">
-        <h3 class="l1-card__title">Stalled Progress</h3>
-        <p class="l1-card__text">Development stops &mdash; for you and for your members.</p>
-      </div>
-      <div class="l1-card">
-        <h3 class="l1-card__title">Lost Confidence</h3>
-        <p class="l1-card__text">Classes don&rsquo;t improve, and you stop trusting your own judgement.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="l1-section">
-    <p class="l1-label">The Outcome</p>
-    <h2 class="l1-h2">What You&rsquo;ll Gain</h2>
-    <div class="l1-grid3">
-      <div class="l1-card">
-        <h3 class="l1-card__title">Clear Structure</h3>
-        <p class="l1-card__text">Sharper communication and stronger leadership.</p>
-      </div>
-      <div class="l1-card">
-        <h3 class="l1-card__title">Confident Coaching</h3>
-        <p class="l1-card__text">Clarity and self-efficacy in front of any class.</p>
-      </div>
-      <div class="l1-card">
-        <h3 class="l1-card__title">Real Results</h3>
-        <p class="l1-card__text">Progress your members with purpose, not luck.</p>
-      </div>
-    </div>
-  </section>
   </div>
 
+  <div class="l1-band l1-band--pricing">
   <section class="l1-section">
-    <p class="l1-label">How It Works</p>
-    <h2 class="l1-h2">Three Steps To Get Started</h2>
-    <div class="l1-grid3">
-      <div class="l1-card">
-        <h3 class="l1-card__title">Enrol Online</h3>
-        <p class="l1-card__text">Get instant access and begin today.</p>
-      </div>
-      <div class="l1-card">
-        <h3 class="l1-card__title">Learn At Your Pace</h3>
-        <p class="l1-card__text">Follow structured modules with clear takeaways.</p>
-      </div>
-      <div class="l1-card">
-        <h3 class="l1-card__title">Apply &amp; Improve</h3>
-        <p class="l1-card__text">Use BirdBox principles in your classes right away.</p>
-      </div>
+    <p class="l1-label">Preparation</p>
+    <h2 class="l1-h2">What You&rsquo;ll Need</h2>
+    <p class="l1-lede">No prerequisites. Just these:</p>
+    <div class="l1-rules">
+      <div class="l1-rule">A notepad, or the ability to save notes on a computer</div>
+      <div class="l1-rule">A computer, tablet, or smartphone with an internet connection</div>
     </div>
   </section>
+
+  <section class="l1-section">
+    <p class="l1-label">Pricing</p>
+    <h2 class="l1-h2">The Investment to Register</h2>
+    <div id="buy" class="ob" data-brand="tgc" data-level="1" style="margin-bottom:18px"></div>
+    <div class="l1-prices ob-tiles">
+      <div class="l1-price"><div class="l1-price__cur">Access</div><div class="l1-price__amt">Lifetime</div><div class="l1-price__vat">Updates included</div></div>
+      <div class="l1-price"><div class="l1-price__cur">CEUs</div><div class="l1-price__amt">35</div><div class="l1-price__vat">CrossFit&reg;</div></div>
+      <div class="l1-price"><div class="l1-price__cur">Languages</div><div class="l1-price__amt">4</div><div class="l1-price__vat">EN / FR / IT / ES</div></div>
+      <div class="l1-price"><div class="l1-price__cur">Merit</div><div class="l1-price__amt">TGC L1</div><div class="l1-price__vat">Trainer</div></div>
+    </div>
+    <p class="l1-policy">Prices are shown in your local currency &mdash; euro, pounds, Australian or Canadian dollars, or US dollars everywhere else &mdash; and you can switch currency above. VAT is added at checkout for buyers in the EU and UK. You will have lifetime access to the course material, including future updates.</p>
+    <p class="l1-policy"><strong>Discounts.</strong> If you have previously completed our Level 1 seminar, you are eligible for a 50% discount on this course. Email <a href="mailto:info@thegymnasticscourse.education">info@thegymnasticscourse.education</a> with your certificate and we will send you an invoice at the discounted price &mdash; once it is paid, your course access is emailed to you.</p>
+    <p class="l1-policy"><strong>Refunds.</strong> Due to the intellectual property of this course, we operate a no-refund policy. Your registration confirmation acts as your receipt. As soon as you have paid, BirdBox Academy emails you a link to set your password and the course is already in your account &mdash; check your junk folder if it has not arrived within five minutes.</p>
+  </section>
+
+  </div>
 
   <section class="l1-section">
     <p class="l1-label">Questions</p>
@@ -679,27 +632,31 @@
     <div class="l1-faq">
       <details>
         <summary>Do I need any prerequisites?</summary>
-        <p>None. The online course is open to coaches at every stage.</p>
+        <p>None. The online course is open to everyone.</p>
       </details>
       <details>
-        <summary>How long does it take?</summary>
-        <p>It is self-paced. The English course is expected to take around 60 hours; the translated versions around 40 to 50.</p>
+        <summary>How long do I have access?</summary>
+        <p>Lifetime access from the point of registration, with future updates included.</p>
       </details>
       <details>
         <summary>Do I receive CEUs?</summary>
-        <p>Yes. You may claim 44 CEUs toward your continuing CrossFit&reg; education on completion.</p>
+        <p>Yes. You may claim 35 CEUs toward your continuing CrossFit&reg; education on completion.</p>
+      </details>
+      <details>
+        <summary>What certification do I receive?</summary>
+        <p>This certification is for the merit of &ldquo;TGC L1 Trainer&rdquo;.</p>
+      </details>
+      <details>
+        <summary>How is it assessed?</summary>
+        <p>Short knowledge checks at the end of each unit, completed in order, then a thirty-question multiple-choice exam.</p>
       </details>
       <details>
         <summary>What languages is it available in?</summary>
-        <p>English, French, German, Spanish, Italian and Brazilian Portuguese.</p>
+        <p>English, French, Italian and Spanish.</p>
       </details>
       <details>
-        <summary>Can I split the payment?</summary>
-        <p>Yes. Pay in full by card or Klarna, or spread it across three monthly card payments. Either way you get access straight away.</p>
-      </details>
-      <details>
-        <summary>Is this the same as the live seminar?</summary>
-        <p>It covers the same curriculum at your own pace. The live seminar adds hands-on practice, real-time feedback and written feedback afterwards.</p>
+        <summary>I have already done the Level 1 seminar &mdash; is there a discount?</summary>
+        <p>Yes. If you have previously completed our Level 1 course you are eligible for a 50% discount. Email us your certificate and we will send you an invoice at the discounted price.</p>
       </details>
       <details>
         <summary>How do I log in after buying?</summary>
@@ -709,18 +666,18 @@
   </section>
 
   <div class="l1-close">
-    <h2>Ready To Keep Developing, On Your Schedule?</h2>
-    <p>Start today and bring clarity and structure to your coaching.</p>
-    <a class="tcc-cta" href="#buy">Start The Online Course &rarr;</a>
+    <h2>Learn It Properly, In Your Own Time</h2>
+    <p>Lifetime access, 35 CEUs, and certification on completion.</p>
+    <a class="tcc-cta" href="#buy">Start the Online Course &rarr;</a>
   </div>
 
   <div class="tcc-cross">
     <div class="tcc-cross__label">Explore Other Pathways</div>
     <div class="tcc-cross__links">
-      <a href="/tcc/level-1">Level 1 Live Seminar</a>
-      <a href="/tcc/level-2">Level 2</a>
-      <a href="/tcc">The Coaches Course</a>
+      <a href="/tgc/level-1">TGC Level 1 Live Seminar</a>
+      <a href="/tgc/level-2">TGC Level 2</a>
       <a href="/tgc">The Gymnastics Course</a>
+      <a href="/tcc">The Coaches Course</a>
     </div>
   </div>
 
