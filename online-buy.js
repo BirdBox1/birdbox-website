@@ -16,6 +16,9 @@
   var box = document.getElementById("buy");
   if (!box) return;
 
+  // Every "Start Learning Now" button glides down to the buy box.
+  try { document.documentElement.style.scrollBehavior = "smooth"; } catch (e) {}
+
   var brand = box.getAttribute("data-brand");
   var level = box.getAttribute("data-level");
   var API = "/.netlify/functions/online-checkout";
@@ -41,15 +44,18 @@
 
   var css = document.createElement("style");
   css.textContent = [
-    ".ob{border:1px solid var(--line);background:var(--panel);padding:26px 24px;scroll-margin-top:20px}",
+    ".ob{border:1px solid #4A4446;border-top:4px solid var(--tcc);background:#2B2628;padding:28px 26px;scroll-margin-top:20px;box-shadow:0 18px 50px rgba(0,0,0,.45)}",
     ".ob-row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:18px}",
     ".ob-field label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}",
-    ".ob-field select{background:var(--paper);color:var(--ink);border:1px solid var(--line);padding:10px 12px;font-size:15px;min-width:170px}",
+    ".ob-field select{background:#1E1A1B;color:var(--ink);border:1px solid var(--line);padding:10px 12px;font-size:15px;min-width:170px}",
     ".ob-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}",
     "@media(max-width:620px){.ob-opts{grid-template-columns:1fr}}",
     ".ob-opt select{min-width:0;width:100%}",
-    ".ob-opt{display:block;border:1px solid var(--line);background:var(--paper);padding:16px 18px;cursor:pointer;text-align:left;color:var(--ink);font:inherit}",
-    ".ob-opt[aria-pressed=true]{border-color:var(--tcc);box-shadow:inset 0 0 0 1px var(--tcc)}",
+    ".ob-opt{display:block;border:1px solid #5A5456;background:#38322F;transition:border-color .15s,background .15s;padding:16px 18px;cursor:pointer;text-align:left;color:var(--ink);font:inherit}",
+    ".ob-opt:hover{border-color:#8A8385}",
+    ".ob-opt[aria-pressed=true]{border-color:var(--tcc);box-shadow:inset 0 0 0 1px var(--tcc);background:#403834}",
+    ".ob-opt[aria-pressed=true] .ob-opt__k::before{content:\"\\2713  \"}",
+    ".ob-opt__note,.ob-small{color:#B7B1B3!important}",
     ".ob-opt__k{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accentText);margin-bottom:6px}",
     ".ob-opt__amt{font-size:26px;font-weight:800}",
     ".ob-opt__amt small{font-size:13px;font-weight:600;color:var(--muted)}",
