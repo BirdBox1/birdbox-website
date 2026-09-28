@@ -12,6 +12,8 @@
 //   create  POST {base}/users                 201, returns the id
 //   enrol   POST {base}/users/{id}/enrollment 200 {"success":true}
 //
+//   list    GET  {base}/courses?page=N       every course in the school
+//
 // The enrolment body accepts EXACTLY five keys — productId,
 // productType, justification, price, send_enrollment_email. A sixth
 // is rejected with a 422.
@@ -156,35 +158,15 @@ export async function grantOnlineCourse(supabase, {
       };
     }
 
-    let userId = await findUser(email);
-    const created = !userId;
-    if (!userId) userId = await createUser({ email, firstName, lastName });
-
-    // A brand new account already gets LearnWorlds' password email,
-    // and setting a password triggers a confirmation after it — so a
-    // third email naming the course is noise, and lands before they
-    // can even log in.
-    //
-    // An account that already exists gets neither of those, so the
-    // enrolment email is the only thing that tells them a new course
-    // has appeared. That covers repeat customers and every manual
-    // grant made from the portal.
-    const res = await call("POST", `/users/${encodeURIComponent(userId)}/enrollment`, {
+    const res = await enrolById({
+      email, firstName, lastName,
       productId: product.product_id,
       productType: product.product_type || "course",
       justification: justification || "Included free with the live seminar",
-      price: 0,
-      send_enrollment_email: !created,
     });
-
-    if (!res.ok) {
-      return {
-        status: "failed",
-        userId,
-        productId: product.product_id,
-        error: `Enrolment rejected (${res.status}): ${String(res.text || "").slice(0, 200)}`,
-      };
-    }
+    if (res.status !== "enrolled") return res;
+    const userId = res.userId;
+    const created = res.userWasCreated;
 
     return {
       status: "enrolled",
@@ -196,4 +178,71 @@ export async function grantOnlineCourse(supabase, {
   } catch (err) {
     return { status: "failed", error: String(err.message || err).slice(0, 300) };
   }
+}
+
+// Find or create the person, then enrol them in one LearnWorlds
+// course by its id. Same rules as above: never throws, and a brand
+// new account relies on LearnWorlds' own set-password email.
+export async function enrolById({
+  email, firstName, lastName, productId, productType, justification,
+}) {
+  if (!learnworldsConfigured()) {
+    return { status: "failed", error: "LearnWorlds is not configured" };
+  }
+  if (!email) return { status: "failed", error: "No email address" };
+  if (!productId) return { status: "failed", error: "No course chosen" };
+
+  try {
+    let userId = await findUser(email);
+    const created = !userId;
+    if (!userId) userId = await createUser({ email, firstName, lastName });
+
+    const res = await call("POST", `/users/${encodeURIComponent(userId)}/enrollment`, {
+      productId,
+      productType: productType || "course",
+      justification: justification || "Enrolled by BirdBox",
+      price: 0,
+      send_enrollment_email: !created,
+    });
+
+    if (!res.ok) {
+      return {
+        status: "failed",
+        userId,
+        productId,
+        error: `Enrolment rejected (${res.status}): ${String(res.text || "").slice(0, 200)}`,
+      };
+    }
+    return { status: "enrolled", userId, userWasCreated: created, productId };
+  } catch (err) {
+    return { status: "failed", error: String(err.message || err).slice(0, 300) };
+  }
+}
+
+// Every course in the school, read live, so a new course or a new
+// language shows up in the portal without anything being set up.
+// Drafts are left out. Pages are followed until one comes back short.
+export async function listCourses() {
+  if (!learnworldsConfigured()) throw new Error("LearnWorlds is not configured");
+
+  const out = [];
+  for (let page = 1; page <= 20; page++) {
+    const res = await call("GET", `/courses?page=${page}`);
+    if (!res.ok) throw new Error(`Could not list the academy courses (${res.status})`);
+
+    const body = res.parsed || {};
+    const items = Array.isArray(body.data) ? body.data : Array.isArray(body) ? body : [];
+    for (const c of items) {
+      if (!c || !c.id) continue;
+      const access = String(c.access || "").toLowerCase();
+      if (access === "draft") continue;
+      out.push({ id: String(c.id), title: String(c.title || c.id), access });
+    }
+
+    const meta = body.meta || {};
+    const total = Number(meta.totalPages || body.totalPages || 0);
+    if (total ? page >= total : items.length === 0) break;
+  }
+
+  return out.sort((a, b) => a.title.localeCompare(b.title));
 }
