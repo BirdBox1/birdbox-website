@@ -29,6 +29,7 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { grantOnlineCourse } from "./learnworlds.mjs";
 import { isOnlineInvoice, onOnlineInvoicePaid, onOnlineInvoiceOverdue } from "./online-invoice.mjs";
+import { isOnlineSale, onOnlineSaleCompleted, onlinePlanMeta, onOnlinePlanFailed } from "./online-checkout.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -115,6 +116,13 @@ export default async (req) => {
 // a purchase completed
 // ---------------------------------------------------------------
 async function onCheckoutCompleted(session) {
+  // The online course bought on our own sales page: enrol them in
+  // LearnWorlds and email them. Lives in online-checkout.mjs.
+  if (isOnlineSale(session)) {
+    await onOnlineSaleCompleted(session);
+    return;
+  }
+
   // A payment-plan deposit from the portal. It creates nobody — the
   // payer names people afterwards — so it must never reach the
   // website booking code below.
@@ -1112,6 +1120,11 @@ async function onGroupInvoiceOverdue(invoice) {
 // an attempt failed — Stripe will keep retrying
 // ---------------------------------------------------------------
 async function onInvoiceFailed(invoice) {
+  // A monthly payment on an online course plan.
+  if (onlinePlanMeta(invoice)) {
+    await onOnlinePlanFailed(invoice);
+    return;
+  }
   if (invoice.metadata?.kind === "plan_instalment") {
     await onPlanInstalmentFailed(invoice);
     return;
