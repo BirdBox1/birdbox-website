@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My courses — BirdBox Learn</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
+          --line:#342F31; --accent:#4FA8DE; --bad:#F0797D; --good:#5CC48A; }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent)}
+  .bar{display:flex;align-items:center;gap:14px;padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top));
+    border-bottom:1px solid var(--line);background:#0d0b0b}
+  .bar img{height:34px;width:auto;display:block}
+  .bar .name{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .bar .who{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);min-width:0}
+  .bar .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .btn{display:inline-block;font:inherit;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:13px 22px;background:var(--accent);color:#0C1116;border:1px solid var(--accent);cursor:pointer;text-decoration:none;text-align:center}
+  .btn:hover{background:transparent;color:var(--accent)}
+  .btn.ghost{background:none;color:var(--ink);border-color:#6A6466}
+  .btn.ghost:hover{border-color:var(--ink)}
+  .btn.small{font-size:11px;padding:7px 12px}
+  .btn[disabled]{opacity:.6;cursor:wait}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 20px 64px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  h1{font-size:clamp(26px,4vw,40px);line-height:1.05;font-weight:800;text-transform:uppercase;margin:0 0 10px}
+  .lede{color:var(--muted);font-size:16px;line-height:1.6;margin:0 0 28px;max-width:52ch}
+  .card{background:var(--panel);border:1px solid var(--line);padding:28px 24px;max-width:420px}
+  .card label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+  .card input{width:100%;font:inherit;font-size:16px;padding:11px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:14px}
+  .card .btn{width:100%}
+  .card .btn + .btn{margin-top:10px}
+  .msg{font-size:14px;line-height:1.5;margin:12px 0 0;min-height:1em}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  .hidden{display:none!important}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+  .course{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c,#4FA8DE);padding:22px}
+  .course .top{display:flex;gap:16px;align-items:center;margin-bottom:16px}
+  .course img{width:60px;height:60px;object-fit:contain;flex:none}
+  .course h2{font-size:17px;line-height:1.3;margin:0 0 4px}
+  .course .meta{font-size:13px;color:var(--muted)}
+  .course .status{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:auto 0 8px}
+  .course .status.done{color:var(--good)}
+  .prog{height:6px;background:var(--panel2);margin-bottom:16px}
+  .prog div{height:100%;background:var(--c,#4FA8DE)}
+  .course .btn{background:var(--c,#4FA8DE);border-color:var(--c,#4FA8DE)}
+  .course .btn:hover{background:transparent;color:var(--c,#4FA8DE)}
+  .empty{background:var(--panel);border:1px solid var(--line);padding:24px;color:var(--muted);line-height:1.6;max-width:640px}
+  .extra{margin-top:40px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .extra .box{background:var(--panel);border:1px solid var(--line);padding:20px 22px;font-size:15px;line-height:1.6;color:var(--muted)}
+  .extra h3{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin:0 0 10px}
+  .extra input{width:100%;font:inherit;font-size:16px;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin:4px 0 10px}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <a href="/"><img src="/brand/birdBox.png" alt="BirdBox Coaching"></a>
+  <span class="name">BirdBox Learn</span>
+  <div class="who hidden" id="who"><span id="who-email"></span><button class="btn ghost small" id="logout" type="button">Log out</button></div>
+</div>
+
+<main class="wrap">
+
+  <p id="loading" class="lede">Loading…</p>
+
+  <!-- Logged out -->
+  <section id="login" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>Your online courses</h1>
+    <p class="lede">Log in with the email address you bought your course with.</p>
+    <form class="card" id="login-form">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="email" required>
+      <label for="l-pass">Password</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn" id="l-go" type="submit">Log in</button>
+      <button class="btn ghost" id="l-link" type="button">First time, or forgot your password? Email me a login link</button>
+      <div id="l-msg" class="msg"></div>
+    </form>
+  </section>
+
+  <!-- Logged in -->
+  <section id="home" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My courses</h1>
+    <p class="lede">Pick up where you left off. Your progress saves as you go, on any device.</p>
+    <div id="courses" class="grid"></div>
+
+    <div class="extra">
+      <div class="box">
+        <h3>Set or change your password</h3>
+        <p style="margin:0 0 6px">So next time you can log in without waiting for an email.</p>
+        <input id="p-new" type="password" autocomplete="new-password" placeholder="New password (8+ characters)">
+        <button class="btn ghost small" id="p-go" type="button">Save password</button>
+        <div id="p-msg" class="msg"></div>
+      </div>
+      <div class="box">
+        <h3>Need help?</h3>
+        Course missing? Check you are logged in with the email you paid with, or write to
+        <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a> and we will sort it out.
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const $ = (id) => document.getElementById(id);
+const BRAND = {
+  tcc: { c: "#4FA8DE", mark: "/brand/tcc-mark.png" },
+  tgc: { c: "#D8393D", mark: "/brand/tgc-mark.png" },
+  twc: { c: "#E0A12B", mark: "/brand/twc-mark.png" },
+  tec: { c: "#5CC48A", mark: "/brand/tec-mark.png" },
+};
+const LANG = { en: "English", es: "Español", fr: "Français", it: "Italiano", de: "Deutsch" };
+
+function view(id) {
+  ["loading", "login", "home"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+}
+
+// ---------------- login ----------------
+
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("l-msg");
+  const email = $("l-email").value.trim();
+  const password = $("l-pass").value;
+  if (!password) { msg.className = "msg err"; msg.textContent = "Type your password, or use the login link button."; return; }
+  $("l-go").disabled = true;
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  $("l-go").disabled = false;
+  if (error) { msg.className = "msg err"; msg.textContent = "That email and password did not match. Try again, or use the login link button."; return; }
+  start();
+});
+
+$("l-link").addEventListener("click", async () => {
+  const msg = $("l-msg");
+  const email = $("l-email").value.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.className = "msg err"; msg.textContent = "Type your email first."; return; }
+  $("l-link").disabled = true;
+  msg.className = "msg"; msg.textContent = "Sending…";
+  try {
+    await fetch("/.netlify/functions/learn-access", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }),
+    });
+  } catch (e) {}
+  const { error } = await db.auth.signInWithOtp({
+    email, options: { shouldCreateUser: false, emailRedirectTo: location.origin + "/learn/" },
+  });
+  $("l-link").disabled = false;
+  if (error) {
+    msg.className = "msg err";
+    msg.textContent = /rate|seconds/i.test(error.message)
+      ? "A link was sent a moment ago. Wait a minute, then try again."
+      : "We could not find a course for that email. Check it is the one you paid with, or write to info@birdboxcoaching.com.";
+    return;
+  }
+  msg.className = "msg ok";
+  msg.textContent = "Check your email (and junk folder) and tap the link. It brings you straight back here, logged in.";
+});
+
+$("logout").addEventListener("click", async () => { await db.auth.signOut(); location.reload(); });
+
+// ---------------- password ----------------
+
+$("p-go").addEventListener("click", async () => {
+  const msg = $("p-msg");
+  const password = $("p-new").value;
+  if (password.length < 8) { msg.className = "msg err"; msg.textContent = "Use at least 8 characters."; return; }
+  $("p-go").disabled = true;
+  const { error } = await db.auth.updateUser({ password });
+  $("p-go").disabled = false;
+  if (error) { msg.className = "msg err"; msg.textContent = error.message; return; }
+  $("p-new").value = "";
+  msg.className = "msg ok";
+  msg.textContent = "Saved. Next time log in with your email and this password.";
+});
+
+// ---------------- courses ----------------
+
+let starting = null;
+function start() {
+  if (!starting) starting = boot().finally(() => { starting = null; });
+  return starting;
+}
+
+async function boot() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { $("who").classList.add("hidden"); view("login"); return; }
+  $("who-email").textContent = session.user.email;
+  $("who").classList.remove("hidden");
+
+  const [{ data: isAdmin }, { data: enr }, { data: att }] = await Promise.all([
+    db.rpc("learn_is_admin"),
+    db.from("learn_enrolments").select("course_id, learn_courses(id, slug, title, brand, level, language, ceus, current_version, active)"),
+    db.from("learn_attempts").select("course_id, completion_status, success_status, progress, score_scaled, completed_at, updated_at").eq("user_id", session.user.id),
+  ]);
+
+  const map = new Map();
+  for (const e of enr || []) if (e.learn_courses && e.learn_courses.active) map.set(e.learn_courses.id, { ...e.learn_courses, admin: false });
+  if (isAdmin) {
+    const { data: all } = await db.from("learn_courses").select("id, slug, title, brand, level, language, ceus, current_version, active").eq("active", true);
+    for (const c of all || []) if (!map.has(c.id)) map.set(c.id, { ...c, admin: true });
+  }
+  const attempts = new Map((att || []).map((a) => [a.course_id, a]));
+
+  const list = [...map.values()].sort((a, b) =>
+    (attempts.get(b.id)?.updated_at || "").localeCompare(attempts.get(a.id)?.updated_at || "") ||
+    String(a.title).localeCompare(String(b.title)));
+
+  const box = $("courses");
+  box.innerHTML = "";
+  if (!list.length) {
+    box.outerHTML = '<div id="courses" class="empty"></div>';
+    $("courses").innerHTML = "There are no courses on <strong></strong> yet. If you bought a course with a different email, log out and use that one. If you have only just paid, give it a couple of minutes and refresh.";
+    $("courses").querySelector("strong").textContent = session.user.email;
+    view("home");
+    return;
+  }
+
+  for (const c of list) {
+    const a = attempts.get(c.id);
+    const b = BRAND[c.brand] || BRAND.tcc;
+    const done = a && (a.success_status === "passed" || a.completion_status === "completed" || a.completed_at);
+    const pct = done ? 100 : a && a.progress != null ? Math.round(a.progress * 100) : a ? null : 0;
+
+    const card = document.createElement("div");
+    card.className = "course";
+    card.style.setProperty("--c", b.c);
+
+    const top = document.createElement("div");
+    top.className = "top";
+    const img = document.createElement("img");
+    img.src = b.mark; img.alt = "";
+    img.onerror = () => { img.onerror = null; img.src = "/brand/birdBox.png"; };
+    const txt = document.createElement("div");
+    const h = document.createElement("h2"); h.textContent = c.title;
+    const m = document.createElement("div"); m.className = "meta";
+    m.textContent = [LANG[c.language] || c.language, c.ceus ? c.ceus + " CEUs" : null, c.admin ? "Admin access" : null].filter(Boolean).join(" · ");
+    txt.append(h, m);
+    top.append(img, txt);
+
+    const st = document.createElement("div");
+    st.className = "status" + (done ? " done" : "");
+    st.textContent = !c.current_version ? "Coming soon"
+      : done ? (a.success_status === "passed" && a.score_scaled != null ? "Passed · " + Math.round(a.score_scaled * 100) + "%" : "Completed ✓")
+      : a ? "In progress" : "Not started";
+
+    const prog = document.createElement("div");
+    prog.className = "prog";
+    const fill = document.createElement("div");
+    fill.style.width = (pct == null ? 8 : Math.max(pct, a ? 4 : 0)) + "%";
+    prog.appendChild(fill);
+
+    const go = document.createElement("a");
+    go.className = "btn";
+    go.href = "/learn/player/?course=" + encodeURIComponent(c.slug);
+    go.textContent = !c.current_version ? "Not ready yet" : done ? "Review course" : a ? "Continue →" : "Start course →";
+    if (!c.current_version) { go.removeAttribute("href"); go.style.opacity = ".5"; }
+
+    card.append(top, st, prog, go);
+    box.appendChild(card);
+  }
+  view("home");
+}
+
+db.auth.onAuthStateChange((event) => {
+  if (event === "SIGNED_IN" || event === "SIGNED_OUT") start();
+});
+start();
+</script>
+</body>
+</html>
