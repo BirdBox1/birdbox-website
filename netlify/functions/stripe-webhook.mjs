@@ -28,6 +28,7 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { grantOnlineCourse } from "./learnworlds.mjs";
+import { isOnlineInvoice, onOnlineInvoicePaid, onOnlineInvoiceOverdue } from "./online-invoice.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -443,6 +444,13 @@ async function maybeEnrol({ registrationId, meta, email, firstName, lastName, la
 // the balance was collected
 // ---------------------------------------------------------------
 async function onInvoicePaid(invoice) {
+  // The online course sold by invoice from the portal: enrol them in
+  // LearnWorlds and email them. Lives in online-invoice.mjs.
+  if (isOnlineInvoice(invoice)) {
+    await onOnlineInvoicePaid(invoice);
+    return;
+  }
+
   // An invoice sent from the portal for a block of places. Checked
   // first, because it also carries a course_id and would otherwise be
   // filed as a host payment below.
@@ -1129,6 +1137,10 @@ async function onInvoiceFailed(invoice) {
 // Stripe has given up retrying
 // ---------------------------------------------------------------
 async function onInvoiceGivenUp(invoice) {
+  if (isOnlineInvoice(invoice)) {
+    await onOnlineInvoiceOverdue(invoice);
+    return;
+  }
   if (invoice.metadata?.portal_invoice_id) {
     if (invoice.metadata.kind === "plan_instalment") await onPlanInstalmentGivenUp(invoice);
     else await onGroupInvoiceOverdue(invoice);
