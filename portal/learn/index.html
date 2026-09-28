@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Online courses — BirdBox Coaching</title>
+<style>
+  :root {
+    --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+    --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0;
+    --good:#1f8a54; --warn:#b4610f; --bad:#b3261e;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .bar{background:var(--shell);color:#fff;padding:0.7rem 1.25rem;
+    display:flex;align-items:center;justify-content:space-between;gap:1rem}
+  .bar .left{display:flex;align-items:center;gap:0.75rem}
+  .mark{width:34px;height:34px;border-radius:4px;background:#fff;display:grid;place-items:center;flex:none}
+  .mark img{width:26px;height:26px;object-fit:contain}
+  .brandname{font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;color:#9aa1a9}
+  .bar a{color:#cfd4d9;font-size:0.85rem;text-decoration:none}
+  .bar a:hover{color:#fff}
+  .wrap{max-width:56rem;margin:0 auto;padding:1.5rem 1.25rem 4rem}
+  h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0 0 0.2rem;font-weight:600}
+  .sub{color:var(--muted);font-size:0.9rem;margin:0 0 1.5rem}
+  h2{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem;font-weight:600}
+  label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.3rem}
+  .hint{font-weight:400;color:var(--muted);font-size:0.78rem}
+  input,select{width:100%;font:inherit;padding:0.55rem 0.65rem;border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink)}
+  input[type=file]{padding:0.45rem}
+  .field{margin-bottom:1rem}
+  .grid2{display:grid;gap:0 1rem;grid-template-columns:1fr}
+  @media(min-width:34rem){.grid2{grid-template-columns:1fr 1fr}}
+  .grid3{display:grid;gap:0 1rem;grid-template-columns:1fr}
+  @media(min-width:40rem){.grid3{grid-template-columns:1fr 1fr 1fr}}
+  .panel{background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:1.25rem;margin-bottom:1.25rem}
+  .btn{font:inherit;font-weight:600;background:var(--ink);color:#fff;border:0;border-radius:4px;padding:0.6rem 1.1rem;cursor:pointer;text-decoration:none;display:inline-block}
+  .btn:hover{background:#000}
+  .btn[disabled]{opacity:0.5;cursor:default}
+  .btn.ghost{background:none;color:var(--ink);border:1px solid var(--rule);font-weight:500}
+  .btn.small{font-size:0.8rem;padding:0.35rem 0.7rem}
+  .msg{font-size:0.85rem;margin-top:0.9rem;min-height:1.2em;white-space:pre-line}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  .hidden{display:none!important}
+  .gate{padding:2rem 0;color:var(--muted)}
+  .course{border-bottom:1px solid var(--rule);padding:0.9rem 0;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+  .course:last-child{border-bottom:0}
+  .course .info{flex:1;min-width:14rem}
+  .course .t{font-weight:700}
+  .course .m{font-size:0.82rem;color:var(--muted)}
+  .pill{display:inline-block;font-size:0.7rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:0.1rem 0.45rem;border-radius:3px;margin-left:0.4rem;vertical-align:middle}
+  .pill.ok{background:#e3f3ea;color:var(--good)} .pill.no{background:#fbecd9;color:var(--warn)}
+  .or{text-align:center;color:var(--muted);font-size:0.8rem;margin:0.2rem 0 0.8rem}
+  .progress{height:10px;background:#eceae6;border-radius:5px;overflow:hidden;margin-top:1rem}
+  .progress div{height:100%;width:0;background:var(--accent);transition:width .2s}
+  .stat{font-size:0.85rem;color:var(--muted);margin-top:0.4rem}
+  table{width:100%;border-collapse:collapse;font-size:0.85rem}
+  th,td{text-align:left;padding:0.45rem 0.4rem;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .empty{color:var(--muted);font-size:0.9rem}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="left">
+    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+    <span class="brandname">BirdBox Coaching</span>
+  </div>
+  <a href="/portal/">&larr; Portal</a>
+</div>
+
+<div class="wrap">
+  <h1>Online courses</h1>
+  <p class="sub">Upload Rise SCORM 2004 exports, give people access, and see their progress.</p>
+
+  <div id="gate" class="gate">Checking your account…</div>
+
+  <div id="app" class="hidden">
+
+    <!-- 1. Courses -->
+    <div class="panel">
+      <h2>Courses</h2>
+      <div id="courses"><p class="empty">Loading…</p></div>
+    </div>
+
+    <!-- 2. Upload -->
+    <div class="panel">
+      <h2>Upload a course package</h2>
+      <div class="field">
+        <label for="u-course">Course</label>
+        <select id="u-course"></select>
+      </div>
+      <div class="field">
+        <label for="u-zip">The Rise export .zip <span class="hint">(works on iPad)</span></label>
+        <input id="u-zip" type="file" accept=".zip,application/zip">
+      </div>
+      <p class="or">— or, on a computer —</p>
+      <div class="field">
+        <label for="u-dir">The unzipped export folder <span class="hint">(the folder that has imsmanifest.xml in it)</span></label>
+        <input id="u-dir" type="file" webkitdirectory directory multiple>
+      </div>
+      <button id="u-go" class="btn" type="button">Upload</button>
+      <div id="u-bar" class="progress hidden"><div></div></div>
+      <div id="u-stat" class="stat"></div>
+      <div id="u-msg" class="msg"></div>
+    </div>
+
+    <!-- 3. Access -->
+    <div class="panel">
+      <h2>Give someone access</h2>
+      <div class="grid2">
+        <div class="field">
+          <label for="e-course">Course</label>
+          <select id="e-course"></select>
+        </div>
+        <div class="field">
+          <label for="e-email">Their email <span class="hint">(the one they log in with)</span></label>
+          <input id="e-email" type="email" autocomplete="off" placeholder="name@example.com">
+        </div>
+      </div>
+      <button id="e-go" class="btn" type="button">Give access</button>
+      <div id="e-msg" class="msg"></div>
+    </div>
+
+    <!-- 4. Learners -->
+    <div class="panel">
+      <h2>Learners</h2>
+      <div class="field" style="max-width:22rem">
+        <select id="l-course"></select>
+      </div>
+      <div id="learners"><p class="empty">Pick a course.</p></div>
+    </div>
+
+    <!-- 5. New course -->
+    <div class="panel">
+      <h2>Add a course</h2>
+      <div class="grid2">
+        <div class="field">
+          <label for="c-title">Title</label>
+          <input id="c-title" placeholder="The Coaches Course — Level 1 Online">
+        </div>
+        <div class="field">
+          <label for="c-slug">Short name <span class="hint">(used in the link; letters, numbers, dashes)</span></label>
+          <input id="c-slug" placeholder="tcc-l1-en">
+        </div>
+      </div>
+      <div class="grid3">
+        <div class="field">
+          <label for="c-brand">Brand</label>
+          <select id="c-brand">
+            <option value="tcc">TCC</option><option value="tgc">TGC</option>
+            <option value="twc">TWC</option><option value="tec">TEC</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="c-level">Level</label>
+          <input id="c-level" value="1">
+        </div>
+        <div class="field">
+          <label for="c-lang">Language</label>
+          <select id="c-lang">
+            <option value="en">English</option><option value="es">Spanish</option>
+            <option value="fr">French</option><option value="it">Italian</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="c-ceus">CEUs</label>
+          <input id="c-ceus" type="number" step="0.5" placeholder="44">
+        </div>
+        <div class="field">
+          <label for="c-lw">LearnWorlds course id <span class="hint">(optional, for moving people across)</span></label>
+          <input id="c-lw" placeholder="level-1-online">
+        </div>
+      </div>
+      <button id="c-go" class="btn" type="button">Add course</button>
+      <div id="c-msg" class="msg"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const BUCKET = "learn";
+
+const $ = (id) => document.getElementById(id);
+let me = null;
+let courses = [];
+
+start();
+
+async function start() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) {
+    $("gate").innerHTML = 'You are not signed in. <a href="/portal/">Sign in to the portal</a> first, then come back.';
+    return;
+  }
+  me = session.user;
+  const { data: staff } = await db.from("staff").select("id, role, active").eq("id", me.id).maybeSingle();
+  if (!staff || !staff.active || staff.role !== "admin") {
+    $("gate").textContent = "Only admins can manage online courses.";
+    return;
+  }
+  $("gate").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  await loadCourses();
+}
+
+// ---------------- courses ----------------
+
+async function loadCourses() {
+  const { data, error } = await db
+    .from("learn_courses")
+    .select("id, slug, title, brand, level, language, ceus, active, current_version, learn_versions!learn_versions_course_id_fkey(id, status, file_count, total_bytes, created_at)")
+    .order("brand").order("level").order("language");
+  if (error) { $("courses").innerHTML = '<p class="msg err"></p>'; $("courses").firstChild.textContent = error.message; return; }
+  courses = data || [];
+
+  const list = $("courses");
+  list.innerHTML = "";
+  if (!courses.length) list.innerHTML = '<p class="empty">No courses yet. Add one at the bottom of this page.</p>';
+  for (const c of courses) {
+    const cur = (c.learn_versions || []).find((v) => v.id === c.current_version);
+    const row = document.createElement("div");
+    row.className = "course";
+    const info = document.createElement("div");
+    info.className = "info";
+    const t = document.createElement("div");
+    t.className = "t";
+    t.textContent = c.title;
+    const pill = document.createElement("span");
+    pill.className = "pill " + (cur ? "ok" : "no");
+    pill.textContent = cur ? "Live" : "No package";
+    t.appendChild(pill);
+    const m = document.createElement("div");
+    m.className = "m";
+    m.textContent = [c.slug, (c.brand || "").toUpperCase() + " L" + (c.level || "?"), (c.language || "").toUpperCase(),
+      c.ceus ? c.ceus + " CEUs" : null,
+      cur ? cur.file_count + " files, " + mb(cur.total_bytes) + ", uploaded " + new Date(cur.created_at).toLocaleDateString("en-GB") : null
+    ].filter(Boolean).join(" · ");
+    info.appendChild(t); info.appendChild(m);
+    row.appendChild(info);
+    if (cur) {
+      const a = document.createElement("a");
+      a.className = "btn ghost small";
+      a.href = "/learn/player/?course=" + encodeURIComponent(c.slug);
+      a.target = "_blank";
+      a.textContent = "Open course";
+      row.appendChild(a);
+    }
+    list.appendChild(row);
+  }
+
+  for (const id of ["u-course", "e-course", "l-course"]) {
+    const sel = $(id);
+    const keep = sel.value;
+    sel.innerHTML = id === "l-course" ? '<option value="">Pick a course…</option>' : "";
+    for (const c of courses) {
+      const o = document.createElement("option");
+      o.value = c.id;
+      o.textContent = c.title + " (" + c.slug + ")";
+      sel.appendChild(o);
+    }
+    if (keep) sel.value = keep;
+  }
+}
+
+$("c-go").addEventListener("click", async () => {
+  const msg = $("c-msg");
+  msg.className = "msg";
+  const title = $("c-title").value.trim();
+  const slug = $("c-slug").value.trim().toLowerCase();
+  if (!title || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+    msg.className = "msg err";
+    msg.textContent = "Add a title and a short name (lowercase letters, numbers and dashes only).";
+    return;
+  }
+  $("c-go").disabled = true;
+  const { error } = await db.from("learn_courses").insert({
+    title, slug,
+    brand: $("c-brand").value,
+    level: $("c-level").value.trim() || null,
+    language: $("c-lang").value,
+    ceus: $("c-ceus").value ? Number($("c-ceus").value) : null,
+    lw_course_id: $("c-lw").value.trim() || null,
+  });
+  $("c-go").disabled = false;
+  if (error) { msg.className = "msg err"; msg.textContent = error.message; return; }
+  msg.className = "msg ok";
+  msg.textContent = "Added. Now upload its package above.";
+  ["c-title", "c-slug", "c-ceus", "c-lw"].forEach((id) => ($(id).value = ""));
+  await loadCourses();
+  $("u-course").value = courses.find((c) => c.slug === slug)?.id || "";
+});
+
+// ---------------- upload ----------------
+
+const TYPES = {
+  html: "text/html", htm: "text/html", js: "application/javascript", mjs: "application/javascript",
+  css: "text/css", json: "application/json", xml: "application/xml", xsd: "application/xml", dtd: "application/xml-dtd",
+  txt: "text/plain", vtt: "text/vtt", srt: "text/plain", map: "application/json",
+  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", svg: "image/svg+xml",
+  webp: "image/webp", ico: "image/x-icon", bmp: "image/bmp",
+  mp4: "video/mp4", m4v: "video/mp4", webm: "video/webm", mov: "video/quicktime",
+  mp3: "audio/mpeg", m4a: "audio/mp4", wav: "audio/wav", ogg: "audio/ogg",
+  pdf: "application/pdf", woff: "font/woff", woff2: "font/woff2", ttf: "font/ttf", otf: "font/otf",
+  eot: "application/vnd.ms-fontobject", zip: "application/zip", swf: "application/x-shockwave-flash",
+};
+const typeOf = (name) => TYPES[(name.split(".").pop() || "").toLowerCase()] || "application/octet-stream";
+const junk = (p) => /(^|\/)(__MACOSX|\.DS_Store|Thumbs\.db)(\/|$)/.test(p) || /(^|\/)\._/.test(p);
+const mb = (b) => (b / 1048576).toFixed(b > 10485760 ? 0 : 1) + " MB";
+
+// Both pickers end up as a list of { path, size, getBlob() }.
+async function readPicked() {
+  const zipFile = $("u-zip").files[0];
+  const dirFiles = [...($("u-dir").files || [])];
+  if (zipFile) {
+    stat("Opening the zip…");
+    const zip = await JSZip.loadAsync(zipFile);
+    const out = [];
+    zip.forEach((path, entry) => {
+      if (entry.dir || junk(path)) return;
+      out.push({ path, size: entry._data?.uncompressedSize || 0, getBlob: () => entry.async("blob") });
+    });
+    return out;
+  }
+  if (dirFiles.length) {
+    return dirFiles
+      .map((f) => ({ path: f.webkitRelativePath || f.name, size: f.size, getBlob: async () => f }))
+      .filter((f) => !junk(f.path));
+  }
+  return null;
+}
+
+// Find imsmanifest.xml, drop any folder in front of it, and read the launch page.
+async function readManifest(files) {
+  const man = files
+    .filter((f) => /(^|\/)imsmanifest\.xml$/i.test(f.path))
+    .sort((a, b) => a.path.length - b.path.length)[0];
+  if (!man) throw new Error("There is no imsmanifest.xml in this upload. Pick the Rise SCORM export (the zip, or the folder that has imsmanifest.xml directly inside it).");
+  const prefix = man.path.slice(0, man.path.length - "imsmanifest.xml".length);
+  const xml = new DOMParser().parseFromString(await (await man.getBlob()).text(), "application/xml");
+  const byTag = (el, tag) => [...el.getElementsByTagName("*")].filter((e) => e.localName === tag);
+
+  const schemaVersion = (byTag(xml, "schemaversion")[0]?.textContent || "").trim();
+  if (/^1\.2$/.test(schemaVersion)) throw new Error("This is a SCORM 1.2 export. Export it from Rise again as SCORM 2004 (4th edition).");
+
+  const orgs = byTag(xml, "organizations")[0];
+  const defId = orgs?.getAttribute("default");
+  const org = byTag(xml, "organization").find((o) => o.getAttribute("identifier") === defId) || byTag(xml, "organization")[0];
+  const item = org && byTag(org, "item").find((i) => i.getAttribute("identifierref"));
+  const ref = item?.getAttribute("identifierref");
+  const res = byTag(xml, "resource").find((r) => r.getAttribute("identifier") === ref);
+  const base = (byTag(xml, "resources")[0]?.getAttribute("xml:base") || "") + (res?.getAttribute("xml:base") || "");
+  const href = res?.getAttribute("href");
+  if (!href) throw new Error("Could not find the course's start page in imsmanifest.xml.");
+  const launch = (base + href).replace(/^\.?\//, "");
+
+  const scos = byTag(org, "item").filter((i) => i.getAttribute("identifierref")).length;
+  return { prefix, launch, scos, title: (byTag(org || xml, "title")[0]?.textContent || "").trim() };
+}
+
+function stat(text) { $("u-stat").textContent = text; }
+function bar(frac) {
+  $("u-bar").classList.remove("hidden");
+  $("u-bar").firstElementChild.style.width = Math.min(100, Math.round(frac * 100)) + "%";
+}
+
+async function uploadOne(versionId, f, rel) {
+  const blob = await f.getBlob();
+  const key = versionId + "/" + rel;
+  let last;
+  for (let tryNo = 1; tryNo <= 4; tryNo++) {
+    const { error } = await db.storage.from(BUCKET).upload(key, blob, {
+      contentType: typeOf(rel), upsert: true, cacheControl: "31536000",
+    });
+    if (!error) return blob.size;
+    last = error;
+    if (/invalid key/i.test(error.message || "")) break;          // bad filename: retrying won't help
+    await new Promise((r) => setTimeout(r, 1000 * tryNo * tryNo));
+  }
+  throw new Error(last?.message || "upload failed");
+}
+
+$("u-go").addEventListener("click", async () => {
+  const msg = $("u-msg");
+  msg.className = "msg"; msg.textContent = "";
+  const courseId = $("u-course").value;
+  if (!courseId) { msg.className = "msg err"; msg.textContent = "Add a course first (bottom of the page)."; return; }
+
+  const btn = $("u-go");
+  btn.disabled = true;
+  try {
+    const files = await readPicked();
+    if (!files) throw new Error("Pick the zip, or the unzipped folder.");
+    const man = await readManifest(files);
+    const pack = files.filter((f) => f.path.startsWith(man.prefix));
+    const total = pack.reduce((s, f) => s + (f.size || 0), 0);
+    if (man.scos > 1) msg.textContent = "Note: this package has " + man.scos + " parts; only the first one is played.";
+
+    const { data: ver, error: vErr } = await db.from("learn_versions").insert({
+      course_id: courseId, launch_path: man.launch, status: "uploading", uploaded_by: me.id,
+    }).select("id").single();
+    if (vErr) throw new Error(vErr.message);
+
+    // Biggest files first so the long uploads overlap the many small ones.
+    const queue = [...pack].sort((a, b) => (b.size || 0) - (a.size || 0));
+    let done = 0, bytes = 0;
+    const failed = [];
+    stat("Uploading 0 of " + pack.length + " files (" + mb(total) + ")… keep this page open and the screen on.");
+    bar(0);
+
+    const worker = async () => {
+      while (queue.length) {
+        const f = queue.shift();
+        const rel = f.path.slice(man.prefix.length);
+        try {
+          bytes += await uploadOne(ver.id, f, rel);
+        } catch (e) {
+          failed.push(rel + " — " + e.message);
+        }
+        done++;
+        bar(total ? bytes / total : done / pack.length);
+        stat("Uploading " + done + " of " + pack.length + " files (" + mb(bytes) + " of " + mb(total) + ")… keep this page open and the screen on.");
+      }
+    };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+
+    if (failed.length) {
+      await db.from("learn_versions").update({ status: "failed", file_count: done - failed.length, total_bytes: bytes }).eq("id", ver.id);
+      throw new Error(failed.length + " file(s) did not upload, so the course was NOT switched over:\n" + failed.slice(0, 15).join("\n") +
+        (failed.length > 15 ? "\n…and " + (failed.length - 15) + " more" : "") + "\nTry the upload again.");
+    }
+
+    // Check the start page really opens from our own address before going live.
+    stat("Checking the course opens…");
+    const test = await fetch("/learn/c/" + ver.id + "/" + man.launch.split("/").map(encodeURIComponent).join("/"), { cache: "no-store" });
+    const ct = test.headers.get("content-type") || "";
+    if (!test.ok || !/text\/html/.test(ct)) {
+      await db.from("learn_versions").update({ status: "failed", file_count: pack.length, total_bytes: bytes }).eq("id", ver.id);
+      throw new Error("Files uploaded, but the start page did not open as a web page (" + test.status + ", " + ct + "). Check learn-file.mjs and _redirects are deployed.");
+    }
+
+    await db.from("learn_versions").update({ status: "ready", file_count: pack.length, total_bytes: bytes }).eq("id", ver.id);
+    const { error: cErr } = await db.from("learn_courses").update({ current_version: ver.id }).eq("id", courseId);
+    if (cErr) throw new Error(cErr.message);
+
+    bar(1);
+    stat("");
+    msg.className = "msg ok";
+    msg.textContent = "Done — " + pack.length + " files, " + mb(bytes) + ". This version is now live. Use “Open course” above to try it.";
+    $("u-zip").value = ""; $("u-dir").value = "";
+    await loadCourses();
+  } catch (e) {
+    msg.className = "msg err";
+    msg.textContent = e.message || String(e);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ---------------- access ----------------
+
+$("e-go").addEventListener("click", async () => {
+  const msg = $("e-msg");
+  const email = $("e-email").value.trim().toLowerCase();
+  const courseId = $("e-course").value;
+  if (!courseId || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    msg.className = "msg err"; msg.textContent = "Pick a course and type a valid email."; return;
+  }
+  $("e-go").disabled = true;
+  const { error } = await db.from("learn_enrolments")
+    .upsert({ course_id: courseId, email, source: "manual" }, { onConflict: "course_id,email", ignoreDuplicates: true });
+  $("e-go").disabled = false;
+  if (error) { msg.className = "msg err"; msg.textContent = error.message; return; }
+  msg.className = "msg ok";
+  msg.textContent = email + " can now open this course once they are logged in with that email.";
+  $("e-email").value = "";
+  if ($("l-course").value === courseId) loadLearners();
+});
+
+// ---------------- learners ----------------
+
+$("l-course").addEventListener("change", loadLearners);
+
+async function loadLearners() {
+  const courseId = $("l-course").value;
+  const box = $("learners");
+  if (!courseId) { box.innerHTML = '<p class="empty">Pick a course.</p>'; return; }
+  box.innerHTML = '<p class="empty">Loading…</p>';
+  const [{ data: enr }, { data: att }] = await Promise.all([
+    db.from("learn_enrolments").select("email, source, created_at").eq("course_id", courseId).order("created_at", { ascending: false }),
+    db.from("learn_attempts").select("email, completion_status, success_status, score_scaled, total_time, completed_at, updated_at").eq("course_id", courseId),
+  ]);
+  const byEmail = new Map((att || []).map((a) => [(a.email || "").toLowerCase(), a]));
+  const rows = (enr || []).map((e) => ({ ...e, a: byEmail.get(e.email.toLowerCase()) }));
+  for (const a of att || []) if (!rows.some((r) => r.email.toLowerCase() === (a.email || "").toLowerCase())) rows.push({ email: a.email || "(admin)", source: "admin", a });
+  if (!rows.length) { box.innerHTML = '<p class="empty">Nobody has access yet.</p>'; return; }
+
+  const table = document.createElement("table");
+  table.innerHTML = "<thead><tr><th>Email</th><th>Status</th><th>Score</th><th>Time</th><th>Last seen</th></tr></thead>";
+  const tb = document.createElement("tbody");
+  for (const r of rows) {
+    const a = r.a;
+    const tr = document.createElement("tr");
+    const status = !a ? "Not started"
+      : a.success_status === "passed" ? "Passed"
+      : a.success_status === "failed" ? "Failed test"
+      : a.completion_status === "completed" ? "Completed" : "In progress";
+    [r.email, status,
+      a && a.score_scaled != null ? Math.round(a.score_scaled * 100) + "%" : "—",
+      a ? niceTime(a.total_time) : "—",
+      a ? new Date(a.updated_at).toLocaleDateString("en-GB") : "—",
+    ].forEach((v) => { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); });
+    tb.appendChild(tr);
+  }
+  table.appendChild(tb);
+  box.innerHTML = "";
+  box.appendChild(table);
+}
+
+function niceTime(iso) {
+  const m = /P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?/.exec(iso || "");
+  if (!m) return "—";
+  const h = Number(m[1] || 0) * 24 + Number(m[2] || 0);
+  const min = Number(m[3] || 0);
+  return h ? h + "h " + min + "m" : min + "m";
+}
+</script>
+</body>
+</html>
