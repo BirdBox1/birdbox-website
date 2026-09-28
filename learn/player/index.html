@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>BirdBox Learn</title>
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
+          --line:#342F31; --accent:#4FA8DE; --bad:#F0797D; --good:#5CC48A; }
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column}
+  .bar{flex:none;display:flex;align-items:center;gap:12px;padding:8px 14px;
+    padding-top:max(8px,env(safe-area-inset-top));background:#0d0b0b;border-bottom:1px solid var(--line)}
+  .bar img{height:30px;width:auto}
+  .bar .t{flex:1;min-width:0;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar .s{font-size:12px;color:var(--muted);white-space:nowrap}
+  .bar .s.ok{color:var(--good)}
+  .bar a,.bar button{font:inherit;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink);background:none;border:1px solid #6A6466;padding:7px 12px;cursor:pointer;text-decoration:none;white-space:nowrap}
+  .bar a:hover,.bar button:hover{border-color:var(--ink)}
+  #stage{flex:1;position:relative;background:#fff}
+  #stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .screen{flex:1;display:grid;place-items:center;padding:24px}
+  .card{width:100%;max-width:400px;background:var(--panel);border:1px solid var(--line);padding:28px 24px}
+  .card h1{font-size:22px;margin:0 0 6px;text-transform:uppercase;letter-spacing:.02em}
+  .card p{color:var(--muted);font-size:15px;line-height:1.55;margin:0 0 18px}
+  .card label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+  .card input{width:100%;font:inherit;font-size:16px;padding:11px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:14px}
+  .card button{width:100%;font:inherit;font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:14px;background:var(--accent);color:#0C1116;border:1px solid var(--accent);cursor:pointer}
+  .card button.ghost{background:none;color:var(--ink);border-color:#6A6466;margin-top:10px}
+  .card button[disabled]{opacity:.6;cursor:wait}
+  .card a{color:var(--accent)}
+  .msg{font-size:14px;margin:12px 0 0;min-height:1em}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  .hidden{display:none!important}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/scorm-again@3.4.4/dist/scorm2004.min.js"></script>
+</head>
+<body>
+
+<div class="bar">
+  <a href="/" style="border:0;padding:0"><img src="/brand/birdBox.png" alt="BirdBox"></a>
+  <div class="t" id="title">BirdBox Learn</div>
+  <div class="s" id="saved"></div>
+  <button id="exit" type="button" class="hidden">Save &amp; exit</button>
+</div>
+
+<!-- Login -->
+<div id="login" class="screen hidden">
+  <form class="card" id="login-form">
+    <h1>Log in</h1>
+    <p>Use the email address you bought the course with.</p>
+    <label for="l-email">Email</label>
+    <input id="l-email" type="email" autocomplete="email" required>
+    <label for="l-pass">Password</label>
+    <input id="l-pass" type="password" autocomplete="current-password">
+    <button id="l-go" type="submit">Log in</button>
+    <button id="l-link" type="button" class="ghost">Email me a login link instead</button>
+    <div id="l-msg" class="msg"></div>
+  </form>
+</div>
+
+<!-- Messages (no access, not found, errors) -->
+<div id="note" class="screen hidden">
+  <div class="card">
+    <h1 id="note-h"></h1>
+    <p id="note-p"></p>
+    <button id="note-out" type="button" class="ghost">Log out</button>
+  </div>
+</div>
+
+<div id="stage" class="hidden"></div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const $ = (id) => document.getElementById(id);
+const slug = new URLSearchParams(location.search).get("course") || "";
+const show = (id) => ["login", "note", "stage"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+
+function note(h, p) {
+  $("note-h").textContent = h;
+  $("note-p").textContent = p;
+  show("note");
+}
+$("note-out").onclick = async () => { await db.auth.signOut(); location.reload(); };
+
+// ---------------- login ----------------
+
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("l-msg");
+  const email = $("l-email").value.trim();
+  const password = $("l-pass").value;
+  if (!password) { msg.className = "msg err"; msg.textContent = "Type your password, or use the login link button."; return; }
+  $("l-go").disabled = true;
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  $("l-go").disabled = false;
+  if (error) { msg.className = "msg err"; msg.textContent = "That email and password did not match. Try again, or use the login link button."; return; }
+  start();
+});
+
+$("l-link").addEventListener("click", async () => {
+  const msg = $("l-msg");
+  const email = $("l-email").value.trim();
+  if (!email) { msg.className = "msg err"; msg.textContent = "Type your email first."; return; }
+  $("l-link").disabled = true;
+  const { error } = await db.auth.signInWithOtp({
+    email, options: { shouldCreateUser: false, emailRedirectTo: location.href },
+  });
+  $("l-link").disabled = false;
+  if (error) { msg.className = "msg err"; msg.textContent = "We could not send a link to that address. Check it is the email you bought with, or write to info@birdboxcoaching.com."; return; }
+  msg.className = "msg ok";
+  msg.textContent = "Check your email and tap the link. It opens this course.";
+});
+
+// ---------------- load ----------------
+
+let session, course, version, attempt, api;
+let started = false, starting = null;
+
+start();
+
+function start() {
+  if (!starting) starting = boot().finally(() => { starting = null; });
+  return starting;
+}
+
+async function boot() {
+  if (started) return;
+  ({ data: { session } } = await db.auth.getSession());
+  if (!session) { show("login"); return; }
+  if (!slug) { note("No course picked", "This link is missing the course name."); return; }
+
+  const { data: c } = await db.from("learn_courses")
+    .select("id, slug, title, current_version, active").eq("slug", slug).maybeSingle();
+  if (!c || !c.active) { note("Course not found", "We could not find this course. Check the link, or write to info@birdboxcoaching.com."); return; }
+  course = c;
+  $("title").textContent = c.title;
+  document.title = c.title + " — BirdBox Learn";
+
+  const [{ data: isAdmin }, { data: enr }] = await Promise.all([
+    db.rpc("learn_is_admin"),
+    db.from("learn_enrolments").select("id").eq("course_id", c.id).limit(1),
+  ]);
+  if (!isAdmin && !(enr && enr.length)) {
+    note("No access yet", "You are logged in as " + session.user.email + ", but this course is not on that account. If you bought it with a different email, log out and use that one, or write to info@birdboxcoaching.com.");
+    return;
+  }
+
+  if (!c.current_version) { note("Coming soon", "This course is not ready to play yet."); return; }
+  const { data: v } = await db.from("learn_versions").select("id, launch_path").eq("id", c.current_version).single();
+  version = v;
+
+  const { data: a } = await db.from("learn_attempts")
+    .select("cmi, completed_at, version_id").eq("user_id", session.user.id).eq("course_id", c.id).maybeSingle();
+  attempt = a;
+
+  started = true;
+  launch();
+}
+
+// ---------------- SCORM ----------------
+
+// Fields the LMS sets itself, or that only make sense for one session.
+const SKIP = { entry:1, exit:1, session_time:1, credit:1, mode:1, launch_data:1, learner_id:1, learner_name:1,
+  completion_threshold:1, scaled_passing_score:1, max_time_allowed:1, time_limit_action:1, comments_from_lms:1, learner_preference:1 };
+function clean(src, top = true) {
+  const out = {};
+  for (const [k, v] of Object.entries(src || {})) {
+    if (top && SKIP[k]) continue;
+    if (v === "" || v == null) continue;
+    if (typeof v === "object") { const c = clean(v, false); if (Object.keys(c).length) out[k] = c; continue; }
+    out[k] = v;
+  }
+  return out;
+}
+
+function learnerName(u) {
+  const full = (u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || "";
+  if (!full) return u.email;
+  const parts = full.trim().split(/\s+/);
+  return parts.length > 1 ? parts.slice(-1)[0] + ", " + parts.slice(0, -1).join(" ") : full;
+}
+
+function launch() {
+  api = new Scorm2004API({ autocommit: true, autocommitSeconds: 15, logLevel: 4 });
+  const saved = attempt && attempt.cmi;
+  if (saved && Object.keys(saved).length) {
+    try { api.loadFromJSON(saved); } catch (e) { console.warn("Could not restore progress", e); }
+    if (saved.suspend_data || saved.location) api.cmi.entry = "resume";
+  }
+  api.cmi.learner_id = session.user.id;
+  api.cmi.learner_name = learnerName(session.user);
+
+  api.on("Commit", () => queueSave());
+  api.on("Terminate", () => saveNow());
+  window.API_1484_11 = api;
+
+  const iframe = document.createElement("iframe");
+  iframe.title = course.title;
+  iframe.allow = "autoplay; fullscreen; encrypted-media; picture-in-picture";
+  iframe.src = "/learn/c/" + version.id + "/" + version.launch_path.split("/").map(encodeURIComponent).join("/");
+  $("stage").appendChild(iframe);
+  show("stage");
+  $("exit").classList.remove("hidden");
+}
+
+// ---------------- saving ----------------
+
+let timer = null, saving = false, again = false;
+
+function row() {
+  const full = api.renderCommitCMI(true).cmi || {};
+  const cmi = clean(full);
+  const comp = api.cmi.completion_status || null;
+  const succ = api.cmi.success_status || null;
+  const scaled = api.cmi.score && api.cmi.score.scaled !== "" ? Number(api.cmi.score.scaled) : null;
+  const prog = api.cmi.progress_measure !== "" ? Number(api.cmi.progress_measure) : null;
+  const done = comp === "completed" || succ === "passed";
+  const r = {
+    user_id: session.user.id,
+    email: (session.user.email || "").toLowerCase(),
+    course_id: course.id,
+    version_id: version.id,
+    cmi,
+    completion_status: comp,
+    success_status: succ,
+    score_scaled: Number.isFinite(scaled) ? scaled : null,
+    progress: Number.isFinite(prog) ? prog : (done ? 1 : null),
+    total_time: full.total_time || null,
+    updated_at: new Date().toISOString(),
+  };
+  if (attempt && attempt.completed_at) r.completed_at = attempt.completed_at;
+  else if (done) r.completed_at = new Date().toISOString();
+  return r;
+}
+
+function queueSave() {
+  clearTimeout(timer);
+  timer = setTimeout(saveNow, 1500);
+}
+
+async function saveNow() {
+  clearTimeout(timer);
+  if (!api || !course) return;
+  if (saving) { again = true; return; }
+  saving = true;
+  $("saved").className = "s";
+  $("saved").textContent = "Saving…";
+  const r = row();
+  const { error } = await db.from("learn_attempts").upsert(r, { onConflict: "user_id,course_id" });
+  saving = false;
+  if (error) {
+    $("saved").className = "s";
+    $("saved").textContent = "Not saved — check your connection";
+    console.error(error);
+  } else {
+    attempt = { ...(attempt || {}), completed_at: r.completed_at || null };
+    $("saved").className = "s ok";
+    $("saved").textContent = r.completed_at ? "Completed ✓" : "Progress saved";
+  }
+  if (again) { again = false; saveNow(); }
+}
+
+// Last-chance save when the tab closes (supabase-js can't send keepalive requests).
+function beacon() {
+  if (!api || !course || !session) return;
+  try {
+    fetch(SUPABASE_URL + "/rest/v1/learn_attempts?on_conflict=user_id,course_id", {
+      method: "POST",
+      keepalive: true,
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: "Bearer " + session.access_token,
+        Prefer: "resolution=merge-duplicates,return=minimal",
+      },
+      body: JSON.stringify(row()),
+    });
+  } catch (e) {}
+}
+window.addEventListener("pagehide", beacon);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") beacon(); });
+db.auth.onAuthStateChange((_e, s) => { if (s) session = s; if (!started && s) start(); });
+
+$("exit").addEventListener("click", async () => {
+  $("exit").disabled = true;
+  await saveNow();
+  location.href = "/";
+});
+</script>
+</body>
+</html>
