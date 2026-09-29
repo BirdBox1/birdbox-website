@@ -160,6 +160,15 @@
   .chips button.on::after{color:#0C1116}
   .vr.off{display:none}
   .vnav{display:flex;justify-content:space-between;gap:8px;margin-top:10px}
+  .lq{border-top:1px solid var(--line);padding:14px 0}
+  .lq h3{margin:0 0 10px;font-size:15.5px;line-height:1.45;font-weight:600}
+  .lq.missing h3{color:var(--bad)}
+  .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;max-width:520px}
+  .seg button{font:inherit;font-size:14px;padding:10px 4px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .seg button.on{background:var(--accent);border-color:var(--accent);color:#0C1116;font-weight:700}
+  .bands{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:14px 0 6px}
+  .bands div{padding:8px 6px;text-align:center;font-size:12px;font-weight:700;border:1px solid var(--line);color:var(--muted)}
+  .bands div.on{color:#0C1116;border-color:transparent}
   .cmp{width:100%;font-size:14px}
   .cmp td,.cmp th{padding:7px 6px}
   .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
@@ -236,6 +245,11 @@
         <h3>Video review — non-verbal communication</h3>
         <p>Review a video of your coaching area by area, make a plan for your weakest one, then film again and compare.</p>
         <span id="video-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=listening">
+        <h3>Listening skills test</h3>
+        <p>14 questions on your listening habits (Weinberg &amp; Gould, 2019), with the habits to work on first.</p>
+        <span id="listening-status">Open →</span>
       </a>
     </div>
   </section>
@@ -507,6 +521,45 @@
       <span class="savestate" id="v-state"></span>
     </div>
   </section>
+  <!-- listening skills -->
+  <section id="listening" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Communication</p>
+    <h1>Listening skills test</h1>
+    <p class="lede">A 14-point personal perception listening skills test (Weinberg &amp; Gould, 2019). For each statement, choose how often it is true of you. Be honest — nobody else sees your answers.</p>
+
+    <div id="ls-form">
+      <div class="prog noprint"><span id="ls-count">0 of 14 answered</span><div class="pbar"><i id="ls-bar"></i></div></div>
+      <div class="panel" id="ls-qs"></div>
+      <button class="btn" id="ls-go" type="button">See my result</button>
+      <div class="msg" id="ls-msg"></div>
+    </div>
+
+    <div id="ls-result" class="hidden">
+      <div class="panel">
+        <h2>My result</h2>
+        <p class="verdict" id="ls-verdict"></p>
+        <div class="bands" id="ls-bands"></div>
+        <p class="lede" style="font-size:15px;margin:10px 0 0" id="ls-text"></p>
+      </div>
+      <div class="panel">
+        <h2>Listening habits to work on</h2>
+        <ul class="pull" id="ls-pull"></ul>
+      </div>
+      <div class="panel">
+        <h2>My reflections</h2>
+        <p class="lede noprint" style="font-size:14px;margin:0 0 10px">Which habit shows up most when you coach? When does it happen — busy classes, difficult athletes, when you are tired? What will you do to listen better this week?</p>
+        <textarea id="ls-notes" placeholder="Write your thoughts here…"></textarea>
+        <p class="hist" id="ls-hist"></p>
+      </div>
+      <div class="row noprint">
+        <button class="btn" id="ls-save" type="button">Save</button>
+        <button class="btn ghost" id="ls-download" type="button">Download PDF</button>
+        <button class="btn ghost" id="ls-retake" type="button">Retake the test</button>
+        <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+        <span class="savestate" id="ls-state"></span>
+      </div>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -515,7 +568,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -551,6 +604,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (rx && tool === "reactions") await rxSave();
   if (co && co.data.result && tool === "colours") await coSave();
   if (vr && tool === "video") await vSave();
+  if (ls && ls.data.result && tool === "listening") await lsSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -564,6 +618,7 @@ async function boot() {
   if (tool === "reactions") return openReactions();
   if (tool === "colours") return openColours();
   if (tool === "video") return openVideo();
+  if (tool === "listening") return openListening();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -574,6 +629,8 @@ async function boot() {
   if (co0) $("colours-status").textContent = co0.data && co0.data.result ? "Your colour: " + co0.data.result.main + " →" : "Last saved " + new Date(co0.updated_at).toLocaleDateString("en-GB") + " →";
   const vd = (data || []).find((r) => r.tool === "video");
   if (vd) $("video-status").textContent = "Last saved " + new Date(vd.updated_at).toLocaleDateString("en-GB") + " →";
+  const lsr = (data || []).find((r) => r.tool === "listening");
+  if (lsr) $("listening-status").textContent = lsr.data && lsr.data.result ? "Your result: " + lsr.data.result.band + " (" + lsr.data.result.total + ") →" : "Last saved " + new Date(lsr.updated_at).toLocaleDateString("en-GB") + " →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -1376,6 +1433,114 @@ async function vSave() {
 $("v-save").onclick = async () => { if (await vSave()) $("v-state").textContent = "Saved ✓"; };
 $("v-download").onclick = async () => { await vSave(); window.print(); };
 $("vp-area").addEventListener("change", () => vRenderAreas(0));
+
+// ---------------- listening skills ----------------
+// Weinberg & Gould (2019): Never 1, Rarely 2, Sometimes 3, Often 4. Total 14-56, lower is better.
+const LS_Q = [
+  ["You find listening to others uninteresting.", "Go in curious: decide one thing you want to learn about the person before they start talking."],
+  ["You focus on the speaker's delivery or appearance instead of the message.", "Ask yourself “what is the one thing they want me to know?” and repeat it back."],
+  ["You listen for facts and details, and miss the main points that give them meaning.", "Listen for the main point first; the details make sense once you have it."],
+  ["You are easily distracted by other people talking, chewing gum, rattling paper and so on.", "Move somewhere quieter for important conversations, and face the person, not the room."],
+  ["You fake attention — looking at the speaker but thinking of other things.", "If your mind has wandered, say so and ask them to repeat it. It shows more respect than pretending."],
+  ["You listen only to what is easy to understand.", "When something is hard to follow, ask a question rather than switching off."],
+  ["Certain emotion-laden words interfere with your listening.", "Notice the words that trigger you, pause, and keep listening to the whole message before you react."],
+  ["You hear a few sentences of someone's problem and start thinking about all the advice you can give.", "Hold back the advice. Ask “what have you tried?” or “what would help?” first."],
+  ["Your attention span is short, so it is hard to listen for more than a few minutes.", "Practise summarising what you have heard every minute or so — it keeps you with them."],
+  ["You are quick to find things to disagree with, and stop listening while you prepare your argument.", "Let them finish, summarise their view, and only then give yours."],
+  ["You nod and agree to keep the speaker happy, but you are not really involved.", "Replace the nod with a question about what they just said."],
+  ["You change the subject when you get bored or uncomfortable.", "Stay with the uncomfortable topic for one more question before you move on."],
+  ["As soon as someone says something that reflects badly on you, you defend yourself.", "Say “tell me more” instead of defending — you can decide later whether they are right."],
+  ["You second-guess the speaker, trying to figure out what they really mean.", "Ask them directly: “what do you mean by that?” rather than guessing."],
+];
+const LS_A = ["Never", "Rarely", "Sometimes", "Often"];
+const LS_BANDS = [
+  { name: "Excellent", min: 14, max: 24, c: "#5CC48A", text: "You see yourself as an excellent listener. Keep checking this against how your athletes experience you — ask a few of them." },
+  { name: "Good", min: 25, max: 34, c: "#4FA8DE", text: "You are a good listener with a few habits to work on. Pick the top one below and focus on it for a week of coaching." },
+  { name: "Fair", min: 35, max: 44, c: "#E0B84F", text: "Several habits are getting in the way of your listening. Your athletes may not always feel heard. Start with the habits below, one at a time." },
+  { name: "Weak", min: 45, max: 56, c: "#D8393D", text: "Listening is a key area for you to develop as a coach. This is a starting point, not a verdict — work through the habits below one at a time, and retake the test in a few weeks." },
+];
+let ls = null;
+let lsTimer = null;
+
+async function openListening() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "listening").maybeSingle();
+  ls = data || { tool: "listening", data: { answers: {}, result: null, notes: "", history: [] } };
+  ls.data.answers = ls.data.answers || {}; ls.data.history = ls.data.history || [];
+  $("ls-notes").value = ls.data.notes || "";
+  lsBuild();
+  if (ls.data.result) lsShow(); else { $("ls-form").classList.remove("hidden"); $("ls-result").classList.add("hidden"); }
+  show("listening");
+}
+function lsBuild() {
+  const box = $("ls-qs"); box.innerHTML = "";
+  LS_Q.forEach(([q], i) => {
+    const d = document.createElement("div"); d.className = "lq"; d.id = "lq" + i;
+    const h = document.createElement("h3"); h.textContent = (i + 1) + ". " + q;
+    const seg = document.createElement("div"); seg.className = "seg";
+    LS_A.forEach((a, j) => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = a; b.classList.toggle("on", ls.data.answers[i] === j + 1);
+      b.onclick = () => { ls.data.answers[i] = j + 1; d.classList.remove("missing"); seg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); lsCount(); };
+      seg.appendChild(b);
+    });
+    d.append(h, seg); box.appendChild(d);
+  });
+  lsCount();
+}
+function lsCount() {
+  const n = Object.keys(ls.data.answers).length;
+  $("ls-count").textContent = n + " of " + LS_Q.length + " answered";
+  $("ls-bar").style.width = (n / LS_Q.length * 100) + "%";
+}
+$("ls-go").onclick = async () => {
+  const msg = $("ls-msg"); msg.className = "msg"; msg.textContent = "";
+  const missing = LS_Q.map((_, i) => i).filter((i) => !ls.data.answers[i]);
+  if (missing.length) {
+    missing.forEach((i) => $("lq" + i).classList.add("missing"));
+    msg.className = "msg err"; msg.textContent = "Please answer every statement (" + missing.length + " left).";
+    $("lq" + missing[0]).scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  const total = LS_Q.reduce((t, _, i) => t + ls.data.answers[i], 0);
+  const band = LS_BANDS.find((b) => total <= b.max) || LS_BANDS[3];
+  ls.data.result = { total, band: band.name, date: new Date().toISOString() };
+  ls.data.history.push({ date: ls.data.result.date, total, band: band.name });
+  lsShow(); await lsSave(); window.scrollTo({ top: 0, behavior: "smooth" });
+};
+function lsShow() {
+  const { total } = ls.data.result;
+  const band = LS_BANDS.find((b) => total <= b.max) || LS_BANDS[3];
+  $("ls-verdict").textContent = band.name + " listener — " + total + " points";
+  $("ls-verdict").style.color = band.c;
+  $("ls-bands").innerHTML = LS_BANDS.map((b) => `<div class="${b === band ? "on" : ""}" style="${b === band ? "background:" + b.c : ""}">${b.name}<br><span style="font-weight:400">${b.min}–${b.max}</span></div>`).join("");
+  $("ls-text").textContent = "Scores run from 14 to 56 — the lower your score, the better you rate your listening. " + band.text;
+  const pull = $("ls-pull"); pull.innerHTML = "";
+  const order = LS_Q.map((q, i) => ({ q, i, v: ls.data.answers[i] })).filter((x) => x.v >= 3).sort((a, b) => b.v - a.v);
+  for (const x of order) {
+    const li = document.createElement("li");
+    const b = document.createElement("b"); b.textContent = x.q[0];
+    li.append(b, document.createTextNode(" — you said “" + LS_A[x.v - 1].toLowerCase() + "”. "));
+    const t = document.createElement("span"); t.style.color = "var(--ink)"; t.textContent = "Try: " + x.q[1];
+    li.appendChild(t); pull.appendChild(li);
+  }
+  if (!order.length) pull.innerHTML = "<li>None — you answered “never” or “rarely” to every statement. Ask a colleague or athlete whether they agree!</li>";
+  const h = ls.data.history;
+  $("ls-hist").textContent = h.length > 1 ? "Previous results: " + h.slice(0, -1).map((x) => new Date(x.date).toLocaleDateString("en-GB") + " — " + x.band + " (" + x.total + ")").join(" · ") : "";
+  $("ls-form").classList.add("hidden"); $("ls-result").classList.remove("hidden");
+}
+async function lsSave() {
+  clearTimeout(lsTimer);
+  ls.data.notes = $("ls-notes").value;
+  const row = { user_id: session.user.id, tool: "listening", data: ls.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("ls-state").textContent = "Not saved — " + error.message; return false; }
+  ls = { ...data, data: ls.data };
+  $("ls-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("ls-notes").addEventListener("input", () => { $("ls-state").textContent = "Unsaved changes"; clearTimeout(lsTimer); lsTimer = setTimeout(lsSave, 1500); });
+$("ls-save").onclick = async () => { if (await lsSave()) $("ls-state").textContent = "Saved ✓"; };
+$("ls-download").onclick = async () => { await lsSave(); window.print(); };
+$("ls-retake").onclick = () => { ls.data.answers = {}; ls.data.result = null; lsBuild(); $("ls-result").classList.add("hidden"); $("ls-form").classList.remove("hidden"); window.scrollTo({ top: 0 }); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
