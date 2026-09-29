@@ -42,7 +42,7 @@
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
-import { enrolById, isOnSite, LEARN_URL } from "./learnworlds.mjs";
+import { enrolById, isOnSite, LEARN_URL, learnStartLink } from "./learnworlds.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -449,13 +449,12 @@ async function sendWelcome({ email, first, label, isNew, onSite }) {
   ];
   if (onSite) {
     lines.push(
-      "Your course is on our website. To start:",
+      "Your course is on our website. Tap this link to open it — the first time, it sets up your account and logs you straight in:",
       "",
-      `1. Go to ${LEARN_URL}`,
-      `2. Type this email address: ${email}`,
-      "3. Tap \"Email me a login link\" and open the link we send you (check spam if it has not arrived in a few minutes).",
+      learnStartLink(email),
       "",
-      "The course is waiting under My courses. Once you are in you can set a password, so next time you can log in straight away.",
+      "The course is waiting under My courses. Once you are in, set a password so you can log in any time.",
+      `Later, log in at ${LEARN_URL} with this email address: ${email}`,
       "",
       "Any problems getting in, just reply to this email.",
       "",
