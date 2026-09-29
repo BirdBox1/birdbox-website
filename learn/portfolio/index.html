@@ -169,6 +169,16 @@
   .bands{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:14px 0 6px}
   .bands div{padding:8px 6px;text-align:center;font-size:12px;font-weight:700;border:1px solid var(--line);color:var(--muted)}
   .bands div.on{color:#0C1116;border-color:transparent}
+  .timer{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .timer .clock{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;min-width:84px}
+  .timer .clock.done{color:var(--good)}
+  .ax .kind button.on.cog{background:#B58CE0;border-color:#B58CE0;color:#0C1116}
+  .ax .kind button.on.som{background:#E0914F;border-color:#E0914F;color:#0C1116}
+  .ax .kind button.on.both{background:#E0B84F;border-color:#E0B84F;color:#0C1116}
+  .axsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+  .axsum div{background:var(--paper);border:1px solid var(--line);padding:12px;text-align:center}
+  .axsum b{display:block;font-size:26px}
+  .axsum span{font-size:12px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-weight:700}
   .cmp{width:100%;font-size:14px}
   .cmp td,.cmp th{padding:7px 6px}
   .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
@@ -250,6 +260,11 @@
         <h3>Listening skills test</h3>
         <p>14 questions on your listening habits (Weinberg &amp; Gould, 2019), with the habits to work on first.</p>
         <span id="listening-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=anxiety">
+        <h3>What makes athletes anxious?</h3>
+        <p>What could make you or someone else anxious before and during training — and whether it is in the head or the body.</p>
+        <span id="anxiety-status">Open →</span>
       </a>
     </div>
   </section>
@@ -560,6 +575,41 @@
       </div>
     </div>
   </section>
+  <!-- anxiety -->
+  <section id="anxiety" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Motivation</p>
+    <h1>What makes athletes anxious?</h1>
+    <p class="lede">Spend 10 minutes answering two questions. Think about yourself and about the athletes you coach.</p>
+
+    <div class="panel noprint">
+      <h2>10-minute timer</h2>
+      <div class="timer"><span class="clock" id="ax-clock">10:00</span>
+        <button class="btn small" id="ax-start" type="button">Start</button>
+        <button class="btn ghost small" id="ax-reset" type="button">Reset</button></div>
+      <p class="hist" style="margin:8px 0 0">For each answer, tag it as <b style="color:#B58CE0">cognitive</b> (in the head — fear of failure, worry about what others think) or <b style="color:#E0914F">somatic</b> (in the body — heart rate, breathing, muscle tension), or both. Then add how you could help as a coach.</p>
+    </div>
+
+    <div id="ax-groups"></div>
+
+    <div class="panel">
+      <h2>What my answers show</h2>
+      <div class="axsum" id="ax-sum"></div>
+      <p class="lede" style="font-size:14.5px;margin:12px 0 0" id="ax-sum-text"></p>
+    </div>
+
+    <div class="panel">
+      <h2>My reflections</h2>
+      <p class="lede noprint" style="font-size:14px;margin:0 0 10px">Which of these can you, as the coach, change? Is there an athlete in your gym who may have trait anxiety — anxious whatever the situation? How could a short conversation or questionnaire help you understand them better?</p>
+      <textarea id="ax-notes" placeholder="Write your thoughts here…"></textarea>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="ax-save" type="button">Save</button>
+      <button class="btn ghost" id="ax-download" type="button">Download PDF</button>
+      <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+      <span class="savestate" id="ax-state"></span>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -568,7 +618,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -605,6 +655,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (co && co.data.result && tool === "colours") await coSave();
   if (vr && tool === "video") await vSave();
   if (ls && ls.data.result && tool === "listening") await lsSave();
+  if (ax && tool === "anxiety") await axSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -619,6 +670,7 @@ async function boot() {
   if (tool === "colours") return openColours();
   if (tool === "video") return openVideo();
   if (tool === "listening") return openListening();
+  if (tool === "anxiety") return openAnxiety();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -631,6 +683,8 @@ async function boot() {
   if (vd) $("video-status").textContent = "Last saved " + new Date(vd.updated_at).toLocaleDateString("en-GB") + " →";
   const lsr = (data || []).find((r) => r.tool === "listening");
   if (lsr) $("listening-status").textContent = lsr.data && lsr.data.result ? "Your result: " + lsr.data.result.band + " (" + lsr.data.result.total + ") →" : "Last saved " + new Date(lsr.updated_at).toLocaleDateString("en-GB") + " →";
+  const axr = (data || []).find((r) => r.tool === "anxiety");
+  if (axr) $("anxiety-status").textContent = "Last saved " + new Date(axr.updated_at).toLocaleDateString("en-GB") + " →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -1541,6 +1595,99 @@ $("ls-notes").addEventListener("input", () => { $("ls-state").textContent = "Uns
 $("ls-save").onclick = async () => { if (await lsSave()) $("ls-state").textContent = "Saved ✓"; };
 $("ls-download").onclick = async () => { await lsSave(); window.print(); };
 $("ls-retake").onclick = () => { ls.data.answers = {}; ls.data.result = null; lsBuild(); $("ls-result").classList.add("hidden"); $("ls-form").classList.remove("hidden"); window.scrollTo({ top: 0 }); };
+
+// ---------------- anxiety ----------------
+const AX_GROUPS = [
+  { key: "before", title: "1. What could make you or someone else anxious before training?", eg: "e.g. Seeing a 1RM day on the whiteboard", help: "e.g. Post the session early and explain the scaling options" },
+  { key: "during", title: "2. What could make you or someone else anxious during training?", eg: "e.g. Being watched by others while attempting a new skill", help: "e.g. Give them a quieter corner and a clear progression" },
+];
+const AX_KIND = [["cog", "Cognitive — in the head"], ["som", "Somatic — in the body"], ["both", "Both"]];
+let ax = null;
+let axTimer = null;
+let axClock = { left: 600, run: null };
+
+async function openAnxiety() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "anxiety").maybeSingle();
+  ax = data || { tool: "anxiety", data: { notes: "" } };
+  for (const g of AX_GROUPS) if (!ax.data[g.key] || !ax.data[g.key].length) ax.data[g.key] = [{ t: "", k: "", help: "" }, { t: "", k: "", help: "" }];
+  $("ax-notes").value = ax.data.notes || "";
+  axRender();
+  show("anxiety");
+}
+
+function axRender() {
+  const box = $("ax-groups"); box.innerHTML = "";
+  for (const g of AX_GROUPS) {
+    const panel = document.createElement("div"); panel.className = "panel";
+    const h = document.createElement("h2"); h.textContent = g.title; h.style.textTransform = "none"; h.style.letterSpacing = "0"; h.style.fontSize = "17px";
+    panel.appendChild(h);
+    ax.data[g.key].forEach((it, i) => {
+      const d = document.createElement("div"); d.className = "rx ax";
+      if (ax.data[g.key].length > 1) {
+        const del = document.createElement("button"); del.type = "button"; del.className = "del noprint"; del.textContent = "Remove";
+        del.onclick = () => { ax.data[g.key].splice(i, 1); axRender(); axChanged(); };
+        d.appendChild(del);
+      }
+      const grid = document.createElement("div"); grid.className = "g2";
+      const field = (label, key, ph) => { const w = document.createElement("div"); const l = document.createElement("label"); l.textContent = label; const t = document.createElement("textarea"); t.value = it[key] || ""; t.placeholder = ph; t.oninput = () => { it[key] = t.value; axChanged(); }; t.onchange = axSummary; w.append(l, t); return w; };
+      grid.append(field("What could cause anxiety", "t", i === 0 ? g.eg : ""), field("How I could help as a coach", "help", i === 0 ? g.help : ""));
+      d.appendChild(grid);
+      const kind = document.createElement("div"); kind.className = "kind";
+      for (const [k, label] of AX_KIND) {
+        const b = document.createElement("button"); b.type = "button"; b.className = k + (it.k === k ? " on" : ""); b.textContent = label;
+        b.onclick = () => { it.k = it.k === k ? "" : k; kind.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b && it.k === k)); axSummary(); axChanged(); };
+        kind.appendChild(b);
+      }
+      d.appendChild(kind);
+      panel.appendChild(d);
+    });
+    const add = document.createElement("button"); add.type = "button"; add.className = "btn ghost small noprint"; add.textContent = "+ Add another";
+    add.onclick = () => { ax.data[g.key].push({ t: "", k: "", help: "" }); axRender(); };
+    panel.appendChild(add);
+    box.appendChild(panel);
+  }
+  axSummary();
+}
+
+function axSummary() {
+  const all = AX_GROUPS.flatMap((g) => ax.data[g.key].filter((x) => x.t.trim()).map((x) => ({ ...x, g: g.key })));
+  const n = (f) => all.filter(f).length;
+  const cog = n((x) => x.k === "cog" || x.k === "both"), som = n((x) => x.k === "som" || x.k === "both");
+  $("ax-sum").innerHTML = `<div><b>${n((x) => x.g === "before")}</b><span>Before training</span></div><div><b>${n((x) => x.g === "during")}</b><span>During training</span></div><div><b style="color:#B58CE0">${cog}</b><span>Cognitive</span></div><div><b style="color:#E0914F">${som}</b><span>Somatic</span></div>`;
+  $("ax-sum-text").textContent = !all.length ? "Add your answers above and a summary appears here."
+    : cog > som ? "Most of your answers are cognitive — worries in the head. As a coach, your words, how you set up the session and how you talk about failure matter most here."
+    : som > cog ? "Most of your answers are somatic — felt in the body. Think about warm-ups, breathing, and giving athletes time to settle before heavy or complex work, remembering that tense muscles lift less and get injured more."
+    : "Your answers are a mix of cognitive and somatic. Anxiety is multidimensional — it changes both the thoughts in the head and how the body feels.";
+}
+
+function axChanged() { $("ax-state").textContent = "Unsaved changes"; clearTimeout(axTimer); axTimer = setTimeout(axSave, 1500); }
+async function axSave() {
+  clearTimeout(axTimer);
+  ax.data.notes = $("ax-notes").value;
+  const row = { user_id: session.user.id, tool: "anxiety", data: ax.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("ax-state").textContent = "Not saved — " + error.message; return false; }
+  ax = { ...data, data: ax.data };
+  $("ax-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("ax-notes").addEventListener("input", axChanged);
+$("ax-save").onclick = async () => { if (await axSave()) $("ax-state").textContent = "Saved ✓"; };
+$("ax-download").onclick = async () => { await axSave(); window.print(); };
+
+function axTick() {
+  const m = Math.floor(axClock.left / 60), s2 = axClock.left % 60;
+  $("ax-clock").textContent = m + ":" + String(s2).padStart(2, "0");
+  $("ax-clock").classList.toggle("done", axClock.left === 0);
+  if (axClock.left === 0) { $("ax-clock").textContent = "Time!"; clearInterval(axClock.run); axClock.run = null; $("ax-start").textContent = "Start"; }
+}
+$("ax-start").onclick = () => {
+  if (axClock.run) { clearInterval(axClock.run); axClock.run = null; $("ax-start").textContent = "Start"; return; }
+  if (axClock.left === 0) axClock.left = 600;
+  axClock.run = setInterval(() => { axClock.left = Math.max(0, axClock.left - 1); axTick(); }, 1000);
+  $("ax-start").textContent = "Pause";
+};
+$("ax-reset").onclick = () => { clearInterval(axClock.run); axClock = { left: 600, run: null }; $("ax-start").textContent = "Start"; axTick(); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
