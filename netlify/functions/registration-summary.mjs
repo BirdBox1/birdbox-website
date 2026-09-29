@@ -107,6 +107,13 @@ export default async (req) => {
       balance: isDeposit ? money(balanceCents) : null,
       balanceDate: isDeposit ? formatDay(meta.balance_due_at, course.timezone) : null,
       balanceDaysBefore: BALANCE_DAYS_BEFORE,
+      // Monthly payments: what is still to come, and when.
+      plan: option === "plan" && balanceCents > 0
+        ? String(meta.plan_parts || "").split("|").filter(Boolean).map((p) => {
+            const [, cents, due] = p.split(":");
+            return { amount: money(Number(cents)) + (meta.vat_rate_id ? " + VAT" : ""), date: formatDay(due + "T12:00:00Z", course.timezone) };
+          })
+        : null,
       manualUrl,
       emailedTo: maskEmail(details.email),
     });
