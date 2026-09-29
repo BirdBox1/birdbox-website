@@ -539,8 +539,14 @@ $("u-go").addEventListener("click", async () => {
 
     // Check the start page really opens from our own address before going live.
     stat("Checking the course opens…");
-    const test = await fetch("/learn/c/" + ver.id + "/" + man.launch.split("/").map(encodeURIComponent).join("/"), { cache: "no-store" });
-    const ct = test.headers.get("content-type") || "";
+    const testUrl = "/learn/c/" + ver.id + "/" + man.launch.split("/").map(encodeURIComponent).join("/");
+    let test, ct = "";
+    for (let tryNo = 0; tryNo < 6; tryNo++) {
+      test = await fetch(testUrl + (tryNo ? "?t=" + tryNo : ""), { cache: "no-store" });
+      ct = test.headers.get("content-type") || "";
+      if (test.ok && /text\/html/.test(ct)) break;
+      await new Promise((r) => setTimeout(r, 3000));
+    }
     if (!test.ok || !/text\/html/.test(ct)) {
       await db.from("learn_versions").update({ status: "failed", file_count: pack.length, total_bytes: bytes }).eq("id", ver.id);
       throw new Error("Files uploaded, but the start page did not open as a web page (" + test.status + ", " + ct + "). Check learn-file.mjs and _redirects are deployed.");
