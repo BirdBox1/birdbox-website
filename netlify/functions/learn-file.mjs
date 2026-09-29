@@ -26,11 +26,21 @@ export default async (req) => {
     return new Response("Not found", { status: 404 });
   }
 
-  const upstream = await fetch(`${BASE}/storage/v1/object/public/learn/${rest}`);
-  if (!upstream.ok) {
-    return new Response("Not found", { status: upstream.status === 404 ? 404 : 502 });
+  // Supabase can briefly refuse when busy (it answers 400/5xx). Try a few times.
+  let upstream = null;
+  for (let tryNo = 0; tryNo < 3; tryNo++) {
+    upstream = await fetch(`${BASE}/storage/v1/object/public/learn/${rest}`);
+    if (upstream.ok || upstream.status === 404) break;
+    await new Promise((r) => setTimeout(r, 400 * (tryNo + 1)));
   }
-
+  if (!upstream.ok) {
+    const text = await upstream.text().catch(() => "");
+    const notFound = upstream.status === 404 || /not.?found/i.test(text);
+    return new Response(notFound ? "Not found" : "Busy, try again", {
+      status: notFound ? 404 : 503,
+      headers: { "Cache-Control": "no-store", "Retry-After": "2" },
+    });
+  }
   const body = await upstream.arrayBuffer();
   return new Response(body, {
     status: 200,
