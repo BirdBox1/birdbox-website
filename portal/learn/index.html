@@ -61,6 +61,18 @@
   th,td{text-align:left;padding:0.45rem 0.4rem;border-bottom:1px solid var(--rule);vertical-align:top}
   th{font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
   .empty{color:var(--muted);font-size:0.9rem}
+  .tablewrap{overflow-x:auto}
+  td .acts{display:flex;flex-wrap:wrap;gap:0.3rem}
+  .link{font:inherit;font-size:0.78rem;background:none;border:1px solid var(--rule);border-radius:3px;padding:0.15rem 0.45rem;cursor:pointer;color:var(--ink);white-space:nowrap}
+  .link:hover{border-color:var(--ink)}
+  .link.danger{color:var(--bad)}
+  .person{border-top:1px solid var(--rule);padding:1rem 0 0.4rem}
+  .person:first-child{border-top:0;padding-top:0}
+  .person .who{display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;margin-bottom:0.5rem}
+  .person .who b{font-size:0.95rem}
+  .num{text-align:right}
+  .searchrow{display:flex;gap:0.6rem}
+  .searchrow input{flex:1}
 </style>
 </head>
 <body>
@@ -80,6 +92,50 @@
   <div id="gate" class="gate">Checking your account…</div>
 
   <div id="app" class="hidden">
+
+    <!-- Numbers -->
+    <div class="panel">
+      <h2>At a glance</h2>
+      <div id="overview" class="tablewrap"><p class="empty">Loading…</p></div>
+    </div>
+
+    <!-- Find a learner -->
+    <div class="panel">
+      <h2>Find a learner</h2>
+      <div class="searchrow field">
+        <input id="s-q" type="search" placeholder="Email, or the name on their certificate" autocomplete="off">
+        <button id="s-go" class="btn" type="button">Search</button>
+      </div>
+      <div id="s-results"></div>
+    </div>
+
+    <!-- Access -->
+    <div class="panel">
+      <h2>Give someone access</h2>
+      <div class="grid2">
+        <div class="field">
+          <label for="e-course">Course</label>
+          <select id="e-course"></select>
+        </div>
+        <div class="field">
+          <label for="e-email">Their email <span class="hint">(the one they log in with)</span></label>
+          <input id="e-email" type="email" autocomplete="off" placeholder="name@example.com">
+        </div>
+      </div>
+      <button id="e-go" class="btn" type="button">Give access</button>
+      <div id="e-msg" class="msg"></div>
+      <h2 style="margin-top:1.6rem">People with all courses</h2>
+      <div id="all-list"><p class="empty">Loading…</p></div>
+    </div>
+
+    <!-- Learners by course -->
+    <div class="panel">
+      <h2>Learners by course</h2>
+      <div class="field" style="max-width:22rem">
+        <select id="l-course"></select>
+      </div>
+      <div id="learners" class="tablewrap"><p class="empty">Pick a course.</p></div>
+    </div>
 
     <!-- 1. Courses -->
     <div class="panel">
@@ -107,32 +163,6 @@
       <div id="u-bar" class="progress hidden"><div></div></div>
       <div id="u-stat" class="stat"></div>
       <div id="u-msg" class="msg"></div>
-    </div>
-
-    <!-- 3. Access -->
-    <div class="panel">
-      <h2>Give someone access</h2>
-      <div class="grid2">
-        <div class="field">
-          <label for="e-course">Course</label>
-          <select id="e-course"></select>
-        </div>
-        <div class="field">
-          <label for="e-email">Their email <span class="hint">(the one they log in with)</span></label>
-          <input id="e-email" type="email" autocomplete="off" placeholder="name@example.com">
-        </div>
-      </div>
-      <button id="e-go" class="btn" type="button">Give access</button>
-      <div id="e-msg" class="msg"></div>
-    </div>
-
-    <!-- 4. Learners -->
-    <div class="panel">
-      <h2>Learners</h2>
-      <div class="field" style="max-width:22rem">
-        <select id="l-course"></select>
-      </div>
-      <div id="learners"><p class="empty">Pick a course.</p></div>
     </div>
 
     <!-- 5. New course -->
@@ -215,6 +245,8 @@ async function start() {
   $("gate").classList.add("hidden");
   $("app").classList.remove("hidden");
   await loadCourses();
+  loadOverview();
+  loadAllAccess();
 }
 
 // ---------------- courses ----------------
@@ -270,6 +302,12 @@ async function loadCourses() {
       const o = document.createElement("option");
       o.value = c.id;
       o.textContent = c.title + " (" + c.slug + ")";
+      sel.appendChild(o);
+    }
+    if (id === "e-course") {
+      const o = document.createElement("option");
+      o.value = "__ALL__";
+      o.textContent = "All courses — staff (includes courses added later)";
       sel.appendChild(o);
     }
     if (keep) sel.value = keep;
@@ -570,27 +608,252 @@ $("u-go").addEventListener("click", async () => {
   }
 });
 
-// ---------------- access ----------------
+// ---------------- helpers ----------------
+
+const validEmail = (e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
+const courseById = (id) => courses.find((c) => c.id === id);
+const courseName = (c) => c ? c.title + (c.language ? " · " + c.language.toUpperCase() : "") : "(deleted course)";
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-GB") : "—";
+
+// Reads every row, past Supabase's 1,000-row page limit.
+async function fetchAll(build) {
+  const out = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await build().range(from, from + 999);
+    if (error) throw new Error(error.message);
+    out.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  return out;
+}
+
+function statusOf(a) {
+  if (!a) return "Not started";
+  if (a.success_status === "passed") return "Passed";
+  if (a.completed_at || a.completion_status === "completed") return "Completed";
+  if (a.success_status === "failed") return "Failed test";
+  return "In progress";
+}
+
+// ---------------- at a glance ----------------
+
+async function loadOverview() {
+  const box = $("overview");
+  try {
+    const [enr, att, certs] = await Promise.all([
+      fetchAll(() => db.from("learn_enrolments").select("course_id")),
+      fetchAll(() => db.from("learn_attempts").select("course_id, success_status, completion_status, completed_at")),
+      fetchAll(() => db.from("learn_certificates").select("course_id")),
+    ]);
+    const count = (rows, test) => { const m = new Map(); for (const r of rows) if (!test || test(r)) m.set(r.course_id, (m.get(r.course_id) || 0) + 1); return m; };
+    const nEnr = count(enr), nStarted = count(att), nPassed = count(att, (a) => statusOf(a) === "Passed" || statusOf(a) === "Completed"), nCert = count(certs);
+    const table = document.createElement("table");
+    table.innerHTML = '<thead><tr><th>Course</th><th class="num">Learners</th><th class="num">Started</th><th class="num">Passed</th><th class="num">Certificates</th></tr></thead>';
+    const tb = document.createElement("tbody");
+    let tot = [0, 0, 0, 0];
+    for (const c of courses) {
+      const v = [nEnr.get(c.id) || 0, nStarted.get(c.id) || 0, nPassed.get(c.id) || 0, nCert.get(c.id) || 0];
+      tot = tot.map((t, i) => t + v[i]);
+      const tr = document.createElement("tr");
+      const td0 = document.createElement("td"); td0.textContent = courseName(c); tr.appendChild(td0);
+      v.forEach((n) => { const td = document.createElement("td"); td.className = "num"; td.textContent = n; tr.appendChild(td); });
+      tb.appendChild(tr);
+    }
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td><strong>Total</strong></td>" + tot.map((n) => '<td class="num"><strong>' + n + "</strong></td>").join("");
+    tb.appendChild(tr);
+    table.appendChild(tb);
+    box.innerHTML = "";
+    box.appendChild(table);
+  } catch (e) {
+    box.innerHTML = '<p class="msg err"></p>'; box.firstChild.textContent = e.message;
+  }
+}
+
+// ---------------- give access ----------------
 
 $("e-go").addEventListener("click", async () => {
   const msg = $("e-msg");
   const email = $("e-email").value.trim().toLowerCase();
   const courseId = $("e-course").value;
-  if (!courseId || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    msg.className = "msg err"; msg.textContent = "Pick a course and type a valid email."; return;
-  }
+  if (!courseId || !validEmail(email)) { msg.className = "msg err"; msg.textContent = "Pick a course and type a valid email."; return; }
   $("e-go").disabled = true;
-  const { error } = await db.from("learn_enrolments")
-    .upsert({ course_id: courseId, email, source: "manual" }, { onConflict: "course_id,email", ignoreDuplicates: true });
-  $("e-go").disabled = false;
-  if (error) { msg.className = "msg err"; msg.textContent = error.message; return; }
-  msg.className = "msg ok";
-  msg.textContent = email + " can now open this course once they are logged in with that email.";
-  $("e-email").value = "";
-  if ($("l-course").value === courseId) loadLearners();
+  try {
+    if (courseId === "__ALL__") {
+      await giveAllCourses(email);
+      msg.className = "msg ok";
+      msg.textContent = email + " now has every course, including any added later. They log in at birdboxcoaching.com/learn with “Email me a login link”.";
+    } else {
+      const { error } = await db.from("learn_enrolments")
+        .upsert({ course_id: courseId, email, source: "manual" }, { onConflict: "course_id,email", ignoreDuplicates: true });
+      if (error) throw new Error(error.message);
+      msg.className = "msg ok";
+      msg.textContent = email + " can now open this course. They log in at birdboxcoaching.com/learn with “Email me a login link”.";
+    }
+    $("e-email").value = "";
+    refreshAfterChange();
+  } catch (e) {
+    msg.className = "msg err"; msg.textContent = e.message;
+  } finally {
+    $("e-go").disabled = false;
+  }
 });
 
-// ---------------- learners ----------------
+async function giveAllCourses(email) {
+  const { error } = await db.from("learn_all_access").upsert({ email, note: "staff" }, { onConflict: "email" });
+  if (error) throw new Error(error.message);
+  const rows = courses.map((c) => ({ course_id: c.id, email, source: "all courses" }));
+  const { error: e2 } = await db.from("learn_enrolments").upsert(rows, { onConflict: "course_id,email", ignoreDuplicates: true });
+  if (e2) throw new Error(e2.message);
+}
+
+async function takeAllCourses(email) {
+  if (!confirm("Stop giving " + email + " every course?\n\nCourses they were given this way are removed too. Courses they bought stay.")) return false;
+  const { error } = await db.from("learn_all_access").delete().eq("email", email);
+  if (error) { alert(error.message); return false; }
+  await db.from("learn_enrolments").delete().eq("email", email).eq("source", "all courses");
+  return true;
+}
+
+async function loadAllAccess() {
+  const box = $("all-list");
+  const { data, error } = await db.from("learn_all_access").select("email, note, created_at").order("email");
+  if (error) { box.innerHTML = '<p class="msg err"></p>'; box.firstChild.textContent = error.message; return; }
+  if (!data.length) { box.innerHTML = '<p class="empty">Nobody yet. Pick “All courses — staff” above to add someone.</p>'; return; }
+  const table = document.createElement("table");
+  table.innerHTML = "<thead><tr><th>Email</th><th>Since</th><th></th></tr></thead>";
+  const tb = document.createElement("tbody");
+  for (const r of data) {
+    const tr = document.createElement("tr");
+    const a = document.createElement("td"); a.textContent = r.email;
+    const b = document.createElement("td"); b.textContent = fmtDate(r.created_at);
+    const c = document.createElement("td");
+    const btn = document.createElement("button"); btn.className = "link danger"; btn.type = "button"; btn.textContent = "Remove";
+    btn.onclick = async () => { if (await takeAllCourses(r.email)) refreshAfterChange(); };
+    c.appendChild(btn);
+    tr.append(a, b, c);
+    tb.appendChild(tr);
+  }
+  table.appendChild(tb);
+  box.innerHTML = "";
+  box.appendChild(table);
+}
+
+// ---------------- the table used everywhere ----------------
+// rows: { email, courseId, enrolled, attempt, cert }
+
+function learnerTable(rows, showCourse) {
+  const table = document.createElement("table");
+  table.innerHTML = "<thead><tr>" + (showCourse ? "<th>Course</th>" : "<th>Email</th>") +
+    "<th>Status</th><th>Score</th><th>Time</th><th>Last seen</th><th>Certificate</th><th></th></tr></thead>";
+  const tb = document.createElement("tbody");
+  for (const r of rows) {
+    const a = r.attempt;
+    const tr = document.createElement("tr");
+    const cells = [
+      showCourse ? courseName(courseById(r.courseId)) : r.email,
+      statusOf(a) + (r.enrolled ? "" : " (no access)"),
+      a && a.score_scaled != null ? Math.round(a.score_scaled * 100) + "%" : "—",
+      a ? niceTime(a.total_time) : "—",
+      a ? fmtDate(a.updated_at) : "—",
+    ];
+    cells.forEach((v) => { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); });
+
+    const certTd = document.createElement("td");
+    if (r.cert) {
+      const ref = document.createElement("div"); ref.textContent = r.cert.reference;
+      const nm = document.createElement("div"); nm.style.color = "var(--muted)"; nm.style.fontSize = "0.78rem";
+      nm.textContent = r.cert.name + " · " + fmtDate(r.cert.awarded_on);
+      certTd.append(ref, nm);
+    } else certTd.textContent = "—";
+    tr.appendChild(certTd);
+
+    const actTd = document.createElement("td");
+    const acts = document.createElement("div"); acts.className = "acts";
+    const add = (label, fn, danger) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "link" + (danger ? " danger" : ""); b.textContent = label;
+      b.onclick = async () => { b.disabled = true; try { await fn(); } finally { b.disabled = false; } };
+      acts.appendChild(b);
+    };
+    if (r.cert) {
+      add("Download", () => certAction(r.cert.id, "download"));
+      add("Re-send", () => certAction(r.cert.id, "resend"));
+      add("Fix name", () => fixName(r.cert));
+    }
+    if (a) add("Reset progress", () => resetProgress(r.courseId, r.email), true);
+    if (r.enrolled) add("Remove access", () => removeAccess(r.courseId, r.email), true);
+    else add("Give access", () => giveAccess(r.courseId, r.email));
+    actTd.appendChild(acts);
+    tr.appendChild(actTd);
+    tb.appendChild(tr);
+  }
+  table.appendChild(tb);
+  return table;
+}
+
+// ---------------- actions ----------------
+
+async function giveAccess(courseId, email) {
+  const { error } = await db.from("learn_enrolments").upsert({ course_id: courseId, email, source: "manual" }, { onConflict: "course_id,email", ignoreDuplicates: true });
+  if (error) return alert(error.message);
+  refreshAfterChange();
+}
+
+async function removeAccess(courseId, email) {
+  if (!confirm("Remove " + email + "'s access to " + courseName(courseById(courseId)) + "?\n\nTheir progress and any certificate are kept, so you can give access back later.")) return;
+  const { error } = await db.from("learn_enrolments").delete().eq("course_id", courseId).eq("email", email);
+  if (error) return alert(error.message);
+  refreshAfterChange();
+}
+
+async function resetProgress(courseId, email) {
+  if (!confirm("Reset " + email + "'s progress in " + courseName(courseById(courseId)) + "?\n\nThey start the course from the beginning. Any certificate they already have is kept.")) return;
+  const { error } = await db.from("learn_attempts").delete().eq("course_id", courseId).eq("email", email);
+  if (error) return alert(error.message);
+  refreshAfterChange();
+}
+
+async function fixName(cert) {
+  const name = prompt("The name exactly as it should appear on the certificate:", cert.name);
+  if (name == null) return;
+  const clean = name.replace(/\s+/g, " ").trim();
+  if (clean.length < 3) return alert("Type the full name.");
+  const { error } = await db.from("learn_certificates").update({ name: clean }).eq("id", cert.id);
+  if (error) return alert(error.message);
+  cert.name = clean;
+  if (confirm("Name changed to “" + clean + "”.\n\nEmail them the corrected certificate now?")) await certAction(cert.id, "resend");
+  refreshAfterChange();
+}
+
+async function certAction(certificateId, action) {
+  const { data: { session } } = await db.auth.getSession();
+  const res = await fetch("/.netlify/functions/learn-certificate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
+    body: JSON.stringify({ certificate_id: certificateId, action }),
+  });
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok || !d.pdf) return alert(d.error || "That did not work.");
+  if (action === "download") {
+    const bytes = Uint8Array.from(atob(d.pdf), (ch) => ch.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    const link = document.createElement("a");
+    link.href = url; link.download = d.filename || "certificate.pdf";
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } else {
+    alert(d.emailed ? "Sent to " + d.email + "." : "The email could not be sent. Try Download and send it yourself.");
+  }
+}
+
+function refreshAfterChange() {
+  loadOverview();
+  loadAllAccess();
+  if ($("l-course").value) loadLearners();
+  if ($("s-q").value.trim()) search();
+}
+
+// ---------------- learners by course ----------------
 
 $("l-course").addEventListener("change", loadLearners);
 
@@ -599,35 +862,82 @@ async function loadLearners() {
   const box = $("learners");
   if (!courseId) { box.innerHTML = '<p class="empty">Pick a course.</p>'; return; }
   box.innerHTML = '<p class="empty">Loading…</p>';
-  const [{ data: enr }, { data: att }] = await Promise.all([
-    db.from("learn_enrolments").select("email, source, created_at").eq("course_id", courseId).order("created_at", { ascending: false }),
-    db.from("learn_attempts").select("email, completion_status, success_status, score_scaled, total_time, completed_at, updated_at").eq("course_id", courseId),
-  ]);
-  const byEmail = new Map((att || []).map((a) => [(a.email || "").toLowerCase(), a]));
-  const rows = (enr || []).map((e) => ({ ...e, a: byEmail.get(e.email.toLowerCase()) }));
-  for (const a of att || []) if (!rows.some((r) => r.email.toLowerCase() === (a.email || "").toLowerCase())) rows.push({ email: a.email || "(admin)", source: "admin", a });
-  if (!rows.length) { box.innerHTML = '<p class="empty">Nobody has access yet.</p>'; return; }
-
-  const table = document.createElement("table");
-  table.innerHTML = "<thead><tr><th>Email</th><th>Status</th><th>Score</th><th>Time</th><th>Last seen</th></tr></thead>";
-  const tb = document.createElement("tbody");
-  for (const r of rows) {
-    const a = r.a;
-    const tr = document.createElement("tr");
-    const status = !a ? "Not started"
-      : a.success_status === "passed" ? "Passed"
-      : a.success_status === "failed" ? "Failed test"
-      : a.completion_status === "completed" ? "Completed" : "In progress";
-    [r.email, status,
-      a && a.score_scaled != null ? Math.round(a.score_scaled * 100) + "%" : "—",
-      a ? niceTime(a.total_time) : "—",
-      a ? new Date(a.updated_at).toLocaleDateString("en-GB") : "—",
-    ].forEach((v) => { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); });
-    tb.appendChild(tr);
+  try {
+    const [enr, att, certs] = await Promise.all([
+      fetchAll(() => db.from("learn_enrolments").select("email, created_at").eq("course_id", courseId).order("created_at", { ascending: false })),
+      fetchAll(() => db.from("learn_attempts").select("email, completion_status, success_status, score_scaled, total_time, completed_at, updated_at").eq("course_id", courseId)),
+      fetchAll(() => db.from("learn_certificates").select("id, email, reference, name, awarded_on").eq("course_id", courseId)),
+    ]);
+    const low = (e) => String(e || "").toLowerCase();
+    const attBy = new Map(att.map((a) => [low(a.email), a]));
+    const certBy = new Map(certs.map((c) => [low(c.email), c]));
+    const emails = [...new Set([...enr.map((e) => low(e.email)), ...att.map((a) => low(a.email)), ...certs.map((c) => low(c.email))])].filter(Boolean);
+    const enrolled = new Set(enr.map((e) => low(e.email)));
+    if (!emails.length) { box.innerHTML = '<p class="empty">Nobody has access yet.</p>'; return; }
+    const rows = emails.map((email) => ({ email, courseId, enrolled: enrolled.has(email), attempt: attBy.get(email), cert: certBy.get(email) }));
+    box.innerHTML = "";
+    const p = document.createElement("p"); p.className = "empty"; p.textContent = rows.length + " learner" + (rows.length === 1 ? "" : "s");
+    box.append(p, learnerTable(rows, false));
+  } catch (e) {
+    box.innerHTML = '<p class="msg err"></p>'; box.firstChild.textContent = e.message;
   }
-  table.appendChild(tb);
+}
+
+// ---------------- find a learner ----------------
+
+$("s-go").addEventListener("click", search);
+$("s-q").addEventListener("keydown", (e) => { if (e.key === "Enter") search(); });
+
+async function search() {
+  const q = $("s-q").value.trim().toLowerCase();
+  const box = $("s-results");
+  if (q.length < 2) { box.innerHTML = '<p class="empty">Type at least two letters.</p>'; return; }
+  box.innerHTML = '<p class="empty">Searching…</p>';
+  const like = "%" + q.replace(/[%_,()*]/g, "") + "%";
+  const [{ data: e1 }, { data: e2 }, { data: e3 }, { data: e4 }] = await Promise.all([
+    db.from("learn_enrolments").select("email").ilike("email", like).limit(200),
+    db.from("learn_certificates").select("email").or("email.ilike." + like + ",name.ilike." + like).limit(200),
+    db.from("learn_attempts").select("email").ilike("email", like).limit(200),
+    db.from("learn_all_access").select("email").ilike("email", like).limit(50),
+  ]);
+  const emails = [...new Set([...(e1 || []), ...(e2 || []), ...(e3 || []), ...(e4 || [])].map((r) => String(r.email || "").toLowerCase()).filter(Boolean))].slice(0, 25);
+  if (!emails.length) { box.innerHTML = '<p class="empty">Nobody found. They may have bought through LearnWorlds before the switch — check there.</p>'; return; }
+
+  const [{ data: enr }, { data: att }, { data: certs }, { data: all }] = await Promise.all([
+    db.from("learn_enrolments").select("email, course_id").in("email", emails),
+    db.from("learn_attempts").select("email, course_id, completion_status, success_status, score_scaled, total_time, completed_at, updated_at").in("email", emails),
+    db.from("learn_certificates").select("id, email, course_id, reference, name, awarded_on").in("email", emails),
+    db.from("learn_all_access").select("email").in("email", emails),
+  ]);
+  const allSet = new Set((all || []).map((r) => r.email));
   box.innerHTML = "";
-  box.appendChild(table);
+  for (const email of emails) {
+    const courseIds = [...new Set([...(enr || []), ...(att || []), ...(certs || [])].filter((r) => String(r.email).toLowerCase() === email).map((r) => r.course_id))];
+    const rows = courseIds.map((courseId) => ({
+      email, courseId,
+      enrolled: (enr || []).some((r) => r.email === email && r.course_id === courseId),
+      attempt: (att || []).find((r) => String(r.email).toLowerCase() === email && r.course_id === courseId),
+      cert: (certs || []).find((r) => String(r.email).toLowerCase() === email && r.course_id === courseId),
+    }));
+    const block = document.createElement("div"); block.className = "person";
+    const who = document.createElement("div"); who.className = "who";
+    const b = document.createElement("b"); b.textContent = email; who.appendChild(b);
+    if (allSet.has(email)) { const pill = document.createElement("span"); pill.className = "pill ok"; pill.textContent = "All courses"; who.appendChild(pill); }
+    const t = document.createElement("button"); t.type = "button"; t.className = "link";
+    t.textContent = allSet.has(email) ? "Stop all courses" : "Give all courses";
+    t.onclick = async () => {
+      t.disabled = true;
+      try {
+        if (allSet.has(email)) { if (await takeAllCourses(email)) refreshAfterChange(); }
+        else { await giveAllCourses(email); refreshAfterChange(); }
+      } catch (e) { alert(e.message); } finally { t.disabled = false; }
+    };
+    who.appendChild(t);
+    block.appendChild(who);
+    if (rows.length) { const w = document.createElement("div"); w.className = "tablewrap"; w.appendChild(learnerTable(rows, true)); block.appendChild(w); }
+    else { const p = document.createElement("p"); p.className = "empty"; p.textContent = "No courses."; block.appendChild(p); }
+    box.appendChild(block);
+  }
 }
 
 function niceTime(iso) {
