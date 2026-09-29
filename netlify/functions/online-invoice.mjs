@@ -35,7 +35,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
-import { enrolById, listCourses, isOnSite, LEARN_URL, learnStartLink } from "./learnworlds.mjs";
+import { enrolById, isOnSite, LEARN_URL, learnStartLink } from "./learnworlds.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -96,7 +96,7 @@ export default async (request) => {
 async function options() {
   let courses;
   try {
-    courses = (await listCourses()).map((c) => ({
+    courses = (await ourCourses()).map((c) => ({
       product_id: c.id,
       label: c.title,
       access: c.access,
@@ -155,7 +155,7 @@ async function createAndSend(b, me) {
   if (!productId) return json({ error: "Choose an online course." }, 400);
   let product;
   try {
-    product = (await listCourses()).find((c) => c.id === productId);
+    product = (await ourCourses()).find((c) => c.id === productId);
   } catch (err) {
     return json({ error: err.message }, 502);
   }
@@ -585,4 +585,35 @@ function json(body, status = 200) {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+// The courses that can be invoiced: our own list on birdboxcoaching.com
+// (learn_courses), not LearnWorlds. The id stays the course's
+// LearnWorlds id (lw_course_id), because that is what enrolById and the
+// switch-over use to find the course.
+async function ourCourses() {
+  const LANG = { en: "English", es: "Español", fr: "Français", it: "Italiano", de: "Deutsch" };
+  const { data, error } = await supabase
+    .from("learn_courses")
+    .select("title, brand, level, language, lw_course_id, active")
+    .eq("active", true)
+    .not("lw_course_id", "is", null)
+    .order("brand", { ascending: false })
+    .order("level")
+    .order("language");
+  if (error) throw new Error("Could not load the course list: " + error.message);
+  const seen = new Set();
+  const out = [];
+  for (const c of data || []) {
+    if (seen.has(c.lw_course_id)) continue;
+    seen.add(c.lw_course_id);
+    const lang = LANG[c.language] || String(c.language || "").toUpperCase();
+    const title = String(c.title || "");
+    out.push({
+      id: c.lw_course_id,
+      title: title.includes(lang) ? title : title + " (" + lang + ")",
+      access: "",
+    });
+  }
+  return out;
 }
