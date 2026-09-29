@@ -176,6 +176,7 @@ export async function grantOnlineCourse(supabase, {
       userWasCreated: created,
       productId: product.product_id,
       label: product.label || language,
+      onSite: !!res.onSite,
     };
   } catch (err) {
     return { status: "failed", error: String(err.message || err).slice(0, 300) };
@@ -191,7 +192,17 @@ export async function enrolById({
   // Our own course area gets the same enrolment first, so every
   // way of selling or granting a course also opens it on
   // birdboxcoaching.com/learn/. Never throws.
-  await mirrorToLearn({ email, productId, justification });
+  const mirror = await mirrorToLearn({ email, productId, justification });
+
+  // A course that has moved to birdboxcoaching.com/learn/ is not given
+  // in LearnWorlds any more, so the buyer gets one set of emails and one
+  // place to log in. Callers see onSite: true and word their emails for it.
+  if (mirror.status === "enrolled" && mirror.onSite) {
+    return { status: "enrolled", userId: null, userWasCreated: false, productId, onSite: true };
+  }
+  if (mirror.status === "failed" && mirror.onSite) {
+    return { status: "failed", productId, onSite: true, error: "Could not add them to the course on birdboxcoaching.com: " + mirror.error };
+  }
 
   if (!learnworldsConfigured()) {
     return { status: "failed", error: "LearnWorlds is not configured" };
@@ -268,10 +279,11 @@ export async function mirrorToLearn({ email, productId, justification }) {
       learnDb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY,
         { auth: { persistSession: false } });
     }
-    const { data: courses, error } = await learnDb
-      .from("learn_courses").select("id").eq("lw_course_id", String(productId)).eq("active", true);
+    var { data: courses, error } = await learnDb
+      .from("learn_courses").select("id, on_site").eq("lw_course_id", String(productId)).eq("active", true);
     if (error) throw error;
     if (!courses || !courses.length) return { status: "skipped" };
+    var onSite = courses.every((c) => c.on_site === true);
 
     const rows = courses.map((c) => ({
       course_id: c.id,
@@ -282,9 +294,26 @@ export async function mirrorToLearn({ email, productId, justification }) {
       .from("learn_enrolments")
       .upsert(rows, { onConflict: "course_id,email", ignoreDuplicates: true });
     if (insErr) throw insErr;
-    return { status: "enrolled", count: rows.length };
+    return { status: "enrolled", count: rows.length, onSite };
   } catch (err) {
     console.error("BirdBox Learn enrolment failed:", err && (err.message || err));
-    return { status: "failed", error: String((err && err.message) || err).slice(0, 300) };
+    return { status: "failed", onSite: typeof onSite === "boolean" ? onSite : false, error: String((err && err.message) || err).slice(0, 300) };
   }
 }
+
+// True when this LearnWorlds course id has moved to birdboxcoaching.com/learn/.
+export async function isOnSite(productId) {
+  try {
+    if (!productId || !process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return false;
+    if (!learnDb) {
+      learnDb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { persistSession: false } });
+    }
+    const { data } = await learnDb.from("learn_courses").select("on_site")
+      .eq("lw_course_id", String(productId)).eq("active", true);
+    return !!(data && data.length && data.every((c) => c.on_site === true));
+  } catch (e) { return false; }
+}
+
+// Where students of on-site courses log in.
+export const LEARN_URL = "https://birdboxcoaching.com/learn/";
