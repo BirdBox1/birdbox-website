@@ -163,7 +163,7 @@ async function onCheckoutCompleted(session) {
   const discountCode = meta.discount_code || null;
 
   // A deposit is not full payment — the balance is still owed.
-  const paymentStatus = option === "deposit" ? "deposit_paid" : "paid_in_full";
+  const paymentStatus = option === "deposit" || option === "plan" ? "deposit_paid" : "paid_in_full";
 
   // Cheaper than relying on the constraint, and it keeps the log
   // honest: a redelivered event stops here rather than looking like a
@@ -312,7 +312,14 @@ async function onCheckoutCompleted(session) {
     option,
     balanceCents,
     online,
+    planMonths: Number(meta.plan_months || 0),
   });
+
+  // ---- monthly payments -----------------------------------------
+  if (option === "plan") {
+    await schedulePlan({ full, meta, registrationId: registration.id, intent, intentId, firstName, lastName, email: details.email });
+    return;
+  }
 
   // ---- the balance, if this was a deposit ----------------------
   if (option !== "deposit" || balanceCents <= 0) return;
@@ -336,6 +343,8 @@ async function onCheckoutCompleted(session) {
       auto_advance: true,
       automatically_finalizes_at: finaliseAt,
       currency: full.currency,
+      // Same VAT as the deposit — the checkout promised "plus VAT".
+      default_tax_rates: meta.vat_rate_id ? [meta.vat_rate_id] : [],
       description: `Balance for ${meta.course_slug}`,
       metadata: {
         registration_id: registration.id,
@@ -522,10 +531,19 @@ async function onInvoicePaid(invoice) {
     })
     .eq("stripe_invoice_id", invoice.id);
 
-  await supabase
-    .from("registrations")
-    .update({ payment_status: "paid_in_full" })
-    .eq("id", registrationId);
+  // Paid in full only once nothing is left to collect — a monthly plan
+  // has several payments, a deposit booking just the one balance.
+  const { data: open } = await supabase
+    .from("payments")
+    .select("id")
+    .eq("registration_id", registrationId)
+    .in("status", ["pending", "failed"]);
+  if (!open || !open.length) {
+    await supabase
+      .from("registrations")
+      .update({ payment_status: "paid_in_full" })
+      .eq("id", registrationId);
+  }
 
   await clearOverdue({ registrationId });
 }
@@ -557,6 +575,92 @@ async function clearOverdue(filter) {
   q = filter.invoiceId ? q.eq("invoice_id", filter.invoiceId) : q.eq("id", filter.registrationId);
   const { error } = await q;
   if (error) console.error("Could not clear overdue flag", error.message);
+}
+
+// ---------------------------------------------------------------
+// monthly payments booked on the website
+// ---------------------------------------------------------------
+// The first payment is taken at checkout. Every later one is created
+// now as a Stripe invoice that Stripe finalises and charges itself on
+// its date, from the card saved at checkout — the same way a deposit
+// booking's balance is taken. Each one is a row in payments; the
+// registration becomes paid_in_full when none are left unpaid.
+async function schedulePlan({ full, meta, registrationId, intent, intentId, firstName, lastName, email }) {
+  const parts = String(meta.plan_parts || "").split("|").filter(Boolean).map((p) => {
+    const [n, cents, due] = p.split(":");
+    return { n: Number(n), cents: Number(cents), due };
+  }).filter((x) => x.n && x.cents > 0 && /^\d{4}-\d{2}-\d{2}$/.test(x.due));
+  if (!parts.length) return;
+
+  const paymentMethod =
+    intent?.payment_method ||
+    (intentId ? (await stripe.paymentIntents.retrieve(intentId)).payment_method : null);
+
+  // Stripe charges later invoices to the customer's default card.
+  if (full.customer && paymentMethod) {
+    try {
+      await stripe.customers.update(full.customer, { invoice_settings: { default_payment_method: paymentMethod } });
+    } catch (err) { console.error("Could not set default card", err.message); }
+  }
+
+  const problems = [];
+  for (const part of parts) {
+    const sequence = part.n + 1;
+    try {
+      const invoice = await stripe.invoices.create({
+        customer: full.customer,
+        collection_method: "charge_automatically",
+        default_payment_method: paymentMethod || undefined,
+        auto_advance: true,
+        automatically_finalizes_at: dueStamp(part.due),
+        currency: full.currency,
+        default_tax_rates: meta.vat_rate_id ? [meta.vat_rate_id] : [],
+        description: `Payment ${part.n + 1} of ${parts.length + 1} — ${meta.course_slug}`,
+        metadata: {
+          registration_id: registrationId,
+          course_id: meta.course_id,
+          course_slug: meta.course_slug,
+          sequence: String(sequence),
+          kind: "reg_instalment",
+        },
+      });
+      await stripe.invoiceItems.create({
+        customer: full.customer,
+        invoice: invoice.id,
+        amount: part.cents,
+        currency: full.currency,
+        description: `Monthly payment ${part.n} of ${parts.length} — ${meta.course_slug}`,
+      });
+      await addPayment({
+        registration_id: registrationId,
+        sequence,
+        amount_cents: part.cents,
+        due_date: part.due,
+        status: "pending",
+        stripe_invoice_id: invoice.id,
+      });
+    } catch (err) {
+      console.error("Could not schedule monthly payment", registrationId, part.n, err);
+      problems.push(`Payment ${part.n} (${part.due}): ${err.message}`);
+      await addPayment({
+        registration_id: registrationId,
+        sequence,
+        amount_cents: part.cents,
+        due_date: part.due,
+        status: "pending",
+        last_error: "Invoice not created: " + (err.message || "unknown"),
+      });
+    }
+  }
+
+  if (problems.length) {
+    await alert(
+      "Monthly payments NOT all scheduled",
+      `${firstName} ${lastName} (${email}) booked ${meta.course_slug} on monthly payments. ` +
+      `The first payment was taken, but these could not be set up in Stripe and need doing by hand:\n` +
+      problems.join("\n")
+    );
+  }
 }
 
 function dueStamp(isoDate) {
@@ -1343,7 +1447,7 @@ async function recordAbandoned(session, reason, fallbackEmail) {
 // email would drift apart within a month.
 // Returns "sent", "skipped" (no copy for this brand) or "failed", so
 // the portal can say what happened. The checkout ignores the result.
-export async function sendConfirmation({ courseId, email, firstName, option, balanceCents, online }) {
+export async function sendConfirmation({ courseId, email, firstName, option, balanceCents, online, planMonths }) {
   if (!email) return "failed";
 
   try {
@@ -1443,7 +1547,9 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
         ];
     if (!isWorkshop && brandKey === "tgc") bring.push("Gymnastics grips, if you use them");
 
-    const balanceNote = option === "deposit" && balanceCents > 0
+    const balanceNote = option === "plan" && balanceCents > 0
+      ? "Your first payment is made. The rest of the course fee will be taken automatically from the same card in " + (planMonths ? planMonths + " monthly payments" : "monthly payments") + ", starting one month from today. You will get a receipt each time."
+      : option === "deposit" && balanceCents > 0
       ? "Your deposit is paid. The remaining balance will be charged automatically to the same card 14 days before the course."
       : null;
 
