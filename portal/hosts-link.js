@@ -1,6 +1,6 @@
 /* ============================================================
    portal/hosts-link.js
-   Adds "Host requests" to the portal menu, next to Discount codes,
+   Adds "Online courses" and "Host requests" to the portal menu, next to Discount codes,
    and puts a red count on it when new requests have come in.
 
    It copies whatever the Discount codes link is doing, so it shows
@@ -20,6 +20,17 @@
   function addLink() {
     var codes = document.getElementById("codeslink");
     if (!codes || document.getElementById("hostslink")) return false;
+
+    // "Online courses" (BirdBox Learn admin) goes just above Discount
+    // codes and follows the same admin-only show/hide.
+    var learn = document.createElement("a");
+    learn.id = "learnlink";
+    learn.href = "/portal/learn/";
+    learn.textContent = "Online courses";
+    learn.className = codes.className;
+    codes.insertAdjacentElement("beforebegin", learn);
+    new MutationObserver(function () { learn.className = codes.className; })
+      .observe(codes, { attributes: true, attributeFilter: ["class"] });
 
     link = document.createElement("a");
     link.id = "hostslink";
