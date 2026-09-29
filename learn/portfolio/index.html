@@ -141,12 +141,33 @@
   .stars span{font-size:12px;color:var(--muted);margin-left:6px}
   .fld{margin:0 0 14px}
   .fld input,.fld select{width:100%;max-width:420px;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .vwork{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;align-items:start}
+  .vwork>*{min-width:0}
+  @media(min-width:900px){.vwork{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px}.vwork .vr{margin-top:10px}}
+  .vplayer{position:sticky;top:0;z-index:6;background:var(--panel);padding:10px 0 8px}
+  @media(max-width:899px){.vplayer video,.vplayer iframe{max-height:32vh}}
+  .vplayer .screen{background:#000;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;min-height:120px}
+  .vplayer video,.vplayer iframe{display:block;width:100%;max-height:42vh;aspect-ratio:16/9;border:0;background:#000}
+  .vplayer .empty{color:var(--muted);font-size:14px;padding:26px 16px;text-align:center;line-height:1.6}
+  .vsrc{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 0}
+  .vsrc input[type=text]{flex:1;min-width:200px;font:inherit;font-size:14px;padding:9px 10px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .vsrc .note{font-size:12px;color:var(--muted);width:100%}
+  .chips{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;margin:10px 0 0;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+  .chips button{flex:0 0 auto;font:inherit;font-size:12.5px;font-weight:700;padding:7px 10px;background:var(--paper);color:var(--muted);border:1px solid var(--line);cursor:pointer}
+  .chips button.done{color:var(--ink)}
+  .chips button.done::after{content:" ✓";color:var(--good)}
+  .chips button.on{background:var(--accent);border-color:var(--accent);color:#0C1116}
+  .chips button.on::after{color:#0C1116}
+  .vr.off{display:none}
+  .vnav{display:flex;justify-content:space-between;gap:8px;margin-top:10px}
   .cmp{width:100%;font-size:14px}
   .cmp td,.cmp th{padding:7px 6px}
   .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
 
   @media print {
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .vr.off{display:block!important}
+    .vplayer,.vnav,.chips{display:none!important}
     .colour-card{background:#fff}
     body{background:#fff;color:#111}
     .bar,.noprint,.btn{display:none!important}
@@ -438,9 +459,8 @@
         <div class="fld"><label for="v1-date">Date filmed</label><input type="date" id="v1-date"></div>
         <div class="fld"><label for="v1-what">What I filmed</label><input id="v1-what" placeholder="e.g. Tuesday 6pm class, warm-up and skill"></div>
       </div>
-      <div class="fld"><label for="v1-link">Link to the video (optional)</label><input id="v1-link" placeholder="Google Drive, Dropbox, YouTube (unlisted)…"></div>
       <p class="hist" id="v1-count"></p>
-      <div id="v1-areas"></div>
+      <div class="vwork"><div class="vplayer" id="v1-player"></div><div id="v1-areas"></div></div>
     </div>
 
     <div class="panel">
@@ -468,8 +488,7 @@
           <div class="fld"><label for="v2-date">Date filmed</label><input type="date" id="v2-date"></div>
           <div class="fld"><label for="v2-what">What I filmed</label><input id="v2-what"></div>
         </div>
-        <div class="fld"><label for="v2-link">Link to the video (optional)</label><input id="v2-link"></div>
-        <div id="v2-areas"></div>
+        <div class="vwork"><div class="vplayer" id="v2-player"></div><div id="v2-areas"></div></div>
         <h2 style="margin-top:18px">Before and after</h2>
         <table class="cmp"><thead><tr><th>Area</th><th>Video 1</th><th>Video 2</th><th></th></tr></thead><tbody id="v-cmp"></tbody></table>
       </div>
@@ -1156,6 +1175,70 @@ const V_AREAS = [
 const V_SCALE = ["", "Needs a lot of work", "Needs work", "OK", "Good", "A real strength"];
 let vr = null;
 let vTimer = null;
+const vActive = [null, null];
+const vPaint = [null, null];
+const vLocal = [null, null];   // a video chosen from the device (not uploaded)
+
+// Turn a share link into something that plays on the page.
+function vEmbed(url) {
+  const u = String(url || "").trim();
+  if (!u) return null;
+  let m;
+  if ((m = u.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/))) return { kind: "iframe", src: "https://www.youtube-nocookie.com/embed/" + m[1] + "?rel=0&playsinline=1" };
+  if ((m = u.match(/vimeo\.com\/(?:video\/)?(\d+)(?:\/(\w+))?/))) return { kind: "iframe", src: "https://player.vimeo.com/video/" + m[1] + (m[2] ? "?h=" + m[2] : "") };
+  if ((m = u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]+)/))) return { kind: "iframe", src: "https://drive.google.com/file/d/" + m[1] + "/preview" };
+  if (/dropbox\.com\//.test(u)) { const d = u.replace(/([?&])dl=[01]/, "$1raw=1"); return { kind: "video", src: /[?&]raw=1/.test(d) ? d : d + (d.includes("?") ? "&" : "?") + "raw=1" }; }
+  if (/^https?:\/\/.+\.(mp4|mov|m4v|webm)(\?|$)/i.test(u)) return { kind: "video", src: u };
+  if (/^https?:\/\//.test(u)) return { kind: "open", src: u };
+  return null;
+}
+
+function vPlayer(n) {
+  const box = $(n === 0 ? "v1-player" : "v2-player");
+  const round = vr.data.rounds[n];
+  const keepChips = box.querySelector(".chips");
+  box.innerHTML = "";
+  const screen = document.createElement("div"); screen.className = "screen";
+  const e = vLocal[n] ? { kind: "video", src: vLocal[n].url } : vEmbed(round.link);
+  if (!e) {
+    screen.innerHTML = '<div class="empty">Add your video below — pick it from your phone or computer, or paste a link — and it plays here while you review each area.</div>';
+  } else if (e.kind === "iframe") {
+    const f = document.createElement("iframe"); f.src = e.src; f.allow = "autoplay; fullscreen; picture-in-picture"; f.allowFullscreen = true; screen.appendChild(f);
+  } else if (e.kind === "video") {
+    const v = document.createElement("video"); v.src = e.src; v.controls = true; v.playsInline = true; v.preload = "metadata"; screen.appendChild(v);
+    v.onerror = () => { screen.innerHTML = '<div class="empty">This video will not play here. Try choosing it from your device instead, or open the link in a new tab.</div>'; };
+  } else {
+    const d = document.createElement("div"); d.className = "empty";
+    d.append("This link cannot be played on the page. ");
+    const a = document.createElement("a"); a.href = e.src; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open it in a new tab"; d.appendChild(a);
+    d.append(" — or use a YouTube (unlisted), Vimeo or Google Drive link, or choose the file from your device.");
+    screen.appendChild(d);
+  }
+  const src = document.createElement("div"); src.className = "vsrc noprint";
+  const pick = document.createElement("label"); pick.className = "btn ghost small"; pick.textContent = vLocal[n] ? "Choose a different video" : "Choose video from my device";
+  const file = document.createElement("input"); file.type = "file"; file.accept = "video/*"; file.hidden = true;
+  file.onchange = () => {
+    const f = file.files && file.files[0]; if (!f) return;
+    if (vLocal[n]) URL.revokeObjectURL(vLocal[n].url);
+    vLocal[n] = { url: URL.createObjectURL(f), name: f.name };
+    round.file = f.name; vChanged(); vPlayer(n);
+  };
+  pick.appendChild(file);
+  const link = document.createElement("input"); link.type = "text"; link.placeholder = "…or paste a link (YouTube, Vimeo, Google Drive, Dropbox)"; link.value = round.link || "";
+  link.onchange = () => { round.link = link.value.trim(); if (vLocal[n]) { URL.revokeObjectURL(vLocal[n].url); vLocal[n] = null; } vChanged(); vPlayer(n); };
+  const note = document.createElement("span"); note.className = "note";
+  note.textContent = vLocal[n] ? "Playing “" + vLocal[n].name + "” from your device. It is not uploaded, so choose it again next time you open this page."
+    : round.file && !round.link ? "Last time you used “" + round.file + "” from your device — choose it again to watch it here."
+    : "Videos chosen from your device stay on your device — nothing is uploaded.";
+  src.append(pick, link, note);
+  // The source picker sits above the sticky player so the player stays small.
+  const wrap = box.parentNode;
+  let holder = wrap.previousElementSibling;
+  if (!holder || !holder.classList.contains("vsrc-holder")) { holder = document.createElement("div"); holder.className = "vsrc-holder"; wrap.parentNode.insertBefore(holder, wrap); }
+  holder.innerHTML = ""; holder.appendChild(src);
+  box.append(screen);
+  if (keepChips) box.appendChild(keepChips);
+}
 const blankRound = () => ({ date: "", what: "", link: "", areas: {} });
 
 async function openVideo() {
@@ -1165,7 +1248,8 @@ async function openVideo() {
   d.rounds = d.rounds || [blankRound()];
   d.plan = d.plan || {};
   d.notes = d.notes || "";
-  for (const [id, key] of [["v1-date", "date"], ["v1-what", "what"], ["v1-link", "link"]]) bindField(id, d.rounds[0], key);
+  for (const [id, key] of [["v1-date", "date"], ["v1-what", "what"]]) bindField(id, d.rounds[0], key);
+  vPlayer(0);
   for (const [id, key] of [["vp-area", "area"], ["vp-do", "do"], ["vp-learn", "learn"], ["vp-start", "start"], ["vp-review", "review"], ["vp-mentor", "mentor"], ["vp-feedback", "feedback"]]) bindField(id, d.plan, key);
   bindField("v-notes", d, "notes");
   $("vp-area").innerHTML = '<option value="">Choose…</option>' + V_AREAS.map(([k, t]) => `<option value="${k}">${t}</option>`).join("");
@@ -1184,7 +1268,25 @@ function bindField(id, obj, key) {
 function vRenderAreas(n) {
   const round = vr.data.rounds[n];
   const box = $(n === 0 ? "v1-areas" : "v2-areas"); box.innerHTML = "";
-  for (const [key, title, tip] of V_AREAS) {
+  vActive[n] = vActive[n] || V_AREAS[0][0];
+  const chips = document.createElement("div"); chips.className = "chips";
+  $(n === 0 ? "v1-player" : "v2-player").querySelector(".chips")?.remove();
+  $(n === 0 ? "v1-player" : "v2-player").appendChild(chips);
+  const cards = {};
+  const paint = () => {
+    chips.innerHTML = "";
+    V_AREAS.forEach(([k, t]) => {
+      const a = round.areas[k] || {};
+      const c = document.createElement("button"); c.type = "button"; c.textContent = t;
+      c.className = (vActive[n] === k ? "on " : "") + (a.rating || (a.good || "").trim() || (a.improve || "").trim() ? "done" : "");
+      c.onclick = () => go(k);
+      chips.appendChild(c);
+    });
+    for (const k in cards) cards[k].classList.toggle("off", k !== vActive[n]);
+  };
+  const go = (k) => { vActive[n] = k; paint(); };
+  vPaint[n] = paint;
+  V_AREAS.forEach(([key, title, tip], idx) => {
     const a = round.areas[key] = round.areas[key] || { rating: null, good: "", improve: "" };
     const d = document.createElement("div"); d.className = "vr";
     const h = document.createElement("h3"); h.textContent = title;
@@ -1197,16 +1299,25 @@ function vRenderAreas(n) {
     const lab = document.createElement("span");
     for (let v = 1; v <= 5; v++) {
       const b = document.createElement("button"); b.type = "button"; b.textContent = v; b.classList.toggle("on", a.rating === v);
-      b.onclick = () => { a.rating = a.rating === v ? null : v; st.querySelectorAll("button").forEach((x, i) => x.classList.toggle("on", a.rating === i + 1)); lab.textContent = V_SCALE[a.rating || 0]; vAfterRating(); vChanged(); };
+      b.onclick = () => { a.rating = a.rating === v ? null : v; st.querySelectorAll("button").forEach((x, i) => x.classList.toggle("on", a.rating === i + 1)); lab.textContent = V_SCALE[a.rating || 0]; vAfterRating(); vPaint[n] && vPaint[n](); vChanged(); };
       st.appendChild(b);
     }
     lab.textContent = V_SCALE[a.rating || 0]; st.appendChild(lab);
     const g = document.createElement("div"); g.className = "g2";
-    const field = (label, k, ph) => { const w = document.createElement("div"); const l = document.createElement("label"); l.textContent = label; const t = document.createElement("textarea"); t.value = a[k]; t.placeholder = ph; t.oninput = () => { a[k] = t.value; vChanged(); t === document.activeElement && vCount(); }; w.append(l, t); return w; };
+    const field = (label, k, ph) => { const w = document.createElement("div"); const l = document.createElement("label"); l.textContent = label; const t = document.createElement("textarea"); t.value = a[k]; t.placeholder = ph; t.oninput = () => { a[k] = t.value; vChanged(); vCount(); }; t.onchange = () => vPaint[n] && vPaint[n](); w.append(l, t); return w; };
     g.append(field("What I do well", "good", "Start with the good things"), field("What I can improve", "improve", "Be specific — what did you see?"));
-    d.append(h, tp, st, g);
+    const nav = document.createElement("div"); nav.className = "vnav noprint";
+    const prev = document.createElement("button"); prev.type = "button"; prev.className = "btn ghost small"; prev.textContent = "← Previous area";
+    const next = document.createElement("button"); next.type = "button"; next.className = "btn small"; next.textContent = idx === V_AREAS.length - 1 ? "Done ✓" : "Next area →";
+    if (idx === 0) prev.style.visibility = "hidden";
+    prev.onclick = () => go(V_AREAS[idx - 1][0]);
+    next.onclick = () => { if (idx < V_AREAS.length - 1) go(V_AREAS[idx + 1][0]); else { vSave(); (n === 0 ? $("vp-area") : $("v-cmp")).scrollIntoView({ behavior: "smooth", block: "center" }); } };
+    nav.append(prev, next);
+    d.append(h, tp, st, g, nav);
+    cards[key] = d;
     box.appendChild(d);
-  }
+  });
+  paint();
   vAfterRating();
 }
 
@@ -1235,7 +1346,8 @@ function vWaitText() {
 $("v2-start").onclick = () => { if (!vr.data.rounds[1]) vr.data.rounds[1] = blankRound(); vOpenSecond(); vChanged(); };
 function vOpenSecond() {
   $("v2-wait").classList.add("hidden"); $("v2-box").classList.remove("hidden");
-  for (const [id, key] of [["v2-date", "date"], ["v2-what", "what"], ["v2-link", "link"]]) bindField(id, vr.data.rounds[1], key);
+  for (const [id, key] of [["v2-date", "date"], ["v2-what", "what"]]) bindField(id, vr.data.rounds[1], key);
+  vPlayer(1);
   vRenderAreas(1);
 }
 function vCompare() {
