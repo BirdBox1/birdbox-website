@@ -2,556 +2,362 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My courses — BirdBox Learn</title>
 <meta name="robots" content="noindex, nofollow">
-<title>Online courses — BirdBox Coaching</title>
 <style>
-  :root {
-    --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
-    --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0;
-    --good:#1f8a54; --warn:#b4610f; --bad:#b3261e;
-  }
+  :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
+          --line:#342F31; --accent:#4FA8DE; --bad:#F0797D; --good:#5CC48A; }
   *,*::before,*::after{box-sizing:border-box}
-  body{margin:0;background:var(--paper);color:var(--ink);
-    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
-  .bar{background:var(--shell);color:#fff;padding:0.7rem 1.25rem;
-    display:flex;align-items:center;justify-content:space-between;gap:1rem}
-  .bar .left{display:flex;align-items:center;gap:0.75rem}
-  .mark{width:34px;height:34px;border-radius:4px;background:#fff;display:grid;place-items:center;flex:none}
-  .mark img{width:26px;height:26px;object-fit:contain}
-  .brandname{font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;color:#9aa1a9}
-  .bar a{color:#cfd4d9;font-size:0.85rem;text-decoration:none}
-  .bar a:hover{color:#fff}
-  .wrap{max-width:56rem;margin:0 auto;padding:1.5rem 1.25rem 4rem}
-  h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0 0 0.2rem;font-weight:600}
-  .sub{color:var(--muted);font-size:0.9rem;margin:0 0 1.5rem}
-  h2{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem;font-weight:600}
-  label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.3rem}
-  .hint{font-weight:400;color:var(--muted);font-size:0.78rem}
-  input,select{width:100%;font:inherit;padding:0.55rem 0.65rem;border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink)}
-  input[type=file]{padding:0.45rem}
-  .field{margin-bottom:1rem}
-  .grid2{display:grid;gap:0 1rem;grid-template-columns:1fr}
-  @media(min-width:34rem){.grid2{grid-template-columns:1fr 1fr}}
-  .grid3{display:grid;gap:0 1rem;grid-template-columns:1fr}
-  @media(min-width:40rem){.grid3{grid-template-columns:1fr 1fr 1fr}}
-  .panel{background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:1.25rem;margin-bottom:1.25rem}
-  .btn{font:inherit;font-weight:600;background:var(--ink);color:#fff;border:0;border-radius:4px;padding:0.6rem 1.1rem;cursor:pointer;text-decoration:none;display:inline-block}
-  .btn:hover{background:#000}
-  .btn[disabled]{opacity:0.5;cursor:default}
-  .btn.ghost{background:none;color:var(--ink);border:1px solid var(--rule);font-weight:500}
-  .btn.small{font-size:0.8rem;padding:0.35rem 0.7rem}
-  .msg{font-size:0.85rem;margin-top:0.9rem;min-height:1.2em;white-space:pre-line}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent)}
+  .bar{display:flex;align-items:center;gap:14px;padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top));
+    border-bottom:1px solid var(--line);background:#0d0b0b}
+  .bar img{height:34px;width:auto;display:block}
+  .bar .name{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .bar .who{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);min-width:0}
+  .bar .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .btn{display:inline-block;font:inherit;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:13px 22px;background:var(--accent);color:#0C1116;border:1px solid var(--accent);cursor:pointer;text-decoration:none;text-align:center}
+  .btn:hover{background:transparent;color:var(--accent)}
+  .btn.ghost{background:none;color:var(--ink);border-color:#6A6466}
+  .btn.ghost:hover{border-color:var(--ink)}
+  .btn.small{font-size:11px;padding:7px 12px}
+  .btn[disabled]{opacity:.6;cursor:wait}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 20px 64px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  h1{font-size:clamp(26px,4vw,40px);line-height:1.05;font-weight:800;text-transform:uppercase;margin:0 0 10px}
+  .lede{color:var(--muted);font-size:16px;line-height:1.6;margin:0 0 28px;max-width:52ch}
+  .card{background:var(--panel);border:1px solid var(--line);padding:28px 24px;max-width:420px}
+  .card label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+  .card input{width:100%;font:inherit;font-size:16px;padding:11px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:14px}
+  .card .btn{width:100%}
+  .card .btn + .btn{margin-top:10px}
+  .msg{font-size:14px;line-height:1.5;margin:12px 0 0;min-height:1em}
   .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
   .hidden{display:none!important}
-  .gate{padding:2rem 0;color:var(--muted)}
-  .course{border-bottom:1px solid var(--rule);padding:0.9rem 0;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
-  .course:last-child{border-bottom:0}
-  .course .info{flex:1;min-width:14rem}
-  .course .t{font-weight:700}
-  .course .m{font-size:0.82rem;color:var(--muted)}
-  .pill{display:inline-block;font-size:0.7rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:0.1rem 0.45rem;border-radius:3px;margin-left:0.4rem;vertical-align:middle}
-  .pill.ok{background:#e3f3ea;color:var(--good)} .pill.no{background:#fbecd9;color:var(--warn)}
-  .or{text-align:center;color:var(--muted);font-size:0.8rem;margin:0.2rem 0 0.8rem}
-  .progress{height:10px;background:#eceae6;border-radius:5px;overflow:hidden;margin-top:1rem}
-  .progress div{height:100%;width:0;background:var(--accent);transition:width .2s}
-  .stat{font-size:0.85rem;color:var(--muted);margin-top:0.4rem}
-  table{width:100%;border-collapse:collapse;font-size:0.85rem}
-  th,td{text-align:left;padding:0.45rem 0.4rem;border-bottom:1px solid var(--rule);vertical-align:top}
-  th{font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
-  .empty{color:var(--muted);font-size:0.9rem}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+  .course{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c,#4FA8DE);padding:22px}
+  .course .top{display:flex;gap:16px;align-items:center;margin-bottom:16px}
+  .course img{width:60px;height:60px;object-fit:contain;flex:none}
+  .course h2{font-size:17px;line-height:1.3;margin:0 0 4px}
+  .course .meta{font-size:13px;color:var(--muted)}
+  .course .status{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:auto 0 8px}
+  .course .status.done{color:var(--good)}
+  .prog{height:6px;background:var(--panel2);margin-bottom:16px}
+  .prog div{height:100%;background:var(--c,#4FA8DE)}
+  .course .btn{background:var(--c,#4FA8DE);border-color:var(--c,#4FA8DE)}
+  .course .btn:hover{background:transparent;color:var(--c,#4FA8DE)}
+  .cert{margin-top:10px}
+  .cert .btn{width:100%;background:none;color:var(--ink);border-color:#6A6466}
+  .cert .btn:hover{border-color:var(--ink);color:var(--ink)}
+  .cert form{margin-top:10px}
+  .cert label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+  .cert input{width:100%;font:inherit;font-size:16px;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:10px}
+  .cert .hint{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 10px}
+  .empty{background:var(--panel);border:1px solid var(--line);padding:24px;color:var(--muted);line-height:1.6;max-width:640px}
+  .extra{margin-top:40px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .extra .box{background:var(--panel);border:1px solid var(--line);padding:20px 22px;font-size:15px;line-height:1.6;color:var(--muted)}
+  .extra h3{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin:0 0 10px}
+  .extra input{width:100%;font:inherit;font-size:16px;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin:4px 0 10px}
 </style>
 </head>
 <body>
 
 <div class="bar">
-  <div class="left">
-    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
-    <span class="brandname">BirdBox Coaching</span>
-  </div>
-  <a href="/portal/">&larr; Portal</a>
+  <a href="/"><img src="/brand/birdBox.png" alt="BirdBox Coaching"></a>
+  <span class="name">BirdBox Learn</span>
+  <div class="who hidden" id="who"><span id="who-email"></span><button class="btn ghost small" id="logout" type="button">Log out</button></div>
 </div>
 
-<div class="wrap">
-  <h1>Online courses</h1>
-  <p class="sub">Upload Rise SCORM 2004 exports, give people access, and see their progress.</p>
+<main class="wrap">
 
-  <div id="gate" class="gate">Checking your account…</div>
+  <p id="loading" class="lede">Loading…</p>
 
-  <div id="app" class="hidden">
+  <!-- Logged out -->
+  <section id="login" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>Your online courses</h1>
+    <p class="lede">Log in with the email address you bought your course with.</p>
+    <form class="card" id="login-form">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="email" required>
+      <label for="l-pass">Password</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn" id="l-go" type="submit">Log in</button>
+      <button class="btn ghost" id="l-link" type="button">First time, or forgot your password? Email me a login link</button>
+      <div id="l-msg" class="msg"></div>
+    </form>
+  </section>
 
-    <!-- 1. Courses -->
-    <div class="panel">
-      <h2>Courses</h2>
-      <div id="courses"><p class="empty">Loading…</p></div>
+  <!-- Logged in -->
+  <section id="home" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My courses</h1>
+    <p class="lede">Pick up where you left off. Your progress saves as you go, on any device.</p>
+    <div id="courses" class="grid"></div>
+
+    <div class="extra">
+      <div class="box">
+        <h3>Set or change your password</h3>
+        <p style="margin:0 0 6px">So next time you can log in without waiting for an email.</p>
+        <input id="p-new" type="password" autocomplete="new-password" placeholder="New password (8+ characters)">
+        <button class="btn ghost small" id="p-go" type="button">Save password</button>
+        <div id="p-msg" class="msg"></div>
+      </div>
+      <div class="box">
+        <h3>Need help?</h3>
+        Course missing? Check you are logged in with the email you paid with, or write to
+        <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a> and we will sort it out.
+      </div>
     </div>
+  </section>
 
-    <!-- 2. Upload -->
-    <div class="panel">
-      <h2>Upload a course package</h2>
-      <div class="field">
-        <label for="u-course">Course</label>
-        <select id="u-course"></select>
-      </div>
-      <div class="field">
-        <label for="u-zip">The Rise export .zip <span class="hint">(works on iPad)</span></label>
-        <input id="u-zip" type="file" accept=".zip,application/zip">
-      </div>
-      <p class="or">— or, on a computer —</p>
-      <div class="field">
-        <label for="u-dir">The unzipped export folder <span class="hint">(the folder that has imsmanifest.xml in it)</span></label>
-        <input id="u-dir" type="file" webkitdirectory directory multiple>
-      </div>
-      <button id="u-go" class="btn" type="button">Upload</button>
-      <div id="u-bar" class="progress hidden"><div></div></div>
-      <div id="u-stat" class="stat"></div>
-      <div id="u-msg" class="msg"></div>
-    </div>
+</main>
 
-    <!-- 3. Access -->
-    <div class="panel">
-      <h2>Give someone access</h2>
-      <div class="grid2">
-        <div class="field">
-          <label for="e-course">Course</label>
-          <select id="e-course"></select>
-        </div>
-        <div class="field">
-          <label for="e-email">Their email <span class="hint">(the one they log in with)</span></label>
-          <input id="e-email" type="email" autocomplete="off" placeholder="name@example.com">
-        </div>
-      </div>
-      <button id="e-go" class="btn" type="button">Give access</button>
-      <div id="e-msg" class="msg"></div>
-    </div>
-
-    <!-- 4. Learners -->
-    <div class="panel">
-      <h2>Learners</h2>
-      <div class="field" style="max-width:22rem">
-        <select id="l-course"></select>
-      </div>
-      <div id="learners"><p class="empty">Pick a course.</p></div>
-    </div>
-
-    <!-- 5. New course -->
-    <div class="panel">
-      <h2>Add a course</h2>
-      <div class="grid2">
-        <div class="field">
-          <label for="c-title">Title</label>
-          <input id="c-title" placeholder="The Coaches Course — Level 1 Online">
-        </div>
-        <div class="field">
-          <label for="c-slug">Short name <span class="hint">(used in the link; letters, numbers, dashes)</span></label>
-          <input id="c-slug" placeholder="tcc-l1-en">
-        </div>
-      </div>
-      <div class="grid3">
-        <div class="field">
-          <label for="c-brand">Brand</label>
-          <select id="c-brand">
-            <option value="tcc">TCC</option><option value="tgc">TGC</option>
-            <option value="twc">TWC</option><option value="tec">TEC</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="c-level">Level</label>
-          <input id="c-level" value="1">
-        </div>
-        <div class="field">
-          <label for="c-lang">Language</label>
-          <select id="c-lang">
-            <option value="en">English</option><option value="es">Spanish</option>
-            <option value="fr">French</option><option value="it">Italian</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid2">
-        <div class="field">
-          <label for="c-ceus">CEUs</label>
-          <input id="c-ceus" type="number" step="0.5" placeholder="44">
-        </div>
-        <div class="field">
-          <label for="c-lw">LearnWorlds course id <span class="hint">(optional, for moving people across)</span></label>
-          <input id="c-lw" placeholder="level-1-online">
-        </div>
-      </div>
-      <button id="c-go" class="btn" type="button">Add course</button>
-      <div id="c-msg" class="msg"></div>
-    </div>
-
-  </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
 const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-const BUCKET = "learn";
 
 const $ = (id) => document.getElementById(id);
-let me = null;
-let courses = [];
+const BRAND = {
+  tcc: { c: "#4FA8DE", mark: "/brand/tcc-mark.png" },
+  tgc: { c: "#D8393D", mark: "/brand/tgc-mark.png" },
+  twc: { c: "#E0A12B", mark: "/brand/twc-mark.png" },
+  tec: { c: "#5CC48A", mark: "/brand/tec-mark.png" },
+};
+const LANG = { en: "English", es: "Español", fr: "Français", it: "Italiano", de: "Deutsch" };
 
-start();
-
-async function start() {
-  const { data: { session } } = await db.auth.getSession();
-  if (!session) {
-    $("gate").innerHTML = 'You are not signed in. <a href="/portal/">Sign in to the portal</a> first, then come back.';
-    return;
-  }
-  me = session.user;
-  const { data: staff } = await db.from("staff").select("id, role, active").eq("id", me.id).maybeSingle();
-  if (!staff || !staff.active || staff.role !== "admin") {
-    $("gate").textContent = "Only admins can manage online courses.";
-    return;
-  }
-  $("gate").classList.add("hidden");
-  $("app").classList.remove("hidden");
-  await loadCourses();
+function view(id) {
+  ["loading", "login", "home"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 }
+
+// ---------------- login ----------------
+
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("l-msg");
+  const email = $("l-email").value.trim();
+  const password = $("l-pass").value;
+  if (!password) { msg.className = "msg err"; msg.textContent = "Type your password, or use the login link button."; return; }
+  $("l-go").disabled = true;
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  $("l-go").disabled = false;
+  if (error) { msg.className = "msg err"; msg.textContent = "That email and password did not match. Try again, or use the login link button."; return; }
+  start();
+});
+
+$("l-link").addEventListener("click", async () => {
+  const msg = $("l-msg");
+  const email = $("l-email").value.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.className = "msg err"; msg.textContent = "Type your email first."; return; }
+  $("l-link").disabled = true;
+  msg.className = "msg"; msg.textContent = "Sending…";
+  let sent = false;
+  try {
+    const r = await fetch("/.netlify/functions/learn-access", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, next: "/learn/" }),
+    });
+    sent = r.ok;
+  } catch (e) {}
+  $("l-link").disabled = false;
+  if (!sent) { msg.className = "msg err"; msg.textContent = "Something went wrong sending the link. Try again, or write to info@birdboxcoaching.com."; return; }
+  msg.className = "msg ok";
+  msg.textContent = "If that email has a course, a login link is on its way. Check your inbox (and junk folder) and tap the link. Nothing after 5 minutes? Write to info@birdboxcoaching.com.";
+});
+
+$("logout").addEventListener("click", async () => { await db.auth.signOut(); location.reload(); });
+
+// ---------------- password ----------------
+
+$("p-go").addEventListener("click", async () => {
+  const msg = $("p-msg");
+  const password = $("p-new").value;
+  if (password.length < 8) { msg.className = "msg err"; msg.textContent = "Use at least 8 characters."; return; }
+  $("p-go").disabled = true;
+  const { error } = await db.auth.updateUser({ password });
+  $("p-go").disabled = false;
+  if (error) { msg.className = "msg err"; msg.textContent = error.message; return; }
+  $("p-new").value = "";
+  msg.className = "msg ok";
+  msg.textContent = "Saved. Next time log in with your email and this password.";
+});
 
 // ---------------- courses ----------------
 
-async function loadCourses() {
-  const { data, error } = await db
-    .from("learn_courses")
-    .select("id, slug, title, brand, level, language, ceus, active, current_version, learn_versions!learn_versions_course_id_fkey(id, status, file_count, total_bytes, created_at)")
-    .order("brand").order("level").order("language");
-  if (error) { $("courses").innerHTML = '<p class="msg err"></p>'; $("courses").firstChild.textContent = error.message; return; }
-  courses = data || [];
-
-  const list = $("courses");
-  list.innerHTML = "";
-  if (!courses.length) list.innerHTML = '<p class="empty">No courses yet. Add one at the bottom of this page.</p>';
-  for (const c of courses) {
-    const cur = (c.learn_versions || []).find((v) => v.id === c.current_version);
-    const row = document.createElement("div");
-    row.className = "course";
-    const info = document.createElement("div");
-    info.className = "info";
-    const t = document.createElement("div");
-    t.className = "t";
-    t.textContent = c.title;
-    const pill = document.createElement("span");
-    pill.className = "pill " + (cur ? "ok" : "no");
-    pill.textContent = cur ? "Live" : "No package";
-    t.appendChild(pill);
-    const m = document.createElement("div");
-    m.className = "m";
-    m.textContent = [c.slug, (c.brand || "").toUpperCase() + " L" + (c.level || "?"), (c.language || "").toUpperCase(),
-      c.ceus ? c.ceus + " CEUs" : null,
-      cur ? cur.file_count + " files, " + mb(cur.total_bytes) + ", uploaded " + new Date(cur.created_at).toLocaleDateString("en-GB") : null
-    ].filter(Boolean).join(" · ");
-    info.appendChild(t); info.appendChild(m);
-    row.appendChild(info);
-    if (cur) {
-      const a = document.createElement("a");
-      a.className = "btn ghost small";
-      a.href = "/learn/player/?course=" + encodeURIComponent(c.slug);
-      a.target = "_blank";
-      a.textContent = "Open course";
-      row.appendChild(a);
-    }
-    list.appendChild(row);
-  }
-
-  for (const id of ["u-course", "e-course", "l-course"]) {
-    const sel = $(id);
-    const keep = sel.value;
-    sel.innerHTML = id === "l-course" ? '<option value="">Pick a course…</option>' : "";
-    for (const c of courses) {
-      const o = document.createElement("option");
-      o.value = c.id;
-      o.textContent = c.title + " (" + c.slug + ")";
-      sel.appendChild(o);
-    }
-    if (keep) sel.value = keep;
-  }
+let starting = null;
+function start() {
+  if (!starting) starting = boot().finally(() => { starting = null; });
+  return starting;
 }
 
-$("c-go").addEventListener("click", async () => {
-  const msg = $("c-msg");
-  msg.className = "msg";
-  const title = $("c-title").value.trim();
-  const slug = $("c-slug").value.trim().toLowerCase();
-  if (!title || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
-    msg.className = "msg err";
-    msg.textContent = "Add a title and a short name (lowercase letters, numbers and dashes only).";
+async function boot() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { $("who").classList.add("hidden"); view("login"); return; }
+  $("who-email").textContent = session.user.email;
+  $("who").classList.remove("hidden");
+
+  const [{ data: isAdmin }, { data: enr }, { data: att }, { data: certs }] = await Promise.all([
+    db.rpc("learn_is_admin"),
+    db.from("learn_enrolments").select("course_id, learn_courses(id, slug, title, brand, level, language, ceus, current_version, active)"),
+    db.from("learn_attempts").select("course_id, completion_status, success_status, progress, score_scaled, completed_at, updated_at").eq("user_id", session.user.id),
+    db.from("learn_certificates").select("course_id, reference").eq("user_id", session.user.id),
+  ]);
+  const certByCourse = new Map((certs || []).map((c) => [c.course_id, c]));
+  const defaultName = (session.user.user_metadata && (session.user.user_metadata.full_name || session.user.user_metadata.name)) || "";
+
+  const map = new Map();
+  for (const e of enr || []) if (e.learn_courses && e.learn_courses.active) map.set(e.learn_courses.id, { ...e.learn_courses, admin: false });
+  if (isAdmin) {
+    const { data: all } = await db.from("learn_courses").select("id, slug, title, brand, level, language, ceus, current_version, active").eq("active", true);
+    for (const c of all || []) if (!map.has(c.id)) map.set(c.id, { ...c, admin: true });
+  }
+  const attempts = new Map((att || []).map((a) => [a.course_id, a]));
+
+  const list = [...map.values()].sort((a, b) =>
+    (attempts.get(b.id)?.updated_at || "").localeCompare(attempts.get(a.id)?.updated_at || "") ||
+    String(a.title).localeCompare(String(b.title)));
+
+  const box = $("courses");
+  box.innerHTML = "";
+  if (!list.length) {
+    box.outerHTML = '<div id="courses" class="empty"></div>';
+    $("courses").innerHTML = "There are no courses on <strong></strong> yet. If you bought a course with a different email, log out and use that one. If you have only just paid, give it a couple of minutes and refresh.";
+    $("courses").querySelector("strong").textContent = session.user.email;
+    view("home");
     return;
   }
-  $("c-go").disabled = true;
-  const { error } = await db.from("learn_courses").insert({
-    title, slug,
-    brand: $("c-brand").value,
-    level: $("c-level").value.trim() || null,
-    language: $("c-lang").value,
-    ceus: $("c-ceus").value ? Number($("c-ceus").value) : null,
-    lw_course_id: $("c-lw").value.trim() || null,
-  });
-  $("c-go").disabled = false;
-  if (error) { msg.className = "msg err"; msg.textContent = error.message; return; }
-  msg.className = "msg ok";
-  msg.textContent = "Added. Now upload its package above.";
-  ["c-title", "c-slug", "c-ceus", "c-lw"].forEach((id) => ($(id).value = ""));
-  await loadCourses();
-  $("u-course").value = courses.find((c) => c.slug === slug)?.id || "";
-});
 
-// ---------------- upload ----------------
+  for (const c of list) {
+    const a = attempts.get(c.id);
+    const b = BRAND[c.brand] || BRAND.tcc;
+    const done = a && (a.success_status === "passed" || a.completion_status === "completed" || a.completed_at);
+    const pct = done ? 100 : a && a.progress != null ? Math.round(a.progress * 100) : a ? null : 0;
 
-const TYPES = {
-  html: "text/html", htm: "text/html", js: "application/javascript", mjs: "application/javascript",
-  css: "text/css", json: "application/json", xml: "application/xml", xsd: "application/xml", dtd: "application/xml-dtd",
-  txt: "text/plain", vtt: "text/vtt", srt: "text/plain", map: "application/json",
-  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", svg: "image/svg+xml",
-  webp: "image/webp", ico: "image/x-icon", bmp: "image/bmp",
-  mp4: "video/mp4", m4v: "video/mp4", webm: "video/webm", mov: "video/quicktime",
-  mp3: "audio/mpeg", m4a: "audio/mp4", wav: "audio/wav", ogg: "audio/ogg",
-  pdf: "application/pdf", woff: "font/woff", woff2: "font/woff2", ttf: "font/ttf", otf: "font/otf",
-  eot: "application/vnd.ms-fontobject", zip: "application/zip", swf: "application/x-shockwave-flash",
-};
-const typeOf = (name) => TYPES[(name.split(".").pop() || "").toLowerCase()] || "application/octet-stream";
-const junk = (p) => /(^|\/)(__MACOSX|\.DS_Store|Thumbs\.db)(\/|$)/.test(p) || /(^|\/)\._/.test(p);
-const mb = (b) => (b / 1048576).toFixed(b > 10485760 ? 0 : 1) + " MB";
+    const card = document.createElement("div");
+    card.className = "course";
+    card.style.setProperty("--c", b.c);
 
-// Both pickers end up as a list of { path, size, getBlob() }.
-async function readPicked() {
-  const zipFile = $("u-zip").files[0];
-  const dirFiles = [...($("u-dir").files || [])];
-  if (zipFile) {
-    stat("Opening the zip…");
-    const zip = await JSZip.loadAsync(zipFile);
-    const out = [];
-    zip.forEach((path, entry) => {
-      if (entry.dir || junk(path)) return;
-      out.push({ path, size: entry._data?.uncompressedSize || 0, getBlob: () => entry.async("blob") });
+    const top = document.createElement("div");
+    top.className = "top";
+    const img = document.createElement("img");
+    img.src = b.mark; img.alt = "";
+    img.onerror = () => { img.onerror = null; img.src = "/brand/birdBox.png"; };
+    const txt = document.createElement("div");
+    const h = document.createElement("h2"); h.textContent = c.title;
+    const m = document.createElement("div"); m.className = "meta";
+    m.textContent = [LANG[c.language] || c.language, c.ceus ? c.ceus + " CEUs" : null, c.admin ? "Admin access" : null].filter(Boolean).join(" · ");
+    txt.append(h, m);
+    top.append(img, txt);
+
+    const st = document.createElement("div");
+    st.className = "status" + (done ? " done" : "");
+    st.textContent = !c.current_version ? "Coming soon"
+      : done ? (a.success_status === "passed" && a.score_scaled != null ? "Passed · " + Math.round(a.score_scaled * 100) + "%" : "Completed ✓")
+      : a ? "In progress" : "Not started";
+
+    const prog = document.createElement("div");
+    prog.className = "prog";
+    const fill = document.createElement("div");
+    fill.style.width = (pct == null ? 8 : Math.max(pct, a ? 4 : 0)) + "%";
+    prog.appendChild(fill);
+
+    const go = document.createElement("a");
+    go.className = "btn";
+    go.href = "/learn/player/?course=" + encodeURIComponent(c.slug);
+    go.textContent = !c.current_version ? "Not ready yet" : done ? "Review course" : a ? "Continue →" : "Start course →";
+    if (!c.current_version) { go.removeAttribute("href"); go.style.opacity = ".5"; }
+
+    card.append(top, st, prog, go);
+    if (done && c.current_version) card.appendChild(certBlock(c, certByCourse.get(c.id), defaultName));
+    box.appendChild(card);
+  }
+  view("home");
+}
+
+// ---------------- certificates ----------------
+
+function certBlock(course, cert, defaultName) {
+  const wrap = document.createElement("div");
+  wrap.className = "cert";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "btn";
+  btn.textContent = cert ? "Download certificate" : "Get my certificate";
+  const msg = document.createElement("div");
+  msg.className = "msg";
+  wrap.append(btn, msg);
+
+  if (cert) {
+    btn.onclick = () => fetchCert(course.id, null, btn, msg);
+    return wrap;
+  }
+
+  // First time: confirm the name to print.
+  const form = document.createElement("form");
+  form.className = "hidden";
+  form.innerHTML = '<label>Your full name, as it should appear</label><input autocomplete="name" maxlength="80">' +
+    '<p class="hint">Check the spelling — this is printed on your certificate and cannot be changed later without asking us.</p>' +
+    '<button class="btn" type="submit">Create my certificate</button>';
+  const input = form.querySelector("input");
+  input.value = defaultName;
+  wrap.insertBefore(form, msg);
+  btn.onclick = () => { btn.classList.add("hidden"); form.classList.remove("hidden"); input.focus(); };
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    const name = input.value.replace(/\s+/g, " ").trim();
+    if (name.length < 3) { msg.className = "msg err"; msg.textContent = "Type your full name."; return; }
+    fetchCert(course.id, name, form.querySelector("button"), msg, () => {
+      form.classList.add("hidden");
+      btn.textContent = "Download certificate";
+      btn.classList.remove("hidden");
+      btn.onclick = () => fetchCert(course.id, null, btn, msg);
     });
-    return out;
-  }
-  if (dirFiles.length) {
-    return dirFiles
-      .map((f) => ({ path: f.webkitRelativePath || f.name, size: f.size, getBlob: async () => f }))
-      .filter((f) => !junk(f.path));
-  }
-  return null;
+  };
+  return wrap;
 }
 
-// Find imsmanifest.xml, drop any folder in front of it, and read the launch page.
-async function readManifest(files) {
-  const man = files
-    .filter((f) => /(^|\/)imsmanifest\.xml$/i.test(f.path))
-    .sort((a, b) => a.path.length - b.path.length)[0];
-  if (!man) throw new Error("There is no imsmanifest.xml in this upload. Pick the Rise SCORM export (the zip, or the folder that has imsmanifest.xml directly inside it).");
-  const prefix = man.path.slice(0, man.path.length - "imsmanifest.xml".length);
-  const xml = new DOMParser().parseFromString(await (await man.getBlob()).text(), "application/xml");
-  const byTag = (el, tag) => [...el.getElementsByTagName("*")].filter((e) => e.localName === tag);
-
-  const schemaVersion = (byTag(xml, "schemaversion")[0]?.textContent || "").trim();
-  if (/^1\.2$/.test(schemaVersion)) throw new Error("This is a SCORM 1.2 export. Export it from Rise again as SCORM 2004 (4th edition).");
-
-  const orgs = byTag(xml, "organizations")[0];
-  const defId = orgs?.getAttribute("default");
-  const org = byTag(xml, "organization").find((o) => o.getAttribute("identifier") === defId) || byTag(xml, "organization")[0];
-  const item = org && byTag(org, "item").find((i) => i.getAttribute("identifierref"));
-  const ref = item?.getAttribute("identifierref");
-  const res = byTag(xml, "resource").find((r) => r.getAttribute("identifier") === ref);
-  const base = (byTag(xml, "resources")[0]?.getAttribute("xml:base") || "") + (res?.getAttribute("xml:base") || "");
-  const href = res?.getAttribute("href");
-  if (!href) throw new Error("Could not find the course's start page in imsmanifest.xml.");
-  const launch = (base + href).replace(/^\.?\//, "");
-
-  const scos = byTag(org, "item").filter((i) => i.getAttribute("identifierref")).length;
-  return { prefix, launch, scos, title: (byTag(org || xml, "title")[0]?.textContent || "").trim() };
-}
-
-function stat(text) { $("u-stat").textContent = text; }
-function bar(frac) {
-  $("u-bar").classList.remove("hidden");
-  $("u-bar").firstElementChild.style.width = Math.min(100, Math.round(frac * 100)) + "%";
-}
-
-async function uploadOne(versionId, f, rel) {
-  const blob = await f.getBlob();
-  const key = versionId + "/" + rel;
-  let last;
-  for (let tryNo = 1; tryNo <= 6; tryNo++) {
-    const { error } = await db.storage.from(BUCKET).upload(key, blob, {
-      contentType: typeOf(rel), upsert: true, cacheControl: "31536000",
-    });
-    if (!error) return blob.size;
-    last = error;
-    if (/invalid key/i.test(error.message || "")) break;          // bad filename: retrying won't help
-    // Supabase sometimes answers "too many connections" when busy: back off and try again.
-    await new Promise((r) => setTimeout(r, 1500 * 2 ** (tryNo - 1) + Math.random() * 1000));
-  }
-  throw new Error(last?.message || "upload failed");
-}
-
-$("u-go").addEventListener("click", async () => {
-  const msg = $("u-msg");
-  msg.className = "msg"; msg.textContent = "";
-  const courseId = $("u-course").value;
-  if (!courseId) { msg.className = "msg err"; msg.textContent = "Add a course first (bottom of the page)."; return; }
-
-  const btn = $("u-go");
+async function fetchCert(courseId, name, btn, msg, onDone) {
+  const label = btn.textContent;
   btn.disabled = true;
+  btn.textContent = "Making your certificate…";
+  msg.className = "msg"; msg.textContent = "";
   try {
-    const files = await readPicked();
-    if (!files) throw new Error("Pick the zip, or the unzipped folder.");
-    const man = await readManifest(files);
-    const pack = files.filter((f) => f.path.startsWith(man.prefix));
-    const total = pack.reduce((s, f) => s + (f.size || 0), 0);
-    if (man.scos > 1) msg.textContent = "Note: this package has " + man.scos + " parts; only the first one is played.";
-
-    const { data: ver, error: vErr } = await db.from("learn_versions").insert({
-      course_id: courseId, launch_path: man.launch, status: "uploading", uploaded_by: me.id,
-    }).select("id").single();
-    if (vErr) throw new Error(vErr.message);
-
-    // Biggest files first so the long uploads overlap the many small ones.
-    const queue = [...pack].sort((a, b) => (b.size || 0) - (a.size || 0));
-    let done = 0, bytes = 0;
-    let failed = [];
-    stat("Uploading 0 of " + pack.length + " files (" + mb(total) + ")… keep this page open and the screen on.");
-    bar(0);
-
-    const worker = async () => {
-      while (queue.length) {
-        const f = queue.shift();
-        const rel = f.path.slice(man.prefix.length);
-        try {
-          const size = await uploadOne(ver.id, f, rel);
-          bytes += size;
-        } catch (e) {
-          failed.push({ f, rel, error: e.message });
-        }
-        done++;
-        bar(total ? bytes / total : done / pack.length);
-        stat("Uploading " + done + " of " + pack.length + " files (" + mb(bytes) + " of " + mb(total) + ")… keep this page open and the screen on.");
-      }
-    };
-    await Promise.all([worker(), worker(), worker()]);
-
-    // A second, slower pass for anything that failed while Supabase was busy.
-    if (failed.length) {
-      const retry = failed; failed = [];
-      stat("Retrying " + retry.length + " file(s) that did not go the first time…");
-      await new Promise((r) => setTimeout(r, 5000));
-      for (const x of retry) {
-        try { bytes += await uploadOne(ver.id, x.f, x.rel); }
-        catch (e) { failed.push(x); }
-        bar(total ? bytes / total : 1);
-      }
-      done = pack.length;
-    }
-
-    if (failed.length) {
-      await db.from("learn_versions").update({ status: "failed", file_count: done - failed.length, total_bytes: bytes }).eq("id", ver.id);
-      throw new Error(failed.length + " file(s) did not upload, so the course was NOT switched over:\n" + failed.slice(0, 15).map((x) => x.rel + " — " + x.error).join("\n") +
-        (failed.length > 15 ? "\n…and " + (failed.length - 15) + " more" : "") + "\nTry the upload again.");
-    }
-
-    // Check the start page really opens from our own address before going live.
-    stat("Checking the course opens…");
-    const test = await fetch("/learn/c/" + ver.id + "/" + man.launch.split("/").map(encodeURIComponent).join("/"), { cache: "no-store" });
-    const ct = test.headers.get("content-type") || "";
-    if (!test.ok || !/text\/html/.test(ct)) {
-      await db.from("learn_versions").update({ status: "failed", file_count: pack.length, total_bytes: bytes }).eq("id", ver.id);
-      throw new Error("Files uploaded, but the start page did not open as a web page (" + test.status + ", " + ct + "). Check learn-file.mjs and _redirects are deployed.");
-    }
-
-    await db.from("learn_versions").update({ status: "ready", file_count: pack.length, total_bytes: bytes }).eq("id", ver.id);
-    const { error: cErr } = await db.from("learn_courses").update({ current_version: ver.id }).eq("id", courseId);
-    if (cErr) throw new Error(cErr.message);
-
-    bar(1);
-    stat("");
+    const { data: { session } } = await db.auth.getSession();
+    const res = await fetch("/.netlify/functions/learn-certificate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
+      body: JSON.stringify(name ? { course_id: courseId, name } : { course_id: courseId }),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.pdf) throw new Error(d.error || "Something went wrong.");
+    const bytes = Uint8Array.from(atob(d.pdf), (ch) => ch.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = d.filename || "BirdBox certificate.pdf";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
     msg.className = "msg ok";
-    msg.textContent = "Done — " + pack.length + " files, " + mb(bytes) + ". This version is now live. Use “Open course” above to try it.";
-    $("u-zip").value = ""; $("u-dir").value = "";
-    await loadCourses();
+    msg.textContent = d.emailed ? "Done — it has downloaded and a copy is on its way to your email. Reference " + d.reference + "."
+                                : "Downloaded. Reference " + d.reference + ".";
+    if (onDone) onDone();
   } catch (e) {
     msg.className = "msg err";
-    msg.textContent = e.message || String(e);
+    msg.textContent = e.message;
   } finally {
     btn.disabled = false;
+    if (btn.textContent === "Making your certificate…") btn.textContent = label;
   }
-});
-
-// ---------------- access ----------------
-
-$("e-go").addEventListener("click", async () => {
-  const msg = $("e-msg");
-  const email = $("e-email").value.trim().toLowerCase();
-  const courseId = $("e-course").value;
-  if (!courseId || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    msg.className = "msg err"; msg.textContent = "Pick a course and type a valid email."; return;
-  }
-  $("e-go").disabled = true;
-  const { error } = await db.from("learn_enrolments")
-    .upsert({ course_id: courseId, email, source: "manual" }, { onConflict: "course_id,email", ignoreDuplicates: true });
-  $("e-go").disabled = false;
-  if (error) { msg.className = "msg err"; msg.textContent = error.message; return; }
-  msg.className = "msg ok";
-  msg.textContent = email + " can now open this course once they are logged in with that email.";
-  $("e-email").value = "";
-  if ($("l-course").value === courseId) loadLearners();
-});
-
-// ---------------- learners ----------------
-
-$("l-course").addEventListener("change", loadLearners);
-
-async function loadLearners() {
-  const courseId = $("l-course").value;
-  const box = $("learners");
-  if (!courseId) { box.innerHTML = '<p class="empty">Pick a course.</p>'; return; }
-  box.innerHTML = '<p class="empty">Loading…</p>';
-  const [{ data: enr }, { data: att }] = await Promise.all([
-    db.from("learn_enrolments").select("email, source, created_at").eq("course_id", courseId).order("created_at", { ascending: false }),
-    db.from("learn_attempts").select("email, completion_status, success_status, score_scaled, total_time, completed_at, updated_at").eq("course_id", courseId),
-  ]);
-  const byEmail = new Map((att || []).map((a) => [(a.email || "").toLowerCase(), a]));
-  const rows = (enr || []).map((e) => ({ ...e, a: byEmail.get(e.email.toLowerCase()) }));
-  for (const a of att || []) if (!rows.some((r) => r.email.toLowerCase() === (a.email || "").toLowerCase())) rows.push({ email: a.email || "(admin)", source: "admin", a });
-  if (!rows.length) { box.innerHTML = '<p class="empty">Nobody has access yet.</p>'; return; }
-
-  const table = document.createElement("table");
-  table.innerHTML = "<thead><tr><th>Email</th><th>Status</th><th>Score</th><th>Time</th><th>Last seen</th></tr></thead>";
-  const tb = document.createElement("tbody");
-  for (const r of rows) {
-    const a = r.a;
-    const tr = document.createElement("tr");
-    const status = !a ? "Not started"
-      : a.success_status === "passed" ? "Passed"
-      : a.success_status === "failed" ? "Failed test"
-      : a.completion_status === "completed" ? "Completed" : "In progress";
-    [r.email, status,
-      a && a.score_scaled != null ? Math.round(a.score_scaled * 100) + "%" : "—",
-      a ? niceTime(a.total_time) : "—",
-      a ? new Date(a.updated_at).toLocaleDateString("en-GB") : "—",
-    ].forEach((v) => { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); });
-    tb.appendChild(tr);
-  }
-  table.appendChild(tb);
-  box.innerHTML = "";
-  box.appendChild(table);
 }
 
-function niceTime(iso) {
-  const m = /P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?/.exec(iso || "");
-  if (!m) return "—";
-  const h = Number(m[1] || 0) * 24 + Number(m[2] || 0);
-  const min = Number(m[3] || 0);
-  return h ? h + "h " + min + "m" : min + "m";
-}
+db.auth.onAuthStateChange((event) => {
+  if (event === "SIGNED_IN" || event === "SIGNED_OUT") start();
+});
+start();
 </script>
 </body>
 </html>
