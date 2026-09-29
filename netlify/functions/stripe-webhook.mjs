@@ -27,7 +27,7 @@
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
-import { grantOnlineCourse } from "./learnworlds.mjs";
+import { grantOnlineCourse, learnStartLink } from "./learnworlds.mjs";
 import { isOnlineInvoice, onOnlineInvoicePaid, onOnlineInvoiceOverdue } from "./online-invoice.mjs";
 import { isOnlineSale, onOnlineSaleCompleted, onlinePlanMeta, onOnlinePlanFailed } from "./online-checkout.mjs";
 
@@ -1424,6 +1424,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
     // Courses that have moved to birdboxcoaching.com/learn/ are not in the academy any more.
     const onSite = onlineOk && !!online.onSite;
     const LEARN_URL = "https://birdboxcoaching.com/learn/";
+    const START_URL = onSite ? learnStartLink(email) : LEARN_URL;
 
     // Three hours in a gym needs rather less than two days in a
     // classroom: no ID, no manual, no lunch.
@@ -1473,8 +1474,8 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       onlineOk ? "YOUR FREE ONLINE COURSE" : null,
       onlineOk ? "Included with this " + (isWorkshop ? "workshop" : "seminar") + " at no extra cost" +
         (onlineName ? " (" + onlineName + ")" : "") + "." : null,
-      onlineOk && onSite ? "It is on our website. Go to the link below, type this email address and tap \"Email me a login link\" — the course is waiting under My courses." : null,
-      onlineOk && onSite ? LEARN_URL : null,
+      onlineOk && onSite ? "It is on our website. Tap the link below — the first time, it sets up your account and logs you straight in. The course is waiting under My courses." : null,
+      onlineOk && onSite ? START_URL : null,
       onlineOk && !onSite ? "You will receive two separate emails from BirdBox Academy: one to set your password, and one confirming your access." : null,
       onlineOk && !onSite ? "In the academy it is listed as BirdBox Coaching Development Level " + levelDigits + " — this is the same course." : null,
       onlineOk && !onSite ? LMS_URL : null,
@@ -1524,9 +1525,9 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
 
   ${onlineOk && onSite ? `
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Your free online course</h3>
-  <p style="margin:0 0 12px;">Included with this ${isWorkshop ? "workshop" : "seminar"} at no extra cost${onlineName ? ` (${esc(onlineName)})` : ""}. It is on our website: open the link, type this email address and tap <strong>Email me a login link</strong>. The course is waiting under My courses.</p>
+  <p style="margin:0 0 12px;">Included with this ${isWorkshop ? "workshop" : "seminar"} at no extra cost${onlineName ? ` (${esc(onlineName)})` : ""}. It is on our website: tap the button — the first time, it sets up your account and logs you straight in. The course is waiting under My courses.</p>
   <p style="margin:0;">
-    <a href="${LEARN_URL}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Go to my online course</a>
+    <a href="${START_URL}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Go to my online course</a>
   </p>
   ` : ""}
 
