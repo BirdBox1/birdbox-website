@@ -54,6 +54,10 @@ export default async (req) => {
     const user = auth.user;
 
     const body = await req.json().catch(() => ({}));
+
+    // ---- an admin downloading or re-sending someone's certificate ----
+    if (body.certificate_id) return await adminAction(user, body);
+
     const courseId = String(body.course_id || "");
     if (!/^[0-9a-f-]{36}$/.test(courseId)) return json({ error: "No course given." }, 400);
 
@@ -118,7 +122,7 @@ export default async (req) => {
     const pdf = await buildPdf(course, row);
     if (!pdf) return json({ error: "The certificate design could not be loaded. Try again, or write to " + OFFICE + "." }, 500);
 
-    const sent = await sendEmail({ to: user.email, course, cert: row, pdf });
+    const sent = await sendEmail({ to: user.email, course, cert: row, pdf, again: false });
     if (sent) await supabase.from("learn_certificates").update({ emailed_at: new Date().toISOString() }).eq("id", row.id);
 
     return json({ reference: row.reference, name: row.name, filename: fileName(row.name), pdf, emailed: sent });
@@ -224,7 +228,31 @@ async function buildPdf(course, cert) {
   return await doc.saveAsBase64();
 }
 
-async function sendEmail({ to, course, cert, pdf }) {
+// Portal → Online courses: Download / Re-send, admins only. Rebuilds the
+// saved certificate (same reference and date, current name).
+async function adminAction(user, body) {
+  const { data: me } = await supabase.from("staff").select("role, active").eq("id", user.id).maybeSingle();
+  if (!me || !me.active || me.role !== "admin") return json({ error: "Only an admin can do this." }, 403);
+
+  const { data: cert } = await supabase.from("learn_certificates")
+    .select("id, email, course_id, reference, name, awarded_on").eq("id", String(body.certificate_id)).maybeSingle();
+  if (!cert) return json({ error: "Certificate not found." }, 404);
+  const { data: course } = await supabase.from("learn_courses")
+    .select("id, slug, title, brand, level, ceus, cert_title").eq("id", cert.course_id).maybeSingle();
+  if (!course) return json({ error: "The course for this certificate is gone." }, 404);
+
+  const pdf = await buildPdf(course, cert);
+  if (!pdf) return json({ error: "The certificate design could not be loaded." }, 500);
+
+  let emailed = false;
+  if (body.action === "resend") {
+    emailed = await sendEmail({ to: cert.email, course, cert, pdf, again: true });
+    if (emailed) await supabase.from("learn_certificates").update({ emailed_at: new Date().toISOString() }).eq("id", cert.id);
+  }
+  return json({ reference: cert.reference, name: cert.name, filename: fileName(cert.name), pdf, emailed, email: cert.email });
+}
+
+async function sendEmail({ to, course, cert, pdf, again }) {
   const key = process.env.RESEND_API_KEY;
   if (!key || !to) { console.warn("Certificate not emailed to", to); return false; }
 
@@ -233,7 +261,7 @@ async function sendEmail({ to, course, cert, pdf }) {
   const text =
 `Hi ${first},
 
-Congratulations — you have completed ${title}.
+${again ? `Here is your certificate for ${title} again.` : `Congratulations — you have completed ${title}.`}
 
 Your certificate is attached. Your reference is ${cert.reference}${course.ceus ? `, and the course is worth ${Number(course.ceus)} CEUs` : ""}.
 
@@ -247,7 +275,7 @@ BirdBox Coaching`;
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const html = `<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#16181b;max-width:560px">
 <p>Hi ${esc(first)},</p>
-<p><strong>Congratulations — you have completed ${esc(title)}.</strong></p>
+<p><strong>${again ? `Here is your certificate for ${esc(title)} again.` : `Congratulations — you have completed ${esc(title)}.`}</strong></p>
 <p>Your certificate is attached. Your reference is <strong>${esc(cert.reference)}</strong>${course.ceus ? `, and the course is worth ${Number(course.ceus)} CEUs` : ""}.</p>
 <p>You can download it again any time from <a href="${SITE_URL}/learn/">My courses</a>.</p>
 <p>Thank you for learning with us.</p>
