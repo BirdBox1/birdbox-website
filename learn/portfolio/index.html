@@ -111,7 +111,25 @@
   .change li{margin-bottom:10px;color:var(--muted);line-height:1.5}
   .change b{color:var(--ink)}
 
+  .cw{display:flex;flex-wrap:wrap;gap:6px}
+  .cw button{font:inherit;font-size:14px;padding:9px 13px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .cw button.on{background:var(--accent);border-color:var(--accent);color:#0C1116;font-weight:700}
+  .cq{border-top:1px solid var(--line);padding:14px 0}
+  .cq .n{font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--muted);margin:0 0 8px}
+  .cq.missing .n{color:var(--bad)}
+  .prog{position:sticky;top:0;z-index:5;background:var(--paper);padding:10px 0;font-size:13px;color:var(--muted)}
+  .prog .pbar{height:4px;background:var(--line);margin-top:6px}
+  .prog .pbar i{display:block;height:100%;background:var(--accent);width:0}
+  .bars .b{display:grid;grid-template-columns:70px 1fr 44px;gap:10px;align-items:center;margin:8px 0;font-size:14px;font-weight:700}
+  .bars .t{height:18px;background:var(--line)}
+  .bars .t i{display:block;height:100%}
+  .colour-card{border-left:6px solid var(--c);background:var(--paper);padding:14px 16px;margin:10px 0}
+  .colour-card h3{margin:0 0 6px;font-size:16px}
+  .colour-card p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.55}
+
   @media print {
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .colour-card{background:#fff}
     body{background:#fff;color:#111}
     .bar,.noprint,.btn{display:none!important}
     .panel{background:#fff;border:1px solid #ccc;break-inside:avoid}
@@ -169,6 +187,11 @@
         <h3>My reactions in coaching</h3>
         <p>What your members do that annoys, pleases or saddens you — how you react, and how you would rather respond.</p>
         <span id="reactions-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=colours">
+        <h3>Personality test — the four colours</h3>
+        <p>Red, yellow, green or blue? Find your mix, and how to coach people who are different to you.</p>
+        <span id="colours-status">Open →</span>
       </a>
     </div>
   </section>
@@ -325,6 +348,50 @@
       <span class="savestate" id="rx-state"></span>
     </div>
   </section>
+  <!-- four colours -->
+  <section id="colours" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Knowing Yourself</p>
+    <h1>Personality test — the four colours</h1>
+    <p class="lede">For each line, pick the one word or phrase that best describes you. Go with your first instinct — there are no right or wrong answers. It takes about 5 minutes.</p>
+
+    <div id="co-form">
+      <div class="prog noprint"><span id="co-count">0 of 27 answered</span><div class="pbar"><i id="co-bar"></i></div></div>
+      <div class="panel" id="co-qs"></div>
+      <button class="btn" id="co-go" type="button">See my colours</button>
+      <div class="msg" id="co-msg"></div>
+    </div>
+
+    <div id="co-result" class="hidden">
+      <div class="panel">
+        <h2>My colours</h2>
+        <p class="verdict" id="co-verdict"></p>
+        <div class="bars" id="co-bars"></div>
+        <p class="lede" style="font-size:14px;margin:12px 0 0">Most people are a mix. Your main colour shows how you tend to think and act — especially under pressure — not everything you are.</p>
+      </div>
+      <div class="panel">
+        <h2>About my main colour</h2>
+        <div id="co-me"></div>
+      </div>
+      <div class="panel">
+        <h2>Coaching the four colours</h2>
+        <p class="lede" style="font-size:14px;margin:0 0 6px">Every class has all four. The colours that are lowest for you are the athletes you will find hardest to read — plan for them.</p>
+        <div id="co-all"></div>
+      </div>
+      <div class="panel">
+        <h2>My reflections</h2>
+        <p class="lede noprint" style="font-size:14px;margin:0 0 10px">Does this sound like you? How does your colour show up in your coaching? Which colour of athlete do you find hardest to coach, and what will you do differently?</p>
+        <textarea id="co-notes" placeholder="Write your thoughts here…"></textarea>
+        <p class="hist" id="co-hist"></p>
+      </div>
+      <div class="row noprint">
+        <button class="btn" id="co-save" type="button">Save</button>
+        <button class="btn ghost" id="co-download" type="button">Download PDF</button>
+        <button class="btn ghost" id="co-retake" type="button">Retake the test</button>
+        <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+        <span class="savestate" id="co-state"></span>
+      </div>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -333,7 +400,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -367,6 +434,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (doc && tool === "spider") await save();
   if (cq && cq.result && tool === "concern") await cqSave();
   if (rx && tool === "reactions") await rxSave();
+  if (co && co.data.result && tool === "colours") await coSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -378,12 +446,15 @@ async function boot() {
   if (tool === "spider") return openSpider();
   if (tool === "concern") return openConcern();
   if (tool === "reactions") return openReactions();
-  const { data } = await db.from("learn_portfolio").select("tool, updated_at").eq("user_id", session.user.id);
+  if (tool === "colours") return openColours();
+  const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
   const cn = (data || []).find((r) => r.tool === "concern");
   const rn = (data || []).find((r) => r.tool === "reactions");
   if (rn) $("reactions-status").textContent = "Last saved " + new Date(rn.updated_at).toLocaleDateString("en-GB") + " →";
+  const co0 = (data || []).find((r) => r.tool === "colours");
+  if (co0) $("colours-status").textContent = co0.data && co0.data.result ? "Your colour: " + co0.data.result.main + " →" : "Last saved " + new Date(co0.updated_at).toLocaleDateString("en-GB") + " →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -826,6 +897,151 @@ async function rxSave() {
 $("rx-notes").addEventListener("input", rxChanged);
 $("rx-save").onclick = async () => { if (await rxSave()) $("rx-state").textContent = "Saved ✓"; };
 $("rx-download").onclick = async () => { await rxSave(); rxChanges(); window.print(); };
+
+// ---------------- four colours ----------------
+// R red, Y yellow, G green, B blue. One pick per line; each word counts for one colour.
+const CO_Q = [
+  [["Self-confident","R"],["Structured","B"],["Sensitive","G"],["Trusting","Y"]],
+  [["Spontaneous","R"],["Checks with others","G"],["Dreamer","Y"],["Analytical","B"]],
+  [["Likes involvement","G"],["Likes organisation","B"],["Likes being straightforward","R"],["Likes to explore","Y"]],
+  [["Stubborn","B"],["Dictatorial","R"],["Rebellious","Y"],["Easily offended","G"]],
+  [["Demanding","R"],["Nurturing","G"],["Persistent","B"],["Quiet","G"]],
+  [["Joiner","G"],["Likes to brainstorm","Y"],["Resists change","B"],["Takes charge","R"]],
+  [["Cautious","B"],["Overgenerous","Y"],["Harmonious","G"],["Energetic","R"]],
+  [["Caring / helpful","G"],["Outspoken","R"],["Steadfast","B"],["Mild-mannered","G"]],
+  [["Believable","Y"],["Forceful","R"],["Disciplined","B"],["Possessive","G"]],
+  [["Daring","R"],["Idealist","Y"],["Dutiful","B"],["Playful","Y"]],
+  [["Logical","B"],["Contented","G"],["Friendly","Y"],["Bold / audacious","R"]],
+  [["Eager beaver","R"],["Imaginative","Y"],["Accurate / precise","B"],["Well liked","G"]],
+  [["Reserved","B"],["Inventive","Y"],["Charismatic","R"],["Optimistic","Y"]],
+  [["Authoritative","R"],["Team worker","G"],["Independent","B"],["Traditional","B"]],
+  [["Talkative","Y"],["Restless","R"],["Conscientious","B"],["Modest / unassuming","G"]],
+  [["Leader","R"],["Counsellor","G"],["Designer","Y"],["Controller","B"]],
+  [["Meticulous","B"],["Workaholic","R"],["Supportive","G"],["Self-directed","R"]],
+  [["Industrious","R"],["Attentive to details","B"],["Mental imager","Y"],["Positive thinker","Y"]],
+  [["Task-oriented","B"],["People-oriented","G"],["Idea-oriented","Y"],["Result-oriented","R"]],
+  [["Emotional","G"],["Flexible / adaptable","Y"],["Likes recognition","R"],["Particular","B"]],
+  [["Irritable","R"],["Rigid","B"],["Easily slighted","Y"],["Easily threatened","G"]],
+  [["Indirect","G"],["Frank / candid","R"],["Careful","B"],["Strict","B"]],
+  [["Goal-oriented","R"],["Capable","Y"],["Volunteers","G"],["Schedule-oriented","B"]],
+  [["Excels in a crisis","R"],["Likes compliments","Y"],["Dry humour","B"],["Avoids attention","G"]],
+  [["Likes watching people","G"],["Strong-willed","R"],["Enthusiastic","Y"],["Sets very high standards","B"]],
+  [["Very self-confident","R"],["Cautious in friendships","G"],["Thorough","B"],["Dresses in trendy ways","Y"]],
+  [["Neat and tidy","B"],["Looks good on the outside","Y"],["Avoids conflict","G"],["Usually right","R"]],
+];
+const CO = {
+  R: { name: "Red", c: "#D8393D",
+    about: "Reds are strong leaders, fast-paced thinkers, risk-takers, purposeful, drivers and strong-willed. Less patient, with obvious energy, formal, openly competitive and rational. Many leaders are red — they take ownership, think fast, take risks and act with purpose and confidence.",
+    coach: "Be concise. Give clear goals, facts and decisions. Do not over-explain.",
+    watch: "As a red coach, watch your patience with slower athletes, and make sure your drive does not flatten quieter people in the room." },
+  Y: { name: "Yellow", c: "#E0B84F",
+    about: "Yellows are the life and soul of the party: sociable, expressive, imaginative and enthusiastic. Very informal, optimistic and animated, with high energy. Fast-paced thinkers whose imagination can run away with them. Very relationship-focused visionaries.",
+    coach: "Use energy, interaction and possibility. Keep them engaged and acknowledged.",
+    watch: "As a yellow coach, watch that energy does not replace structure, and that the athletes who need detail and quiet get it." },
+  G: { name: "Green", c: "#5CC48A",
+    about: "Greens are cool, laid-back, relaxed and patient. Easy to get along with, informal, social and focused on relationships, so they can come across as emotional. Slower-paced, democratic, understanding and agreeable — they may say yes but mean no. Greens are the go-between for faster reds and yellows, and act as facilitators in conflict.",
+    coach: "Build trust. Give time, safety, clear structure and genuine interest.",
+    watch: "As a green coach, watch that you still set clear standards and give direct feedback, even when it risks a little conflict." },
+  B: { name: "Blue", c: "#4FA8DE",
+    about: "Blues are deep thinkers — analytical, detail-focused and formal. They can seem aloof, but are deliberate and systematic. Precise, organised, with excellent time management, and sticklers for time. They take their time, reach their own conclusions, and like to have all the facts before putting together a logical answer. They can come across as perfectionists.",
+    coach: "Explain why. Use structure, data, technique and enough thinking time.",
+    watch: "As a blue coach, watch that detail does not slow the class down, and show warmth as well as precision." },
+};
+let co = null;
+let coTimer = null;
+
+async function openColours() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "colours").maybeSingle();
+  co = data || { tool: "colours", data: { answers: {}, result: null, notes: "", history: [] } };
+  co.data.answers = co.data.answers || {}; co.data.history = co.data.history || [];
+  $("co-notes").value = co.data.notes || "";
+  coBuild();
+  if (co.data.result) coShow(); else { $("co-form").classList.remove("hidden"); $("co-result").classList.add("hidden"); }
+  show("colours");
+}
+
+function coBuild() {
+  const box = $("co-qs"); box.innerHTML = "";
+  CO_Q.forEach((opts, i) => {
+    const d = document.createElement("div"); d.className = "cq"; d.id = "cq" + i;
+    const n = document.createElement("p"); n.className = "n"; n.textContent = (i + 1) + " of " + CO_Q.length; d.appendChild(n);
+    const w = document.createElement("div"); w.className = "cw";
+    opts.forEach(([word], j) => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = word;
+      b.classList.toggle("on", co.data.answers[i] === j);
+      b.onclick = () => { co.data.answers[i] = j; d.classList.remove("missing"); w.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); coCount(); };
+      w.appendChild(b);
+    });
+    d.appendChild(w); box.appendChild(d);
+  });
+  coCount();
+}
+function coCount() {
+  const n = Object.keys(co.data.answers).length;
+  $("co-count").textContent = n + " of " + CO_Q.length + " answered";
+  $("co-bar").style.width = (n / CO_Q.length * 100) + "%";
+}
+
+$("co-go").onclick = async () => {
+  const msg = $("co-msg"); msg.className = "msg"; msg.textContent = "";
+  const missing = CO_Q.map((_, i) => i).filter((i) => co.data.answers[i] == null);
+  if (missing.length) {
+    missing.forEach((i) => $("cq" + i).classList.add("missing"));
+    msg.className = "msg err"; msg.textContent = "Please pick one word on every line (" + missing.length + " left).";
+    $("cq" + missing[0]).scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  const counts = { R: 0, Y: 0, G: 0, B: 0 };
+  CO_Q.forEach((opts, i) => { counts[opts[co.data.answers[i]][1]]++; });
+  const order = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  const pct = {}; for (const k in counts) pct[k] = Math.round(counts[k] / CO_Q.length * 100);
+  co.data.result = { counts, pct, main: CO[order[0]].name, second: counts[order[1]] >= counts[order[0]] - 2 ? CO[order[1]].name : null, order, date: new Date().toISOString() };
+  co.data.history.push({ date: co.data.result.date, main: co.data.result.main, pct });
+  coShow();
+  await coSave();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+function coShow() {
+  const r = co.data.result;
+  const main = r.order[0];
+  $("co-verdict").textContent = "You are mainly " + CO[main].name + (r.second ? ", with a lot of " + r.second : "") + ".";
+  $("co-verdict").style.color = CO[main].c;
+  const bars = $("co-bars"); bars.innerHTML = "";
+  for (const k of r.order) {
+    const row = document.createElement("div"); row.className = "b";
+    row.innerHTML = `<span style="color:${CO[k].c}">${CO[k].name}</span><div class="t"><i style="width:${r.pct[k]}%;background:${CO[k].c}"></i></div><span>${r.pct[k]}%</span>`;
+    bars.appendChild(row);
+  }
+  const card = (k, withWatch) => {
+    const d = document.createElement("div"); d.className = "colour-card"; d.style.setProperty("--c", CO[k].c);
+    const h = document.createElement("h3"); h.textContent = CO[k].name; h.style.color = CO[k].c;
+    const p = document.createElement("p"); p.textContent = withWatch ? CO[k].about : "Coach them like this: " + CO[k].coach;
+    d.append(h, p);
+    if (withWatch) { const w = document.createElement("p"); w.style.marginTop = "8px"; w.style.color = "var(--ink)"; w.textContent = CO[k].watch; d.appendChild(w); }
+    return d;
+  };
+  $("co-me").innerHTML = ""; $("co-me").appendChild(card(main, true));
+  $("co-all").innerHTML = ""; for (const k of ["R", "Y", "G", "B"]) $("co-all").appendChild(card(k, false));
+  const h = co.data.history;
+  $("co-hist").textContent = h.length > 1 ? "Previous results: " + h.slice(0, -1).map((x) => new Date(x.date).toLocaleDateString("en-GB") + " — " + x.main).join(" · ") : "";
+  $("co-form").classList.add("hidden"); $("co-result").classList.remove("hidden");
+}
+
+async function coSave() {
+  clearTimeout(coTimer);
+  co.data.notes = $("co-notes").value;
+  const row = { user_id: session.user.id, tool: "colours", data: co.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("co-state").textContent = "Not saved — " + error.message; return false; }
+  co = { ...data, data: co.data };
+  $("co-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("co-notes").addEventListener("input", () => { $("co-state").textContent = "Unsaved changes"; clearTimeout(coTimer); coTimer = setTimeout(coSave, 1500); });
+$("co-save").onclick = async () => { if (await coSave()) $("co-state").textContent = "Saved ✓"; };
+$("co-download").onclick = async () => { await coSave(); window.print(); };
+$("co-retake").onclick = () => { co.data.answers = {}; co.data.result = null; coBuild(); $("co-result").classList.add("hidden"); $("co-form").classList.remove("hidden"); window.scrollTo({ top: 0 }); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
