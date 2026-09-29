@@ -73,6 +73,23 @@
   .num{text-align:right}
   .searchrow{display:flex;gap:0.6rem}
   .searchrow input{flex:1}
+  .filters{display:grid;gap:0.6rem;grid-template-columns:1fr;margin-bottom:0.8rem}
+  @media(min-width:44rem){.filters{grid-template-columns:2fr 1.4fr 1fr 1fr}}
+  .filters input,.filters select{font-size:0.85rem;padding:0.45rem 0.55rem}
+  .scrollbox{max-height:34rem;overflow:auto;border:1px solid var(--rule);border-radius:4px}
+  .scrollbox table{font-size:0.82rem}
+  .scrollbox thead th{position:sticky;top:0;background:#fff;z-index:1;box-shadow:0 1px 0 var(--rule)}
+  .scrollbox td,.scrollbox th{padding:0.5rem 0.55rem}
+  .scrollbox tr:hover td{background:#faf9f7}
+  .who2 b{display:block;font-weight:600}
+  .who2 span{color:var(--muted);font-size:0.76rem}
+  .badge{display:inline-block;font-size:0.68rem;font-weight:700;letter-spacing:0.04em;padding:0.1rem 0.4rem;border-radius:3px;margin:0 0.25rem 0.25rem 0;white-space:nowrap;border:1px solid}
+  .badge.tcc{color:#2f7fd0;border-color:#b9d4f2;background:#eef5fd}
+  .badge.tgc{color:#b3261e;border-color:#efc2bf;background:#fcf0ef}
+  .badge.done{color:var(--good);border-color:#bfe3cd;background:#e9f6ee}
+  .bulkbar{display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;margin:0.8rem 0 0;font-size:0.85rem}
+  .bulkbar select{width:auto;font-size:0.82rem;padding:0.35rem 0.5rem}
+  .toolrow{display:flex;justify-content:space-between;align-items:center;gap:0.6rem;flex-wrap:wrap;margin:0 0 0.5rem;font-size:0.82rem;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -97,6 +114,40 @@
     <div class="panel">
       <h2>At a glance</h2>
       <div id="overview" class="tablewrap"><p class="empty">Loading…</p></div>
+    </div>
+
+    <!-- All learners -->
+    <div class="panel">
+      <h2>All learners</h2>
+      <div class="filters">
+        <input id="al-q" type="search" placeholder="Search name or email" autocomplete="off">
+        <select id="al-course"><option value="">All courses</option></select>
+        <select id="al-status">
+          <option value="">Any status</option>
+          <option value="Not started">Not started</option>
+          <option value="In progress">In progress</option>
+          <option value="Passed">Passed / completed</option>
+        </select>
+        <select id="al-date">
+          <option value="">Added any time</option>
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="365">Last 12 months</option>
+        </select>
+      </div>
+      <div class="toolrow">
+        <span id="al-count">Loading…</span>
+        <button id="al-csv" class="btn ghost small" type="button">Export CSV</button>
+      </div>
+      <div class="scrollbox"><div id="al-list"><p class="empty" style="padding:0.8rem">Loading…</p></div></div>
+      <div class="bulkbar">
+        <span id="al-sel">0 selected</span>
+        <select id="al-bulk-course"></select>
+        <button id="al-bulk-give" class="btn ghost small" type="button" disabled>Give this course</button>
+        <button id="al-bulk-remove" class="btn ghost small" type="button" disabled>Remove this course</button>
+      </div>
+      <div id="al-msg" class="msg"></div>
     </div>
 
     <!-- Find a learner -->
@@ -246,6 +297,7 @@ async function start() {
   $("app").classList.remove("hidden");
   await loadCourses();
   loadOverview();
+  loadAllLearners();
   loadAllAccess();
 }
 
@@ -292,6 +344,20 @@ async function loadCourses() {
       row.appendChild(a);
     }
     list.appendChild(row);
+  }
+
+  for (const id of ["al-course", "al-bulk-course"]) {
+    const sel = $(id);
+    if (!sel) continue;
+    const keep = sel.value;
+    sel.innerHTML = id === "al-course" ? '<option value="">All courses</option>' : "";
+    for (const c of courses) {
+      const o = document.createElement("option");
+      o.value = c.id;
+      o.textContent = shortCourse(c) + " — " + c.title;
+      sel.appendChild(o);
+    }
+    if (keep) sel.value = keep;
   }
 
   for (const id of ["u-course", "e-course", "l-course"]) {
@@ -848,6 +914,7 @@ async function certAction(certificateId, action) {
 
 function refreshAfterChange() {
   loadOverview();
+  loadAllLearners();
   loadAllAccess();
   if ($("l-course").value) loadLearners();
   if ($("s-q").value.trim()) search();
@@ -939,6 +1006,191 @@ async function search() {
     box.appendChild(block);
   }
 }
+
+// ---------------- all learners ----------------
+
+const LANG_SHORT = { en: "EN", es: "ES", fr: "FR", it: "IT", de: "DE" };
+function shortCourse(c) {
+  if (!c) return "?";
+  return (c.brand || "").toUpperCase() + " L" + String(c.level || "").replace(/\D/g, "") + " " + (LANG_SHORT[c.language] || String(c.language || "").toUpperCase());
+}
+
+let learners = [];          // one row per email
+let alSelected = new Set();
+
+async function loadAllLearners() {
+  try {
+    const [enr, att, certs] = await Promise.all([
+      fetchAll(() => db.from("learn_enrolments").select("email, course_id, first_name, last_name, created_at")),
+      fetchAll(() => db.from("learn_attempts").select("email, course_id, completion_status, success_status, completed_at, updated_at")),
+      fetchAll(() => db.from("learn_certificates").select("email, course_id, name, reference")),
+    ]);
+    const low = (e) => String(e || "").trim().toLowerCase();
+    const map = new Map();
+    const get = (email) => {
+      if (!map.has(email)) map.set(email, { email, name: "", added: null, last: null, courses: new Map() });
+      return map.get(email);
+    };
+    for (const e of enr) {
+      const p = get(low(e.email));
+      const nm = [e.first_name, e.last_name].filter(Boolean).join(" ");
+      if (nm && !p.name) p.name = nm;
+      if (!p.added || e.created_at < p.added) p.added = e.created_at;
+      const c = p.courses.get(e.course_id) || { enrolled: false, attempt: null };
+      c.enrolled = true;
+      p.courses.set(e.course_id, c);
+    }
+    for (const a of att) {
+      const email = low(a.email);
+      if (!map.has(email)) continue;        // admins testing without access are left out
+      const p = map.get(email);
+      if (!p.last || a.updated_at > p.last) p.last = a.updated_at;
+      const c = p.courses.get(a.course_id);
+      if (c) c.attempt = a;
+    }
+    for (const k of certs) {
+      const p = map.get(low(k.email));
+      if (p && !p.name) p.name = k.name;
+    }
+    learners = [...map.values()].sort((x, y) => String(y.added || "").localeCompare(String(x.added || "")));
+    renderAllLearners();
+  } catch (e) {
+    $("al-list").innerHTML = '<p class="msg err" style="padding:0.8rem"></p>'; $("al-list").firstChild.textContent = e.message;
+  }
+}
+
+function filteredLearners() {
+  const q = $("al-q").value.trim().toLowerCase();
+  const courseId = $("al-course").value;
+  const status = $("al-status").value;
+  const days = parseInt($("al-date").value, 10);
+  const since = days ? new Date(Date.now() - days * 86400000).toISOString() : null;
+  return learners.filter((p) => {
+    if (q && !(p.email.includes(q) || p.name.toLowerCase().includes(q))) return false;
+    if (since && !(p.added && p.added >= since)) return false;
+    const list = courseId ? [p.courses.get(courseId)].filter(Boolean) : [...p.courses.values()];
+    if (courseId && !list.length) return false;
+    if (status) {
+      const match = list.some((c) => {
+        const st = statusOf(c.attempt);
+        return status === "Passed" ? (st === "Passed" || st === "Completed") : st === status;
+      });
+      if (!match) return false;
+    }
+    return true;
+  });
+}
+
+function renderAllLearners() {
+  const rows = filteredLearners();
+  $("al-count").textContent = rows.length + " of " + learners.length + " learner" + (learners.length === 1 ? "" : "s") + " · newest first";
+  const box = $("al-list");
+  if (!rows.length) { box.innerHTML = '<p class="empty" style="padding:0.8rem">Nobody matches.</p>'; updateBulk(); return; }
+
+  const table = document.createElement("table");
+  table.innerHTML = '<thead><tr><th style="width:2rem"><input type="checkbox" id="al-all" aria-label="Select all shown"></th>' +
+    "<th>Learner</th><th>Courses</th><th>Last activity</th><th>Added</th></tr></thead>";
+  const tb = document.createElement("tbody");
+  for (const p of rows.slice(0, 1000)) {
+    const tr = document.createElement("tr");
+    const tdc = document.createElement("td");
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = alSelected.has(p.email);
+    cb.onchange = () => { cb.checked ? alSelected.add(p.email) : alSelected.delete(p.email); updateBulk(); };
+    tdc.appendChild(cb);
+
+    const tdw = document.createElement("td"); tdw.className = "who2";
+    const b = document.createElement("b"); b.textContent = p.name || "—";
+    const sp = document.createElement("span"); sp.textContent = p.email;
+    tdw.append(b, sp);
+    tdw.style.cursor = "pointer";
+    tdw.title = "Open in Find a learner";
+    tdw.onclick = () => { $("s-q").value = p.email; search(); $("s-q").scrollIntoView({ behavior: "smooth", block: "start" }); };
+
+    const tdk = document.createElement("td");
+    for (const [cid, c] of p.courses) {
+      if (!c.enrolled) continue;
+      const course = courseById(cid);
+      const st = statusOf(c.attempt);
+      const bd = document.createElement("span");
+      bd.className = "badge " + ((course && course.brand) || "") + (st === "Passed" || st === "Completed" ? " done" : "");
+      bd.textContent = shortCourse(course) + (st === "Passed" || st === "Completed" ? " ✓" : st === "In progress" ? " …" : "");
+      bd.title = (course ? course.title : "") + " — " + st;
+      tdk.appendChild(bd);
+    }
+    const tdl = document.createElement("td"); tdl.textContent = p.last ? fmtDate(p.last) : "—";
+    const tda = document.createElement("td"); tda.textContent = fmtDate(p.added);
+    tr.append(tdc, tdw, tdk, tdl, tda);
+    tb.appendChild(tr);
+  }
+  table.appendChild(tb);
+  box.innerHTML = "";
+  box.appendChild(table);
+  $("al-all").onchange = (e) => {
+    for (const p of rows) e.target.checked ? alSelected.add(p.email) : alSelected.delete(p.email);
+    renderAllLearners();
+  };
+  $("al-all").checked = rows.length > 0 && rows.every((p) => alSelected.has(p.email));
+  updateBulk();
+}
+
+function updateBulk() {
+  const n = alSelected.size;
+  $("al-sel").textContent = n + " selected";
+  $("al-bulk-give").disabled = !n;
+  $("al-bulk-remove").disabled = !n;
+}
+
+["al-q", "al-course", "al-status", "al-date"].forEach((id) => $(id).addEventListener(id === "al-q" ? "input" : "change", renderAllLearners));
+
+$("al-bulk-give").addEventListener("click", async () => {
+  const courseId = $("al-bulk-course").value;
+  const emails = [...alSelected];
+  const c = courseById(courseId);
+  if (!courseId || !emails.length) return;
+  if (!confirm("Give " + courseName(c) + " to " + emails.length + " learner" + (emails.length === 1 ? "" : "s") + "?")) return;
+  const rows = emails.map((email) => ({ course_id: courseId, email, source: "manual" }));
+  const { error } = await db.from("learn_enrolments").upsert(rows, { onConflict: "course_id,email", ignoreDuplicates: true });
+  const msg = $("al-msg");
+  if (error) { msg.className = "msg err"; msg.textContent = error.message; return; }
+  msg.className = "msg ok"; msg.textContent = "Done — " + emails.length + " now have " + courseName(c) + ".";
+  alSelected.clear();
+  refreshAfterChange();
+});
+
+$("al-bulk-remove").addEventListener("click", async () => {
+  const courseId = $("al-bulk-course").value;
+  const emails = [...alSelected];
+  const c = courseById(courseId);
+  if (!courseId || !emails.length) return;
+  if (!confirm("Remove " + courseName(c) + " from " + emails.length + " learner" + (emails.length === 1 ? "" : "s") + "?\n\nTheir progress and certificates are kept.")) return;
+  const { error } = await db.from("learn_enrolments").delete().eq("course_id", courseId).in("email", emails);
+  const msg = $("al-msg");
+  if (error) { msg.className = "msg err"; msg.textContent = error.message; return; }
+  msg.className = "msg ok"; msg.textContent = "Removed " + courseName(c) + " from " + emails.length + ".";
+  alSelected.clear();
+  refreshAfterChange();
+});
+
+$("al-csv").addEventListener("click", () => {
+  const rows = filteredLearners();
+  const esc = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  const lines = [["Name", "Email", "Courses", "Status per course", "Last activity", "Added"].map(esc).join(",")];
+  for (const p of rows) {
+    const list = [...p.courses].filter(([, c]) => c.enrolled);
+    lines.push([
+      p.name, p.email,
+      list.map(([cid]) => shortCourse(courseById(cid))).join("; "),
+      list.map(([cid, c]) => shortCourse(courseById(cid)) + ": " + statusOf(c.attempt)).join("; "),
+      p.last ? p.last.slice(0, 10) : "", p.added ? p.added.slice(0, 10) : "",
+    ].map(esc).join(","));
+  }
+  const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url; link.download = "birdbox-learners-" + new Date().toISOString().slice(0, 10) + ".csv";
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+});
 
 function niceTime(iso) {
   const m = /P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?/.exec(iso || "");
