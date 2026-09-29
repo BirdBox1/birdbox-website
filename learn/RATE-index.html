@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rate a coach — BirdBox</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --ink:#F2EFEF; --muted:#B7B1B3; --line:#342F31; --accent:#4FA8DE; --bad:#F0797D; --good:#5CC48A; }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .bar{padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top));border-bottom:1px solid var(--line);background:#0d0b0b}
+  .bar img{height:34px;display:block}
+  .wrap{max-width:640px;margin:0 auto;padding:32px 16px 64px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  h1{font-size:clamp(24px,5vw,34px);line-height:1.1;font-weight:800;text-transform:uppercase;margin:0 0 12px}
+  .lede{color:var(--muted);font-size:16px;line-height:1.6;margin:0 0 22px}
+  .q{background:var(--panel);border:1px solid var(--line);padding:16px;margin-bottom:12px}
+  .q h3{margin:0 0 10px;font-size:16px}
+  .scale{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
+  .scale button{font:inherit;font-size:15px;font-weight:700;padding:10px 0;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .scale button.on{background:var(--accent);border-color:var(--accent);color:#0C1116}
+  .ends{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:5px}
+  label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  input{width:100%;font:inherit;font-size:16px;padding:11px 12px;background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+  .btn{display:block;width:100%;margin-top:18px;font:inherit;font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:14px 20px;background:var(--accent);color:#0C1116;border:1px solid var(--accent);cursor:pointer}
+  .btn[disabled]{opacity:.6;cursor:wait}
+  .msg{font-size:14px;margin:12px 0 0;min-height:1em;color:var(--bad)}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="bar"><img src="/brand/birdBox.png" alt="BirdBox"></div>
+<main class="wrap">
+  <p id="loading" class="lede">Loading…</p>
+
+  <section id="bad" class="hidden">
+    <h1>Link not found</h1>
+    <p class="lede" id="bad-msg">This rating link is not valid. Ask for a new one.</p>
+  </section>
+
+  <section id="form" class="hidden">
+    <p class="kicker">BirdBox coach development</p>
+    <h1 id="title">Rate your coach</h1>
+    <p class="lede" id="intro"></p>
+    <div id="qs"></div>
+    <label for="name">Your name (optional)</label>
+    <input id="name" maxlength="80" autocomplete="name">
+    <button class="btn" id="send" type="button">Send my ratings</button>
+    <p class="msg" id="msg"></p>
+  </section>
+
+  <section id="thanks" class="hidden">
+    <p class="kicker">BirdBox coach development</p>
+    <h1>Thank you!</h1>
+    <p class="lede" id="thanks-msg">Your ratings have been sent. They help your coach see how others experience their coaching.</p>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const show = (id) => ["loading", "bad", "form", "thanks"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const t = new URLSearchParams(location.search).get("t") || "";
+const picks = {};
+
+(async () => {
+  let d = null;
+  try { d = await (await fetch("/.netlify/functions/learn-rate?t=" + encodeURIComponent(t))).json(); } catch (e) {}
+  if (!d || !d.ok) { if (d && d.error) $("bad-msg").textContent = d.error; show("bad"); return; }
+  const who = d.first_name;
+  if (d.submitted) { $("thanks-msg").textContent = "Your ratings for " + who + " have already been sent. Thank you!"; show("thanks"); return; }
+  if (!d.qualities.length) { $("bad-msg").textContent = who + " has not added any qualities yet. Ask them to add some and send the link again."; show("bad"); return; }
+
+  $("title").textContent = "Rate " + who;
+  $("intro").textContent = who + " has asked you, as their " + (d.role === "colleague" ? "colleague" : "athlete") +
+    ", to rate them on the coaching qualities below. Score each from 1 (needs a lot of work) to 10 (excellent). Be honest — it helps them grow. It takes about 2 minutes.";
+  for (const q of d.qualities) {
+    const box = document.createElement("div"); box.className = "q";
+    const h = document.createElement("h3"); h.textContent = q;
+    const sc = document.createElement("div"); sc.className = "scale";
+    for (let v = 1; v <= 10; v++) {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = v;
+      b.onclick = () => { picks[q.toLowerCase()] = v; sc.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); };
+      sc.appendChild(b);
+    }
+    const ends = document.createElement("div"); ends.className = "ends"; ends.innerHTML = "<span>Needs work</span><span>Excellent</span>";
+    box.append(h, sc, ends);
+    $("qs").appendChild(box);
+  }
+  show("form");
+
+  $("send").onclick = async () => {
+    const msg = $("msg"); msg.textContent = "";
+    if (!Object.keys(picks).length) { msg.textContent = "Please pick a score for at least one quality."; return; }
+    const missing = d.qualities.length - Object.keys(picks).length;
+    if (missing > 0 && !confirm(missing + (missing === 1 ? " quality has" : " qualities have") + " no score. Send anyway?")) return;
+    $("send").disabled = true;
+    try {
+      const r = await (await fetch("/.netlify/functions/learn-rate", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ t, name: $("name").value, ratings: picks }) })).json();
+      if (!r.ok) { msg.textContent = r.error || "Could not send. Please try again."; $("send").disabled = false; return; }
+      show("thanks");
+    } catch (e) { msg.textContent = "Could not send. Please check your connection and try again."; $("send").disabled = false; }
+  };
+})();
+</script>
+</body>
+</html>
