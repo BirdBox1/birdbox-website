@@ -61,13 +61,18 @@
   <p class="sub">Thank you — your payment has gone through and your course is being added to your account now.</p>
 
   <h2>What happens next</h2>
-  <ol>
+  <ol id="site-steps" hidden>
+    <li><strong>Go to My courses</strong> with the button below.</li>
+    <li><strong>Type the email address you paid with</strong> and tap &ldquo;Email me a login link&rdquo;.</li>
+    <li><strong>Open the link we email you</strong> &mdash; the course is already in your account, no code needed. You can set a password once you are in.</li>
+  </ol>
+  <ol id="lw-steps">
     <li><strong>Check your email.</strong> Within a few minutes you will get an email from BirdBox Academy. If you are new, it has a link to set your password.</li>
     <li><strong>Set your password</strong> (new accounts only), then log in with the email address you paid with.</li>
     <li><strong>Start learning.</strong> The course is already in your account — no code needed.</li>
   </ol>
 
-  <a class="btn" href="https://www.birdboxacademy.com">Go to BirdBox Academy &rarr;</a>
+  <a class="btn" id="go" href="https://www.birdboxacademy.com">Go to BirdBox Academy &rarr;</a>
 
   <p class="note">Nothing after five minutes? Check your junk folder, then reply to our confirmation email or write to
     <a href="mailto:info@birdboxcoaching.com" style="color:inherit">info@birdboxcoaching.com</a> and we will sort it out.</p>
@@ -76,6 +81,18 @@
     &copy; BirdBox Coaching Ltd &middot; <a href="/">birdboxcoaching.com</a>
   </footer>
 </main>
+<script>
+  // Courses that have moved to our own site come back here with ?site=1.
+  if (/[?&]site=1\b/.test(location.search)) {
+    document.getElementById("site-steps").hidden = false;
+    document.getElementById("lw-steps").hidden = true;
+    var go = document.getElementById("go");
+    go.href = "/learn/";
+    go.innerHTML = "Go to My courses &rarr;";
+    var sub = document.querySelector(".sub");
+    if (sub) sub.textContent = "Thank you \u2014 your payment has gone through and your course is ready on our website.";
+  }
+</script>
 
 </body>
 </html>
