@@ -127,6 +127,24 @@
   .colour-card h3{margin:0 0 6px;font-size:16px}
   .colour-card p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.55}
 
+  .vr{border:1px solid var(--line);background:var(--paper);padding:14px;margin:10px 0}
+  .vr h3{margin:0 0 4px;font-size:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .vr h3 small{font-size:12px;color:var(--muted);font-weight:600}
+  .vr .tip{color:var(--muted);font-size:13.5px;margin:0 0 10px;line-height:1.5}
+  .vr .g2{display:grid;grid-template-columns:1fr;gap:10px}
+  @media(min-width:760px){.vr .g2{grid-template-columns:1fr 1fr}}
+  .vr label,.fld label{display:block;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 5px}
+  .vr textarea{min-height:70px;font-size:15px;padding:9px 10px;background:var(--panel)}
+  .stars{display:flex;gap:4px;margin:0 0 10px;flex-wrap:wrap;align-items:center}
+  .stars button{font:inherit;font-size:13px;font-weight:700;width:38px;padding:7px 0;background:var(--panel);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .stars button.on{background:var(--accent);border-color:var(--accent);color:#0C1116}
+  .stars span{font-size:12px;color:var(--muted);margin-left:6px}
+  .fld{margin:0 0 14px}
+  .fld input,.fld select{width:100%;max-width:420px;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .cmp{width:100%;font-size:14px}
+  .cmp td,.cmp th{padding:7px 6px}
+  .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
+
   @media print {
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .colour-card{background:#fff}
@@ -192,6 +210,11 @@
         <h3>Personality test — the four colours</h3>
         <p>Red, yellow, green or blue? Find your mix, and how to coach people who are different to you.</p>
         <span id="colours-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=video">
+        <h3>Video review — non-verbal communication</h3>
+        <p>Review a video of your coaching area by area, make a plan for your weakest one, then film again and compare.</p>
+        <span id="video-status">Open →</span>
       </a>
     </div>
   </section>
@@ -392,6 +415,79 @@
       </div>
     </div>
   </section>
+  <!-- video review -->
+  <section id="video" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Communication</p>
+    <h1>Video review — non-verbal communication</h1>
+    <p class="lede">You cannot expect instant changes. This task builds new habits over 2–4 weeks — film, review, practise one thing, then film again.</p>
+
+    <div class="panel noprint">
+      <h2>How it works</h2>
+      <ol class="steps">
+        <li><b>Film some of your coaching.</b> A phone propped up in the corner is enough.</li>
+        <li><b>Watch it once for each area below</b> — only look at that one area each time.</li>
+        <li>Note the <b>good things first</b>, then where you can <b>improve</b>, and score each area.</li>
+        <li><b>Make an action plan</b> for your weakest area and focus on it for a week of coaching. Give yourself 2–4 weeks.</li>
+        <li><b>Film again</b>, review it the same way, and see how you have changed. Ask a mentor or peer coach for feedback if you can.</li>
+      </ol>
+    </div>
+
+    <div class="panel">
+      <h2>Video 1 — my starting point</h2>
+      <div class="g2" style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));max-width:760px">
+        <div class="fld"><label for="v1-date">Date filmed</label><input type="date" id="v1-date"></div>
+        <div class="fld"><label for="v1-what">What I filmed</label><input id="v1-what" placeholder="e.g. Tuesday 6pm class, warm-up and skill"></div>
+      </div>
+      <div class="fld"><label for="v1-link">Link to the video (optional)</label><input id="v1-link" placeholder="Google Drive, Dropbox, YouTube (unlisted)…"></div>
+      <p class="hist" id="v1-count"></p>
+      <div id="v1-areas"></div>
+    </div>
+
+    <div class="panel">
+      <h2>My action plan</h2>
+      <div class="fld"><label for="vp-area">The area I will focus on</label><select id="vp-area"></select></div>
+      <p class="hist" id="vp-hint" style="margin:-6px 0 12px"></p>
+      <div class="fld"><label for="vp-do">What I will do differently for a week of coaching</label><textarea id="vp-do" style="min-height:90px" placeholder="e.g. Crouch to eye level when I give individual feedback, and step back during the attempt"></textarea></div>
+      <div class="fld"><label for="vp-learn">What I will read or watch to learn more about it</label><textarea id="vp-learn" style="min-height:70px"></textarea></div>
+      <div class="g2" style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));max-width:760px">
+        <div class="fld"><label for="vp-start">Start date</label><input type="date" id="vp-start"></div>
+        <div class="fld"><label for="vp-review">Film again on</label><input type="date" id="vp-review"></div>
+      </div>
+      <div class="fld"><label for="vp-mentor">Mentor or peer coach giving me feedback</label><input id="vp-mentor" placeholder="Name"></div>
+      <div class="fld"><label for="vp-feedback">Their feedback</label><textarea id="vp-feedback" style="min-height:70px"></textarea></div>
+    </div>
+
+    <div class="panel">
+      <h2>Video 2 — after 2–4 weeks</h2>
+      <div id="v2-wait">
+        <p class="lede" style="font-size:15px;margin:0 0 12px" id="v2-wait-text">Once you have practised your action plan for 2–4 weeks, film your coaching again and review it here.</p>
+        <button class="btn ghost small" id="v2-start" type="button">Start my second review</button>
+      </div>
+      <div id="v2-box" class="hidden">
+        <div class="g2" style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));max-width:760px">
+          <div class="fld"><label for="v2-date">Date filmed</label><input type="date" id="v2-date"></div>
+          <div class="fld"><label for="v2-what">What I filmed</label><input id="v2-what"></div>
+        </div>
+        <div class="fld"><label for="v2-link">Link to the video (optional)</label><input id="v2-link"></div>
+        <div id="v2-areas"></div>
+        <h2 style="margin-top:18px">Before and after</h2>
+        <table class="cmp"><thead><tr><th>Area</th><th>Video 1</th><th>Video 2</th><th></th></tr></thead><tbody id="v-cmp"></tbody></table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>My reflections</h2>
+      <p class="lede noprint" style="font-size:14px;margin:0 0 10px">What surprised you when you watched yourself? What has changed? What will you work on next?</p>
+      <textarea id="v-notes" placeholder="Write your thoughts here…"></textarea>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="v-save" type="button">Save</button>
+      <button class="btn ghost" id="v-download" type="button">Download PDF</button>
+      <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+      <span class="savestate" id="v-state"></span>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -400,7 +496,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -435,6 +531,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (cq && cq.result && tool === "concern") await cqSave();
   if (rx && tool === "reactions") await rxSave();
   if (co && co.data.result && tool === "colours") await coSave();
+  if (vr && tool === "video") await vSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -447,6 +544,7 @@ async function boot() {
   if (tool === "concern") return openConcern();
   if (tool === "reactions") return openReactions();
   if (tool === "colours") return openColours();
+  if (tool === "video") return openVideo();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -455,6 +553,8 @@ async function boot() {
   if (rn) $("reactions-status").textContent = "Last saved " + new Date(rn.updated_at).toLocaleDateString("en-GB") + " →";
   const co0 = (data || []).find((r) => r.tool === "colours");
   if (co0) $("colours-status").textContent = co0.data && co0.data.result ? "Your colour: " + co0.data.result.main + " →" : "Last saved " + new Date(co0.updated_at).toLocaleDateString("en-GB") + " →";
+  const vd = (data || []).find((r) => r.tool === "video");
+  if (vd) $("video-status").textContent = "Last saved " + new Date(vd.updated_at).toLocaleDateString("en-GB") + " →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -1042,6 +1142,128 @@ $("co-notes").addEventListener("input", () => { $("co-state").textContent = "Uns
 $("co-save").onclick = async () => { if (await coSave()) $("co-state").textContent = "Saved ✓"; };
 $("co-download").onclick = async () => { await coSave(); window.print(); };
 $("co-retake").onclick = () => { co.data.answers = {}; co.data.result = null; coBuild(); $("co-result").classList.add("hidden"); $("co-form").classList.remove("hidden"); window.scrollTo({ top: 0 }); };
+
+// ---------------- video review ----------------
+const V_AREAS = [
+  ["face", "Facial expressions", "Do you look engaged, calm, encouraging? What does your face say when an athlete struggles — or gets it right?"],
+  ["gesture", "Gestures", "Do your hands show direction, timing and shape — or are they in your pockets, crossed, or distracting?"],
+  ["body", "Body language", "Is your stance open and confident? Do you look present and interested, or tired and distracted?"],
+  ["proximity", "Proximity", "Where are you in the room? Do you step in for the set-up and back for the attempt? Does anyone never see you close up?"],
+  ["touch", "Touch", "Do you use touch for tactile cues or reassurance — always with consent — and is it appropriate for each athlete?"],
+  ["appearance", "Personal appearance", "What does how you look say to your athletes? Ready to coach, and a role model for the standard you ask of them?"],
+  ["silence", "Silence", "Do you give athletes time to think and feel the movement, or fill every gap with talking? Is your silence purposeful?"],
+];
+const V_SCALE = ["", "Needs a lot of work", "Needs work", "OK", "Good", "A real strength"];
+let vr = null;
+let vTimer = null;
+const blankRound = () => ({ date: "", what: "", link: "", areas: {} });
+
+async function openVideo() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "video").maybeSingle();
+  vr = data || { tool: "video", data: {} };
+  const d = vr.data;
+  d.rounds = d.rounds || [blankRound()];
+  d.plan = d.plan || {};
+  d.notes = d.notes || "";
+  for (const [id, key] of [["v1-date", "date"], ["v1-what", "what"], ["v1-link", "link"]]) bindField(id, d.rounds[0], key);
+  for (const [id, key] of [["vp-area", "area"], ["vp-do", "do"], ["vp-learn", "learn"], ["vp-start", "start"], ["vp-review", "review"], ["vp-mentor", "mentor"], ["vp-feedback", "feedback"]]) bindField(id, d.plan, key);
+  bindField("v-notes", d, "notes");
+  $("vp-area").innerHTML = '<option value="">Choose…</option>' + V_AREAS.map(([k, t]) => `<option value="${k}">${t}</option>`).join("");
+  $("vp-area").value = d.plan.area || "";
+  vRenderAreas(0);
+  if (d.rounds[1]) vOpenSecond(); else vWaitText();
+  show("video");
+}
+
+function bindField(id, obj, key) {
+  const el = $(id);
+  el.value = obj[key] || "";
+  el.oninput = el.onchange = () => { obj[key] = el.value; if (id === "vp-start" && el.value && !vr.data.plan.review) { const r = new Date(el.value); r.setDate(r.getDate() + 21); vr.data.plan.review = r.toISOString().slice(0, 10); $("vp-review").value = vr.data.plan.review; } if (id === "vp-review") vWaitText(); vChanged(); };
+}
+
+function vRenderAreas(n) {
+  const round = vr.data.rounds[n];
+  const box = $(n === 0 ? "v1-areas" : "v2-areas"); box.innerHTML = "";
+  for (const [key, title, tip] of V_AREAS) {
+    const a = round.areas[key] = round.areas[key] || { rating: null, good: "", improve: "" };
+    const d = document.createElement("div"); d.className = "vr";
+    const h = document.createElement("h3"); h.textContent = title;
+    if (n === 1 && vr.data.rounds[0].areas[key] && vr.data.rounds[0].areas[key].rating) {
+      const sm = document.createElement("small"); sm.textContent = "Video 1: " + vr.data.rounds[0].areas[key].rating + "/5"; h.appendChild(sm);
+    }
+    if (n === 0 && vr.data.plan.area === key) { const sm = document.createElement("small"); sm.style.color = "var(--accent)"; sm.textContent = "My focus area"; h.appendChild(sm); }
+    const tp = document.createElement("p"); tp.className = "tip noprint"; tp.textContent = tip;
+    const st = document.createElement("div"); st.className = "stars";
+    const lab = document.createElement("span");
+    for (let v = 1; v <= 5; v++) {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = v; b.classList.toggle("on", a.rating === v);
+      b.onclick = () => { a.rating = a.rating === v ? null : v; st.querySelectorAll("button").forEach((x, i) => x.classList.toggle("on", a.rating === i + 1)); lab.textContent = V_SCALE[a.rating || 0]; vAfterRating(); vChanged(); };
+      st.appendChild(b);
+    }
+    lab.textContent = V_SCALE[a.rating || 0]; st.appendChild(lab);
+    const g = document.createElement("div"); g.className = "g2";
+    const field = (label, k, ph) => { const w = document.createElement("div"); const l = document.createElement("label"); l.textContent = label; const t = document.createElement("textarea"); t.value = a[k]; t.placeholder = ph; t.oninput = () => { a[k] = t.value; vChanged(); t === document.activeElement && vCount(); }; w.append(l, t); return w; };
+    g.append(field("What I do well", "good", "Start with the good things"), field("What I can improve", "improve", "Be specific — what did you see?"));
+    d.append(h, tp, st, g);
+    box.appendChild(d);
+  }
+  vAfterRating();
+}
+
+function vAfterRating() {
+  vCount();
+  const r1 = vr.data.rounds[0].areas;
+  const rated = V_AREAS.filter(([k]) => r1[k] && r1[k].rating);
+  if (rated.length) {
+    const low = rated.reduce((m, x) => r1[x[0]].rating < r1[m[0]].rating ? x : m);
+    $("vp-hint").textContent = "Your lowest-scored area so far: " + low[1] + " (" + r1[low[0]].rating + "/5).";
+  } else $("vp-hint").textContent = "Score the areas above and your weakest one will show here.";
+  if (vr.data.rounds[1]) vCompare();
+}
+function vCount() {
+  const r1 = vr.data.rounds[0].areas;
+  const n = V_AREAS.filter(([k]) => r1[k] && (r1[k].rating || (r1[k].good || "").trim() || (r1[k].improve || "").trim())).length;
+  $("v1-count").textContent = n + " of " + V_AREAS.length + " areas reviewed";
+}
+
+function vWaitText() {
+  const rv = vr.data.plan.review;
+  $("v2-wait-text").textContent = rv
+    ? "Film your coaching again on or after " + new Date(rv).toLocaleDateString("en-GB", { day: "numeric", month: "long" }) + ", then review it here."
+    : "Once you have practised your action plan for 2–4 weeks, film your coaching again and review it here.";
+}
+$("v2-start").onclick = () => { if (!vr.data.rounds[1]) vr.data.rounds[1] = blankRound(); vOpenSecond(); vChanged(); };
+function vOpenSecond() {
+  $("v2-wait").classList.add("hidden"); $("v2-box").classList.remove("hidden");
+  for (const [id, key] of [["v2-date", "date"], ["v2-what", "what"], ["v2-link", "link"]]) bindField(id, vr.data.rounds[1], key);
+  vRenderAreas(1);
+}
+function vCompare() {
+  const tb = $("v-cmp"); tb.innerHTML = "";
+  const [r1, r2] = vr.data.rounds.map((r) => r.areas);
+  for (const [k, title] of V_AREAS) {
+    const a = r1[k] && r1[k].rating, b = r2[k] && r2[k].rating;
+    const tr = document.createElement("tr");
+    const diff = a && b ? b - a : null;
+    tr.innerHTML = `<td></td><td>${a ? a + "/5" : "–"}</td><td>${b ? b + "/5" : "–"}</td><td class="${diff > 0 ? "up" : diff < 0 ? "down" : ""}">${diff == null ? "" : diff > 0 ? "▲ +" + diff : diff < 0 ? "▼ " + diff : "="}</td>`;
+    tr.firstChild.textContent = title + (vr.data.plan.area === k ? " (focus)" : "");
+    tb.appendChild(tr);
+  }
+}
+
+function vChanged() { $("v-state").textContent = "Unsaved changes"; clearTimeout(vTimer); vTimer = setTimeout(vSave, 1500); }
+async function vSave() {
+  clearTimeout(vTimer);
+  const row = { user_id: session.user.id, tool: "video", data: vr.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("v-state").textContent = "Not saved — " + error.message; return false; }
+  vr = { ...data, data: vr.data };
+  $("v-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("v-save").onclick = async () => { if (await vSave()) $("v-state").textContent = "Saved ✓"; };
+$("v-download").onclick = async () => { await vSave(); window.print(); };
+$("vp-area").addEventListener("change", () => vRenderAreas(0));
 
 // ---------------- rating links ----------------
 async function loadInvites() {
