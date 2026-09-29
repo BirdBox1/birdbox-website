@@ -920,7 +920,7 @@ function planBox(course, money, total) {
     const f = planFigures(course, total, m);
     amount.textContent = money(f.first);
     note.textContent = Math.round(f.rate * 100) + "% today, then " + m + " monthly payments of about " +
-      money(f.each) + " from the same card. Card only.";
+      money(f.each) + " from the same card. 0% interest — you pay exactly the same total as paying in full.";
   };
   sel.addEventListener("change", paint);
   paint();
