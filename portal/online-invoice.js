@@ -114,14 +114,12 @@ function buildDialog() {
   wrap.innerHTML = `
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="oi-h">
     <h3 id="oi-h">Online course invoice</h3>
-    <p>Stripe emails them the invoice. As soon as it is paid they get their academy
-       account with the course already in it, and an email telling them how to log in.
-       No code needed.</p>
+    <p>Stripe emails them the invoice. As soon as it is paid the course is added to their account on birdboxcoaching.com/learn, and they are emailed a link to open it. No code needed.</p>
 
     <div class="oi-grid">
       <div><label for="oi-first">First name</label><input id="oi-first" type="text" autocomplete="off"></div>
       <div><label for="oi-last">Last name</label><input id="oi-last" type="text" autocomplete="off"></div>
-      <div class="wide"><label for="oi-email">Email <span class="hint">— this becomes their academy login</span></label>
+      <div class="wide"><label for="oi-email">Email <span class="hint">— this becomes their login</span></label>
         <input id="oi-email" type="email" autocomplete="off" inputmode="email"></div>
       <div><label for="oi-country">Country</label><select id="oi-country"></select></div>
       <div><label for="oi-course">Online course</label><select id="oi-course"></select></div>
@@ -198,7 +196,7 @@ function fillSelects() {
   for (const c of opts.courses) {
     const o = document.createElement("option");
     o.value = c.product_id;
-    // Straight from the academy, so anything not on open sale says so.
+    // Our own course list (learn_courses).
     const note = c.access && !["paid", "free"].includes(c.access) ? ` (${c.access.replace(/_/g, " ")})` : "";
     o.textContent = c.label + note;
     course.append(o);
