@@ -167,7 +167,7 @@ async function load() {
     $("cvenue").textContent = data.venueName || "";
     $("caddr").textContent = data.address || "";
 
-    $("paidlabel").textContent = data.isDeposit ? "Deposit paid" : "Paid";
+    $("paidlabel").textContent = data.isDeposit ? "Deposit paid" : data.plan ? "First payment" : "Paid";
     $("paidamount").textContent = data.amountPaid;
 
     if (data.isDeposit) {
@@ -175,6 +175,13 @@ async function load() {
         "The remaining " + data.balance + " will be charged automatically to the same card" +
         (data.balanceDate ? " on " + data.balanceDate : "") +
         ", " + data.balanceDaysBefore + " days before the course starts.";
+      $("balancenote").classList.remove("hidden");
+    }
+
+    if (data.plan && data.plan.length) {
+      $("balancenote").textContent =
+        "The rest is taken automatically from the same card: " +
+        data.plan.map((p) => p.amount + " on " + p.date).join(", ") + ".";
       $("balancenote").classList.remove("hidden");
     }
 
