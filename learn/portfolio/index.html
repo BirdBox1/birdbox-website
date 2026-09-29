@@ -295,7 +295,13 @@ function renderRows() {
     const q = document.createElement("input"); q.className = "q"; q.value = row.q; q.maxLength = 60;
     q.placeholder = i < 3 ? ["e.g. Clear communicator", "e.g. Patient", "e.g. Knows the movements"][i] : "";
     q.oninput = () => { row.q = q.value; changed(false); };
-    q.onchange = () => renderRows();
+    // Only refresh this row's other scores, so the next box you tap keeps focus.
+    q.onchange = () => {
+      const c = received("colleague"), a = received("athlete");
+      tr.replaceChild(scoreCell(row, "colleague", c), tr.children[3]);
+      tr.replaceChild(scoreCell(row, "athlete", a), tr.children[4]);
+      drawChart();
+    };
     qtd.appendChild(q);
     const s = document.createElement("td"); s.appendChild(scoreSelect(row, "self"));
     tr.append(n, qtd, s, scoreCell(row, "colleague", gotC), scoreCell(row, "athlete", gotA));
@@ -395,7 +401,8 @@ async function save(loud) {
   const row = { user_id: session.user.id, tool: "spider", data: doc.data, updated_at: new Date().toISOString() };
   const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
   if (error) { $("savestate").textContent = "Not saved — " + error.message; return false; }
-  doc = data;
+  // Keep the rows being edited on screen; only take the saved id back.
+  doc = { ...data, data: doc.data };
   $("savestate").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   if (loud) $("savestate").textContent = "Saved ✓";
   return true;
