@@ -88,6 +88,402 @@
 <div class="bar">
   <a href="/learn/"><img src="/brand/birdBox.png" alt="BirdBox"></a>
   <span class="name">My portfolio</span>
+  <div class="nav"><a class="btn ghost small" href="/learn/" data-back>← Back to my course</a></div>
+</div>
+
+<main class="wrap">
+  <p id="loading" class="lede">Loading…</p>
+
+  <!-- not logged in -->
+  <section id="login" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My portfolio</h1>
+    <p class="lede">Log in with the email address you bought your course with, and your portfolio opens here.</p>
+    <form class="card" id="login-form">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="email" required>
+      <label for="l-pass">Password</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn" id="l-go" type="submit">Log in</button>
+      <button class="btn ghost" id="l-link" type="button" style="margin-top:10px">Email me a login link</button>
+      <div id="l-msg" class="msg"></div>
+    </form>
+  </section>
+
+  <!-- portfolio home -->
+  <section id="home" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My portfolio</h1>
+    <p class="lede">Your course tasks, saved to your account. Come back to them any time, update them as you grow, and download a copy whenever you like.</p>
+    <div class="tools">
+      <a class="tool" href="?tool=spider">
+        <h3>Self-perception spider diagram</h3>
+        <p>How you see yourself as a coach, next to how a colleague and your athletes see you.</p>
+        <span id="spider-status">Open →</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- spider diagram -->
+  <section id="spider" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Methodology</p>
+    <h1>Self-perception spider diagram</h1>
+    <p class="lede">A simple way to see where your view of your coaching matches how others experience it — and where it does not.</p>
+
+    <div class="panel noprint">
+      <h2>How it works</h2>
+      <ol class="steps">
+        <li><b>Your qualities.</b> Think of around 5 traits that make an excellent coach, then build them out to 10–15. Find the words yourself — they represent what <i>you</i> think good coaching is.</li>
+        <li><b>Rate yourself</b> from 1 to 10 on each one.</li>
+        <li><b>Ask a colleague</b> (for example your lead coach) and <b>your athletes</b> to rate you too. Send them a link below and their scores fill in by themselves — or type in scores you collected in person.</li>
+        <li><b>Look at the gaps.</b> Where others see you differently from how you see yourself is where the learning is.</li>
+      </ol>
+    </div>
+
+    <div class="spider-grid">
+      <div class="panel">
+        <h2>My qualities and ratings</h2>
+        <table>
+          <thead><tr><th></th><th>Quality</th><th class="s">Me</th><th class="c">Colleague</th><th class="a">Athletes</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="row noprint" style="margin-top:12px">
+          <button class="btn ghost small" id="add-row" type="button">+ Add a quality</button>
+          <span class="savestate" id="savestate"></span>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel" style="padding:14px">
+          <div class="chartbox"><svg id="chart" viewBox="0 0 460 420" role="img" aria-label="Spider diagram"></svg>
+            <div class="legend"><span><i style="background:#4FA8DE"></i>Me</span><span><i style="background:#D8393D"></i>Colleague</span><span><i style="background:#8a8587"></i>Athletes</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Biggest differences</h2>
+          <ul class="gaps" id="gaps"><li>Add your qualities and ratings to see where the views differ.</li></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel noprint">
+      <h2>Ask for ratings</h2>
+      <p class="lede" style="font-size:14px;margin:0 0 12px">Each person gets their own link. They do not need an account — they just score you on your qualities. Ask several athletes and their scores are averaged.</p>
+      <div class="row">
+        <button class="btn small" id="ask-colleague" type="button" style="background:var(--colleague);border-color:var(--colleague);color:#fff">+ Link for a colleague</button>
+        <button class="btn ghost small" id="ask-athlete" type="button">+ Link for an athlete</button>
+      </div>
+      <div id="invites" style="margin-top:10px"></div>
+      <div id="inv-msg" class="msg"></div>
+    </div>
+
+    <div class="panel">
+      <h2>My reflections</h2>
+      <p class="lede noprint" style="font-size:14px;margin:0 0 10px">What stands out? Where do others see you differently, and why might that be? What will you work on first?</p>
+      <textarea id="notes" placeholder="Write your thoughts here…"></textarea>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="save" type="button">Save</button>
+      <button class="btn ghost" id="download" type="button">Download PDF</button>
+      <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
+const $ = (id) => document.getElementById(id);
+const tool = new URLSearchParams(location.search).get("tool") || "";
+const show = (id) => ["loading", "login", "home", "spider"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+
+let session = null;
+let doc = null;          // the learn_portfolio row for this tool
+let invites = [];
+let saveTimer = null;
+
+// ---------------- login ----------------
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("l-msg");
+  const { error } = await db.auth.signInWithPassword({ email: $("l-email").value.trim(), password: $("l-pass").value });
+  if (error) { msg.className = "msg err"; msg.textContent = "That email and password did not match. Try again, or use the login link."; return; }
+  boot();
+});
+$("l-link").addEventListener("click", async () => {
+  const msg = $("l-msg");
+  const email = $("l-email").value.trim().toLowerCase();
+  if (!email.includes("@")) { msg.className = "msg err"; msg.textContent = "Type your email first."; return; }
+  await fetch("/.netlify/functions/learn-access", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, next: location.pathname + location.search }) }).catch(() => {});
+  msg.className = "msg ok";
+  msg.textContent = "If that email has a course, a login link is on its way. Tap it and you come straight back here.";
+});
+
+// ---------------- back to the course ----------------
+// The course opens this page in a new tab, so "back" closes this tab and the
+// lesson is still there underneath. If the browser will not close it, go to
+// the course list instead.
+document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("click", async (e) => {
+  e.preventDefault();
+  if (doc && tool === "spider") await save();
+  window.close();
+  setTimeout(() => { location.href = "/learn/"; }, 300);
+}));
+
+// ---------------- start ----------------
+async function boot() {
+  ({ data: { session } } = await db.auth.getSession());
+  if (!session) { show("login"); return; }
+  if (tool === "spider") return openSpider();
+  const { data } = await db.from("learn_portfolio").select("tool, updated_at").eq("user_id", session.user.id);
+  const sp = (data || []).find((r) => r.tool === "spider");
+  if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
+  show("home");
+}
+db.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_IN" && !session) boot(); });
+boot();
+
+// ---------------- spider diagram ----------------
+const MAX_ROWS = 15;
+
+async function openSpider() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "spider").maybeSingle();
+  doc = data || { tool: "spider", data: { rows: Array.from({ length: 10 }, () => ({ q: "", self: null, colleague: null, athlete: null })), notes: "" } };
+  if (!doc.data.rows || !doc.data.rows.length) doc.data.rows = [{ q: "", self: null, colleague: null, athlete: null }];
+  $("notes").value = doc.data.notes || "";
+  await loadInvites();
+  renderRows();
+  show("spider");
+}
+
+// Scores sent in through rating links, averaged per quality and role.
+function received(role) {
+  const done = invites.filter((i) => i.role === role && i.submitted_at && i.ratings);
+  const out = {};
+  for (const r of doc.data.rows) {
+    const key = r.q.trim().toLowerCase();
+    if (!key) continue;
+    const vals = done.map((i) => Number(i.ratings[key])).filter((v) => v >= 1 && v <= 10);
+    if (vals.length) out[key] = { avg: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10, n: vals.length };
+  }
+  return out;
+}
+
+function scoreCell(row, role, got) {
+  const td = document.createElement("td");
+  const key = row.q.trim().toLowerCase();
+  if (got[key]) {
+    const v = document.createElement("div");
+    v.style.textAlign = "center"; v.style.fontWeight = "700";
+    v.textContent = got[key].avg;
+    const f = document.createElement("span"); f.className = "from";
+    f.textContent = got[key].n === 1 ? "1 rating" : got[key].n + " ratings";
+    td.append(v, f);
+    return td;
+  }
+  td.appendChild(scoreSelect(row, role));
+  return td;
+}
+
+function scoreSelect(row, field) {
+  const sel = document.createElement("select");
+  sel.innerHTML = '<option value="">–</option>' + Array.from({ length: 10 }, (_, i) => `<option>${i + 1}</option>`).join("");
+  sel.value = row[field] == null ? "" : String(row[field]);
+  sel.onchange = () => { row[field] = sel.value ? Number(sel.value) : null; changed(); };
+  return sel;
+}
+
+function renderRows() {
+  const tb = $("rows");
+  tb.innerHTML = "";
+  const gotC = received("colleague"), gotA = received("athlete");
+  doc.data.rows.forEach((row, i) => {
+    const tr = document.createElement("tr");
+    const n = document.createElement("td"); n.className = "n"; n.textContent = i + 1;
+    const qtd = document.createElement("td");
+    const q = document.createElement("input"); q.className = "q"; q.value = row.q; q.maxLength = 60;
+    q.placeholder = i < 3 ? ["e.g. Clear communicator", "e.g. Patient", "e.g. Knows the movements"][i] : "";
+    q.oninput = () => { row.q = q.value; changed(false); };
+    // Only refresh this row's other scores, so the next box you tap keeps focus.
+    q.onchange = () => {
+      const c = received("colleague"), a = received("athlete");
+      tr.replaceChild(scoreCell(row, "colleague", c), tr.children[3]);
+      tr.replaceChild(scoreCell(row, "athlete", a), tr.children[4]);
+      drawChart();
+    };
+    qtd.appendChild(q);
+    const s = document.createElement("td"); s.appendChild(scoreSelect(row, "self"));
+    tr.append(n, qtd, s, scoreCell(row, "colleague", gotC), scoreCell(row, "athlete", gotA));
+    tb.appendChild(tr);
+  });
+  $("add-row").disabled = doc.data.rows.length >= MAX_ROWS;
+  drawChart(gotC, gotA);
+}
+
+$("add-row").onclick = () => {
+  if (doc.data.rows.length >= MAX_ROWS) return;
+  doc.data.rows.push({ q: "", self: null, colleague: null, athlete: null });
+  renderRows();
+};
+
+function values() {
+  const gotC = received("colleague"), gotA = received("athlete");
+  return doc.data.rows.filter((r) => r.q.trim()).map((r) => {
+    const key = r.q.trim().toLowerCase();
+    return {
+      q: r.q.trim(),
+      self: r.self,
+      colleague: gotC[key] ? gotC[key].avg : r.colleague,
+      athlete: gotA[key] ? gotA[key].avg : r.athlete,
+    };
+  });
+}
+
+function drawChart() {
+  const svg = $("chart");
+  const pts = values();
+  const cx = 230, cy = 205, R = 150;
+  const ns = "http://www.w3.org/2000/svg";
+  svg.innerHTML = "";
+  const el = (tag, attrs, text) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; svg.appendChild(e); return e; };
+  if (pts.length < 3) {
+    el("text", { x: cx, y: cy, "text-anchor": "middle", fill: "#777", "font-size": 14 }, "Add at least 3 qualities to draw your diagram");
+    return;
+  }
+  const ang = (i) => -Math.PI / 2 + (2 * Math.PI * i) / pts.length;
+  const at = (i, v) => [cx + Math.cos(ang(i)) * R * v / 10, cy + Math.sin(ang(i)) * R * v / 10];
+  for (let ring = 2; ring <= 10; ring += 2) {
+    el("polygon", { points: pts.map((_, i) => at(i, ring).join(",")).join(" "), fill: "none", stroke: "#ddd", "stroke-width": 1 });
+    el("text", { x: cx + 3, y: cy - R * ring / 10 + 4, fill: "#aaa", "font-size": 9 }, ring);
+  }
+  pts.forEach((p, i) => {
+    const [x, y] = at(i, 10);
+    el("line", { x1: cx, y1: cy, x2: x, y2: y, stroke: "#e5e5e5" });
+    const [lx, ly] = at(i, 11.4);
+    const anchor = Math.abs(lx - cx) < 8 ? "middle" : lx > cx ? "start" : "end";
+    el("text", { x: lx, y: ly + 4, "text-anchor": anchor, fill: "#333", "font-size": 11 }, p.q.length > 22 ? p.q.slice(0, 21) + "…" : p.q);
+  });
+  const series = [["athlete", "#8a8587"], ["colleague", "#D8393D"], ["self", "#4FA8DE"]];
+  for (const [key, colour] of series) {
+    if (!pts.some((p) => p[key] != null)) continue;
+    const poly = pts.map((p, i) => at(i, p[key] == null ? 0 : p[key]).join(",")).join(" ");
+    el("polygon", { points: poly, fill: colour, "fill-opacity": 0.12, stroke: colour, "stroke-width": 2.2 });
+    pts.forEach((p, i) => { if (p[key] != null) { const [x, y] = at(i, p[key]); el("circle", { cx: x, cy: y, r: 3, fill: colour }); } });
+  }
+  drawGaps(pts);
+}
+
+function drawGaps(pts) {
+  const list = $("gaps");
+  const rows = pts.map((p) => {
+    const others = [p.colleague, p.athlete].filter((v) => v != null);
+    if (p.self == null || !others.length) return null;
+    const avg = others.reduce((a, b) => a + b, 0) / others.length;
+    return { q: p.q, self: p.self, others: Math.round(avg * 10) / 10, gap: Math.round((p.self - avg) * 10) / 10 };
+  }).filter(Boolean).sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap));
+  if (!rows.length) { list.innerHTML = "<li>Once you have your own score and at least one other person's on the same quality, the biggest differences show here.</li>"; return; }
+  list.innerHTML = "";
+  for (const r of rows.slice(0, 5)) {
+    const li = document.createElement("li");
+    const b = document.createElement("b"); b.textContent = r.q;
+    li.append(b, document.createTextNode(
+      r.gap > 0 ? ` — you rate yourself ${r.self}, others ${r.others}. You may see more in yourself here than others do yet.`
+      : r.gap < 0 ? ` — you rate yourself ${r.self}, others ${r.others}. Others see more in you here than you do.`
+      : ` — you and others agree (${r.self}).`));
+    list.appendChild(li);
+  }
+}
+
+// ---------------- saving ----------------
+function changed(redraw = true) {
+  if (redraw) drawChart();
+  $("savestate").textContent = "Unsaved changes";
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, 1500);
+}
+$("notes").addEventListener("input", () => { doc.data.notes = $("notes").value; changed(false); });
+$("save").onclick = () => save(true);
+
+async function save(loud) {
+  clearTimeout(saveTimer);
+  doc.data.notes = $("notes").value;
+  const row = { user_id: session.user.id, tool: "spider", data: doc.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("savestate").textContent = "Not saved — " + error.message; return false; }
+  // Keep the rows being edited on screen; only take the saved id back.
+  doc = { ...data, data: doc.data };
+  $("savestate").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (loud) $("savestate").textContent = "Saved ✓";
+  return true;
+}
+
+$("download").onclick = async () => { await save(); drawChart(); window.print(); };
+
+// ---------------- rating links ----------------
+async function loadInvites() {
+  if (!doc.id) { invites = []; renderInvites(); return; }
+  const { data } = await db.from("learn_portfolio_invites").select("*").eq("portfolio_id", doc.id).order("created_at");
+  invites = data || [];
+  renderInvites();
+}
+
+function renderInvites() {
+  const box = $("invites");
+  box.innerHTML = "";
+  for (const inv of invites) {
+    const line = document.createElement("div"); line.className = "invite";
+    const who = document.createElement("div"); who.className = "who";
+    who.textContent = (inv.role === "colleague" ? "Colleague" : "Athlete") + (inv.rater_name ? " — " + inv.rater_name : "");
+    const small = document.createElement("small");
+    small.textContent = "Link made " + new Date(inv.created_at).toLocaleDateString("en-GB");
+    who.appendChild(small);
+    const pill = document.createElement("span");
+    pill.className = "pill" + (inv.submitted_at ? " ok" : "");
+    pill.textContent = inv.submitted_at ? "Received" : "Waiting";
+    line.append(who, pill);
+    if (!inv.submitted_at) {
+      const url = location.origin + "/learn/rate/?t=" + inv.token;
+      const copy = document.createElement("button"); copy.className = "btn ghost small"; copy.type = "button"; copy.textContent = "Copy link";
+      copy.onclick = async () => { try { await navigator.clipboard.writeText(url); copy.textContent = "Copied ✓"; } catch (e) { prompt("Copy this link:", url); } };
+      line.appendChild(copy);
+      if (navigator.share) {
+        const sh = document.createElement("button"); sh.className = "btn ghost small"; sh.type = "button"; sh.textContent = "Share";
+        sh.onclick = () => navigator.share({ title: "Rate me as a coach", text: "Could you rate me on a few coaching qualities? It takes 2 minutes.", url }).catch(() => {});
+        line.appendChild(sh);
+      }
+    }
+    box.appendChild(line);
+  }
+}
+
+async function ask(role) {
+  const msg = $("inv-msg");
+  msg.className = "msg"; msg.textContent = "";
+  if (values().length < 3) { msg.className = "msg err"; msg.textContent = "Add at least 3 qualities first — those are what they will rate."; return; }
+  if (!(await save())) return;
+  const { error } = await db.from("learn_portfolio_invites").insert({ portfolio_id: doc.id, user_id: session.user.id, role });
+  if (error) { msg.className = "msg err"; msg.textContent = error.message; return; }
+  await loadInvites();
+  renderRows();
+  msg.className = "msg ok"; msg.textContent = "Link ready — copy it and send it to them. Their scores appear here as soon as they submit.";
+}
+$("ask-colleague").onclick = () => ask("colleague");
+$("ask-athlete").onclick = () => ask("athlete");
+
+// Pick up ratings that arrive while the page is open.
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "visible" && tool === "spider" && doc && doc.id) { await loadInvites(); renderRows(); }
+});
+</script>
+</body>
+</html><body>
+
+<div class="bar">
+  <a href="/learn/"><img src="/brand/birdBox.png" alt="BirdBox"></a>
+  <span class="name">My portfolio</span>
   <div class="nav"><a class="btn ghost small" href="/learn/">My courses</a></div>
 </div>
 
