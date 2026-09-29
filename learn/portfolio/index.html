@@ -94,6 +94,23 @@
   .pull b{color:var(--ink)}
   .hist{font-size:13px;color:var(--muted)}
 
+  .rx{position:relative;border:1px solid var(--line);background:var(--paper);padding:12px;margin:10px 0}
+  .rx .g2{display:grid;grid-template-columns:1fr;gap:10px}
+  @media(min-width:760px){.rx .g2{grid-template-columns:1fr 1fr}}
+  .rx label{display:block;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 5px}
+  .rx textarea{min-height:64px;font-size:15px;padding:9px 10px;background:var(--panel)}
+  .rx .kind{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .rx .kind button{font:inherit;font-size:13px;padding:7px 11px;background:var(--panel);color:var(--muted);border:1px solid var(--line);cursor:pointer}
+  .rx .kind button.on.good{background:var(--good);border-color:var(--good);color:#0C1116}
+  .rx .kind button.on.bad{background:var(--bad);border-color:var(--bad);color:#0C1116}
+  .rx .kind button.on.unsure{background:#E0B84F;border-color:#E0B84F;color:#0C1116}
+  .rx .alt{margin-top:10px}
+  .rx .del{position:absolute;right:10px;top:10px;background:none;border:0;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline}
+  .rxh{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .rxh .dot{width:12px;height:12px;border-radius:50%}
+  .change li{margin-bottom:10px;color:var(--muted);line-height:1.5}
+  .change b{color:var(--ink)}
+
   @media print {
     body{background:#fff;color:#111}
     .bar,.noprint,.btn{display:none!important}
@@ -147,6 +164,11 @@
         <h3>Concern for the athlete or the task?</h3>
         <p>Where you think you sit as a coach, next to what your answers to the quiz show.</p>
         <span id="concern-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=reactions">
+        <h3>My reactions in coaching</h3>
+        <p>What your members do that annoys, pleases or saddens you — how you react, and how you would rather respond.</p>
+        <span id="reactions-status">Open →</span>
       </a>
     </div>
   </section>
@@ -267,6 +289,42 @@
       </div>
     </div>
   </section>
+  <!-- reactions -->
+  <section id="reactions" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Knowing Yourself</p>
+    <h1>My reactions in coaching</h1>
+    <p class="lede">Reactions are fast and often automatic. Behaviours are chosen. This task helps you see which is which in your coaching.</p>
+
+    <div class="panel noprint">
+      <h2>How it works</h2>
+      <ol class="steps">
+        <li><b>Spend 5–10 minutes</b> listing things your members do that <b>annoy</b> you, <b>please</b> you and <b>sadden</b> you.</li>
+        <li>For each one, write down <b>how you react</b> — what you say, do, or how you look.</li>
+        <li>Decide: is that reaction <b>considered and purposeful</b>, or something you are <b>not proud of</b>?</li>
+        <li>For any reaction you do not like, write the <b>behaviour you would rather provide</b> instead.</li>
+      </ol>
+    </div>
+
+    <div id="rx-groups"></div>
+
+    <div class="panel">
+      <h2>What I want to change</h2>
+      <ul class="change" id="rx-change"></ul>
+    </div>
+
+    <div class="panel">
+      <h2>My reflections</h2>
+      <p class="lede noprint" style="font-size:14px;margin:0 0 10px">Do you see any patterns? Which situations trigger your least considered reactions? What will you practise in your next session?</p>
+      <textarea id="rx-notes" placeholder="Write your thoughts here…"></textarea>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="rx-save" type="button">Save</button>
+      <button class="btn ghost" id="rx-download" type="button">Download PDF</button>
+      <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+      <span class="savestate" id="rx-state"></span>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -275,7 +333,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -308,6 +366,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   e.preventDefault();
   if (doc && tool === "spider") await save();
   if (cq && cq.result && tool === "concern") await cqSave();
+  if (rx && tool === "reactions") await rxSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -318,10 +377,13 @@ async function boot() {
   if (!session) { show("login"); return; }
   if (tool === "spider") return openSpider();
   if (tool === "concern") return openConcern();
+  if (tool === "reactions") return openReactions();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
   const cn = (data || []).find((r) => r.tool === "concern");
+  const rn = (data || []).find((r) => r.tool === "reactions");
+  if (rn) $("reactions-status").textContent = "Last saved " + new Date(rn.updated_at).toLocaleDateString("en-GB") + " →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -662,6 +724,108 @@ $("cq-retake").onclick = () => {
   $("cq-result").classList.add("hidden"); $("cq-form").classList.remove("hidden");
   window.scrollTo({ top: 0 });
 };
+
+// ---------------- my reactions ----------------
+const RX_GROUPS = [
+  { key: "annoy", title: "Things members do that annoy me", colour: "#D8393D", eg: "e.g. Turns up late and interrupts the briefing", reg: "e.g. I sigh and ignore them" },
+  { key: "please", title: "Things members do that please me", colour: "#5CC48A", eg: "e.g. Asks how they can improve a movement", reg: "e.g. I give them extra time and attention" },
+  { key: "sadden", title: "Things members do that sadden me", colour: "#4FA8DE", eg: "e.g. Stops coming after a hard week", reg: "e.g. I say nothing and hope they come back" },
+];
+const RX_KIND = [["good", "Considered and purposeful"], ["bad", "Not proud of it"], ["unsure", "Not sure"]];
+let rx = null;
+let rxTimer = null;
+
+async function openReactions() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "reactions").maybeSingle();
+  rx = data || { tool: "reactions", data: { groups: {}, notes: "" } };
+  rx.data.groups = rx.data.groups || {};
+  for (const g of RX_GROUPS) if (!rx.data.groups[g.key] || !rx.data.groups[g.key].length) rx.data.groups[g.key] = [{ b: "", r: "", k: "", alt: "" }];
+  $("rx-notes").value = rx.data.notes || "";
+  rxRender();
+  show("reactions");
+}
+
+function rxRender() {
+  const box = $("rx-groups"); box.innerHTML = "";
+  for (const g of RX_GROUPS) {
+    const panel = document.createElement("div"); panel.className = "panel";
+    const h = document.createElement("div"); h.className = "rxh";
+    h.innerHTML = `<span class="dot" style="background:${g.colour}"></span>`;
+    const h2 = document.createElement("h2"); h2.style.margin = "0"; h2.textContent = g.title; h.appendChild(h2);
+    panel.appendChild(h);
+    g.key && rx.data.groups[g.key].forEach((item, i) => panel.appendChild(rxItem(g, item, i)));
+    const add = document.createElement("button"); add.type = "button"; add.className = "btn ghost small noprint"; add.textContent = "+ Add another";
+    add.onclick = () => { rx.data.groups[g.key].push({ b: "", r: "", k: "", alt: "" }); rxRender(); };
+    panel.appendChild(add);
+    box.appendChild(panel);
+  }
+  rxChanges();
+}
+
+function rxItem(g, item, i) {
+  const d = document.createElement("div"); d.className = "rx";
+  if (rx.data.groups[g.key].length > 1) {
+    const del = document.createElement("button"); del.type = "button"; del.className = "del noprint"; del.textContent = "Remove";
+    del.onclick = () => { rx.data.groups[g.key].splice(i, 1); rxRender(); rxChanged(); };
+    d.appendChild(del);
+  }
+  const grid = document.createElement("div"); grid.className = "g2";
+  const field = (label, key, ph) => {
+    const w = document.createElement("div");
+    const l = document.createElement("label"); l.textContent = label;
+    const t = document.createElement("textarea"); t.value = item[key] || ""; t.placeholder = ph || "";
+    t.oninput = () => { item[key] = t.value; rxChanged(); };
+    t.onchange = () => rxChanges();
+    w.append(l, t); return w;
+  };
+  grid.append(field("What the member does", "b", i === 0 ? g.eg : ""), field("How I react", "r", i === 0 ? g.reg : ""));
+  d.appendChild(grid);
+  const kind = document.createElement("div"); kind.className = "kind";
+  for (const [k, label] of RX_KIND) {
+    const b = document.createElement("button"); b.type = "button"; b.className = k + (item.k === k ? " on" : ""); b.textContent = label;
+    b.onclick = () => { item.k = item.k === k ? "" : k; rxRender(); rxChanged(); };
+    kind.appendChild(b);
+  }
+  d.appendChild(kind);
+  if (item.k === "bad" || item.k === "unsure") {
+    const alt = field("The behaviour I would rather provide", "alt", "e.g. Greet them, and have a quick word after class about arriving on time");
+    alt.className = "alt"; d.appendChild(alt);
+  }
+  return d;
+}
+
+function rxChanges() {
+  const ul = $("rx-change"); ul.innerHTML = "";
+  for (const g of RX_GROUPS) for (const it of rx.data.groups[g.key]) {
+    if (it.k !== "bad" && it.k !== "unsure") continue;
+    if (!it.b.trim() && !it.r.trim()) continue;
+    const li = document.createElement("li");
+    const b = document.createElement("b"); b.textContent = it.b.trim() || "(behaviour not written yet)";
+    li.append(b, document.createTextNode(" — I react: " + (it.r.trim() || "…") + ". "));
+    const em = document.createElement("span"); em.style.color = "var(--ink)";
+    em.textContent = it.alt.trim() ? "Instead I will: " + it.alt.trim() : "Instead I will: (not decided yet)";
+    li.appendChild(em); ul.appendChild(li);
+  }
+  if (!ul.children.length) ul.innerHTML = "<li>Mark a reaction as “Not proud of it” or “Not sure”, and it appears here with the behaviour you would rather provide.</li>";
+}
+
+function rxChanged() {
+  $("rx-state").textContent = "Unsaved changes";
+  clearTimeout(rxTimer); rxTimer = setTimeout(rxSave, 1500);
+}
+async function rxSave() {
+  clearTimeout(rxTimer);
+  rx.data.notes = $("rx-notes").value;
+  const row = { user_id: session.user.id, tool: "reactions", data: rx.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("rx-state").textContent = "Not saved — " + error.message; return false; }
+  rx = { ...data, data: rx.data };
+  $("rx-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("rx-notes").addEventListener("input", rxChanged);
+$("rx-save").onclick = async () => { if (await rxSave()) $("rx-state").textContent = "Saved ✓"; };
+$("rx-download").onclick = async () => { await rxSave(); rxChanges(); window.print(); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
