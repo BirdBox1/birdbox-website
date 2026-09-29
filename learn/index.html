@@ -80,6 +80,7 @@
     <p class="kicker">BirdBox Learn</p>
     <h1>Your online courses</h1>
     <p class="lede">Log in with the email address you bought your course with.</p>
+    <p id="expired-note" class="msg err hidden" style="max-width:420px">That link has expired. Tap “Email me a login link” below and we will send you a fresh one.</p>
     <form class="card" id="login-form">
       <label for="l-email">Email</label>
       <input id="l-email" type="email" autocomplete="email" required>
@@ -95,6 +96,9 @@
   <section id="home" class="hidden">
     <p class="kicker">BirdBox Learn</p>
     <h1>My courses</h1>
+    <div id="welcome-note" class="box hidden" style="background:var(--panel);border:1px solid var(--accent);padding:18px 20px;margin:0 0 24px;max-width:640px;line-height:1.6">
+      <strong>Welcome — your account is set up.</strong> Your course is below. Set a password now (at the bottom of this page) so you can log in any time without waiting for an email.
+    </div>
     <p class="lede">Pick up where you left off. Your progress saves as you go, on any device.</p>
     <div id="courses" class="grid"></div>
 
@@ -148,7 +152,19 @@ $("login-form").addEventListener("submit", async (e) => {
   const { error } = await db.auth.signInWithPassword({ email, password });
   $("l-go").disabled = false;
   if (error) { msg.className = "msg err"; msg.textContent = "That email and password did not match. Try again, or use the login link button."; return; }
-  start();
+  // From the welcome email's link (?welcome=1) or an expired one (?expired=1).
+const params = new URLSearchParams(location.search);
+if (params.get("expired")) {
+  $("expired-note").classList.remove("hidden");
+  if (params.get("email")) $("l-email").value = params.get("email");
+}
+if (params.get("welcome")) {
+  $("welcome-note").classList.remove("hidden");
+  setTimeout(() => { const p = $("p-new"); if (p) p.scrollIntoView({ behavior: "smooth", block: "center" }); }, 1200);
+}
+if (params.get("welcome") || params.get("expired")) history.replaceState(null, "", "/learn/" + location.hash);
+
+start();
 });
 
 $("l-link").addEventListener("click", async () => {
