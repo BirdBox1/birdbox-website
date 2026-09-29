@@ -381,14 +381,15 @@ async function uploadOne(versionId, f, rel) {
   const blob = await f.getBlob();
   const key = versionId + "/" + rel;
   let last;
-  for (let tryNo = 1; tryNo <= 4; tryNo++) {
+  for (let tryNo = 1; tryNo <= 6; tryNo++) {
     const { error } = await db.storage.from(BUCKET).upload(key, blob, {
       contentType: typeOf(rel), upsert: true, cacheControl: "31536000",
     });
     if (!error) return blob.size;
     last = error;
     if (/invalid key/i.test(error.message || "")) break;          // bad filename: retrying won't help
-    await new Promise((r) => setTimeout(r, 1000 * tryNo * tryNo));
+    // Supabase sometimes answers "too many connections" when busy: back off and try again.
+    await new Promise((r) => setTimeout(r, 1500 * 2 ** (tryNo - 1) + Math.random() * 1000));
   }
   throw new Error(last?.message || "upload failed");
 }
@@ -417,7 +418,7 @@ $("u-go").addEventListener("click", async () => {
     // Biggest files first so the long uploads overlap the many small ones.
     const queue = [...pack].sort((a, b) => (b.size || 0) - (a.size || 0));
     let done = 0, bytes = 0;
-    const failed = [];
+    let failed = [];
     stat("Uploading 0 of " + pack.length + " files (" + mb(total) + ")… keep this page open and the screen on.");
     bar(0);
 
@@ -426,20 +427,34 @@ $("u-go").addEventListener("click", async () => {
         const f = queue.shift();
         const rel = f.path.slice(man.prefix.length);
         try {
-          bytes += await uploadOne(ver.id, f, rel);
+          const size = await uploadOne(ver.id, f, rel);
+          bytes += size;
         } catch (e) {
-          failed.push(rel + " — " + e.message);
+          failed.push({ f, rel, error: e.message });
         }
         done++;
         bar(total ? bytes / total : done / pack.length);
         stat("Uploading " + done + " of " + pack.length + " files (" + mb(bytes) + " of " + mb(total) + ")… keep this page open and the screen on.");
       }
     };
-    await Promise.all([worker(), worker(), worker(), worker()]);
+    await Promise.all([worker(), worker(), worker()]);
+
+    // A second, slower pass for anything that failed while Supabase was busy.
+    if (failed.length) {
+      const retry = failed; failed = [];
+      stat("Retrying " + retry.length + " file(s) that did not go the first time…");
+      await new Promise((r) => setTimeout(r, 5000));
+      for (const x of retry) {
+        try { bytes += await uploadOne(ver.id, x.f, x.rel); }
+        catch (e) { failed.push(x); }
+        bar(total ? bytes / total : 1);
+      }
+      done = pack.length;
+    }
 
     if (failed.length) {
       await db.from("learn_versions").update({ status: "failed", file_count: done - failed.length, total_bytes: bytes }).eq("id", ver.id);
-      throw new Error(failed.length + " file(s) did not upload, so the course was NOT switched over:\n" + failed.slice(0, 15).join("\n") +
+      throw new Error(failed.length + " file(s) did not upload, so the course was NOT switched over:\n" + failed.slice(0, 15).map((x) => x.rel + " — " + x.error).join("\n") +
         (failed.length > 15 ? "\n…and " + (failed.length - 15) + " more" : "") + "\nTry the upload again.");
     }
 
