@@ -377,6 +377,81 @@ function bar(frac) {
   $("u-bar").firstElementChild.style.width = Math.min(100, Math.round(frac * 100)) + "%";
 }
 
+// ---- file names Supabase will not accept ----------------------------
+// Supabase storage refuses accented letters and a few symbols in file
+// names (e.g. "Führungsstil-Matrix.jpg"). Those files are stored under a
+// plain name ("Fuhrungsstil-Matrix.jpg"), and every page and script in
+// the course that mentions the old name is changed to the new one before
+// it is uploaded -- including Rise's course data, which is stored encoded.
+const safeName = (p) => p.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  .replace(/[^A-Za-z0-9_\/!.*'() &$@=;:+,-]/g, "_");
+
+function planRenames(pack, prefix) {
+  const taken = new Set(pack.map((f) => f.path.slice(prefix.length)));
+  const map = new Map();
+  for (const f of pack) {
+    const rel = f.path.slice(prefix.length);
+    let safe = safeName(rel);
+    if (safe === rel) continue;
+    let n = 1;
+    while (taken.has(safe)) {
+      const i = safe.lastIndexOf(".");
+      safe = (i > safe.lastIndexOf("/") ? safe.slice(0, i) + "-" + n + safe.slice(i) : safe + "-" + n);
+      n++;
+    }
+    taken.add(safe);
+    map.set(rel, safe);
+  }
+  return map;
+}
+
+function patchText(text, renames) {
+  let out = text;
+  for (const [from, to] of renames) {
+    const a = from.split("/").pop(), b = to.split("/").pop();
+    const forms = new Set([a, a.normalize("NFC"), a.normalize("NFD")]);
+    for (const x of [...forms]) { forms.add(encodeURIComponent(x)); forms.add(encodeURI(x)); }
+    for (const x of forms) if (x && x !== b && out.includes(x)) out = out.split(x).join(b);
+  }
+  return out;
+}
+
+function b64ToText(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+function textToB64(text) {
+  const bytes = new TextEncoder().encode(text);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+// Wraps a file so its text is corrected on the way up (only text files
+// that actually mention a renamed file are changed).
+function withPatchedText(f, renames) {
+  if (!renames.size || !/\.(html?|js|css|json|xml)$/i.test(f.path) || (f.size || 0) > 20 * 1048576) return f;
+  return {
+    ...f,
+    getBlob: async () => {
+      const blob = await f.getBlob();
+      const text = await blob.text();
+      let out = patchText(text, renames);
+      // Rise keeps its course data base64-encoded inside __jsonp("…","…").
+      out = out.replace(/__jsonp\("([^"]*)"\s*,\s*"([A-Za-z0-9+\/=]{100,})"\)/g, (m, name, b64) => {
+        try {
+          const inner = b64ToText(b64);
+          const fixed = patchText(inner, renames);
+          return fixed === inner ? m : '__jsonp("' + name + '","' + textToB64(fixed) + '")';
+        } catch (e) { return m; }
+      });
+      return out === text ? blob : new Blob([out], { type: typeOf(f.path) });
+    },
+  };
+}
+
 async function uploadOne(versionId, f, rel) {
   const blob = await f.getBlob();
   const key = versionId + "/" + rel;
@@ -406,7 +481,11 @@ $("u-go").addEventListener("click", async () => {
     const files = await readPicked();
     if (!files) throw new Error("Pick the zip, or the unzipped folder.");
     const man = await readManifest(files);
-    const pack = files.filter((f) => f.path.startsWith(man.prefix));
+    const renames = planRenames(files.filter((f) => f.path.startsWith(man.prefix)), man.prefix);
+    const pack = files.filter((f) => f.path.startsWith(man.prefix)).map((f) => {
+      const rel = f.path.slice(man.prefix.length);
+      return withPatchedText({ ...f, key: renames.get(rel) || rel }, renames);
+    });
     const total = pack.reduce((s, f) => s + (f.size || 0), 0);
     if (man.scos > 1) msg.textContent = "Note: this package has " + man.scos + " parts; only the first one is played.";
 
@@ -425,7 +504,7 @@ $("u-go").addEventListener("click", async () => {
     const worker = async () => {
       while (queue.length) {
         const f = queue.shift();
-        const rel = f.path.slice(man.prefix.length);
+        const rel = f.key;
         try {
           const size = await uploadOne(ver.id, f, rel);
           bytes += size;
