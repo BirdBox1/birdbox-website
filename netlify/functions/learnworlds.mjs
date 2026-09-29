@@ -19,6 +19,7 @@
 // is rejected with a 422.
 
 import { createClient } from "@supabase/supabase-js";
+import crypto from "node:crypto";
 
 const BASE = (process.env.LEARNWORLDS_BASE_URL || "").replace(/\/+$/, "");
 const ROOT = BASE.replace(/\/v2$/, "");
@@ -317,3 +318,18 @@ export async function isOnSite(productId) {
 
 // Where students of on-site courses log in.
 export const LEARN_URL = "https://birdboxcoaching.com/learn/";
+
+// A personal "set up my account" link for welcome emails. It carries the
+// email and an expiry, signed so it cannot be altered. Opening it goes to
+// /learn/start, which logs them straight in (making the account the first
+// time) -- no need to ask for a login link. Valid for 30 days; after that
+// the page asks them to request a fresh link by email.
+const LINK_SECRET = () => process.env.LEARN_LINK_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+export function signLearnLink(email, expires) {
+  return crypto.createHmac("sha256", LINK_SECRET()).update(String(email).toLowerCase() + "." + expires).digest("base64url");
+}
+export function learnStartLink(email, days = 30) {
+  const e = String(email || "").trim().toLowerCase();
+  const x = Math.floor(Date.now() / 1000) + days * 86400;
+  return "https://birdboxcoaching.com/learn/start?e=" + encodeURIComponent(e) + "&x=" + x + "&s=" + signLearnLink(e, x);
+}
