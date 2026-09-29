@@ -25,6 +25,7 @@ const LINKS = [
   { href: "/portal/availability/",label: "My availability" },
   { href: "/portal/reflections/", label: "Reflections" },
   { href: "/portal/workshops/",   label: "Workshops" },
+  { href: "/portal/learn/",       label: "Online courses", admin: true },
   { href: "/portal/codes/",       label: "Discount codes", admin: true },
   { href: "/portal/?view=messages", label: "Messages" },
   { href: "/portal/broadcast/",   label: "Message the team", admin: true },
