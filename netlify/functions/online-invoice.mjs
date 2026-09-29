@@ -35,7 +35,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
-import { enrolById, listCourses, isOnSite, LEARN_URL } from "./learnworlds.mjs";
+import { enrolById, listCourses, isOnSite, LEARN_URL, learnStartLink } from "./learnworlds.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -454,13 +454,12 @@ async function sendWelcome(row, isNewAccount, onSite) {
   ];
   if (onSite) {
     lines.push(
-      "Your course is on our website. To start:",
+      "Your course is on our website. Tap this link to open it — the first time, it sets up your account and logs you straight in:",
       "",
-      `1. Go to ${LEARN_URL}`,
-      `2. Type this email address: ${row.email}`,
-      "3. Tap \"Email me a login link\" and open the link we send you (check spam if it has not arrived in a few minutes).",
+      learnStartLink(row.email),
       "",
-      "The course is waiting under My courses. Once you are in you can set a password, so next time you can log in straight away.",
+      "The course is waiting under My courses. Once you are in, set a password so you can log in any time.",
+      `Later, log in at ${LEARN_URL} with this email address: ${row.email}`,
       "",
       "No code is needed. Any problems getting in, just reply to this email.",
       "",
