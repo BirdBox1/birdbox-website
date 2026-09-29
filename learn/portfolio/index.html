@@ -72,6 +72,28 @@
   .pill{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border:1px solid var(--line);color:var(--muted)}
   .pill.ok{color:var(--good);border-color:var(--good)}
 
+  .scale10{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;max-width:560px}
+  .scale10 button{font:inherit;font-size:15px;font-weight:700;padding:10px 0;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .scale10 button.on{background:var(--accent);border-color:var(--accent);color:#0C1116}
+  .ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px;max-width:560px}
+  .qz{border-top:1px solid var(--line);padding:18px 0}
+  .qz h3{margin:0 0 4px;font-size:16px;line-height:1.4}
+  .qz .hint{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .qz label.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin:6px 0;border:1px solid var(--line);background:var(--paper);cursor:pointer;font-size:15px;line-height:1.4}
+  .qz label.opt input{margin-top:3px;accent-color:var(--accent)}
+  .qz label.opt.on{border-color:var(--accent)}
+  .qz.missing h3{color:var(--bad)}
+  .line{position:relative;height:74px;margin:10px 8px 6px}
+  .line .track{position:absolute;left:0;right:0;top:34px;height:6px;background:linear-gradient(90deg,#5CC48A,#E0B84F,#D8393D)}
+  .line .mk{position:absolute;top:0;transform:translateX(-50%);text-align:center;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+  .line .mk i{display:block;width:16px;height:16px;border-radius:50%;margin:4px auto 0;border:3px solid var(--paper)}
+  .line .mk.b{top:44px}
+  .line .mk.b i{margin:0 auto 4px}
+  .verdict{font-size:20px;font-weight:800;margin:6px 0 8px}
+  .pull li{margin-bottom:8px;color:var(--muted);line-height:1.5}
+  .pull b{color:var(--ink)}
+  .hist{font-size:13px;color:var(--muted)}
+
   @media print {
     body{background:#fff;color:#111}
     .bar,.noprint,.btn{display:none!important}
@@ -120,6 +142,11 @@
         <h3>Self-perception spider diagram</h3>
         <p>How you see yourself as a coach, next to how a colleague and your athletes see you.</p>
         <span id="spider-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=concern">
+        <h3>Concern for the athlete or the task?</h3>
+        <p>Where you think you sit as a coach, next to what your answers to the quiz show.</p>
+        <span id="concern-status">Open →</span>
       </a>
     </div>
   </section>
@@ -189,6 +216,57 @@
       <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
     </div>
   </section>
+  <!-- athlete or task quiz -->
+  <section id="concern" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Methodology</p>
+    <h1>Concern for the athlete or the task?</h1>
+    <p class="lede">Find out whether your everyday coaching leans towards your athletes or towards getting the task done — and whether that matches what you think.</p>
+
+    <div id="cq-form">
+      <div class="panel">
+        <h2>Step 1 — Where do you think you sit?</h2>
+        <p class="lede" style="font-size:15px;margin:0 0 12px">Before the quiz: on a scale of 1 to 10, how athlete- or task-centred are you? 1 = highly athlete-focused, 10 = highly task-focused.</p>
+        <div class="scale10" id="guess"></div>
+        <div class="ends"><span>1 · Athlete-centred</span><span>Task-centred · 10</span></div>
+      </div>
+
+      <div class="panel">
+        <h2>Step 2 — The quiz</h2>
+        <p class="lede" style="font-size:15px;margin:0">Answer for your average coaching week — what you really do, not what you think you should do.</p>
+        <div id="quiz"></div>
+        <button class="btn" id="cq-go" type="button" style="margin-top:8px">See my result</button>
+        <div class="msg" id="cq-msg"></div>
+      </div>
+    </div>
+
+    <div id="cq-result" class="hidden">
+      <div class="panel">
+        <h2>My result</h2>
+        <div class="line" id="line"><div class="track"></div></div>
+        <div class="ends" style="max-width:none"><span>1 · Athlete-centred</span><span>Task-centred · 10</span></div>
+        <p class="verdict" id="verdict"></p>
+        <p class="lede" style="font-size:15px;margin:0 0 10px" id="verdict-text"></p>
+        <p class="lede" style="font-size:15px;margin:0" id="compare"></p>
+      </div>
+      <div class="panel">
+        <h2>Answers that pulled you towards the task</h2>
+        <ul class="pull" id="pull"></ul>
+      </div>
+      <div class="panel">
+        <h2>My reflections</h2>
+        <p class="lede noprint" style="font-size:14px;margin:0 0 10px">Did the result match where you placed yourself? Are you coaching for yourself, or coaching others? What is one thing you will change in your next session?</p>
+        <textarea id="cq-notes" placeholder="Write your thoughts here…"></textarea>
+        <p class="hist" id="cq-hist"></p>
+      </div>
+      <div class="row noprint">
+        <button class="btn" id="cq-save" type="button">Save</button>
+        <button class="btn ghost" id="cq-download" type="button">Download PDF</button>
+        <button class="btn ghost" id="cq-retake" type="button">Retake the quiz</button>
+        <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+        <span class="savestate" id="cq-state"></span>
+      </div>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -197,7 +275,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -229,6 +307,7 @@ $("l-link").addEventListener("click", async () => {
 document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("click", async (e) => {
   e.preventDefault();
   if (doc && tool === "spider") await save();
+  if (cq && cq.result && tool === "concern") await cqSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -238,9 +317,12 @@ async function boot() {
   ({ data: { session } } = await db.auth.getSession());
   if (!session) { show("login"); return; }
   if (tool === "spider") return openSpider();
+  if (tool === "concern") return openConcern();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
+  const cn = (data || []).find((r) => r.tool === "concern");
+  if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
 db.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_IN" && !session) boot(); });
@@ -422,389 +504,164 @@ async function save(loud) {
 
 $("download").onclick = async () => { await save(); drawChart(); window.print(); };
 
-// ---------------- rating links ----------------
-async function loadInvites() {
-  if (!doc.id) { invites = []; renderInvites(); return; }
-  const { data } = await db.from("learn_portfolio_invites").select("*").eq("portfolio_id", doc.id).order("created_at");
-  invites = data || [];
-  renderInvites();
+// ---------------- athlete or task quiz ----------------
+// Each answer scores 0 (athlete-centred) to 3 (task-centred). The total is
+// turned into a 1-10 position so it sits on the same line as the learner's guess.
+const QUIZ = [
+  { q: "How closely do you follow your session plan?",
+    a: [["I do not usually plan my sessions", 2], ["I follow it exactly, whatever happens", 3],
+        ["I plan, then adapt it to the athletes who turn up", 0], ["I follow it, and only change it if something goes wrong", 1]] },
+  { q: "You have an injured athlete in your class. What do you do?",
+    a: [["Completely adapt your coaching towards them, in a group environment", 1], ["Include them the best you can in the class", 0],
+        ["Give them work they can do and leave them to it", 2], ["Focus on the others in the class and let them get on with what they want", 3]] },
+  { q: "You have a widely mixed-ability class: 3 elite athletes, 5 novices, 4 long-term members and 3 newly returning members. How do you approach it?",
+    a: [["Make sure the task of the session is achieved", 3], ["Make sure everyone is happy and comfortable with the workout", 1],
+        ["Communicate well with each person while making sure they complete the workout effectively", 0], ["Let the group approach you if they need you", 2]] },
+  { q: "An athlete is clearly having a bad day — tired, stressed or low. What do you do?",
+    a: [["Encourage them to push through — the workout is the workout", 3], ["Check in with them and adjust the session to what they need today", 0],
+        ["Ask how they are, but keep them on the plan", 1], ["Let them do whatever they feel like", 2]] },
+  { q: "An athlete's movement breaks down in the middle of a workout. What do you do?",
+    a: [["Give a quick cue and let them keep going for their score", 2], ["Leave it — they need to finish", 3],
+        ["Stop them, correct it and scale so they can move well", 0], ["Make a note and speak to them after the class", 1]] },
+  { q: "During the workout, where are you and what are you doing?",
+    a: [["Moving between athletes, giving each one feedback", 0], ["At the front, calling time and counting down", 3],
+        ["Mostly helping the athletes who ask for it", 2], ["With the athletes who need me most, checking in on the rest", 1]] },
+  { q: "Do you connect with and advance all of your athletes in every class you coach?",
+    a: [["Always", 0], ["Mostly", 1], ["Some of the time", 2], ["Not often", 3]] },
+  { q: "Do you make sure the training programme is delivered, highlighting the task and goal and pursuing it at any cost?",
+    a: [["Always", 3], ["Mostly", 2], ["Sometimes", 1], ["Never", 0]] },
+  { q: "A member asks you a question during a session. What do you do?",
+    a: [["Answer them the best you can", 0], ["Give a short answer so the session continues", 1],
+        ["Tell them to ask you again at the end of the session", 2], ["Redirect them back into the task of the workout", 3]] },
+  { q: "At the end of a class, how do you judge whether it went well?",
+    a: [["Everyone finished the workout", 2], ["I delivered the session the way I planned it", 3],
+        ["Each athlete learned or improved something", 0], ["The class enjoyed it and will come back", 1]] },
+  { q: "Do you communicate effectively, one to one, for more than 3–5 minutes with every one of your members each month?",
+    a: [["Yes", 0], ["Sometimes", 2], ["No", 3]] },
+  { q: "Do you know all of your members' goals and needs?",
+    a: [["Definitely", 0], ["Mostly", 1], ["Some of them", 2], ["Only a few, or none", 3]] },
+  { q: "Do you track each athlete's progress over time?",
+    a: [["Yes, for every athlete, and I use it in my coaching", 0], ["For some of them", 1],
+        ["Only their scores on the whiteboard or app", 2], ["No", 3]] },
+  { q: "Do you have a clear, written coaching philosophy?",
+    a: [["Yes", 0], ["I have one, but it is not written down", 1], ["No", 3]] },
+  { q: "Be honest: what drives your coaching most?",
+    a: [["My own love of training and the sport", 2], ["Helping each person become a better version of themselves", 0],
+        ["Sharing what I know", 1], ["It is my job — the classes need coaching", 3]] },
+];
+const BANDS = [
+  { max: 4, title: "You are athlete-centred in your coaching.",
+    text: "Your answers show that your athletes come first: you know them, talk with them and adapt to them, while still getting the work done. Keep building on this with the definitions of coaching and transformational coaching in this course." },
+  { max: 7, title: "You sit between the athlete and the task.",
+    text: "You care about your athletes, but in parts of your coaching the task of the session takes over. Look at the answers below — they show where you could shift your focus towards the people in front of you. Revisit the definitions of coaching and transformational coaching." },
+  { max: 11, title: "You are task-focused in your instructional coaching.",
+    text: "Right now your coaching leans towards delivering the workout rather than developing the athletes in it — closer to an exercise instructor than a coach. This is not a criticism; it is your starting point. Consider the definitions of coaching and transformational coaching, and use the answers below as your first areas to work on." },
+];
+let cq = null;   // the learn_portfolio row for the quiz
+let cqTimer = null;
+
+async function openConcern() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "concern").maybeSingle();
+  cq = data || { tool: "concern", data: { guess: null, answers: {}, result: null, notes: "", history: [] } };
+  cq.data.answers = cq.data.answers || {};
+  cq.data.history = cq.data.history || [];
+  $("cq-notes").value = cq.data.notes || "";
+  buildQuiz();
+  if (cq.data.result) showResult(); else { $("cq-form").classList.remove("hidden"); $("cq-result").classList.add("hidden"); }
+  show("concern");
 }
 
-function renderInvites() {
-  const box = $("invites");
-  box.innerHTML = "";
-  for (const inv of invites) {
-    const line = document.createElement("div"); line.className = "invite";
-    const who = document.createElement("div"); who.className = "who";
-    who.textContent = (inv.role === "colleague" ? "Colleague" : "Athlete") + (inv.rater_name ? " — " + inv.rater_name : "");
-    const small = document.createElement("small");
-    small.textContent = "Link made " + new Date(inv.created_at).toLocaleDateString("en-GB");
-    who.appendChild(small);
-    const pill = document.createElement("span");
-    pill.className = "pill" + (inv.submitted_at ? " ok" : "");
-    pill.textContent = inv.submitted_at ? "Received" : "Waiting";
-    line.append(who, pill);
-    if (!inv.submitted_at) {
-      const url = location.origin + "/learn/rate/?t=" + inv.token;
-      const copy = document.createElement("button"); copy.className = "btn ghost small"; copy.type = "button"; copy.textContent = "Copy link";
-      copy.onclick = async () => { try { await navigator.clipboard.writeText(url); copy.textContent = "Copied ✓"; } catch (e) { prompt("Copy this link:", url); } };
-      line.appendChild(copy);
-      if (navigator.share) {
-        const sh = document.createElement("button"); sh.className = "btn ghost small"; sh.type = "button"; sh.textContent = "Share";
-        sh.onclick = () => navigator.share({ title: "Rate me as a coach", text: "Could you rate me on a few coaching qualities? It takes 2 minutes.", url }).catch(() => {});
-        line.appendChild(sh);
-      }
-    }
-    box.appendChild(line);
+function buildQuiz() {
+  const g = $("guess"); g.innerHTML = "";
+  for (let v = 1; v <= 10; v++) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = v;
+    b.classList.toggle("on", cq.data.guess === v);
+    b.onclick = () => { cq.data.guess = v; g.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); };
+    g.appendChild(b);
   }
-}
-
-async function ask(role) {
-  const msg = $("inv-msg");
-  msg.className = "msg"; msg.textContent = "";
-  if (values().length < 3) { msg.className = "msg err"; msg.textContent = "Add at least 3 qualities first — those are what they will rate."; return; }
-  if (!(await save())) return;
-  const { error } = await db.from("learn_portfolio_invites").insert({ portfolio_id: doc.id, user_id: session.user.id, role });
-  if (error) { msg.className = "msg err"; msg.textContent = error.message; return; }
-  await loadInvites();
-  renderRows();
-  msg.className = "msg ok"; msg.textContent = "Link ready — copy it and send it to them. Their scores appear here as soon as they submit.";
-}
-$("ask-colleague").onclick = () => ask("colleague");
-$("ask-athlete").onclick = () => ask("athlete");
-
-// Pick up ratings that arrive while the page is open.
-document.addEventListener("visibilitychange", async () => {
-  if (document.visibilityState === "visible" && tool === "spider" && doc && doc.id) { await loadInvites(); renderRows(); }
-});
-</script>
-</body>
-</html><body>
-
-<div class="bar">
-  <a href="/learn/"><img src="/brand/birdBox.png" alt="BirdBox"></a>
-  <span class="name">My portfolio</span>
-  <div class="nav"><a class="btn ghost small" href="/learn/">My courses</a></div>
-</div>
-
-<main class="wrap">
-  <p id="loading" class="lede">Loading…</p>
-
-  <!-- not logged in -->
-  <section id="login" class="hidden">
-    <p class="kicker">BirdBox Learn</p>
-    <h1>My portfolio</h1>
-    <p class="lede">Log in with the email address you bought your course with, and your portfolio opens here.</p>
-    <form class="card" id="login-form">
-      <label for="l-email">Email</label>
-      <input id="l-email" type="email" autocomplete="email" required>
-      <label for="l-pass">Password</label>
-      <input id="l-pass" type="password" autocomplete="current-password">
-      <button class="btn" id="l-go" type="submit">Log in</button>
-      <button class="btn ghost" id="l-link" type="button" style="margin-top:10px">Email me a login link</button>
-      <div id="l-msg" class="msg"></div>
-    </form>
-  </section>
-
-  <!-- portfolio home -->
-  <section id="home" class="hidden">
-    <p class="kicker">BirdBox Learn</p>
-    <h1>My portfolio</h1>
-    <p class="lede">Your course tasks, saved to your account. Come back to them any time, update them as you grow, and download a copy whenever you like.</p>
-    <div class="tools">
-      <a class="tool" href="?tool=spider">
-        <h3>Self-perception spider diagram</h3>
-        <p>How you see yourself as a coach, next to how a colleague and your athletes see you.</p>
-        <span id="spider-status">Open →</span>
-      </a>
-    </div>
-  </section>
-
-  <!-- spider diagram -->
-  <section id="spider" class="hidden">
-    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Methodology</p>
-    <h1>Self-perception spider diagram</h1>
-    <p class="lede">A simple way to see where your view of your coaching matches how others experience it — and where it does not.</p>
-
-    <div class="panel noprint">
-      <h2>How it works</h2>
-      <ol class="steps">
-        <li><b>Your qualities.</b> Think of around 5 traits that make an excellent coach, then build them out to 10–15. Find the words yourself — they represent what <i>you</i> think good coaching is.</li>
-        <li><b>Rate yourself</b> from 1 to 10 on each one.</li>
-        <li><b>Ask a colleague</b> (for example your lead coach) and <b>your athletes</b> to rate you too. Send them a link below and their scores fill in by themselves — or type in scores you collected in person.</li>
-        <li><b>Look at the gaps.</b> Where others see you differently from how you see yourself is where the learning is.</li>
-      </ol>
-    </div>
-
-    <div class="spider-grid">
-      <div class="panel">
-        <h2>My qualities and ratings</h2>
-        <table>
-          <thead><tr><th></th><th>Quality</th><th class="s">Me</th><th class="c">Colleague</th><th class="a">Athletes</th></tr></thead>
-          <tbody id="rows"></tbody>
-        </table>
-        <div class="row noprint" style="margin-top:12px">
-          <button class="btn ghost small" id="add-row" type="button">+ Add a quality</button>
-          <span class="savestate" id="savestate"></span>
-        </div>
-      </div>
-
-      <div>
-        <div class="panel" style="padding:14px">
-          <div class="chartbox"><svg id="chart" viewBox="0 0 460 420" role="img" aria-label="Spider diagram"></svg>
-            <div class="legend"><span><i style="background:#4FA8DE"></i>Me</span><span><i style="background:#D8393D"></i>Colleague</span><span><i style="background:#8a8587"></i>Athletes</span></div>
-          </div>
-        </div>
-        <div class="panel">
-          <h2>Biggest differences</h2>
-          <ul class="gaps" id="gaps"><li>Add your qualities and ratings to see where the views differ.</li></ul>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel noprint">
-      <h2>Ask for ratings</h2>
-      <p class="lede" style="font-size:14px;margin:0 0 12px">Each person gets their own link. They do not need an account — they just score you on your qualities. Ask several athletes and their scores are averaged.</p>
-      <div class="row">
-        <button class="btn small" id="ask-colleague" type="button" style="background:var(--colleague);border-color:var(--colleague);color:#fff">+ Link for a colleague</button>
-        <button class="btn ghost small" id="ask-athlete" type="button">+ Link for an athlete</button>
-      </div>
-      <div id="invites" style="margin-top:10px"></div>
-      <div id="inv-msg" class="msg"></div>
-    </div>
-
-    <div class="panel">
-      <h2>My reflections</h2>
-      <p class="lede noprint" style="font-size:14px;margin:0 0 10px">What stands out? Where do others see you differently, and why might that be? What will you work on first?</p>
-      <textarea id="notes" placeholder="Write your thoughts here…"></textarea>
-    </div>
-
-    <div class="row noprint">
-      <button class="btn" id="save" type="button">Save</button>
-      <button class="btn ghost" id="download" type="button">Download PDF</button>
-    </div>
-  </section>
-</main>
-
-<script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-
-const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
-const $ = (id) => document.getElementById(id);
-const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
-
-let session = null;
-let doc = null;          // the learn_portfolio row for this tool
-let invites = [];
-let saveTimer = null;
-
-// ---------------- login ----------------
-$("login-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const msg = $("l-msg");
-  const { error } = await db.auth.signInWithPassword({ email: $("l-email").value.trim(), password: $("l-pass").value });
-  if (error) { msg.className = "msg err"; msg.textContent = "That email and password did not match. Try again, or use the login link."; return; }
-  boot();
-});
-$("l-link").addEventListener("click", async () => {
-  const msg = $("l-msg");
-  const email = $("l-email").value.trim().toLowerCase();
-  if (!email.includes("@")) { msg.className = "msg err"; msg.textContent = "Type your email first."; return; }
-  await fetch("/.netlify/functions/learn-access", { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, next: location.pathname + location.search }) }).catch(() => {});
-  msg.className = "msg ok";
-  msg.textContent = "If that email has a course, a login link is on its way. Tap it and you come straight back here.";
-});
-
-// ---------------- start ----------------
-async function boot() {
-  ({ data: { session } } = await db.auth.getSession());
-  if (!session) { show("login"); return; }
-  if (tool === "spider") return openSpider();
-  const { data } = await db.from("learn_portfolio").select("tool, updated_at").eq("user_id", session.user.id);
-  const sp = (data || []).find((r) => r.tool === "spider");
-  if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
-  show("home");
-}
-db.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_IN" && !session) boot(); });
-boot();
-
-// ---------------- spider diagram ----------------
-const MAX_ROWS = 15;
-
-async function openSpider() {
-  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "spider").maybeSingle();
-  doc = data || { tool: "spider", data: { rows: Array.from({ length: 10 }, () => ({ q: "", self: null, colleague: null, athlete: null })), notes: "" } };
-  if (!doc.data.rows || !doc.data.rows.length) doc.data.rows = [{ q: "", self: null, colleague: null, athlete: null }];
-  $("notes").value = doc.data.notes || "";
-  await loadInvites();
-  renderRows();
-  show("spider");
-}
-
-// Scores sent in through rating links, averaged per quality and role.
-function received(role) {
-  const done = invites.filter((i) => i.role === role && i.submitted_at && i.ratings);
-  const out = {};
-  for (const r of doc.data.rows) {
-    const key = r.q.trim().toLowerCase();
-    if (!key) continue;
-    const vals = done.map((i) => Number(i.ratings[key])).filter((v) => v >= 1 && v <= 10);
-    if (vals.length) out[key] = { avg: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10, n: vals.length };
-  }
-  return out;
-}
-
-function scoreCell(row, role, got) {
-  const td = document.createElement("td");
-  const key = row.q.trim().toLowerCase();
-  if (got[key]) {
-    const v = document.createElement("div");
-    v.style.textAlign = "center"; v.style.fontWeight = "700";
-    v.textContent = got[key].avg;
-    const f = document.createElement("span"); f.className = "from";
-    f.textContent = got[key].n === 1 ? "1 rating" : got[key].n + " ratings";
-    td.append(v, f);
-    return td;
-  }
-  td.appendChild(scoreSelect(row, role));
-  return td;
-}
-
-function scoreSelect(row, field) {
-  const sel = document.createElement("select");
-  sel.innerHTML = '<option value="">–</option>' + Array.from({ length: 10 }, (_, i) => `<option>${i + 1}</option>`).join("");
-  sel.value = row[field] == null ? "" : String(row[field]);
-  sel.onchange = () => { row[field] = sel.value ? Number(sel.value) : null; changed(); };
-  return sel;
-}
-
-function renderRows() {
-  const tb = $("rows");
-  tb.innerHTML = "";
-  const gotC = received("colleague"), gotA = received("athlete");
-  doc.data.rows.forEach((row, i) => {
-    const tr = document.createElement("tr");
-    const n = document.createElement("td"); n.className = "n"; n.textContent = i + 1;
-    const qtd = document.createElement("td");
-    const q = document.createElement("input"); q.className = "q"; q.value = row.q; q.maxLength = 60;
-    q.placeholder = i < 3 ? ["e.g. Clear communicator", "e.g. Patient", "e.g. Knows the movements"][i] : "";
-    q.oninput = () => { row.q = q.value; changed(false); };
-    // Only refresh this row's other scores, so the next box you tap keeps focus.
-    q.onchange = () => {
-      const c = received("colleague"), a = received("athlete");
-      tr.replaceChild(scoreCell(row, "colleague", c), tr.children[3]);
-      tr.replaceChild(scoreCell(row, "athlete", a), tr.children[4]);
-      drawChart();
-    };
-    qtd.appendChild(q);
-    const s = document.createElement("td"); s.appendChild(scoreSelect(row, "self"));
-    tr.append(n, qtd, s, scoreCell(row, "colleague", gotC), scoreCell(row, "athlete", gotA));
-    tb.appendChild(tr);
-  });
-  $("add-row").disabled = doc.data.rows.length >= MAX_ROWS;
-  drawChart(gotC, gotA);
-}
-
-$("add-row").onclick = () => {
-  if (doc.data.rows.length >= MAX_ROWS) return;
-  doc.data.rows.push({ q: "", self: null, colleague: null, athlete: null });
-  renderRows();
-};
-
-function values() {
-  const gotC = received("colleague"), gotA = received("athlete");
-  return doc.data.rows.filter((r) => r.q.trim()).map((r) => {
-    const key = r.q.trim().toLowerCase();
-    return {
-      q: r.q.trim(),
-      self: r.self,
-      colleague: gotC[key] ? gotC[key].avg : r.colleague,
-      athlete: gotA[key] ? gotA[key].avg : r.athlete,
-    };
+  const box = $("quiz"); box.innerHTML = "";
+  QUIZ.forEach((item, i) => {
+    const d = document.createElement("div"); d.className = "qz"; d.id = "qz" + i;
+    const h = document.createElement("h3"); h.textContent = (i + 1) + ". " + item.q; d.appendChild(h);
+    if (item.hint) { const p = document.createElement("p"); p.className = "hint"; p.textContent = item.hint; d.appendChild(p); }
+    item.a.forEach(([label], j) => {
+      const l = document.createElement("label"); l.className = "opt";
+      const r = document.createElement("input"); r.type = "radio"; r.name = "q" + i; r.checked = cq.data.answers[i] === j;
+      r.onchange = () => { cq.data.answers[i] = j; d.classList.remove("missing"); d.querySelectorAll("label").forEach((x) => x.classList.toggle("on", x === l)); };
+      if (r.checked) l.classList.add("on");
+      l.append(r, document.createTextNode(label));
+      d.appendChild(l);
+    });
+    box.appendChild(d);
   });
 }
 
-function drawChart() {
-  const svg = $("chart");
-  const pts = values();
-  const cx = 230, cy = 205, R = 150;
-  const ns = "http://www.w3.org/2000/svg";
-  svg.innerHTML = "";
-  const el = (tag, attrs, text) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; svg.appendChild(e); return e; };
-  if (pts.length < 3) {
-    el("text", { x: cx, y: cy, "text-anchor": "middle", fill: "#777", "font-size": 14 }, "Add at least 3 qualities to draw your diagram");
+$("cq-go").onclick = async () => {
+  const msg = $("cq-msg"); msg.className = "msg"; msg.textContent = "";
+  if (!cq.data.guess) { msg.className = "msg err"; msg.textContent = "Pick where you think you sit in Step 1 first."; $("guess").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+  const missing = QUIZ.map((_, i) => i).filter((i) => cq.data.answers[i] == null);
+  if (missing.length) {
+    missing.forEach((i) => $("qz" + i).classList.add("missing"));
+    msg.className = "msg err"; msg.textContent = "Please answer every question (" + missing.length + " left).";
+    $("qz" + missing[0]).scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
-  const ang = (i) => -Math.PI / 2 + (2 * Math.PI * i) / pts.length;
-  const at = (i, v) => [cx + Math.cos(ang(i)) * R * v / 10, cy + Math.sin(ang(i)) * R * v / 10];
-  for (let ring = 2; ring <= 10; ring += 2) {
-    el("polygon", { points: pts.map((_, i) => at(i, ring).join(",")).join(" "), fill: "none", stroke: "#ddd", "stroke-width": 1 });
-    el("text", { x: cx + 3, y: cy - R * ring / 10 + 4, fill: "#aaa", "font-size": 9 }, ring);
-  }
-  pts.forEach((p, i) => {
-    const [x, y] = at(i, 10);
-    el("line", { x1: cx, y1: cy, x2: x, y2: y, stroke: "#e5e5e5" });
-    const [lx, ly] = at(i, 11.4);
-    const anchor = Math.abs(lx - cx) < 8 ? "middle" : lx > cx ? "start" : "end";
-    el("text", { x: lx, y: ly + 4, "text-anchor": anchor, fill: "#333", "font-size": 11 }, p.q.length > 22 ? p.q.slice(0, 21) + "…" : p.q);
+  const total = QUIZ.reduce((t, item, i) => t + item.a[cq.data.answers[i]][1], 0);
+  const max = QUIZ.reduce((t, item) => t + Math.max(...item.a.map((x) => x[1])), 0);
+  const score = Math.round((1 + 9 * total / max) * 10) / 10;
+  cq.data.result = { score, date: new Date().toISOString() };
+  cq.data.history.push({ date: cq.data.result.date, guess: cq.data.guess, score });
+  showResult();
+  await cqSave();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+function showResult() {
+  const { score } = cq.data.result;
+  const guess = cq.data.guess;
+  const band = BANDS.find((b) => score < b.max) || BANDS[2];
+  const pos = (v) => ((v - 1) / 9 * 100) + "%";
+  $("line").innerHTML = '<div class="track"></div>' +
+    (guess ? `<div class="mk" style="left:${pos(guess)};color:var(--muted)">You thought ${guess}<i style="background:var(--muted)"></i></div>` : "") +
+    `<div class="mk b" style="left:${pos(score)};color:var(--accent)"><i style="background:var(--accent)"></i>Quiz ${score}</div>`;
+  $("verdict").textContent = band.title;
+  $("verdict-text").textContent = band.text;
+  const diff = guess ? Math.round((score - guess) * 10) / 10 : null;
+  $("compare").textContent = diff == null ? "" : Math.abs(diff) <= 1.5
+    ? `You placed yourself at ${guess} and the quiz puts you at ${score} — your view of your coaching matches your answers.`
+    : diff > 0 ? `You placed yourself at ${guess}, but your answers put you at ${score}: more task-focused than you thought.`
+    : `You placed yourself at ${guess}, but your answers put you at ${score}: more athlete-centred than you thought.`;
+  const pull = $("pull"); pull.innerHTML = "";
+  QUIZ.forEach((item, i) => {
+    const [label, pts] = item.a[cq.data.answers[i]] || [];
+    if (pts >= 2) { const li = document.createElement("li"); const b = document.createElement("b"); b.textContent = item.q; li.append(b, document.createTextNode(" — you answered “" + label + "”.")); pull.appendChild(li); }
   });
-  const series = [["athlete", "#8a8587"], ["colleague", "#D8393D"], ["self", "#4FA8DE"]];
-  for (const [key, colour] of series) {
-    if (!pts.some((p) => p[key] != null)) continue;
-    const poly = pts.map((p, i) => at(i, p[key] == null ? 0 : p[key]).join(",")).join(" ");
-    el("polygon", { points: poly, fill: colour, "fill-opacity": 0.12, stroke: colour, "stroke-width": 2.2 });
-    pts.forEach((p, i) => { if (p[key] != null) { const [x, y] = at(i, p[key]); el("circle", { cx: x, cy: y, r: 3, fill: colour }); } });
-  }
-  drawGaps(pts);
+  if (!pull.children.length) pull.innerHTML = "<li>None — none of your answers leaned strongly towards the task.</li>";
+  const h = cq.data.history;
+  $("cq-hist").textContent = h.length > 1 ? "Previous attempts: " + h.slice(0, -1).map((x) => new Date(x.date).toLocaleDateString("en-GB") + " — " + x.score).join(" · ") : "";
+  $("cq-form").classList.add("hidden");
+  $("cq-result").classList.remove("hidden");
 }
 
-function drawGaps(pts) {
-  const list = $("gaps");
-  const rows = pts.map((p) => {
-    const others = [p.colleague, p.athlete].filter((v) => v != null);
-    if (p.self == null || !others.length) return null;
-    const avg = others.reduce((a, b) => a + b, 0) / others.length;
-    return { q: p.q, self: p.self, others: Math.round(avg * 10) / 10, gap: Math.round((p.self - avg) * 10) / 10 };
-  }).filter(Boolean).sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap));
-  if (!rows.length) { list.innerHTML = "<li>Once you have your own score and at least one other person's on the same quality, the biggest differences show here.</li>"; return; }
-  list.innerHTML = "";
-  for (const r of rows.slice(0, 5)) {
-    const li = document.createElement("li");
-    const b = document.createElement("b"); b.textContent = r.q;
-    li.append(b, document.createTextNode(
-      r.gap > 0 ? ` — you rate yourself ${r.self}, others ${r.others}. You may see more in yourself here than others do yet.`
-      : r.gap < 0 ? ` — you rate yourself ${r.self}, others ${r.others}. Others see more in you here than you do.`
-      : ` — you and others agree (${r.self}).`));
-    list.appendChild(li);
-  }
-}
-
-// ---------------- saving ----------------
-function changed(redraw = true) {
-  if (redraw) drawChart();
-  $("savestate").textContent = "Unsaved changes";
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(save, 1500);
-}
-$("notes").addEventListener("input", () => { doc.data.notes = $("notes").value; changed(false); });
-$("save").onclick = () => save(true);
-
-async function save(loud) {
-  clearTimeout(saveTimer);
-  doc.data.notes = $("notes").value;
-  const row = { user_id: session.user.id, tool: "spider", data: doc.data, updated_at: new Date().toISOString() };
+async function cqSave() {
+  clearTimeout(cqTimer);
+  cq.data.notes = $("cq-notes").value;
+  const row = { user_id: session.user.id, tool: "concern", data: cq.data, updated_at: new Date().toISOString() };
   const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
-  if (error) { $("savestate").textContent = "Not saved — " + error.message; return false; }
-  // Keep the rows being edited on screen; only take the saved id back.
-  doc = { ...data, data: doc.data };
-  $("savestate").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  if (loud) $("savestate").textContent = "Saved ✓";
+  if (error) { $("cq-state").textContent = "Not saved — " + error.message; return false; }
+  cq = { ...data, data: cq.data };
+  $("cq-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   return true;
 }
-
-$("download").onclick = async () => { await save(); drawChart(); window.print(); };
+$("cq-notes").addEventListener("input", () => { $("cq-state").textContent = "Unsaved changes"; clearTimeout(cqTimer); cqTimer = setTimeout(cqSave, 1500); });
+$("cq-save").onclick = async () => { if (await cqSave()) $("cq-state").textContent = "Saved ✓"; };
+$("cq-download").onclick = async () => { await cqSave(); window.print(); };
+$("cq-retake").onclick = () => {
+  cq.data.answers = {}; cq.data.guess = null; cq.data.result = null;
+  buildQuiz();
+  $("cq-result").classList.add("hidden"); $("cq-form").classList.remove("hidden");
+  window.scrollTo({ top: 0 });
+};
 
 // ---------------- rating links ----------------
 async function loadInvites() {
