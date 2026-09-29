@@ -193,7 +193,7 @@ export async function enrolById({
   // Our own course area gets the same enrolment first, so every
   // way of selling or granting a course also opens it on
   // birdboxcoaching.com/learn/. Never throws.
-  const mirror = await mirrorToLearn({ email, productId, justification });
+  const mirror = await mirrorToLearn({ email, productId, justification, firstName, lastName });
 
   // A course that has moved to birdboxcoaching.com/learn/ is not given
   // in LearnWorlds any more, so the buyer gets one set of emails and one
@@ -272,7 +272,7 @@ export async function listCourses() {
 // not been set up in BirdBox Learn yet is simply skipped. Never throws:
 // a failure here must not stop the LearnWorlds enrolment or a payment.
 let learnDb = null;
-export async function mirrorToLearn({ email, productId, justification }) {
+export async function mirrorToLearn({ email, productId, justification, firstName, lastName }) {
   try {
     if (!email || !productId) return { status: "skipped" };
     if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return { status: "skipped" };
@@ -290,6 +290,8 @@ export async function mirrorToLearn({ email, productId, justification }) {
       course_id: c.id,
       email: String(email).trim().toLowerCase(),
       source: String(justification || "auto").slice(0, 120),
+      first_name: firstName ? String(firstName).trim().slice(0, 80) : null,
+      last_name: lastName ? String(lastName).trim().slice(0, 80) : null,
     }));
     const { error: insErr } = await learnDb
       .from("learn_enrolments")
