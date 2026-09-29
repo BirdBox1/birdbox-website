@@ -51,6 +51,11 @@ const PLAN_FIRST_RATE_LATE = 0.25;
 const PLAN_LATE_DAYS = 28;
 const PLAN_MONTHS = [2, 3, 4, 5, 6];
 
+// "2026-10-29" -> "29 Oct 2026"
+function nice(isoDate) {
+  return new Date(isoDate + "T12:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}
+
 function addMonths(isoDate, months) {
   const [y, m, d] = isoDate.split("-").map(Number);
   const target = new Date(Date.UTC(y, m - 1 + months, 1));
@@ -207,7 +212,7 @@ export default async (req) => {
     }
     if (option === "plan") {
       notes.push(
-        `First payment. Then ${months} monthly payments of about ${money(planParts[0].cents)}, taken automatically from this card starting ${planParts[0].due}.`
+        `First payment. Then ${months} monthly payments of about ${money(planParts[0].cents)}, taken automatically from this card starting ${nice(planParts[0].due)}. 0% interest — the same total as paying in full.`
       );
     }
     if (appliedCode) {
@@ -404,7 +409,7 @@ export default async (req) => {
     if (option === "plan") {
       const plusVat = vat ? " plus VAT" : "";
       session.custom_text.submit = {
-        message: `You are paying ${money(planFirst)}${plusVat} today. The remaining ${money(balance)}${plusVat} is taken from this card in ${months} monthly payments (${planParts.map((x) => money(x.cents) + " on " + x.due).join(", ")}). This is a commitment to pay the full course fee.`.slice(0, 1200),
+        message: `You are paying ${money(planFirst)}${plusVat} today. The remaining ${money(balance)}${plusVat} is taken from this card in ${months} monthly payments (${planParts.map((x) => money(x.cents) + " on " + nice(x.due)).join(", ")}). 0% interest: you pay exactly the same total as paying in full. This is a commitment to pay the full course fee.`.slice(0, 1200),
       };
     }
 
