@@ -42,7 +42,7 @@
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
-import { enrolById } from "./learnworlds.mjs";
+import { enrolById, isOnSite, LEARN_URL } from "./learnworlds.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -147,9 +147,13 @@ async function offer(req, context) {
   let currency = currencyForCountry(country);
   if (!prices[currency]) currency = prices.EUR ? "EUR" : Object.keys(prices)[0] || null;
 
+  // True when every language of this course has moved to birdboxcoaching.com/learn/.
+  const onSiteAll = products.length ? (await Promise.all(products.map((p) => isOnSite(p.lw_course_id)))).every(Boolean) : false;
+
   return json({
     currency,
     prices,
+    on_site: onSiteAll,
     languages: products.map((p) => ({ language: p.language, label: p.label })),
     months: PLAN_CHOICES,
     country,
@@ -253,7 +257,7 @@ async function checkout(req) {
       },
     },
     metadata,
-    success_url: `${origin}/online-welcome/?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${origin}/online-welcome/?session_id={CHECKOUT_SESSION_ID}${(await isOnSite(product.lw_course_id)) ? "&site=1" : ""}`,
     cancel_url: `${origin}${back}`,
   };
 
@@ -401,16 +405,18 @@ export async function onOnlineSaleCompleted(session) {
     return;
   }
 
-  const welcomed = await sendWelcome({ email, first, label: row.label, isNew: !!result.userWasCreated });
+  const welcomed = await sendWelcome({ email, first, label: row.label, isNew: !!result.userWasCreated, onSite: !!result.onSite });
   if (welcomed) {
     await supabase.from("online_sales").update({ welcome_sent_at: new Date().toISOString() }).eq("id", row.id);
   }
 
   await alert("Online course sold",
     `${first} ${last} (${email}) bought ${row.label} on the website — ${how}, ${money}. ` +
-    (result.userWasCreated
-      ? "A new academy account was created and they have been sent the set-your-password email."
-      : "They already had an academy account; the course has been added to it.") +
+    (result.onSite
+      ? "The course is on birdboxcoaching.com/learn/ — they have been emailed how to log in."
+      : result.userWasCreated
+        ? "A new academy account was created and they have been sent the set-your-password email."
+        : "They already had an academy account; the course has been added to it.") +
     "\n\nNothing to do.");
 }
 
@@ -431,7 +437,7 @@ export async function onOnlinePlanFailed(invoice) {
 // helpers
 // ---------------------------------------------------------------
 
-async function sendWelcome({ email, first, label, isNew }) {
+async function sendWelcome({ email, first, label, isNew, onSite }) {
   const key = process.env.RESEND_API_KEY;
   if (!key || !email) return false;
 
@@ -441,7 +447,21 @@ async function sendWelcome({ email, first, label, isNew }) {
     `Thank you — your payment has come through and ${label} is now in your account.`,
     "",
   ];
-  if (isNew) {
+  if (onSite) {
+    lines.push(
+      "Your course is on our website. To start:",
+      "",
+      `1. Go to ${LEARN_URL}`,
+      `2. Type this email address: ${email}`,
+      "3. Tap \"Email me a login link\" and open the link we send you (check spam if it has not arrived in a few minutes).",
+      "",
+      "The course is waiting under My courses. Once you are in you can set a password, so next time you can log in straight away.",
+      "",
+      "Any problems getting in, just reply to this email.",
+      "",
+      "BirdBox Coaching",
+    );
+  } else if (isNew) {
     lines.push(
       "We have set up your BirdBox Academy account for you. You will get a separate email from",
       "BirdBox Academy with a link to set your password (check spam if it has not arrived in a",
@@ -453,7 +473,7 @@ async function sendWelcome({ email, first, label, isNew }) {
       "with your usual email and password:",
     );
   }
-  lines.push(
+  if (!onSite) lines.push(
     LMS_URL,
     "",
     `Log in with this email address: ${email}`,
