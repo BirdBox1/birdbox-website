@@ -300,6 +300,15 @@
   #an-svg .an-on{fill:#1976D2;mix-blend-mode:color;pointer-events:none}
   #an-svg .an-on-line{fill:rgba(60,150,235,.22);stroke:#fff;stroke-width:2.5;pointer-events:none}
   #an-dots{pointer-events:none}
+  #an-svg .an-on2{fill:#26C6DA;mix-blend-mode:color;pointer-events:none}
+  #an-svg .an-on2-line{fill:rgba(38,198,218,.14);stroke:#B2EBF2;stroke-width:2;stroke-dasharray:6 4;pointer-events:none}
+  .an-move{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin:0 0 10px}
+  .an-movelab{display:block;font-size:13px;font-weight:700;letter-spacing:.02em;margin:0 0 6px}
+  .an-movelab i{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-1px;border-radius:2px}
+  .an-movelab i.p{background:#1976D2}
+  .an-movelab i.a{background:#26C6DA}
+  .an-movecard{border:1px solid var(--line);padding:12px;margin:0 0 12px}
+  .an-movecard h3{margin:0 0 10px}
   @media(min-width:900px){.an-mapbox{position:sticky;top:0}}
   .an-mapbox svg{display:block;width:100%;max-height:70vh;height:auto}
   @media(max-width:899px){.an-mapbox svg{max-height:48vh}}
@@ -314,7 +323,7 @@
   .an-list button.on{border-color:#D8393D;background:#3A1A1B}
   .an-list button.known::after{content:" ✓";color:var(--good)}
   #an-card h3{margin:0 0 2px;font-size:22px}
-  .an-bonebox{background:#fff;border:1px solid var(--line);padding:8px}
+  .an-bonebox{background:linear-gradient(180deg,#5B5B5F 0%,#434346 62%,#6E6E72 100%);border:1px solid var(--line);padding:8px}
   .an-bonebox svg{display:block;width:100%;height:auto;max-height:62vh}
   .an-row{border-top:1px solid var(--line);padding:10px 0}
   .an-row b{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 4px;color:var(--muted)}
@@ -1229,12 +1238,16 @@
         <div class="an-mapbox">
           <div class="an-views"><button type="button" id="an-front">Front</button><button type="button" id="an-back">Back</button></div>
           <svg id="an-svg" viewBox="0 0 800 1337" role="img" aria-label="Body map"></svg>
-          <div class="an-legend"><span><i style="background:#2F7FC1"></i>Origin</span><span><i style="background:#E08A2E"></i>Insertion</span><span><i style="border:1px dashed #8A4A44;border-radius:2px"></i>Deep muscle</span><span><i style="background:#2F7FC1;border-radius:2px"></i>Selected</span></div>
+          <div class="an-legend"><span><i style="background:#2F7FC1"></i>Origin</span><span><i style="background:#E08A2E"></i>Insertion</span><span><i style="border:1px dashed #8A4A44;border-radius:2px"></i>Deep muscle</span><span><i style="background:#2F7FC1;border-radius:2px"></i>Selected / main mover</span><span><i style="background:#26C6DA;border-radius:2px"></i>Helper</span></div>
         </div>
       </div>
       <div>
         <div id="an-explore">
           <div class="panel">
+            <label class="an-movelab" for="an-move">Show the muscles that create a movement</label>
+            <select id="an-move" class="an-move"></select>
+            <div id="an-movecard" class="an-movecard hidden"></div>
+            <label class="an-movelab" style="margin-top:6px">Or browse by body region</label>
             <div class="an-regions" id="an-regions"></div>
             <input id="an-search" type="search" placeholder="Search — e.g. glute, scapula, knee" style="width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin:0 0 10px">
             <div class="an-list" id="an-list"></div>
@@ -4150,7 +4163,7 @@ async function openAnatomy() {
   an = data || { tool: "anatomy", data: {} };
   an.data.known = an.data.known || [];
   an.data.quiz = an.data.quiz || { best: null, history: [] };
-  anRegions(); anList(); anSelect(anSel);
+  anMoveSetup(); anRegions(); anList(); anSelect(anSel);
   show("anatomy");
 }
 
@@ -4218,7 +4231,7 @@ function anMap() {
   const el = (tag, attrs, parent) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
   const quizTap = anMode === "quiz" && anQuiz && anQuiz.q && anQuiz.q.type === "tap";
   const quizName = anMode === "quiz" && anQuiz && anQuiz.q && anQuiz.q.type === "name" ? anQuiz.q.id : null;
-  const hi = quizTap ? null : quizName || anSel;
+  const hi = quizTap ? null : quizName || (anSelHidden ? null : anSel);
   const mid = AN_IMG[anView].mid;
   const pathsOf = (m) => { const p = []; if (m.view === anView) p.push(m.d); if (m.alsoFront && anView === "front") p.push(m.alsoFront); if (m.alsoBack && anView === "back") p.push(m.alsoBack); return p; };
   const both = (d) => [d, anMir(d, mid)];
@@ -4244,13 +4257,19 @@ function anMap() {
     if (m.id === hi) continue;
     tap(el("path", { d, class: "an-hit an-deep" }, deep), m);
   }
+  const mvA = anMode !== "quiz" && anMove ? AN_MOVES.find((x) => x.k === anMove) : null;
+  if (mvA) for (const [ids, cls] of [[mvA.assist, "an-on2"], [mvA.prime, "an-on"]]) for (const id of ids) {
+    if (id === hi) continue;
+    const mm = AN.find((x) => x.id === id);
+    for (const d0 of pathsOf(mm)) for (const d of both(d0)) { el("path", { d, class: cls }, sel); el("path", { d, class: cls + "-line" }, dots); }
+  }
   const hm = AN.find((x) => x.id === hi);
   if (hm) for (const d0 of pathsOf(hm)) for (const d of both(d0)) {
     el("path", { d, class: "an-on" }, sel);
     el("path", { d, class: "an-on-line" }, dots);
   }
   const m = AN.find((x) => x.id === anSel);
-  if (!quizTap && !quizName && m && m.view === anView) {
+  if (!quizTap && !quizName && !anSelHidden && m && m.view === anView) {
     el("line", { x1: m.o[0], y1: m.o[1], x2: m.i[0], y2: m.i[1], stroke: "#fff", "stroke-width": 3, "stroke-dasharray": "8 6", "stroke-linecap": "round" }, dots);
     el("circle", { cx: m.o[0], cy: m.o[1], r: 11, fill: "#1F6FB2", stroke: "#fff", "stroke-width": 3.5 }, dots);
     el("circle", { cx: m.i[0], cy: m.i[1], r: 11, fill: "#E08A2E", stroke: "#fff", "stroke-width": 3.5 }, dots);
@@ -4261,123 +4280,149 @@ function anMap() {
 
 // ---------- bone view: origins and insertions on the bony landmarks ----------
 // Original schematic drawings of the left side. Each landmark: [x, y, label].
+// capsule-shaped bone between two points (metatarsals, phalanges)
+function bnStrip(x1, y1, x2, y2, w1, w2) {
+  const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;
+  const a = (x, y, w, s) => [(x + nx * w * s).toFixed(1), (y + ny * w * s).toFixed(1)];
+  const [p1, p2, p3, p4] = [a(x1, y1, w1, 1), a(x2, y2, w2, 1), a(x2, y2, w2, -1), a(x1, y1, w1, -1)];
+  const ex = (dx / L) * w2 * 1.3, ey = (dy / L) * w2 * 1.3, bx = (dx / L) * w1 * 1.1, by = (dy / L) * w1 * 1.1;
+  return `M${p1} L${p2} C${(+p2[0] + ex).toFixed(1)},${(+p2[1] + ey).toFixed(1)} ${(+p3[0] + ex).toFixed(1)},${(+p3[1] + ey).toFixed(1)} ${p3} L${p4} C${(+p4[0] - bx).toFixed(1)},${(+p4[1] - by).toFixed(1)} ${(+p1[0] - bx).toFixed(1)},${(+p1[1] - by).toFixed(1)} ${p1} Z`;
+}
+// Each diagram: bones [path, kind?] (kind: "c" cartilage, "f" faint/behind, "h" hole), lines (ligaments), L = landmarks [x, y, label]
 const BONES = {
   hipBack: {
     title: "Pelvis, femur and knee — from behind", vb: "0 0 300 380",
     bones: [
-      "M135,72 L165,72 L161,132 L150,152 L139,132 Z", // sacrum
-      "M146,152 L154,152 L150,168 Z", // coccyx
-      "M136,76 C121,42 80,30 55,45 C44,55 47,76 60,96 C72,116 90,136 100,150 L121,150 C129,130 135,110 136,76 Z", // ilium
-      "M100,150 C94,166 92,182 100,196 C110,202 124,198 132,188 C128,176 124,164 121,150 Z", // ischium
-      "M84,138 C97,137 102,152 95,161 L80,173 C82,212 86,262 90,320 C98,326 104,336 102,348 L60,348 C57,336 63,326 70,320 C68,262 64,212 60,182 C51,177 47,166 52,156 C58,150 66,150 72,156 Z", // femur
-      "M62,354 L102,354 L99,382 L68,382 Z", // tibia top
-      "M52,356 C56,352 62,354 62,360 C62,366 56,368 52,364 Z", // fibula head
+      ["M132,70 C140,66 160,66 168,70 C168,90 166,112 160,130 C157,140 154,148 150,152 C146,148 143,140 140,130 C134,112 132,90 132,70 Z"], // sacrum
+      ["M142,84 m-2.6,0 a2.6,2 0 1,0 5.2,0 a2.6,2 0 1,0 -5.2,0 M158,84 m-2.6,0 a2.6,2 0 1,0 5.2,0 a2.6,2 0 1,0 -5.2,0 M143,99 m-2.4,0 a2.4,1.9 0 1,0 4.8,0 a2.4,1.9 0 1,0 -4.8,0 M157,99 m-2.4,0 a2.4,1.9 0 1,0 4.8,0 a2.4,1.9 0 1,0 -4.8,0 M144,113 m-2,0 a2,1.7 0 1,0 4,0 a2,1.7 0 1,0 -4,0 M156,113 m-2,0 a2,1.7 0 1,0 4,0 a2,1.7 0 1,0 -4,0 M145,126 m-1.6,0 a1.6,1.4 0 1,0 3.2,0 a1.6,1.4 0 1,0 -3.2,0 M155,126 m-1.6,0 a1.6,1.4 0 1,0 3.2,0 a1.6,1.4 0 1,0 -3.2,0 Z", "h"], // sacral foramina
+      ["M146,153 C148,152 152,152 154,153 L153,159 L152,166 L148,166 L147,159 Z"], // coccyx
+      ["M134,74 C128,54 110,38 88,32 C72,28 58,32 50,42 C44,50 46,62 52,72 C60,86 70,102 78,118 C84,130 88,142 92,156 C94,170 96,184 100,194 C106,202 118,204 128,198 C136,192 140,184 142,176 L140,168 C134,162 128,154 124,146 C122,138 122,130 126,122 L130,114 C128,106 130,90 134,74 Z"], // hip bone
+      ["M116,176 m-8,0 a8,11 0 1,0 16,0 a8,11 0 1,0 -16,0 Z", "h"], // obturator foramen
+      ["M88,130 C98,130 104,140 100,150 C97,156 92,160 86,162 C84,166 86,172 90,176 C94,180 94,186 88,188 C84,190 82,196 82,204 C84,240 86,280 90,314 C96,318 102,326 104,336 C106,344 104,350 98,350 L86,350 C84,346 82,342 80,340 C78,342 76,346 74,350 L62,350 C56,350 54,344 56,336 C58,326 64,318 68,314 C68,280 66,240 64,204 C62,192 58,186 54,180 C48,176 46,166 48,158 C50,150 56,146 62,148 C66,150 70,152 74,150 C76,140 80,132 88,130 Z"], // femur
+      ["M60,354 C70,352 92,352 104,354 C106,360 104,366 100,370 L98,382 L70,382 L66,370 C62,366 58,360 60,354 Z"], // tibia
+      ["M50,360 C50,354 58,352 62,358 L62,368 C60,372 54,374 52,370 Z"], // fibula head
     ],
-    lines: [["M58,196 L58,344", "IT tract"], ["M76,210 L84,318", ""], ["M121,152 L136,112", ""]],
+    lines: [["M58,196 L60,344", "IT tract"], ["M140,118 C132,140 118,168 106,188", ""], ["M58,168 C66,172 80,176 90,180", ""]],
     L: {
-      crest: [80, 36, "Iliac crest"], postIlium: [110, 70, "Posterior ilium"], iliumMid: [80, 72, "Outer ilium (upper)"], iliumLow: [86, 100, "Outer ilium (lower)"],
-      sacrum: [150, 100, "Sacrum"], sacrumFront: [150, 118, "Sacrum (front)"], coccyx: [150, 162, "Coccyx"], stLig: [128, 136, "Sacrotuberous ligament"],
-      ischTub: [106, 190, "Ischial tuberosity"], ischRamus: [124, 192, "Ischial / pubic ramus"],
-      gtTop: [58, 152, "Greater trochanter (top)"], gtLat: [50, 164, "Greater trochanter"], gtFront: [56, 170, "Greater trochanter (front)"],
-      glutTub: [66, 206, "Gluteal tuberosity"], itTract: [58, 300, "Iliotibial tract"], lineaAsp: [80, 252, "Linea aspera"], addTub: [100, 320, "Adductor tubercle"],
-      condM: [96, 340, "Medial femoral condyle"], condL: [66, 340, "Lateral femoral condyle"],
-      fibHead: [52, 360, "Head of fibula"], medTibPost: [98, 364, "Medial tibial condyle (back)"], pesAns: [100, 378, "Medial tibia (pes anserinus)"],
-      itCrest: [72, 178, "Intertrochanteric crest"], obtur: [118, 176, "Ischium / obturator membrane"],
+      crest: [80, 34, "Iliac crest"], postIlium: [118, 66, "Posterior ilium"], iliumMid: [78, 64, "Outer ilium (upper)"], iliumLow: [90, 96, "Outer ilium (lower)"],
+      sacrum: [150, 100, "Sacrum"], sacrumFront: [150, 118, "Sacrum (front)"], coccyx: [150, 162, "Coccyx"], stLig: [126, 150, "Sacrotuberous ligament"],
+      ischTub: [106, 190, "Ischial tuberosity"], ischRamus: [128, 194, "Ischial / pubic ramus"],
+      gtTop: [58, 150, "Greater trochanter (top)"], gtLat: [49, 164, "Greater trochanter"], gtFront: [56, 172, "Greater trochanter (front)"],
+      glutTub: [68, 206, "Gluteal tuberosity"], itTract: [59, 300, "Iliotibial tract"], lineaAsp: [78, 252, "Linea aspera"], addTub: [100, 322, "Adductor tubercle"],
+      condM: [96, 340, "Medial femoral condyle"], condL: [64, 340, "Lateral femoral condyle"],
+      fibHead: [55, 362, "Head of fibula"], medTibPost: [98, 364, "Medial tibial condyle (back)"], pesAns: [100, 376, "Medial tibia (pes anserinus)"],
+      itCrest: [72, 178, "Intertrochanteric crest"], obtur: [116, 176, "Ischium / obturator membrane"],
     },
   },
   hipFront: {
     title: "Lumbar spine, pelvis, femur and knee — from the front", vb: "0 0 300 400",
     bones: [
-      "M138,8 L162,8 L162,20 L138,20 Z M138,24 L162,24 L162,36 L138,36 Z M138,40 L162,40 L162,52 L138,52 Z M138,56 L162,56 L162,68 L138,68 Z", // lumbar
-      "M140,76 C120,50 80,44 58,58 C51,66 53,80 62,92 C66,100 70,108 76,114 L100,130 C116,120 130,102 140,76 Z", // ilium
-      "M100,130 L148,166 L148,184 L112,178 C101,172 96,160 100,130 Z", // pubis
-      "M94,128 C106,128 110,144 102,152 L86,166 C88,210 88,270 88,326 C80,330 72,330 68,326 C68,270 66,212 62,176 C54,172 50,160 54,150 C60,142 68,142 74,148 Z", // femur
-      "M84,336 C94,336 98,346 96,356 C94,364 76,364 72,356 C70,346 74,336 84,336 Z", // patella
-      "M62,366 L106,366 L100,400 L70,400 Z", // tibia
-      "M52,368 C56,364 62,366 62,372 C62,378 56,380 52,376 Z", // fibula head
+      ...[0, 1, 2, 3].map((k) => { const y = 6 + k * 16; return [`M139,${y} C145,${y - 1} 155,${y - 1} 161,${y} C160,${y + 4} 160,${y + 8} 161,${y + 12} C155,${y + 13} 145,${y + 13} 139,${y + 12} C140,${y + 8} 140,${y + 4} 139,${y} Z M139,${y + 3} L125,${y + 2} C123,${y + 4} 123,${y + 7} 125,${y + 8} L139,${y + 8} Z M161,${y + 3} L175,${y + 2} C177,${y + 4} 177,${y + 7} 175,${y + 8} L161,${y + 8} Z`]; }), // lumbar vertebrae
+      ...[0, 1, 2, 3].map((k) => { const y = 19 + k * 16; return [`M140,${y} L160,${y} L160,${y + 3} L140,${y + 3} Z`, "c"]; }), // discs
+      ["M138,70 C146,68 154,68 162,70 C162,90 158,106 150,114 C142,106 138,90 138,70 Z"], // sacrum
+      ["M140,78 C136,62 122,48 102,44 C86,42 70,46 60,56 C54,62 54,72 56,80 C57,86 58,90 60,92 C64,96 68,100 70,106 C70,108 71,110 73,111 C78,114 82,118 86,122 C94,126 102,130 110,134 C122,142 136,150 146,160 C148,164 148,176 148,184 C142,186 134,186 126,184 C118,182 110,184 104,186 C98,186 94,182 94,176 C94,168 96,160 98,152 C104,150 118,118 130,98 C134,90 138,84 140,78 Z"], // hip bone
+      ["M112,160 m-9,0 a9,8 0 1,0 18,0 a9,8 0 1,0 -18,0 Z", "h"], // obturator foramen
+      ["M147,160 L150,160 L150,186 L147,186 Z", "c"], // pubic symphysis
+      ["M96,126 C106,126 112,136 108,146 C104,152 98,156 92,158 C90,164 92,172 96,176 C98,182 94,186 88,186 C86,200 86,240 86,300 C88,312 94,320 98,328 C100,336 96,340 90,340 L66,340 C60,340 58,334 60,328 C64,320 68,312 68,300 C68,250 66,210 64,186 C60,176 54,170 52,162 C50,154 54,146 60,146 C66,146 70,146 76,142 C80,134 86,126 96,126 Z"], // femur
+      ["M84,334 C92,334 97,342 96,350 C95,358 90,364 84,364 C78,364 73,358 72,350 C71,342 76,334 84,334 Z"], // patella
+      ["M60,366 C70,362 98,362 108,366 C110,372 106,378 100,382 C96,386 94,392 94,400 L72,400 C72,392 70,386 66,382 C60,378 58,372 60,366 Z"], // tibia
+      ["M50,370 C52,364 60,364 62,370 L62,382 C60,386 54,386 52,382 Z"], // fibula head
     ],
-    lines: [["M62,92 L148,166", "Inguinal ligament"], ["M84,356 L86,372", ""]],
+    lines: [["M60,92 C90,112 120,136 146,160", "Inguinal ligament"], ["M84,364 L86,374", ""]],
     L: {
-      lumbar: [150, 38, "Lumbar vertebrae T12–L5"], iliacFossa: [104, 84, "Iliac fossa"], asis: [60, 92, "ASIS"], aiis: [72, 110, "AIIS"],
-      acetab: [84, 124, "Above the acetabulum"], pubicBody: [126, 166, "Body of pubis"], pubicCrest: [140, 162, "Pubic crest"], symph: [148, 176, "Pubic symphysis"],
-      inguinal: [104, 128, "Inguinal ligament"], iliacCrest: [96, 50, "Iliac crest (front)"],
-      gt: [54, 150, "Greater trochanter"], lesserTroch: [90, 178, "Lesser trochanter"], interTroch: [76, 162, "Intertrochanteric line"],
-      shaftAnt: [78, 240, "Femoral shaft (front)"], lineaMed: [86, 262, "Linea aspera (medial lip)"], lineaLat: [66, 262, "Linea aspera (lateral lip)"],
-      patella: [84, 346, "Patella"], tibTub: [86, 376, "Tibial tuberosity"], gerdy: [64, 372, "Lateral tibial condyle (Gerdy's tubercle)"],
-      pesAnsF: [102, 386, "Medial tibia (pes anserinus)"], pectLine: [84, 190, "Pectineal line of femur"], pubRamus: [124, 182, "Inferior pubic ramus"],
+      lumbar: [150, 38, "Lumbar vertebrae T12–L5"], iliacFossa: [104, 80, "Iliac fossa"], asis: [60, 92, "ASIS"], aiis: [72, 110, "AIIS"],
+      acetab: [86, 124, "Above the acetabulum"], pubicBody: [128, 170, "Body of pubis"], pubicCrest: [140, 158, "Pubic crest"], symph: [148, 176, "Pubic symphysis"],
+      inguinal: [104, 128, "Inguinal ligament"], iliacCrest: [96, 46, "Iliac crest (front)"],
+      gt: [54, 152, "Greater trochanter"], lesserTroch: [94, 178, "Lesser trochanter"], interTroch: [76, 162, "Intertrochanteric line"],
+      shaftAnt: [77, 240, "Femoral shaft (front)"], lineaMed: [85, 262, "Linea aspera (medial lip)"], lineaLat: [69, 262, "Linea aspera (lateral lip)"],
+      patella: [84, 348, "Patella"], tibTub: [84, 380, "Tibial tuberosity"], gerdy: [64, 372, "Lateral tibial condyle (Gerdy's tubercle)"],
+      pesAnsF: [100, 384, "Medial tibia (pes anserinus)"], pectLine: [86, 192, "Pectineal line of femur"], pubRamus: [122, 183, "Inferior pubic ramus"],
     },
   },
   shoulderBack: {
     title: "Shoulder blade, humerus and spine — from behind", vb: "0 0 300 360",
     bones: [
-      "M240,4 C252,-2 262,4 262,12 L238,12 Z", // occiput hint
-      ...Array.from({ length: 13 }, (_, k) => `M242,${18 + k * 25} L258,${18 + k * 25} L258,${34 + k * 25} L242,${34 + k * 25} Z`), // C7-T12
-      "M110,72 L205,62 L198,180 C172,200 152,208 138,210 C130,190 124,150 118,110 Z", // scapula
-      "M205,90 L120,70 L102,62 L98,72 L118,82 L205,96 Z", // spine of scapula + acromion
-      "M100,54 L184,38 L186,46 L104,62 Z", // clavicle
-      "M96,78 C108,78 112,96 102,106 L92,112 C90,170 84,240 78,300 C86,306 88,318 82,326 L60,326 C54,316 58,304 66,300 C70,240 76,170 80,112 C76,104 78,82 96,78 Z", // humerus
+      ...Array.from({ length: 12 }, (_, k) => { const y = 43 + k * 25; return [`M226,${y + 6} C204,${y + 4} 180,${y + 12} 150,${y + 30} C130,${y + 42} 118,${y + 56} 112,${y + 68} L117,${y + 70} C124,${y + 58} 136,${y + 46} 154,${y + 36} C182,${y + 20} 206,${y + 12} 226,${y + 12} Z`, "f"]; }), // ribs (behind the scapula)
+      ["M226,2 C236,-4 264,-4 274,2 L274,10 C264,8 236,8 226,10 Z"], // base of skull
+      ...Array.from({ length: 13 }, (_, k) => { const y = 18 + k * 25; return [`M240,${y + 2} C244,${y} 256,${y} 260,${y + 2} L262,${y + 8} C258,${y + 12} 242,${y + 12} 238,${y + 8} Z M238,${y + 4} L226,${y + 3} C224,${y + 5} 224,${y + 8} 226,${y + 9} L238,${y + 9} Z M262,${y + 4} L274,${y + 3} C276,${y + 5} 276,${y + 8} 274,${y + 9} L262,${y + 9} Z M247,${y + 10} L253,${y + 10} L251,${y + 22} C250,${y + 24} 250,${y + 24} 249,${y + 22} Z`]; }), // C7–T12
+      ["M100,52 C120,48 150,44 184,38 L186,46 C152,52 122,58 104,60 Z"], // clavicle
+      ["M118,78 C130,74 150,70 168,66 C182,62 194,58 204,58 C206,90 204,130 200,168 C198,180 194,190 186,196 C172,204 156,210 142,212 C136,200 130,178 126,158 C122,138 120,118 118,104 C114,100 110,96 110,90 C110,84 114,80 118,78 Z"], // scapula
+      ["M204,90 C180,84 150,78 126,72 C116,70 108,66 104,62 C100,58 94,58 92,64 C92,70 98,74 106,74 C116,76 124,80 132,84 C156,90 180,96 204,98 Z"], // spine of scapula and acromion
+      ["M100,76 C110,76 116,86 114,96 C112,104 106,108 100,110 C96,114 94,120 92,126 C90,170 86,230 82,290 C86,294 90,300 92,308 L94,314 C94,322 90,328 84,328 L78,326 C76,322 72,320 68,322 L62,326 C58,326 56,322 56,316 L58,308 C62,302 66,296 68,290 C70,230 74,170 78,126 C76,118 74,110 76,100 C78,88 88,76 100,76 Z"], // humerus
+      ["M76,304 m-5,0 a5,7 0 1,0 10,0 a5,7 0 1,0 -10,0 Z", "h"], // olecranon fossa
+      ["M70,318 C74,312 84,312 88,318 L86,340 L72,340 Z"], // olecranon (ulna)
     ],
     lines: [],
     L: {
-      occiput: [250, 8, "Occipital bone / nuchal line"], c7: [250, 26, "C7"], t5: [250, 126, "T5"], t7: [250, 176, "T7"], t12: [250, 326, "T12"], spinous: [250, 76, "Spinous processes"],
-      supraFossa: [170, 74, "Supraspinous fossa"], infraFossa: [160, 140, "Infraspinous fossa"], spine: [160, 88, "Spine of scapula"], acromion: [100, 66, "Acromion"],
-      clavLat: [128, 52, "Lateral clavicle"], medBorder: [202, 130, "Medial border"], latBorder: [124, 128, "Lateral border"], infAngle: [140, 206, "Inferior angle"],
-      infraglen: [114, 104, "Infraglenoid tubercle"], gtSup: [90, 80, "Greater tubercle (superior)"], gtMid: [84, 90, "Greater tubercle (middle)"], gtInf: [82, 100, "Greater tubercle (inferior)"],
-      groove: [94, 124, "Intertubercular groove (front)"], deltTub: [78, 170, "Deltoid tuberosity"], humAbove: [84, 140, "Humerus above radial groove"], humBelow: [74, 230, "Humerus below radial groove"],
-      olecranon: [70, 320, "Olecranon"],
-      supAngle: [114, 76, "Superior angle of scapula"], cervTP: [230, 22, "Transverse processes C1–C4"], mastoid: [236, 6, "Mastoid process / nuchal line"], latEpi: [60, 314, "Lateral epicondyle"],
+      occiput: [250, 6, "Occipital bone / nuchal line"], c7: [250, 26, "C7"], t5: [250, 126, "T5"], t7: [250, 176, "T7"], t12: [250, 326, "T12"], spinous: [250, 76, "Spinous processes"],
+      supraFossa: [170, 72, "Supraspinous fossa"], infraFossa: [162, 140, "Infraspinous fossa"], spine: [160, 88, "Spine of scapula"], acromion: [98, 64, "Acromion"],
+      clavLat: [128, 52, "Lateral clavicle"], medBorder: [202, 130, "Medial border"], latBorder: [124, 140, "Lateral border"], infAngle: [142, 208, "Inferior angle"],
+      infraglen: [116, 106, "Infraglenoid tubercle"], gtSup: [86, 82, "Greater tubercle (superior)"], gtMid: [82, 92, "Greater tubercle (middle)"], gtInf: [80, 102, "Greater tubercle (inferior)"],
+      groove: [96, 124, "Intertubercular groove (front)"], deltTub: [76, 170, "Deltoid tuberosity"], humAbove: [84, 140, "Humerus above radial groove"], humBelow: [76, 230, "Humerus below radial groove"],
+      olecranon: [79, 326, "Olecranon"],
+      supAngle: [202, 62, "Superior angle of scapula"], cervTP: [226, 22, "Transverse processes C1–C4"], mastoid: [234, 4, "Mastoid process / nuchal line"], latEpi: [58, 314, "Lateral epicondyle"],
     },
   },
   shoulderFront: {
     title: "Chest, shoulder and elbow — from the front", vb: "0 0 300 380",
     bones: [
-      "M238,56 L256,56 L254,200 L246,214 L240,200 Z", // sternum
-      ...Array.from({ length: 8 }, (_, k) => `M238,${70 + k * 18} C200,${66 + k * 18} 170,${76 + k * 20} 150,${96 + k * 20} L152,${102 + k * 20} C172,${84 + k * 20} 202,${74 + k * 18} 238,${76 + k * 18} Z`), // ribs
-      "M100,56 L238,56 L236,64 L104,64 Z", // clavicle
-      "M104,78 C112,70 124,76 132,86 L126,92 C120,86 112,84 106,88 Z", // coracoid
-      "M96,86 C108,86 114,102 106,112 L96,118 C94,176 90,246 86,306 C94,312 96,324 88,330 L66,330 C60,322 64,310 72,306 C76,246 80,176 82,118 C76,108 80,88 96,86 Z", // humerus
-      "M70,334 L82,334 L80,370 L72,370 Z M86,334 L100,334 L98,370 L88,370 Z", // radius + ulna
+      ["M108,78 C120,76 140,78 160,90 L162,210 C150,214 142,212 136,206 C126,170 116,130 108,100 Z", "f"], // scapula (behind the ribs)
+      ...Array.from({ length: 8 }, (_, k) => { const y = 66 + k * 18; return [`M206,${y} C184,${y + 2} 164,${y + 12} 146,${y + 30 + k * 2} L149,${y + 37 + k * 2} C167,${y + 19} 186,${y + 9} 206,${y + 8} Z`]; }), // ribs 1–8
+      ...Array.from({ length: 8 }, (_, k) => { const y = 66 + k * 18; return [`M238,${y + (k > 5 ? -6 : 0)} C228,${y - 1} 216,${y - 1} 206,${y} L206,${y + 8} C216,${y + 7} 228,${y + 7 + (k > 5 ? -6 : 0)} 238,${y + 8 + (k > 5 ? -6 : 0)} Z`, "c"]; }), // costal cartilages
+      ["M236,56 C242,52 252,52 258,56 L256,76 C254,80 254,84 256,88 L254,196 C252,204 250,208 247,214 L245,222 L243,214 C241,208 240,204 238,196 L236,88 C238,84 238,80 236,76 Z"], // sternum
+      ["M104,58 C120,54 140,56 160,60 C180,64 200,60 214,56 C224,54 232,54 238,58 L238,66 C230,62 222,62 214,64 C198,68 180,72 160,68 C140,64 120,62 106,66 Z"], // clavicle
+      ["M90,58 C96,52 108,54 110,62 L104,66 C98,66 90,64 90,58 Z"], // acromion
+      ["M110,80 C116,72 128,74 134,84 C136,88 132,92 128,90 C124,84 118,82 114,86 Z"], // coracoid
+      ["M100,84 C112,84 118,96 116,106 C114,112 110,116 104,118 C100,124 98,130 96,136 C94,190 90,250 88,300 C92,304 96,310 98,318 C100,326 96,332 90,332 L86,330 L70,330 C64,332 60,328 62,320 C64,312 68,306 70,300 C72,250 76,190 80,136 C78,128 78,120 80,110 C82,94 90,84 100,84 Z"], // humerus
+      ["M66,334 C70,332 80,332 82,334 L82,340 C80,342 78,344 78,348 L78,380 L70,380 L70,348 C70,344 68,342 66,340 Z"], // radius
+      ["M84,334 C88,330 98,330 102,334 L98,344 C96,350 96,356 96,362 L96,380 L88,380 L88,356 C88,348 86,340 84,334 Z"], // ulna
     ],
-    lines: [],
+    lines: [["M94,112 L92,136", ""]],
     L: {
-      sternum: [246, 120, "Sternum"], xiphoid: [246, 208, "Xiphoid process"], cc16: [230, 100, "Costal cartilages 1–6"], cc57: [232, 176, "Costal cartilages 5–7"],
-      clavMed: [212, 60, "Medial clavicle"], clavLat: [122, 60, "Lateral clavicle"], acromion: [100, 60, "Acromion"],
-      coracoid: [130, 88, "Coracoid process"], supraglen: [104, 94, "Supraglenoid tubercle"], subscapFossa: [140, 150, "Subscapular fossa (behind ribs)"],
-      ribs35: [186, 124, "Ribs 3–5"], ribs18: [160, 150, "Ribs 1–8 (outer surface)"], medBorderF: [156, 216, "Medial border of scapula (front)"],
-      lesserTub: [108, 104, "Lesser tubercle"], grooveLat: [94, 124, "Intertubercular groove (lateral lip)"], deltTub: [84, 176, "Deltoid tuberosity"],
-      humDistal: [82, 270, "Front of distal humerus"], radTub: [76, 344, "Radial tuberosity"], coronoid: [92, 340, "Coronoid process / ulnar tuberosity"],
-      manubrium: [246, 66, "Manubrium of sternum"], humMedMid: [92, 200, "Medial humerus (mid-shaft)"], supraRidge: [72, 290, "Lateral supracondylar ridge"], medEpi: [96, 318, "Medial epicondyle"], radShaft: [74, 366, "Radius (towards the wrist)"],
+      sternum: [247, 120, "Sternum"], xiphoid: [245, 212, "Xiphoid process"], cc16: [226, 102, "Costal cartilages 1–6"], cc57: [226, 170, "Costal cartilages 5–7"],
+      clavMed: [212, 60, "Medial clavicle"], clavLat: [122, 60, "Lateral clavicle"], acromion: [98, 60, "Acromion"],
+      coracoid: [128, 86, "Coracoid process"], supraglen: [104, 92, "Supraglenoid tubercle"], subscapFossa: [140, 150, "Subscapular fossa (behind ribs)"],
+      ribs35: [186, 124, "Ribs 3–5"], ribs18: [164, 150, "Ribs 1–8 (outer surface)"], medBorderF: [158, 206, "Medial border of scapula (front)"],
+      lesserTub: [108, 104, "Lesser tubercle"], grooveLat: [92, 124, "Intertubercular groove (lateral lip)"], deltTub: [82, 176, "Deltoid tuberosity"],
+      humDistal: [82, 270, "Front of distal humerus"], radTub: [76, 346, "Radial tuberosity"], coronoid: [92, 340, "Coronoid process / ulnar tuberosity"],
+      manubrium: [247, 66, "Manubrium of sternum"], humMedMid: [90, 200, "Medial humerus (mid-shaft)"], supraRidge: [70, 292, "Lateral supracondylar ridge"], medEpi: [98, 318, "Medial epicondyle"], radShaft: [74, 366, "Radius (towards the wrist)"],
     },
   },
   legBack: {
     title: "Knee, lower leg and heel — from behind", vb: "0 0 300 380",
     bones: [
-      "M96,10 L144,10 L150,40 C150,56 136,60 124,54 L118,48 L112,54 C98,60 90,54 90,40 Z", // femoral condyles
-      "M108,64 L152,64 L146,90 L140,300 L124,300 L118,90 Z", // tibia
-      "M86,70 C92,64 100,68 98,76 L96,290 L88,290 L90,80 Z", // fibula
-      "M112,300 L152,300 L158,330 C158,350 140,356 124,350 L110,330 Z", // talus + calcaneus
+      ["M100,6 L140,6 C142,20 146,30 152,38 C156,46 154,56 146,58 C140,60 134,56 130,50 L126,44 C122,40 118,40 114,44 L110,50 C106,56 100,60 94,58 C86,56 84,46 88,38 C94,30 98,20 100,6 Z"], // femur (condyles)
+      ["M104,64 C116,60 144,60 156,64 C158,72 154,80 148,86 C144,92 142,100 142,110 C140,170 138,240 140,280 C142,288 146,294 148,302 L140,306 C134,302 128,300 122,300 C122,290 124,280 124,270 C124,220 122,160 118,110 C116,98 112,90 106,84 C100,78 100,70 104,64 Z"], // tibia
+      ["M84,70 C86,64 96,64 100,70 C102,76 100,82 96,86 C94,140 94,220 96,280 C98,288 98,296 94,304 C90,310 84,308 84,300 C86,290 88,280 88,270 C88,210 88,140 88,88 C84,84 82,76 84,70 Z"], // fibula
+      ["M112,298 C124,294 140,294 150,298 C156,310 158,324 156,338 C154,350 144,358 134,358 C124,358 114,350 112,338 C110,324 110,310 112,298 Z"], // talus and calcaneus
     ],
-    lines: [["M132,300 L132,346", "Achilles tendon"]],
+    lines: [["M132,300 L133,346", "Achilles tendon"], ["M116,108 L140,98", ""]],
     L: {
-      condM: [140, 36, "Medial femoral condyle"], condL: [100, 36, "Lateral femoral condyle"], fibHead: [94, 74, "Head of fibula"],
-      fibUpper: [92, 120, "Upper back of fibula"], soleal: [130, 110, "Soleal line of tibia"], calc: [134, 346, "Calcaneus"],
-      postTib: [132, 190, "Back of tibia"], postTibUp: [124, 96, "Back of tibia (above soleal line)"], fibLowB: [92, 236, "Lower back of fibula"],
+      condM: [140, 36, "Medial femoral condyle"], condL: [100, 36, "Lateral femoral condyle"], fibHead: [92, 74, "Head of fibula"],
+      fibUpper: [91, 120, "Upper back of fibula"], soleal: [130, 104, "Soleal line of tibia"], calc: [134, 346, "Calcaneus"],
+      postTib: [131, 190, "Back of tibia"], postTibUp: [122, 94, "Back of tibia (above soleal line)"], fibLowB: [91, 236, "Lower back of fibula"],
     },
   },
   legFront: {
     title: "Knee, shin and foot — from the front", vb: "0 0 300 400",
     bones: [
-      "M106,10 L152,10 L156,40 L102,40 Z", // femur end
-      "M128,44 C138,44 142,54 138,62 C132,68 120,68 116,60 C114,52 118,44 128,44 Z", // patella
-      "M104,70 L156,70 L150,96 L144,300 L126,300 L118,96 Z", // tibia
-      "M92,76 C98,70 104,74 102,82 L100,290 L92,290 L94,86 Z", // fibula
-      "M104,304 L150,304 L166,340 L176,380 L150,386 L134,350 L110,346 Z", // foot
+      ["M110,4 L148,4 C150,14 154,24 158,32 C160,40 156,46 150,46 L108,46 C102,46 98,40 100,32 C104,24 108,14 110,4 Z"], // femur end
+      ["M129,42 C138,42 144,50 142,58 C140,66 134,72 129,72 C124,72 118,66 116,58 C114,50 120,42 129,42 Z"], // patella
+      ["M102,72 C114,68 146,68 158,72 C160,78 156,84 150,88 L148,96 C144,160 142,230 144,280 C146,290 152,296 156,304 C156,310 150,312 144,310 C140,306 134,302 126,302 C126,290 126,282 124,272 C122,220 120,150 118,100 C112,94 106,88 102,84 C100,80 100,76 102,72 Z"], // tibia
+      ["M88,76 C90,70 98,70 102,76 C104,82 102,88 98,90 C96,150 96,220 98,284 C100,292 100,300 96,306 C92,312 86,310 86,302 C88,294 90,286 90,278 C90,220 90,150 90,92 C88,88 86,82 88,76 Z"], // fibula
+      ["M112,306 C122,302 138,302 148,306 C150,314 146,320 138,322 L120,322 C114,320 110,314 112,306 Z"], // talus
+      ["M102,312 C106,308 112,310 114,316 L114,334 C110,338 104,336 102,330 Z"], // calcaneus (side)
+      ["M130,322 C138,320 148,322 152,328 C150,334 144,336 136,334 C132,332 130,328 130,322 Z"], // navicular
+      ["M112,324 C120,324 126,326 128,332 L124,344 C118,346 110,344 106,340 C106,332 108,326 112,324 Z"], // cuboid
+      ["M136,336 L152,336 C156,340 158,346 156,352 L140,352 C136,348 134,342 136,336 Z"], // cuneiforms
+      [bnStrip(156, 352, 171, 371, 3.8, 4.6)], [bnStrip(146, 352, 158, 378, 2.8, 3.2)], [bnStrip(137, 350, 146, 380, 2.6, 3)], [bnStrip(127, 346, 134, 380, 2.6, 3)], [bnStrip(114, 343, 121, 378, 3, 2.8)], // metatarsals
+      [bnStrip(173, 375, 181, 392, 4.2, 3.6)], [bnStrip(160, 383, 164, 395, 2.6, 2.2)], [bnStrip(148, 385, 151, 396, 2.4, 2)], [bnStrip(135, 385, 137, 395, 2.4, 2)], [bnStrip(122, 383, 123, 392, 2.4, 2)], // toes
     ],
-    lines: [["M100,100 L118,100", ""]],
+    lines: [],
     L: {
-      latCondTib: [110, 78, "Lateral condyle of tibia"], latTib: [118, 140, "Upper lateral tibia"], interosseous: [108, 190, "Interosseous membrane"],
-      medCun: [150, 344, "Medial cuneiform"], mt1: [164, 370, "Base of 1st metatarsal"],
-      fibHeadF: [96, 78, "Head of fibula"], fibLatF: [98, 170, "Front of fibula"], fibLowF: [98, 250, "Lower lateral fibula"], mt5: [108, 340, "Base of 5th metatarsal"], navic: [138, 326, "Navicular"], toes: [158, 386, "Toes 2–5"], bigToe: [174, 378, "Big toe"],
+      latCondTib: [108, 78, "Lateral condyle of tibia"], latTib: [120, 140, "Upper lateral tibia"], interosseous: [107, 190, "Interosseous membrane"],
+      medCun: [148, 344, "Medial cuneiform"], mt1: [158, 356, "Base of 1st metatarsal"],
+      fibHeadF: [95, 78, "Head of fibula"], fibLatF: [93, 170, "Front of fibula"], fibLowF: [93, 250, "Lower lateral fibula"], mt5: [113, 342, "Base of 5th metatarsal"], navic: [140, 328, "Navicular"], toes: [150, 390, "Toes 2–5"], bigToe: [178, 386, "Big toe"],
     },
   },
 };
@@ -4449,6 +4494,7 @@ const BONE_MAP = {
 const BONE_EXTRA = { rectab: ["shoulderFront", [], ["xiphoid", "cc57"]], extobl: ["shoulderFront", ["ribs18"], []],
   tibpost: ["legFront", [], ["navic", "medCun"]], perlong: ["legFront", [], ["medCun", "mt1"]] };
 
+let anBoneN = 0;
 function anBone(m) {
   const box = $("an-bone");
   const maps = [BONE_MAP[m.id], BONE_EXTRA[m.id]].filter(Boolean);
@@ -4463,15 +4509,36 @@ function anBone(m) {
     const wrap = document.createElement("div"); wrap.className = "an-bonebox";
     const svg = document.createElementNS(ns, "svg"); svg.setAttribute("viewBox", B.vb); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", B.title);
     const el = (tag, attrs, parent) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
-    for (const d of B.bones) el("path", { d, fill: "#F3EADB", stroke: "#A8927A", "stroke-width": 1.4, "stroke-linejoin": "round" });
-    for (const [d] of B.lines) el("path", { d, fill: "none", stroke: "#C9B79F", "stroke-width": 2, "stroke-dasharray": "5 4" });
+    // bone material: ivory gradient, soft 3D shading and a fine grain, lit from the top left
+    const uid = "bn" + (anBoneN++);
+    const defs = el("defs", {});
+    const grad = (id, stops) => { const g = el("linearGradient", { id, x1: "0", y1: "0", x2: "1", y2: "1" }, defs); stops.forEach(([o, c]) => el("stop", { offset: o, "stop-color": c }, g)); };
+    grad(uid + "b", [[0, "#FBF5E8"], [0.55, "#EADDC2"], [1, "#C9B48D"]]);
+    grad(uid + "c", [[0, "#F4F8F8"], [1, "#BFCDD0"]]);
+    const f = el("filter", { id: uid + "f", x: "-10%", y: "-10%", width: "120%", height: "120%", "color-interpolation-filters": "sRGB" }, defs);
+    el("feGaussianBlur", { in: "SourceAlpha", stdDeviation: 2.4, result: "bl" }, f);
+    const dl = el("feDiffuseLighting", { in: "bl", surfaceScale: 5, diffuseConstant: 1.25, "lighting-color": "#fff", result: "d" }, f); el("feDistantLight", { azimuth: 225, elevation: 50 }, dl);
+    const sl = el("feSpecularLighting", { in: "bl", surfaceScale: 5, specularConstant: 0.45, specularExponent: 18, "lighting-color": "#fffaf0", result: "s" }, f); el("feDistantLight", { azimuth: 225, elevation: 55 }, sl);
+    el("feTurbulence", { type: "fractalNoise", baseFrequency: 0.9, numOctaves: 2, seed: 3, result: "n" }, f);
+    el("feColorMatrix", { in: "n", type: "matrix", values: "0 0 0 0 0.45  0 0 0 0 0.36  0 0 0 0 0.24  0 0 0 0.22 0", result: "n2" }, f);
+    el("feComposite", { in: "SourceGraphic", in2: "d", operator: "arithmetic", k1: 1, result: "m" }, f);
+    el("feComposite", { in: "n2", in2: "m", operator: "over", result: "g" }, f);
+    el("feComposite", { in: "s", in2: "SourceAlpha", operator: "in", result: "s2" }, f);
+    el("feComposite", { in: "g", in2: "s2", operator: "arithmetic", k2: 1, k3: 0.8, result: "o" }, f);
+    el("feComposite", { in: "o", in2: "SourceAlpha", operator: "in" }, f);
+    for (const [d, kind] of B.bones) {
+      if (kind === "h") { el("path", { d, fill: "#2E2925", "fill-opacity": 0.8, stroke: "#6F604C", "stroke-width": 0.8 }); continue; }
+      el("path", { d, fill: `url(#${uid}${kind === "c" ? "c" : "b"})`, filter: `url(#${uid}f)`, opacity: kind === "f" ? 0.55 : 1 });
+      el("path", { d, fill: "none", stroke: kind === "c" ? "#8FA2A6" : "#6F604C", "stroke-width": 0.9, "stroke-linejoin": "round", opacity: kind === "f" ? 0.5 : 0.9 });
+    }
+    for (const [d] of B.lines) el("path", { d, fill: "none", stroke: "rgba(240,232,214,.55)", "stroke-width": 2, "stroke-dasharray": "5 4" });
     // other landmarks, faint
-    for (const k in B.L) if (!O.includes(k) && !I.includes(k)) el("circle", { cx: B.L[k][0], cy: B.L[k][1], r: 2.4, fill: "#CDBBA3" });
+    for (const k in B.L) if (!O.includes(k) && !I.includes(k)) el("circle", { cx: B.L[k][0], cy: B.L[k][1], r: 2.2, fill: "rgba(95,72,40,.55)" });
     // muscle line of pull: from each origin to the nearest insertion
     const cen = (ids) => ids.length ? [ids.reduce((s, k) => s + B.L[k][0], 0) / ids.length, ids.reduce((s, k) => s + B.L[k][1], 0) / ids.length] : null;
     const ci = cen(I), co = cen(O);
-    if (ci) for (const k of O) el("line", { x1: B.L[k][0], y1: B.L[k][1], x2: ci[0], y2: ci[1], stroke: "#C8453B", "stroke-width": 9, "stroke-linecap": "round", opacity: 0.28 });
-    if (co && !ci) for (const k of O) el("circle", { cx: B.L[k][0], cy: B.L[k][1], r: 10, fill: "#C8453B", opacity: 0.2 });
+    if (ci) for (const k of O) el("line", { x1: B.L[k][0], y1: B.L[k][1], x2: ci[0], y2: ci[1], stroke: "#D9503F", "stroke-width": 9, "stroke-linecap": "round", opacity: 0.5 });
+    if (co && !ci) for (const k of O) el("circle", { cx: B.L[k][0], cy: B.L[k][1], r: 10, fill: "#D9503F", opacity: 0.4 });
     const placed = [];
     const dot = (k, col) => {
       const [x, y, label] = B.L[k];
@@ -4481,8 +4548,8 @@ function anBone(m) {
       while (placed.some((q) => q.right === right && Math.abs(q.y - ly) < 14 && Math.abs(q.x - x) < 140)) ly += 14;
       placed.push({ x, y: ly, right });
       if (ly !== y) el("line", { x1: x, y1: y, x2: right ? x + 8 : x - 8, y2: ly, stroke: col, "stroke-width": 1 });
-      const t = el("text", { x: right ? x + 10 : x - 10, y: ly + 4, "text-anchor": right ? "start" : "end", "font-size": 11, "font-weight": 700, fill: col,
-        stroke: "#fff", "stroke-width": 3.5, "paint-order": "stroke", "font-family": "-apple-system,Helvetica,Arial,sans-serif" });
+      const t = el("text", { x: right ? x + 10 : x - 10, y: ly + 4, "text-anchor": right ? "start" : "end", "font-size": 11, "font-weight": 700, fill: col === "#1F6FB2" ? "#9ED0FF" : "#FFBE7A",
+        stroke: "rgba(28,26,26,.92)", "stroke-width": 3.5, "paint-order": "stroke", "font-family": "-apple-system,Helvetica,Arial,sans-serif" });
       t.textContent = label;
     };
     for (const k of O) dot(k, "#1F6FB2");
@@ -4495,6 +4562,98 @@ function anBone(m) {
   const note = document.createElement("p"); note.className = "hist"; note.style.margin = "6px 0 0"; note.textContent = "Schematic drawing of one side of the body. Some attachments (for example ribs or fascia) are summarised — the card above lists them in full.";
   box.appendChild(note);
 }
+
+// Movements: which muscles are the main movers (prime) and which help (assist).
+const AN_MOVES = [
+  { k: "neckflex", joint: "Neck", label: "Neck flexion", prime: ["scm"], assist: [], ex: "Tucking the chin in a hollow rock or sit-up." },
+  { k: "neckext", joint: "Neck", label: "Neck extension", prime: ["splenius", "trap"], assist: ["erector", "levscap"], ex: "Keeping the head neutral — not tipped down — in the deadlift and row." },
+  { k: "neckrot", joint: "Neck", label: "Neck rotation", prime: ["scm", "splenius"], assist: ["levscap"], ex: "Looking over the shoulder; checking position in a mirror mid-lift." },
+  { k: "necklat", joint: "Neck", label: "Neck side bending", prime: ["scm", "splenius", "levscap"], assist: ["trap"], ex: "Holding the head level in single-arm carries." },
+  { k: "scapelev", joint: "Shoulder blade", label: "Elevation (shrug)", prime: ["trap", "levscap"], assist: ["rhomb"], ex: "The shrug at the end of the second pull in the clean and snatch." },
+  { k: "scapdep", joint: "Shoulder blade", label: "Depression", prime: ["trap", "pecmin"], assist: ["lat", "serratus"], ex: "Active shoulders in ring support, dips and the start of a strict pull-up." },
+  { k: "scapret", joint: "Shoulder blade", label: "Retraction", prime: ["trap", "rhomb"], assist: ["lat"], ex: "Squeezing the shoulder blades together at the top of a ring row." },
+  { k: "scapprot", joint: "Shoulder blade", label: "Protraction", prime: ["serratus"], assist: ["pecmin", "pecmaj"], ex: "Pushing away at the top of a push-up, plank and handstand." },
+  { k: "scapup", joint: "Shoulder blade", label: "Upward rotation", prime: ["trap", "serratus"], assist: [], ex: "Getting the arms fully overhead — jerk, snatch, handstand." },
+  { k: "scapdown", joint: "Shoulder blade", label: "Downward rotation", prime: ["rhomb", "levscap", "pecmin"], assist: [], ex: "Pulling the arms down from overhead in a pull-up or kip." },
+  { k: "shflex", joint: "Shoulder", label: "Flexion", prime: ["delt", "pecmaj"], assist: ["biceps", "coracobr"], ex: "Raising the bar overhead; front raise; the top of a wall-ball throw." },
+  { k: "shext", joint: "Shoulder", label: "Extension", prime: ["lat", "tmaj", "delt"], assist: ["triceps", "pecmaj"], ex: "Pulling down in a pull-up, toes-to-bar and the kip." },
+  { k: "shabd", joint: "Shoulder", label: "Abduction", prime: ["delt", "supra"], assist: [], ex: "Lateral raise; the arms lifting out to the sides in a muscle-up transition." },
+  { k: "shadd", joint: "Shoulder", label: "Adduction", prime: ["pecmaj", "lat", "tmaj"], assist: ["triceps", "coracobr"], ex: "Wide-grip pull-ups; holding the arms in on the rings." },
+  { k: "shir", joint: "Shoulder", label: "Internal rotation", prime: ["subscap", "pecmaj", "lat", "tmaj"], assist: ["delt"], ex: "Throwing and punching; when tight they limit the overhead and front-rack position." },
+  { k: "sher", joint: "Shoulder", label: "External rotation", prime: ["infra", "tmin"], assist: ["delt"], ex: "Turning the elbows forward in the overhead squat; staying stable in the snatch receive." },
+  { k: "shhabd", joint: "Shoulder", label: "Horizontal abduction", prime: ["delt", "infra", "tmin"], assist: [], ex: "Reverse flyes and the pull of a wide-grip row." },
+  { k: "shhadd", joint: "Shoulder", label: "Horizontal adduction", prime: ["pecmaj", "delt"], assist: ["coracobr"], ex: "Push-ups, bench press and hugging in ring flyes." },
+  { k: "elflex", joint: "Elbow", label: "Flexion", prime: ["biceps", "brach", "brachiorad"], assist: ["prontr", "flexors"], ex: "Chin over the bar in pull-ups; rope climbs." },
+  { k: "elext", joint: "Elbow", label: "Extension", prime: ["triceps"], assist: [], ex: "Lockout in the press, jerk and push-up; the muscle-up dip." },
+  { k: "sup", joint: "Forearm", label: "Supination (palm up)", prime: ["biceps"], assist: ["brachiorad"], ex: "Chin-up grip; turning a key." },
+  { k: "pron", joint: "Forearm", label: "Pronation (palm down)", prime: ["prontr"], assist: ["brachiorad"], ex: "Turning the hands over in the clean and snatch." },
+  { k: "wflex", joint: "Wrist and hand", label: "Wrist flexion and grip", prime: ["flexors"], assist: [], ex: "Holding the bar in deadlifts, pull-ups, toes-to-bar and farmer carries." },
+  { k: "wext", joint: "Wrist and hand", label: "Wrist extension", prime: ["extensors"], assist: [], ex: "Front-rack and overhead wrist position; steadying the wrist while gripping." },
+  { k: "trflex", joint: "Trunk", label: "Flexion", prime: ["rectab"], assist: ["extobl", "intobl"], ex: "Sit-ups, hollow rocks, toes-to-bar." },
+  { k: "trext", joint: "Trunk", label: "Extension", prime: ["erector", "multifidus"], assist: ["ql"], ex: "Holding a flat back in the deadlift, squat and every pull from the floor." },
+  { k: "trrot", joint: "Trunk", label: "Rotation", prime: ["extobl", "intobl"], assist: ["multifidus"], ex: "Resisting rotation in single-arm work, med-ball throws and Russian twists." },
+  { k: "trlat", joint: "Trunk", label: "Side bending", prime: ["ql", "extobl", "intobl"], assist: ["erector"], ex: "Staying upright in suitcase carries and single-arm overhead work." },
+  { k: "brace", joint: "Trunk", label: "Bracing (trunk stiffness)", prime: ["tva", "intobl", "extobl"], assist: ["rectab", "multifidus"], ex: "The brace before every heavy lift." },
+  { k: "hflex", joint: "Hip", label: "Flexion", prime: ["iliopsoas", "rf"], assist: ["tfl", "sartorius", "pectineus", "addlong", "addbrev"], ex: "Knees-to-elbows, running, step-ups; pulling down into the bottom of the squat." },
+  { k: "hext", joint: "Hip", label: "Extension", prime: ["gmax", "bf", "st", "sm"], assist: ["addmag"], ex: "Standing up from the squat; hip drive in the deadlift, clean and kettlebell swing." },
+  { k: "habd", joint: "Hip", label: "Abduction", prime: ["gmed", "gmin", "tfl"], assist: ["sartorius", "piri", "gmax"], ex: "Knees out in the squat; keeping the pelvis level on one leg." },
+  { k: "hadd", joint: "Hip", label: "Adduction", prime: ["addlong", "addbrev", "addmag"], assist: ["gracilis", "pectineus"], ex: "Driving up out of a wide-stance squat; lateral lunges." },
+  { k: "hir", joint: "Hip", label: "Internal rotation", prime: ["gmed", "gmin", "tfl"], assist: ["st", "sm"], ex: "When it takes over, the knees cave in — watch in squats and landings." },
+  { k: "her", joint: "Hip", label: "External rotation", prime: ["gmax", "piri", "deeprot"], assist: ["sartorius", "iliopsoas"], ex: "'Knees out' in the squat and pistol." },
+  { k: "kext", joint: "Knee", label: "Extension", prime: ["rf", "vl", "vm", "vi"], assist: [], ex: "Standing up from every squat, lunge and step-up." },
+  { k: "kflex", joint: "Knee", label: "Flexion", prime: ["bf", "st", "sm"], assist: ["gastroc", "gracilis", "sartorius", "popliteus"], ex: "Nordic curls, GHD back of the leg; pulling the heels in during a kip." },
+  { k: "kir", joint: "Knee", label: "Internal rotation (knee bent)", prime: ["st", "sm", "popliteus"], assist: ["gracilis", "sartorius"], ex: "Controls the shin turning in on landing and changing direction." },
+  { k: "ker", joint: "Knee", label: "External rotation (knee bent)", prime: ["bf"], assist: [], ex: "Turning the foot out with the knee bent; controls the knee when cutting." },
+  { k: "pf", joint: "Ankle and foot", label: "Plantarflexion", prime: ["gastroc", "soleus"], assist: ["tibpost", "fdl", "fhl", "perlong", "perbrev"], ex: "Jumping, double-unders, running and the extension at the top of the pull." },
+  { k: "df", joint: "Ankle and foot", label: "Dorsiflexion", prime: ["tibant"], assist: ["edl", "ehl"], ex: "Pulling the shin forward over the foot at the bottom of the squat; landing." },
+  { k: "inv", joint: "Ankle and foot", label: "Inversion", prime: ["tibant", "tibpost"], assist: ["fdl", "fhl", "ehl"], ex: "Holding the arch up — stops the foot collapsing in squats and landings." },
+  { k: "ev", joint: "Ankle and foot", label: "Eversion", prime: ["perlong", "perbrev"], assist: ["edl"], ex: "Stops the ankle rolling out on landing and when running." },
+  { k: "toeflex", joint: "Ankle and foot", label: "Toe flexion (push-off)", prime: ["fdl", "fhl"], assist: [], ex: "Push-off through the big toe in sprinting and jumping; gripping the floor for balance." },
+  { k: "toeext", joint: "Ankle and foot", label: "Toe extension", prime: ["edl", "ehl"], assist: [], ex: "Lifting the toes — a quick check of foot position in the squat." },
+];
+let anMove = "";
+let anSelHidden = false;
+
+function anMoveSetup() {
+  const sel = $("an-move"); sel.innerHTML = '<option value="">Choose a movement…</option>';
+  let group = null, cur = "";
+  for (const mv of AN_MOVES) {
+    if (mv.joint !== cur) { cur = mv.joint; group = document.createElement("optgroup"); group.label = cur; sel.appendChild(group); }
+    const o = document.createElement("option"); o.value = mv.k; o.textContent = mv.joint + " — " + mv.label; group.appendChild(o);
+  }
+  sel.onchange = () => { anSetMove(sel.value); if (sel.value && window.innerWidth < 900) document.querySelector(".an-mapbox").scrollIntoView({ behavior: "smooth", block: "start" }); };
+}
+function anSetMove(k) {
+  anMove = k; $("an-move").value = k; anSelHidden = !!k;
+  const mv = AN_MOVES.find((x) => x.k === k);
+  const card = $("an-movecard"); card.innerHTML = ""; card.classList.toggle("hidden", !mv);
+  if (mv) {
+    // show the side of the body where most of the main movers are
+    const views = { front: 0, back: 0 };
+    for (const id of mv.prime) { const m = AN.find((x) => x.id === id); views[m.view] += 2; if (m.alsoFront) views.front++; if (m.alsoBack) views.back++; }
+    for (const id of mv.assist) views[AN.find((x) => x.id === id).view]++;
+    anView = views.back > views.front ? "back" : "front";
+    const h = document.createElement("h3"); h.textContent = mv.joint + ": " + mv.label; card.appendChild(h);
+    const chips = (title, ids, cls) => {
+      if (!ids.length) return;
+      const l = document.createElement("p"); l.className = "an-movelab"; l.innerHTML = '<i class="' + cls + '"></i>' + title; card.appendChild(l);
+      const row = document.createElement("div"); row.className = "an-list"; card.appendChild(row);
+      for (const id of ids) {
+        const m = AN.find((x) => x.id === id);
+        const b = document.createElement("button"); b.type = "button"; b.textContent = m.name + (m.view !== anView && !(anView === "front" ? m.alsoFront : m.alsoBack) ? " (" + m.view + ")" : "");
+        b.onclick = () => anSelect(id); row.appendChild(b);
+      }
+    };
+    chips("Main movers", mv.prime, "p");
+    chips("Helpers", mv.assist, "a");
+    const ex = document.createElement("p"); ex.className = "hist"; ex.style.margin = "8px 0 0"; ex.textContent = "In coaching: " + mv.ex; card.appendChild(ex);
+    const clr = document.createElement("button"); clr.type = "button"; clr.className = "btn ghost"; clr.style.marginTop = "10px"; clr.textContent = "Clear movement";
+    clr.onclick = () => anSetMove(""); card.appendChild(clr);
+  }
+  anMap(); anList();
+}
+// movements a muscle takes part in (for the muscle card)
+function anMovesOf(id) { return AN_MOVES.filter((mv) => mv.prime.includes(id) || mv.assist.includes(id)).map((mv) => ({ mv, main: mv.prime.includes(id) })); }
 
 function anRegions() {
   const box = $("an-regions"); box.innerHTML = "";
@@ -4520,9 +4679,9 @@ function anList() {
 }
 
 function anSelect(id) {
-  anSel = id;
+  anSel = id; anSelHidden = false;
   const m = AN.find((x) => x.id === id);
-  if (m.view !== anView && !(m.alsoFront && anView === "front")) anView = m.view;
+  if (m.view !== anView && !(m.alsoFront && anView === "front") && !(m.alsoBack && anView === "back")) anView = m.view;
   anMap(); anList(); anBone(m);
   const c = $("an-card"); c.innerHTML = "";
   const h = document.createElement("h3"); h.textContent = m.name;
@@ -4537,6 +4696,19 @@ function anSelect(id) {
   row("● Origin", m.origin, "#2F7FC1");
   row("● Insertion", m.insertion, "#E08A2E");
   row("Action", m.action);
+  const mvs = anMovesOf(m.id);
+  if (mvs.length) {
+    const d = document.createElement("div"); d.className = "an-row";
+    const l = document.createElement("b"); l.textContent = "Movements";
+    const r = document.createElement("div"); r.className = "an-list"; r.style.margin = "0";
+    for (const { mv, main } of mvs) {
+      const b = document.createElement("button"); b.type = "button";
+      b.textContent = mv.joint + " " + mv.label.charAt(0).toLowerCase() + mv.label.slice(1) + (main ? "" : " (helper)");
+      b.onclick = () => { anSetMove(mv.k); $("an-move").scrollIntoView({ behavior: "smooth", block: "start" }); };
+      r.appendChild(b);
+    }
+    d.append(l, r); c.appendChild(d);
+  }
   row("In coaching", m.coach);
   if (m.video) {
     const e = vEmbed(m.video);
@@ -4563,8 +4735,16 @@ $("an-search").addEventListener("input", () => anList());
 const anShuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 function anMakeQ() {
   const m = AN[Math.floor(Math.random() * AN.length)];
-  const types = ["name", "origin", "insertion", "action", "tap"];
+  const types = ["name", "origin", "insertion", "action", "tap", "move"];
   const type = types[Math.floor(Math.random() * types.length)];
+  if (type === "move") {
+    const mv = AN_MOVES[Math.floor(Math.random() * AN_MOVES.length)];
+    const rid = mv.prime[Math.floor(Math.random() * mv.prime.length)];
+    const right = AN.find((x) => x.id === rid);
+    const out = anShuffle(AN.filter((x) => !mv.prime.includes(x.id) && !mv.assist.includes(x.id)));
+    const near = [...out.filter((x) => x.region === right.region), ...out.filter((x) => x.region !== right.region)].slice(0, 3);
+    return { type, id: right.id, text: "Which of these is a main mover for " + mv.joint.toLowerCase() + " " + mv.label.toLowerCase() + "?", opts: anShuffle([right, ...near]).map((x) => ({ id: x.id, text: x.name })) };
+  }
   if (type === "tap") return { type, id: m.id, text: "Tap the " + m.name + " on the body map." + (m.deep ? " (It is a deep muscle — dashed outline.)" : "") };
   const pool = anShuffle(AN.filter((x) => x.id !== m.id && (type === "name" ? x.view === m.view : true)));
   const same = pool.filter((x) => x.region === m.region);
