@@ -258,6 +258,23 @@
   .hv .top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
   .hv .top b{font-size:14.5px}
   .hv textarea{min-height:46px;font-size:14.5px}
+  .stage3{display:grid;grid-template-columns:1fr;gap:10px}
+  @media(min-width:760px){.stage3{grid-template-columns:repeat(3,1fr)}}
+  .stage3 .card3{border:1px solid var(--line);background:var(--paper);padding:12px}
+  .stage3 .card3 b{display:block;font-size:15px}
+  .stage3 .card3 small{display:block;color:var(--muted);font-size:12px;margin:2px 0 8px}
+  .stage3 input[type=range]{width:100%;accent-color:var(--accent)}
+  .stage3 .pct{font-size:26px;font-weight:800}
+  .stackbar{display:flex;height:22px;border:1px solid var(--line);margin:12px 0 4px;overflow:hidden}
+  .stackbar i{display:block;height:100%}
+  .lv{display:grid;grid-template-columns:1fr;gap:8px}
+  @media(min-width:900px){.lv{grid-template-columns:repeat(3,1fr)}}
+  .lv label{display:block;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin:0 0 4px}
+  .lv textarea{min-height:80px;font-size:14.5px}
+  .why{display:grid;grid-template-columns:1fr;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+  .why .top{display:flex;gap:10px;align-items:flex-start}
+  .why input[type=checkbox]{width:20px;height:20px;margin-top:2px;accent-color:var(--accent);flex:0 0 auto}
+  .why textarea{min-height:44px;font-size:14.5px}
   .cmp{width:100%;font-size:14px}
   .cmp td,.cmp th{padding:7px 6px}
   .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
@@ -389,6 +406,11 @@
         <h3>Coaching observation report</h3>
         <p>Watch 15 minutes of your coaching and rate communication, teamwork, judgement, decision making and observation — with humility and vulnerability in mind.</p>
         <span id="observation-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=standards">
+        <h3>My standards audit</h3>
+        <p>Where your members are on their journey, the standards you hold for each stage, and why athletes may be staying at beginner level.</p>
+        <span id="standards-status">Open →</span>
       </a>
     </div>
   </section>
@@ -998,6 +1020,56 @@
       <span class="savestate" id="ob-state"></span>
     </div>
   </section>
+  <!-- standards audit -->
+  <section id="standards" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Standards, Mastery &amp; Maximum Motor Potential</p>
+    <h1>My standards audit</h1>
+    <p class="lede">The standard is the <b>minimum acceptable quality</b> — the lowest common denominator, the point at which anything lower becomes unacceptable. It is not the highest target, and it is not Rx. Use this task to reflect on your standards and the current ability of the members in your gym.</p>
+
+    <div class="panel">
+      <h2>1. Where are your members?</h2>
+      <p class="lede" style="font-size:14.5px;margin:0 0 12px">Estimate the percentage of your members at each stage of learning, based on their movement quality — not how long they have trained.</p>
+      <div class="stage3" id="st-stages"></div>
+      <div class="stackbar" id="st-bar"></div>
+      <p class="hist" id="st-total" style="margin:0"></p>
+      <p class="lede" style="font-size:14px;margin:10px 0 0" id="st-compare"></p>
+      <div class="fld" style="margin:12px 0 0"><label for="st-years">How long have most of your members been training with you?</label><input id="st-years" placeholder="e.g. 2–3 years"></div>
+    </div>
+
+    <div class="panel">
+      <h2>2. My standards at each stage</h2>
+      <p class="lede" style="font-size:14.5px;margin:0 0 12px">Pick movements you coach often. For each, write the minimum acceptable quality you hold for a beginner, an intermediate and an advanced athlete. Remember: the standard is the execution of the movement, not just the movement Rx.</p>
+      <div id="st-moves"></div>
+      <button class="btn ghost small noprint" id="st-add" type="button">+ Add a movement</button>
+    </div>
+
+    <div class="panel">
+      <h2>3. Why might members stay at beginner or intermediate level?</h2>
+      <p class="lede" style="font-size:14.5px;margin:0 0 6px">Be honest. Tick any that apply to your gym, and note what you see.</p>
+      <div id="st-why"></div>
+    </div>
+
+    <div class="panel">
+      <h2>4. One standard I will raise</h2>
+      <div class="fld"><label for="st-raise">The standard I will raise first</label><textarea id="st-raise" style="min-height:70px" placeholder="e.g. No loaded squats until the air squat is held to our standard: full depth, heels down, neutral spine, controlled tempo"></textarea></div>
+      <div class="fld"><label for="st-how">How I will communicate it — to beginners, and as a shared commitment with intermediates</label><textarea id="st-how" style="min-height:70px"></textarea></div>
+      <div class="fld" style="margin:0"><label for="st-when">When I will review it</label><input type="date" id="st-when" style="max-width:240px"></div>
+      <p class="hist noprint" style="margin:12px 0 0">Your standards also belong in your coaching philosophy — <a href="?tool=philosophy&amp;step=4" target="_blank">step 4: Establish standards ↗</a></p>
+    </div>
+
+    <div class="panel">
+      <h2>My reflections</h2>
+      <p class="lede noprint" style="font-size:14px;margin:0 0 10px">After watching the seminar lecture: what surprised you about your standards? Are you coaching, or instructing? What will your members notice first when your standards change?</p>
+      <textarea id="st-notes" placeholder="Write your thoughts here…"></textarea>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="st-save" type="button">Save</button>
+      <button class="btn ghost" id="st-download" type="button">Download PDF</button>
+      <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+      <span class="savestate" id="st-state"></span>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -1006,7 +1078,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors", "philosophy", "observation"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors", "philosophy", "observation", "standards"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -1052,6 +1124,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (mt && tool === "metaphors") await mtSave();
   if (ph && tool === "philosophy") await phSave();
   if (ob && tool === "observation") await obSave();
+  if (sd && tool === "standards") await stSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -1075,6 +1148,7 @@ async function boot() {
   if (tool === "metaphors") return openMetaphors();
   if (tool === "philosophy") return openPhilosophy();
   if (tool === "observation") return openObservation();
+  if (tool === "standards") return openStandards();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -1106,6 +1180,8 @@ async function boot() {
   if (phr) $("philosophy-status").textContent = "Last saved " + new Date(phr.updated_at).toLocaleDateString("en-GB") + " →";
   const obr = (data || []).find((r) => r.tool === "observation");
   if (obr) $("observation-status").textContent = "Last saved " + new Date(obr.updated_at).toLocaleDateString("en-GB") + " →";
+  const sdr = (data || []).find((r) => r.tool === "standards");
+  if (sdr) $("standards-status").textContent = "Last saved " + new Date(sdr.updated_at).toLocaleDateString("en-GB") + " →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -3020,6 +3096,114 @@ async function obSave() {
 $("ob-notes").addEventListener("input", obChanged);
 $("ob-save").onclick = async () => { if (await obSave()) $("ob-state").textContent = "Saved ✓"; };
 $("ob-download").onclick = async () => { await obSave(); window.print(); };
+
+// ---------------- standards audit ----------------
+const ST_STAGES = [
+  ["beg", "Beginner", "Cognitive learner", "#4FA8DE"],
+  ["int", "Intermediate", "Associative learner", "#E0B84F"],
+  ["adv", "Advanced", "Autonomous learner", "#5CC48A"],
+];
+const ST_LEVELS = [
+  ["beg", "Beginner — lowest, most patient", "#4FA8DE", "e.g. Full depth air squat, heels down, neutral spine — before any load"],
+  ["int", "Intermediate — shared commitment", "#E0B84F", "e.g. Same positions held at 70–80%, every rep, before chasing a PB"],
+  ["adv", "Advanced — at its highest", "#5CC48A", "e.g. Consistent bar path and timing under maximal load"],
+];
+const ST_WHY = [
+  "There is no clear standard for movement quality — only the movement Rx",
+  "High-volume, low-intensity teaching (e.g. the Burgener warm-up every day) keeps athletes in the cognitive stage",
+  "I sometimes instruct the workout rather than coach the athlete",
+  "Coach–athlete relationships are not strong enough to hold athletes to a standard",
+  "My understanding of biomechanics limits what I can correct",
+  "I find it hard to identify movement quality against the standard",
+  "Rx and PBs are celebrated more than quality of execution",
+  "Intermediates are distracted by new ideas and social media, and jump percentages",
+];
+let sd = null;
+let sdTimer = null;
+
+async function openStandards() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "standards").maybeSingle();
+  sd = data || { tool: "standards", data: {} };
+  const d = sd.data;
+  d.pct = d.pct || { beg: 0, int: 0, adv: 0 };
+  d.moves = d.moves && d.moves.length ? d.moves : [{ mv: "Air squat", beg: "", int: "", adv: "" }, { mv: "", beg: "", int: "", adv: "" }, { mv: "", beg: "", int: "", adv: "" }];
+  d.why = d.why || {};
+  for (const [id, key] of [["st-years", "years"], ["st-raise", "raise"], ["st-how", "how"], ["st-when", "when"], ["st-notes", "notes"]]) { const el = $(id); el.value = d[key] || ""; el.oninput = el.onchange = () => { d[key] = el.value; stChanged(); }; }
+  stStages(); stMoves(); stWhy();
+  show("standards");
+}
+
+function stStages() {
+  const d = sd.data; const box = $("st-stages"); box.innerHTML = "";
+  for (const [k, t, sub, c] of ST_STAGES) {
+    const card = document.createElement("div"); card.className = "card3"; card.style.borderTop = "4px solid " + c;
+    const b = document.createElement("b"); b.textContent = t;
+    const sm = document.createElement("small"); sm.textContent = sub;
+    const pct = document.createElement("div"); pct.className = "pct"; pct.textContent = d.pct[k] + "%";
+    const r = document.createElement("input"); r.type = "range"; r.min = 0; r.max = 100; r.step = 5; r.value = d.pct[k];
+    r.oninput = () => { d.pct[k] = +r.value; pct.textContent = r.value + "%"; stBar(); stChanged(); };
+    card.append(b, sm, pct, r); box.appendChild(card);
+  }
+  stBar();
+}
+function stBar() {
+  const d = sd.data; const tot = d.pct.beg + d.pct.int + d.pct.adv;
+  $("st-bar").innerHTML = ST_STAGES.map(([k, , , c]) => `<i style="width:${tot ? d.pct[k] / Math.max(tot, 100) * 100 : 0}%;background:${c}"></i>`).join("");
+  $("st-total").textContent = tot === 100 ? "Total: 100% ✓" : "Total: " + tot + "% — adjust the sliders so they add up to 100%.";
+  $("st-total").style.color = tot === 100 ? "var(--good)" : "var(--muted)";
+  $("st-compare").textContent = tot !== 100 ? "" : d.pct.beg >= 80
+    ? "Like most gyms we hear from at our seminars, 80–90% of your members are at the beginner (cognitive) stage. The question is why — part 3 below helps you look at that."
+    : d.pct.beg >= 60 ? "Most of your members are at the beginner stage. Coaches at our seminars tell us 80–90% is typical — you are a little ahead, but there is room to move more athletes on."
+    : "Fewer of your members are at the beginner stage than the 80–90% most coaches at our seminars report. What are you doing that moves athletes on?";
+}
+
+function stMoves() {
+  const d = sd.data; const box = $("st-moves"); box.innerHTML = "";
+  d.moves.forEach((m, i) => {
+    const c = document.createElement("div"); c.className = "mt";
+    if (d.moves.length > 1) { const del = document.createElement("button"); del.type = "button"; del.className = "del noprint"; del.textContent = "Remove"; del.onclick = () => { d.moves.splice(i, 1); stMoves(); stChanged(); }; c.appendChild(del); }
+    const l = document.createElement("label"); l.textContent = "Movement";
+    const inp = document.createElement("input"); inp.value = m.mv; inp.placeholder = "e.g. Deadlift"; inp.style.maxWidth = "360px"; inp.style.fontWeight = "700";
+    inp.oninput = () => { m.mv = inp.value; stChanged(); };
+    const g = document.createElement("div"); g.className = "lv"; g.style.marginTop = "10px";
+    for (const [k, t, col, ph] of ST_LEVELS) {
+      const w = document.createElement("div"); const lb = document.createElement("label"); lb.textContent = t; lb.style.color = col;
+      const ta = document.createElement("textarea"); ta.value = m[k] || ""; ta.placeholder = i === 0 ? ph : ""; ta.oninput = () => { m[k] = ta.value; stChanged(); };
+      w.append(lb, ta); g.appendChild(w);
+    }
+    c.append(l, inp, g); box.appendChild(c);
+  });
+}
+$("st-add").onclick = () => { sd.data.moves.push({ mv: "", beg: "", int: "", adv: "" }); stMoves(); stChanged(); };
+
+function stWhy() {
+  const d = sd.data; const box = $("st-why"); box.innerHTML = "";
+  for (const w of ST_WHY) {
+    const it = d.why[w] = d.why[w] || { on: false, note: "" };
+    const row = document.createElement("div"); row.className = "why";
+    const top = document.createElement("label"); top.className = "top";
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = it.on;
+    const sp = document.createElement("span"); sp.textContent = w;
+    top.append(cb, sp);
+    const ta = document.createElement("textarea"); ta.value = it.note; ta.placeholder = "What do you see in your gym?"; ta.classList.toggle("hidden", !it.on);
+    cb.onchange = () => { it.on = cb.checked; ta.classList.toggle("hidden", !it.on); if (it.on) ta.focus(); stChanged(); };
+    ta.oninput = () => { it.note = ta.value; stChanged(); };
+    row.append(top, ta); box.appendChild(row);
+  }
+}
+
+function stChanged() { $("st-state").textContent = "Unsaved changes"; clearTimeout(sdTimer); sdTimer = setTimeout(stSave, 1500); }
+async function stSave() {
+  clearTimeout(sdTimer);
+  const row = { user_id: session.user.id, tool: "standards", data: sd.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("st-state").textContent = "Not saved — " + error.message; return false; }
+  sd = { ...data, data: sd.data };
+  $("st-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("st-save").onclick = async () => { if (await stSave()) $("st-state").textContent = "Saved ✓"; };
+$("st-download").onclick = async () => { await stSave(); window.print(); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
