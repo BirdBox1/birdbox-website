@@ -154,6 +154,7 @@
   .vsrc input[type=text]{flex:1;min-width:200px;font:inherit;font-size:14px;padding:9px 10px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
   .vsrc .note{font-size:12px;color:var(--muted);width:100%}
   .chips{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;margin:10px 0 0;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+  @media(min-width:900px){.chips{flex-wrap:wrap;overflow:visible}}
   .chips button{flex:0 0 auto;font:inherit;font-size:12.5px;font-weight:700;padding:7px 10px;background:var(--paper);color:var(--muted);border:1px solid var(--line);cursor:pointer}
   .chips button.done{color:var(--ink)}
   .chips button.done::after{content:" ✓";color:var(--good)}
@@ -249,6 +250,14 @@
   .ph-doc h4{margin:18px 0 6px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#1C6FA3}
   .ph-doc p,.ph-doc li{font-size:15px;line-height:1.5;margin:0 0 6px}
   .ph-doc .empty{color:#999;font-style:italic}
+  .obrow{display:grid;grid-template-columns:1fr;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+  .obrow .lbl{font-weight:700;font-size:14.5px}
+  .obrow .stars{margin:0}
+  .obrow .stars button{width:auto;min-width:30px;padding:7px 0;flex:1}
+  .hv{display:grid;grid-template-columns:1fr;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+  .hv .top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .hv .top b{font-size:14.5px}
+  .hv textarea{min-height:46px;font-size:14.5px}
   .cmp{width:100%;font-size:14px}
   .cmp td,.cmp th{padding:7px 6px}
   .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
@@ -375,6 +384,11 @@
         <h3>My coaching philosophy</h3>
         <p>Five steps — values, objectives, mission statement, standards and leadership style — built up across the course.</p>
         <span id="philosophy-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=observation">
+        <h3>Coaching observation report</h3>
+        <p>Watch 15 minutes of your coaching and rate communication, teamwork, judgement, decision making and observation — with humility and vulnerability in mind.</p>
+        <span id="observation-status">Open →</span>
       </a>
     </div>
   </section>
@@ -951,6 +965,39 @@
       <span class="savestate" id="ph-state"></span>
     </div>
   </section>
+  <!-- observation report -->
+  <section id="observation" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Transformational Coaching</p>
+    <h1>Coaching observation report</h1>
+    <p class="lede">Record the room from 5 minutes before your session begins until 10 minutes in. Watch the 15-minute clip and complete this report, making a clear effort to spot humility and vulnerability.</p>
+
+    <div class="panel">
+      <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));max-width:760px">
+        <div class="fld"><label for="ob-date">Date filmed</label><input type="date" id="ob-date"></div>
+        <div class="fld"><label for="ob-what">Session</label><input id="ob-what" placeholder="e.g. Thursday 7pm class"></div>
+      </div>
+      <p class="hist" style="margin:0 0 6px">For each area, rate each aspect from 1 (low) to 10 (high), then note in the comments what led you to that conclusion.</p>
+      <div class="vwork"><div class="vplayer" id="ob-player"></div><div id="ob-areas"></div></div>
+    </div>
+
+    <div class="panel">
+      <h2>My scores</h2>
+      <div class="bars" id="ob-bars"></div>
+    </div>
+
+    <div class="panel">
+      <h2>My reflections</h2>
+      <p class="lede noprint" style="font-size:14px;margin:0 0 10px">What did you notice in the 5 minutes before the session that you normally miss? Where did you show humility or vulnerability — and where could you have? What will you change next session?</p>
+      <textarea id="ob-notes" placeholder="Write your thoughts here…"></textarea>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="ob-save" type="button">Save</button>
+      <button class="btn ghost" id="ob-download" type="button">Download PDF</button>
+      <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+      <span class="savestate" id="ob-state"></span>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -959,7 +1006,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors", "philosophy"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors", "philosophy", "observation"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -1004,6 +1051,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (rf && REFLECT[tool]) await rfSave();
   if (mt && tool === "metaphors") await mtSave();
   if (ph && tool === "philosophy") await phSave();
+  if (ob && tool === "observation") await obSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -1026,6 +1074,7 @@ async function boot() {
   if (REFLECT[tool]) return openReflect();
   if (tool === "metaphors") return openMetaphors();
   if (tool === "philosophy") return openPhilosophy();
+  if (tool === "observation") return openObservation();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -1055,6 +1104,8 @@ async function boot() {
   if (mtr) $("metaphors-status").textContent = ((mtr.data && mtr.data.rows || []).filter((r) => (r.m || "").trim()).length) + " metaphors →";
   const phr = (data || []).find((r) => r.tool === "philosophy");
   if (phr) $("philosophy-status").textContent = "Last saved " + new Date(phr.updated_at).toLocaleDateString("en-GB") + " →";
+  const obr = (data || []).find((r) => r.tool === "observation");
+  if (obr) $("observation-status").textContent = "Last saved " + new Date(obr.updated_at).toLocaleDateString("en-GB") + " →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -2815,6 +2866,160 @@ async function phSave() {
 }
 $("ph-save").onclick = async () => { if (await phSave()) $("ph-state").textContent = "Saved ✓"; };
 $("ph-download").onclick = async () => { await phSave(); window.print(); };
+
+// ---------------- coaching observation report ----------------
+const OB = [
+  { k: "comm", t: "Communication", intro: "Look at the communication between the coach and athletes, and between the coach and their colleagues.",
+    a: ["Verbal", "Non-verbal", "Responses", "Listening skills"] },
+  { k: "team", t: "Team work", intro: "If appropriate, look at how well and how willingly people work together to achieve aims and objectives.",
+    a: ["Quality of integration", "Leadership quality", "Team cohesion", "Individual contributions"] },
+  { k: "judge", t: "Judgement", intro: "The coach is always judging situations and people. How accurate are their judgements?",
+    a: ["Predetermined judgements", "Judgements developed", "Accuracy", "Consequences"] },
+  { k: "decide", t: "Decision making", intro: "The coach is constantly making decisions throughout a session. Most are quick, and they shape the course of the whole session.",
+    a: ["Speed", "Timing", "Effectiveness", "Consequences", "Options taken when presented"] },
+  { k: "obs", t: "Observation", intro: "The coach's own observation skills matter in judging how other people react, feel and act.",
+    a: ["Observation of people", "Observation of situations", "Observation of self", "Observation of environment", "Consequences of observations"] },
+];
+const HV = ["Spend time listening to others", "Practise mindfulness, and focus on the present", "Be grateful for what you have", "Ask for help when you need it", "Seek feedback from others regularly", "Review your actions against the language of pride"];
+let ob = null;
+let obTimer = null;
+let obActive = "comm";
+let obLocal = null;
+
+async function openObservation() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "observation").maybeSingle();
+  ob = data || { tool: "observation", data: {} };
+  const d = ob.data;
+  d.scores = d.scores || {}; d.comments = d.comments || {}; d.hv = d.hv || {};
+  for (const [id, key] of [["ob-date", "date"], ["ob-what", "what"]]) { const el = $(id); el.value = d[key] || ""; el.oninput = () => { d[key] = el.value; obChanged(); }; }
+  $("ob-notes").value = d.notes || "";
+  obPlayer(); obRender();
+  show("observation");
+}
+
+function obPlayer() {
+  const box = $("ob-player");
+  const keep = box.querySelector(".chips");
+  box.innerHTML = "";
+  const screen = document.createElement("div"); screen.className = "screen";
+  const e = obLocal ? { kind: "video", src: obLocal.url } : vEmbed(ob.data.link);
+  if (!e) screen.innerHTML = '<div class="empty">Add your 15-minute clip below — pick it from your phone or computer, or paste a link — and watch it here while you complete the report.</div>';
+  else if (e.kind === "iframe") { const f = document.createElement("iframe"); f.src = e.src; f.allow = "autoplay; fullscreen; picture-in-picture"; f.allowFullscreen = true; screen.appendChild(f); }
+  else if (e.kind === "video") { const v = document.createElement("video"); v.src = e.src; v.controls = true; v.playsInline = true; v.preload = "metadata"; screen.appendChild(v); v.onerror = () => { screen.innerHTML = '<div class="empty">This video will not play here. Try choosing it from your device instead.</div>'; }; }
+  else { const dv = document.createElement("div"); dv.className = "empty"; dv.append("This link cannot be played on the page. "); const a = document.createElement("a"); a.href = e.src; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open it in a new tab"; dv.appendChild(a); screen.appendChild(dv); }
+  const src = document.createElement("div"); src.className = "vsrc noprint";
+  const pick = document.createElement("label"); pick.className = "btn ghost small"; pick.textContent = obLocal ? "Choose a different video" : "Choose video from my device";
+  const file = document.createElement("input"); file.type = "file"; file.accept = "video/*"; file.hidden = true;
+  file.onchange = () => { const f = file.files && file.files[0]; if (!f) return; if (obLocal) URL.revokeObjectURL(obLocal.url); obLocal = { url: URL.createObjectURL(f), name: f.name }; ob.data.file = f.name; obChanged(); obPlayer(); };
+  pick.appendChild(file);
+  const link = document.createElement("input"); link.type = "text"; link.placeholder = "…or paste a link (YouTube, Vimeo, Google Drive, Dropbox)"; link.value = ob.data.link || "";
+  link.onchange = () => { ob.data.link = link.value.trim(); if (obLocal) { URL.revokeObjectURL(obLocal.url); obLocal = null; } obChanged(); obPlayer(); };
+  const note = document.createElement("span"); note.className = "note";
+  note.textContent = obLocal ? "Playing “" + obLocal.name + "” from your device. It is not uploaded." : ob.data.file && !ob.data.link ? "Last time you used “" + ob.data.file + "” — choose it again to watch it here." : "Videos chosen from your device stay on your device — nothing is uploaded.";
+  src.append(pick, link, note);
+  const wrap = box.parentNode;
+  let holder = wrap.previousElementSibling;
+  if (!holder || !holder.classList.contains("vsrc-holder")) { holder = document.createElement("div"); holder.className = "vsrc-holder"; wrap.parentNode.insertBefore(holder, wrap); }
+  holder.innerHTML = ""; holder.appendChild(src);
+  box.appendChild(screen);
+  if (keep) box.appendChild(keep);
+}
+
+function obRender() {
+  const d = ob.data;
+  const box = $("ob-areas"); box.innerHTML = "";
+  const tabs = [...OB.map((x) => [x.k, x.t]), ["hv", "Humility & vulnerability"]];
+  const chips = document.createElement("div"); chips.className = "chips";
+  $("ob-player").querySelector(".chips")?.remove();
+  $("ob-player").appendChild(chips);
+  const cards = {};
+  const doneOf = (k) => k === "hv" ? HV.some((h) => d.hv[h] && (d.hv[h].seen || (d.hv[h].note || "").trim())) : OB.find((x) => x.k === k).a.some((a) => d.scores[k + ":" + a]);
+  const paint = () => {
+    chips.innerHTML = "";
+    for (const [k, t] of tabs) { const c = document.createElement("button"); c.type = "button"; c.textContent = t; c.className = (obActive === k ? "on " : "") + (doneOf(k) ? "done" : ""); c.onclick = () => { obActive = k; paint(); }; chips.appendChild(c); }
+    for (const k in cards) cards[k].classList.toggle("off", k !== obActive);
+  };
+  const nav = (idx) => {
+    const n = document.createElement("div"); n.className = "vnav noprint";
+    const p = document.createElement("button"); p.type = "button"; p.className = "btn ghost small"; p.textContent = "← Previous"; if (!idx) p.style.visibility = "hidden";
+    p.onclick = () => { obActive = tabs[idx - 1][0]; paint(); };
+    const nx = document.createElement("button"); nx.type = "button"; nx.className = "btn small"; nx.textContent = idx === tabs.length - 1 ? "Done ✓" : "Next →";
+    nx.onclick = () => { if (idx < tabs.length - 1) { obActive = tabs[idx + 1][0]; paint(); } else { obSave(); $("ob-notes").scrollIntoView({ behavior: "smooth", block: "center" }); } };
+    n.append(p, nx); return n;
+  };
+  OB.forEach((sec, idx) => {
+    const c = document.createElement("div"); c.className = "vr";
+    const h = document.createElement("h3"); h.textContent = sec.t;
+    const tp = document.createElement("p"); tp.className = "tip"; tp.textContent = sec.intro;
+    c.append(h, tp);
+    for (const a of sec.a) {
+      const key = sec.k + ":" + a;
+      const row = document.createElement("div"); row.className = "obrow";
+      const l = document.createElement("div"); l.className = "lbl"; l.textContent = a;
+      const st = document.createElement("div"); st.className = "stars";
+      for (let v = 1; v <= 10; v++) {
+        const b = document.createElement("button"); b.type = "button"; b.textContent = v; b.classList.toggle("on", d.scores[key] === v);
+        b.onclick = () => { d.scores[key] = d.scores[key] === v ? null : v; st.querySelectorAll("button").forEach((x, i) => x.classList.toggle("on", d.scores[key] === i + 1)); obBars(); paint(); obChanged(); };
+        st.appendChild(b);
+      }
+      row.append(l, st); c.appendChild(row);
+    }
+    const cl = document.createElement("label"); cl.textContent = "Comments — what led to these scores?"; cl.style.marginTop = "10px";
+    const ct = document.createElement("textarea"); ct.value = d.comments[sec.k] || ""; ct.oninput = () => { d.comments[sec.k] = ct.value; obChanged(); };
+    c.append(cl, ct, nav(idx));
+    cards[sec.k] = c; box.appendChild(c);
+  });
+  const hc = document.createElement("div"); hc.className = "vr";
+  const hh = document.createElement("h3"); hh.textContent = "Humility & vulnerability";
+  const htp = document.createElement("p"); htp.className = "tip"; htp.textContent = "Key points for humility and vulnerability. Did you see yourself doing each one in the clip? Note where — or where you missed a chance.";
+  hc.append(hh, htp);
+  for (const k of HV) {
+    const it = d.hv[k] = d.hv[k] || { seen: "", note: "" };
+    const row = document.createElement("div"); row.className = "hv";
+    const top = document.createElement("div"); top.className = "top";
+    const b = document.createElement("b"); b.textContent = k;
+    const tg = document.createElement("div"); tg.className = "tags"; tg.style.margin = "0";
+    for (const [v, lab] of [["yes", "Seen"], ["partly", "Partly"], ["no", "Not seen"]]) {
+      const bt = document.createElement("button"); bt.type = "button"; bt.textContent = lab; bt.classList.toggle("on", it.seen === v);
+      bt.onclick = () => { it.seen = it.seen === v ? "" : v; tg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === bt && it.seen === v)); paint(); obChanged(); };
+      tg.appendChild(bt);
+    }
+    top.append(b, tg);
+    const t = document.createElement("textarea"); t.value = it.note; t.placeholder = "Where, and what happened?"; t.oninput = () => { it.note = t.value; obChanged(); };
+    row.append(top, t); hc.appendChild(row);
+  }
+  hc.appendChild(nav(tabs.length - 1));
+  cards.hv = hc; box.appendChild(hc);
+  paint(); obBars();
+}
+
+function obBars() {
+  const d = ob.data; const box = $("ob-bars"); box.innerHTML = "";
+  for (const sec of OB) {
+    const vals = sec.a.map((a) => d.scores[sec.k + ":" + a]).filter((v) => v);
+    const avg = vals.length ? Math.round(vals.reduce((x, y) => x + y, 0) / vals.length * 10) / 10 : null;
+    const row = document.createElement("div"); row.className = "b"; row.style.gridTemplateColumns = "130px 1fr 44px";
+    const a = document.createElement("span"); a.textContent = sec.t; a.style.fontWeight = "600";
+    const t = document.createElement("div"); t.className = "t"; t.innerHTML = `<i style="width:${avg ? avg * 10 : 0}%;background:var(--accent)"></i>`;
+    const c2 = document.createElement("span"); c2.textContent = avg == null ? "–" : avg;
+    row.append(a, t, c2); box.appendChild(row);
+  }
+}
+
+function obChanged() { $("ob-state").textContent = "Unsaved changes"; clearTimeout(obTimer); obTimer = setTimeout(obSave, 1500); }
+async function obSave() {
+  clearTimeout(obTimer);
+  ob.data.notes = $("ob-notes").value;
+  const row = { user_id: session.user.id, tool: "observation", data: ob.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("ob-state").textContent = "Not saved — " + error.message; return false; }
+  ob = { ...data, data: ob.data };
+  $("ob-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("ob-notes").addEventListener("input", obChanged);
+$("ob-save").onclick = async () => { if (await obSave()) $("ob-state").textContent = "Saved ✓"; };
+$("ob-download").onclick = async () => { await obSave(); window.print(); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
