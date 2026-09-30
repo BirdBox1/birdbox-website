@@ -87,6 +87,11 @@
   .badge.tcc{color:#2f7fd0;border-color:#b9d4f2;background:#eef5fd}
   .badge.tgc{color:#b3261e;border-color:#efc2bf;background:#fcf0ef}
   .badge.done{color:var(--good);border-color:#bfe3cd;background:#e9f6ee}
+  .badge .bx{font:inherit;font-size:0.8rem;line-height:1;border:0;background:none;color:inherit;cursor:pointer;padding:0 0 0 0.3rem;margin:0;opacity:0;width:0;overflow:hidden;transition:opacity .15s}
+  .badge:hover .bx,.badge .bx:focus{opacity:.8;width:auto}
+  .badge .bx:hover{opacity:1}
+  @media (hover:none){.badge .bx{opacity:.6;width:auto}}
+  .badge.gone{opacity:.3}
   .bulkbar{display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;margin:0.8rem 0 0;font-size:0.85rem}
   .bulkbar select{width:auto;font-size:0.82rem;padding:0.35rem 0.5rem}
   .toolrow{display:flex;justify-content:space-between;align-items:center;gap:0.6rem;flex-wrap:wrap;margin:0 0 0.5rem;font-size:0.82rem;color:var(--muted)}
@@ -1163,6 +1168,17 @@ function renderAllLearners() {
       bd.className = "badge " + ((course && course.brand) || "") + (st === "Passed" || st === "Completed" ? " done" : "");
       bd.textContent = shortCourse(course) + (st === "Passed" || st === "Completed" ? " ✓" : st === "In progress" ? " …" : "");
       bd.title = (course ? course.title : "") + " — " + st;
+      // × on the pill removes this course straight away (progress and certificates are kept)
+      const x = document.createElement("button"); x.type = "button"; x.className = "bx"; x.textContent = "×";
+      x.title = "Remove " + shortCourse(course);
+      x.onclick = async (e) => {
+        e.stopPropagation();
+        bd.classList.add("gone");
+        const { error } = await db.from("learn_enrolments").delete().eq("course_id", cid).eq("email", p.email);
+        if (error) { bd.classList.remove("gone"); return alert(error.message); }
+        c.enrolled = false; bd.remove();
+      };
+      bd.appendChild(x);
       tdk.appendChild(bd);
     }
     const tdl = document.createElement("td"); tdl.textContent = p.last ? fmtDate(p.last) : "—";
