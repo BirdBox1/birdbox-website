@@ -55,6 +55,9 @@
   .pf-count.all{color:var(--good)}
   .pf-count.all::before{content:"✓ "}
   .pf-unit .tools{padding:0 18px 18px}
+  .pf-unit.locked summary{opacity:.55}
+  .tool.locked{opacity:.5;cursor:default;border-top-color:var(--line)}
+  .tool.locked span{color:var(--muted)}
   .tool{display:block;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--accent);padding:22px;color:var(--ink);text-decoration:none}
   .tool:hover{background:var(--panel2)}
   .tool h3{margin:0 0 6px;font-size:17px}
@@ -1509,7 +1512,11 @@ const PF_COURSES = [
   ] },
 ];
 async function pfHome(rows) {
-  const done = new Set((rows || []).map((r) => r.tool));
+  const done = new Set((rows || []).map((r) => r.tool).filter((t) => t !== "_unlocked"));
+  const unl = (rows || []).find((r) => r.tool === "_unlocked");
+  const open = new Set([...done, ...((unl && unl.data && unl.data.tools) || [])]);
+  let everything = false;
+  try { const { data: st } = await db.from("learn_all_access").select("email").eq("email", session.user.email).maybeSingle(); everything = !!st; } catch (e) {}
   // which courses is this learner enrolled in? (any language counts)
   let mine = new Set();
   try {
@@ -1520,7 +1527,7 @@ async function pfHome(rows) {
   if (!courses.length) courses = PF_COURSES;
   const cards = {}; document.querySelectorAll("#home .tools a.tool").forEach((a) => { cards[new URL(a.href).searchParams.get("tool")] = a; });
   const root = $("pf-courses"); root.innerHTML = "";
-  let open = null;
+  let first = null;
   for (const c of courses) {
     const sec = document.createElement("div"); sec.className = "pf-course"; sec.style.setProperty("--c", c.colour);
     const total = c.units.reduce((s, u) => s + u.tools.length, 0), started = c.units.reduce((s, u) => s + u.tools.filter((t) => done.has(t)).length, 0);
@@ -1528,18 +1535,25 @@ async function pfHome(rows) {
     sec.querySelector(".pf-ctitle").textContent = c.name;
     c.units.forEach((u, i) => {
       const n = u.tools.filter((t) => done.has(t)).length;
-      const d = document.createElement("details"); d.className = "pf-unit";
+      const reached = everything || u.tools.some((t) => open.has(t));
+      const d = document.createElement("details"); d.className = "pf-unit" + (reached ? "" : " locked");
       const s = document.createElement("summary");
-      s.innerHTML = `<span class="pf-num">Lesson ${u.n}</span><span class="pf-uname"></span><span class="pf-count${n === u.tools.length ? " all" : ""}">${n} of ${u.tools.length} started</span>`;
+      s.innerHTML = `<span class="pf-num">Lesson ${u.n}</span><span class="pf-uname"></span>${reached ? `<span class="pf-count${n === u.tools.length ? " all" : ""}">${n} of ${u.tools.length} started</span>` : '<span class="pf-count">🔒 Opens when you reach this lesson</span>'}`;
       s.querySelector(".pf-uname").textContent = u.name;
       const g = document.createElement("div"); g.className = "tools";
-      for (const t of u.tools) if (cards[t]) { g.appendChild(cards[t]); delete cards[t]; }
+      for (const t of u.tools) if (cards[t]) {
+        const a = cards[t];
+        if (everything || open.has(t)) { a.href += "&h=1"; }
+        else { a.removeAttribute("href"); a.classList.add("locked"); const st = a.querySelector("span"); if (st) st.textContent = "🔒 Opens from its button in Lesson " + u.n; }
+        g.appendChild(a); delete cards[t];
+      }
       d.append(s, g); sec.appendChild(d);
-      // open the first unit that still has something to do
-      if (!open && n < u.tools.length) { open = d; d.open = true; }
+      // open the latest lesson reached that still has something to do
+      if (reached && n < u.tools.length) first = d;
     });
     root.appendChild(sec);
   }
+  if (first) first.open = true;
   const left = Object.values(cards);
   if (left.length && courses === PF_COURSES) {
     const d = document.createElement("details"); d.className = "pf-unit";
@@ -1551,9 +1565,20 @@ async function pfHome(rows) {
 }
 
 // ---------------- start ----------------
+// A task unlocks the first time the learner opens it from the course (Rise buttons link to ?tool=…).
+// Links on the portfolio home carry &h=1, so opening from there does not count.
+async function pfUnlock(t) {
+  try {
+    const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", "_unlocked").maybeSingle();
+    const list = (data && data.data && data.data.tools) || [];
+    if (list.includes(t)) return;
+    await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: "_unlocked", data: { tools: [...list, t] } }, { onConflict: "user_id,tool" });
+  } catch (e) { /* never block the task */ }
+}
 async function boot() {
   ({ data: { session } } = await db.auth.getSession());
   if (!session) { show("login"); return; }
+  if (tool && !new URLSearchParams(location.search).get("h")) pfUnlock(tool === "traits" ? "traits" : tool);
   if (tool === "spider" || tool === "traits") return openSpider();
   if (tool === "concern") return openConcern();
   if (tool === "reactions") return openReactions();
