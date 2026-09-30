@@ -86,8 +86,16 @@ export default async (req) => {
       .select("completion_status, success_status, score_scaled, completed_at")
       .eq("user_id", user.id).eq("course_id", courseId).maybeSingle();
 
-    const passed = attempt && (attempt.success_status === "passed" ||
+    let passed = attempt && (attempt.success_status === "passed" ||
       (attempt.success_status !== "failed" && attempt.completion_status === "completed"));
+    let done = attempt;
+    // Finished on the old BirdBox Academy (LearnWorlds) before the move: counts as passed.
+    if (!passed) {
+      const { data: lw } = await supabase.from("learn_enrolments")
+        .select("lw_completed_at, lw_score")
+        .eq("course_id", courseId).eq("email", (user.email || "").toLowerCase()).not("lw_completed_at", "is", null).maybeSingle();
+      if (lw) { passed = true; done = { completed_at: lw.lw_completed_at, score_scaled: lw.lw_score }; }
+    }
     if (!passed) return json({ error: "The certificate unlocks once you have passed the final test." }, 400);
 
     const name = String(body.name || "").replace(/\s+/g, " ").trim();
@@ -95,7 +103,7 @@ export default async (req) => {
       return json({ error: "Type your full name as it should appear on the certificate." }, 400);
     }
 
-    const awardedOn = (attempt.completed_at || new Date().toISOString()).slice(0, 10);
+    const awardedOn = (done.completed_at || new Date().toISOString()).slice(0, 10);
 
     // Reference like BB-TCC1-ON-0001. Retry if two people pass at once.
     let row = null;
@@ -108,7 +116,7 @@ export default async (req) => {
         reference,
         name,
         awarded_on: awardedOn,
-        score_scaled: attempt.score_scaled,
+        score_scaled: done.score_scaled ?? null,
       }).select("id, reference, name, awarded_on").single();
       if (!error) { row = data; break; }
       if (!/duplicate|unique/i.test(error.message || "")) throw new Error(error.message);
