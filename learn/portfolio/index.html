@@ -220,6 +220,19 @@
   .lookback{display:flex;gap:6px;flex-wrap:wrap}
   .lookback a{font-size:13px;padding:7px 11px;border:1px solid var(--line);color:var(--ink);text-decoration:none;background:var(--paper)}
   .lookback a:hover{border-color:var(--accent)}
+  .mt{position:relative;border:1px solid var(--line);background:var(--paper);padding:12px;margin:0 0 10px}
+  .mt.example{border-color:var(--accent)}
+  .mt .g2{display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 8px}
+  @media(min-width:760px){.mt .g2{grid-template-columns:1fr 1.4fr}}
+  .mt label{display:block;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+  .mt input,.mt textarea{width:100%;font:inherit;font-size:15px;padding:9px 10px;background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+  .mt textarea{min-height:54px}
+  .mt .row2{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  .mt .row2 .tags{margin:0}
+  .mt .tag-ex{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  .mt .del{position:absolute;right:10px;top:8px;background:none;border:0;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline}
+  .mtbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+  .mtbar input{flex:1;min-width:180px;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
   .cmp{width:100%;font-size:14px}
   .cmp td,.cmp th{padding:7px 6px}
   .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
@@ -336,6 +349,11 @@
         <h3>Multidimensional Model of Leadership — reflective report</h3>
         <p>Your end-of-unit reflection: what you learned and how you will use it in your coaching.</p>
         <span id="reflect-mml-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=metaphors">
+        <h3>My bank of coaching metaphors</h3>
+        <p>Movements, the intended task, and the metaphors that make it click — a bank you keep adding to for your whole coaching career.</p>
+        <span id="metaphors-status">Open →</span>
       </a>
     </div>
   </section>
@@ -851,6 +869,46 @@
       <span class="savestate" id="rf-state"></span>
     </div>
   </section>
+  <!-- coaching metaphors -->
+  <section id="metaphors" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Transformational Coaching</p>
+    <h1>My bank of coaching metaphors</h1>
+    <p class="lede">For each movement, write the intended task — what you want the athlete to do — and a metaphor that helps them feel it. Start with the movements below, then add your own and build a bank for your coaching career.</p>
+
+    <div class="panel noprint">
+      <h2>How it works</h2>
+      <ol class="steps">
+        <li>Read the <b>example</b> (air squat) first.</li>
+        <li><b>Invent a metaphor</b> for each of the other movements — relevant to you and your athletes.</li>
+        <li><b>Add more movements</b> from your own coaching. Tag each metaphor as an image, a sound or a feel, and note whether it worked when you tried it.</li>
+      </ol>
+    </div>
+
+    <div class="panel">
+      <div class="mtbar noprint">
+        <input id="mt-search" type="search" placeholder="Search your bank — e.g. squat, hips, pull">
+        <span class="goal" id="mt-count"></span>
+      </div>
+      <div id="mt-list"></div>
+      <div class="row noprint" style="margin-top:6px">
+        <button class="btn ghost small" id="mt-add" type="button">+ Add a movement</button>
+        <button class="btn ghost small" id="mt-csv" type="button">Download as spreadsheet</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>My reflections</h2>
+      <p class="lede noprint" style="font-size:14px;margin:0 0 10px">Which metaphors worked best, and for which athletes? Do different athletes need different metaphors for the same movement?</p>
+      <textarea id="mt-notes" placeholder="Write your thoughts here…"></textarea>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="mt-save" type="button">Save</button>
+      <button class="btn ghost" id="mt-download" type="button">Download PDF</button>
+      <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+      <span class="savestate" id="mt-state"></span>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -859,7 +917,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -902,6 +960,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (va && tool === "values") await vaSave();
   if (idn && tool === "identity") await idSave();
   if (rf && REFLECT[tool]) await rfSave();
+  if (mt && tool === "metaphors") await mtSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -922,6 +981,7 @@ async function boot() {
   if (tool === "values") return openValues();
   if (tool === "identity") return openIdentity();
   if (REFLECT[tool]) return openReflect();
+  if (tool === "metaphors") return openMetaphors();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -947,6 +1007,8 @@ async function boot() {
   const idr = (data || []).find((r) => r.tool === "identity");
   if (idr) $("identity-status").textContent = "Last saved " + new Date(idr.updated_at).toLocaleDateString("en-GB") + " →";
   for (const k in REFLECT) { const r = (data || []).find((x) => x.tool === k); const el = $(k + "-status"); if (r && el) el.textContent = "Last saved " + new Date(r.updated_at).toLocaleDateString("en-GB") + " →"; }
+  const mtr = (data || []).find((r) => r.tool === "metaphors");
+  if (mtr) $("metaphors-status").textContent = ((mtr.data && mtr.data.rows || []).filter((r) => (r.m || "").trim()).length) + " metaphors →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -2470,6 +2532,113 @@ async function rfSave() {
 }
 $("rf-save").onclick = async () => { if (await rfSave()) $("rf-state").textContent = "Saved ✓"; };
 $("rf-download").onclick = async () => { await rfSave(); window.print(); };
+
+// ---------------- coaching metaphors ----------------
+const MT_EXAMPLE = { mv: "Air Squat", task: "Posterior chain engagement (hips back)", m: "Imagine you close a kitchen drawer with your bum", type: ["image"] };
+const MT_START = [
+  ["Pull-Up", "Engage the primary movers, lats and biceps, to pull yourself up and push down on the pull-up bar"],
+  ["Push-Up", "Engage the primary movers, pecs and triceps"],
+];
+const MT_TYPES = [["image", "Image"], ["sound", "Sound"], ["feel", "Feel"]];
+const MT_RESULT = [["worked", "Worked"], ["again", "Try again"]];
+let mt = null;
+let mtTimer = null;
+
+async function openMetaphors() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "metaphors").maybeSingle();
+  mt = data || { tool: "metaphors", data: { notes: "" } };
+  mt.data.rows = mt.data.rows && mt.data.rows.length ? mt.data.rows : MT_START.map(([mv, task]) => ({ mv, task, m: "", type: [], result: "" }));
+  $("mt-notes").value = mt.data.notes || "";
+  mtRender();
+  show("metaphors");
+}
+
+function mtCard(r, i, example) {
+  const d = document.createElement("div"); d.className = "mt" + (example ? " example" : "");
+  if (example) { const t = document.createElement("p"); t.className = "tag-ex"; t.textContent = "Example"; d.appendChild(t); }
+  else {
+    const del = document.createElement("button"); del.type = "button"; del.className = "del noprint"; del.textContent = "Remove";
+    del.onclick = () => { if ((r.m || r.mv || r.task).trim() && !confirm("Remove this movement from your bank?")) return; mt.data.rows.splice(i, 1); mtRender(); mtChanged(); };
+    d.appendChild(del);
+  }
+  const g = document.createElement("div"); g.className = "g2";
+  const inp = (label, key, ph) => {
+    const w = document.createElement("div"); const l = document.createElement("label"); l.textContent = label;
+    const x = document.createElement(key === "task" ? "textarea" : "input"); x.value = r[key] || ""; x.placeholder = ph || ""; x.readOnly = !!example;
+    if (key === "task") x.style.minHeight = "44px";
+    x.oninput = () => { r[key] = x.value; mtChanged(); mtCount(); };
+    w.append(l, x); return w;
+  };
+  g.append(inp("Movement / element", "mv", "e.g. Deadlift"), inp("The intended task", "task", "e.g. Keep the bar close to the body"));
+  d.appendChild(g);
+  const l = document.createElement("label"); l.textContent = "The metaphor";
+  const t = document.createElement("textarea"); t.value = r.m || ""; t.placeholder = example ? "" : "Imagine…"; t.readOnly = !!example;
+  t.oninput = () => { r.m = t.value; mtChanged(); mtCount(); };
+  d.append(l, t);
+  const row2 = document.createElement("div"); row2.className = "row2";
+  const chips = (opts, key, multi) => {
+    const tg = document.createElement("div"); tg.className = "tags";
+    for (const [k, label] of opts) {
+      const on = multi ? (r[key] || []).includes(k) : r[key] === k;
+      const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.classList.toggle("on", on); b.disabled = !!example;
+      b.onclick = () => {
+        if (multi) { r[key] = r[key] || []; r[key] = r[key].includes(k) ? r[key].filter((x) => x !== k) : [...r[key], k]; b.classList.toggle("on"); }
+        else { r[key] = r[key] === k ? "" : k; tg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b && r[key] === k)); }
+        mtChanged();
+      };
+      tg.appendChild(b);
+    }
+    return tg;
+  };
+  row2.appendChild(chips(MT_TYPES, "type", true));
+  if (!example) row2.appendChild(chips(MT_RESULT, "result", false));
+  d.appendChild(row2);
+  return d;
+}
+
+function mtRender() {
+  const box = $("mt-list"); box.innerHTML = "";
+  const q = $("mt-search").value.trim().toLowerCase();
+  const hit = (r) => !q || [r.mv, r.task, r.m].some((x) => String(x || "").toLowerCase().includes(q));
+  if (hit(MT_EXAMPLE)) box.appendChild(mtCard(MT_EXAMPLE, -1, true));
+  mt.data.rows.forEach((r, i) => { if (hit(r)) box.appendChild(mtCard(r, i, false)); });
+  if (q && !box.children.length) box.innerHTML = '<p class="hist">Nothing in your bank matches that yet.</p>';
+  mtCount();
+}
+function mtCount() {
+  const n = mt.data.rows.filter((r) => (r.m || "").trim()).length;
+  $("mt-count").textContent = n === 1 ? "1 metaphor in your bank" : n + " metaphors in your bank";
+}
+$("mt-search").addEventListener("input", () => mtRender());
+$("mt-add").onclick = () => {
+  $("mt-search").value = "";
+  mt.data.rows.push({ mv: "", task: "", m: "", type: [], result: "" });
+  mtRender(); mtChanged();
+  const last = $("mt-list").lastChild; last.scrollIntoView({ behavior: "smooth", block: "center" }); last.querySelector("input").focus();
+};
+$("mt-csv").onclick = () => {
+  const cell = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  const lines = [["Movement / element", "The intended task", "The metaphor", "Type", "Result"].map(cell).join(",")];
+  for (const r of [MT_EXAMPLE, ...mt.data.rows]) if ((r.mv || r.task || r.m || "").trim())
+    lines.push([r.mv, r.task, r.m, (r.type || []).join(" + "), r === MT_EXAMPLE ? "Example" : r.result === "worked" ? "Worked" : r.result === "again" ? "Try again" : ""].map(cell).join(","));
+  const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "my-coaching-metaphors.csv"; document.body.appendChild(a); a.click(); a.remove();
+};
+
+function mtChanged() { $("mt-state").textContent = "Unsaved changes"; clearTimeout(mtTimer); mtTimer = setTimeout(mtSave, 1500); }
+async function mtSave() {
+  clearTimeout(mtTimer);
+  mt.data.notes = $("mt-notes").value;
+  const row = { user_id: session.user.id, tool: "metaphors", data: mt.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("mt-state").textContent = "Not saved — " + error.message; return false; }
+  mt = { ...data, data: mt.data };
+  $("mt-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("mt-notes").addEventListener("input", mtChanged);
+$("mt-save").onclick = async () => { if (await mtSave()) $("mt-state").textContent = "Saved ✓"; };
+$("mt-download").onclick = async () => { await mtSave(); $("mt-search").value = ""; mtRender(); window.print(); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
