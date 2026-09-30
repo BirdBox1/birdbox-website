@@ -224,7 +224,7 @@ async function boot() {
 
   const [{ data: isAdmin }, { data: enr }, { data: att }, { data: certs }] = await Promise.all([
     db.rpc("learn_is_admin"),
-    db.from("learn_enrolments").select("course_id, learn_courses(id, slug, title, brand, level, language, ceus, current_version, active)"),
+    db.from("learn_enrolments").select("course_id, lw_completed_at, learn_courses(id, slug, title, brand, level, language, ceus, current_version, active)"),
     db.from("learn_attempts").select("course_id, completion_status, success_status, progress, score_scaled, completed_at, updated_at").eq("user_id", session.user.id),
     db.from("learn_certificates").select("course_id, reference").eq("user_id", session.user.id),
   ]);
@@ -232,7 +232,7 @@ async function boot() {
   const defaultName = (session.user.user_metadata && (session.user.user_metadata.full_name || session.user.user_metadata.name)) || "";
 
   const map = new Map();
-  for (const e of enr || []) if (e.learn_courses && e.learn_courses.active) map.set(e.learn_courses.id, { ...e.learn_courses, admin: false });
+  for (const e of enr || []) if (e.learn_courses && e.learn_courses.active) map.set(e.learn_courses.id, { ...e.learn_courses, admin: false, lwDone: e.lw_completed_at || null });
   if (isAdmin) {
     const { data: all } = await db.from("learn_courses").select("id, slug, title, brand, level, language, ceus, current_version, active").eq("active", true);
     for (const c of all || []) if (!map.has(c.id)) map.set(c.id, { ...c, admin: true });
@@ -256,7 +256,8 @@ async function boot() {
   for (const c of list) {
     const a = attempts.get(c.id);
     const b = BRAND[c.brand] || BRAND.tcc;
-    const done = a && (a.success_status === "passed" || a.completion_status === "completed" || a.completed_at);
+    const liveDone = a && (a.success_status === "passed" || a.completion_status === "completed" || a.completed_at);
+    const done = liveDone || !!c.lwDone;
     const pct = done ? 100 : a && a.progress != null ? Math.round(a.progress * 100) : a ? null : 0;
 
     const card = document.createElement("div");
@@ -278,7 +279,8 @@ async function boot() {
     const st = document.createElement("div");
     st.className = "status" + (done ? " done" : "");
     st.textContent = !c.current_version ? "Coming soon"
-      : done ? (a.success_status === "passed" && a.score_scaled != null ? "Passed · " + Math.round(a.score_scaled * 100) + "%" : "Completed ✓")
+      : liveDone ? (a.success_status === "passed" && a.score_scaled != null ? "Passed · " + Math.round(a.score_scaled * 100) + "%" : "Completed ✓")
+      : done ? "Completed on BirdBox Academy ✓"
       : a ? "In progress" : "Not started";
 
     const prog = document.createElement("div");
