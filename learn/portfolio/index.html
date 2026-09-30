@@ -306,6 +306,8 @@
   .an-list button.on{border-color:#D8393D;background:#3A1A1B}
   .an-list button.known::after{content:" ✓";color:var(--good)}
   #an-card h3{margin:0 0 2px;font-size:22px}
+  .an-bonebox{background:#fff;border:1px solid var(--line);padding:8px}
+  .an-bonebox svg{display:block;width:100%;height:auto;max-height:62vh}
   .an-row{border-top:1px solid var(--line);padding:10px 0}
   .an-row b{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 4px;color:var(--muted)}
   .an-row p{margin:0;font-size:15px;line-height:1.55}
@@ -1165,7 +1167,7 @@
         <div class="an-mapbox">
           <div class="an-views"><button type="button" id="an-front">Front</button><button type="button" id="an-back">Back</button></div>
           <svg id="an-svg" viewBox="20 0 160 440" role="img" aria-label="Body map"></svg>
-          <div class="an-legend"><span><i style="background:#2F7FC1"></i>Origin</span><span><i style="background:#E08A2E"></i>Insertion</span><span><i style="border:1px dashed #8A4A44;border-radius:2px"></i>Deep muscle</span></div>
+          <div class="an-legend"><span><i style="background:#2F7FC1"></i>Origin</span><span><i style="background:#E08A2E"></i>Insertion</span><span><i style="border:1px dashed #8A4A44;border-radius:2px"></i>Deep muscle</span><span><i style="background:#2F7FC1;border-radius:2px"></i>Selected</span></div>
         </div>
       </div>
       <div>
@@ -1177,6 +1179,7 @@
             <p class="hist" id="an-progress" style="margin:0"></p>
           </div>
           <div class="panel" id="an-card"></div>
+          <div class="panel hidden" id="an-bone"></div>
           <div class="row noprint">
             <button class="btn" id="an-quiz-start" type="button">Test myself — 10 questions</button>
             <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
@@ -3474,169 +3477,164 @@ $("mm-download").onclick = async () => { await mmSave(); window.print(); };
 // video: add a YouTube / Vimeo / Drive link to show a clip for that muscle.
 const AN_REGIONS = ["Shoulder", "Upper back", "Chest", "Arm", "Core", "Hip", "Thigh", "Lower leg"];
 const AN = [
-  { id: "delt", name: "Deltoid", region: "Shoulder", view: "front", d: "M62,62 C50,62 44,72 44,90 L52,100 C56,88 60,78 66,72 Z", o: [70, 63], i: [48, 100],
+  { id: "delt", name: "Deltoid", region: "Shoulder", view: "front", f: 80, d: "M66,63 C56,64 50,74 50,88 C50,98 52,106 55,112 C57,101 60,92 65,86 C70,80 70,70 66,63 Z", o: [68, 64], i: [53, 108],
     origin: "Lateral third of the clavicle, acromion and spine of the scapula", insertion: "Deltoid tuberosity of the humerus",
     action: "Anterior fibres: shoulder flexion and internal rotation. Middle fibres: abduction. Posterior fibres: extension, external rotation and horizontal abduction.",
     coach: "Strict press, push press, handstand work, overhead support in the jerk and snatch." },
-  { id: "supra", name: "Supraspinatus", region: "Shoulder", view: "back", deep: true, d: "M72,69 C78,66 88,67 94,70 L92,74 C86,72 78,72 72,74 Z", o: [86, 71], i: [62, 68],
+  { id: "supra", name: "Supraspinatus", region: "Shoulder", view: "back", deep: true, f: 5, d: "M72,68 C80,65 88,66 94,70 L92,75 C84,72 78,72 72,75 Z", o: [88, 71], i: [64, 66],
     origin: "Supraspinous fossa of the scapula", insertion: "Superior facet of the greater tubercle of the humerus",
     action: "Starts shoulder abduction; holds the head of the humerus in the socket (rotator cuff).",
     coach: "Overhead stability; often irritated by high-volume kipping and poor overhead positions." },
-  { id: "infra", name: "Infraspinatus", region: "Shoulder", view: "back", d: "M76,80 L93,84 L91,104 L76,99 Z", o: [86, 94], i: [62, 76],
+  { id: "infra", name: "Infraspinatus", region: "Shoulder", view: "back", f: -20, d: "M76,80 C82,80 88,84 93,88 C92,96 90,102 88,106 C82,104 78,100 74,96 C74,90 75,84 76,80 Z", o: [86, 94], i: [63, 74],
     origin: "Infraspinous fossa of the scapula", insertion: "Middle facet of the greater tubercle of the humerus",
     action: "External rotation of the shoulder; stabilises the humeral head (rotator cuff).",
     coach: "Keeps the shoulder centred in pull-ups, muscle-ups and overhead squats." },
-  { id: "tmin", name: "Teres minor", region: "Shoulder", view: "back", d: "M70,98 L80,103 L78,110 L68,104 Z", o: [74, 104], i: [62, 80],
+  { id: "tmin", name: "Teres minor", region: "Shoulder", view: "back", f: -30, d: "M71,97 C75,100 80,104 84,108 L82,112 C77,110 72,106 69,102 Z", o: [78, 106], i: [62, 80],
     origin: "Upper two-thirds of the lateral border of the scapula", insertion: "Inferior facet of the greater tubercle of the humerus",
     action: "External rotation of the shoulder (rotator cuff).",
     coach: "Works with infraspinatus to keep the shoulder externally rotated overhead." },
-  { id: "subscap", name: "Subscapularis", region: "Shoulder", view: "front", deep: true, d: "M64,84 C68,86 70,94 68,102 L63,100 C63,94 62,88 64,84 Z", o: [67, 96], i: [60, 84],
+  { id: "subscap", name: "Subscapularis", region: "Shoulder", view: "front", deep: true, f: 20, d: "M63,84 C68,86 70,94 68,104 L62,102 C62,96 61,88 63,84 Z", o: [67, 98], i: [61, 86],
     origin: "Subscapular fossa (front surface of the scapula)", insertion: "Lesser tubercle of the humerus",
     action: "Internal rotation of the shoulder; stabilises the front of the joint (rotator cuff).",
     coach: "Front-of-shoulder stability in dips, ring support and the bottom of a push-up." },
-  { id: "trap", name: "Trapezius", region: "Upper back", view: "back", d: "M100,38 L88,54 L64,64 L78,76 L100,150 Z", o: [100, 46], i: [66, 64],
-    alsoFront: "M88,50 L92,58 L66,64 L70,60 Z",
+  { id: "trap", name: "Trapezius", region: "Upper back", view: "back", f: -30, d: "M100,40 C96,46 92,52 88,56 C80,60 72,62 64,64 C70,70 76,76 82,86 C88,104 94,126 100,150 Z", o: [100, 46], i: [67, 64],
+    alsoFront: "M91,50 C86,56 76,60 66,63 C76,62 86,61 94,60 Z",
     origin: "External occipital protuberance, superior nuchal line, ligamentum nuchae and spinous processes of C7–T12", insertion: "Lateral third of the clavicle, acromion and spine of the scapula",
     action: "Upper fibres: elevate and upwardly rotate the scapula. Middle fibres: retract. Lower fibres: depress and upwardly rotate.",
     coach: "Shrug in the second pull, active shoulders overhead, scapular retraction in rows." },
-  { id: "rhomb", name: "Rhomboids", region: "Upper back", view: "back", deep: true, d: "M91,70 L99,72 L99,112 L91,104 Z", o: [99, 84], i: [90, 98],
+  { id: "rhomb", name: "Rhomboids", region: "Upper back", view: "back", deep: true, f: -35, d: "M90,70 L99,72 L99,112 L90,104 Z", o: [99, 86], i: [90, 98],
     origin: "Spinous processes of C7–T5 (minor C7–T1, major T2–T5)", insertion: "Medial border of the scapula",
     action: "Retract, elevate and downwardly rotate the scapula.",
     coach: "Retraction in ring rows and bent-over rows; balances the pull of the pecs." },
-  { id: "lat", name: "Latissimus dorsi", region: "Upper back", view: "back", d: "M66,114 L80,118 L99,150 L99,196 L82,196 L74,160 Z", o: [95, 172], i: [58, 96],
+  { id: "lat", name: "Latissimus dorsi", region: "Upper back", view: "back", f: -55, d: "M66,114 C72,118 80,120 86,124 C92,136 96,150 99,160 L99,198 C92,200 84,198 78,194 C76,180 74,160 72,146 C70,134 68,124 66,114 Z", o: [95, 178], i: [62, 100],
     origin: "Spinous processes of T7–T12, thoracolumbar fascia, iliac crest and lower 3–4 ribs", insertion: "Floor of the intertubercular (bicipital) groove of the humerus",
     action: "Shoulder extension, adduction and internal rotation.",
     coach: "Pull-ups, toes-to-bar and kipping; keeping the bar close in the deadlift, clean and snatch." },
-  { id: "tmaj", name: "Teres major", region: "Upper back", view: "back", d: "M68,106 L80,112 L78,120 L65,113 Z", o: [74, 116], i: [60, 96],
+  { id: "tmaj", name: "Teres major", region: "Upper back", view: "back", f: -30, d: "M69,104 C74,108 80,112 84,114 C82,120 78,122 74,122 C70,118 67,112 66,108 Z", o: [78, 120], i: [63, 102],
     origin: "Posterior surface of the inferior angle of the scapula", insertion: "Medial lip of the intertubercular groove of the humerus",
     action: "Shoulder extension, adduction and internal rotation (the lat's little helper).",
     coach: "Works with the lats in pulling; tightness can limit overhead position." },
-  { id: "erector", name: "Erector spinae", region: "Upper back", view: "back", d: "M92,120 L99,120 L99,212 L92,212 Z", o: [96, 206], i: [96, 124],
+  { id: "erector", name: "Erector spinae", region: "Upper back", view: "back", f: 90, d: "M93,128 C96,128 99,130 99,134 L99,214 C96,216 93,214 92,210 C91,190 91,160 93,128 Z", o: [96, 208], i: [96, 132],
     origin: "Sacrum, iliac crest and spinous processes of the lumbar and lower thoracic vertebrae (common tendon)", insertion: "Ribs, transverse and spinous processes of the vertebrae above, and the mastoid process",
     action: "Extends the spine and bends it sideways; holds a neutral spine under load.",
     coach: "Maintaining a flat back in the deadlift, squat and every pull from the floor." },
-  { id: "pecmaj", name: "Pectoralis major", region: "Chest", view: "front", d: "M66,70 L99,68 L99,106 C88,110 76,108 68,98 L62,86 Z", o: [96, 82], i: [56, 88],
+  { id: "pecmaj", name: "Pectoralis major", region: "Chest", view: "front", f: 15, d: "M69,68 C80,66 92,66 99,67 L99,104 C92,108 82,108 74,104 C70,100 66,96 62,90 C62,82 64,74 69,68 Z", o: [96, 84], i: [60, 92],
     origin: "Medial half of the clavicle, sternum, costal cartilages of ribs 1–6 and the aponeurosis of the external oblique", insertion: "Lateral lip of the intertubercular groove of the humerus",
     action: "Shoulder flexion (clavicular part), adduction, internal rotation and horizontal adduction.",
     coach: "Push-ups, bench press, dips and ring support." },
-  { id: "pecmin", name: "Pectoralis minor", region: "Chest", view: "front", deep: true, d: "M70,82 C76,80 84,84 86,94 L80,100 C76,94 72,88 70,82 Z", o: [84, 96], i: [66, 80],
+  { id: "pecmin", name: "Pectoralis minor", region: "Chest", view: "front", deep: true, f: -35, d: "M72,82 C78,80 86,84 88,94 L83,100 C79,94 75,88 72,82 Z", o: [86, 96], i: [68, 80],
     origin: "Ribs 3–5 near their costal cartilages", insertion: "Coracoid process of the scapula",
     action: "Protracts, depresses and downwardly rotates the scapula.",
     coach: "When tight, pulls the shoulders forward and limits overhead position." },
-  { id: "serratus", name: "Serratus anterior", region: "Chest", view: "front", d: "M68,104 L80,112 L78,130 L70,124 Z", o: [75, 124], i: [66, 98],
+  { id: "serratus", name: "Serratus anterior", region: "Chest", view: "front", f: -20, d: "M69,104 L78,107 L71,111 L79,115 L72,119 L79,123 L74,130 C72,122 70,114 69,104 Z", o: [77, 122], i: [68, 100],
     origin: "Outer surfaces of ribs 1–8", insertion: "Front surface of the medial border of the scapula",
     action: "Protracts and upwardly rotates the scapula; holds it against the rib cage.",
     coach: "Pushing away at the top of a push-up and handstand; upward rotation overhead." },
-  { id: "biceps", name: "Biceps brachii", region: "Arm", view: "front", d: "M52,100 C46,112 42,130 42,146 L50,148 C54,132 56,116 58,104 Z", o: [60, 80], i: [44, 160],
+  { id: "biceps", name: "Biceps brachii", region: "Arm", view: "front", f: 95, d: "M57,104 C52,114 49,130 49,146 L55,152 C57,138 60,122 61,108 Z", o: [62, 90], i: [51, 160],
     origin: "Long head: supraglenoid tubercle of the scapula. Short head: coracoid process", insertion: "Radial tuberosity and bicipital aponeurosis",
     action: "Elbow flexion and forearm supination; assists shoulder flexion.",
     coach: "Chin-over-bar pulling; keep arms long in the pull of a clean or snatch." },
-  { id: "brach", name: "Brachialis", region: "Arm", view: "front", d: "M42,146 L40,160 L48,162 L50,148 Z", o: [46, 140], i: [44, 166],
+  { id: "brach", name: "Brachialis", region: "Arm", view: "front", f: 95, d: "M49,142 C47,148 46,154 47,160 L53,158 C53,154 54,150 55,148 Z", o: [51, 140], i: [49, 164],
     origin: "Distal half of the front of the humerus", insertion: "Coronoid process and tuberosity of the ulna",
     action: "Elbow flexion (the main elbow flexor in any grip).",
     coach: "Works in every pull-up, whatever the grip." },
-  { id: "triceps", name: "Triceps brachii", region: "Arm", view: "back", d: "M52,100 C46,112 42,130 42,150 L50,152 C54,132 56,116 58,104 Z", o: [60, 84], i: [40, 160],
+  { id: "triceps", name: "Triceps brachii", region: "Arm", view: "back", f: 92, d: "M50,90 C47,104 46,122 46,140 C46,150 48,156 50,158 L56,154 C58,140 60,120 62,104 C58,98 54,92 50,90 Z", o: [60, 90], i: [49, 160],
     origin: "Long head: infraglenoid tubercle of the scapula. Lateral head: back of the humerus above the radial groove. Medial head: back of the humerus below the radial groove", insertion: "Olecranon of the ulna",
     action: "Elbow extension; long head also extends and adducts the shoulder.",
     coach: "Lockout in the press and jerk, dips, push-ups and the muscle-up transition." },
-  { id: "rectab", name: "Rectus abdominis", region: "Core", view: "front", d: "M88,110 L99,110 L99,196 L90,196 Z", o: [96, 196], i: [96, 112],
+  { id: "rectab", name: "Rectus abdominis", region: "Core", view: "front", f: 90, d: "M89,108 C94,107 98,107 99,108 L99,198 C96,200 92,198 90,194 C88,166 88,136 89,108 Z", o: [96, 196], i: [95, 110],
     origin: "Pubic crest and pubic symphysis", insertion: "Xiphoid process and costal cartilages of ribs 5–7",
     action: "Flexes the trunk; resists extension of the spine.",
     coach: "Hollow body, bracing overhead, sit-ups and toes-to-bar." },
-  { id: "extobl", name: "External oblique", region: "Core", view: "front", d: "M72,122 L88,114 L90,196 L78,200 L74,170 Z", o: [74, 130], i: [86, 198],
+  { id: "extobl", name: "External oblique", region: "Core", view: "front", f: -55, d: "M76,124 C82,118 88,114 89,112 C88,140 88,170 90,196 C86,204 80,208 74,206 C75,190 76,170 74,150 C74,140 75,132 76,124 Z", o: [78, 130], i: [86, 200],
     origin: "External surfaces of ribs 5–12", insertion: "Linea alba, pubic tubercle and front half of the iliac crest",
     action: "Flexes the trunk, rotates it to the opposite side, bends it to the same side.",
     coach: "Anti-rotation and bracing in single-arm and unilateral work." },
-  { id: "intobl", name: "Internal oblique", region: "Core", view: "front", deep: true, d: "M76,160 C82,158 88,164 88,176 C88,188 82,194 78,190 C74,182 74,168 76,160 Z", o: [80, 196], i: [84, 164],
+  { id: "intobl", name: "Internal oblique", region: "Core", view: "front", deep: true, f: 50, d: "M77,160 C83,158 88,164 88,176 C88,188 83,194 79,190 C75,182 75,168 77,160 Z", o: [80, 198], i: [86, 164],
     origin: "Thoracolumbar fascia, iliac crest and lateral inguinal ligament", insertion: "Ribs 10–12, linea alba and pubic crest",
     action: "Flexes the trunk and rotates it to the same side.",
     coach: "Works with the opposite external oblique in rotation and anti-rotation." },
-  { id: "tva", name: "Transversus abdominis", region: "Core", view: "front", deep: true, d: "M80,140 L96,140 L96,186 L82,186 Z", o: [80, 160], i: [97, 170],
+  { id: "tva", name: "Transversus abdominis", region: "Core", view: "front", deep: true, f: 0, d: "M80,140 L96,140 L96,186 L82,186 Z", o: [80, 162], i: [97, 170],
     origin: "Costal cartilages of ribs 7–12, thoracolumbar fascia, iliac crest and inguinal ligament", insertion: "Linea alba and pubic crest",
     action: "Compresses the abdomen; stiffens the trunk.",
     coach: "The deep brace before every heavy lift." },
-  { id: "ql", name: "Quadratus lumborum", region: "Core", view: "back", deep: true, d: "M84,180 L92,180 L92,205 L84,205 Z", o: [86, 206], i: [88, 180],
+  { id: "ql", name: "Quadratus lumborum", region: "Core", view: "back", deep: true, f: 80, d: "M84,180 L92,180 L92,205 L84,205 Z", o: [86, 206], i: [89, 181],
     origin: "Posterior iliac crest and iliolumbar ligament", insertion: "12th rib and transverse processes of L1–L4",
     action: "Side-bends the trunk, hitches the hip and stabilises the lumbar spine.",
     coach: "Holds the pelvis level in carries, single-arm work and single-leg work." },
-  { id: "iliopsoas", name: "Iliopsoas", region: "Hip", view: "front", deep: true, d: "M86,178 L94,178 L92,222 L84,226 Z", o: [92, 180], i: [86, 226],
+  { id: "iliopsoas", name: "Iliopsoas", region: "Hip", view: "front", deep: true, f: 80, d: "M88,186 C92,192 94,204 92,222 L86,228 C85,214 85,200 88,186 Z", o: [92, 188], i: [87, 228],
     origin: "Psoas major: bodies and transverse processes of T12–L5. Iliacus: iliac fossa", insertion: "Lesser trochanter of the femur",
     action: "Hip flexion; psoas also stabilises the lumbar spine.",
     coach: "Knees-to-elbows, the bottom of the squat; tightness can tilt the pelvis forward." },
-  { id: "gmax", name: "Gluteus maximus", region: "Hip", view: "back", d: "M70,212 L99,210 L99,245 L74,250 L66,232 Z", o: [96, 222], i: [74, 248],
+  { id: "gmax", name: "Gluteus maximus", region: "Hip", view: "back", f: -32, d: "M72,214 C80,210 90,210 99,212 L99,238 C96,246 90,252 82,254 C76,254 70,250 67,244 C66,234 68,224 72,214 Z", o: [97, 226], i: [70, 248],
     origin: "Posterior ilium, sacrum, coccyx and sacrotuberous ligament", insertion: "Gluteal tuberosity of the femur and the iliotibial tract",
     action: "Hip extension and external rotation.",
     coach: "Standing up from the squat, the hip drive in the deadlift, clean and kettlebell swing." },
-  { id: "gmed", name: "Gluteus medius", region: "Hip", view: "back", d: "M70,198 L96,196 L96,210 L72,214 Z", o: [82, 200], i: [67, 216],
+  { id: "gmed", name: "Gluteus medius", region: "Hip", view: "back", f: 25, d: "M70,200 C78,196 88,194 97,196 C97,204 96,210 94,214 C86,214 78,214 72,216 C70,210 69,204 70,200 Z", o: [84, 199], i: [69, 215],
     origin: "Outer surface of the ilium between the anterior and posterior gluteal lines", insertion: "Lateral surface of the greater trochanter",
     action: "Hip abduction; keeps the pelvis level on one leg. Front fibres internally rotate.",
     coach: "Knees tracking over toes in the squat; lunges, pistols and running." },
-  { id: "gmin", name: "Gluteus minimus", region: "Hip", view: "back", deep: true, d: "M73,202 C80,200 88,202 88,206 C88,210 80,212 73,210 Z", o: [82, 204], i: [67, 214],
+  { id: "gmin", name: "Gluteus minimus", region: "Hip", view: "back", deep: true, f: 15, d: "M73,202 C80,200 88,202 88,206 C88,210 80,212 73,210 Z", o: [84, 204], i: [69, 213],
     origin: "Outer surface of the ilium between the anterior and inferior gluteal lines", insertion: "Front of the greater trochanter",
     action: "Hip abduction and internal rotation.",
     coach: "Supports gluteus medius in single-leg stability." },
-  { id: "piri", name: "Piriformis", region: "Hip", view: "back", deep: true, d: "M72,213 L96,211 L96,216 L72,219 Z", o: [96, 214], i: [70, 216],
+  { id: "piri", name: "Piriformis", region: "Hip", view: "back", deep: true, f: 5, d: "M72,213 L96,211 L96,216 L72,219 Z", o: [96, 214], i: [70, 216],
     origin: "Front surface of the sacrum", insertion: "Top of the greater trochanter",
     action: "External rotation of the hip (abduction when the hip is flexed).",
     coach: "Deep hip rotator; can irritate the sciatic nerve when overworked." },
-  { id: "tfl", name: "Tensor fasciae latae", region: "Hip", view: "front", d: "M68,208 L76,206 L74,232 L68,230 Z", o: [70, 206], i: [70, 330],
+  { id: "tfl", name: "Tensor fasciae latae", region: "Hip", view: "front", f: 85, d: "M70,208 C74,206 77,208 77,212 L75,236 C72,234 70,230 69,224 Z", o: [72, 207], i: [72, 330],
     origin: "Anterior superior iliac spine (ASIS) and front of the iliac crest", insertion: "Iliotibial tract, to the lateral condyle of the tibia (Gerdy's tubercle)",
     action: "Hip flexion, abduction and internal rotation; stabilises the knee.",
     coach: "Can take over from weak glutes — watch for knees caving in." },
-  { id: "addlong", name: "Adductor longus", region: "Thigh", view: "front", d: "M90,222 L99,220 L96,262 L90,270 Z", o: [97, 222], i: [89, 268],
+  { id: "addlong", name: "Adductor longus", region: "Thigh", view: "front", f: 60, d: "M92,236 C96,236 98,238 98,242 C96,256 94,268 90,280 L87,274 C88,262 89,248 92,236 Z", o: [97, 238], i: [89, 276],
     origin: "Body of the pubis", insertion: "Middle third of the linea aspera of the femur",
     action: "Hip adduction and flexion.",
     coach: "Holds the knees in line; often tight in athletes who struggle with a wide squat." },
-  { id: "addmag", name: "Adductor magnus", region: "Thigh", view: "back", d: "M92,250 L99,250 L97,300 L92,300 Z", o: [96, 244], i: [92, 318],
+  { id: "addmag", name: "Adductor magnus", region: "Thigh", view: "back", f: 80, d: "M92,252 C96,252 98,256 98,262 C97,278 96,292 94,304 L91,302 C91,288 91,270 92,252 Z", o: [96, 250], i: [93, 318],
     origin: "Inferior pubic ramus, ischial ramus and ischial tuberosity", insertion: "Linea aspera and adductor tubercle of the femur",
     action: "Hip adduction; its hamstring part extends the hip.",
     coach: "A big hip extensor out of the bottom of a deep squat." },
-  { id: "rf", name: "Rectus femoris", region: "Thigh", view: "front", d: "M80,222 L90,222 L88,300 L80,300 Z", o: [80, 212], i: [84, 338],
+  { id: "rf", name: "Rectus femoris", region: "Thigh", view: "front", f: 90, d: "M80,226 C86,226 88,236 88,250 C88,272 87,292 85,308 L80,310 C78,292 77,270 77,250 C77,238 78,230 80,226 Z", o: [81, 214], i: [84, 340],
     origin: "Anterior inferior iliac spine (AIIS) and the ilium above the acetabulum", insertion: "Tibial tuberosity, via the quadriceps tendon, patella and patellar ligament",
     action: "Knee extension and hip flexion (crosses both joints).",
     coach: "Wall balls, thrusters, squats; tightness limits hip extension." },
-  { id: "vl", name: "Vastus lateralis", region: "Thigh", view: "front", d: "M68,232 L78,226 L80,305 L72,312 L66,270 Z", o: [68, 222], i: [84, 338],
+  { id: "vl", name: "Vastus lateralis", region: "Thigh", view: "front", f: 80, d: "M69,236 C74,236 78,244 78,258 C78,282 80,300 81,312 C77,316 73,318 72,316 C69,300 67,280 67,260 C67,250 68,242 69,236 Z", o: [69, 226], i: [84, 340],
     origin: "Greater trochanter and lateral lip of the linea aspera", insertion: "Tibial tuberosity, via the quadriceps tendon, patella and patellar ligament",
     action: "Knee extension.",
     coach: "The largest quad — standing up from every squat." },
-  { id: "vm", name: "Vastus medialis", region: "Thigh", view: "front", d: "M90,280 L96,270 L96,316 L86,316 Z", o: [92, 244], i: [84, 338],
+  { id: "vm", name: "Vastus medialis", region: "Thigh", view: "front", f: 55, d: "M90,278 C94,284 95,296 94,310 C92,318 88,320 84,316 C85,304 87,290 90,278 Z", o: [92, 246], i: [84, 340],
     origin: "Intertrochanteric line and medial lip of the linea aspera", insertion: "Tibial tuberosity, via the quadriceps tendon, patella and patellar ligament",
     action: "Knee extension; helps the kneecap track.",
     coach: "Knee control at the end of range — full-depth squats train it well." },
-  { id: "vi", name: "Vastus intermedius", region: "Thigh", view: "front", deep: true, d: "M80,242 L90,242 L89,296 L81,296 Z", o: [84, 244], i: [84, 338],
+  { id: "vi", name: "Vastus intermedius", region: "Thigh", view: "front", deep: true, f: 90, d: "M80,244 C84,244 86,250 86,260 L85,296 L81,296 C80,280 80,262 80,244 Z", o: [83, 246], i: [84, 340],
     origin: "Front and lateral surfaces of the femoral shaft", insertion: "Tibial tuberosity, via the quadriceps tendon, patella and patellar ligament",
     action: "Knee extension.",
     coach: "Lies under rectus femoris; works in every squat." },
-  { id: "bf", name: "Biceps femoris", region: "Thigh", view: "back", d: "M70,252 L80,254 L82,318 L74,318 Z", o: [90, 244], i: [72, 332],
+  { id: "bf", name: "Biceps femoris", region: "Thigh", view: "back", f: 85, d: "M69,254 C74,256 78,262 80,272 C81,288 81,304 79,320 L74,322 C72,306 70,290 69,274 C68,266 68,260 69,254 Z", o: [92, 244], i: [72, 334],
     origin: "Long head: ischial tuberosity. Short head: linea aspera of the femur", insertion: "Head of the fibula",
     action: "Knee flexion; long head extends the hip. Externally rotates the flexed knee.",
     coach: "Hip hinge in the deadlift, RDL, good morning and kettlebell swing." },
-  { id: "st", name: "Semitendinosus", region: "Thigh", view: "back", d: "M80,254 L86,254 L88,318 L82,318 Z", o: [90, 244], i: [92, 336],
+  { id: "st", name: "Semitendinosus", region: "Thigh", view: "back", f: 88, d: "M80,258 C84,258 87,264 87,274 C87,290 88,306 90,322 L86,324 C84,306 82,290 81,274 Z", o: [92, 244], i: [92, 338],
     origin: "Ischial tuberosity", insertion: "Upper medial tibia (pes anserinus)",
     action: "Knee flexion, hip extension and internal rotation of the flexed knee.",
     coach: "Protects the knee and hinges the hip in every pull from the floor." },
-  { id: "sm", name: "Semimembranosus", region: "Thigh", view: "back", d: "M86,256 L92,256 L92,318 L88,318 Z", o: [90, 244], i: [92, 330],
+  { id: "sm", name: "Semimembranosus", region: "Thigh", view: "back", f: 88, d: "M87,262 C91,262 93,268 93,278 C93,294 93,308 92,322 L90,322 C89,306 88,290 87,274 Z", o: [92, 244], i: [93, 332],
     origin: "Ischial tuberosity", insertion: "Back of the medial condyle of the tibia",
     action: "Knee flexion, hip extension and internal rotation of the flexed knee.",
     coach: "Works with semitendinosus; tight hamstrings round the back in the hinge." },
-  { id: "gastroc", name: "Gastrocnemius", region: "Lower leg", view: "back", d: "M74,326 L96,326 L94,370 L86,376 L76,368 Z", o: [78, 322], i: [86, 410],
+  { id: "gastroc", name: "Gastrocnemius", region: "Lower leg", view: "back", f: 88, d: "M72,330 C76,328 82,330 85,334 C86,346 86,358 84,370 C80,374 76,372 74,368 C71,356 70,342 72,330 Z M85,334 C88,330 93,330 95,334 C96,348 95,362 92,374 C88,378 85,374 84,370 C86,358 86,346 85,334 Z", o: [78, 326], i: [86, 414],
     origin: "Medial and lateral condyles of the femur", insertion: "Calcaneus, via the Achilles tendon",
     action: "Plantarflexion of the ankle and knee flexion.",
     coach: "Box jumps, double-unders and the extension at the top of the pull." },
-  { id: "soleus", name: "Soleus", region: "Lower leg", view: "back", d: "M76,368 L94,368 L92,396 L80,396 Z", o: [78, 340], i: [86, 410],
+  { id: "soleus", name: "Soleus", region: "Lower leg", view: "back", f: 85, d: "M74,368 C78,376 84,378 88,378 C92,376 94,372 94,368 C94,380 92,392 90,400 L80,400 C78,390 76,380 74,368 Z", o: [80, 346], i: [86, 414],
     origin: "Head and upper back of the fibula and the soleal line of the tibia", insertion: "Calcaneus, via the Achilles tendon",
     action: "Plantarflexion (strongest with the knee bent).",
     coach: "Tightness limits ankle dorsiflexion — heels lifting in the squat." },
-  { id: "tibant", name: "Tibialis anterior", region: "Lower leg", view: "front", d: "M76,332 L84,332 L84,395 L79,395 Z", o: [78, 342], i: [90, 420],
+  { id: "tibant", name: "Tibialis anterior", region: "Lower leg", view: "front", f: 85, d: "M76,338 C80,340 83,346 83,354 C83,370 82,386 84,402 L81,404 C79,388 77,370 75,354 C75,346 75,342 76,338 Z", o: [78, 344], i: [90, 424],
     origin: "Lateral condyle and upper lateral surface of the tibia, and the interosseous membrane", insertion: "Medial cuneiform and base of the 1st metatarsal",
     action: "Dorsiflexion and inversion of the foot.",
     coach: "Pulls the shin forward over the foot in a deep squat; landing control." },
 ];
-const AN_BODY = {
-  front: "M100,11 a17,17 0 1,1 -0.1,0 Z M92,44 L108,44 L108,58 L92,58 Z M62,62 L138,62 L132,120 L126,190 L134,215 L66,215 L74,190 L68,120 Z M62,62 L50,66 L40,110 L38,160 L50,162 L56,118 L66,90 Z M38,160 L50,162 L44,230 L32,228 Z M138,62 L150,66 L160,110 L162,160 L150,162 L144,118 L134,90 Z M162,160 L150,162 L156,230 L168,228 Z M66,215 L100,218 L96,320 L72,320 L64,260 Z M134,215 L100,218 L104,320 L128,320 L136,260 Z M72,320 L96,320 L94,410 L78,410 L74,360 Z M128,320 L104,320 L106,410 L122,410 L126,360 Z M76,410 L96,410 L98,425 L70,425 Z M124,410 L104,410 L102,425 L130,425 Z",
-};
-AN_BODY.back = AN_BODY.front;
-
 let an = null;
 let anTimer = null;
 let anSel = "gmax";
@@ -3653,41 +3651,307 @@ async function openAnatomy() {
   show("anatomy");
 }
 
+const AN_BODY = {
+  // left half of the figure; mirrored for the right
+  half: "M100,44 L93,44 C92,50 91,54 88,57 C80,60 70,60 64,63 C54,67 50,76 50,88 C49,104 47,122 46,140 C45,150 45,156 44,160 C41,172 39,190 39,205 C38,214 38,222 38,228 C35,236 34,246 36,256 L44,258 C46,250 47,242 48,232 C50,220 54,200 56,184 C58,172 58,164 58,156 C60,140 62,120 64,106 L68,100 C70,114 71,130 72,142 C74,160 76,176 74,192 C70,202 68,212 67,224 C65,246 66,270 69,295 C71,308 72,316 73,324 C72,336 70,346 70,358 C71,374 76,390 78,404 C78,412 76,420 72,428 L93,430 C92,422 91,414 91,406 C92,392 94,374 93,356 C92,346 91,338 91,328 C93,312 95,292 96,272 C97,258 98,246 99,238 L100,238 Z",
+};
+// Decorative muscles and tendons (not clickable) so the figure reads as a muscle chart.
+const AN_DECOR = {
+  front: [
+    ["M90,44 C92,50 95,56 98,62 L95,63 C92,57 89,50 88,45 Z", 70, "m"], // sternocleidomastoid
+    ["M44,160 C40,172 39,190 40,206 L44,210 C46,196 48,180 52,166 Z", 80, "m"], // brachioradialis
+    ["M52,164 C50,182 48,200 46,226 L48,228 C51,210 54,190 56,170 Z", 80, "m"], // forearm flexors
+    ["M40,210 L48,212 L46,230 L39,228 Z", 0, "t"], // wrist tendons
+    ["M69,236 L74,236 L76,318 L72,318 Z", 0, "t"], // IT band
+    ["M76,212 C82,240 88,270 93,316 L90,318 C85,272 79,242 73,214 Z", 60, "m"], // sartorius
+    ["M98,244 C97,268 95,292 93,318 L91,318 C92,292 94,268 96,244 Z", 88, "m"], // gracilis
+    ["M84,318 C90,318 92,324 92,330 C92,336 86,340 82,338 C78,336 77,324 84,318 Z", 0, "t"], // patella
+    ["M82,338 L87,338 L87,350 L82,350 Z", 0, "t"], // patellar tendon
+    ["M71,346 C73,360 74,376 77,398 L75,400 C71,380 70,362 70,350 Z", 85, "m"], // peroneals
+    ["M90,336 C94,344 94,356 92,368 L88,368 C88,356 88,346 90,336 Z", 88, "m"], // medial gastroc edge
+    ["M85,342 L88,342 L89,402 L86,402 Z", 0, "t"], // tibia shaft
+    ["M76,404 L92,406 L93,430 L71,430 Z", 0, "t"], // foot
+    ["M89,128 L99,128 M89,148 L99,148 M89,168 L99,168", 0, "line"], // abdominal intersections
+  ],
+  back: [
+    ["M88,44 L99,44 L99,56 L90,56 Z", 90, "m"], // neck extensors
+    ["M44,160 C40,172 39,190 40,206 L44,210 C46,196 48,180 52,166 Z", 80, "m"],
+    ["M52,164 C50,182 48,200 46,226 L48,228 C51,210 54,190 56,170 Z", 80, "m"],
+    ["M40,210 L48,212 L46,230 L39,228 Z", 0, "t"],
+    ["M48,152 L56,152 L55,162 L49,162 Z", 0, "t"], // triceps tendon
+    ["M99,176 L90,196 L99,216 Z", 0, "t"], // thoracolumbar fascia
+    ["M69,236 L73,236 L74,320 L70,320 Z", 0, "t"],
+    ["M78,322 L92,322 L90,332 L80,332 Z", 0, "dark"], // back of knee
+    ["M83,398 L88,398 L88,416 L83,416 Z", 0, "t"], // Achilles
+    ["M76,414 L92,414 L93,430 L71,430 Z", 0, "t"],
+  ],
+};
+
+let anMapShapes = [];
 function anMap() {
   const svg = $("an-svg"); const ns = "http://www.w3.org/2000/svg";
   svg.innerHTML = "";
   const el = (tag, attrs, parent) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
-  el("path", { d: AN_BODY[anView], fill: "#EDE6E1", stroke: "#B9ADA6", "stroke-width": 1 });
-  const quizMode = anMode === "quiz" && anQuiz && anQuiz.q && anQuiz.q.type === "tap";
+  const defs = el("defs", {});
+  const grad = (id, a, b) => { const g = el("radialGradient", { id, cx: "35%", cy: "30%", r: "85%" }, defs); el("stop", { offset: "0", "stop-color": a }, g); el("stop", { offset: "1", "stop-color": b }, g); };
+  grad("anM", "#E58F80", "#B3473C"); grad("anD", "#C9665B", "#94352D"); grad("anS", "#9BD3F4", "#2F7FC1"); grad("anT", "#FBF4EE", "#E4D5C8");
+  const fib = {};
+  const fibre = (a) => {
+    const key = "f" + String(a).replace("-", "m");
+    if (fib[key]) return key;
+    const p = el("pattern", { id: key, width: 3.2, height: 3.2, patternUnits: "userSpaceOnUse", patternTransform: "rotate(" + (a - 90) + ")" }, defs);
+    el("line", { x1: 0, y1: 0, x2: 0, y2: 3.2, stroke: "rgba(80,15,10,.28)", "stroke-width": 0.7 }, p);
+    fib[key] = 1; return key;
+  };
   const sides = [el("g", {}), el("g", { transform: "translate(200,0) scale(-1,1)" })];
-  const shapes = [];
-  for (const m of AN) {
+  for (const g of sides) el("path", { d: AN_BODY.half, fill: "url(#anD)", stroke: "#6E231D", "stroke-width": 1, "stroke-linejoin": "round" }, g);
+  el("ellipse", { cx: 100, cy: 26, rx: 15, ry: 18, fill: "url(#anD)", stroke: "#6E231D", "stroke-width": 1 });
+  el("line", { x1: 100, y1: 60, x2: 100, y2: anView === "front" ? 200 : 150, stroke: "rgba(255,245,238,.7)", "stroke-width": 1.2 });
+  for (const [d, a, kind] of AN_DECOR[anView]) for (const g of sides) {
+    if (kind === "line") { el("path", { d, stroke: "rgba(255,245,238,.75)", "stroke-width": 1.2, fill: "none" }, g); continue; }
+    if (kind === "t") { el("path", { d, fill: "url(#anT)", stroke: "#B9A594", "stroke-width": 0.6 }, g); continue; }
+    if (kind === "dark") { el("path", { d, fill: "#5E1D18" }, g); continue; }
+    el("path", { d, fill: "url(#anD)", stroke: "#6E231D", "stroke-width": 0.6 }, g);
+    el("path", { d, fill: "url(#" + fibre(a) + ")", "pointer-events": "none" }, g);
+  }
+  const quizTap = anMode === "quiz" && anQuiz && anQuiz.q && anQuiz.q.type === "tap";
+  const quizName = anMode === "quiz" && anQuiz && anQuiz.q && anQuiz.q.type === "name" ? anQuiz.q.id : null;
+  const hi = quizTap ? null : quizName || anSel;
+  anMapShapes = [];
+  const draw = (m, d, g, on) => {
+    const deepOff = m.deep && !on;
+    const p = el("path", { d, fill: on ? "url(#anS)" : deepOff ? "rgba(255,255,255,0.001)" : "url(#anM)", stroke: on ? "#123F63" : deepOff ? "rgba(255,240,230,.85)" : "#6E231D",
+      "stroke-width": on ? 1.3 : deepOff ? 0.9 : 0.7, "stroke-dasharray": deepOff ? "2.5 2" : "", style: "cursor:pointer" }, g);
+    if (!deepOff) el("path", { d, fill: "url(#" + fibre(m.f || 90) + ")", "pointer-events": "none", opacity: on ? 0.6 : 1 }, g);
+    const t = document.createElementNS(ns, "title"); t.textContent = m.name + (m.deep ? " (deep)" : ""); p.appendChild(t);
+    p.addEventListener("click", () => anMode === "quiz" ? anTap(m.id) : anSelect(m.id));
+  };
+  // surface muscles first, deep outlines on top so they stay tappable; highlighted muscle last
+  const order = [...AN.filter((m) => !m.deep), ...AN.filter((m) => m.deep)];
+  const later = [];
+  for (const m of order) {
     const paths = [];
     if (m.view === anView) paths.push(m.d);
     if (m.alsoFront && anView === "front") paths.push(m.alsoFront);
-    for (const d of paths) for (const g of sides) {
-      const on = !quizMode && m.id === anSel;
-      const p = el("path", { d, fill: on ? "#D8393D" : m.deep ? "rgba(0,0,0,0)" : "#C9776F", "fill-opacity": on ? 0.9 : m.deep ? 0 : 0.55,
-        stroke: on ? "#8E1F22" : "#8A4A44", "stroke-width": on ? 1.4 : 0.8, "stroke-dasharray": m.deep ? "3 2" : "", style: "cursor:pointer" }, g);
-      const t = document.createElementNS(ns, "title"); t.textContent = m.name + (m.deep ? " (deep)" : ""); p.appendChild(t);
-      p.addEventListener("click", () => anMode === "quiz" ? anTap(m.id) : anSelect(m.id));
-      shapes.push([m, p]);
-    }
+    for (const d of paths) for (const g of sides) { if (m.id === hi) later.push([m, d, g]); else draw(m, d, g, false); }
   }
-  // selected muscle on top, with origin and insertion
+  for (const [m, d, g] of later) draw(m, d, g, true);
   const m = AN.find((x) => x.id === anSel);
-  if (!quizMode && m && m.view === anView) {
-    el("line", { x1: m.o[0], y1: m.o[1], x2: m.i[0], y2: m.i[1], stroke: "#14100F", "stroke-width": 1, "stroke-dasharray": "2 2" });
-    el("circle", { cx: m.o[0], cy: m.o[1], r: 4.2, fill: "#2F7FC1", stroke: "#fff", "stroke-width": 1.2 });
-    el("circle", { cx: m.i[0], cy: m.i[1], r: 4.2, fill: "#E08A2E", stroke: "#fff", "stroke-width": 1.2 });
-  }
-  if (anMode === "quiz" && anQuiz && anQuiz.q && anQuiz.q.type === "name") {
-    // highlight the muscle being asked about
-    const q = AN.find((x) => x.id === anQuiz.q.id);
-    for (const [mm2, p] of shapes) if (mm2.id === q.id) { p.setAttribute("fill", "#D8393D"); p.setAttribute("fill-opacity", 0.9); p.setAttribute("stroke", "#8E1F22"); }
+  if (!quizTap && !quizName && m && m.view === anView) {
+    el("line", { x1: m.o[0], y1: m.o[1], x2: m.i[0], y2: m.i[1], stroke: "#fff", "stroke-width": 1.2, "stroke-dasharray": "2 2" });
+    el("circle", { cx: m.o[0], cy: m.o[1], r: 4, fill: "#1F6FB2", stroke: "#fff", "stroke-width": 1.4 });
+    el("circle", { cx: m.i[0], cy: m.i[1], r: 4, fill: "#E08A2E", stroke: "#fff", "stroke-width": 1.4 });
   }
   $("an-front").classList.toggle("on", anView === "front");
   $("an-back").classList.toggle("on", anView === "back");
+}
+
+// ---------- bone view: origins and insertions on the bony landmarks ----------
+// Original schematic drawings of the left side. Each landmark: [x, y, label].
+const BONES = {
+  hipBack: {
+    title: "Pelvis, femur and knee — from behind", vb: "0 0 300 380",
+    bones: [
+      "M135,72 L165,72 L161,132 L150,152 L139,132 Z", // sacrum
+      "M146,152 L154,152 L150,168 Z", // coccyx
+      "M136,76 C121,42 80,30 55,45 C44,55 47,76 60,96 C72,116 90,136 100,150 L121,150 C129,130 135,110 136,76 Z", // ilium
+      "M100,150 C94,166 92,182 100,196 C110,202 124,198 132,188 C128,176 124,164 121,150 Z", // ischium
+      "M84,138 C97,137 102,152 95,161 L80,173 C82,212 86,262 90,320 C98,326 104,336 102,348 L60,348 C57,336 63,326 70,320 C68,262 64,212 60,182 C51,177 47,166 52,156 C58,150 66,150 72,156 Z", // femur
+      "M62,354 L102,354 L99,382 L68,382 Z", // tibia top
+      "M52,356 C56,352 62,354 62,360 C62,366 56,368 52,364 Z", // fibula head
+    ],
+    lines: [["M58,196 L58,344", "IT tract"], ["M76,210 L84,318", ""], ["M121,152 L136,112", ""]],
+    L: {
+      crest: [80, 36, "Iliac crest"], postIlium: [110, 70, "Posterior ilium"], iliumMid: [80, 72, "Outer ilium (upper)"], iliumLow: [86, 100, "Outer ilium (lower)"],
+      sacrum: [150, 100, "Sacrum"], sacrumFront: [150, 118, "Sacrum (front)"], coccyx: [150, 162, "Coccyx"], stLig: [128, 136, "Sacrotuberous ligament"],
+      ischTub: [106, 190, "Ischial tuberosity"], ischRamus: [124, 192, "Ischial / pubic ramus"],
+      gtTop: [58, 152, "Greater trochanter (top)"], gtLat: [50, 164, "Greater trochanter"], gtFront: [56, 170, "Greater trochanter (front)"],
+      glutTub: [66, 206, "Gluteal tuberosity"], itTract: [58, 300, "Iliotibial tract"], lineaAsp: [80, 252, "Linea aspera"], addTub: [100, 320, "Adductor tubercle"],
+      condM: [96, 340, "Medial femoral condyle"], condL: [66, 340, "Lateral femoral condyle"],
+      fibHead: [52, 360, "Head of fibula"], medTibPost: [98, 364, "Medial tibial condyle (back)"], pesAns: [100, 378, "Medial tibia (pes anserinus)"],
+    },
+  },
+  hipFront: {
+    title: "Lumbar spine, pelvis, femur and knee — from the front", vb: "0 0 300 400",
+    bones: [
+      "M138,8 L162,8 L162,20 L138,20 Z M138,24 L162,24 L162,36 L138,36 Z M138,40 L162,40 L162,52 L138,52 Z M138,56 L162,56 L162,68 L138,68 Z", // lumbar
+      "M140,76 C120,50 80,44 58,58 C51,66 53,80 62,92 C66,100 70,108 76,114 L100,130 C116,120 130,102 140,76 Z", // ilium
+      "M100,130 L148,166 L148,184 L112,178 C101,172 96,160 100,130 Z", // pubis
+      "M94,128 C106,128 110,144 102,152 L86,166 C88,210 88,270 88,326 C80,330 72,330 68,326 C68,270 66,212 62,176 C54,172 50,160 54,150 C60,142 68,142 74,148 Z", // femur
+      "M84,336 C94,336 98,346 96,356 C94,364 76,364 72,356 C70,346 74,336 84,336 Z", // patella
+      "M62,366 L106,366 L100,400 L70,400 Z", // tibia
+      "M52,368 C56,364 62,366 62,372 C62,378 56,380 52,376 Z", // fibula head
+    ],
+    lines: [["M62,92 L148,166", "Inguinal ligament"], ["M84,356 L86,372", ""]],
+    L: {
+      lumbar: [150, 38, "Lumbar vertebrae T12–L5"], iliacFossa: [104, 84, "Iliac fossa"], asis: [60, 92, "ASIS"], aiis: [72, 110, "AIIS"],
+      acetab: [84, 124, "Above the acetabulum"], pubicBody: [126, 166, "Body of pubis"], pubicCrest: [140, 162, "Pubic crest"], symph: [148, 176, "Pubic symphysis"],
+      inguinal: [104, 128, "Inguinal ligament"], iliacCrest: [96, 50, "Iliac crest (front)"],
+      gt: [54, 150, "Greater trochanter"], lesserTroch: [90, 178, "Lesser trochanter"], interTroch: [76, 162, "Intertrochanteric line"],
+      shaftAnt: [78, 240, "Femoral shaft (front)"], lineaMed: [86, 262, "Linea aspera (medial lip)"], lineaLat: [66, 262, "Linea aspera (lateral lip)"],
+      patella: [84, 346, "Patella"], tibTub: [86, 376, "Tibial tuberosity"], gerdy: [64, 372, "Lateral tibial condyle (Gerdy's tubercle)"],
+    },
+  },
+  shoulderBack: {
+    title: "Shoulder blade, humerus and spine — from behind", vb: "0 0 300 360",
+    bones: [
+      "M240,4 C252,-2 262,4 262,12 L238,12 Z", // occiput hint
+      ...Array.from({ length: 13 }, (_, k) => `M242,${18 + k * 25} L258,${18 + k * 25} L258,${34 + k * 25} L242,${34 + k * 25} Z`), // C7-T12
+      "M110,72 L205,62 L198,180 C172,200 152,208 138,210 C130,190 124,150 118,110 Z", // scapula
+      "M205,90 L120,70 L102,62 L98,72 L118,82 L205,96 Z", // spine of scapula + acromion
+      "M100,54 L184,38 L186,46 L104,62 Z", // clavicle
+      "M96,78 C108,78 112,96 102,106 L92,112 C90,170 84,240 78,300 C86,306 88,318 82,326 L60,326 C54,316 58,304 66,300 C70,240 76,170 80,112 C76,104 78,82 96,78 Z", // humerus
+    ],
+    lines: [],
+    L: {
+      occiput: [250, 8, "Occipital bone / nuchal line"], c7: [250, 26, "C7"], t5: [250, 126, "T5"], t7: [250, 176, "T7"], t12: [250, 326, "T12"], spinous: [250, 76, "Spinous processes"],
+      supraFossa: [170, 74, "Supraspinous fossa"], infraFossa: [160, 140, "Infraspinous fossa"], spine: [160, 88, "Spine of scapula"], acromion: [100, 66, "Acromion"],
+      clavLat: [128, 52, "Lateral clavicle"], medBorder: [202, 130, "Medial border"], latBorder: [124, 128, "Lateral border"], infAngle: [140, 206, "Inferior angle"],
+      infraglen: [114, 104, "Infraglenoid tubercle"], gtSup: [90, 80, "Greater tubercle (superior)"], gtMid: [84, 90, "Greater tubercle (middle)"], gtInf: [82, 100, "Greater tubercle (inferior)"],
+      groove: [94, 124, "Intertubercular groove (front)"], deltTub: [78, 170, "Deltoid tuberosity"], humAbove: [84, 140, "Humerus above radial groove"], humBelow: [74, 230, "Humerus below radial groove"],
+      olecranon: [70, 320, "Olecranon"],
+    },
+  },
+  shoulderFront: {
+    title: "Chest, shoulder and elbow — from the front", vb: "0 0 300 380",
+    bones: [
+      "M238,56 L256,56 L254,200 L246,214 L240,200 Z", // sternum
+      ...Array.from({ length: 8 }, (_, k) => `M238,${70 + k * 18} C200,${66 + k * 18} 170,${76 + k * 20} 150,${96 + k * 20} L152,${102 + k * 20} C172,${84 + k * 20} 202,${74 + k * 18} 238,${76 + k * 18} Z`), // ribs
+      "M100,56 L238,56 L236,64 L104,64 Z", // clavicle
+      "M104,78 C112,70 124,76 132,86 L126,92 C120,86 112,84 106,88 Z", // coracoid
+      "M96,86 C108,86 114,102 106,112 L96,118 C94,176 90,246 86,306 C94,312 96,324 88,330 L66,330 C60,322 64,310 72,306 C76,246 80,176 82,118 C76,108 80,88 96,86 Z", // humerus
+      "M70,334 L82,334 L80,370 L72,370 Z M86,334 L100,334 L98,370 L88,370 Z", // radius + ulna
+    ],
+    lines: [],
+    L: {
+      sternum: [246, 120, "Sternum"], xiphoid: [246, 208, "Xiphoid process"], cc16: [230, 100, "Costal cartilages 1–6"], cc57: [232, 176, "Costal cartilages 5–7"],
+      clavMed: [212, 60, "Medial clavicle"], clavLat: [122, 60, "Lateral clavicle"], acromion: [100, 60, "Acromion"],
+      coracoid: [130, 88, "Coracoid process"], supraglen: [104, 94, "Supraglenoid tubercle"], subscapFossa: [140, 150, "Subscapular fossa (behind ribs)"],
+      ribs35: [186, 124, "Ribs 3–5"], ribs18: [160, 150, "Ribs 1–8 (outer surface)"], medBorderF: [156, 216, "Medial border of scapula (front)"],
+      lesserTub: [108, 104, "Lesser tubercle"], grooveLat: [94, 124, "Intertubercular groove (lateral lip)"], deltTub: [84, 176, "Deltoid tuberosity"],
+      humDistal: [82, 270, "Front of distal humerus"], radTub: [76, 344, "Radial tuberosity"], coronoid: [92, 340, "Coronoid process / ulnar tuberosity"],
+    },
+  },
+  legBack: {
+    title: "Knee, lower leg and heel — from behind", vb: "0 0 300 380",
+    bones: [
+      "M96,10 L144,10 L150,40 C150,56 136,60 124,54 L118,48 L112,54 C98,60 90,54 90,40 Z", // femoral condyles
+      "M108,64 L152,64 L146,90 L140,300 L124,300 L118,90 Z", // tibia
+      "M86,70 C92,64 100,68 98,76 L96,290 L88,290 L90,80 Z", // fibula
+      "M112,300 L152,300 L158,330 C158,350 140,356 124,350 L110,330 Z", // talus + calcaneus
+    ],
+    lines: [["M132,300 L132,346", "Achilles tendon"]],
+    L: {
+      condM: [140, 36, "Medial femoral condyle"], condL: [100, 36, "Lateral femoral condyle"], fibHead: [94, 74, "Head of fibula"],
+      fibUpper: [92, 120, "Upper back of fibula"], soleal: [130, 110, "Soleal line of tibia"], calc: [134, 346, "Calcaneus"],
+    },
+  },
+  legFront: {
+    title: "Knee, shin and foot — from the front", vb: "0 0 300 400",
+    bones: [
+      "M106,10 L152,10 L156,40 L102,40 Z", // femur end
+      "M128,44 C138,44 142,54 138,62 C132,68 120,68 116,60 C114,52 118,44 128,44 Z", // patella
+      "M104,70 L156,70 L150,96 L144,300 L126,300 L118,96 Z", // tibia
+      "M92,76 C98,70 104,74 102,82 L100,290 L92,290 L94,86 Z", // fibula
+      "M104,304 L150,304 L166,340 L176,380 L150,386 L134,350 L110,346 Z", // foot
+    ],
+    lines: [["M100,100 L118,100", ""]],
+    L: {
+      latCondTib: [110, 78, "Lateral condyle of tibia"], latTib: [118, 140, "Upper lateral tibia"], interosseous: [108, 190, "Interosseous membrane"],
+      medCun: [150, 344, "Medial cuneiform"], mt1: [164, 370, "Base of 1st metatarsal"],
+    },
+  },
+};
+// muscle id -> [diagram, origin landmarks, insertion landmarks]
+const BONE_MAP = {
+  gmax: ["hipBack", ["postIlium", "sacrum", "coccyx", "stLig"], ["glutTub", "itTract"]],
+  gmed: ["hipBack", ["iliumMid"], ["gtLat"]],
+  gmin: ["hipBack", ["iliumLow"], ["gtFront"]],
+  piri: ["hipBack", ["sacrumFront"], ["gtTop"]],
+  bf: ["hipBack", ["ischTub", "lineaAsp"], ["fibHead"]],
+  st: ["hipBack", ["ischTub"], ["pesAns"]],
+  sm: ["hipBack", ["ischTub"], ["medTibPost"]],
+  addmag: ["hipBack", ["ischRamus", "ischTub"], ["lineaAsp", "addTub"]],
+  iliopsoas: ["hipFront", ["lumbar", "iliacFossa"], ["lesserTroch"]],
+  tfl: ["hipFront", ["asis"], ["gerdy"]],
+  rf: ["hipFront", ["aiis", "acetab"], ["patella", "tibTub"]],
+  vl: ["hipFront", ["gt", "lineaLat"], ["patella", "tibTub"]],
+  vm: ["hipFront", ["interTroch", "lineaMed"], ["patella", "tibTub"]],
+  vi: ["hipFront", ["shaftAnt"], ["patella", "tibTub"]],
+  addlong: ["hipFront", ["pubicBody"], ["lineaMed"]],
+  rectab: ["hipFront", ["pubicCrest", "symph"], []],
+  intobl: ["hipFront", ["iliacCrest", "inguinal"], ["pubicCrest"]],
+  tva: ["hipFront", ["iliacCrest", "inguinal"], ["pubicCrest"]],
+  extobl: ["hipFront", [], ["iliacCrest", "pubicCrest"]],
+  ql: ["hipBack", ["crest"], []],
+  delt: ["shoulderBack", ["clavLat", "acromion", "spine"], ["deltTub"]],
+  supra: ["shoulderBack", ["supraFossa"], ["gtSup"]],
+  infra: ["shoulderBack", ["infraFossa"], ["gtMid"]],
+  tmin: ["shoulderBack", ["latBorder"], ["gtInf"]],
+  tmaj: ["shoulderBack", ["infAngle"], ["groove"]],
+  trap: ["shoulderBack", ["occiput", "c7", "spinous", "t12"], ["clavLat", "acromion", "spine"]],
+  rhomb: ["shoulderBack", ["c7", "t5"], ["medBorder"]],
+  lat: ["shoulderBack", ["t7", "t12", "infAngle"], ["groove"]],
+  triceps: ["shoulderBack", ["infraglen", "humAbove", "humBelow"], ["olecranon"]],
+  erector: ["shoulderBack", ["t12"], ["spinous"]],
+  subscap: ["shoulderFront", ["subscapFossa"], ["lesserTub"]],
+  pecmaj: ["shoulderFront", ["clavMed", "sternum", "cc16"], ["grooveLat"]],
+  pecmin: ["shoulderFront", ["ribs35"], ["coracoid"]],
+  serratus: ["shoulderFront", ["ribs18"], ["medBorderF"]],
+  biceps: ["shoulderFront", ["supraglen", "coracoid"], ["radTub"]],
+  brach: ["shoulderFront", ["humDistal"], ["coronoid"]],
+  gastroc: ["legBack", ["condM", "condL"], ["calc"]],
+  soleus: ["legBack", ["fibHead", "fibUpper", "soleal"], ["calc"]],
+  tibant: ["legFront", ["latCondTib", "latTib", "interosseous"], ["medCun", "mt1"]],
+};
+// rectus abdominis inserts on the xiphoid/cartilages 5-7 — shown on the chest diagram as a second view
+const BONE_EXTRA = { rectab: ["shoulderFront", [], ["xiphoid", "cc57"]], extobl: ["shoulderFront", ["ribs18"], []] };
+
+function anBone(m) {
+  const box = $("an-bone");
+  const maps = [BONE_MAP[m.id], BONE_EXTRA[m.id]].filter(Boolean);
+  box.classList.toggle("hidden", !maps.length);
+  box.innerHTML = "";
+  if (!maps.length) return;
+  const h = document.createElement("h2"); h.textContent = "On the skeleton"; box.appendChild(h);
+  const ns = "http://www.w3.org/2000/svg";
+  for (const [key, O, I] of maps) {
+    const B = BONES[key];
+    const cap = document.createElement("p"); cap.className = "hist"; cap.style.margin = "0 0 6px"; cap.textContent = B.title; box.appendChild(cap);
+    const wrap = document.createElement("div"); wrap.className = "an-bonebox";
+    const svg = document.createElementNS(ns, "svg"); svg.setAttribute("viewBox", B.vb); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", B.title);
+    const el = (tag, attrs, parent) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
+    for (const d of B.bones) el("path", { d, fill: "#F3EADB", stroke: "#A8927A", "stroke-width": 1.4, "stroke-linejoin": "round" });
+    for (const [d] of B.lines) el("path", { d, fill: "none", stroke: "#C9B79F", "stroke-width": 2, "stroke-dasharray": "5 4" });
+    // other landmarks, faint
+    for (const k in B.L) if (!O.includes(k) && !I.includes(k)) el("circle", { cx: B.L[k][0], cy: B.L[k][1], r: 2.4, fill: "#CDBBA3" });
+    // muscle line of pull: from each origin to the nearest insertion
+    const cen = (ids) => ids.length ? [ids.reduce((s, k) => s + B.L[k][0], 0) / ids.length, ids.reduce((s, k) => s + B.L[k][1], 0) / ids.length] : null;
+    const ci = cen(I), co = cen(O);
+    if (ci) for (const k of O) el("line", { x1: B.L[k][0], y1: B.L[k][1], x2: ci[0], y2: ci[1], stroke: "#C8453B", "stroke-width": 9, "stroke-linecap": "round", opacity: 0.28 });
+    if (co && !ci) for (const k of O) el("circle", { cx: B.L[k][0], cy: B.L[k][1], r: 10, fill: "#C8453B", opacity: 0.2 });
+    const placed = [];
+    const dot = (k, col) => {
+      const [x, y, label] = B.L[k];
+      el("circle", { cx: x, cy: y, r: 6, fill: col, stroke: "#fff", "stroke-width": 2 });
+      const right = x < 170;
+      let ly = y;
+      while (placed.some((q) => q.right === right && Math.abs(q.y - ly) < 14 && Math.abs(q.x - x) < 140)) ly += 14;
+      placed.push({ x, y: ly, right });
+      if (ly !== y) el("line", { x1: x, y1: y, x2: right ? x + 8 : x - 8, y2: ly, stroke: col, "stroke-width": 1 });
+      const t = el("text", { x: right ? x + 10 : x - 10, y: ly + 4, "text-anchor": right ? "start" : "end", "font-size": 11, "font-weight": 700, fill: col,
+        stroke: "#fff", "stroke-width": 3.5, "paint-order": "stroke", "font-family": "-apple-system,Helvetica,Arial,sans-serif" });
+      t.textContent = label;
+    };
+    for (const k of O) dot(k, "#1F6FB2");
+    for (const k of I) dot(k, "#C8701E");
+    wrap.appendChild(svg); box.appendChild(wrap);
+  }
+  const lg = document.createElement("div"); lg.className = "an-legend"; lg.style.color = "var(--muted)";
+  lg.innerHTML = '<span><i style="background:#1F6FB2"></i>Origin</span><span><i style="background:#C8701E"></i>Insertion</span><span><i style="background:rgba(200,69,59,.4);border-radius:2px"></i>Line of pull</span>';
+  box.appendChild(lg);
+  const note = document.createElement("p"); note.className = "hist"; note.style.margin = "6px 0 0"; note.textContent = "Schematic drawing of one side of the body. Some attachments (for example ribs or fascia) are summarised — the card above lists them in full.";
+  box.appendChild(note);
 }
 
 function anRegions() {
@@ -3717,7 +3981,7 @@ function anSelect(id) {
   anSel = id;
   const m = AN.find((x) => x.id === id);
   if (m.view !== anView && !(m.alsoFront && anView === "front")) anView = m.view;
-  anMap(); anList();
+  anMap(); anList(); anBone(m);
   const c = $("an-card"); c.innerHTML = "";
   const h = document.createElement("h3"); h.textContent = m.name;
   const tag = document.createElement("p"); tag.className = "hist"; tag.style.margin = "0 0 10px"; tag.textContent = m.region + (m.deep ? " · deep muscle (dashed on the map)" : "");
