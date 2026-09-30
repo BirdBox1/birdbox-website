@@ -189,6 +189,18 @@
       <div id="all-list"><p class="empty">Loading…</p></div>
     </div>
 
+    <!-- Import from LearnWorlds -->
+    <div class="panel">
+      <h2>Import from LearnWorlds</h2>
+      <p class="hint" style="margin:0 0 .8rem">Copies everyone enrolled in each LearnWorlds course into the matching BirdBox Learn course, so they can log in at birdboxcoaching.com/learn. Nobody is emailed and nothing in LearnWorlds changes. Safe to run again — people already here are left as they are.</p>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+        <button id="lw-preview" class="btn ghost" type="button">1. Check the numbers</button>
+        <button id="lw-import" class="btn" type="button" disabled>2. Import everyone</button>
+      </div>
+      <div id="lw-msg" class="msg"></div>
+      <div id="lw-out" class="tablewrap"></div>
+    </div>
+
     <!-- Learners by course -->
     <div class="panel">
       <h2>Learners by course</h2>
@@ -856,6 +868,63 @@ $("all-invite").addEventListener("click", async () => {
   msg.className = failed.length ? "msg err" : "msg ok";
   msg.textContent = ok + " sent." + (failed.length ? " Not sent: " + failed.join(", ") : "");
   loadAllAccess();
+});
+
+
+// ---------------- import from LearnWorlds ----------------
+async function lwCall(body) {
+  const { data: { session } } = await db.auth.getSession();
+  const res = await fetch("/.netlify/functions/learn-import-lw", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
+    body: JSON.stringify(body),
+  });
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok || d.error) throw new Error(d.error || "That did not work (" + res.status + ").");
+  return d;
+}
+let lwCourses = [];
+$("lw-preview").addEventListener("click", async () => {
+  const msg = $("lw-msg"), out = $("lw-out"), btn = $("lw-preview");
+  btn.disabled = true; msg.className = "msg"; msg.textContent = "Reading LearnWorlds…"; out.innerHTML = "";
+  try {
+    lwCourses = (await lwCall({ action: "preview" })).courses;
+    const t = document.createElement("table");
+    t.innerHTML = "<thead><tr><th>LearnWorlds course</th><th>Goes into</th><th>Students</th><th>Pages</th><th>Example</th></tr></thead>";
+    const tb = document.createElement("tbody");
+    for (const c of lwCourses) {
+      const tr = document.createElement("tr");
+      const cells = [c.lw_id, c.slugs.join(", "), c.error ? "—" : (c.users == null ? "?" : c.users), c.error ? "—" : c.pages,
+        c.error ? "Error: " + c.error : (c.sample.email ? c.sample.email + (c.sample.first ? " (" + [c.sample.first, c.sample.last].filter(Boolean).join(" ") + ")" : "") : "no email found — fields: " + c.sample.keys.join(", "))];
+      for (const v of cells) { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); }
+      tb.appendChild(tr);
+    }
+    t.appendChild(tb); out.appendChild(t);
+    const good = lwCourses.filter((c) => !c.error && c.sample && c.sample.email);
+    msg.className = good.length ? "msg ok" : "msg err";
+    msg.textContent = good.length ? "Check the numbers look right, then press Import everyone." : "Nothing importable found — send Claude a screenshot of this table.";
+    $("lw-import").disabled = !good.length;
+  } catch (e) { msg.className = "msg err"; msg.textContent = e.message; }
+  btn.disabled = false;
+});
+$("lw-import").addEventListener("click", async () => {
+  const todo = lwCourses.filter((c) => !c.error && c.sample && c.sample.email);
+  if (!confirm("Import the students from " + todo.length + " LearnWorlds courses into BirdBox Learn?\n\nNobody is emailed.")) return;
+  const msg = $("lw-msg"), btn = $("lw-import"); btn.disabled = true;
+  let seen = 0, added = 0; const errors = [];
+  for (const c of todo) {
+    let page = 1, pages = c.pages || 1;
+    while (page <= pages && page <= 200) {
+      msg.className = "msg"; msg.textContent = c.slugs.join(", ") + " — page " + page + " of " + pages + " · " + added + " added so far";
+      try { const r = await lwCall({ action: "import", lw_id: c.lw_id, page }); seen += r.seen; added += r.added; pages = r.pages || pages; if (!r.seen) break; }
+      catch (e) { errors.push(c.lw_id + " page " + page + ": " + e.message); break; }
+      page++;
+    }
+  }
+  msg.className = errors.length ? "msg err" : "msg ok";
+  msg.textContent = "Done. " + seen + " enrolments read, " + added + " new ones added." + (errors.length ? " Problems: " + errors.join(" | ") : "");
+  btn.disabled = false;
+  refreshAfterChange();
 });
 
 // ---------------- the table used everywhere ----------------
