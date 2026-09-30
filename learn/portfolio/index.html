@@ -275,6 +275,20 @@
   .why .top{display:flex;gap:10px;align-items:flex-start}
   .why input[type=checkbox]{width:20px;height:20px;margin-top:2px;accent-color:var(--accent);flex:0 0 auto}
   .why textarea{min-height:44px;font-size:14.5px}
+  .mm-top{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:0 0 14px}
+  .mm-top select,.mm-top input{font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .mm-lifts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+  .mm-lifts label{display:block;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+  .mm-lifts input{width:100%;font:inherit;font-size:20px;font-weight:700;padding:10px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .rt{border-top:1px solid var(--line);padding:14px 0}
+  .rt h3{margin:0 0 2px;font-size:15.5px}
+  .rt .sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .gauge{position:relative;height:30px;background:var(--paper);border:1px solid var(--line);margin:0 0 6px}
+  .gauge .band{position:absolute;top:0;bottom:0;background:rgba(92,196,138,.25);border-left:2px solid var(--good);border-right:2px solid var(--good)}
+  .gauge .mk{position:absolute;top:-4px;bottom:-4px;width:4px;margin-left:-2px;background:var(--ink)}
+  .gauge .lab{position:absolute;top:6px;font-size:11px;color:var(--muted)}
+  .verdict2{font-size:14.5px;line-height:1.5}
+  .verdict2 b.ok{color:var(--good)} .verdict2 b.tech{color:#E0B84F} .verdict2 b.str{color:var(--bad)}
   .cmp{width:100%;font-size:14px}
   .cmp td,.cmp th{padding:7px 6px}
   .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
@@ -411,6 +425,11 @@
         <h3>My standards audit</h3>
         <p>Where your members are on their journey, the standards you hold for each stage, and why athletes may be staying at beginner level.</p>
         <span id="standards-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=mmp">
+        <h3>Maximum motor potential calculator</h3>
+        <p>Enter an athlete's lifts to see whether technical mastery or strength is holding back their weightlifting.</p>
+        <span id="mmp-status">Open →</span>
       </a>
     </div>
   </section>
@@ -1070,6 +1089,42 @@
       <span class="savestate" id="st-state"></span>
     </div>
   </section>
+  <!-- maximum motor potential calculator -->
+  <section id="mmp" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Standards, Mastery &amp; Maximum Motor Potential</p>
+    <h1>Maximum motor potential calculator</h1>
+    <p class="lede">Enter an athlete's best lifts. The calculator compares them with the suggested ratios (Roman, 1986 — give or take 2–3%) to show whether their <b>technical mastery</b> is holding back their strength, or whether their <b>motor potential</b> (strength) now needs to rise.</p>
+
+    <div class="panel">
+      <div class="mm-top noprint">
+        <div class="fld" style="margin:0"><label for="mm-pick">Athlete</label><select id="mm-pick"></select></div>
+        <button class="btn ghost small" id="mm-new" type="button">+ New athlete</button>
+        <button class="btn ghost small" id="mm-del" type="button">Remove athlete</button>
+        <div class="fld" style="margin:0"><label for="mm-unit">Units</label><select id="mm-unit"><option value="kg">kg</option><option value="lb">lb</option></select></div>
+      </div>
+      <div class="fld"><label for="mm-name">Athlete name</label><input id="mm-name" placeholder="e.g. Sam" style="max-width:320px"></div>
+      <div class="mm-lifts" id="mm-lifts"></div>
+      <p class="hist" style="margin:10px 0 0">Leave a lift blank if the athlete has not tested it — the ratios that use it are skipped.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Ratios</h2>
+      <div id="mm-ratios"></div>
+    </div>
+
+    <div class="panel">
+      <h2>What to work on</h2>
+      <ul class="pull" id="mm-focus"></ul>
+      <div class="fld" style="margin:12px 0 0"><label for="mm-notes">Coach's notes and plan for this athlete</label><textarea id="mm-notes" style="min-height:90px"></textarea></div>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="mm-save" type="button">Save</button>
+      <button class="btn ghost" id="mm-download" type="button">Download PDF</button>
+      <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+      <span class="savestate" id="mm-state"></span>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -1078,7 +1133,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors", "philosophy", "observation", "standards"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors", "philosophy", "observation", "standards", "mmp"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -1125,6 +1180,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (ph && tool === "philosophy") await phSave();
   if (ob && tool === "observation") await obSave();
   if (sd && tool === "standards") await stSave();
+  if (mm && tool === "mmp") await mmSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -1149,6 +1205,7 @@ async function boot() {
   if (tool === "philosophy") return openPhilosophy();
   if (tool === "observation") return openObservation();
   if (tool === "standards") return openStandards();
+  if (tool === "mmp") return openMmp();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -1182,6 +1239,8 @@ async function boot() {
   if (obr) $("observation-status").textContent = "Last saved " + new Date(obr.updated_at).toLocaleDateString("en-GB") + " →";
   const sdr = (data || []).find((r) => r.tool === "standards");
   if (sdr) $("standards-status").textContent = "Last saved " + new Date(sdr.updated_at).toLocaleDateString("en-GB") + " →";
+  const mmr = (data || []).find((r) => r.tool === "mmp");
+  if (mmr) { const n = (mmr.data && mmr.data.athletes || []).length; $("mmp-status").textContent = n + (n === 1 ? " athlete →" : " athletes →"); }
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -3204,6 +3263,135 @@ async function stSave() {
 }
 $("st-save").onclick = async () => { if (await stSave()) $("st-state").textContent = "Saved ✓"; };
 $("st-download").onclick = async () => { await stSave(); window.print(); };
+
+// ---------------- maximum motor potential calculator ----------------
+// Ratios (Roman, 1986), give or take 2-3%.
+const MM_LIFTS = [["bs", "Back squat"], ["cl", "Clean"], ["cj", "Clean & jerk"], ["sn", "Snatch"], ["pc", "Power clean"], ["ps", "Power snatch"]];
+const MM_TOL = 3;
+const MM_RATIOS = [
+  { top: "cl", base: "bs", pct: 80, kl: "Technical mastery", kh: "Motor potential (strength)", title: "Clean : back squat", sub: "An athlete's clean is suggested to be 80% of their back squat.",
+    low: "The clean is below what their squat strength suggests. Their strength is not transferring — work on technical mastery of the clean (positions, timing, receiving), not more squatting.",
+    high: "The clean is ahead of their squat. Technique is good; squat strength is now the limit. Raise their motor potential with strength work." },
+  { top: "sn", base: "cj", pct: 78, kl: "Technical mastery", kh: "Technical mastery", title: "Snatch : clean & jerk", sub: "An athlete's snatch is suggested to be 78% of their clean and jerk (and the clean and jerk 128% of their snatch).",
+    low: "The snatch is lagging behind the clean and jerk. Focus on snatch technique — the bar path, the turnover and the overhead receiving position.",
+    high: "The clean and jerk is lagging behind the snatch. Look at the clean and the jerk — often the jerk, or front squat strength out of the clean." },
+  { top: "ps", base: "sn", pct: 87, kl: "Power", kh: "Technical mastery", title: "Power snatch : snatch", sub: "An athlete's power snatch is suggested to be 87% of their snatch.",
+    low: "The power snatch is low for their snatch — they may lack explosive power and pull height. Develop speed and power in the pull.",
+    high: "The power snatch is close to the full snatch — they are not using the squat receive well. Work on getting under the bar and overhead squat confidence." },
+  { top: "pc", base: "cl", pct: 87, kl: "Power", kh: "Technical mastery", title: "Power clean : clean", sub: "An athlete's power clean is suggested to be 87% of their clean.",
+    low: "The power clean is low for their clean — they may lack explosive power and pull height. Develop speed and power in the pull.",
+    high: "The power clean is close to the full clean — they are not using the squat receive well. Work on the front rack, speed under the bar and front squat recovery." },
+];
+let mm = null;
+let mmTimer = null;
+let mmIdx = 0;
+const blankAthlete = () => ({ name: "", lifts: {}, notes: "", updated: "" });
+
+async function openMmp() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "mmp").maybeSingle();
+  mm = data || { tool: "mmp", data: {} };
+  mm.data.athletes = mm.data.athletes && mm.data.athletes.length ? mm.data.athletes : [blankAthlete()];
+  mm.data.unit = mm.data.unit || "kg";
+  $("mm-unit").value = mm.data.unit;
+  mmIdx = 0;
+  mmLoad();
+  show("mmp");
+}
+function mmCur() { return mm.data.athletes[mmIdx]; }
+function mmPick() {
+  $("mm-pick").innerHTML = mm.data.athletes.map((a, i) => `<option value="${i}"></option>`).join("");
+  mm.data.athletes.forEach((a, i) => { $("mm-pick").options[i].textContent = a.name.trim() || "Athlete " + (i + 1); });
+  $("mm-pick").value = String(mmIdx);
+  $("mm-del").disabled = mm.data.athletes.length < 2;
+}
+function mmLoad() {
+  const a = mmCur();
+  $("mm-name").value = a.name; $("mm-notes").value = a.notes || "";
+  const box = $("mm-lifts"); box.innerHTML = "";
+  for (const [k, t] of MM_LIFTS) {
+    const w = document.createElement("div"); const l = document.createElement("label"); l.textContent = t + " (" + mm.data.unit + ")";
+    const i = document.createElement("input"); i.type = "number"; i.inputMode = "decimal"; i.min = 0; i.step = "0.5"; i.value = a.lifts[k] || "";
+    i.oninput = () => { const v = parseFloat(i.value); a.lifts[k] = v > 0 ? v : null; mmCalc(); mmChanged(); };
+    w.append(l, i); box.appendChild(w);
+  }
+  mmPick(); mmCalc();
+}
+$("mm-pick").onchange = () => { mmIdx = +$("mm-pick").value; mmLoad(); };
+$("mm-new").onclick = () => { mm.data.athletes.push(blankAthlete()); mmIdx = mm.data.athletes.length - 1; mmLoad(); $("mm-name").focus(); mmChanged(); };
+$("mm-del").onclick = () => {
+  if (mm.data.athletes.length < 2) return;
+  if (!confirm("Remove " + (mmCur().name.trim() || "this athlete") + "?")) return;
+  mm.data.athletes.splice(mmIdx, 1); mmIdx = 0; mmLoad(); mmChanged();
+};
+$("mm-name").oninput = () => { mmCur().name = $("mm-name").value; mmPick(); mmChanged(); };
+$("mm-notes").oninput = () => { mmCur().notes = $("mm-notes").value; mmChanged(); };
+$("mm-unit").onchange = () => { mm.data.unit = $("mm-unit").value; mmLoad(); mmChanged(); };
+
+function mmCalc() {
+  const a = mmCur(); const L = a.lifts; const u = mm.data.unit;
+  const r1 = (v) => Math.round(v * 2) / 2;
+  const box = $("mm-ratios"); box.innerHTML = "";
+  const focus = [];
+  const nameOf = (k) => MM_LIFTS.find((x) => x[0] === k)[1];
+  for (const R of MM_RATIOS) {
+    const d = document.createElement("div"); d.className = "rt";
+    const h = document.createElement("h3"); h.textContent = R.title;
+    const sub = document.createElement("p"); sub.className = "sub"; sub.textContent = R.sub;
+    d.append(h, sub);
+    const base = L[R.base], top = L[R.top];
+    const v = document.createElement("div"); v.className = "verdict2";
+    if (!base) {
+      v.textContent = "Enter the " + nameOf(R.base).toLowerCase() + " to use this ratio.";
+      v.style.color = "var(--muted)";
+    } else {
+      const exp = base * R.pct / 100;
+      const lo = base * (R.pct - MM_TOL) / 100, hi = base * (R.pct + MM_TOL) / 100;
+      // gauge from target-25% to target+15%
+      const min = R.pct - 25, max = R.pct + 15;
+      const pos = (p) => Math.min(100, Math.max(0, (p - min) / (max - min) * 100));
+      const g = document.createElement("div"); g.className = "gauge";
+      g.innerHTML = `<div class="band" style="left:${pos(R.pct - MM_TOL)}%;width:${pos(R.pct + MM_TOL) - pos(R.pct - MM_TOL)}%"></div><span class="lab" style="left:6px">${min}%</span><span class="lab" style="right:6px">${max}%</span>`;
+      if (top) { const ratio = top / base * 100; const m = document.createElement("div"); m.className = "mk"; m.style.left = pos(ratio) + "%"; g.appendChild(m); }
+      d.appendChild(g);
+      const line = document.createElement("div");
+      line.textContent = "Expected " + nameOf(R.top).toLowerCase() + ": " + r1(exp) + " " + u + " (" + r1(lo) + "–" + r1(hi) + " " + u + ").";
+      v.appendChild(line);
+      if (top) {
+        const ratio = top / base * 100;
+        const res = document.createElement("div"); res.style.marginTop = "4px";
+        const b = document.createElement("b");
+        if (ratio < R.pct - MM_TOL) { b.className = "tech"; b.textContent = "Below — " + Math.round(ratio) + "%. "; res.append(b, R.low); focus.push([R.title, R.kl, R.low, r1(exp - top)]); }
+        else if (ratio > R.pct + MM_TOL) { b.className = R.kh.startsWith("Motor") ? "str" : "tech"; b.textContent = "Above — " + Math.round(ratio) + "%. "; res.append(b, R.high); focus.push([R.title, R.kh, R.high, 0]); }
+        else { b.className = "ok"; b.textContent = "On track — " + Math.round(ratio) + "%. "; res.append(b, "Technique and strength are in balance here. To lift more, both need to grow together — raise their motor potential while holding the standard."); }
+        v.appendChild(res);
+        if (ratio < R.pct - MM_TOL) { const gap = document.createElement("div"); gap.className = "hist"; gap.style.margin = "4px 0 0"; gap.textContent = "Potential still in their strength: about " + r1(exp - top) + " " + u + " on the " + nameOf(R.top).toLowerCase() + "."; v.appendChild(gap); }
+      } else {
+        const n = document.createElement("div"); n.className = "hist"; n.style.margin = "4px 0 0"; n.textContent = "Add their " + nameOf(R.top).toLowerCase() + " to compare."; v.appendChild(n);
+      }
+    }
+    d.appendChild(v); box.appendChild(d);
+  }
+  const f = $("mm-focus"); f.innerHTML = "";
+  if (!focus.length) { f.innerHTML = "<li>Enter at least two related lifts. Where a lift is out of line with the ratios, the focus for this athlete shows here.</li>"; return; }
+  focus.sort((x, y) => y[3] - x[3]);
+  for (const [t, kind, txt] of focus) {
+    const li = document.createElement("li"); const b = document.createElement("b"); b.textContent = kind + " — " + t + ": ";
+    li.append(b, txt); f.appendChild(li);
+  }
+}
+
+function mmChanged() { mmCur().updated = new Date().toISOString(); $("mm-state").textContent = "Unsaved changes"; clearTimeout(mmTimer); mmTimer = setTimeout(mmSave, 1500); }
+async function mmSave() {
+  clearTimeout(mmTimer);
+  const row = { user_id: session.user.id, tool: "mmp", data: mm.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("mm-state").textContent = "Not saved — " + error.message; return false; }
+  mm = { ...data, data: mm.data };
+  $("mm-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("mm-save").onclick = async () => { if (await mmSave()) $("mm-state").textContent = "Saved ✓"; };
+$("mm-download").onclick = async () => { await mmSave(); window.print(); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
