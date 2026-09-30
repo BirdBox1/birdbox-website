@@ -456,6 +456,11 @@
         <p>Watch 15 minutes of your coaching and rate communication, teamwork, judgement, decision making and observation — with humility and vulnerability in mind.</p>
         <span id="observation-status">Open →</span>
       </a>
+      <a class="tool" href="?tool=checklist">
+        <h3>Coaching observational checklist</h3>
+        <p>Film 5–10 minutes of your coaching, then rate communication, teamwork, judgement, decision making and observation.</p>
+        <span id="checklist-status">Open →</span>
+      </a>
       <a class="tool" href="?tool=standards">
         <h3>My standards audit</h3>
         <p>Where your members are on their journey, the standards you hold for each stage, and why athletes may be staying at beginner level.</p>
@@ -1058,9 +1063,14 @@
   </section>
   <!-- observation report -->
   <section id="observation" class="hidden">
-    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Transformational Coaching</p>
-    <h1>Coaching observation report</h1>
-    <p class="lede">Record the room from 5 minutes before your session begins until 10 minutes in. Watch the 15-minute clip and complete this report, making a clear effort to spot humility and vulnerability.</p>
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · <span id="ob-unit">Transformational Coaching</span></p>
+    <h1 id="ob-title">Coaching observation report</h1>
+    <p class="lede" id="ob-lede">Record the room from 5 minutes before your session begins until 10 minutes in. Watch the 15-minute clip and complete this report, making a clear effort to spot humility and vulnerability.</p>
+    <div class="panel hidden" id="ob-consent">
+      <h2>Before you film</h2>
+      <label class="why" style="border:0;padding:0 0 8px"><span class="top"><input type="checkbox" id="ob-c1"><span>I have permission from everyone who might appear in my video.</span></span></label>
+      <label class="why" style="border:0;padding:0"><span class="top"><input type="checkbox" id="ob-c2"><span>If any athlete is under 18, I have parental consent (or no under-18s appear).</span></span></label>
+    </div>
 
     <div class="panel">
       <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));max-width:760px">
@@ -1322,7 +1332,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (rf && REFLECT[tool]) await rfSave();
   if (mt && tool === "metaphors") await mtSave();
   if (ph && tool === "philosophy") await phSave();
-  if (ob && tool === "observation") await obSave();
+  if (ob && (tool === "observation" || tool === "checklist")) await obSave();
   if (sd && tool === "standards") await stSave();
   if (mm && tool === "mmp") await mmSave();
   if (an && tool === "anatomy") await anSave();
@@ -1350,7 +1360,7 @@ async function boot() {
   if (REFLECT[tool]) return openReflect();
   if (tool === "metaphors") return openMetaphors();
   if (tool === "philosophy") return openPhilosophy();
-  if (tool === "observation") return openObservation();
+  if (tool === "observation" || tool === "checklist") return openObservation();
   if (tool === "standards") return openStandards();
   if (tool === "mmp") return openMmp();
   if (tool === "anatomy") return openAnatomy();
@@ -1385,6 +1395,8 @@ async function boot() {
   if (mtr) $("metaphors-status").textContent = ((mtr.data && mtr.data.rows || []).filter((r) => (r.m || "").trim()).length) + " metaphors →";
   const phr = (data || []).find((r) => r.tool === "philosophy");
   if (phr) $("philosophy-status").textContent = "Last saved " + new Date(phr.updated_at).toLocaleDateString("en-GB") + " →";
+  const ckr = (data || []).find((r) => r.tool === "checklist");
+  if (ckr) $("checklist-status").textContent = "Last saved " + new Date(ckr.updated_at).toLocaleDateString("en-GB") + " →";
   const obr = (data || []).find((r) => r.tool === "observation");
   if (obr) $("observation-status").textContent = "Last saved " + new Date(obr.updated_at).toLocaleDateString("en-GB") + " →";
   const sdr = (data || []).find((r) => r.tool === "standards");
@@ -3175,11 +3187,20 @@ const HV = ["Spend time listening to others", "Practise mindfulness, and focus o
 let ob = null;
 let obTimer = null;
 let obActive = "comm";
+// The same report serves two tasks: "observation" (with humility & vulnerability) and "checklist".
+const OB_TOOL = tool === "checklist" ? "checklist" : "observation";
 let obLocal = null;
 
 async function openObservation() {
-  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "observation").maybeSingle();
-  ob = data || { tool: "observation", data: {} };
+  if (OB_TOOL === "checklist") {
+    $("ob-unit").textContent = "Reflection & Observation";
+    $("ob-title").textContent = "Coaching observational checklist";
+    $("ob-lede").textContent = "In your next coaching session, record a 5–10 minute segment of your coaching. Then watch the video and carry out an observation assessment of your coaching.";
+    $("ob-consent").classList.remove("hidden");
+  }
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", OB_TOOL).maybeSingle();
+  ob = data || { tool: OB_TOOL, data: {} };
+  for (const k of ["c1", "c2"]) { const cb = $("ob-" + k); cb.checked = !!ob.data[k]; cb.onchange = () => { ob.data[k] = cb.checked; obChanged(); }; }
   const d = ob.data;
   d.scores = d.scores || {}; d.comments = d.comments || {}; d.hv = d.hv || {};
   for (const [id, key] of [["ob-date", "date"], ["ob-what", "what"]]) { const el = $(id); el.value = d[key] || ""; el.oninput = () => { d[key] = el.value; obChanged(); }; }
@@ -3194,7 +3215,7 @@ function obPlayer() {
   box.innerHTML = "";
   const screen = document.createElement("div"); screen.className = "screen";
   const e = obLocal ? { kind: "video", src: obLocal.url } : vEmbed(ob.data.link);
-  if (!e) screen.innerHTML = '<div class="empty">Add your 15-minute clip below — pick it from your phone or computer, or paste a link — and watch it here while you complete the report.</div>';
+  if (!e) screen.innerHTML = '<div class="empty">Add your coaching clip below — pick it from your phone or computer, or paste a link — and watch it here while you complete the report.</div>';
   else if (e.kind === "iframe") { const f = document.createElement("iframe"); f.src = e.src; f.allow = "autoplay; fullscreen; picture-in-picture"; f.allowFullscreen = true; screen.appendChild(f); }
   else if (e.kind === "video") { const v = document.createElement("video"); v.src = e.src; v.controls = true; v.playsInline = true; v.preload = "metadata"; screen.appendChild(v); v.onerror = () => { screen.innerHTML = '<div class="empty">This video will not play here. Try choosing it from your device instead.</div>'; }; }
   else { const dv = document.createElement("div"); dv.className = "empty"; dv.append("This link cannot be played on the page. "); const a = document.createElement("a"); a.href = e.src; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open it in a new tab"; dv.appendChild(a); screen.appendChild(dv); }
@@ -3219,7 +3240,7 @@ function obPlayer() {
 function obRender() {
   const d = ob.data;
   const box = $("ob-areas"); box.innerHTML = "";
-  const tabs = [...OB.map((x) => [x.k, x.t]), ["hv", "Humility & vulnerability"]];
+  const tabs = [...OB.map((x) => [x.k, x.t]), ...(OB_TOOL === "observation" ? [["hv", "Humility & vulnerability"]] : [])];
   const chips = document.createElement("div"); chips.className = "chips";
   $("ob-player").querySelector(".chips")?.remove();
   $("ob-player").appendChild(chips);
@@ -3260,6 +3281,7 @@ function obRender() {
     c.append(cl, ct, nav(idx));
     cards[sec.k] = c; box.appendChild(c);
   });
+  if (OB_TOOL === "observation") {
   const hc = document.createElement("div"); hc.className = "vr";
   const hh = document.createElement("h3"); hh.textContent = "Humility & vulnerability";
   const htp = document.createElement("p"); htp.className = "tip"; htp.textContent = "Key points for humility and vulnerability. Did you see yourself doing each one in the clip? Note where — or where you missed a chance.";
@@ -3281,6 +3303,7 @@ function obRender() {
   }
   hc.appendChild(nav(tabs.length - 1));
   cards.hv = hc; box.appendChild(hc);
+  }
   paint(); obBars();
 }
 
@@ -3301,7 +3324,7 @@ function obChanged() { $("ob-state").textContent = "Unsaved changes"; clearTimeo
 async function obSave() {
   clearTimeout(obTimer);
   ob.data.notes = $("ob-notes").value;
-  const row = { user_id: session.user.id, tool: "observation", data: ob.data, updated_at: new Date().toISOString() };
+  const row = { user_id: session.user.id, tool: OB_TOOL, data: ob.data, updated_at: new Date().toISOString() };
   const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
   if (error) { $("ob-state").textContent = "Not saved — " + error.message; return false; }
   ob = { ...data, data: ob.data };
