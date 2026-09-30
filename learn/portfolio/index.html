@@ -466,6 +466,11 @@
         <p>A 12-question quiz on how your athletes relate to your coaching — and what to change.</p>
         <span id="dependence-status">Open →</span>
       </a>
+      <a class="tool" href="?tool=reflect-lps-pre">
+        <h3>Pre-learning reflective report — learning physical skills</h3>
+        <p>Your starting point: how you think people learn physical skills and how you teach them now.</p>
+        <span id="reflect-lps-pre-status">Open →</span>
+      </a>
       <a class="tool" href="?tool=standards">
         <h3>My standards audit</h3>
         <p>Where your members are on their journey, the standards you hold for each stage, and why athletes may be staying at beginner level.</p>
@@ -992,7 +997,7 @@
     <p class="lede" id="rf-lede"></p>
 
     <div class="panel noprint hidden" id="rf-look-box">
-      <h2>Look back at your work in this unit</h2>
+      <h2 id="rf-look-title">Look back at your work in this unit</h2>
       <div class="lookback" id="rf-look"></div>
     </div>
 
@@ -2895,6 +2900,25 @@ $("id-reset").onclick = () => { clearInterval(idClock.run); idClock = { left: 30
 // One page, many units: add a unit here and link Rise to ?tool=<key>.
 // Question types: text, three (three boxes side by side), actions (1-3 actions), scale (1-10).
 const REFLECT = {
+  "reflect-lps-pre": {
+    unit: "Learning Physical Skills and Making Effective Sessions",
+    title: "Pre-learning reflective report — learning and instructing physical skills",
+    lede: "Before you start this unit, use this reflective cycle to review your current understanding of how people learn physical skills. There are no wrong answers — this is your starting point, and you will compare it with what you learn.",
+    lookTitle: "Look back at earlier tasks",
+    look: [["standards", "My standards audit"], ["dependence", "Dependent, independent or interdependent?"], ["metaphors", "My bank of metaphors"]],
+    qs: [
+      { k: "how", type: "text", q: "How do you think people learn a new physical skill?", hint: "Think about what happens from the first attempt to the point where they can do it without thinking." },
+      { k: "own", type: "text", q: "Think of a skill you learned yourself — for example double-unders, a kip or the snatch. What helped you learn it, and what got in the way?", hint: "Who or what helped? How long did it take? What did you feel along the way?" },
+      { k: "teach", type: "three", q: "When you teach a new movement today, what do you do?", hint: "Describe what you actually do in a typical class.",
+        boxes: [["explain", "How I explain it", "e.g. I name the movement and give three points of performance"], ["show", "How I show it", "e.g. I demonstrate, or use a member who moves well"], ["practise", "How I let them practise", "e.g. Two rounds of five with a PVC pipe"]] },
+      { k: "talk", type: "scale", q: "When teaching a new skill, how much of the time are you talking, and how much are they moving?", ends: ["Mostly me talking", "Mostly them moving"] },
+      { k: "learned", type: "text", q: "How do you know when an athlete has really learned a skill — not just done it once?", hint: "What do you see? What would they tell you they feel?" },
+      { k: "stages", type: "text", q: "What do you already know about the stages of learning (cognitive, associative, autonomous)? How does your coaching change at each stage?", hint: "If you are not sure yet, write what you think." },
+      { k: "session", type: "text", q: "How do you plan a session so there is time to coach, not just to get the workout done?", hint: "Think about timings, class size, and when in the session your real coaching happens." },
+      { k: "goals", type: "actions", q: "What do you want to learn from this unit?", hint: "Up to three things you want to understand or do better." },
+      { k: "confidence", type: "scale", q: "How confident do you feel teaching a new physical skill to a beginner?", ends: ["Not yet", "Very confident"] },
+    ],
+  },
   "reflect-mml": {
     unit: "Multidimensional Model of Sport Leadership",
     title: "Multidimensional Model of Leadership — reflective report",
@@ -2926,6 +2950,7 @@ async function openReflect() {
   const look = $("rf-look"); look.innerHTML = "";
   for (const [k, t] of cfg.look || []) { const a = document.createElement("a"); a.href = "?tool=" + k; a.target = "_blank"; a.textContent = t + " ↗"; look.appendChild(a); }
   $("rf-look-box").classList.toggle("hidden", !(cfg.look || []).length);
+  $("rf-look-title").textContent = cfg.lookTitle || "Look back at your work in this unit";
   rfRender(cfg);
   show("reflect");
 }
