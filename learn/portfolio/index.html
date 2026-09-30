@@ -179,6 +179,18 @@
   .axsum div{background:var(--paper);border:1px solid var(--line);padding:12px;text-align:center}
   .axsum b{display:block;font-size:26px}
   .axsum span{font-size:12px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+  .sl-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;max-width:520px}
+  .sl-grid div{padding:14px 12px;border:1px solid var(--line);background:var(--paper);min-height:88px}
+  .sl-grid b{display:block;font-size:15px}
+  .sl-grid small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+  .sl-grid .n{font-size:24px;font-weight:800;float:right;color:var(--accent)}
+  .sl-axis{display:flex;justify-content:space-between;max-width:520px;font-size:11px;color:var(--muted);margin-top:4px}
+  .pick4{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin:0 0 12px}
+  .pick4 button{font:inherit;font-size:13.5px;text-align:left;padding:10px 11px;background:var(--panel);color:var(--ink);border:1px solid var(--line);cursor:pointer;line-height:1.35}
+  .pick4 button small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+  .pick4 button.on{border-color:var(--accent);background:#16303F}
+  .match{font-size:14px;padding:10px 12px;margin:0 0 12px;border-left:4px solid var(--good);background:var(--panel)}
+  .match.off{border-left-color:#E0B84F}
   .cmp{width:100%;font-size:14px}
   .cmp td,.cmp th{padding:7px 6px}
   .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
@@ -265,6 +277,11 @@
         <h3>What makes athletes anxious?</h3>
         <p>What could make you or someone else anxious before and during training — and whether it is in the head or the body.</p>
         <span id="anxiety-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=leadership">
+        <h3>Four-way coaching model reflective report</h3>
+        <p>Reflect on recent sessions with Hersey and Blanchard's four styles: telling, selling, participating and delegating.</p>
+        <span id="leadership-status">Open →</span>
       </a>
     </div>
   </section>
@@ -610,6 +627,41 @@
       <span class="savestate" id="ax-state"></span>
     </div>
   </section>
+  <!-- leadership -->
+  <section id="leadership" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Leadership</p>
+    <h1>Four-way coaching model reflective report</h1>
+    <p class="lede">Think about some of your recent coaching sessions. Using the four-way coaching model — Hersey and Blanchard's (1977) four leadership styles — reflect on the style you used, the situation you were in, and whether it was the right fit.</p>
+
+    <div class="panel">
+      <h2>The four styles</h2>
+      <div class="sl-grid" id="sl-grid"></div>
+      <div class="sl-axis"><span>← Low task</span><span>High task (directive) →</span></div>
+      <p class="hist" style="margin:6px 0 0">Top row: high relationship (supportive). Bottom row: low relationship. The numbers show how often you used each style in the situations below.</p>
+    </div>
+
+    <div id="sl-sits"></div>
+    <button class="btn ghost small noprint" id="sl-add" type="button" style="margin:-6px 0 18px">+ Add another session</button>
+
+    <div class="panel">
+      <h2>Coaching and being coached</h2>
+      <p class="lede" style="font-size:14px;margin:0 0 10px">For each style, can you think of a time you coached this way — and a time you were coached this way? How did it feel to be on the receiving end?</p>
+      <div id="sl-exp"></div>
+    </div>
+
+    <div class="panel">
+      <h2>My reflections</h2>
+      <p class="lede noprint" style="font-size:14px;margin:0 0 10px">What is your default style? Which style do you rarely use, and when would it help? What will you try in your next sessions?</p>
+      <textarea id="sl-notes" placeholder="Write your thoughts here…"></textarea>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="sl-save" type="button">Save</button>
+      <button class="btn ghost" id="sl-download" type="button">Download PDF</button>
+      <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+      <span class="savestate" id="sl-state"></span>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -618,7 +670,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -656,6 +708,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (vr && tool === "video") await vSave();
   if (ls && ls.data.result && tool === "listening") await lsSave();
   if (ax && tool === "anxiety") await axSave();
+  if (sl && tool === "leadership") await slSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -671,6 +724,7 @@ async function boot() {
   if (tool === "video") return openVideo();
   if (tool === "listening") return openListening();
   if (tool === "anxiety") return openAnxiety();
+  if (tool === "leadership") return openLeadership();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -685,6 +739,8 @@ async function boot() {
   if (lsr) $("listening-status").textContent = lsr.data && lsr.data.result ? "Your result: " + lsr.data.result.band + " (" + lsr.data.result.total + ") →" : "Last saved " + new Date(lsr.updated_at).toLocaleDateString("en-GB") + " →";
   const axr = (data || []).find((r) => r.tool === "anxiety");
   if (axr) $("anxiety-status").textContent = "Last saved " + new Date(axr.updated_at).toLocaleDateString("en-GB") + " →";
+  const slr = (data || []).find((r) => r.tool === "leadership");
+  if (slr) $("leadership-status").textContent = "Last saved " + new Date(slr.updated_at).toLocaleDateString("en-GB") + " →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -1688,6 +1744,125 @@ $("ax-start").onclick = () => {
   $("ax-start").textContent = "Pause";
 };
 $("ax-reset").onclick = () => { clearInterval(axClock.run); axClock = { left: 600, run: null }; $("ax-start").textContent = "Start"; axTick(); };
+
+// ---------------- leadership styles (Hersey & Blanchard, 1977) ----------------
+const SL = {
+  tell: { name: "Telling", tag: "High task / low relationship", does: "Provide specific instructions and closely supervise performance.", fit: "New members of the group, with a high task priority." },
+  sell: { name: "Selling", tag: "High task / high relationship", does: "Explain your decisions and provide opportunity for clarification.", fit: "Motivated, but not yet ready to be left to the task." },
+  part: { name: "Participating", tag: "High relationship / low task", does: "Share ideas and facilitate the making of decisions.", fit: "Capable, and needs support and involvement in decisions." },
+  dele: { name: "Delegating", tag: "Low relationship / low task", does: "Turn over responsibility for decisions and implementation.", fit: "Knows what to do and is motivated." },
+};
+const SL_READY = [
+  ["tell", "New to this", "Needs a lot of direction; the task is the priority"],
+  ["sell", "Keen but not ready", "Motivated, but not ready to be left to it"],
+  ["part", "Capable, needs support", "Can do it, but needs encouragement or to be involved"],
+  ["dele", "Knows what to do", "Capable and motivated — can be trusted with it"],
+];
+let sl = null;
+let slTimer = null;
+const blankSit = () => ({ what: "", ready: "", used: "", said: "", response: "", why: "", next: "" });
+
+async function openLeadership() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "leadership").maybeSingle();
+  sl = data || { tool: "leadership", data: {} };
+  sl.data.situations = sl.data.situations && sl.data.situations.length ? sl.data.situations : [blankSit()];
+  sl.data.styles = sl.data.styles || {};
+  $("sl-notes").value = sl.data.notes || "";
+  slRender(); slExp();
+  show("leadership");
+}
+
+function slGrid() {
+  const counts = { tell: 0, sell: 0, part: 0, dele: 0 };
+  for (const x of sl.data.situations) if (counts[x.used] != null) counts[x.used]++;
+  // Same layout as the diagram: participating | selling / delegating | telling
+  $("sl-grid").innerHTML = ["part", "sell", "dele", "tell"].map((k, i) =>
+    `<div><span class="n">${counts[k] || ""}</span><b>${[3, 2, 4, 1][i]}. ${SL[k].name}</b><small>${SL[k].tag}</small><small>${SL[k].does}</small></div>`).join("");
+}
+
+function slRender() {
+  const box = $("sl-sits"); box.innerHTML = "";
+  sl.data.situations.forEach((it, i) => {
+    const p = document.createElement("div"); p.className = "panel";
+    const h = document.createElement("h2"); h.textContent = "Session " + (i + 1);
+    if (sl.data.situations.length > 1) {
+      const del = document.createElement("button"); del.type = "button"; del.className = "btn ghost small noprint"; del.textContent = "Remove"; del.style.float = "right";
+      del.onclick = () => { sl.data.situations.splice(i, 1); slRender(); slChanged(); };
+      p.appendChild(del);
+    }
+    p.appendChild(h);
+    const field = (label, key, ph, tall) => {
+      const w = document.createElement("div"); w.className = "fld";
+      const l = document.createElement("label"); l.textContent = label;
+      const t = document.createElement("textarea"); t.value = it[key] || ""; t.placeholder = ph || ""; t.style.minHeight = tall ? "90px" : "64px";
+      t.oninput = () => { it[key] = t.value; slChanged(); };
+      w.append(l, t); return w;
+    };
+    p.appendChild(field("The situation — who, what and when", "what", "e.g. Saturday team class, two new members on their first snatch session", true));
+
+    const pick = (label, key, opts) => {
+      const w = document.createElement("div");
+      const l = document.createElement("label"); l.textContent = label; l.style.cssText = "display:block;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 6px";
+      const g = document.createElement("div"); g.className = "pick4";
+      for (const [k, title, sub] of opts) {
+        const b = document.createElement("button"); b.type = "button"; b.className = it[key] === k ? "on" : "";
+        b.innerHTML = "<span></span><small></small>"; b.firstChild.textContent = title; b.lastChild.textContent = sub;
+        b.onclick = () => { it[key] = it[key] === k ? "" : k; slRender(); slChanged(); };
+        g.appendChild(b);
+      }
+      w.append(l, g); return w;
+    };
+    p.appendChild(pick("Where was the athlete or group?", "ready", SL_READY));
+    p.appendChild(pick("The style I used", "used", ["tell", "sell", "part", "dele"].map((k) => [k, SL[k].name, SL[k].tag])));
+
+    if (it.ready && it.used) {
+      const m = document.createElement("div");
+      const ok = it.ready === it.used;
+      m.className = "match" + (ok ? "" : " off");
+      m.textContent = ok ? "Good fit — " + SL[it.used].name.toLowerCase() + " suits an athlete or group who is: " + SL[it.ready].fit.toLowerCase()
+        : "Worth reflecting on — for where they were, " + SL[it.ready].name.toLowerCase() + " may have fitted better (" + SL[it.ready].does.toLowerCase().replace(/\.$/, "") + "). Was there a reason you chose " + SL[it.used].name.toLowerCase() + "?";
+      p.appendChild(m);
+    }
+    p.appendChild(field("What did I say and do?", "said"));
+    p.appendChild(field("How did the athlete or group respond?", "response"));
+    p.appendChild(field("Why did I choose that style? What circumstances affected me at the time?", "why", "e.g. The class was running late, I was stressed, the athlete had done this before…"));
+    p.appendChild(field("Looking back, what would I do next time?", "next"));
+    box.appendChild(p);
+  });
+  slGrid();
+}
+$("sl-add").onclick = () => { sl.data.situations.push(blankSit()); slRender(); slChanged(); };
+
+function slExp() {
+  const box = $("sl-exp"); box.innerHTML = "";
+  for (const k of ["tell", "sell", "part", "dele"]) {
+    const e = sl.data.styles[k] = sl.data.styles[k] || { coach: "", coached: "" };
+    const d = document.createElement("div"); d.className = "vr";
+    const h = document.createElement("h3"); h.textContent = SL[k].name; const sm = document.createElement("small"); sm.textContent = SL[k].tag; h.appendChild(sm);
+    const g = document.createElement("div"); g.className = "g2";
+    for (const [key, label] of [["coach", "When I coached this way"], ["coached", "When I was coached this way"]]) {
+      const w = document.createElement("div"); const l = document.createElement("label"); l.textContent = label;
+      const t = document.createElement("textarea"); t.value = e[key]; t.oninput = () => { e[key] = t.value; slChanged(); };
+      w.append(l, t); g.appendChild(w);
+    }
+    d.append(h, g); box.appendChild(d);
+  }
+}
+
+function slChanged() { $("sl-state").textContent = "Unsaved changes"; clearTimeout(slTimer); slTimer = setTimeout(slSave, 1500); }
+async function slSave() {
+  clearTimeout(slTimer);
+  sl.data.notes = $("sl-notes").value;
+  const row = { user_id: session.user.id, tool: "leadership", data: sl.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("sl-state").textContent = "Not saved — " + error.message; return false; }
+  sl = { ...data, data: sl.data };
+  $("sl-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("sl-notes").addEventListener("input", slChanged);
+$("sl-save").onclick = async () => { if (await slSave()) $("sl-state").textContent = "Saved ✓"; };
+$("sl-download").onclick = async () => { await slSave(); window.print(); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
