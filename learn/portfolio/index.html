@@ -289,6 +289,30 @@
   .gauge .lab{position:absolute;top:6px;font-size:11px;color:var(--muted)}
   .verdict2{font-size:14.5px;line-height:1.5}
   .verdict2 b.ok{color:var(--good)} .verdict2 b.tech{color:#E0B84F} .verdict2 b.str{color:var(--bad)}
+  .an-grid{display:grid;grid-template-columns:1fr;gap:16px}
+  @media(min-width:900px){.an-grid{grid-template-columns:minmax(0,0.9fr) minmax(0,1.1fr)}}
+  .an-mapbox{background:#fff;border:1px solid var(--line);padding:10px}
+  @media(min-width:900px){.an-mapbox{position:sticky;top:0}}
+  .an-mapbox svg{display:block;width:100%;max-height:70vh;height:auto}
+  @media(max-width:899px){.an-mapbox svg{max-height:48vh}}
+  .an-views{display:flex;gap:6px;margin:0 0 8px}
+  .an-views button,.an-regions button,.an-list button,.an-opts button{font:inherit;font-size:13px;padding:7px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .an-views button{color:#333;background:#f3f0ee;border-color:#ddd;font-weight:700}
+  .an-views button.on{background:#14100F;color:#fff;border-color:#14100F}
+  .an-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#444;margin:6px 2px 0}
+  .an-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+  .an-regions,.an-list{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+  .an-regions button.on{background:var(--accent);border-color:var(--accent);color:#0C1116;font-weight:700}
+  .an-list button.on{border-color:#D8393D;background:#3A1A1B}
+  .an-list button.known::after{content:" ✓";color:var(--good)}
+  #an-card h3{margin:0 0 2px;font-size:22px}
+  .an-row{border-top:1px solid var(--line);padding:10px 0}
+  .an-row b{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 4px;color:var(--muted)}
+  .an-row p{margin:0;font-size:15px;line-height:1.55}
+  .an-opts{display:grid;grid-template-columns:1fr;gap:6px;margin:12px 0}
+  .an-opts button{text-align:left;font-size:14.5px;padding:11px 12px;line-height:1.4}
+  .an-opts button.right{border-color:var(--good);background:#16301F}
+  .an-opts button.wrong{border-color:var(--bad);background:#3A1A1B}
   .cmp{width:100%;font-size:14px}
   .cmp td,.cmp th{padding:7px 6px}
   .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
@@ -430,6 +454,11 @@
         <h3>Maximum motor potential calculator</h3>
         <p>Enter an athlete's lifts to see whether technical mastery or strength is holding back their weightlifting.</p>
         <span id="mmp-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=anatomy">
+        <h3>Muscle explorer — origins &amp; insertions</h3>
+        <p>Tap a muscle on the body map to see where it starts, where it attaches and what it does — then test yourself.</p>
+        <span id="anatomy-status">Open →</span>
       </a>
     </div>
   </section>
@@ -1125,6 +1154,47 @@
       <span class="savestate" id="mm-state"></span>
     </div>
   </section>
+  <!-- muscle explorer -->
+  <section id="anatomy" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Understanding Biomechanics</p>
+    <h1>Muscle explorer</h1>
+    <p class="lede">Tap a muscle on the body map, or pick one from the list, to see its <b style="color:#5AA6E0">origin</b>, its <b style="color:#E8A25A">insertion</b>, what it does, and why it matters when you coach. When you are ready, test yourself with the quiz.</p>
+
+    <div class="an-grid">
+      <div>
+        <div class="an-mapbox">
+          <div class="an-views"><button type="button" id="an-front">Front</button><button type="button" id="an-back">Back</button></div>
+          <svg id="an-svg" viewBox="20 0 160 440" role="img" aria-label="Body map"></svg>
+          <div class="an-legend"><span><i style="background:#2F7FC1"></i>Origin</span><span><i style="background:#E08A2E"></i>Insertion</span><span><i style="border:1px dashed #8A4A44;border-radius:2px"></i>Deep muscle</span></div>
+        </div>
+      </div>
+      <div>
+        <div id="an-explore">
+          <div class="panel">
+            <div class="an-regions" id="an-regions"></div>
+            <input id="an-search" type="search" placeholder="Search — e.g. glute, scapula, knee" style="width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin:0 0 10px">
+            <div class="an-list" id="an-list"></div>
+            <p class="hist" id="an-progress" style="margin:0"></p>
+          </div>
+          <div class="panel" id="an-card"></div>
+          <div class="row noprint">
+            <button class="btn" id="an-quiz-start" type="button">Test myself — 10 questions</button>
+            <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+            <span class="savestate" id="an-state"></span>
+          </div>
+        </div>
+        <div id="an-quiz" class="hidden">
+          <div class="panel">
+            <p class="kicker" id="an-qn" style="margin:0 0 6px"></p>
+            <h2 id="an-qtext" style="text-transform:none;letter-spacing:0;font-size:19px;line-height:1.35"></h2>
+            <div class="an-opts" id="an-opts"></div>
+            <p class="lede" id="an-feedback" style="font-size:14.5px;margin:0 0 12px"></p>
+            <div class="row"><button class="btn" id="an-next" type="button">Next question →</button><button class="btn ghost" id="an-quiz-stop" type="button">Back to exploring</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -1133,7 +1203,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors", "philosophy", "observation", "standards", "mmp"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors", "philosophy", "observation", "standards", "mmp", "anatomy"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -1181,6 +1251,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (ob && tool === "observation") await obSave();
   if (sd && tool === "standards") await stSave();
   if (mm && tool === "mmp") await mmSave();
+  if (an && tool === "anatomy") await anSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -1206,6 +1277,7 @@ async function boot() {
   if (tool === "observation") return openObservation();
   if (tool === "standards") return openStandards();
   if (tool === "mmp") return openMmp();
+  if (tool === "anatomy") return openAnatomy();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -1241,6 +1313,8 @@ async function boot() {
   if (sdr) $("standards-status").textContent = "Last saved " + new Date(sdr.updated_at).toLocaleDateString("en-GB") + " →";
   const mmr = (data || []).find((r) => r.tool === "mmp");
   if (mmr) { const n = (mmr.data && mmr.data.athletes || []).length; $("mmp-status").textContent = n + (n === 1 ? " athlete →" : " athletes →"); }
+  const anr = (data || []).find((r) => r.tool === "anatomy");
+  if (anr) $("anatomy-status").textContent = ((anr.data && anr.data.known || []).length) + " of " + AN.length + " muscles known →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -3392,6 +3466,374 @@ async function mmSave() {
 }
 $("mm-save").onclick = async () => { if (await mmSave()) $("mm-state").textContent = "Saved ✓"; };
 $("mm-download").onclick = async () => { await mmSave(); window.print(); };
+
+// ---------------- muscle explorer (origins & insertions) ----------------
+// Body map is an original schematic drawing (viewBox 0 0 200 440). Shapes are
+// drawn for the figure's left half and mirrored. deep: true = drawn dashed
+// (lies under other muscles). o / i = origin and insertion markers.
+// video: add a YouTube / Vimeo / Drive link to show a clip for that muscle.
+const AN_REGIONS = ["Shoulder", "Upper back", "Chest", "Arm", "Core", "Hip", "Thigh", "Lower leg"];
+const AN = [
+  { id: "delt", name: "Deltoid", region: "Shoulder", view: "front", d: "M62,62 C50,62 44,72 44,90 L52,100 C56,88 60,78 66,72 Z", o: [70, 63], i: [48, 100],
+    origin: "Lateral third of the clavicle, acromion and spine of the scapula", insertion: "Deltoid tuberosity of the humerus",
+    action: "Anterior fibres: shoulder flexion and internal rotation. Middle fibres: abduction. Posterior fibres: extension, external rotation and horizontal abduction.",
+    coach: "Strict press, push press, handstand work, overhead support in the jerk and snatch." },
+  { id: "supra", name: "Supraspinatus", region: "Shoulder", view: "back", deep: true, d: "M72,69 C78,66 88,67 94,70 L92,74 C86,72 78,72 72,74 Z", o: [86, 71], i: [62, 68],
+    origin: "Supraspinous fossa of the scapula", insertion: "Superior facet of the greater tubercle of the humerus",
+    action: "Starts shoulder abduction; holds the head of the humerus in the socket (rotator cuff).",
+    coach: "Overhead stability; often irritated by high-volume kipping and poor overhead positions." },
+  { id: "infra", name: "Infraspinatus", region: "Shoulder", view: "back", d: "M76,80 L93,84 L91,104 L76,99 Z", o: [86, 94], i: [62, 76],
+    origin: "Infraspinous fossa of the scapula", insertion: "Middle facet of the greater tubercle of the humerus",
+    action: "External rotation of the shoulder; stabilises the humeral head (rotator cuff).",
+    coach: "Keeps the shoulder centred in pull-ups, muscle-ups and overhead squats." },
+  { id: "tmin", name: "Teres minor", region: "Shoulder", view: "back", d: "M70,98 L80,103 L78,110 L68,104 Z", o: [74, 104], i: [62, 80],
+    origin: "Upper two-thirds of the lateral border of the scapula", insertion: "Inferior facet of the greater tubercle of the humerus",
+    action: "External rotation of the shoulder (rotator cuff).",
+    coach: "Works with infraspinatus to keep the shoulder externally rotated overhead." },
+  { id: "subscap", name: "Subscapularis", region: "Shoulder", view: "front", deep: true, d: "M64,84 C68,86 70,94 68,102 L63,100 C63,94 62,88 64,84 Z", o: [67, 96], i: [60, 84],
+    origin: "Subscapular fossa (front surface of the scapula)", insertion: "Lesser tubercle of the humerus",
+    action: "Internal rotation of the shoulder; stabilises the front of the joint (rotator cuff).",
+    coach: "Front-of-shoulder stability in dips, ring support and the bottom of a push-up." },
+  { id: "trap", name: "Trapezius", region: "Upper back", view: "back", d: "M100,38 L88,54 L64,64 L78,76 L100,150 Z", o: [100, 46], i: [66, 64],
+    alsoFront: "M88,50 L92,58 L66,64 L70,60 Z",
+    origin: "External occipital protuberance, superior nuchal line, ligamentum nuchae and spinous processes of C7–T12", insertion: "Lateral third of the clavicle, acromion and spine of the scapula",
+    action: "Upper fibres: elevate and upwardly rotate the scapula. Middle fibres: retract. Lower fibres: depress and upwardly rotate.",
+    coach: "Shrug in the second pull, active shoulders overhead, scapular retraction in rows." },
+  { id: "rhomb", name: "Rhomboids", region: "Upper back", view: "back", deep: true, d: "M91,70 L99,72 L99,112 L91,104 Z", o: [99, 84], i: [90, 98],
+    origin: "Spinous processes of C7–T5 (minor C7–T1, major T2–T5)", insertion: "Medial border of the scapula",
+    action: "Retract, elevate and downwardly rotate the scapula.",
+    coach: "Retraction in ring rows and bent-over rows; balances the pull of the pecs." },
+  { id: "lat", name: "Latissimus dorsi", region: "Upper back", view: "back", d: "M66,114 L80,118 L99,150 L99,196 L82,196 L74,160 Z", o: [95, 172], i: [58, 96],
+    origin: "Spinous processes of T7–T12, thoracolumbar fascia, iliac crest and lower 3–4 ribs", insertion: "Floor of the intertubercular (bicipital) groove of the humerus",
+    action: "Shoulder extension, adduction and internal rotation.",
+    coach: "Pull-ups, toes-to-bar and kipping; keeping the bar close in the deadlift, clean and snatch." },
+  { id: "tmaj", name: "Teres major", region: "Upper back", view: "back", d: "M68,106 L80,112 L78,120 L65,113 Z", o: [74, 116], i: [60, 96],
+    origin: "Posterior surface of the inferior angle of the scapula", insertion: "Medial lip of the intertubercular groove of the humerus",
+    action: "Shoulder extension, adduction and internal rotation (the lat's little helper).",
+    coach: "Works with the lats in pulling; tightness can limit overhead position." },
+  { id: "erector", name: "Erector spinae", region: "Upper back", view: "back", d: "M92,120 L99,120 L99,212 L92,212 Z", o: [96, 206], i: [96, 124],
+    origin: "Sacrum, iliac crest and spinous processes of the lumbar and lower thoracic vertebrae (common tendon)", insertion: "Ribs, transverse and spinous processes of the vertebrae above, and the mastoid process",
+    action: "Extends the spine and bends it sideways; holds a neutral spine under load.",
+    coach: "Maintaining a flat back in the deadlift, squat and every pull from the floor." },
+  { id: "pecmaj", name: "Pectoralis major", region: "Chest", view: "front", d: "M66,70 L99,68 L99,106 C88,110 76,108 68,98 L62,86 Z", o: [96, 82], i: [56, 88],
+    origin: "Medial half of the clavicle, sternum, costal cartilages of ribs 1–6 and the aponeurosis of the external oblique", insertion: "Lateral lip of the intertubercular groove of the humerus",
+    action: "Shoulder flexion (clavicular part), adduction, internal rotation and horizontal adduction.",
+    coach: "Push-ups, bench press, dips and ring support." },
+  { id: "pecmin", name: "Pectoralis minor", region: "Chest", view: "front", deep: true, d: "M70,82 C76,80 84,84 86,94 L80,100 C76,94 72,88 70,82 Z", o: [84, 96], i: [66, 80],
+    origin: "Ribs 3–5 near their costal cartilages", insertion: "Coracoid process of the scapula",
+    action: "Protracts, depresses and downwardly rotates the scapula.",
+    coach: "When tight, pulls the shoulders forward and limits overhead position." },
+  { id: "serratus", name: "Serratus anterior", region: "Chest", view: "front", d: "M68,104 L80,112 L78,130 L70,124 Z", o: [75, 124], i: [66, 98],
+    origin: "Outer surfaces of ribs 1–8", insertion: "Front surface of the medial border of the scapula",
+    action: "Protracts and upwardly rotates the scapula; holds it against the rib cage.",
+    coach: "Pushing away at the top of a push-up and handstand; upward rotation overhead." },
+  { id: "biceps", name: "Biceps brachii", region: "Arm", view: "front", d: "M52,100 C46,112 42,130 42,146 L50,148 C54,132 56,116 58,104 Z", o: [60, 80], i: [44, 160],
+    origin: "Long head: supraglenoid tubercle of the scapula. Short head: coracoid process", insertion: "Radial tuberosity and bicipital aponeurosis",
+    action: "Elbow flexion and forearm supination; assists shoulder flexion.",
+    coach: "Chin-over-bar pulling; keep arms long in the pull of a clean or snatch." },
+  { id: "brach", name: "Brachialis", region: "Arm", view: "front", d: "M42,146 L40,160 L48,162 L50,148 Z", o: [46, 140], i: [44, 166],
+    origin: "Distal half of the front of the humerus", insertion: "Coronoid process and tuberosity of the ulna",
+    action: "Elbow flexion (the main elbow flexor in any grip).",
+    coach: "Works in every pull-up, whatever the grip." },
+  { id: "triceps", name: "Triceps brachii", region: "Arm", view: "back", d: "M52,100 C46,112 42,130 42,150 L50,152 C54,132 56,116 58,104 Z", o: [60, 84], i: [40, 160],
+    origin: "Long head: infraglenoid tubercle of the scapula. Lateral head: back of the humerus above the radial groove. Medial head: back of the humerus below the radial groove", insertion: "Olecranon of the ulna",
+    action: "Elbow extension; long head also extends and adducts the shoulder.",
+    coach: "Lockout in the press and jerk, dips, push-ups and the muscle-up transition." },
+  { id: "rectab", name: "Rectus abdominis", region: "Core", view: "front", d: "M88,110 L99,110 L99,196 L90,196 Z", o: [96, 196], i: [96, 112],
+    origin: "Pubic crest and pubic symphysis", insertion: "Xiphoid process and costal cartilages of ribs 5–7",
+    action: "Flexes the trunk; resists extension of the spine.",
+    coach: "Hollow body, bracing overhead, sit-ups and toes-to-bar." },
+  { id: "extobl", name: "External oblique", region: "Core", view: "front", d: "M72,122 L88,114 L90,196 L78,200 L74,170 Z", o: [74, 130], i: [86, 198],
+    origin: "External surfaces of ribs 5–12", insertion: "Linea alba, pubic tubercle and front half of the iliac crest",
+    action: "Flexes the trunk, rotates it to the opposite side, bends it to the same side.",
+    coach: "Anti-rotation and bracing in single-arm and unilateral work." },
+  { id: "intobl", name: "Internal oblique", region: "Core", view: "front", deep: true, d: "M76,160 C82,158 88,164 88,176 C88,188 82,194 78,190 C74,182 74,168 76,160 Z", o: [80, 196], i: [84, 164],
+    origin: "Thoracolumbar fascia, iliac crest and lateral inguinal ligament", insertion: "Ribs 10–12, linea alba and pubic crest",
+    action: "Flexes the trunk and rotates it to the same side.",
+    coach: "Works with the opposite external oblique in rotation and anti-rotation." },
+  { id: "tva", name: "Transversus abdominis", region: "Core", view: "front", deep: true, d: "M80,140 L96,140 L96,186 L82,186 Z", o: [80, 160], i: [97, 170],
+    origin: "Costal cartilages of ribs 7–12, thoracolumbar fascia, iliac crest and inguinal ligament", insertion: "Linea alba and pubic crest",
+    action: "Compresses the abdomen; stiffens the trunk.",
+    coach: "The deep brace before every heavy lift." },
+  { id: "ql", name: "Quadratus lumborum", region: "Core", view: "back", deep: true, d: "M84,180 L92,180 L92,205 L84,205 Z", o: [86, 206], i: [88, 180],
+    origin: "Posterior iliac crest and iliolumbar ligament", insertion: "12th rib and transverse processes of L1–L4",
+    action: "Side-bends the trunk, hitches the hip and stabilises the lumbar spine.",
+    coach: "Holds the pelvis level in carries, single-arm work and single-leg work." },
+  { id: "iliopsoas", name: "Iliopsoas", region: "Hip", view: "front", deep: true, d: "M86,178 L94,178 L92,222 L84,226 Z", o: [92, 180], i: [86, 226],
+    origin: "Psoas major: bodies and transverse processes of T12–L5. Iliacus: iliac fossa", insertion: "Lesser trochanter of the femur",
+    action: "Hip flexion; psoas also stabilises the lumbar spine.",
+    coach: "Knees-to-elbows, the bottom of the squat; tightness can tilt the pelvis forward." },
+  { id: "gmax", name: "Gluteus maximus", region: "Hip", view: "back", d: "M70,212 L99,210 L99,245 L74,250 L66,232 Z", o: [96, 222], i: [74, 248],
+    origin: "Posterior ilium, sacrum, coccyx and sacrotuberous ligament", insertion: "Gluteal tuberosity of the femur and the iliotibial tract",
+    action: "Hip extension and external rotation.",
+    coach: "Standing up from the squat, the hip drive in the deadlift, clean and kettlebell swing." },
+  { id: "gmed", name: "Gluteus medius", region: "Hip", view: "back", d: "M70,198 L96,196 L96,210 L72,214 Z", o: [82, 200], i: [67, 216],
+    origin: "Outer surface of the ilium between the anterior and posterior gluteal lines", insertion: "Lateral surface of the greater trochanter",
+    action: "Hip abduction; keeps the pelvis level on one leg. Front fibres internally rotate.",
+    coach: "Knees tracking over toes in the squat; lunges, pistols and running." },
+  { id: "gmin", name: "Gluteus minimus", region: "Hip", view: "back", deep: true, d: "M73,202 C80,200 88,202 88,206 C88,210 80,212 73,210 Z", o: [82, 204], i: [67, 214],
+    origin: "Outer surface of the ilium between the anterior and inferior gluteal lines", insertion: "Front of the greater trochanter",
+    action: "Hip abduction and internal rotation.",
+    coach: "Supports gluteus medius in single-leg stability." },
+  { id: "piri", name: "Piriformis", region: "Hip", view: "back", deep: true, d: "M72,213 L96,211 L96,216 L72,219 Z", o: [96, 214], i: [70, 216],
+    origin: "Front surface of the sacrum", insertion: "Top of the greater trochanter",
+    action: "External rotation of the hip (abduction when the hip is flexed).",
+    coach: "Deep hip rotator; can irritate the sciatic nerve when overworked." },
+  { id: "tfl", name: "Tensor fasciae latae", region: "Hip", view: "front", d: "M68,208 L76,206 L74,232 L68,230 Z", o: [70, 206], i: [70, 330],
+    origin: "Anterior superior iliac spine (ASIS) and front of the iliac crest", insertion: "Iliotibial tract, to the lateral condyle of the tibia (Gerdy's tubercle)",
+    action: "Hip flexion, abduction and internal rotation; stabilises the knee.",
+    coach: "Can take over from weak glutes — watch for knees caving in." },
+  { id: "addlong", name: "Adductor longus", region: "Thigh", view: "front", d: "M90,222 L99,220 L96,262 L90,270 Z", o: [97, 222], i: [89, 268],
+    origin: "Body of the pubis", insertion: "Middle third of the linea aspera of the femur",
+    action: "Hip adduction and flexion.",
+    coach: "Holds the knees in line; often tight in athletes who struggle with a wide squat." },
+  { id: "addmag", name: "Adductor magnus", region: "Thigh", view: "back", d: "M92,250 L99,250 L97,300 L92,300 Z", o: [96, 244], i: [92, 318],
+    origin: "Inferior pubic ramus, ischial ramus and ischial tuberosity", insertion: "Linea aspera and adductor tubercle of the femur",
+    action: "Hip adduction; its hamstring part extends the hip.",
+    coach: "A big hip extensor out of the bottom of a deep squat." },
+  { id: "rf", name: "Rectus femoris", region: "Thigh", view: "front", d: "M80,222 L90,222 L88,300 L80,300 Z", o: [80, 212], i: [84, 338],
+    origin: "Anterior inferior iliac spine (AIIS) and the ilium above the acetabulum", insertion: "Tibial tuberosity, via the quadriceps tendon, patella and patellar ligament",
+    action: "Knee extension and hip flexion (crosses both joints).",
+    coach: "Wall balls, thrusters, squats; tightness limits hip extension." },
+  { id: "vl", name: "Vastus lateralis", region: "Thigh", view: "front", d: "M68,232 L78,226 L80,305 L72,312 L66,270 Z", o: [68, 222], i: [84, 338],
+    origin: "Greater trochanter and lateral lip of the linea aspera", insertion: "Tibial tuberosity, via the quadriceps tendon, patella and patellar ligament",
+    action: "Knee extension.",
+    coach: "The largest quad — standing up from every squat." },
+  { id: "vm", name: "Vastus medialis", region: "Thigh", view: "front", d: "M90,280 L96,270 L96,316 L86,316 Z", o: [92, 244], i: [84, 338],
+    origin: "Intertrochanteric line and medial lip of the linea aspera", insertion: "Tibial tuberosity, via the quadriceps tendon, patella and patellar ligament",
+    action: "Knee extension; helps the kneecap track.",
+    coach: "Knee control at the end of range — full-depth squats train it well." },
+  { id: "vi", name: "Vastus intermedius", region: "Thigh", view: "front", deep: true, d: "M80,242 L90,242 L89,296 L81,296 Z", o: [84, 244], i: [84, 338],
+    origin: "Front and lateral surfaces of the femoral shaft", insertion: "Tibial tuberosity, via the quadriceps tendon, patella and patellar ligament",
+    action: "Knee extension.",
+    coach: "Lies under rectus femoris; works in every squat." },
+  { id: "bf", name: "Biceps femoris", region: "Thigh", view: "back", d: "M70,252 L80,254 L82,318 L74,318 Z", o: [90, 244], i: [72, 332],
+    origin: "Long head: ischial tuberosity. Short head: linea aspera of the femur", insertion: "Head of the fibula",
+    action: "Knee flexion; long head extends the hip. Externally rotates the flexed knee.",
+    coach: "Hip hinge in the deadlift, RDL, good morning and kettlebell swing." },
+  { id: "st", name: "Semitendinosus", region: "Thigh", view: "back", d: "M80,254 L86,254 L88,318 L82,318 Z", o: [90, 244], i: [92, 336],
+    origin: "Ischial tuberosity", insertion: "Upper medial tibia (pes anserinus)",
+    action: "Knee flexion, hip extension and internal rotation of the flexed knee.",
+    coach: "Protects the knee and hinges the hip in every pull from the floor." },
+  { id: "sm", name: "Semimembranosus", region: "Thigh", view: "back", d: "M86,256 L92,256 L92,318 L88,318 Z", o: [90, 244], i: [92, 330],
+    origin: "Ischial tuberosity", insertion: "Back of the medial condyle of the tibia",
+    action: "Knee flexion, hip extension and internal rotation of the flexed knee.",
+    coach: "Works with semitendinosus; tight hamstrings round the back in the hinge." },
+  { id: "gastroc", name: "Gastrocnemius", region: "Lower leg", view: "back", d: "M74,326 L96,326 L94,370 L86,376 L76,368 Z", o: [78, 322], i: [86, 410],
+    origin: "Medial and lateral condyles of the femur", insertion: "Calcaneus, via the Achilles tendon",
+    action: "Plantarflexion of the ankle and knee flexion.",
+    coach: "Box jumps, double-unders and the extension at the top of the pull." },
+  { id: "soleus", name: "Soleus", region: "Lower leg", view: "back", d: "M76,368 L94,368 L92,396 L80,396 Z", o: [78, 340], i: [86, 410],
+    origin: "Head and upper back of the fibula and the soleal line of the tibia", insertion: "Calcaneus, via the Achilles tendon",
+    action: "Plantarflexion (strongest with the knee bent).",
+    coach: "Tightness limits ankle dorsiflexion — heels lifting in the squat." },
+  { id: "tibant", name: "Tibialis anterior", region: "Lower leg", view: "front", d: "M76,332 L84,332 L84,395 L79,395 Z", o: [78, 342], i: [90, 420],
+    origin: "Lateral condyle and upper lateral surface of the tibia, and the interosseous membrane", insertion: "Medial cuneiform and base of the 1st metatarsal",
+    action: "Dorsiflexion and inversion of the foot.",
+    coach: "Pulls the shin forward over the foot in a deep squat; landing control." },
+];
+const AN_BODY = {
+  front: "M100,11 a17,17 0 1,1 -0.1,0 Z M92,44 L108,44 L108,58 L92,58 Z M62,62 L138,62 L132,120 L126,190 L134,215 L66,215 L74,190 L68,120 Z M62,62 L50,66 L40,110 L38,160 L50,162 L56,118 L66,90 Z M38,160 L50,162 L44,230 L32,228 Z M138,62 L150,66 L160,110 L162,160 L150,162 L144,118 L134,90 Z M162,160 L150,162 L156,230 L168,228 Z M66,215 L100,218 L96,320 L72,320 L64,260 Z M134,215 L100,218 L104,320 L128,320 L136,260 Z M72,320 L96,320 L94,410 L78,410 L74,360 Z M128,320 L104,320 L106,410 L122,410 L126,360 Z M76,410 L96,410 L98,425 L70,425 Z M124,410 L104,410 L102,425 L130,425 Z",
+};
+AN_BODY.back = AN_BODY.front;
+
+let an = null;
+let anTimer = null;
+let anSel = "gmax";
+let anView = "back";
+let anMode = "explore";
+let anQuiz = null;
+
+async function openAnatomy() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "anatomy").maybeSingle();
+  an = data || { tool: "anatomy", data: {} };
+  an.data.known = an.data.known || [];
+  an.data.quiz = an.data.quiz || { best: null, history: [] };
+  anRegions(); anList(); anSelect(anSel);
+  show("anatomy");
+}
+
+function anMap() {
+  const svg = $("an-svg"); const ns = "http://www.w3.org/2000/svg";
+  svg.innerHTML = "";
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
+  el("path", { d: AN_BODY[anView], fill: "#EDE6E1", stroke: "#B9ADA6", "stroke-width": 1 });
+  const quizMode = anMode === "quiz" && anQuiz && anQuiz.q && anQuiz.q.type === "tap";
+  const sides = [el("g", {}), el("g", { transform: "translate(200,0) scale(-1,1)" })];
+  const shapes = [];
+  for (const m of AN) {
+    const paths = [];
+    if (m.view === anView) paths.push(m.d);
+    if (m.alsoFront && anView === "front") paths.push(m.alsoFront);
+    for (const d of paths) for (const g of sides) {
+      const on = !quizMode && m.id === anSel;
+      const p = el("path", { d, fill: on ? "#D8393D" : m.deep ? "rgba(0,0,0,0)" : "#C9776F", "fill-opacity": on ? 0.9 : m.deep ? 0 : 0.55,
+        stroke: on ? "#8E1F22" : "#8A4A44", "stroke-width": on ? 1.4 : 0.8, "stroke-dasharray": m.deep ? "3 2" : "", style: "cursor:pointer" }, g);
+      const t = document.createElementNS(ns, "title"); t.textContent = m.name + (m.deep ? " (deep)" : ""); p.appendChild(t);
+      p.addEventListener("click", () => anMode === "quiz" ? anTap(m.id) : anSelect(m.id));
+      shapes.push([m, p]);
+    }
+  }
+  // selected muscle on top, with origin and insertion
+  const m = AN.find((x) => x.id === anSel);
+  if (!quizMode && m && m.view === anView) {
+    el("line", { x1: m.o[0], y1: m.o[1], x2: m.i[0], y2: m.i[1], stroke: "#14100F", "stroke-width": 1, "stroke-dasharray": "2 2" });
+    el("circle", { cx: m.o[0], cy: m.o[1], r: 4.2, fill: "#2F7FC1", stroke: "#fff", "stroke-width": 1.2 });
+    el("circle", { cx: m.i[0], cy: m.i[1], r: 4.2, fill: "#E08A2E", stroke: "#fff", "stroke-width": 1.2 });
+  }
+  if (anMode === "quiz" && anQuiz && anQuiz.q && anQuiz.q.type === "name") {
+    // highlight the muscle being asked about
+    const q = AN.find((x) => x.id === anQuiz.q.id);
+    for (const [mm2, p] of shapes) if (mm2.id === q.id) { p.setAttribute("fill", "#D8393D"); p.setAttribute("fill-opacity", 0.9); p.setAttribute("stroke", "#8E1F22"); }
+  }
+  $("an-front").classList.toggle("on", anView === "front");
+  $("an-back").classList.toggle("on", anView === "back");
+}
+
+function anRegions() {
+  const box = $("an-regions"); box.innerHTML = "";
+  const all = document.createElement("button"); all.type = "button"; all.textContent = "All"; all.dataset.r = "";
+  box.appendChild(all);
+  for (const r of AN_REGIONS) { const b = document.createElement("button"); b.type = "button"; b.textContent = r; b.dataset.r = r; box.appendChild(b); }
+  box.querySelectorAll("button").forEach((b) => b.onclick = () => { anRegion = b.dataset.r; anList(); });
+}
+let anRegion = "";
+
+function anList() {
+  $("an-regions").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.r === anRegion));
+  const q = $("an-search").value.trim().toLowerCase();
+  const list = AN.filter((m) => (!anRegion || m.region === anRegion) && (!q || [m.name, m.origin, m.insertion, m.action].some((x) => x.toLowerCase().includes(q))));
+  const box = $("an-list"); box.innerHTML = "";
+  for (const m of list) {
+    const b = document.createElement("button"); b.type = "button"; b.className = (m.id === anSel ? "on " : "") + (an.data.known.includes(m.id) ? "known" : "");
+    b.textContent = m.name; b.onclick = () => anSelect(m.id);
+    box.appendChild(b);
+  }
+  if (!list.length) box.innerHTML = '<p class="hist" style="margin:0">No muscles match.</p>';
+  $("an-progress").textContent = an.data.known.length + " of " + AN.length + " muscles marked as known";
+}
+
+function anSelect(id) {
+  anSel = id;
+  const m = AN.find((x) => x.id === id);
+  if (m.view !== anView && !(m.alsoFront && anView === "front")) anView = m.view;
+  anMap(); anList();
+  const c = $("an-card"); c.innerHTML = "";
+  const h = document.createElement("h3"); h.textContent = m.name;
+  const tag = document.createElement("p"); tag.className = "hist"; tag.style.margin = "0 0 10px"; tag.textContent = m.region + (m.deep ? " · deep muscle (dashed on the map)" : "");
+  c.append(h, tag);
+  const row = (label, text, colour) => {
+    const d = document.createElement("div"); d.className = "an-row";
+    const l = document.createElement("b"); l.textContent = label; if (colour) l.style.color = colour;
+    const p = document.createElement("p"); p.textContent = text;
+    d.append(l, p); c.appendChild(d);
+  };
+  row("● Origin", m.origin, "#2F7FC1");
+  row("● Insertion", m.insertion, "#E08A2E");
+  row("Action", m.action);
+  row("In coaching", m.coach);
+  if (m.video) {
+    const e = vEmbed(m.video);
+    if (e && e.kind !== "open") {
+      const w = document.createElement("div"); w.className = "screen"; w.style.marginTop = "10px";
+      const f = document.createElement(e.kind === "iframe" ? "iframe" : "video"); f.src = e.src;
+      if (e.kind === "iframe") { f.allow = "fullscreen"; f.allowFullscreen = true; } else { f.controls = true; f.playsInline = true; }
+      f.style.cssText = "width:100%;aspect-ratio:16/9;border:0;display:block"; w.appendChild(f); c.appendChild(w);
+    }
+  }
+  const k = document.createElement("button"); k.type = "button"; k.className = "btn ghost small noprint"; k.style.marginTop = "12px";
+  const known = an.data.known.includes(m.id);
+  k.textContent = known ? "✓ I know this one" : "Mark as known";
+  if (known) k.style.borderColor = "var(--good)";
+  k.onclick = () => { an.data.known = known ? an.data.known.filter((x) => x !== m.id) : [...an.data.known, m.id]; anSelect(m.id); anChanged(); };
+  c.appendChild(k);
+}
+
+$("an-front").onclick = () => { anView = "front"; anMap(); };
+$("an-back").onclick = () => { anView = "back"; anMap(); };
+$("an-search").addEventListener("input", () => anList());
+
+// ---------- quiz ----------
+const anShuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function anMakeQ() {
+  const m = AN[Math.floor(Math.random() * AN.length)];
+  const types = ["name", "origin", "insertion", "action", "tap"];
+  const type = types[Math.floor(Math.random() * types.length)];
+  if (type === "tap") return { type, id: m.id, text: "Tap the " + m.name + " on the body map." + (m.deep ? " (It is a deep muscle — dashed outline.)" : "") };
+  const pool = anShuffle(AN.filter((x) => x.id !== m.id && (type === "name" ? x.view === m.view : true)));
+  const same = pool.filter((x) => x.region === m.region);
+  const others = [...same, ...pool.filter((x) => x.region !== m.region)];
+  const field = type === "name" ? "name" : type;
+  const wrong = []; for (const x of others) { if (wrong.length === 3) break; if (!wrong.some((w) => w[field] === x[field]) && x[field] !== m[field]) wrong.push(x); }
+  const opts = anShuffle([m, ...wrong]).map((x) => ({ id: x.id, text: x[field] }));
+  const text = type === "name" ? "Which muscle is highlighted?" : type === "origin" ? "Where does the " + m.name + " originate?" : type === "insertion" ? "Where does the " + m.name + " insert?" : "What does the " + m.name + " do?";
+  return { type, id: m.id, text, opts };
+}
+function anStartQuiz() {
+  anMode = "quiz"; anQuiz = { n: 0, score: 0, total: 10, q: null, answered: false };
+  $("an-explore").classList.add("hidden"); $("an-quiz").classList.remove("hidden");
+  anNextQ();
+}
+function anNextQ() {
+  if (anQuiz.n >= anQuiz.total) return anEndQuiz();
+  anQuiz.n++; anQuiz.answered = false; anQuiz.q = anMakeQ();
+  const m = AN.find((x) => x.id === anQuiz.q.id);
+  anView = m.view; anMap();
+  $("an-qn").textContent = "Question " + anQuiz.n + " of " + anQuiz.total + " · Score " + anQuiz.score;
+  $("an-qtext").textContent = anQuiz.q.text;
+  const box = $("an-opts"); box.innerHTML = ""; $("an-feedback").textContent = ""; $("an-next").classList.add("hidden");
+  if (anQuiz.q.opts) for (const o of anQuiz.q.opts) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = o.text;
+    b.onclick = () => anAnswer(o.id === anQuiz.q.id, b);
+    box.appendChild(b);
+  }
+}
+function anTap(id) {
+  if (!anQuiz || anQuiz.answered || anQuiz.q.type !== "tap") return;
+  const tapped = AN.find((x) => x.id === id);
+  anAnswer(id === anQuiz.q.id, null, tapped.name);
+}
+function anAnswer(ok, btn, tappedName) {
+  if (anQuiz.answered) return;
+  anQuiz.answered = true;
+  if (ok) anQuiz.score++;
+  const m = AN.find((x) => x.id === anQuiz.q.id);
+  $("an-opts").querySelectorAll("button").forEach((b, i) => { b.disabled = true; if (anQuiz.q.opts[i].id === m.id) b.classList.add("right"); });
+  if (btn && !ok) btn.classList.add("wrong");
+  anSel = m.id; anMode = "quiz-review"; anMap(); anMode = "quiz";
+  $("an-feedback").innerHTML = "";
+  const b = document.createElement("b"); b.style.color = ok ? "var(--good)" : "var(--bad)"; b.textContent = ok ? "Correct! " : tappedName ? "You tapped the " + tappedName + ". " : "Not quite. ";
+  $("an-feedback").append(b, m.name + " — origin: " + m.origin + ". Insertion: " + m.insertion + ".");
+  $("an-qn").textContent = "Question " + anQuiz.n + " of " + anQuiz.total + " · Score " + anQuiz.score;
+  $("an-next").textContent = anQuiz.n >= anQuiz.total ? "See my score" : "Next question →";
+  $("an-next").classList.remove("hidden");
+}
+function anEndQuiz() {
+  const s = anQuiz.score, t = anQuiz.total;
+  an.data.quiz.history.push({ date: new Date().toISOString(), score: s, total: t });
+  if (an.data.quiz.best == null || s > an.data.quiz.best) an.data.quiz.best = s;
+  anChanged();
+  $("an-qn").textContent = "Finished";
+  $("an-qtext").textContent = "You scored " + s + " out of " + t + (s === t ? " — perfect!" : s >= 7 ? " — great work." : " — keep exploring and try again.");
+  $("an-opts").innerHTML = ""; $("an-feedback").textContent = "Best score: " + an.data.quiz.best + "/10 · Quizzes taken: " + an.data.quiz.history.length;
+  $("an-next").textContent = "Try another quiz"; $("an-next").classList.remove("hidden");
+  anQuiz.n = anQuiz.total + 1;
+}
+$("an-next").onclick = () => { if (anQuiz.n > anQuiz.total) return anStartQuiz(); anNextQ(); };
+$("an-quiz-start").onclick = anStartQuiz;
+$("an-quiz-stop").onclick = () => { anMode = "explore"; anQuiz = null; $("an-quiz").classList.add("hidden"); $("an-explore").classList.remove("hidden"); anSelect(anSel); };
+
+function anChanged() { $("an-state").textContent = "Unsaved changes"; clearTimeout(anTimer); anTimer = setTimeout(anSave, 1200); }
+async function anSave() {
+  clearTimeout(anTimer);
+  const row = { user_id: session.user.id, tool: "anatomy", data: an.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("an-state").textContent = "Not saved — " + error.message; return false; }
+  an = { ...data, data: an.data };
+  $("an-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+
 
 // ---------------- rating links ----------------
 async function loadInvites() {
