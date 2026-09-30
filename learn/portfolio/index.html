@@ -3249,9 +3249,9 @@ const PH = [
   { k: "mission", short: "Mission", title: "03 Develop a mission statement", type: "text", eg: ["", "e.g. I coach to help every athlete move well, feel capable and enjoy training for life, by…"],
     intro: "A mission statement combines your values and beliefs to guide you towards your objectives. Your clients are key, and the focus should be mostly on them. Your beliefs and values give the people in your coaching programme a clear direction of where you want to go. Ask yourself: why does coaching matter to me?",
     prompt: "Write the statement (or statements) that combine your values and beliefs. How does it guide you towards your coaching objectives?" },
-  { k: "standards", short: "Standards", title: "04 Establish standards", type: "list", item: "Standard", eg: ["e.g. Full range of motion", "e.g. We move through a full, safe range before we add load or speed — and I hold that standard in every class"],
+  { k: "standards", short: "Standards", title: "04 Establish standards", type: "list", item: "Standard", eg: ["e.g. Prepared for every session", "e.g. I arrive 15 minutes early with the session planned, the equipment ready and a plan for every athlete's scaling"],
     intro: "Now that you understand what needs to be achieved, set standards that show the expected level of performance. They must apply to you as well as your clients. Lead by example, set standards everyone in your programme needs to achieve, and have a way to evaluate success.",
-    prompt: "What standards show your expected performance level? Write them down and define them in your own words." },
+    prompt: "What standards show your expected performance level? Write at least four standards for yourself as a coach and two for your athletes, and define each one in your own words." },
   { k: "leadership", short: "Leadership", title: "05 Choose your leadership style", type: "text", eg: ["", "e.g. I lead mostly by selling and participating: I explain why, involve athletes in decisions…"],
     intro: "This is a crucial part of your coaching philosophy. Set out a leadership style early in your career, and keep developing it as your experience grows.",
     prompt: "Define your leadership style in your own words." },
@@ -3276,7 +3276,38 @@ async function openPhilosophy() {
 }
 let phFacilityValues = [];
 
-const phDone = (st) => st.type === "list" ? (ph.data[st.k] || []).some((x) => x.n.trim()) : !!(ph.data[st.k] || "").trim();
+const phCount = (k) => (ph.data[k] || []).filter((x) => x.n.trim()).length;
+const phDone = (st) => st.k === "standards" ? phCount("standards") >= 4 && phCount("standardsAth") >= 2
+  : st.type === "list" ? phCount(st.k) > 0 : !!(ph.data[st.k] || "").trim();
+
+// One editable list of name + definition rows (with an optional heading and minimum).
+function phList(box, key, label, eg, heading, min) {
+  ph.data[key] = ph.data[key] || [];
+  while (ph.data[key].length < Math.max(min, 1)) ph.data[key].push({ n: "", d: "" });
+  let counter = null;
+  if (heading) {
+    const hh = document.createElement("h3"); hh.style.cssText = "margin:16px 0 8px;font-size:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap";
+    hh.textContent = heading;
+    counter = document.createElement("span"); counter.className = "pill"; hh.appendChild(counter);
+    box.appendChild(hh);
+  }
+  const paint = () => { if (!counter) return; const n = phCount(key); counter.textContent = n >= min ? n + " ✓" : n + " of at least " + min; counter.classList.toggle("ok", n >= min); };
+  ph.data[key].forEach((it, i) => {
+    const row = document.createElement("div"); row.className = "ph-entry";
+    const n = document.createElement("input"); n.value = it.n; n.placeholder = i === 0 ? eg[0] : label.charAt(0).toUpperCase() + label.slice(1); n.maxLength = 80;
+    n.oninput = () => { it.n = n.value; phChanged(); phDoc(); paint(); };
+    n.onchange = () => phSteps();
+    const d = document.createElement("textarea"); d.value = it.d; d.placeholder = i === 0 ? eg[1] : "Definition, in my own words";
+    d.oninput = () => { it.d = d.value; phChanged(); phDoc(); };
+    row.append(n, d);
+    if (ph.data[key].length > 1) { const x = document.createElement("button"); x.type = "button"; x.className = "del"; x.textContent = "Remove"; x.onclick = () => { ph.data[key].splice(i, 1); phRender(); phChanged(); }; row.appendChild(x); }
+    box.appendChild(row);
+  });
+  const add = document.createElement("button"); add.type = "button"; add.className = "btn ghost small"; add.textContent = "+ Add " + label;
+  add.onclick = () => { ph.data[key].push({ n: "", d: "" }); phRender(); };
+  box.appendChild(add);
+  paint();
+}
 
 function phRender() {
   const bar = $("ph-steps"); bar.innerHTML = "";
@@ -3292,7 +3323,28 @@ function phRender() {
   const h = document.createElement("h2"); h.textContent = st.title;
   const intro = document.createElement("p"); intro.className = "lede"; intro.style.cssText = "font-size:14.5px;margin:0 0 12px"; intro.textContent = st.intro;
   const pr = document.createElement("p"); pr.style.cssText = "font-weight:700;margin:0 0 12px;line-height:1.5"; pr.textContent = st.prompt;
-  box.append(h, intro, pr);
+  box.append(h, intro);
+  // Steps 3-5 build on what came before: show the earlier steps to review first.
+  if (phStep >= 2) {
+    const rv = document.createElement("div"); rv.className = "panel"; rv.style.cssText = "background:var(--paper);margin:0 0 14px;padding:14px 16px";
+    const rh = document.createElement("h2"); rh.textContent = "Review first"; rh.style.fontSize = "13px"; rv.appendChild(rh);
+    PH.slice(0, phStep).forEach((prev, j) => {
+      const t = document.createElement("p"); t.style.cssText = "margin:10px 0 4px;font-weight:700;font-size:14px";
+      t.textContent = (j + 1) + ". " + prev.short + " "; 
+      const ed = document.createElement("a"); ed.href = "#"; ed.textContent = "Edit"; ed.style.cssText = "font-size:12px;font-weight:600;margin-left:6px";
+      ed.onclick = (e) => { e.preventDefault(); phStep = j; phRender(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+      t.appendChild(ed); rv.appendChild(t);
+      if (prev.type === "list") {
+        const items = (ph.data[prev.k] || []).filter((x) => x.n.trim());
+        if (!items.length) { const e = document.createElement("p"); e.className = "hist"; e.style.margin = "0"; e.textContent = "Not written yet — tap Edit to add them."; rv.appendChild(e); }
+        else { const ul = document.createElement("ul"); ul.className = "pull"; ul.style.margin = "0"; for (const x of items) { const li = document.createElement("li"); const bb = document.createElement("b"); bb.textContent = x.n.trim(); li.appendChild(bb); if (x.d.trim()) li.append(" — " + x.d.trim()); ul.appendChild(li); } rv.appendChild(ul); }
+      } else {
+        const v = (ph.data[prev.k] || "").trim(); const e = document.createElement("p"); e.className = v ? "" : "hist"; e.style.cssText = "margin:0;font-size:14.5px;color:var(--muted);white-space:pre-wrap"; e.textContent = v || "Not written yet — tap Edit to add it."; rv.appendChild(e);
+      }
+    });
+    box.appendChild(rv);
+  }
+  box.appendChild(pr);
   if (st.type === "list") {
     if (st.k === "values" && phFacilityValues.length) {
       const imp = document.createElement("button"); imp.type = "button"; imp.className = "btn ghost small"; imp.style.margin = "0 0 12px";
@@ -3305,20 +3357,10 @@ function phRender() {
       };
       box.appendChild(imp);
     }
-    ph.data[st.k].forEach((it, i) => {
-      const row = document.createElement("div"); row.className = "ph-entry";
-      const n = document.createElement("input"); n.value = it.n; n.placeholder = i === 0 ? st.eg[0] : st.item; n.maxLength = 80;
-      n.oninput = () => { it.n = n.value; phChanged(); phDoc(); };
-      n.onchange = () => phSteps();
-      const d = document.createElement("textarea"); d.value = it.d; d.placeholder = i === 0 ? st.eg[1] : "Definition, in my own words";
-      d.oninput = () => { it.d = d.value; phChanged(); phDoc(); };
-      row.append(n, d);
-      if (ph.data[st.k].length > 1) { const x = document.createElement("button"); x.type = "button"; x.className = "del"; x.textContent = "Remove"; x.onclick = () => { ph.data[st.k].splice(i, 1); phRender(); phChanged(); }; row.appendChild(x); }
-      box.appendChild(row);
-    });
-    const add = document.createElement("button"); add.type = "button"; add.className = "btn ghost small"; add.textContent = "+ Add " + st.item.toLowerCase();
-    add.onclick = () => { ph.data[st.k].push({ n: "", d: "" }); phRender(); box.querySelectorAll(".ph-entry input")[ph.data[st.k].length - 1].focus(); };
-    box.appendChild(add);
+    if (st.k === "standards") {
+      phList(box, "standards", "standard", st.eg, "Standards for me", 4);
+      phList(box, "standardsAth", "standard", ["e.g. Move before load", "e.g. Every athlete masters the unloaded movement before adding weight"], "Standards for my athletes", 2);
+    } else phList(box, st.k, st.item.toLowerCase(), st.eg, null, 0);
   } else {
     const t = document.createElement("textarea"); t.style.minHeight = "150px"; t.value = ph.data[st.k] || ""; t.placeholder = st.eg[1];
     t.oninput = () => { ph.data[st.k] = t.value; phChanged(); phDoc(); };
@@ -3340,7 +3382,16 @@ function phDoc() {
   const h = document.createElement("h3"); h.textContent = "My coaching philosophy"; doc2.appendChild(h);
   for (const st of PH) {
     const h4 = document.createElement("h4"); h4.textContent = st.short === "Mission" ? "Mission statement" : st.short === "Leadership" ? "Leadership style" : st.short; doc2.appendChild(h4);
-    if (st.type === "list") {
+    if (st.k === "standards") {
+      for (const [k, t] of [["standards", "For me"], ["standardsAth", "For my athletes"]]) {
+        const sub = document.createElement("p"); sub.style.cssText = "margin:6px 0 2px;font-weight:700;color:#555"; sub.textContent = t; doc2.appendChild(sub);
+        const items = (ph.data[k] || []).filter((x) => x.n.trim());
+        if (!items.length) { const p = document.createElement("p"); p.className = "empty"; p.textContent = "Not written yet"; doc2.appendChild(p); continue; }
+        const ul = document.createElement("ul"); ul.style.paddingLeft = "20px";
+        for (const x of items) { const li = document.createElement("li"); const b = document.createElement("b"); b.textContent = x.n.trim(); li.appendChild(b); if (x.d.trim()) li.append(" — " + x.d.trim()); ul.appendChild(li); }
+        doc2.appendChild(ul);
+      }
+    } else if (st.type === "list") {
       const items = ph.data[st.k].filter((x) => x.n.trim());
       if (!items.length) { const p = document.createElement("p"); p.className = "empty"; p.textContent = "Not written yet"; doc2.appendChild(p); continue; }
       const ul = document.createElement("ul"); ul.style.paddingLeft = "20px";
