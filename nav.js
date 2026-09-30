@@ -63,7 +63,7 @@
     { href: "/about", text: "About" },
     // Where people who have bought an online course log in. Shown as an
     // outlined button so returning students can find it on every page.
-    { href: "https://www.birdboxacademy.com", text: "Student Login", button: true }
+    { href: "/learn/", text: "Student Login", button: true }
   ];
   // "/tcc/level-1/" and "/tcc/level-1" are the same page. Trailing slashes
   // are stripped so the active check does not depend on how the visitor
