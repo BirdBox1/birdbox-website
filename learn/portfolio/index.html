@@ -41,6 +41,20 @@
   .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
   .hidden{display:none!important}
   .tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+  .pf-course{margin:0 0 30px}
+  .pf-ctitle{margin:0 0 4px;padding-left:12px;border-left:5px solid var(--c)}
+  .pf-csub{margin:0 0 14px;padding-left:17px;color:var(--muted);font-size:14px}
+  .pf-unit{background:var(--panel);border:1px solid var(--line);margin:0 0 10px}
+  .pf-unit summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;padding:16px 18px;cursor:pointer;list-style:none}
+  .pf-unit summary::-webkit-details-marker{display:none}
+  .pf-unit summary::before{content:"▸";color:var(--accent);font-size:14px}
+  .pf-unit[open] summary::before{content:"▾"}
+  .pf-num{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+  .pf-uname{font-weight:700;font-size:17px;flex:1 1 220px}
+  .pf-count{font-size:13px;color:var(--muted)}
+  .pf-count.all{color:var(--good)}
+  .pf-count.all::before{content:"✓ "}
+  .pf-unit .tools{padding:0 18px 18px}
   .tool{display:block;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--accent);padding:22px;color:var(--ink);text-decoration:none}
   .tool:hover{background:var(--panel2)}
   .tool h3{margin:0 0 6px;font-size:17px}
@@ -391,7 +405,9 @@
   <section id="home" class="hidden">
     <p class="kicker">BirdBox Learn</p>
     <h1>My portfolio</h1>
-    <p class="lede">Your course tasks, saved to your account. Come back to them any time, update them as you grow, and download a copy whenever you like.</p>
+    <p class="lede">Your course tasks, saved to your account, grouped by course and unit. Come back to them any time, update them as you grow, and download a copy whenever you like.</p>
+    <p style="margin:0 0 14px"><button type="button" class="btn ghost" id="pf-expand">Expand all units</button></p>
+    <div id="pf-courses"></div>
     <div class="tools">
       <a class="tool" href="?tool=spider">
         <h3>Self-perception spider diagram</h3>
@@ -1472,6 +1488,68 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
 
+// ---------------- portfolio home: grouped by course and unit ----------------
+// Each course lists its units in course order; each unit lists the portfolio tools used in it.
+// To add a course: add an entry with its brand + level (as in learn_courses) and its units.
+const PF_COURSES = [
+  { key: "tcc1", brand: "tcc", level: 1, name: "The Coaches Course — Level 1", colour: "#4FA8DE", units: [
+    { name: "Methodology", tools: ["spider", "concern"] },
+    { name: "Knowing Yourself", tools: ["reactions", "colours"] },
+    { name: "Communication", tools: ["video", "listening"] },
+    { name: "Motivation", tools: ["anxiety"] },
+    { name: "Leadership", tools: ["leadership"] },
+    { name: "Multidimensional Model of Sport Leadership", tools: ["characters", "values", "identity", "traits", "reflect-mml"] },
+    { name: "Transformational Coaching", tools: ["metaphors", "philosophy", "observation"] },
+    { name: "Standards, Mastery & Maximum Motor Potential", tools: ["standards", "mmp"] },
+    { name: "Understanding Biomechanics", tools: ["anatomy"] },
+    { name: "Reflection & Observation", tools: ["rpcycle", "sevent", "checklist"] },
+    { name: "Dependence, Independence & Interdependence", tools: ["dependence"] },
+    { name: "Learning Physical Skills", tools: ["reflect-lps-pre", "reflect-lps-post"] },
+    { name: "Self-Confidence, Psychological Skills Training & Growth Mindset", tools: ["imagery", "reflect-scp"] },
+  ] },
+];
+async function pfHome(rows) {
+  const done = new Set((rows || []).map((r) => r.tool));
+  // which courses is this learner enrolled in? (any language counts)
+  let mine = new Set();
+  try {
+    const { data } = await db.from("learn_enrolments").select("learn_courses(brand, level)").eq("user_id", session.user.id);
+    for (const e of data || []) { const c = e.learn_courses; if (c) mine.add(String(c.brand || "").toLowerCase() + (String(c.level || "").match(/\d+/) || [""])[0]); }
+  } catch (e) { /* show everything if enrolments can't be read */ }
+  let courses = PF_COURSES.filter((c) => mine.has(c.brand + c.level));
+  if (!courses.length) courses = PF_COURSES;
+  const cards = {}; document.querySelectorAll("#home .tools a.tool").forEach((a) => { cards[new URL(a.href).searchParams.get("tool")] = a; });
+  const root = $("pf-courses"); root.innerHTML = "";
+  let open = null;
+  for (const c of courses) {
+    const sec = document.createElement("div"); sec.className = "pf-course"; sec.style.setProperty("--c", c.colour);
+    const total = c.units.reduce((s, u) => s + u.tools.length, 0), started = c.units.reduce((s, u) => s + u.tools.filter((t) => done.has(t)).length, 0);
+    sec.innerHTML = `<h2 class="pf-ctitle"></h2><p class="pf-csub">${started} of ${total} tasks started</p>`;
+    sec.querySelector(".pf-ctitle").textContent = c.name;
+    c.units.forEach((u, i) => {
+      const n = u.tools.filter((t) => done.has(t)).length;
+      const d = document.createElement("details"); d.className = "pf-unit";
+      const s = document.createElement("summary");
+      s.innerHTML = `<span class="pf-num">Unit ${i + 1}</span><span class="pf-uname"></span><span class="pf-count${n === u.tools.length ? " all" : ""}">${n} of ${u.tools.length} started</span>`;
+      s.querySelector(".pf-uname").textContent = u.name;
+      const g = document.createElement("div"); g.className = "tools";
+      for (const t of u.tools) if (cards[t]) { g.appendChild(cards[t]); delete cards[t]; }
+      d.append(s, g); sec.appendChild(d);
+      // open the first unit that still has something to do
+      if (!open && n < u.tools.length) { open = d; d.open = true; }
+    });
+    root.appendChild(sec);
+  }
+  const left = Object.values(cards);
+  if (left.length && courses === PF_COURSES) {
+    const d = document.createElement("details"); d.className = "pf-unit";
+    d.innerHTML = '<summary><span class="pf-uname">Other tasks</span></summary>';
+    const g = document.createElement("div"); g.className = "tools"; left.forEach((a) => g.appendChild(a)); d.appendChild(g); root.appendChild(d);
+  }
+  document.querySelector("#home > .tools").classList.add("hidden");
+  $("pf-expand").onclick = () => { const all = [...root.querySelectorAll("details.pf-unit")]; const o = all.some((x) => !x.open); all.forEach((x) => x.open = o); $("pf-expand").textContent = o ? "Collapse all units" : "Expand all units"; };
+}
+
 // ---------------- start ----------------
 async function boot() {
   ({ data: { session } } = await db.auth.getSession());
@@ -1546,6 +1624,7 @@ async function boot() {
   const imr = (data || []).find((r) => r.tool === "imagery");
   if (imr) $("imagery-status").textContent = "Last saved " + new Date(imr.updated_at).toLocaleDateString("en-GB") + " →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
+  await pfHome(data);
   show("home");
 }
 db.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_IN" && !session) boot(); });
