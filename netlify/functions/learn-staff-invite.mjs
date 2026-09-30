@@ -105,7 +105,7 @@ async function send(email) {
   const text =
 `${hi}
 
-You now have access to every BirdBox online course on our new course site — TGC and TCC, every level and language — plus the learner portfolio.
+You now have access to the BirdBox online courses on our new course site, plus the learner portfolio.
 
 Open your courses:
 ${link}
@@ -119,7 +119,7 @@ BirdBox Coaching`;
 
   const html = `<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#16181b;max-width:540px">
 <p>${esc(hi)}</p>
-<p>You now have access to <b>every BirdBox online course</b> on our new course site — TGC and TCC, every level and language — plus the learner portfolio.</p>
+<p>You now have access to <b>the BirdBox online courses</b> on our new course site, plus the learner portfolio.</p>
 <p style="margin:28px 0"><a href="${link.replace(/&/g, "&amp;")}" style="display:inline-block;background:#4FA8DE;color:#0C1116;text-decoration:none;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:14px;padding:14px 26px">Open my courses</a></p>
 <p>The first tap sets up your account. The link is personal to you and works for 30 days; every tap logs you straight in. Once you are in, set a password under “Set or change your password” so you can log in any time at <a href="https://birdboxcoaching.com/learn/">birdboxcoaching.com/learn</a>.</p>
 <p>Please log in this week and have a look around — reply to this email if anything does not work.</p>
