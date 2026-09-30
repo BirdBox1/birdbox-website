@@ -1493,19 +1493,19 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
 // To add a course: add an entry with its brand + level (as in learn_courses) and its units.
 const PF_COURSES = [
   { key: "tcc1", brand: "tcc", level: 1, name: "The Coaches Course — Level 1", colour: "#4FA8DE", units: [
-    { name: "Methodology", tools: ["spider", "concern"] },
-    { name: "Knowing Yourself", tools: ["reactions", "colours"] },
-    { name: "Communication", tools: ["video", "listening"] },
-    { name: "Motivation", tools: ["anxiety"] },
-    { name: "Leadership", tools: ["leadership"] },
-    { name: "Multidimensional Model of Sport Leadership", tools: ["characters", "values", "identity", "traits", "reflect-mml"] },
-    { name: "Transformational Coaching", tools: ["metaphors", "philosophy", "observation"] },
-    { name: "Standards, Mastery & Maximum Motor Potential", tools: ["standards", "mmp"] },
-    { name: "Understanding Biomechanics", tools: ["anatomy"] },
-    { name: "Reflection & Observation", tools: ["rpcycle", "sevent", "checklist"] },
-    { name: "Dependence, Independence & Interdependence", tools: ["dependence"] },
-    { name: "Learning Physical Skills", tools: ["reflect-lps-pre", "reflect-lps-post"] },
-    { name: "Self-Confidence, Psychological Skills Training & Growth Mindset", tools: ["imagery", "reflect-scp"] },
+    { n: 2, name: "Methodology", tools: ["spider", "concern"] },
+    { n: 3, name: "Know Yourself", tools: ["reactions", "colours"] },
+    { n: 5, name: "Psychosocial Coaching: Communication", tools: ["video", "listening"] },
+    { n: 6, name: "Psychosocial Coaching: Motivation", tools: ["anxiety"] },
+    { n: 8, name: "Psychosocial Coaching: Leadership", tools: ["leadership"] },
+    { n: 9, name: "Multidimensional Model of Sport Leadership", tools: ["characters", "values", "identity", "traits", "reflect-mml"] },
+    { n: 10, name: "Transformational Coaching", tools: ["metaphors", "philosophy", "observation"] },
+    { n: 11, name: "Standards, Mastery & Maximum Motor Potential", tools: ["standards", "mmp"] },
+    { n: 12, name: "Understanding of Biomechanics", tools: ["anatomy"] },
+    { n: 15, name: "Reflection and Observation", tools: ["rpcycle", "sevent", "checklist"] },
+    { n: 17, name: "Dependence, Independence and Interdependence", tools: ["dependence"] },
+    { n: 18, name: "Learning Physical Skills and Making Effective Sessions", tools: ["reflect-lps-pre", "reflect-lps-post"] },
+    { n: 19, name: "Self-Confidence, Psychological Skills Training and Growth Mindset", tools: ["imagery", "reflect-scp"] },
   ] },
 ];
 async function pfHome(rows) {
@@ -1530,7 +1530,7 @@ async function pfHome(rows) {
       const n = u.tools.filter((t) => done.has(t)).length;
       const d = document.createElement("details"); d.className = "pf-unit";
       const s = document.createElement("summary");
-      s.innerHTML = `<span class="pf-num">Unit ${i + 1}</span><span class="pf-uname"></span><span class="pf-count${n === u.tools.length ? " all" : ""}">${n} of ${u.tools.length} started</span>`;
+      s.innerHTML = `<span class="pf-num">Lesson ${u.n}</span><span class="pf-uname"></span><span class="pf-count${n === u.tools.length ? " all" : ""}">${n} of ${u.tools.length} started</span>`;
       s.querySelector(".pf-uname").textContent = u.name;
       const g = document.createElement("div"); g.className = "tools";
       for (const t of u.tools) if (cards[t]) { g.appendChild(cards[t]); delete cards[t]; }
