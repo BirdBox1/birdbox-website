@@ -233,6 +233,22 @@
   .mt .del{position:absolute;right:10px;top:8px;background:none;border:0;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline}
   .mtbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
   .mtbar input{flex:1;min-width:180px;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .steps5{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:0 0 16px}
+  .steps5 button{font:inherit;font-size:12px;font-weight:700;padding:10px 4px;background:var(--paper);color:var(--muted);border:1px solid var(--line);cursor:pointer;line-height:1.3}
+  .steps5 button b{display:block;font-size:16px;color:var(--ink)}
+  .steps5 button.on{border-color:var(--accent);background:#16303F;color:var(--ink)}
+  .steps5 button.done b::after{content:" ✓";color:var(--good);font-size:13px}
+  .ph-entry{display:grid;grid-template-columns:1fr;gap:8px;border:1px solid var(--line);background:var(--paper);padding:10px;margin:0 0 8px;position:relative}
+  @media(min-width:760px){.ph-entry{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}}
+  .ph-entry input,.ph-entry textarea{width:100%;font:inherit;font-size:15px;padding:9px 10px;background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+  .ph-entry input{font-weight:700}
+  .ph-entry textarea{min-height:46px}
+  .ph-entry .del{position:absolute;right:6px;top:-9px;background:var(--paper);border:1px solid var(--line);color:var(--muted);font-size:11px;cursor:pointer;padding:1px 6px}
+  .ph-doc{background:#fff;color:#14100F;padding:26px 24px}
+  .ph-doc h3{margin:0 0 2px;font-size:22px;text-transform:uppercase;letter-spacing:.04em}
+  .ph-doc h4{margin:18px 0 6px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#1C6FA3}
+  .ph-doc p,.ph-doc li{font-size:15px;line-height:1.5;margin:0 0 6px}
+  .ph-doc .empty{color:#999;font-style:italic}
   .cmp{width:100%;font-size:14px}
   .cmp td,.cmp th{padding:7px 6px}
   .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
@@ -354,6 +370,11 @@
         <h3>My bank of coaching metaphors</h3>
         <p>Movements, the intended task, and the metaphors that make it click — a bank you keep adding to for your whole coaching career.</p>
         <span id="metaphors-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=philosophy">
+        <h3>My coaching philosophy</h3>
+        <p>Five steps — values, objectives, mission statement, standards and leadership style — built up across the course.</p>
+        <span id="philosophy-status">Open →</span>
       </a>
     </div>
   </section>
@@ -909,6 +930,27 @@
       <span class="savestate" id="mt-state"></span>
     </div>
   </section>
+  <!-- coaching philosophy -->
+  <section id="philosophy" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · <span id="ph-unit">Transformational Coaching</span></p>
+    <h1>My coaching philosophy</h1>
+    <p class="lede">We have structured building your coaching philosophy into 5 key steps. You may need to think back to topics we have already covered. We will make a start now but not rush to finish — the aim is a complete, personal and solid coaching philosophy by the end of this learning journey.</p>
+
+    <div class="steps5 noprint" id="ph-steps"></div>
+    <div class="panel noprint" id="ph-step"></div>
+
+    <div class="panel">
+      <h2>My coaching philosophy so far</h2>
+      <div class="ph-doc" id="ph-doc"></div>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="ph-save" type="button">Save</button>
+      <button class="btn ghost" id="ph-download" type="button">Download PDF</button>
+      <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+      <span class="savestate" id="ph-state"></span>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -917,7 +959,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors", "philosophy"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -961,6 +1003,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (idn && tool === "identity") await idSave();
   if (rf && REFLECT[tool]) await rfSave();
   if (mt && tool === "metaphors") await mtSave();
+  if (ph && tool === "philosophy") await phSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -982,6 +1025,7 @@ async function boot() {
   if (tool === "identity") return openIdentity();
   if (REFLECT[tool]) return openReflect();
   if (tool === "metaphors") return openMetaphors();
+  if (tool === "philosophy") return openPhilosophy();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -1009,6 +1053,8 @@ async function boot() {
   for (const k in REFLECT) { const r = (data || []).find((x) => x.tool === k); const el = $(k + "-status"); if (r && el) el.textContent = "Last saved " + new Date(r.updated_at).toLocaleDateString("en-GB") + " →"; }
   const mtr = (data || []).find((r) => r.tool === "metaphors");
   if (mtr) $("metaphors-status").textContent = ((mtr.data && mtr.data.rows || []).filter((r) => (r.m || "").trim()).length) + " metaphors →";
+  const phr = (data || []).find((r) => r.tool === "philosophy");
+  if (phr) $("philosophy-status").textContent = "Last saved " + new Date(phr.updated_at).toLocaleDateString("en-GB") + " →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -2639,6 +2685,136 @@ async function mtSave() {
 $("mt-notes").addEventListener("input", mtChanged);
 $("mt-save").onclick = async () => { if (await mtSave()) $("mt-state").textContent = "Saved ✓"; };
 $("mt-download").onclick = async () => { await mtSave(); $("mt-search").value = ""; mtRender(); window.print(); };
+
+// ---------------- coaching philosophy (5 steps) ----------------
+// Rise can open a step directly: ?tool=philosophy&step=3
+const PH = [
+  { k: "values", short: "Values", title: "01 Set your values", type: "list", item: "Value", eg: ["e.g. Respect", "e.g. Every athlete is treated as a person first, whatever their level"],
+    intro: "When you start out in coaching, you are under a lot of pressure to succeed. In the process, you might end up playing a role that works, but one that does not resonate with your beliefs. Many coaches are comfortable saying and doing what their clients want — and lose sight of why they are in this profession. First understand yourself, set your values and standards, then work with them. A coaching philosophy reflects who you are, and you should live it.",
+    prompt: "What are your values — the personal belief system that guides you through life and your profession as a coach? Name your values and define them in your own words." },
+  { k: "objectives", short: "Objectives", title: "02 Define your coaching objectives", type: "list", item: "Objective", eg: ["e.g. Develop independent athletes", "e.g. Every athlete understands why they train the way they do and can train safely on their own"],
+    intro: "What do you want to achieve as a coach? What does it mean to be a coach to you? Who comes first — your clients or your bank account? It takes deliberate effort to grow your programme, and to do this you must know what is driving you.",
+    prompt: "Write down your coaching objectives, and define each one in your own words." },
+  { k: "mission", short: "Mission", title: "03 Develop a mission statement", type: "text", eg: ["", "e.g. I coach to help every athlete move well, feel capable and enjoy training for life, by…"],
+    intro: "A mission statement combines your values and beliefs to guide you towards your objectives. Your clients are key, and the focus should be mostly on them. Your beliefs and values give the people in your coaching programme a clear direction of where you want to go. Ask yourself: why does coaching matter to me?",
+    prompt: "Write the statement (or statements) that combine your values and beliefs. How does it guide you towards your coaching objectives?" },
+  { k: "standards", short: "Standards", title: "04 Establish standards", type: "list", item: "Standard", eg: ["e.g. Full range of motion", "e.g. We move through a full, safe range before we add load or speed — and I hold that standard in every class"],
+    intro: "Now that you understand what needs to be achieved, set standards that show the expected level of performance. They must apply to you as well as your clients. Lead by example, set standards everyone in your programme needs to achieve, and have a way to evaluate success.",
+    prompt: "What standards show your expected performance level? Write them down and define them in your own words." },
+  { k: "leadership", short: "Leadership", title: "05 Choose your leadership style", type: "text", eg: ["", "e.g. I lead mostly by selling and participating: I explain why, involve athletes in decisions…"],
+    intro: "This is a crucial part of your coaching philosophy. Set out a leadership style early in your career, and keep developing it as your experience grows.",
+    prompt: "Define your leadership style in your own words." },
+];
+let ph = null;
+let phTimer = null;
+let phStep = 0;
+
+async function openPhilosophy() {
+  const [{ data }, { data: vals }] = await Promise.all([
+    db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "philosophy").maybeSingle(),
+    db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", "values").maybeSingle(),
+  ]);
+  ph = data || { tool: "philosophy", data: {} };
+  for (const st of PH) if (st.type === "list" && !(ph.data[st.k] && ph.data[st.k].length)) ph.data[st.k] = [{ n: "", d: "" }, { n: "", d: "" }, { n: "", d: "" }];
+  phFacilityValues = ((vals && vals.data && vals.data.values) || []).filter((v) => (v.name || "").trim());
+  const want = parseInt(new URLSearchParams(location.search).get("step") || "1", 10);
+  phStep = Math.min(Math.max(want, 1), 5) - 1;
+  if (phStep >= 2) $("ph-unit").textContent = "Coaching philosophy";
+  phRender();
+  show("philosophy");
+}
+let phFacilityValues = [];
+
+const phDone = (st) => st.type === "list" ? (ph.data[st.k] || []).some((x) => x.n.trim()) : !!(ph.data[st.k] || "").trim();
+
+function phRender() {
+  const bar = $("ph-steps"); bar.innerHTML = "";
+  PH.forEach((st, i) => {
+    const b = document.createElement("button"); b.type = "button";
+    b.className = (i === phStep ? "on " : "") + (phDone(st) ? "done" : "");
+    b.innerHTML = "<b>" + (i + 1) + "</b>"; b.append(st.short);
+    b.onclick = () => { phStep = i; phRender(); };
+    bar.appendChild(b);
+  });
+  const st = PH[phStep];
+  const box = $("ph-step"); box.innerHTML = "";
+  const h = document.createElement("h2"); h.textContent = st.title;
+  const intro = document.createElement("p"); intro.className = "lede"; intro.style.cssText = "font-size:14.5px;margin:0 0 12px"; intro.textContent = st.intro;
+  const pr = document.createElement("p"); pr.style.cssText = "font-weight:700;margin:0 0 12px;line-height:1.5"; pr.textContent = st.prompt;
+  box.append(h, intro, pr);
+  if (st.type === "list") {
+    if (st.k === "values" && phFacilityValues.length) {
+      const imp = document.createElement("button"); imp.type = "button"; imp.className = "btn ghost small"; imp.style.margin = "0 0 12px";
+      imp.textContent = "Bring in my facility values (" + phFacilityValues.length + ")";
+      imp.onclick = () => {
+        const have = new Set(ph.data.values.map((x) => x.n.trim().toLowerCase()));
+        ph.data.values = ph.data.values.filter((x) => x.n.trim() || x.d.trim());
+        for (const v of phFacilityValues) if (!have.has(v.name.trim().toLowerCase())) ph.data.values.push({ n: v.name.trim(), d: (v.means || "").trim() });
+        phRender(); phChanged();
+      };
+      box.appendChild(imp);
+    }
+    ph.data[st.k].forEach((it, i) => {
+      const row = document.createElement("div"); row.className = "ph-entry";
+      const n = document.createElement("input"); n.value = it.n; n.placeholder = i === 0 ? st.eg[0] : st.item; n.maxLength = 80;
+      n.oninput = () => { it.n = n.value; phChanged(); phDoc(); };
+      n.onchange = () => phSteps();
+      const d = document.createElement("textarea"); d.value = it.d; d.placeholder = i === 0 ? st.eg[1] : "Definition, in my own words";
+      d.oninput = () => { it.d = d.value; phChanged(); phDoc(); };
+      row.append(n, d);
+      if (ph.data[st.k].length > 1) { const x = document.createElement("button"); x.type = "button"; x.className = "del"; x.textContent = "Remove"; x.onclick = () => { ph.data[st.k].splice(i, 1); phRender(); phChanged(); }; row.appendChild(x); }
+      box.appendChild(row);
+    });
+    const add = document.createElement("button"); add.type = "button"; add.className = "btn ghost small"; add.textContent = "+ Add " + st.item.toLowerCase();
+    add.onclick = () => { ph.data[st.k].push({ n: "", d: "" }); phRender(); box.querySelectorAll(".ph-entry input")[ph.data[st.k].length - 1].focus(); };
+    box.appendChild(add);
+  } else {
+    const t = document.createElement("textarea"); t.style.minHeight = "150px"; t.value = ph.data[st.k] || ""; t.placeholder = st.eg[1];
+    t.oninput = () => { ph.data[st.k] = t.value; phChanged(); phDoc(); };
+    t.onchange = () => phSteps();
+    box.appendChild(t);
+  }
+  const nav = document.createElement("div"); nav.className = "vnav";
+  const prev = document.createElement("button"); prev.type = "button"; prev.className = "btn ghost small"; prev.textContent = "← Previous step"; if (!phStep) prev.style.visibility = "hidden";
+  prev.onclick = () => { phStep--; phRender(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const next = document.createElement("button"); next.type = "button"; next.className = "btn small"; next.textContent = phStep === 4 ? "Save ✓" : "Next step →";
+  next.onclick = async () => { if (phStep < 4) { phStep++; phRender(); window.scrollTo({ top: 0, behavior: "smooth" }); } else if (await phSave()) $("ph-state").textContent = "Saved ✓"; };
+  nav.append(prev, next); box.appendChild(nav);
+  phDoc();
+}
+function phSteps() { $("ph-steps").querySelectorAll("button").forEach((b, i) => b.classList.toggle("done", phDone(PH[i]))); }
+
+function phDoc() {
+  const doc2 = $("ph-doc"); doc2.innerHTML = "";
+  const h = document.createElement("h3"); h.textContent = "My coaching philosophy"; doc2.appendChild(h);
+  for (const st of PH) {
+    const h4 = document.createElement("h4"); h4.textContent = st.short === "Mission" ? "Mission statement" : st.short === "Leadership" ? "Leadership style" : st.short; doc2.appendChild(h4);
+    if (st.type === "list") {
+      const items = ph.data[st.k].filter((x) => x.n.trim());
+      if (!items.length) { const p = document.createElement("p"); p.className = "empty"; p.textContent = "Not written yet"; doc2.appendChild(p); continue; }
+      const ul = document.createElement("ul"); ul.style.paddingLeft = "20px";
+      for (const x of items) { const li = document.createElement("li"); const b = document.createElement("b"); b.textContent = x.n.trim(); li.appendChild(b); if (x.d.trim()) li.append(" — " + x.d.trim()); ul.appendChild(li); }
+      doc2.appendChild(ul);
+    } else {
+      const p = document.createElement("p"); const v = (ph.data[st.k] || "").trim();
+      if (v) { p.textContent = v; p.style.whiteSpace = "pre-wrap"; } else { p.className = "empty"; p.textContent = "Not written yet"; }
+      doc2.appendChild(p);
+    }
+  }
+}
+
+function phChanged() { $("ph-state").textContent = "Unsaved changes"; clearTimeout(phTimer); phTimer = setTimeout(phSave, 1500); }
+async function phSave() {
+  clearTimeout(phTimer);
+  const row = { user_id: session.user.id, tool: "philosophy", data: ph.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("ph-state").textContent = "Not saved — " + error.message; return false; }
+  ph = { ...data, data: ph.data };
+  $("ph-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("ph-save").onclick = async () => { if (await phSave()) $("ph-state").textContent = "Saved ✓"; };
+$("ph-download").onclick = async () => { await phSave(); window.print(); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
