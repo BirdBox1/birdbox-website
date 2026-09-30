@@ -4289,6 +4289,22 @@ function bnStrip(x1, y1, x2, y2, w1, w2) {
   return `M${p1} L${p2} C${(+p2[0] + ex).toFixed(1)},${(+p2[1] + ey).toFixed(1)} ${(+p3[0] + ex).toFixed(1)},${(+p3[1] + ey).toFixed(1)} ${p3} L${p4} C${(+p4[0] - bx).toFixed(1)},${(+p4[1] - by).toFixed(1)} ${(+p1[0] - bx).toFixed(1)},${(+p1[1] - by).toFixed(1)} ${p1} Z`;
 }
 // Each diagram: bones [path, kind?] (kind: "c" cartilage, "f" faint/behind, "h" hole), lines (ligaments), L = landmarks [x, y, label]
+// forearm and hand (left side, thumb on the left)
+const FOREARM_BONES = [
+  ["M92,0 L118,0 C118,20 122,34 130,44 C136,50 136,58 128,60 L116,60 C112,56 106,56 100,58 L86,60 C78,58 76,50 80,44 C86,34 92,20 92,0 Z"], // humerus (lower end)
+  ["M86,64 C92,62 100,62 104,64 L104,72 C102,74 100,78 100,84 C104,90 104,96 100,100 C96,150 92,200 94,240 C96,252 96,262 92,272 L62,276 C60,270 62,262 66,256 C74,240 80,200 86,150 C88,120 90,96 90,84 C90,78 88,74 86,72 Z"], // radius
+  ["M108,60 C114,58 124,58 128,62 C130,70 126,76 120,80 L118,84 C116,140 114,200 112,250 C114,258 116,266 114,276 L100,276 C98,268 98,260 100,252 C102,200 104,140 106,86 C104,80 104,70 108,60 Z"], // ulna
+  ["M62,282 C66,278 74,278 76,284 C77,290 72,295 66,294 C62,293 60,288 62,282 Z"], ["M79,281 C84,279 90,280 91,285 C92,290 88,293 83,292 C79,291 78,286 79,281 Z"], // scaphoid, lunate
+  ["M94,283 C98,281 104,282 106,286 C107,291 102,294 98,293 C94,292 93,287 94,283 Z"], ["M108,287 C111,285 115,286 116,290 C116,294 112,296 110,295 C107,293 107,290 108,287 Z"], // triquetrum, pisiform
+  ["M58,300 C62,296 68,296 70,300 C71,306 68,312 63,312 C59,311 57,306 58,300 Z"], ["M72,300 C75,297 80,297 82,300 C83,305 81,310 77,310 C73,309 71,305 72,300 Z"], // trapezium, trapezoid
+  ["M85,298 C89,295 95,296 96,300 C97,307 95,314 90,314 C86,313 84,307 85,298 Z"], ["M98,298 C102,295 108,296 110,300 C111,306 108,312 103,312 C99,311 97,305 98,298 Z"], // capitate, hamate
+  [bnStrip(63, 314, 48, 342, 3.4, 3)], [bnStrip(77, 314, 72, 356, 2.8, 2.8)], [bnStrip(90, 317, 90, 360, 3, 3)], [bnStrip(103, 315, 105, 356, 2.8, 2.6)], [bnStrip(110, 313, 116, 350, 2.6, 2.4)], // metacarpals
+  [bnStrip(46, 346, 38, 366, 2.8, 2.4)], [bnStrip(37, 370, 33, 382, 2.4, 2)], // thumb
+  [bnStrip(72, 361, 70, 382, 2.5, 2.1)], [bnStrip(70, 386, 69, 398, 2.1, 1.8)], [bnStrip(69, 402, 68, 410, 1.8, 1.5)], // index
+  [bnStrip(90, 365, 90, 388, 2.6, 2.2)], [bnStrip(90, 392, 90, 405, 2.2, 1.9)], [bnStrip(90, 409, 90, 417, 1.9, 1.5)], // middle
+  [bnStrip(105, 361, 107, 382, 2.5, 2.1)], [bnStrip(107, 386, 108, 398, 2.1, 1.8)], [bnStrip(108, 402, 109, 410, 1.8, 1.5)], // ring
+  [bnStrip(117, 355, 121, 372, 2.2, 1.9)], [bnStrip(121, 376, 123, 385, 1.9, 1.6)], [bnStrip(123, 389, 124, 396, 1.6, 1.3)], // little
+];
 const BONES = {
   hipBack: {
     title: "Pelvis, femur and knee — from behind", vb: "0 0 300 380",
@@ -4342,7 +4358,12 @@ const BONES = {
   shoulderBack: {
     title: "Shoulder blade, humerus and spine — from behind", vb: "0 0 300 360",
     bones: [
-      ...Array.from({ length: 12 }, (_, k) => { const y = 43 + k * 25; return [`M226,${y + 6} C204,${y + 4} 180,${y + 12} 150,${y + 30} C130,${y + 42} 118,${y + 56} 112,${y + 68} L117,${y + 70} C124,${y + 58} 136,${y + 46} 154,${y + 36} C182,${y + 20} 206,${y + 12} 226,${y + 12} Z`, "f"]; }), // ribs (behind the scapula)
+      ...Array.from({ length: 12 }, (_, k) => {
+        // ribs 1–12: short at the top, longest in the middle, 11 and 12 short "floating" ribs
+        const s = [0.3, 0.5, 0.68, 0.82, 0.92, 1, 1, 0.97, 0.9, 0.78, 0.42, 0.28][k], y = 43 + k * 25;
+        const P = (x, dy) => `${(226 - (226 - x) * s).toFixed(1)},${(y + dy * s + (k > 9 ? 4 : 0)).toFixed(1)}`;
+        return [`M226,${y + 6} C${P(204, 4)} ${P(180, 12)} ${P(150, 30)} C${P(130, 42)} ${P(118, 56)} ${P(112, 68)} L${P(116, 69)} C${P(124, 58)} ${P(136, 46)} ${P(154, 36)} C${P(182, 20)} ${P(206, 12)} 226,${y + 12} Z`, "f"];
+      }), // ribs (behind the scapula)
       ["M226,2 C236,-4 264,-4 274,2 L274,10 C264,8 236,8 226,10 Z"], // base of skull
       ...Array.from({ length: 13 }, (_, k) => { const y = 18 + k * 25; return [`M240,${y + 2} C244,${y} 256,${y} 260,${y + 2} L262,${y + 8} C258,${y + 12} 242,${y + 12} 238,${y + 8} Z M238,${y + 4} L226,${y + 3} C224,${y + 5} 224,${y + 8} 226,${y + 9} L238,${y + 9} Z M262,${y + 4} L274,${y + 3} C276,${y + 5} 276,${y + 8} 274,${y + 9} L262,${y + 9} Z M247,${y + 10} L253,${y + 10} L251,${y + 22} C250,${y + 24} 250,${y + 24} 249,${y + 22} Z`]; }), // C7–T12
       ["M100,52 C120,48 150,44 184,38 L186,46 C152,52 122,58 104,60 Z"], // clavicle
@@ -4360,7 +4381,7 @@ const BONES = {
       infraglen: [116, 106, "Infraglenoid tubercle"], gtSup: [86, 82, "Greater tubercle (superior)"], gtMid: [82, 92, "Greater tubercle (middle)"], gtInf: [80, 102, "Greater tubercle (inferior)"],
       groove: [96, 124, "Intertubercular groove (front)"], deltTub: [76, 170, "Deltoid tuberosity"], humAbove: [84, 140, "Humerus above radial groove"], humBelow: [76, 230, "Humerus below radial groove"],
       olecranon: [79, 326, "Olecranon"],
-      supAngle: [202, 62, "Superior angle of scapula"], cervTP: [226, 22, "Transverse processes C1–C4"], mastoid: [234, 4, "Mastoid process / nuchal line"], latEpi: [58, 314, "Lateral epicondyle"],
+      supAngle: [202, 62, "Superior angle of scapula"], rib12: [206, 330, "12th rib"], cervTP: [226, 22, "Transverse processes C1–C4"], mastoid: [234, 4, "Mastoid process / nuchal line"], latEpi: [58, 314, "Lateral epicondyle"],
     },
   },
   shoulderFront: {
@@ -4425,6 +4446,27 @@ const BONES = {
       fibHeadF: [95, 78, "Head of fibula"], fibLatF: [93, 170, "Front of fibula"], fibLowF: [93, 250, "Lower lateral fibula"], mt5: [113, 342, "Base of 5th metatarsal"], navic: [140, 328, "Navicular"], toes: [150, 390, "Toes 2–5"], bigToe: [178, 386, "Big toe"],
     },
   },
+  forearmFront: {
+    title: "Elbow, forearm and hand — from the front (palm facing you)", vb: "0 0 300 420",
+    bones: FOREARM_BONES,
+    lines: [],
+    L: {
+      supraRidgeF: [86, 22, "Lateral supracondylar ridge"], latEpiF: [80, 48, "Lateral epicondyle"], medEpiF: [132, 50, "Medial epicondyle"],
+      radTubF: [99, 92, "Radial tuberosity"], coronoidF: [120, 76, "Coronoid process of ulna"], radMid: [88, 160, "Middle of lateral radius"],
+      radShaftF: [88, 210, "Front of radius"], ulnaShaftF: [110, 170, "Front of ulna"], radStyloid: [63, 270, "Styloid process of radius"],
+      pisiform: [112, 291, "Pisiform"], mcBases: [92, 322, "Bases of metacarpals 2–3"], midPhal: [90, 396, "Middle phalanges"], distPhal: [90, 412, "Distal phalanges"],
+    },
+  },
+  forearmBack: {
+    title: "Elbow, forearm and hand — from behind (back of the hand)", vb: "0 0 300 420",
+    bones: [...FOREARM_BONES, ["M108,60 C110,50 124,48 130,56 C130,62 126,66 120,66 L110,64 Z"]],
+    lines: [],
+    L: {
+      supraRidgeB: [86, 22, "Lateral supracondylar ridge"], latEpiB: [80, 48, "Lateral epicondyle"], olecranonB: [120, 58, "Olecranon"],
+      radDorsal: [84, 200, "Back of radius"], ulnaDorsal: [109, 200, "Back of ulna"],
+      mcBasesB: [90, 320, "Bases of metacarpals 2–3"], mc5BaseB: [112, 316, "Base of 5th metacarpal"], extExp: [90, 380, "Backs of the fingers"],
+    },
+  },
 };
 // muscle id -> [diagram, origin landmarks, insertion landmarks]
 const BONE_MAP = {
@@ -4471,10 +4513,10 @@ const BONE_MAP = {
   splenius: ["shoulderBack", ["c7", "spinous"], ["mastoid"]],
   levscap: ["shoulderBack", ["cervTP"], ["supAngle"]],
   coracobr: ["shoulderFront", ["coracoid"], ["humMedMid"]],
-  brachiorad: ["shoulderFront", ["supraRidge"], ["radShaft"]],
-  prontr: ["shoulderFront", ["medEpi", "coronoid"], ["radShaft"]],
-  flexors: ["shoulderFront", ["medEpi"], []],
-  extensors: ["shoulderBack", ["latEpi"], []],
+  brachiorad: ["forearmFront", ["supraRidgeF"], ["radStyloid"]],
+  prontr: ["forearmFront", ["medEpiF", "coronoidF"], ["radMid"]],
+  flexors: ["forearmFront", ["medEpiF", "ulnaShaftF", "radShaftF"], ["pisiform", "mcBases", "midPhal", "distPhal"]],
+  extensors: ["forearmBack", ["latEpiB", "supraRidgeB"], ["mcBasesB", "mc5BaseB", "extExp"]],
   sartorius: ["hipFront", ["asis"], ["pesAnsF"]],
   gracilis: ["hipFront", ["pubicBody", "pubRamus"], ["pesAnsF"]],
   pectineus: ["hipFront", ["pubicBody"], ["pectLine"]],
@@ -4492,7 +4534,9 @@ const BONE_MAP = {
 };
 // rectus abdominis inserts on the xiphoid/cartilages 5-7 — shown on the chest diagram as a second view
 const BONE_EXTRA = { rectab: ["shoulderFront", [], ["xiphoid", "cc57"]], extobl: ["shoulderFront", ["ribs18"], []],
-  tibpost: ["legFront", [], ["navic", "medCun"]], perlong: ["legFront", [], ["medCun", "mt1"]] };
+  tibpost: ["legFront", [], ["navic", "medCun"]], perlong: ["legFront", [], ["medCun", "mt1"]],
+  scm: ["shoulderBack", [], ["mastoid"]], ql: ["shoulderBack", [], ["rib12", "t12"]], multifidus: ["shoulderBack", [], ["spinous"]],
+  fdl: ["legFront", [], ["toes"]], fhl: ["legFront", [], ["bigToe"]] };
 
 let anBoneN = 0;
 function anBone(m) {
