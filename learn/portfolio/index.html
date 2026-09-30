@@ -57,6 +57,7 @@
   td select, td input.num{width:58px;font:inherit;font-size:15px;padding:7px 4px;background:var(--paper);color:var(--ink);border:1px solid var(--line);text-align:center}
   th.s{color:var(--self)} th.c{color:var(--colleague)} th.a{color:var(--athlete)}
   td .from{display:block;font-size:10.5px;color:var(--muted);text-align:center;margin-top:2px}
+  @media(max-width:600px){td select,td input.num{width:46px;padding:7px 0;font-size:14px}th{font-size:9px;letter-spacing:.04em;padding:6px 2px}td{padding:5px 2px}.spider-grid .panel{padding:16px 12px}}
   .chartbox{background:#fff;border:1px solid var(--line);padding:10px}
   .chartbox svg{display:block;width:100%;height:auto}
   .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:#333;margin:6px 4px 0}
@@ -266,6 +267,11 @@
         <p>How you see yourself as a coach, next to how a colleague and your athletes see you.</p>
         <span id="spider-status">Open →</span>
       </a>
+      <a class="tool" href="?tool=traits">
+        <h3>Ten coaching traits — spider diagram</h3>
+        <p>Rate yourself on the ten traits to strive towards as a coach, and optionally ask a colleague and an athlete.</p>
+        <span id="traits-status">Open →</span>
+      </a>
       <a class="tool" href="?tool=concern">
         <h3>Concern for the athlete or the task?</h3>
         <p>Where you think you sit as a coach, next to what your answers to the quiz show.</p>
@@ -321,13 +327,13 @@
 
   <!-- spider diagram -->
   <section id="spider" class="hidden">
-    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Methodology</p>
-    <h1>Self-perception spider diagram</h1>
-    <p class="lede">A simple way to see where your view of your coaching matches how others experience it — and where it does not.</p>
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · <span id="sp-unit">Methodology</span></p>
+    <h1 id="sp-title">Self-perception spider diagram</h1>
+    <p class="lede" id="sp-lede">A simple way to see where your view of your coaching matches how others experience it — and where it does not.</p>
 
     <div class="panel noprint">
       <h2>How it works</h2>
-      <ol class="steps">
+      <ol class="steps" id="sp-steps">
         <li><b>Your qualities.</b> Think of around 5 traits that make an excellent coach, then build them out to 10–15. Find the words yourself — they represent what <i>you</i> think good coaching is.</li>
         <li><b>Rate yourself</b> from 1 to 10 on each one.</li>
         <li><b>Ask a colleague</b> (for example your lead coach) and <b>your athletes</b> to rate you too. Send them a link below and their scores fill in by themselves — or type in scores you collected in person.</li>
@@ -350,7 +356,7 @@
 
       <div>
         <div class="panel" style="padding:14px">
-          <div class="chartbox"><svg id="chart" viewBox="0 0 460 420" role="img" aria-label="Spider diagram"></svg>
+          <div class="chartbox"><svg id="chart" viewBox="-60 0 580 420" role="img" aria-label="Spider diagram"></svg>
             <div class="legend"><span><i style="background:#4FA8DE"></i>Me</span><span><i style="background:#D8393D"></i>Colleague</span><span><i style="background:#8a8587"></i>Athletes</span></div>
           </div>
         </div>
@@ -849,7 +855,7 @@ $("l-link").addEventListener("click", async () => {
 // the course list instead.
 document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("click", async (e) => {
   e.preventDefault();
-  if (doc && tool === "spider") await save();
+  if (doc && (tool === "spider" || tool === "traits")) await save();
   if (cq && cq.result && tool === "concern") await cqSave();
   if (rx && tool === "reactions") await rxSave();
   if (co && co.data.result && tool === "colours") await coSave();
@@ -868,7 +874,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
 async function boot() {
   ({ data: { session } } = await db.auth.getSession());
   if (!session) { show("login"); return; }
-  if (tool === "spider") return openSpider();
+  if (tool === "spider" || tool === "traits") return openSpider();
   if (tool === "concern") return openConcern();
   if (tool === "reactions") return openReactions();
   if (tool === "colours") return openColours();
@@ -882,6 +888,8 @@ async function boot() {
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
+  const tr0 = (data || []).find((r) => r.tool === "traits");
+  if (tr0) $("traits-status").textContent = "Last saved " + new Date(tr0.updated_at).toLocaleDateString("en-GB") + " →";
   const cn = (data || []).find((r) => r.tool === "concern");
   const rn = (data || []).find((r) => r.tool === "reactions");
   if (rn) $("reactions-status").textContent = "Last saved " + new Date(rn.updated_at).toLocaleDateString("en-GB") + " →";
@@ -910,9 +918,23 @@ boot();
 // ---------------- spider diagram ----------------
 const MAX_ROWS = 15;
 
+// The same diagram serves two tasks: "spider" (the learner picks the qualities)
+// and "traits" (the ten traits from the Multidimensional Model unit, fixed).
+const SP_TOOL = tool === "traits" ? "traits" : "spider";
+const TRAITS = ["Integrity", "Flexibility", "Loyalty", "Confidence", "Accountability", "Candor", "Preparedness", "Resourcefulness", "Self-discipline", "Patience"];
+const SP_FIXED = SP_TOOL === "traits";
+
 async function openSpider() {
-  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "spider").maybeSingle();
-  doc = data || { tool: "spider", data: { rows: Array.from({ length: 10 }, () => ({ q: "", self: null, colleague: null, athlete: null })), notes: "" } };
+  if (SP_FIXED) {
+    $("sp-unit").textContent = "Multidimensional Model of Sport Leadership";
+    $("sp-title").textContent = "Ten coaching traits — spider diagram";
+    $("sp-lede").textContent = "Rate yourself against the ten traits to strive towards as a coach. Do you fulfil any of these well? Asking a colleague and an athlete is optional — but it shows you where others see you differently.";
+    $("sp-steps").innerHTML = "<li><b>Read about the ten traits</b> in the lesson.</li><li><b>Rate yourself</b> from 1 to 10 on each one.</li><li><b>Optional:</b> send a link to a <b>colleague</b> (for example your lead coach) and an <b>athlete</b> you work with. Their scores fill in by themselves.</li><li><b>Look at the gaps</b> and write your reflections.</li>";
+    $("add-row").classList.add("hidden");
+  }
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", SP_TOOL).maybeSingle();
+  doc = data || { tool: SP_TOOL, data: { rows: SP_FIXED ? TRAITS.map((q) => ({ q, self: null, colleague: null, athlete: null }))
+    : Array.from({ length: 10 }, () => ({ q: "", self: null, colleague: null, athlete: null })), notes: "" } };
   if (!doc.data.rows || !doc.data.rows.length) doc.data.rows = [{ q: "", self: null, colleague: null, athlete: null }];
   $("notes").value = doc.data.notes || "";
   await loadInvites();
@@ -966,6 +988,7 @@ function renderRows() {
     const n = document.createElement("td"); n.className = "n"; n.textContent = i + 1;
     const qtd = document.createElement("td");
     const q = document.createElement("input"); q.className = "q"; q.value = row.q; q.maxLength = 60;
+    if (SP_FIXED) { q.readOnly = true; q.style.border = "0"; q.style.background = "none"; q.style.fontWeight = "700"; }
     q.placeholder = i < 3 ? ["e.g. Clear communicator", "e.g. Patient", "e.g. Knows the movements"][i] : "";
     q.oninput = () => { row.q = q.value; changed(false); };
     // Only refresh this row's other scores, so the next box you tap keeps focus.
@@ -975,7 +998,7 @@ function renderRows() {
       tr.replaceChild(scoreCell(row, "athlete", a), tr.children[4]);
       drawChart();
     };
-    qtd.appendChild(q);
+    if (SP_FIXED) { const t = document.createElement("b"); t.textContent = row.q; t.style.fontSize = "14.5px"; qtd.appendChild(t); } else qtd.appendChild(q);
     const s = document.createElement("td"); s.appendChild(scoreSelect(row, "self"));
     tr.append(n, qtd, s, scoreCell(row, "colleague", gotC), scoreCell(row, "athlete", gotA));
     tb.appendChild(tr);
@@ -1071,7 +1094,7 @@ $("save").onclick = () => save(true);
 async function save(loud) {
   clearTimeout(saveTimer);
   doc.data.notes = $("notes").value;
-  const row = { user_id: session.user.id, tool: "spider", data: doc.data, updated_at: new Date().toISOString() };
+  const row = { user_id: session.user.id, tool: SP_TOOL, data: doc.data, updated_at: new Date().toISOString() };
   const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
   if (error) { $("savestate").textContent = "Not saved — " + error.message; return false; }
   // Keep the rows being edited on screen; only take the saved id back.
@@ -2373,7 +2396,7 @@ $("ask-athlete").onclick = () => ask("athlete");
 
 // Pick up ratings that arrive while the page is open.
 document.addEventListener("visibilitychange", async () => {
-  if (document.visibilityState === "visible" && tool === "spider" && doc && doc.id) { await loadInvites(); renderRows(); }
+  if (document.visibilityState === "visible" && (tool === "spider" || tool === "traits") && doc && doc.id) { await loadInvites(); renderRows(); }
 });
 </script>
 </body>
