@@ -4761,7 +4761,9 @@ async function openIm() {
   $("im-notes").value = im.data.notes || "";
   const sc = $("im-script"); sc.innerHTML = "";
   IM_SCRIPT.forEach(([t], i) => { const p = document.createElement("p"); p.id = "iml" + i; p.style.margin = "0 0 8px"; p.style.transition = "color .3s"; p.textContent = t; sc.appendChild(p); });
-  if (!("speechSynthesis" in window)) { $("im-play").disabled = true; $("im-status").textContent = "Audio is not available in this browser — ask someone to read it to you."; }
+  await imCheckFile();
+  if (!imAudio && !("speechSynthesis" in window)) { $("im-play").disabled = true; $("im-status").textContent = "Audio is not available in this browser — ask someone to read it to you."; }
+  if (!imAudio && "speechSynthesis" in window) speechSynthesis.getVoices();
   imRows(); imBars();
   show("imagery");
 }
@@ -4769,13 +4771,30 @@ async function openIm() {
 function imSpeak(text) {
   return new Promise((res) => {
     const u = new SpeechSynthesisUtterance(text); u.rate = 0.85; u.pitch = 1;
-    const v = speechSynthesis.getVoices().find((x) => /en[-_]GB/i.test(x.lang)) || speechSynthesis.getVoices().find((x) => /^en/i.test(x.lang));
+    const v = imVoice();
     if (v) u.voice = v;
     u.onend = res; u.onerror = res;
     try { speechSynthesis.speak(u); } catch (e) { res(); }
   });
 }
+// Pick the most natural voice the device has (premium / enhanced / neural voices first).
+function imVoice() {
+  const vs = speechSynthesis.getVoices().filter((x) => /^en/i.test(x.lang));
+  const score = (x) => (/premium|enhanced|natural|neural|siri/i.test(x.name) ? 100 : 0) + (/google uk english|serena|daniel|kate|arthur|martha|stephanie|jamie|oliver/i.test(x.name) ? 40 : 0)
+    + (/en[-_]GB/i.test(x.lang) ? 20 : /en[-_](AU|IE)/i.test(x.lang) ? 10 : 0) + (x.localService === false ? 5 : 0) - (/compact|novelty|eloquence|bad news|bells|boing|bubbles|cellos|jester|organ|trinoids|whisper|zarvox|albert|fred|junior|ralph/i.test(x.name) ? 200 : 0);
+  return vs.sort((a, b) => score(b) - score(a))[0] || null;
+}
+// A recorded file wins over the device voice: learn/portfolio/imagery.mp3
+let imAudio = null;
+async function imCheckFile() {
+  try { const r = await fetch("imagery.mp3", { method: "HEAD" }); if (r.ok && /audio|mpeg|octet/i.test(r.headers.get("content-type") || "audio")) { imAudio = new Audio("imagery.mp3"); imAudio.preload = "auto"; imAudio.onended = () => { imStop(); $("im-status").textContent = "Finished. Now rate how vivid each sense was."; }; } } catch (e) {}
+}
 async function imPlay() {
+  if (imAudio) {
+    if (!imAudio.paused) { imAudio.pause(); $("im-play").textContent = "▶ Continue"; return; }
+    imAudio.play(); $("im-play").textContent = "❚❚ Pause"; $("im-status").textContent = "Close your eyes and listen.";
+    return;
+  }
   if (imPlaying) return;
   imPlaying = true; $("im-play").textContent = "Playing…"; $("im-status").textContent = "Close your eyes and listen.";
   speechSynthesis.cancel();
@@ -4790,6 +4809,7 @@ async function imPlay() {
   if (finished) { $("im-status").textContent = "Finished. Now rate how vivid each sense was."; $("im-rows").scrollIntoView({ behavior: "smooth", block: "start" }); }
 }
 function imStop() {
+  if (imAudio) { imAudio.pause(); imAudio.currentTime = 0; }
   imPlaying = false; clearTimeout(imWait);
   if ("speechSynthesis" in window) speechSynthesis.cancel();
   $("im-play").textContent = "▶ Play the audio guide"; $("im-status").textContent = "";
