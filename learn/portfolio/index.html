@@ -3254,8 +3254,15 @@ const PH = [
     prompt: "What standards show your expected performance level? Write at least four standards for yourself as a coach and two for your athletes, and define each one in your own words." },
   { k: "leadership", short: "Leadership", title: "05 Choose your leadership style", type: "text", eg: ["", "e.g. I lead mostly by selling and participating: I explain why, involve athletes in decisions…"],
     intro: "This is a crucial part of your coaching philosophy. Set out a leadership style early in your career, and keep developing it as your experience grows.",
-    prompt: "Define your leadership style in your own words." },
+    prompt: "Write a paragraph or two in each box: your current coaching style, the techniques you wish to use, and how you intend to be this type of leader." },
 ];
+const PH_LEAD = [
+  ["current", "My current coaching style", "e.g. Right now I mostly tell: I give clear instructions and keep the class moving, but I rarely involve athletes in decisions…"],
+  ["techniques", "The techniques I wish to use", "e.g. Selling and participating from Hersey and Blanchard, a three-second feedback delay, asking what they felt, triangulated metaphors…"],
+  ["how", "How I intend to be this type of leader", "e.g. Each week I will film one class, check my values and standards are visible, and ask two athletes what they want more of…"],
+];
+// Old single-box answers move into the first box.
+function phLead() { let v = ph.data.leadership; if (typeof v === "string" || !v) ph.data.leadership = { current: v || "", techniques: "", how: "" }; return ph.data.leadership; }
 let ph = null;
 let phTimer = null;
 let phStep = 0;
@@ -3278,6 +3285,7 @@ let phFacilityValues = [];
 
 const phCount = (k) => (ph.data[k] || []).filter((x) => x.n.trim()).length;
 const phDone = (st) => st.k === "standards" ? phCount("standards") >= 4 && phCount("standardsAth") >= 2
+  : st.k === "leadership" ? PH_LEAD.every(([k]) => (phLead()[k] || "").trim())
   : st.type === "list" ? phCount(st.k) > 0 : !!(ph.data[st.k] || "").trim();
 
 // One editable list of name + definition rows (with an optional heading and minimum).
@@ -3361,6 +3369,22 @@ function phRender() {
       phList(box, "standards", "standard", st.eg, "Standards for me", 4);
       phList(box, "standardsAth", "standard", ["e.g. Move before load", "e.g. Every athlete masters the unloaded movement before adding weight"], "Standards for my athletes", 2);
     } else phList(box, st.k, st.item.toLowerCase(), st.eg, null, 0);
+  } else if (st.k === "leadership") {
+    const L = phLead();
+    const lk = document.createElement("div"); lk.className = "lookback noprint"; lk.style.margin = "0 0 12px";
+    const lt = document.createElement("span"); lt.className = "hist"; lt.style.cssText = "width:100%;margin:0 0 2px"; lt.textContent = "Useful to look back at:"; lk.appendChild(lt);
+    for (const [k, t] of [["leadership", "Four-way coaching model report"], ["colours", "My personality colours"], ["concern", "Athlete or task?"], ["dependence", "Dependent, independent or interdependent?"]]) {
+      const a = document.createElement("a"); a.href = "?tool=" + k; a.target = "_blank"; a.textContent = t + " ↗"; lk.appendChild(a);
+    }
+    box.appendChild(lk);
+    for (const [k, label, ph2] of PH_LEAD) {
+      const w = document.createElement("div"); w.className = "fld";
+      const l = document.createElement("label"); l.textContent = label;
+      const t = document.createElement("textarea"); t.style.minHeight = "130px"; t.value = L[k] || ""; t.placeholder = ph2;
+      t.oninput = () => { L[k] = t.value; phChanged(); phDoc(); };
+      t.onchange = () => phSteps();
+      w.append(l, t); box.appendChild(w);
+    }
   } else {
     const t = document.createElement("textarea"); t.style.minHeight = "150px"; t.value = ph.data[st.k] || ""; t.placeholder = st.eg[1];
     t.oninput = () => { ph.data[st.k] = t.value; phChanged(); phDoc(); };
@@ -3398,6 +3422,16 @@ function phDoc() {
       for (const x of items) { const li = document.createElement("li"); const b = document.createElement("b"); b.textContent = x.n.trim(); li.appendChild(b); if (x.d.trim()) li.append(" — " + x.d.trim()); ul.appendChild(li); }
       doc2.appendChild(ul);
     } else {
+      if (st.k === "leadership") {
+        const L = phLead();
+        for (const [k, label] of PH_LEAD) {
+          const sub = document.createElement("p"); sub.style.cssText = "margin:6px 0 2px;font-weight:700;color:#555"; sub.textContent = label; doc2.appendChild(sub);
+          const p = document.createElement("p"); const v = (L[k] || "").trim();
+          if (v) { p.textContent = v; p.style.whiteSpace = "pre-wrap"; } else { p.className = "empty"; p.textContent = "Not written yet"; }
+          doc2.appendChild(p);
+        }
+        continue;
+      }
       const p = document.createElement("p"); const v = (ph.data[st.k] || "").trim();
       if (v) { p.textContent = v; p.style.whiteSpace = "pre-wrap"; } else { p.className = "empty"; p.textContent = "Not written yet"; }
       doc2.appendChild(p);
