@@ -176,6 +176,11 @@
       <button id="e-go" class="btn" type="button">Give access</button>
       <div id="e-msg" class="msg"></div>
       <h2 style="margin-top:1.6rem">People with all courses</h2>
+      <p class="hint" style="margin:0 0 .6rem">Email everyone their personal 30-day login link, then check back here to see who has logged in and started.</p>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin:0 0 .8rem">
+        <button id="all-invite" class="btn" type="button">Email everyone not yet emailed</button>
+        <span id="all-invite-msg" class="msg"></span>
+      </div>
       <div id="all-list"><p class="empty">Loading…</p></div>
     </div>
 
@@ -781,29 +786,72 @@ async function takeAllCourses(email) {
   return true;
 }
 
+async function staffInvite(body) {
+  const { data: { session } } = await db.auth.getSession();
+  const res = await fetch("/.netlify/functions/learn-staff-invite", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
+    body: JSON.stringify(body),
+  });
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok || d.error) throw new Error(d.error || "That did not work.");
+  return d;
+}
+let allRows = [];
 async function loadAllAccess() {
   const box = $("all-list");
-  const { data, error } = await db.from("learn_all_access").select("email, note, created_at").order("email");
-  if (error) { box.innerHTML = '<p class="msg err"></p>'; box.firstChild.textContent = error.message; return; }
-  if (!data.length) { box.innerHTML = '<p class="empty">Nobody yet. Pick “All courses — staff” above to add someone.</p>'; return; }
+  try { allRows = (await staffInvite({ action: "status" })).rows; }
+  catch (e) { box.innerHTML = '<p class="msg err"></p>'; box.firstChild.textContent = e.message; return; }
+  if (!allRows.length) { box.innerHTML = '<p class="empty">Nobody yet. Pick “All courses — staff” above to add someone.</p>'; return; }
+  const n = (f) => allRows.filter(f).length;
+  const sum = document.createElement("p"); sum.className = "hint"; sum.style.margin = "0 0 .6rem";
+  sum.textContent = allRows.length + " people · " + n((r) => r.invited_at) + " emailed · " + n((r) => r.last_login) + " logged in · " + n((r) => r.started) + " started a course";
   const table = document.createElement("table");
-  table.innerHTML = "<thead><tr><th>Email</th><th>Since</th><th></th></tr></thead>";
+  table.innerHTML = "<thead><tr><th>Name</th><th>Email</th><th>Emailed</th><th>Last login</th><th>Courses opened</th><th>Portfolio tasks</th><th></th></tr></thead>";
   const tb = document.createElement("tbody");
-  for (const r of data) {
+  const sorted = [...allRows].sort((a, b) => (!!a.last_login - !!b.last_login) || (a.name || a.email).localeCompare(b.name || b.email));
+  for (const r of sorted) {
     const tr = document.createElement("tr");
-    const a = document.createElement("td"); a.textContent = r.email;
-    const b = document.createElement("td"); b.textContent = fmtDate(r.created_at);
-    const c = document.createElement("td");
-    const btn = document.createElement("button"); btn.className = "link danger"; btn.type = "button"; btn.textContent = "Remove";
-    btn.onclick = async () => { if (await takeAllCourses(r.email)) refreshAfterChange(); };
-    c.appendChild(btn);
-    tr.append(a, b, c);
+    const td = (t, cls) => { const x = document.createElement("td"); x.textContent = t; if (cls) x.innerHTML = '<span class="pill ' + cls + '"></span>', x.firstChild.textContent = t; tr.appendChild(x); return x; };
+    td(r.name || "—");
+    td(r.email);
+    td(r.invited_at ? fmtDate(r.invited_at) : "Not yet", r.invited_at ? "" : "no");
+    td(r.last_login ? fmtDate(r.last_login) : "Never", r.last_login ? "ok" : "no");
+    td(String(r.started));
+    td(String(r.portfolio));
+    const c = document.createElement("td"); c.style.whiteSpace = "nowrap";
+    const send = document.createElement("button"); send.className = "link"; send.type = "button"; send.textContent = r.invited_at ? "Resend" : "Send";
+    send.onclick = async () => {
+      send.disabled = true; send.textContent = "Sending…";
+      try { await staffInvite({ action: "send", email: r.email }); send.textContent = "Sent ✓"; setTimeout(loadAllAccess, 800); }
+      catch (e) { alert(e.message); send.disabled = false; send.textContent = "Send"; }
+    };
+    const rm = document.createElement("button"); rm.className = "link danger"; rm.type = "button"; rm.textContent = "Remove"; rm.style.marginLeft = ".8rem";
+    rm.onclick = async () => { if (await takeAllCourses(r.email)) refreshAfterChange(); };
+    c.append(send, rm); tr.appendChild(c);
     tb.appendChild(tr);
   }
   table.appendChild(tb);
   box.innerHTML = "";
-  box.appendChild(table);
+  box.append(sum, table);
 }
+$("all-invite").addEventListener("click", async () => {
+  const todo = allRows.filter((r) => !r.invited_at);
+  const msg = $("all-invite-msg");
+  if (!todo.length) { msg.className = "msg"; msg.textContent = "Everyone has been emailed. Use Resend on a row to send again."; return; }
+  if (!confirm("Email " + todo.length + " people their login link now?")) return;
+  const btn = $("all-invite"); btn.disabled = true;
+  let ok = 0; const failed = [];
+  for (const r of todo) {
+    msg.className = "msg"; msg.textContent = "Sending " + (ok + failed.length + 1) + " of " + todo.length + "…";
+    try { await staffInvite({ action: "send", email: r.email }); ok++; } catch (e) { failed.push(r.email + " (" + e.message + ")"); }
+    await new Promise((res) => setTimeout(res, 700)); // stay under the email service's rate limit
+  }
+  btn.disabled = false;
+  msg.className = failed.length ? "msg err" : "msg ok";
+  msg.textContent = ok + " sent." + (failed.length ? " Not sent: " + failed.join(", ") : "");
+  loadAllAccess();
+});
 
 // ---------------- the table used everywhere ----------------
 // rows: { email, courseId, enrolled, attempt, cert }
