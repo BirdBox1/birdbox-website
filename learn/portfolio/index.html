@@ -203,6 +203,12 @@
   .poster li{margin:0 0 10px;font-size:15px;line-height:1.45}
   .poster li b{font-size:16px}
   .poster li span{color:#555}
+  .pt{display:flex;gap:8px;align-items:flex-start;margin:0 0 8px}
+  .pt span{color:var(--accent);font-weight:800;padding-top:10px;min-width:18px}
+  .pt textarea{min-height:46px;font-size:15px;padding:9px 10px}
+  .pt button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:18px;padding:8px 4px}
+  .starters{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+  .starters button{font:inherit;font-size:13px;padding:7px 11px;background:var(--paper);color:var(--ink);border:1px dashed #6A6466;cursor:pointer}
   .cmp{width:100%;font-size:14px}
   .cmp td,.cmp th{padding:7px 6px}
   .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
@@ -304,6 +310,11 @@
         <h3>My facility values</h3>
         <p>5–10 key values for your facility and your coaching — what they mean and how they show up in your sessions.</p>
         <span id="values-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=identity">
+        <h3>Who I am as a coach</h3>
+        <p>Five minutes on who you are as a coach and what you stand for — so you can explain it to someone else.</p>
+        <span id="identity-status">Open →</span>
       </a>
     </div>
   </section>
@@ -760,6 +771,45 @@
       <span class="savestate" id="va-state"></span>
     </div>
   </section>
+  <!-- who I am as a coach -->
+  <section id="identity" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Multidimensional Model of Sport Leadership</p>
+    <h1>Who I am as a coach</h1>
+    <p class="lede">Spend 5 minutes considering who you are as a coach and the values you hold. Write down the key points that would help you explain to someone else who you are, and what you are about when you coach.</p>
+
+    <div class="panel noprint">
+      <div class="timer"><span class="clock" id="id-clock">5:00</span>
+        <button class="btn small" id="id-start" type="button">Start timer</button>
+        <button class="btn ghost small" id="id-reset" type="button">Reset</button></div>
+    </div>
+
+    <div class="panel">
+      <h2>My key points</h2>
+      <p class="hist noprint" style="margin:0 0 8px">Stuck? Tap a starter to add it as a point.</p>
+      <div class="starters noprint" id="id-starters"></div>
+      <div id="id-points"></div>
+      <button class="btn ghost small noprint" id="id-add" type="button">+ Add a point</button>
+    </div>
+
+    <div class="panel">
+      <h2>In one sentence</h2>
+      <p class="lede noprint" style="font-size:14px;margin:0 0 10px">If someone asked you at the gym door “what kind of coach are you?”, what would you say?</p>
+      <textarea id="id-sentence" style="min-height:70px" placeholder="e.g. I am a coach who puts people first, holds a high standard, and helps every athlete believe they can improve."></textarea>
+    </div>
+
+    <div class="panel hidden" id="id-values-box">
+      <h2>My facility values</h2>
+      <p class="hist" style="margin:0 0 8px">From your facility values task — do your key points match them?</p>
+      <ul class="pull" id="id-values"></ul>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="id-save" type="button">Save</button>
+      <button class="btn ghost" id="id-download" type="button">Download PDF</button>
+      <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+      <span class="savestate" id="id-state"></span>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -768,7 +818,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -809,6 +859,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (sl && tool === "leadership") await slSave();
   if (ch && tool === "characters") await chSave();
   if (va && tool === "values") await vaSave();
+  if (idn && tool === "identity") await idSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -827,6 +878,7 @@ async function boot() {
   if (tool === "leadership") return openLeadership();
   if (tool === "characters") return openCharacters();
   if (tool === "values") return openValues();
+  if (tool === "identity") return openIdentity();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -847,6 +899,8 @@ async function boot() {
   if (chr) $("characters-status").textContent = ((chr.data && chr.data.chars || []).filter((c) => (c.name || "").trim()).length) + " characters →";
   const var0 = (data || []).find((r) => r.tool === "values");
   if (var0) $("values-status").textContent = ((var0.data && var0.data.values || []).filter((v) => (v.name || "").trim()).length) + " values →";
+  const idr = (data || []).find((r) => r.tool === "identity");
+  if (idr) $("identity-status").textContent = "Last saved " + new Date(idr.updated_at).toLocaleDateString("en-GB") + " →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -2190,6 +2244,81 @@ $("va-start").onclick = () => {
   $("va-start").textContent = "Pause";
 };
 $("va-reset").onclick = () => { clearInterval(vaClock.run); vaClock = { left: 900, run: null }; $("va-start").textContent = "Start timer"; vaTick(); };
+
+// ---------------- who I am as a coach ----------------
+const ID_STARTERS = ["I coach because…", "My athletes would describe me as…", "In every session I will always…", "I will never…", "What matters most to me is…", "I am at my best when…", "I want my athletes to leave feeling…"];
+let idn = null;
+let idTimer = null;
+let idClock = { left: 300, run: null };
+
+async function openIdentity() {
+  const [{ data }, { data: vals }] = await Promise.all([
+    db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "identity").maybeSingle(),
+    db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", "values").maybeSingle(),
+  ]);
+  idn = data || { tool: "identity", data: { sentence: "" } };
+  idn.data.points = idn.data.points && idn.data.points.length ? idn.data.points : ["", "", ""];
+  $("id-sentence").value = idn.data.sentence || "";
+  const list = ((vals && vals.data && vals.data.values) || []).filter((v) => (v.name || "").trim());
+  $("id-values-box").classList.toggle("hidden", !list.length);
+  $("id-values").innerHTML = "";
+  for (const v of list) { const li = document.createElement("li"); const b = document.createElement("b"); b.textContent = v.name.trim(); li.appendChild(b); if ((v.means || "").trim()) li.append(" — " + v.means.trim()); $("id-values").appendChild(li); }
+  const st = $("id-starters"); st.innerHTML = "";
+  for (const t of ID_STARTERS) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = t;
+    b.onclick = () => {
+      const empty = idn.data.points.findIndex((x) => !x.trim());
+      const i = empty >= 0 ? empty : idn.data.points.push("") - 1;
+      idn.data.points[i] = t.replace("…", " ");
+      idRender(i); idChanged();
+    };
+    st.appendChild(b);
+  }
+  idRender();
+  show("identity");
+}
+
+function idRender(focus) {
+  const box = $("id-points"); box.innerHTML = "";
+  idn.data.points.forEach((pt, i) => {
+    const row = document.createElement("div"); row.className = "pt";
+    const n = document.createElement("span"); n.textContent = (i + 1) + ".";
+    const t = document.createElement("textarea"); t.value = pt; t.placeholder = i === 0 ? "e.g. I put the person before the workout" : "";
+    t.oninput = () => { idn.data.points[i] = t.value; idChanged(); };
+    const x = document.createElement("button"); x.type = "button"; x.className = "noprint"; x.textContent = "×"; x.title = "Remove";
+    x.onclick = () => { idn.data.points.splice(i, 1); if (!idn.data.points.length) idn.data.points.push(""); idRender(); idChanged(); };
+    row.append(n, t, x); box.appendChild(row);
+    if (focus === i) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
+  });
+}
+$("id-add").onclick = () => { idn.data.points.push(""); idRender(idn.data.points.length - 1); };
+$("id-sentence").addEventListener("input", () => { idn.data.sentence = $("id-sentence").value; idChanged(); });
+
+function idChanged() { $("id-state").textContent = "Unsaved changes"; clearTimeout(idTimer); idTimer = setTimeout(idSave, 1500); }
+async function idSave() {
+  clearTimeout(idTimer);
+  const row = { user_id: session.user.id, tool: "identity", data: idn.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("id-state").textContent = "Not saved — " + error.message; return false; }
+  idn = { ...data, data: idn.data };
+  $("id-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("id-save").onclick = async () => { if (await idSave()) $("id-state").textContent = "Saved ✓"; };
+$("id-download").onclick = async () => { await idSave(); window.print(); };
+function idTick() {
+  const m = Math.floor(idClock.left / 60), s2 = idClock.left % 60;
+  $("id-clock").textContent = idClock.left === 0 ? "Time!" : m + ":" + String(s2).padStart(2, "0");
+  $("id-clock").classList.toggle("done", idClock.left === 0);
+  if (idClock.left === 0) { clearInterval(idClock.run); idClock.run = null; $("id-start").textContent = "Start timer"; }
+}
+$("id-start").onclick = () => {
+  if (idClock.run) { clearInterval(idClock.run); idClock.run = null; $("id-start").textContent = "Start timer"; return; }
+  if (idClock.left === 0) idClock.left = 300;
+  idClock.run = setInterval(() => { idClock.left = Math.max(0, idClock.left - 1); idTick(); }, 1000);
+  $("id-start").textContent = "Pause";
+};
+$("id-reset").onclick = () => { clearInterval(idClock.run); idClock = { left: 300, run: null }; $("id-start").textContent = "Start timer"; idTick(); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
