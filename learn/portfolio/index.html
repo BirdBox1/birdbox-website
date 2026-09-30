@@ -196,6 +196,13 @@
   .tags button.on{background:var(--accent);border-color:var(--accent);color:#0C1116;font-weight:700}
   .ch input.nm{width:100%;font:inherit;font-size:17px;font-weight:700;padding:9px 10px;background:var(--panel);color:var(--ink);border:1px solid var(--line);margin:0 0 10px}
   .goal{font-size:14px;color:var(--muted)} .goal b{color:var(--good)}
+  .poster{background:#fff;color:#14100F;padding:26px 24px;border:1px solid var(--line)}
+  .poster h3{margin:0 0 4px;font-size:22px;text-transform:uppercase;letter-spacing:.04em}
+  .poster .sub{color:#666;font-size:13px;margin:0 0 16px}
+  .poster ol{margin:0;padding-left:22px}
+  .poster li{margin:0 0 10px;font-size:15px;line-height:1.45}
+  .poster li b{font-size:16px}
+  .poster li span{color:#555}
   .cmp{width:100%;font-size:14px}
   .cmp td,.cmp th{padding:7px 6px}
   .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
@@ -292,6 +299,11 @@
         <h3>The athletes I coach</h3>
         <p>Create character names for the different people you coach — their traits, what makes them different, and what they need from you.</p>
         <span id="characters-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=values">
+        <h3>My facility values</h3>
+        <p>5–10 key values for your facility and your coaching — what they mean and how they show up in your sessions.</p>
+        <span id="values-status">Open →</span>
       </a>
     </div>
   </section>
@@ -708,6 +720,46 @@
       <span class="savestate" id="ch-state"></span>
     </div>
   </section>
+  <!-- facility values -->
+  <section id="values" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Multidimensional Model of Sport Leadership</p>
+    <h1>My facility values</h1>
+    <p class="lede">Spend 10–15 minutes outlining 5–10 key values for your facility, and therefore your coaching practice. If you already have written values, review each one with what you have learned so far.</p>
+
+    <div class="panel noprint">
+      <h2>Getting started</h2>
+      <div class="pick4" id="va-mode" style="max-width:640px"></div>
+      <div class="timer"><span class="clock" id="va-clock">15:00</span>
+        <button class="btn small" id="va-start" type="button">Start timer</button>
+        <button class="btn ghost small" id="va-reset" type="button">Reset</button>
+        <span class="goal" id="va-goal"></span></div>
+    </div>
+
+    <div class="panel noprint" id="va-facility-box">
+      <div class="fld" style="margin:0"><label for="va-facility">Facility name</label><input id="va-facility" placeholder="e.g. BirdBox CrossFit"></div>
+    </div>
+
+    <div id="va-list"></div>
+    <button class="btn ghost small noprint" id="va-add" type="button" style="margin:-6px 0 18px">+ Add a value</button>
+
+    <div class="panel">
+      <h2>My values at a glance</h2>
+      <div class="poster" id="va-poster"></div>
+    </div>
+
+    <div class="panel">
+      <h2>My reflections</h2>
+      <p class="lede noprint" style="font-size:14px;margin:0 0 10px">Would your athletes and coaches recognise these values if they walked into a class? Which value do you live best, and which one needs work? How do your values shape the leadership behaviour your athletes prefer and the situation requires?</p>
+      <textarea id="va-notes" placeholder="Write your thoughts here…"></textarea>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="va-save" type="button">Save</button>
+      <button class="btn ghost" id="va-download" type="button">Download PDF</button>
+      <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+      <span class="savestate" id="va-state"></span>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -716,7 +768,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -756,6 +808,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (ax && tool === "anxiety") await axSave();
   if (sl && tool === "leadership") await slSave();
   if (ch && tool === "characters") await chSave();
+  if (va && tool === "values") await vaSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -773,6 +826,7 @@ async function boot() {
   if (tool === "anxiety") return openAnxiety();
   if (tool === "leadership") return openLeadership();
   if (tool === "characters") return openCharacters();
+  if (tool === "values") return openValues();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -791,6 +845,8 @@ async function boot() {
   if (slr) $("leadership-status").textContent = "Last saved " + new Date(slr.updated_at).toLocaleDateString("en-GB") + " →";
   const chr = (data || []).find((r) => r.tool === "characters");
   if (chr) $("characters-status").textContent = ((chr.data && chr.data.chars || []).filter((c) => (c.name || "").trim()).length) + " characters →";
+  const var0 = (data || []).find((r) => r.tool === "values");
+  if (var0) $("values-status").textContent = ((var0.data && var0.data.values || []).filter((v) => (v.name || "").trim()).length) + " values →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -2016,6 +2072,124 @@ $("ch-start").onclick = () => {
   $("ch-start").textContent = "Pause";
 };
 $("ch-reset").onclick = () => { clearInterval(chClock.run); chClock = { left: 900, run: null }; $("ch-start").textContent = "Start"; chTick(); };
+
+// ---------------- facility values ----------------
+const VA_EG = [
+  ["e.g. Respect", "e.g. Everyone is treated as a person first, whatever their level", "e.g. I greet every athlete by name and learn their goals"],
+  ["e.g. Movement quality before intensity", "e.g. We earn the right to add load and speed", "e.g. I hold the standard, even in a busy class"],
+];
+const VA_STATUS = [["keep", "Keep as it is"], ["change", "Change it"], ["new", "New value"]];
+let va = null;
+let vaTimer = null;
+let vaClock = { left: 900, run: null };
+const blankValue = () => ({ name: "", means: "", looks: "", status: "", learned: "" });
+
+async function openValues() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "values").maybeSingle();
+  va = data || { tool: "values", data: { mode: "", facility: "", notes: "" } };
+  va.data.values = va.data.values && va.data.values.length ? va.data.values : [blankValue(), blankValue(), blankValue()];
+  $("va-notes").value = va.data.notes || "";
+  $("va-facility").value = va.data.facility || "";
+  vaMode(); vaRender();
+  show("values");
+}
+
+function vaMode() {
+  const box = $("va-mode"); box.innerHTML = "";
+  for (const [k, t, sub] of [["new", "Starting fresh", "I do not have written values yet"], ["review", "Reviewing my values", "I already have them written down"]]) {
+    const b = document.createElement("button"); b.type = "button"; b.className = va.data.mode === k ? "on" : "";
+    b.innerHTML = "<span></span><small></small>"; b.firstChild.textContent = t; b.lastChild.textContent = sub;
+    b.onclick = () => { va.data.mode = k; vaMode(); vaRender(); vaChanged(); };
+    box.appendChild(b);
+  }
+}
+
+function vaRender() {
+  const box = $("va-list"); box.innerHTML = "";
+  const review = va.data.mode === "review";
+  va.data.values.forEach((v, i) => {
+    const d = document.createElement("div"); d.className = "panel ch";
+    if (va.data.values.length > 1) {
+      const del = document.createElement("button"); del.type = "button"; del.className = "btn ghost small noprint"; del.textContent = "Remove"; del.style.float = "right";
+      del.onclick = () => { va.data.values.splice(i, 1); vaRender(); vaChanged(); };
+      d.appendChild(del);
+    }
+    const h = document.createElement("h2"); h.textContent = "Value " + (i + 1); d.appendChild(h);
+    const eg = VA_EG[i] || ["Value", "", ""];
+    const nm = document.createElement("input"); nm.className = "nm"; nm.value = v.name; nm.placeholder = eg[0]; nm.maxLength = 80;
+    nm.oninput = () => { v.name = nm.value; vaChanged(); vaPoster(); };
+    d.appendChild(nm);
+    const field = (label, key, ph) => {
+      const w = document.createElement("div"); w.className = "fld";
+      const l = document.createElement("label"); l.textContent = label;
+      const t = document.createElement("textarea"); t.value = v[key] || ""; t.placeholder = ph || ""; t.style.minHeight = "60px";
+      t.oninput = () => { v[key] = t.value; vaChanged(); vaPoster(); };
+      w.append(l, t); return w;
+    };
+    d.appendChild(field("What it means", "means", eg[1]));
+    d.appendChild(field("What it looks like in my coaching", "looks", eg[2]));
+    if (review) {
+      const kind = document.createElement("div"); kind.className = "kind"; kind.style.margin = "0 0 12px";
+      for (const [k, label] of VA_STATUS) {
+        const b = document.createElement("button"); b.type = "button"; b.className = (k === "keep" ? "good" : k === "change" ? "unsure" : "good") + (v.status === k ? " on" : ""); b.textContent = label;
+        b.onclick = () => { v.status = v.status === k ? "" : k; vaRender(); vaChanged(); };
+        kind.appendChild(b);
+      }
+      const wrap = document.createElement("div"); wrap.className = "rx"; wrap.style.cssText = "border:0;padding:0;margin:0;background:none"; wrap.appendChild(kind);
+      d.appendChild(wrap);
+      if (v.status === "change" || v.status === "new") d.appendChild(field("What I have learned that led to this", "learned", "e.g. The leadership unit showed me my athletes need more involvement in decisions"));
+    }
+    box.appendChild(d);
+  });
+  vaPoster();
+}
+$("va-add").onclick = () => { va.data.values.push(blankValue()); vaRender(); vaChanged(); $("va-list").lastChild.scrollIntoView({ behavior: "smooth", block: "start" }); };
+$("va-facility").addEventListener("input", () => { va.data.facility = $("va-facility").value; vaPoster(); vaChanged(); });
+
+function vaPoster() {
+  const list = va.data.values.filter((v) => v.name.trim());
+  $("va-goal").innerHTML = list.length >= 5 ? `<b>${list.length} values ✓</b>` : list.length + " of 5–10 values";
+  const p = $("va-poster"); p.innerHTML = "";
+  const h = document.createElement("h3"); h.textContent = (va.data.facility.trim() || "Our") + " values";
+  const sub = document.createElement("p"); sub.className = "sub"; sub.textContent = "What we stand for, and how you will see it in every session.";
+  p.append(h, sub);
+  if (!list.length) { const e = document.createElement("p"); e.className = "sub"; e.textContent = "Your values appear here as you write them."; p.appendChild(e); return; }
+  const ol = document.createElement("ol");
+  for (const v of list) {
+    const li = document.createElement("li"); const b = document.createElement("b"); b.textContent = v.name.trim(); li.appendChild(b);
+    if (v.means.trim()) { const sp = document.createElement("span"); sp.textContent = " — " + v.means.trim(); li.appendChild(sp); }
+    ol.appendChild(li);
+  }
+  p.appendChild(ol);
+}
+
+function vaChanged() { $("va-state").textContent = "Unsaved changes"; clearTimeout(vaTimer); vaTimer = setTimeout(vaSave, 1500); }
+async function vaSave() {
+  clearTimeout(vaTimer);
+  va.data.notes = $("va-notes").value;
+  const row = { user_id: session.user.id, tool: "values", data: va.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("va-state").textContent = "Not saved — " + error.message; return false; }
+  va = { ...data, data: va.data };
+  $("va-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("va-notes").addEventListener("input", vaChanged);
+$("va-save").onclick = async () => { if (await vaSave()) $("va-state").textContent = "Saved ✓"; };
+$("va-download").onclick = async () => { await vaSave(); window.print(); };
+function vaTick() {
+  const m = Math.floor(vaClock.left / 60), s2 = vaClock.left % 60;
+  $("va-clock").textContent = vaClock.left === 0 ? "Time!" : m + ":" + String(s2).padStart(2, "0");
+  $("va-clock").classList.toggle("done", vaClock.left === 0);
+  if (vaClock.left === 0) { clearInterval(vaClock.run); vaClock.run = null; $("va-start").textContent = "Start timer"; }
+}
+$("va-start").onclick = () => {
+  if (vaClock.run) { clearInterval(vaClock.run); vaClock.run = null; $("va-start").textContent = "Start timer"; return; }
+  if (vaClock.left === 0) vaClock.left = 900;
+  vaClock.run = setInterval(() => { vaClock.left = Math.max(0, vaClock.left - 1); vaTick(); }, 1000);
+  $("va-start").textContent = "Pause";
+};
+$("va-reset").onclick = () => { clearInterval(vaClock.run); vaClock = { left: 900, run: null }; $("va-start").textContent = "Start timer"; vaTick(); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
