@@ -315,6 +315,15 @@
   .an-opts button{text-align:left;font-size:14.5px;padding:11px 12px;line-height:1.4}
   .an-opts button.right{border-color:var(--good);background:#16301F}
   .an-opts button.wrong{border-color:var(--bad);background:#3A1A1B}
+  .se-item{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);background:var(--paper);padding:12px;margin:0 0 8px;cursor:pointer;flex-wrap:wrap}
+  .se-item:hover{border-color:var(--accent)}
+  .se-item b{font-size:15px}
+  .se-item small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+  .se-stage{border-top:1px solid var(--line);padding:14px 0}
+  .se-stage h3{margin:0 0 4px;font-size:16px}
+  .se-stage h3 span{color:var(--accent);font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin-right:8px}
+  .se-stage .hint{color:var(--muted);font-size:13.5px;margin:0 0 8px;line-height:1.5}
+  .se-stage textarea{min-height:90px}
   .cmp{width:100%;font-size:14px}
   .cmp td,.cmp th{padding:7px 6px}
   .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
@@ -466,6 +475,11 @@
         <h3>Reflective practice cycle</h3>
         <p>Your first deliberate reflection: thinking about practice, planning and doing, then reflecting after you coach.</p>
         <span id="rpcycle-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=sevent">
+        <h3>Significant event reflections</h3>
+        <p>Use any time something stands out in your coaching — six stages from description to action plan (Gibbs, 1988).</p>
+        <span id="sevent-status">Open →</span>
       </a>
     </div>
   </section>
@@ -1221,6 +1235,40 @@
       <span class="savestate" id="rp-state"></span>
     </div>
   </section>
+  <!-- significant event reflections -->
+  <section id="sevent" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Reflection &amp; Observation</p>
+    <h1>Significant event reflections</h1>
+    <p class="lede">When something stands out in your coaching — positive or negative — and you feel it is worth investigating, reflect on it here using the six stages of the significant event framework (Rea &amp; Oakley, 2009; Gibbs, 1988). Keeping a record shows who you were, who you are and who you want to become.</p>
+
+    <div id="se-listview">
+      <div class="panel">
+        <div class="row" style="margin:0 0 12px"><button class="btn" id="se-new" type="button">+ New significant event</button><span class="goal" id="se-count"></span></div>
+        <div id="se-list"></div>
+      </div>
+      <div class="row noprint"><a class="btn ghost" href="/learn/" data-back>← Back to my course</a><span class="savestate" id="se-state0"></span></div>
+    </div>
+
+    <div id="se-edit" class="hidden">
+      <div class="panel">
+        <button class="btn ghost small noprint" id="se-back" type="button" style="margin:0 0 12px">← All my events</button>
+        <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+          <div class="fld" style="margin:0"><label for="se-title">The event</label><input id="se-title" placeholder="e.g. Conflict between two members in the 6pm class"></div>
+          <div class="fld" style="margin:0"><label for="se-date">Date</label><input type="date" id="se-date"></div>
+        </div>
+        <label style="display:block;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px">Type of event</label>
+        <div class="tags" id="se-type"></div>
+        <div class="tags" id="se-tone"></div>
+        <div id="se-stages"></div>
+      </div>
+      <div class="row noprint">
+        <button class="btn" id="se-save" type="button">Save</button>
+        <button class="btn ghost" id="se-download" type="button">Download PDF</button>
+        <button class="btn ghost" id="se-del" type="button">Delete this event</button>
+        <span class="savestate" id="se-state"></span>
+      </div>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -1229,7 +1277,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors", "philosophy", "observation", "standards", "mmp", "anatomy", "rpcycle"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors", "philosophy", "observation", "standards", "mmp", "anatomy", "rpcycle", "sevent"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -1279,6 +1327,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (mm && tool === "mmp") await mmSave();
   if (an && tool === "anatomy") await anSave();
   if (rp && tool === "rpcycle") await rpSave();
+  if (se && tool === "sevent") await seSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -1306,6 +1355,7 @@ async function boot() {
   if (tool === "mmp") return openMmp();
   if (tool === "anatomy") return openAnatomy();
   if (tool === "rpcycle") return openRp();
+  if (tool === "sevent") return openSe();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -1345,6 +1395,8 @@ async function boot() {
   if (anr) $("anatomy-status").textContent = ((anr.data && anr.data.known || []).length) + " of " + AN.length + " muscles known →";
   const rpr = (data || []).find((r) => r.tool === "rpcycle");
   if (rpr) $("rpcycle-status").textContent = (rpr.data && rpr.data.coached ? "Step 3 · " : "Last saved ") + new Date(rpr.updated_at).toLocaleDateString("en-GB") + " →";
+  const ser = (data || []).find((r) => r.tool === "sevent");
+  if (ser) { const n = (ser.data && ser.data.events || []).length; $("sevent-status").textContent = n + (n === 1 ? " event →" : " events →"); }
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -4230,6 +4282,122 @@ async function rpSave() {
 }
 $("rp-save").onclick = async () => { if (await rpSave()) $("rp-state").textContent = "Saved ✓"; };
 $("rp-download").onclick = async () => { await rpSave(); window.print(); };
+
+// ---------------- significant event (SE) framework ----------------
+const SE_STAGES = [
+  ["desc", "Description", "Write down a description of the event, recalling as much as you can: where you were, the sequence of events, the other people involved and what they were doing."],
+  ["feel", "Feelings", "How were you feeling when the event started? How did your feelings change during the event, and why might they have changed?"],
+  ["eval", "Evaluation", "Compare the experience against your expectations and try to understand what happened. What was good about the experience? What was bad?"],
+  ["anal", "Analysis", "Break it down into smaller parts and question it in a deeper way. What went well? What did I do well? What could be improved? Consider the core competencies below."],
+  ["conc", "Conclusion", "What judgement can you now make? What insight have you gained into your own and other people's behaviour, and how did each contribute to the outcome? What have you learned about yourself?"],
+  ["plan", "Action plan", "List the actions that will help you become more effective in the future. What knowledge or skills do you need, and who could help you?"],
+];
+const SE_TYPES = ["Conflict between athletes/members", "Conflict between me and others", "Successful coaching of a movement", "Increased understanding from an athlete", "Great communication", "Successful implementation of learning", "Poor time management", "Poor motivation", "Other"];
+const SE_COMP = ["Communication", "Decision-making", "Teamwork", "Judgement", "Observation"];
+let se = null, seTimer = null, seIdx = -1;
+
+async function openSe() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "sevent").maybeSingle();
+  se = data || { tool: "sevent", data: {} };
+  se.data.events = se.data.events || [];
+  seList();
+  show("sevent");
+}
+function seList() {
+  seIdx = -1;
+  $("se-edit").classList.add("hidden"); $("se-listview").classList.remove("hidden");
+  const n = se.data.events.length;
+  $("se-count").textContent = n ? n + (n === 1 ? " event reflected on" : " events reflected on") : "";
+  const box = $("se-list"); box.innerHTML = "";
+  if (!n) { box.innerHTML = '<p class="hist" style="margin:0">No events yet. Tap “New significant event” when something stands out in your coaching.</p>'; return; }
+  se.data.events.map((e, i) => [e, i]).sort((a, b) => String(b[0].date || "").localeCompare(String(a[0].date || ""))).forEach(([e, i]) => {
+    const d = document.createElement("div"); d.className = "se-item";
+    const l = document.createElement("div"); const b = document.createElement("b"); b.textContent = e.title.trim() || "Untitled event";
+    const sm = document.createElement("small"); sm.textContent = [e.date ? new Date(e.date).toLocaleDateString("en-GB") : null, e.type, e.tone === "pos" ? "Positive" : e.tone === "neg" ? "Negative" : null].filter(Boolean).join(" · ");
+    l.append(b, sm);
+    const done = SE_STAGES.filter(([k]) => (e.s[k] || "").trim()).length;
+    const pill = document.createElement("span"); pill.className = "pill" + (done === 6 ? " ok" : ""); pill.textContent = done === 6 ? "Complete" : done + " of 6 stages";
+    d.append(l, pill); d.onclick = () => seOpen(i); box.appendChild(d);
+  });
+}
+$("se-new").onclick = () => {
+  se.data.events.push({ title: "", date: new Date().toISOString().slice(0, 10), type: "", tone: "", s: {}, comp: {} });
+  seOpen(se.data.events.length - 1); seChanged(); $("se-title").focus();
+};
+$("se-back").onclick = async () => { await seSave(); seList(); window.scrollTo({ top: 0 }); };
+$("se-del").onclick = () => {
+  if (!confirm("Delete this event reflection? This cannot be undone.")) return;
+  se.data.events.splice(seIdx, 1); seChanged(); seList();
+};
+
+function seOpen(i) {
+  seIdx = i; const e = se.data.events[i];
+  e.s = e.s || {}; e.comp = e.comp || {};
+  $("se-listview").classList.add("hidden"); $("se-edit").classList.remove("hidden");
+  $("se-title").value = e.title; $("se-date").value = e.date || "";
+  $("se-title").oninput = () => { e.title = $("se-title").value; seChanged(); };
+  $("se-date").onchange = () => { e.date = $("se-date").value; seChanged(); };
+  const chips = (boxId, opts, key) => {
+    const box = $(boxId); box.innerHTML = "";
+    for (const [v, label] of opts) {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.classList.toggle("on", e[key] === v);
+      b.onclick = () => { e[key] = e[key] === v ? "" : v; box.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b && e[key] === v)); seChanged(); };
+      box.appendChild(b);
+    }
+  };
+  chips("se-type", SE_TYPES.map((t) => [t, t]), "type");
+  chips("se-tone", [["pos", "Positive event"], ["neg", "Negative event"]], "tone");
+  const box = $("se-stages"); box.innerHTML = "";
+  SE_STAGES.forEach(([k, name, hint], n) => {
+    const d = document.createElement("div"); d.className = "se-stage";
+    const h = document.createElement("h3"); h.innerHTML = "<span>Stage " + (n + 1) + "</span>"; h.append(name);
+    const p = document.createElement("p"); p.className = "hint"; p.textContent = hint;
+    d.append(h, p);
+    if (k === "anal") {
+      for (const c of SE_COMP) {
+        const row = document.createElement("div"); row.className = "hv";
+        const top = document.createElement("div"); top.className = "top";
+        const b = document.createElement("b"); b.textContent = c;
+        const tg = document.createElement("div"); tg.className = "tags"; tg.style.margin = "0";
+        const it = e.comp[c] = e.comp[c] || { r: "", n: "" };
+        for (const [v, lab] of [["well", "Went well"], ["ok", "OK"], ["improve", "Could improve"]]) {
+          const bt = document.createElement("button"); bt.type = "button"; bt.textContent = lab; bt.classList.toggle("on", it.r === v);
+          bt.onclick = () => { it.r = it.r === v ? "" : v; tg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === bt && it.r === v)); seChanged(); };
+          tg.appendChild(bt);
+        }
+        top.append(b, tg);
+        const t = document.createElement("textarea"); t.style.minHeight = "44px"; t.placeholder = "Notes"; t.value = it.n; t.oninput = () => { it.n = t.value; seChanged(); };
+        row.append(top, t); d.appendChild(row);
+      }
+      const l = document.createElement("label"); l.textContent = "What went well, what did I do well, and what could be improved?"; l.style.cssText = "display:block;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px";
+      d.appendChild(l);
+    }
+    const t = document.createElement("textarea"); t.value = e.s[k] || ""; t.oninput = () => { e.s[k] = t.value; seChanged(); };
+    d.appendChild(t);
+    if (k === "plan") {
+      const f = document.createElement("div"); f.className = "fld"; f.style.margin = "10px 0 0";
+      const l = document.createElement("label"); l.textContent = "Who could help me?";
+      const i2 = document.createElement("input"); i2.value = e.help || ""; i2.placeholder = "e.g. My lead coach, a mentor, a BirdBox educator"; i2.oninput = () => { e.help = i2.value; seChanged(); };
+      f.append(l, i2); d.appendChild(f);
+    }
+    box.appendChild(d);
+  });
+  window.scrollTo({ top: 0 });
+}
+
+function seChanged() { $("se-state").textContent = "Unsaved changes"; clearTimeout(seTimer); seTimer = setTimeout(seSave, 1500); }
+async function seSave() {
+  clearTimeout(seTimer);
+  const row = { user_id: session.user.id, tool: "sevent", data: se.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  const msg = error ? "Not saved — " + error.message : "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  $("se-state").textContent = msg; $("se-state0").textContent = msg;
+  if (error) return false;
+  se = { ...data, data: se.data };
+  return true;
+}
+$("se-save").onclick = async () => { if (await seSave()) $("se-state").textContent = "Saved ✓"; };
+$("se-download").onclick = async () => { await seSave(); window.print(); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
