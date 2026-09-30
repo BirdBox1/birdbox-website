@@ -199,6 +199,18 @@
       </div>
       <div id="lw-msg" class="msg"></div>
       <div id="lw-out" class="tablewrap"></div>
+
+      <h2 style="margin-top:1.6rem">Email the imported students</h2>
+      <p class="hint" style="margin:0 0 .8rem">Emails each imported student a one-tap link to their course, in their course's language. Skips anyone who was already on the portal, staff, anyone who has already logged in, and anyone already emailed.</p>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+        <button id="mi-list" class="btn ghost" type="button">1. Show who will be emailed</button>
+        <select id="mi-lang" style="padding:.45rem"><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option><option value="de">Deutsch</option></select>
+        <button id="mi-test" class="btn ghost" type="button">2. Send me a test</button>
+        <button id="mi-send" class="btn" type="button" disabled>3. Email everyone</button>
+        <button id="mi-stop" class="btn ghost hidden" type="button">Stop</button>
+      </div>
+      <div id="mi-msg" class="msg"></div>
+      <div id="mi-out" class="tablewrap" style="max-height:24rem;overflow:auto"></div>
     </div>
 
     <!-- Learners by course -->
@@ -925,6 +937,72 @@ $("lw-import").addEventListener("click", async () => {
   msg.textContent = "Done. " + seen + " enrolments read, " + added + " new ones added." + (errors.length ? " Problems: " + errors.join(" | ") : "");
   btn.disabled = false;
   refreshAfterChange();
+});
+
+
+// ---------------- email the imported LearnWorlds students ----------------
+async function miCall(body) {
+  const { data: { session } } = await db.auth.getSession();
+  const res = await fetch("/.netlify/functions/learn-migrate-invite", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
+    body: JSON.stringify(body),
+  });
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok || d.error) throw new Error(d.error || "That did not work (" + res.status + ").");
+  return d;
+}
+let miTodo = [], miStop = false;
+async function miLoad() {
+  const msg = $("mi-msg"), out = $("mi-out");
+  msg.className = "msg"; msg.textContent = "Working out who to email…"; out.innerHTML = "";
+  const d = await miCall({ action: "list" });
+  miTodo = d.todo;
+  const s = d.skipped, by = {};
+  for (const p of miTodo) by[p.lang] = (by[p.lang] || 0) + 1;
+  msg.className = "msg ok";
+  msg.textContent = miTodo.length + " to email (" + Object.entries(by).map(([k, v]) => k.toUpperCase() + " " + v).join(", ") + "). Skipped: " +
+    s.already_on_portal + " already on the portal, " + s.staff + " staff, " + s.logged_in + " already logged in, " + s.already_emailed + " already emailed.";
+  const t = document.createElement("table");
+  t.innerHTML = "<thead><tr><th>Name</th><th>Email</th><th>Language</th><th>Course(s)</th></tr></thead>";
+  const tb = document.createElement("tbody");
+  for (const p of miTodo) {
+    const tr = document.createElement("tr");
+    for (const v of [p.name || "—", p.email, p.lang.toUpperCase(), p.courses.join(", ")]) { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); }
+    tb.appendChild(tr);
+  }
+  t.appendChild(tb); out.appendChild(t);
+  $("mi-send").disabled = !miTodo.length;
+  $("mi-send").textContent = "3. Email everyone (" + miTodo.length + ")";
+}
+$("mi-list").addEventListener("click", async () => {
+  $("mi-list").disabled = true;
+  try { await miLoad(); } catch (e) { $("mi-msg").className = "msg err"; $("mi-msg").textContent = e.message; }
+  $("mi-list").disabled = false;
+});
+$("mi-test").addEventListener("click", async () => {
+  const msg = $("mi-msg"); $("mi-test").disabled = true;
+  try { await miCall({ action: "test", lang: $("mi-lang").value }); msg.className = "msg ok"; msg.textContent = "Test sent to your email (" + $("mi-lang").value.toUpperCase() + "). Nobody else was emailed."; }
+  catch (e) { msg.className = "msg err"; msg.textContent = e.message; }
+  $("mi-test").disabled = false;
+});
+$("mi-stop").addEventListener("click", () => { miStop = true; });
+$("mi-send").addEventListener("click", async () => {
+  if (!miTodo.length) return;
+  if (!confirm("Email " + miTodo.length + " imported students their course link now?\n\nKeep this page open until it finishes.")) return;
+  const msg = $("mi-msg"), btn = $("mi-send"); btn.disabled = true; miStop = false; $("mi-stop").classList.remove("hidden");
+  let ok = 0; const failed = [];
+  for (const p of miTodo) {
+    if (miStop) break;
+    msg.className = "msg"; msg.textContent = "Sending " + (ok + failed.length + 1) + " of " + miTodo.length + "… keep this page open.";
+    try { await miCall({ action: "send", email: p.email, person: { first: p.first, lang: p.lang, courses: p.courses } }); ok++; }
+    catch (e) { failed.push(p.email + " (" + e.message + ")"); if (/rate|limit|429/i.test(e.message)) await new Promise((r) => setTimeout(r, 5000)); }
+    await new Promise((r) => setTimeout(r, 650));
+  }
+  $("mi-stop").classList.add("hidden");
+  msg.className = failed.length ? "msg err" : "msg ok";
+  msg.textContent = (miStop ? "Stopped. " : "Done. ") + ok + " sent." + (failed.length ? " Not sent (" + failed.length + "): " + failed.slice(0, 10).join(", ") + (failed.length > 10 ? " …" : "") + " — press Show who will be emailed, then Email everyone again to retry them." : "");
+  btn.disabled = false;
 });
 
 // ---------------- the table used everywhere ----------------
