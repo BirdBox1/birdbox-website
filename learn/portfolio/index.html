@@ -293,6 +293,13 @@
   .an-grid{display:grid;grid-template-columns:1fr;gap:16px}
   @media(min-width:900px){.an-grid{grid-template-columns:minmax(0,0.9fr) minmax(0,1.1fr)}}
   .an-mapbox{background:#fff;border:1px solid var(--line);padding:10px}
+  #an-svg{background:#58585B}
+  #an-svg .an-hit{fill:rgba(255,255,255,0.001);stroke:none;cursor:pointer}
+  #an-svg .an-hit:hover{fill:rgba(255,255,255,.14);stroke:rgba(255,255,255,.8);stroke-width:2}
+  #an-svg .an-deep{stroke:rgba(255,255,255,.8);stroke-width:2.2;stroke-dasharray:7 5}
+  #an-svg .an-on{fill:#1976D2;mix-blend-mode:color;pointer-events:none}
+  #an-svg .an-on-line{fill:rgba(60,150,235,.22);stroke:#fff;stroke-width:2.5;pointer-events:none}
+  #an-dots{pointer-events:none}
   @media(min-width:900px){.an-mapbox{position:sticky;top:0}}
   .an-mapbox svg{display:block;width:100%;max-height:70vh;height:auto}
   @media(max-width:899px){.an-mapbox svg{max-height:48vh}}
@@ -1221,7 +1228,7 @@
       <div>
         <div class="an-mapbox">
           <div class="an-views"><button type="button" id="an-front">Front</button><button type="button" id="an-back">Back</button></div>
-          <svg id="an-svg" viewBox="20 0 160 440" role="img" aria-label="Body map"></svg>
+          <svg id="an-svg" viewBox="0 0 800 1337" role="img" aria-label="Body map"></svg>
           <div class="an-legend"><span><i style="background:#2F7FC1"></i>Origin</span><span><i style="background:#E08A2E"></i>Insertion</span><span><i style="border:1px dashed #8A4A44;border-radius:2px"></i>Deep muscle</span><span><i style="background:#2F7FC1;border-radius:2px"></i>Selected</span></div>
         </div>
       </div>
@@ -4035,96 +4042,98 @@ async function openAnatomy() {
   show("anatomy");
 }
 
-const AN_BODY = {
-  // left half of the figure; mirrored for the right
-  half: "M100,44 L93,44 C92,50 91,54 88,57 C80,60 70,60 64,63 C54,67 50,76 50,88 C49,104 47,122 46,140 C45,150 45,156 44,160 C41,172 39,190 39,205 C38,214 38,222 38,228 C35,236 34,246 36,256 L44,258 C46,250 47,242 48,232 C50,220 54,200 56,184 C58,172 58,164 58,156 C60,140 62,120 64,106 L68,100 C70,114 71,130 72,142 C74,160 76,176 74,192 C70,202 68,212 67,224 C65,246 66,270 69,295 C71,308 72,316 73,324 C72,336 70,346 70,358 C71,374 76,390 78,404 C78,412 76,420 72,428 L93,430 C92,422 91,414 91,406 C92,392 94,374 93,356 C92,346 91,338 91,328 C93,312 95,292 96,272 C97,258 98,246 99,238 L100,238 Z",
+// Body map: licensed 3D muscle render (front and back), with each muscle traced as a tappable area.
+// Coordinates are in the 800 x 1337 image space; shapes are traced on one side and mirrored.
+const AN_IMG = { front: { src: "anatomy-front.jpg", mid: 410 }, back: { src: "anatomy-back.jpg", mid: 396 } };
+const ANG = {
+  delt: { d: "M290,236 C270,236 250,240 238,248 C226,258 220,275 218,300 C216,320 216,338 218,352 C235,342 262,326 282,314 C272,300 274,282 280,266 C284,256 288,246 290,236 Z", o: [272, 244], i: [222, 350], z: 3,
+    alsoBack: "M226,244 C250,247 275,253 296,262 C280,272 268,286 262,302 C262,325 262,350 258,372 C248,382 230,392 208,398 C200,378 198,350 200,322 C202,292 210,264 226,244 Z" },
+  supra: { d: "M240,238 C270,236 300,236 330,244 L326,256 C300,252 270,250 244,250 Z", o: [322, 248], i: [228, 244] },
+  infra: { d: "M262,268 C280,262 295,262 305,262 C316,280 326,310 336,340 C322,342 310,342 300,340 C288,326 276,312 262,302 C258,290 258,278 262,268 Z", o: [300, 300], i: [252, 275] },
+  tmin: { d: "M262,302 C276,312 288,326 300,340 L290,346 C280,350 270,358 262,363 C258,345 258,322 262,302 Z", o: [292, 340], i: [258, 300] },
+  subscap: { d: "M290,290 C300,300 304,320 300,345 L288,345 C285,325 284,305 290,290 Z", o: [296, 330], i: [282, 300] },
+  trap: { d: "M396,120 C380,130 360,150 352,180 C330,200 280,215 240,232 C232,236 226,240 222,246 C250,248 280,254 305,260 C316,280 326,310 338,347 C350,382 368,420 385,455 C390,468 394,480 396,490 Z", o: [396, 300], i: [240, 244], z: 2,
+    alsoFront: "M365,196 C350,210 325,222 298,232 L330,236 C345,234 360,232 372,230 C370,218 368,206 365,196 Z" },
+  rhomb: { d: "M336,262 L392,240 L392,340 L340,350 Z", o: [392, 290], i: [338, 305] },
+  lat: { d: "M264,392 C290,378 312,370 332,368 C344,390 356,410 370,435 C378,448 384,460 388,472 C378,488 366,505 352,522 C340,535 322,548 305,558 C300,530 292,500 282,470 C272,440 266,414 264,392 Z", o: [370, 500], i: [262, 380] },
+  tmaj: { d: "M262,363 C272,356 282,350 296,344 C310,340 324,338 336,340 C340,352 336,362 330,368 C310,372 290,378 264,392 C260,384 260,374 262,363 Z", o: [330, 352], i: [258, 372], z: 1 },
+  erector: { d: "M378,420 C386,420 392,424 393,432 L393,590 C386,596 378,596 372,590 C368,560 368,520 370,480 C371,460 374,438 378,420 Z", o: [385, 590], i: [385, 425], z: 3 },
+  pecmaj: { d: "M402,242 C370,236 320,232 296,236 C290,248 284,258 280,268 C274,284 272,300 280,316 C292,326 300,340 312,348 C330,358 352,362 372,359 C388,356 398,350 402,344 Z", o: [380, 290], i: [276, 312], z: 2 },
+  pecmin: { d: "M290,268 C305,275 325,292 345,315 L340,338 C320,318 300,300 284,290 Z", o: [340, 325], i: [288, 275] },
+  serratus: { d: "M298,330 C308,342 320,356 336,366 L328,372 L336,382 L322,384 L330,396 L314,398 C308,410 305,418 304,424 L296,420 C292,392 292,360 298,330 Z", o: [320, 385], i: [298, 338] },
+  biceps: { d: "M220,354 C240,344 262,330 282,318 C286,340 282,370 272,395 C262,418 248,440 236,455 L214,458 C204,440 200,410 204,388 C208,374 214,362 220,354 Z", o: [276, 300], i: [228, 462], z: 1 },
+  brach: { d: "M208,368 C200,386 194,404 192,424 C190,440 192,452 196,460 L210,458 C204,440 202,414 206,392 C207,384 208,376 208,368 Z", o: [205, 395], i: [214, 470] },
+  triceps: { d: "M208,398 C230,392 248,382 258,372 C262,390 258,420 250,445 C242,468 230,486 216,498 L186,500 C172,480 162,460 158,440 C158,420 170,400 186,392 C194,392 202,396 208,398 Z", o: [256, 340], i: [192, 505] },
+  rectab: { d: "M352,362 C370,358 390,356 407,356 L408,672 C400,668 392,656 386,640 C376,614 364,584 356,556 C352,530 350,500 350,470 C350,430 350,390 352,362 Z", o: [400, 670], i: [380, 365] },
+  extobl: { d: "M312,372 C325,370 340,372 350,378 L350,500 C346,515 340,530 334,560 C326,556 318,548 310,540 C306,510 304,470 304,440 C304,410 306,388 312,372 Z", o: [315, 400], i: [348, 560] },
+  intobl: { d: "M318,470 C332,468 344,480 344,500 C344,520 336,535 326,532 C318,520 314,490 318,470 Z", o: [318, 540], i: [342, 480] },
+  tva: { d: "M320,430 L395,430 L395,540 L330,540 Z", o: [322, 480], i: [405, 500] },
+  ql: { d: "M350,500 L385,500 L385,560 L350,560 Z", o: [365, 562], i: [372, 500] },
+  iliopsoas: { d: "M350,500 C362,500 370,515 372,535 L372,640 L356,652 C352,620 350,590 346,560 C344,535 344,512 350,500 Z", o: [366, 505], i: [360, 655] },
+  gmax: { d: "M296,592 C305,570 318,558 332,556 C350,556 368,562 384,572 C392,590 396,620 396,650 C396,672 392,690 386,698 C360,702 330,700 306,690 C296,680 290,660 290,640 C290,620 292,604 296,592 Z", o: [388, 610], i: [300, 690], z: 2 },
+  gmed: { d: "M290,560 C300,552 316,548 332,550 C318,558 305,570 296,592 C292,604 290,616 290,628 L282,630 C282,605 284,580 290,560 Z", o: [318, 552], i: [286, 628] },
+  gmin: { d: "M296,566 C310,560 326,560 330,566 C322,574 308,580 296,582 Z", o: [322, 566], i: [288, 600] },
+  piri: { d: "M300,612 L380,600 L382,612 L302,624 Z", o: [382, 606], i: [294, 616] },
+  tfl: { d: "M300,540 C310,540 316,550 316,560 C314,590 308,620 300,650 L284,660 C282,630 284,590 290,560 C292,550 296,542 300,540 Z", o: [304, 545], i: [300, 960] },
+  addlong: { d: "M395,655 C402,662 405,672 404,684 C396,710 384,735 372,760 L364,752 C368,720 372,690 378,660 C384,652 390,650 395,655 Z", o: [400, 662], i: [368, 758] },
+  addmag: { d: "M368,705 C380,706 390,715 392,730 C392,770 388,810 382,850 L372,850 C372,810 370,770 366,740 C364,725 364,712 368,705 Z", o: [380, 702], i: [372, 900] },
+  rf: { d: "M322,598 C312,610 304,630 300,660 C296,700 298,760 304,810 C308,836 316,852 326,862 C334,854 342,834 345,806 C348,760 346,700 340,660 C336,630 330,610 322,598 Z", o: [322, 598], i: [330, 955] },
+  vl: { d: "M296,610 C286,630 278,668 274,712 C270,760 274,820 284,868 C292,880 302,884 312,880 C304,850 298,810 298,760 C296,710 298,660 304,630 Z", o: [290, 620], i: [330, 955] },
+  vm: { d: "M350,770 C362,775 378,790 382,820 C384,850 378,880 365,895 C355,905 345,900 342,890 C340,860 342,830 344,800 C345,785 347,775 350,770 Z", o: [352, 700], i: [330, 955] },
+  vi: { d: "M305,660 L340,660 L342,820 L310,820 Z", o: [322, 680], i: [330, 955] },
+  bf: { d: "M318,702 C330,702 336,712 332,730 C324,760 314,790 310,820 C308,860 304,890 296,915 C290,932 286,945 282,958 L272,954 C272,920 272,880 274,840 C276,790 284,740 300,712 C306,706 312,702 318,702 Z", o: [345, 705], i: [278, 960] },
+  st: { d: "M336,712 C344,730 350,760 350,800 C350,840 346,870 340,895 C336,910 334,925 334,940 L324,940 C320,910 316,880 314,850 C312,815 316,780 324,750 C328,735 332,722 336,712 Z", o: [345, 702], i: [376, 962], z: 1 },
+  sm: { d: "M350,730 C360,740 368,770 370,810 C372,850 368,885 362,915 L352,915 C352,880 352,840 350,800 C350,775 350,750 350,730 Z", o: [348, 704], i: [372, 950] },
+  gastroc: { d: "M300,935 C312,945 322,960 336,975 C352,995 360,1030 360,1070 C360,1100 352,1118 340,1125 C326,1128 312,1120 302,1100 C294,1102 284,1102 276,1098 C268,1070 266,1030 270,1000 C274,970 286,945 300,935 Z", o: [305, 940], i: [312, 1245], z: 1 },
+  soleus: { d: "M276,1098 C284,1102 294,1102 302,1100 C300,1130 296,1160 294,1185 L284,1185 C280,1160 276,1130 276,1098 Z M340,1125 C346,1122 352,1118 356,1112 C354,1140 348,1165 342,1185 L334,1185 C336,1165 338,1145 340,1125 Z", o: [300, 980], i: [312, 1245] },
+  tibant: { d: "M312,960 C324,966 334,980 336,1000 C338,1040 334,1090 330,1130 C328,1150 326,1165 325,1180 L316,1180 C314,1150 310,1110 306,1070 C302,1030 302,990 312,960 Z", o: [318, 975], i: [358, 1240] },
 };
-// Decorative muscles and tendons (not clickable) so the figure reads as a muscle chart.
-const AN_DECOR = {
-  front: [
-    ["M90,44 C92,50 95,56 98,62 L95,63 C92,57 89,50 88,45 Z", 70, "m"], // sternocleidomastoid
-    ["M44,160 C40,172 39,190 40,206 L44,210 C46,196 48,180 52,166 Z", 80, "m"], // brachioradialis
-    ["M52,164 C50,182 48,200 46,226 L48,228 C51,210 54,190 56,170 Z", 80, "m"], // forearm flexors
-    ["M40,210 L48,212 L46,230 L39,228 Z", 0, "t"], // wrist tendons
-    ["M69,236 L74,236 L76,318 L72,318 Z", 0, "t"], // IT band
-    ["M76,212 C82,240 88,270 93,316 L90,318 C85,272 79,242 73,214 Z", 60, "m"], // sartorius
-    ["M98,244 C97,268 95,292 93,318 L91,318 C92,292 94,268 96,244 Z", 88, "m"], // gracilis
-    ["M84,318 C90,318 92,324 92,330 C92,336 86,340 82,338 C78,336 77,324 84,318 Z", 0, "t"], // patella
-    ["M82,338 L87,338 L87,350 L82,350 Z", 0, "t"], // patellar tendon
-    ["M71,346 C73,360 74,376 77,398 L75,400 C71,380 70,362 70,350 Z", 85, "m"], // peroneals
-    ["M90,336 C94,344 94,356 92,368 L88,368 C88,356 88,346 90,336 Z", 88, "m"], // medial gastroc edge
-    ["M85,342 L88,342 L89,402 L86,402 Z", 0, "t"], // tibia shaft
-    ["M76,404 L92,406 L93,430 L71,430 Z", 0, "t"], // foot
-    ["M89,128 L99,128 M89,148 L99,148 M89,168 L99,168", 0, "line"], // abdominal intersections
-  ],
-  back: [
-    ["M88,44 L99,44 L99,56 L90,56 Z", 90, "m"], // neck extensors
-    ["M44,160 C40,172 39,190 40,206 L44,210 C46,196 48,180 52,166 Z", 80, "m"],
-    ["M52,164 C50,182 48,200 46,226 L48,228 C51,210 54,190 56,170 Z", 80, "m"],
-    ["M40,210 L48,212 L46,230 L39,228 Z", 0, "t"],
-    ["M48,152 L56,152 L55,162 L49,162 Z", 0, "t"], // triceps tendon
-    ["M99,176 L90,196 L99,216 Z", 0, "t"], // thoracolumbar fascia
-    ["M69,236 L73,236 L74,320 L70,320 Z", 0, "t"],
-    ["M78,322 L92,322 L90,332 L80,332 Z", 0, "dark"], // back of knee
-    ["M83,398 L88,398 L88,416 L83,416 Z", 0, "t"], // Achilles
-    ["M76,414 L92,414 L93,430 L71,430 Z", 0, "t"],
-  ],
-};
+for (const m of AN) Object.assign(m, ANG[m.id] || {});
 
-let anMapShapes = [];
+// mirror a path to the other side of the body
+function anMir(d, mid) { let k = 0; return d.replace(/-?\d*\.?\d+/g, (v) => (k++ % 2 === 0 ? +(2 * mid - v).toFixed(1) : v)); }
+
 function anMap() {
   const svg = $("an-svg"); const ns = "http://www.w3.org/2000/svg";
-  svg.innerHTML = "";
   const el = (tag, attrs, parent) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
-  const defs = el("defs", {});
-  const grad = (id, a, b) => { const g = el("radialGradient", { id, cx: "35%", cy: "30%", r: "85%" }, defs); el("stop", { offset: "0", "stop-color": a }, g); el("stop", { offset: "1", "stop-color": b }, g); };
-  grad("anM", "#E58F80", "#B3473C"); grad("anD", "#C9665B", "#94352D"); grad("anS", "#9BD3F4", "#2F7FC1"); grad("anT", "#FBF4EE", "#E4D5C8");
-  const fib = {};
-  const fibre = (a) => {
-    const key = "f" + String(a).replace("-", "m");
-    if (fib[key]) return key;
-    const p = el("pattern", { id: key, width: 3.2, height: 3.2, patternUnits: "userSpaceOnUse", patternTransform: "rotate(" + (a - 90) + ")" }, defs);
-    el("line", { x1: 0, y1: 0, x2: 0, y2: 3.2, stroke: "rgba(80,15,10,.28)", "stroke-width": 0.7 }, p);
-    fib[key] = 1; return key;
-  };
-  const sides = [el("g", {}), el("g", { transform: "translate(200,0) scale(-1,1)" })];
-  for (const g of sides) el("path", { d: AN_BODY.half, fill: "url(#anD)", stroke: "#6E231D", "stroke-width": 1, "stroke-linejoin": "round" }, g);
-  el("ellipse", { cx: 100, cy: 26, rx: 15, ry: 18, fill: "url(#anD)", stroke: "#6E231D", "stroke-width": 1 });
-  el("line", { x1: 100, y1: 60, x2: 100, y2: anView === "front" ? 200 : 150, stroke: "rgba(255,245,238,.7)", "stroke-width": 1.2 });
-  for (const [d, a, kind] of AN_DECOR[anView]) for (const g of sides) {
-    if (kind === "line") { el("path", { d, stroke: "rgba(255,245,238,.75)", "stroke-width": 1.2, fill: "none" }, g); continue; }
-    if (kind === "t") { el("path", { d, fill: "url(#anT)", stroke: "#B9A594", "stroke-width": 0.6 }, g); continue; }
-    if (kind === "dark") { el("path", { d, fill: "#5E1D18" }, g); continue; }
-    el("path", { d, fill: "url(#anD)", stroke: "#6E231D", "stroke-width": 0.6 }, g);
-    el("path", { d, fill: "url(#" + fibre(a) + ")", "pointer-events": "none" }, g);
-  }
   const quizTap = anMode === "quiz" && anQuiz && anQuiz.q && anQuiz.q.type === "tap";
   const quizName = anMode === "quiz" && anQuiz && anQuiz.q && anQuiz.q.type === "name" ? anQuiz.q.id : null;
   const hi = quizTap ? null : quizName || anSel;
-  anMapShapes = [];
-  const draw = (m, d, g, on) => {
-    const deepOff = m.deep && !on;
-    const p = el("path", { d, fill: on ? "url(#anS)" : deepOff ? "rgba(255,255,255,0.001)" : "url(#anM)", stroke: on ? "#123F63" : deepOff ? "rgba(255,240,230,.85)" : "#6E231D",
-      "stroke-width": on ? 1.3 : deepOff ? 0.9 : 0.7, "stroke-dasharray": deepOff ? "2.5 2" : "", style: "cursor:pointer" }, g);
-    if (!deepOff) el("path", { d, fill: "url(#" + fibre(m.f || 90) + ")", "pointer-events": "none", opacity: on ? 0.6 : 1 }, g);
+  const mid = AN_IMG[anView].mid;
+  const pathsOf = (m) => { const p = []; if (m.view === anView) p.push(m.d); if (m.alsoFront && anView === "front") p.push(m.alsoFront); if (m.alsoBack && anView === "back") p.push(m.alsoBack); return p; };
+  const both = (d) => [d, anMir(d, mid)];
+  const tap = (p, m) => {
     const t = document.createElementNS(ns, "title"); t.textContent = m.name + (m.deep ? " (deep)" : ""); p.appendChild(t);
     p.addEventListener("click", () => anMode === "quiz" ? anTap(m.id) : anSelect(m.id));
   };
-  // surface muscles first, deep outlines on top so they stay tappable; highlighted muscle last
-  const order = [...AN.filter((m) => !m.deep), ...AN.filter((m) => m.deep)];
-  const later = [];
-  for (const m of order) {
-    const paths = [];
-    if (m.view === anView) paths.push(m.d);
-    if (m.alsoFront && anView === "front") paths.push(m.alsoFront);
-    for (const d of paths) for (const g of sides) { if (m.id === hi) later.push([m, d, g]); else draw(m, d, g, false); }
+  svg.setAttribute("viewBox", "0 0 800 1337");
+  if (svg.dataset.view !== anView) {
+    svg.innerHTML = "";
+    el("image", { href: AN_IMG[anView].src, x: 0, y: 0, width: 800, height: 1337, preserveAspectRatio: "xMidYMid meet" });
+    el("g", { id: "an-sel" });
+    const hits = el("g", { id: "an-hits" });
+    // surface muscles: invisible until hovered; the higher z sits on top so it wins the tap
+    const surf = AN.filter((x) => !x.deep).map((m, k) => [m, k]).sort((a, b) => ((a[0].z || 0) - (b[0].z || 0)) || a[1] - b[1]).map((x) => x[0]);
+    for (const m of surf) for (const d0 of pathsOf(m)) for (const d of both(d0)) tap(el("path", { d, class: "an-hit" }, hits), m);
+    el("g", { id: "an-deep" }); el("g", { id: "an-dots" });
+    svg.dataset.view = anView;
   }
-  for (const [m, d, g] of later) draw(m, d, g, true);
+  const sel = svg.querySelector("#an-sel"), deep = svg.querySelector("#an-deep"), dots = svg.querySelector("#an-dots");
+  sel.innerHTML = ""; deep.innerHTML = ""; dots.innerHTML = "";
+  for (const m of AN.filter((x) => x.deep)) for (const d0 of pathsOf(m)) for (const d of both(d0)) {
+    if (m.id === hi) continue;
+    tap(el("path", { d, class: "an-hit an-deep" }, deep), m);
+  }
+  const hm = AN.find((x) => x.id === hi);
+  if (hm) for (const d0 of pathsOf(hm)) for (const d of both(d0)) {
+    el("path", { d, class: "an-on" }, sel);
+    el("path", { d, class: "an-on-line" }, dots);
+  }
   const m = AN.find((x) => x.id === anSel);
   if (!quizTap && !quizName && m && m.view === anView) {
-    el("line", { x1: m.o[0], y1: m.o[1], x2: m.i[0], y2: m.i[1], stroke: "#fff", "stroke-width": 1.2, "stroke-dasharray": "2 2" });
-    el("circle", { cx: m.o[0], cy: m.o[1], r: 4, fill: "#1F6FB2", stroke: "#fff", "stroke-width": 1.4 });
-    el("circle", { cx: m.i[0], cy: m.i[1], r: 4, fill: "#E08A2E", stroke: "#fff", "stroke-width": 1.4 });
+    el("line", { x1: m.o[0], y1: m.o[1], x2: m.i[0], y2: m.i[1], stroke: "#fff", "stroke-width": 3, "stroke-dasharray": "8 6", "stroke-linecap": "round" }, dots);
+    el("circle", { cx: m.o[0], cy: m.o[1], r: 11, fill: "#1F6FB2", stroke: "#fff", "stroke-width": 3.5 }, dots);
+    el("circle", { cx: m.i[0], cy: m.i[1], r: 11, fill: "#E08A2E", stroke: "#fff", "stroke-width": 3.5 }, dots);
   }
   $("an-front").classList.toggle("on", anView === "front");
   $("an-back").classList.toggle("on", anView === "back");
