@@ -954,7 +954,8 @@ $("lw-import").addEventListener("click", async () => {
 // ---------------- completions from LearnWorlds ----------------
 async function lcCourses() {
   if (!lwCourses.length) lwCourses = (await lwCall({ action: "preview" })).courses;
-  return lwCourses.filter((c) => !c.error && c.sample && c.sample.email);
+  // Every linked course is checked, even one whose preview failed; any error shows in the table.
+  return lwCourses;
 }
 $("lc-probe").addEventListener("click", async () => {
   const msg = $("lc-msg"), out = $("lc-out"); msg.className = "msg"; msg.textContent = "Asking LearnWorlds…"; out.innerHTML = "";
@@ -974,15 +975,15 @@ async function lcRun(save) {
   const list = await lcCourses();
   const totals = []; let all = 0; const errors = [];
   for (const c of list) {
-    let page = 1, pages = c.pages || 1, n = 0, checked = 0;
+    let page = 1, pages = c.pages || 1, n = 0, checked = 0, err = "";
     const people = [];
     while (page <= pages && page <= 200) {
       msg.className = "msg"; msg.textContent = (save ? "Saving " : "Checking ") + c.slugs.join(", ") + " — page " + page + " of " + pages + "… keep this page open.";
       try { const r = await lwCall({ action: "completions", lw_id: c.lw_id, page, save }); n += r.completed; checked += r.checked; pages = r.pages || pages; people.push(...r.people); if (!r.checked) break; }
-      catch (e) { errors.push(c.lw_id + " p" + page + ": " + e.message); break; }
+      catch (e) { err = e.message; if (!/Users not found/i.test(e.message)) errors.push(c.lw_id + " p" + page + ": " + e.message); break; }
       page++;
     }
-    all += n; totals.push({ c, n, checked, people });
+    all += n; totals.push({ c, n, checked, people, err });
   }
   out.innerHTML = "";
   const t = document.createElement("table");
@@ -990,7 +991,7 @@ async function lcRun(save) {
   const tb = document.createElement("tbody");
   for (const x of totals) {
     const tr = document.createElement("tr");
-    for (const v of [x.c.slugs.join(", "), x.checked, x.n, x.people.slice(0, 3).map((p) => p.email + (p.at ? " (" + p.at.slice(0, 10) + ")" : "")).join(", ")]) { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); }
+    for (const v of [x.c.slugs.join(", "), x.checked, x.n, x.err ? (/Users not found/i.test(x.err) ? "No students on LearnWorlds" : "Error: " + x.err) : x.people.slice(0, 3).map((p) => p.email + (p.at ? " (" + p.at.slice(0, 10) + ")" : "")).join(", ")]) { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); }
     tb.appendChild(tr);
   }
   t.appendChild(tb); out.appendChild(t);
