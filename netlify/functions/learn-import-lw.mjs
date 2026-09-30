@@ -1,32 +1,115 @@
-// netlify/functions/learn-migrate-invite.mjs
+// netlify/functions/learn-import-lw.mjs
 //
-// Portal → Online courses → "Email the imported LearnWorlds students" (admins only).
+// Portal → Online courses → "Import from LearnWorlds" (admins only).
+// Copies everyone enrolled in a LearnWorlds course into learn_enrolments
+// for the matching BirdBox Learn course(s) (learn_courses.lw_course_id),
+// so existing students can log in at birdboxcoaching.com/learn/.
+// Nobody is emailed and nothing in LearnWorlds is changed.
 //
-// Who gets it: everyone added by the LearnWorlds import (source
-// "learnworlds import") EXCEPT people who were already on the portal
-// before the import (any other enrolment), staff (learn_all_access),
-// anyone who has already logged in to BirdBox Learn, and anyone already
-// sent this email (learn_invites).
+// POST { action: "preview" }
+//   -> { courses: [{ lw_id, slugs, users, pages, sample }] }
+//      Reads page 1 of each course so you can check the numbers first.
 //
-// POST { action: "list" }            -> { todo: [...], skipped: {...} }
-// POST { action: "send", email }      -> { ok: true }   (one person; the portal loops)
-// POST { action: "test", lang }       -> { ok: true }   (sends that language to the admin)
-//
-// Each email is in the language of the person's course(s) and carries
-// the signed 30-day /learn/start link, so one tap logs them in.
+// POST { action: "import", lw_id, page }
+//   -> { seen, added, pages }
+//      Imports one page of one course. The portal calls it page by page,
+//      so a big course never times out. Running it again is safe: people
+//      already enrolled are left as they are.
 
 import { createClient } from "@supabase/supabase-js";
-import { learnStartLink } from "./learnworlds.mjs";
 
 const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
-const OFFICE = "info@birdboxcoaching.com";
-const FROM = process.env.ALERT_FROM || "alerts@send.birdboxcoaching.com";
+
+const BASE = (process.env.LEARNWORLDS_BASE_URL || "").replace(/\/+$/, "");
+const ROOT = BASE.replace(/\/v2$/, "");
+const CLIENT_ID = process.env.LEARNWORLDS_CLIENT_ID || "";
+const CLIENT_SECRET = process.env.LEARNWORLDS_CLIENT_SECRET || "";
+
 const json = (b, status = 200) => new Response(JSON.stringify(b), {
   status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
 });
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+let token = null, tokenUntil = 0;
+async function getToken() {
+  if (token && Date.now() < tokenUntil) return token;
+  const res = await fetch(ROOT + "/oauth2/access_token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", "Lw-Client": CLIENT_ID },
+    body: new URLSearchParams({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, grant_type: "client_credentials" }).toString(),
+  });
+  const body = await res.json().catch(() => ({}));
+  const t = body.access_token || (body.tokenData && body.tokenData.access_token);
+  if (!res.ok || !t) throw new Error("LearnWorlds login failed (" + res.status + ")");
+  token = t; tokenUntil = Date.now() + 50 * 60 * 1000;
+  return token;
+}
+async function lw(path) {
+  const res = await fetch(BASE + path, {
+    headers: { Authorization: "Bearer " + (await getToken()), "Lw-Client": CLIENT_ID, Accept: "application/json" },
+  });
+  const text = await res.text();
+  let parsed = null; try { parsed = JSON.parse(text); } catch (e) {}
+  return { ok: res.ok, status: res.status, parsed, text };
+}
+
+// One page of the people enrolled in a LearnWorlds course.
+async function coursePage(lwId, page) {
+  const res = await lw(`/courses/${encodeURIComponent(lwId)}/users?page=${page}`);
+  if (!res.ok) throw new Error(`LearnWorlds would not list ${lwId} (${res.status}): ${res.text.slice(0, 200)}`);
+  const body = res.parsed || {};
+  const items = Array.isArray(body.data) ? body.data : Array.isArray(body) ? body : [];
+  const meta = body.meta || {};
+  const pages = Number(meta.totalPages || body.totalPages || 0) || (items.length ? page + 1 : page);
+  const total = Number(meta.totalItems || meta.total || body.total || 0) || null;
+  return { items, pages, total };
+}
+
+// A student's progress in one course. Two LearnWorlds shapes are tried;
+// "probe" shows exactly what came back so the reading can be checked.
+async function progressRaw(userId, lwId) {
+  const tries = [`/users/${encodeURIComponent(userId)}/courses/${encodeURIComponent(lwId)}/progress`, `/users/${encodeURIComponent(userId)}/progress`];
+  let last = null;
+  for (const path of tries) {
+    let r = await lw(path);
+    if (r.status === 429) { await new Promise((res) => setTimeout(res, 3000)); r = await lw(path); }
+    last = { ...r, tried: path };
+    if (r.ok) return last;
+  }
+  return last;
+}
+function readProgress(body, lwId) {
+  if (!body) return null;
+  let rec = body;
+  const list = Array.isArray(body.data) ? body.data : Array.isArray(body) ? body : null;
+  if (list) rec = list.find((x) => x && String(x.course_id || x.courseId || (x.course && x.course.id) || "") === String(lwId)) || null;
+  if (rec && rec.data && !Array.isArray(rec.data)) rec = rec.data;
+  if (!rec) return null;
+  const status = String(rec.status || rec.completion_status || "").toLowerCase();
+  const rate = Number(rec.progress_rate ?? rec.progressRate ?? rec.progress ?? rec.completion_rate ?? NaN);
+  const score = Number(rec.average_score_rate ?? rec.averageScoreRate ?? rec.score ?? NaN);
+  let at = rec.completed_at || rec.completedAt || rec.completion_date || rec.certificate_issued_at || null;
+  if (typeof at === "number") at = new Date(at < 1e12 ? at * 1000 : at).toISOString();
+  else if (typeof at === "string" && /^\d{9,}$/.test(at)) at = new Date(Number(at) * (at.length < 12 ? 1000 : 1)).toISOString();
+  else if (typeof at !== "string") at = null;
+  const completed = /complete|passed|finished/.test(status) || rate >= 100;
+  return { completed, at, progress: isNaN(rate) ? null : Math.round(rate), score: isNaN(score) ? null : (score > 1 ? score / 100 : score) };
+}
+
+const pick = (u, ...keys) => { for (const k of keys) if (u && u[k]) return String(u[k]).trim(); return null; };
+
+async function courseMap() {
+  const { data, error } = await db.from("learn_courses").select("id, slug, lw_course_id").not("lw_course_id", "is", null);
+  if (error) throw new Error(error.message);
+  const map = new Map();
+  for (const c of data) {
+    const k = String(c.lw_course_id);
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(c);
+  }
+  return map;
+}
 
 export default async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -37,179 +120,83 @@ export default async (req) => {
     if (!user) return json({ error: "Please log in again." }, 401);
     const { data: me } = await db.from("staff").select("role, active").eq("id", user.id).maybeSingle();
     if (!me || !me.active || me.role !== "admin") return json({ error: "Only an admin can do this." }, 403);
+    if (!BASE || !CLIENT_ID || !CLIENT_SECRET) return json({ error: "LearnWorlds is not configured on the site." }, 500);
 
     const body = await req.json().catch(() => ({}));
-    if (body.action === "list") return json(await list());
-    if (body.action === "send") return json(await sendOne(String(body.email || "").trim().toLowerCase(), body.person || {}));
-    if (body.action === "test") {
-      const lang = TEXT[body.lang] ? body.lang : "en";
-      await deliver(user.email, { first: "Nathan", lang, courses: [TEST_COURSE[lang]] });
-      return json({ ok: true });
+    const map = await courseMap();
+
+    if (body.action === "preview") {
+      const out = [];
+      for (const [lwId, rows] of map) {
+        try {
+          const p = await coursePage(lwId, 1);
+          const s = p.items[0] || {};
+          out.push({ lw_id: lwId, slugs: rows.map((r) => r.slug), users: p.total, pages: p.pages, perPage: p.items.length,
+            sample: { email: pick(s, "email"), first: pick(s, "first_name", "firstName"), last: pick(s, "last_name", "lastName"), keys: Object.keys(s).slice(0, 25) } });
+        } catch (e) { out.push({ lw_id: lwId, slugs: rows.map((r) => r.slug), error: e.message }); }
+      }
+      return json({ courses: out });
+    }
+
+    // ---- completions: who finished the course on LearnWorlds ----
+    if (body.action === "probe") {
+      const lwId = String(body.lw_id || "");
+      const p = await coursePage(lwId, 1);
+      const u = p.items.find((x) => x && x.id) || {};
+      const raw = await progressRaw(u.id, lwId);
+      return json({ user: pick(u, "email"), tried: raw.tried, status: raw.status, body: raw.parsed || raw.text, read: readProgress(raw.parsed, lwId) });
+    }
+    if (body.action === "completions") {
+      const lwId = String(body.lw_id || ""), page = Math.max(1, parseInt(body.page, 10) || 1), save = !!body.save;
+      const rows = map.get(lwId);
+      if (!rows) return json({ error: "No BirdBox Learn course is linked to " + lwId }, 400);
+      const p = await coursePage(lwId, page);
+      const done = [];
+      let checked = 0, failed = 0;
+      for (const u of p.items) {
+        const email = (pick(u, "email") || "").toLowerCase();
+        if (!u.id || !email) continue;
+        checked++;
+        try {
+          const raw = await progressRaw(u.id, lwId);
+          const r = readProgress(raw.parsed, lwId);
+          if (r && r.completed) done.push({ email, name: [pick(u, "first_name", "firstName"), pick(u, "last_name", "lastName")].filter(Boolean).join(" "), at: r.at, score: r.score, progress: r.progress });
+        } catch (e) { failed++; }
+      }
+      if (save) {
+        for (const d of done) {
+          const { error } = await db.from("learn_enrolments")
+            .update({ lw_completed_at: d.at || new Date().toISOString(), lw_score: d.score, lw_progress: d.progress })
+            .eq("email", d.email).in("course_id", rows.map((r) => r.id));
+          if (error) throw new Error(error.message);
+        }
+      }
+      return json({ checked, failed, completed: done.length, people: done.slice(0, 50), pages: p.pages });
+    }
+
+    if (body.action === "import") {
+      const lwId = String(body.lw_id || ""), page = Math.max(1, parseInt(body.page, 10) || 1);
+      const rows = map.get(lwId);
+      if (!rows) return json({ error: "No BirdBox Learn course is linked to " + lwId }, 400);
+      const p = await coursePage(lwId, page);
+      const people = [];
+      for (const u of p.items) {
+        const email = (pick(u, "email") || "").toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) continue;
+        const first = pick(u, "first_name", "firstName"), last = pick(u, "last_name", "lastName");
+        for (const c of rows) people.push({ course_id: c.id, email, source: "learnworlds import", first_name: first ? first.slice(0, 80) : null, last_name: last ? last.slice(0, 80) : null });
+      }
+      let added = 0;
+      if (people.length) {
+        const { data, error } = await db.from("learn_enrolments").upsert(people, { onConflict: "course_id,email", ignoreDuplicates: true }).select("id");
+        if (error) throw new Error(error.message);
+        added = (data || []).length;
+      }
+      return json({ seen: p.items.length, added, pages: p.pages });
     }
     return json({ error: "Unknown action." }, 400);
   } catch (err) {
-    console.error("learn-migrate-invite:", err && (err.message || err));
+    console.error("learn-import-lw:", err && (err.message || err));
     return json({ error: String((err && err.message) || err) }, 500);
   }
-};
-
-async function all(table, cols) {
-  const out = [];
-  for (let from = 0; from < 100000; from += 1000) {
-    const { data, error } = await db.from(table).select(cols).range(from, from + 999);
-    if (error) throw new Error(table + ": " + error.message);
-    out.push(...data);
-    if (data.length < 1000) break;
-  }
-  return out;
-}
-async function loggedIn() {
-  const s = new Set();
-  for (let page = 1; page < 50; page++) {
-    const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw new Error(error.message);
-    for (const u of data.users) if (u.email && u.last_sign_in_at) s.add(u.email.toLowerCase());
-    if (data.users.length < 1000) break;
-  }
-  return s;
-}
-
-// Build the list of people to email, and why the others are skipped.
-async function people() {
-  const [enr, courses, staff, sent, logged] = await Promise.all([
-    all("learn_enrolments", "email, source, course_id, first_name, last_name"),
-    all("learn_courses", "id, slug, title, language"),
-    all("learn_all_access", "email"),
-    all("learn_invites", "email, sent_at"),
-    loggedIn(),
-  ]);
-  const courseBy = new Map(courses.map((c) => [c.id, c]));
-  const staffSet = new Set(staff.map((s) => s.email.toLowerCase()));
-  const sentBy = new Map(sent.map((s) => [s.email.toLowerCase(), s.sent_at]));
-  const by = new Map();
-  for (const e of enr) {
-    const k = String(e.email || "").toLowerCase(); if (!k) continue;
-    if (!by.has(k)) by.set(k, { email: k, first: null, last: null, imported: [], other: 0 });
-    const p = by.get(k);
-    if (e.source === "learnworlds import") p.imported.push(courseBy.get(e.course_id)); else p.other++;
-    p.first = p.first || e.first_name; p.last = p.last || e.last_name;
-  }
-  const todo = [], skipped = { already_on_portal: 0, staff: 0, logged_in: 0, already_emailed: 0 };
-  for (const p of by.values()) {
-    if (!p.imported.length) continue;
-    if (staffSet.has(p.email)) { skipped.staff++; continue; }
-    if (p.other) { skipped.already_on_portal++; continue; }
-    if (logged.has(p.email)) { skipped.logged_in++; continue; }
-    if (sentBy.has(p.email)) { skipped.already_emailed++; continue; }
-    const courses = p.imported.filter(Boolean);
-    todo.push({ email: p.email, name: [p.first, p.last].filter(Boolean).join(" "), first: p.first || "", lang: pickLang(courses), courses: courses.map((c) => c.title) });
-  }
-  todo.sort((a, b) => a.email.localeCompare(b.email));
-  return { todo, skipped };
-}
-async function list() { return people(); }
-
-function pickLang(courses) {
-  const langs = new Set(courses.map((c) => String(c.language || "en").slice(0, 2).toLowerCase()));
-  if (langs.size === 1) { const l = [...langs][0]; if (TEXT[l]) return l; }
-  return "en";
-}
-
-// The portal passes the details from "list", so each send is quick; only the
-// checks that matter for sending twice are repeated here.
-async function sendOne(email, p) {
-  const { data: done } = await db.from("learn_invites").select("email").eq("email", email).maybeSingle();
-  if (done) return { error: email + " has already been emailed." };
-  const { data: imp } = await db.from("learn_enrolments").select("id").eq("email", email).eq("source", "learnworlds import").limit(1);
-  if (!imp || !imp.length) return { error: email + " was not imported from LearnWorlds." };
-  await deliver(email, { first: String(p.first || "").slice(0, 60), lang: TEXT[p.lang] ? p.lang : "en", courses: (Array.isArray(p.courses) ? p.courses : []).slice(0, 12).map((c) => String(c).slice(0, 120)) });
-  await db.from("learn_invites").upsert({ email, sent_at: new Date().toISOString(), kind: "learnworlds-move" }, { onConflict: "email" });
-  return { ok: true };
-}
-
-async function deliver(to, p) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) throw new Error("The email service is not set up (no Resend key).");
-  const T = TEXT[p.lang] || TEXT.en;
-  const link = learnStartLink(to, 30);
-  const first = String(p.first || "").trim().split(/\s+/)[0];
-  const hi = first ? T.hi(first) : T.hiNoName;
-  const list = (p.courses || []).filter(Boolean);
-  const p3 = T.p3(closeDate(p.lang));
-  const text = [hi, "", T.p1, "", ...list.map((c) => "• " + c), "", T.button + ":", link, "", T.p2, "", p3, "", T.p4, "", "Nathan", "BirdBox Coaching"].join("\n");
-  const html = `<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#16181b;max-width:540px">
-<p>${esc(hi)}</p>
-<p>${esc(T.p1)}</p>
-${list.length ? "<ul style=\"padding-left:1.2em\">" + list.map((c) => "<li><b>" + esc(c) + "</b></li>").join("") + "</ul>" : ""}
-<p style="margin:28px 0"><a href="${link.replace(/&/g, "&amp;")}" style="display:inline-block;background:#4FA8DE;color:#0C1116;text-decoration:none;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:14px;padding:14px 26px">${esc(T.button)}</a></p>
-<p>${esc(T.p2)}</p>
-<p>${esc(p3)}</p>
-<p>${esc(T.p4)}</p>
-<p>Nathan<br>BirdBox Coaching</p>
-</div>`;
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: `BirdBox Coaching <${FROM}>`, to: [to], reply_to: OFFICE, subject: T.subject, text, html }),
-  });
-  if (!res.ok) throw new Error("The email was not accepted: " + (await res.text()).slice(0, 160));
-}
-
-// The last day BirdBox Academy (LearnWorlds) is open. Change here if the date moves.
-const ACADEMY_CLOSES = "2026-10-30";
-const closeDate = (lang) => new Intl.DateTimeFormat({ en: "en-GB", es: "es-ES", fr: "fr-FR", it: "it-IT", de: "de-DE" }[lang] || "en-GB",
-  { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(ACADEMY_CLOSES + "T12:00:00Z"));
-
-const TEST_COURSE = {
-  en: "The Coaches Course — Level 1 Online", es: "The Gymnastics Course - en línea : Español",
-  fr: "The Gymnastics Course - en ligne : Français", it: "The Gymnastics Course - online : Italiano",
-  de: "The Coaches Course Level 2 - online : Deutsch",
-};
-
-const TEXT = {
-  en: {
-    subject: "Your BirdBox online course has moved",
-    hi: (n) => `Hi ${n},`, hiNoName: "Hi,",
-    p1: "Your BirdBox online course now lives on our own website, birdboxcoaching.com, instead of BirdBox Academy. Your course:",
-    button: "Open my course",
-    p2: "The first tap sets up your account on the new site. The link is personal to you and works for 30 days — every tap logs you straight in. Once you are in, set a password under “Set or change your password” so you can log in any time at birdboxcoaching.com/learn.",
-    p3: (d) => `BirdBox Academy will stay open until ${d}, so there is no rush — but after that date your course will only be available on the new site, so please make the switch before then. Progress from the old academy does not carry across, so the course starts from the beginning here. We think you will enjoy the new home for your course.`,
-    p4: "Any questions, just reply to this email.",
-  },
-  es: {
-    subject: "Tu curso online de BirdBox se ha trasladado",
-    hi: (n) => `Hola ${n}:`, hiNoName: "Hola:",
-    p1: "Tu curso online de BirdBox ahora está en nuestra propia web, birdboxcoaching.com, en lugar de BirdBox Academy. Tu curso:",
-    button: "Abrir mi curso",
-    p2: "Al pulsarlo por primera vez se crea tu cuenta en la nueva web. El enlace es personal y funciona durante 30 días: cada vez que lo pulses entrarás directamente. Una vez dentro, crea una contraseña en «Set or change your password» para poder entrar cuando quieras en birdboxcoaching.com/learn.",
-    p3: (d) => `BirdBox Academy seguirá abierta hasta el ${d}, así que no hay prisa; a partir de esa fecha tu curso solo estará disponible en la nueva web, por lo que te pedimos que te pases antes. El progreso de la antigua academia no se traslada, así que el curso empieza desde el principio aquí. Esperamos que disfrutes del nuevo hogar de tu curso.`,
-    p4: "Si tienes cualquier pregunta, responde a este correo.",
-  },
-  fr: {
-    subject: "Votre cours en ligne BirdBox a déménagé",
-    hi: (n) => `Bonjour ${n},`, hiNoName: "Bonjour,",
-    p1: "Votre cours en ligne BirdBox se trouve désormais sur notre propre site, birdboxcoaching.com, et non plus sur BirdBox Academy. Votre cours :",
-    button: "Ouvrir mon cours",
-    p2: "Le premier clic crée votre compte sur le nouveau site. Le lien vous est personnel et fonctionne pendant 30 jours : chaque clic vous connecte directement. Une fois connecté, créez un mot de passe dans « Set or change your password » pour pouvoir vous connecter à tout moment sur birdboxcoaching.com/learn.",
-    p3: (d) => `BirdBox Academy restera ouverte jusqu’au ${d}, rien ne presse donc — mais après cette date, votre cours ne sera disponible que sur le nouveau site : pensez à faire le changement d’ici là. La progression de l’ancienne académie n’est pas transférée, le cours reprend donc depuis le début ici. Nous espérons que vous apprécierez ce nouvel espace.`,
-    p4: "Pour toute question, répondez simplement à cet e-mail.",
-  },
-  it: {
-    subject: "Il tuo corso online BirdBox si è trasferito",
-    hi: (n) => `Ciao ${n},`, hiNoName: "Ciao,",
-    p1: "Il tuo corso online BirdBox ora si trova sul nostro sito, birdboxcoaching.com, invece che su BirdBox Academy. Il tuo corso:",
-    button: "Apri il mio corso",
-    p2: "Il primo clic crea il tuo account sul nuovo sito. Il link è personale e funziona per 30 giorni: ogni clic ti fa accedere direttamente. Una volta dentro, imposta una password in «Set or change your password» per accedere quando vuoi su birdboxcoaching.com/learn.",
-    p3: (d) => `BirdBox Academy resterà aperta fino al ${d}, quindi nessuna fretta; dopo quella data il tuo corso sarà disponibile solo sul nuovo sito, per cui ti chiediamo di passare prima. I progressi della vecchia accademia non vengono trasferiti, quindi il corso riparte dall’inizio qui. Speriamo che la nuova casa del tuo corso ti piaccia.`,
-    p4: "Per qualsiasi domanda, rispondi semplicemente a questa email.",
-  },
-  de: {
-    subject: "Dein BirdBox Online-Kurs ist umgezogen",
-    hi: (n) => `Hallo ${n},`, hiNoName: "Hallo,",
-    p1: "Dein BirdBox Online-Kurs befindet sich jetzt auf unserer eigenen Website, birdboxcoaching.com, statt auf der BirdBox Academy. Dein Kurs:",
-    button: "Meinen Kurs öffnen",
-    p2: "Beim ersten Klick wird dein Konto auf der neuen Website eingerichtet. Der Link ist persönlich und 30 Tage gültig – jeder Klick meldet dich direkt an. Lege danach unter „Set or change your password“ ein Passwort fest, damit du dich jederzeit auf birdboxcoaching.com/learn anmelden kannst.",
-    p3: (d) => `Die BirdBox Academy bleibt bis zum ${d} geöffnet – es eilt also nicht. Danach ist dein Kurs nur noch auf der neuen Website verfügbar, bitte wechsle also bis dahin. Der Fortschritt aus der alten Academy wird nicht übernommen, daher beginnt der Kurs hier von vorn. Wir hoffen, dir gefällt das neue Zuhause deines Kurses.`,
-    p4: "Bei Fragen antworte einfach auf diese E-Mail.",
-  },
 };
