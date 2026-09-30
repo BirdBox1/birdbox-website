@@ -200,6 +200,16 @@
       <div id="lw-msg" class="msg"></div>
       <div id="lw-out" class="tablewrap"></div>
 
+      <h2 style="margin-top:1.6rem">Completed on LearnWorlds</h2>
+      <p class="hint" style="margin:0 0 .8rem">Marks students who already finished a course on LearnWorlds as completed here, so their course shows Completed and they can download a certificate if they want one. Nobody is emailed.</p>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+        <button id="lc-probe" class="btn ghost" type="button">A. Test one student</button>
+        <button id="lc-check" class="btn ghost" type="button">B. Count completions</button>
+        <button id="lc-save" class="btn" type="button" disabled>C. Mark them completed</button>
+      </div>
+      <div id="lc-msg" class="msg"></div>
+      <div id="lc-out" class="tablewrap" style="max-height:24rem;overflow:auto"></div>
+
       <h2 style="margin-top:1.6rem">Email the imported students</h2>
       <p class="hint" style="margin:0 0 .8rem">Emails each imported student a one-tap link to their course, in their course's language. Skips anyone who was already on the portal, staff, anyone who has already logged in, and anyone already emailed.</p>
       <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
@@ -939,6 +949,65 @@ $("lw-import").addEventListener("click", async () => {
   refreshAfterChange();
 });
 
+
+
+// ---------------- completions from LearnWorlds ----------------
+async function lcCourses() {
+  if (!lwCourses.length) lwCourses = (await lwCall({ action: "preview" })).courses;
+  return lwCourses.filter((c) => !c.error && c.sample && c.sample.email);
+}
+$("lc-probe").addEventListener("click", async () => {
+  const msg = $("lc-msg"), out = $("lc-out"); msg.className = "msg"; msg.textContent = "Asking LearnWorlds…"; out.innerHTML = "";
+  try {
+    const list = await lcCourses();
+    const c = list.find((x) => /bbcdlevel1/.test(x.lw_id)) || list[0];
+    const r = await lwCall({ action: "probe", lw_id: c.lw_id });
+    msg.className = r.status >= 200 && r.status < 300 ? "msg ok" : "msg err";
+    msg.textContent = c.lw_id + " · " + r.user + " · LearnWorlds answered " + r.status + " · read as: " + JSON.stringify(r.read);
+    const pre = document.createElement("pre"); pre.style.cssText = "white-space:pre-wrap;font-size:12px;max-height:18rem;overflow:auto";
+    pre.textContent = r.tried + "\n" + (typeof r.body === "string" ? r.body : JSON.stringify(r.body, null, 2)).slice(0, 4000);
+    out.appendChild(pre);
+  } catch (e) { msg.className = "msg err"; msg.textContent = e.message; }
+});
+async function lcRun(save) {
+  const msg = $("lc-msg"), out = $("lc-out");
+  const list = await lcCourses();
+  const totals = []; let all = 0; const errors = [];
+  for (const c of list) {
+    let page = 1, pages = c.pages || 1, n = 0, checked = 0;
+    const people = [];
+    while (page <= pages && page <= 200) {
+      msg.className = "msg"; msg.textContent = (save ? "Saving " : "Checking ") + c.slugs.join(", ") + " — page " + page + " of " + pages + "… keep this page open.";
+      try { const r = await lwCall({ action: "completions", lw_id: c.lw_id, page, save }); n += r.completed; checked += r.checked; pages = r.pages || pages; people.push(...r.people); if (!r.checked) break; }
+      catch (e) { errors.push(c.lw_id + " p" + page + ": " + e.message); break; }
+      page++;
+    }
+    all += n; totals.push({ c, n, checked, people });
+  }
+  out.innerHTML = "";
+  const t = document.createElement("table");
+  t.innerHTML = "<thead><tr><th>Course</th><th>Students checked</th><th>Completed</th><th>Examples</th></tr></thead>";
+  const tb = document.createElement("tbody");
+  for (const x of totals) {
+    const tr = document.createElement("tr");
+    for (const v of [x.c.slugs.join(", "), x.checked, x.n, x.people.slice(0, 3).map((p) => p.email + (p.at ? " (" + p.at.slice(0, 10) + ")" : "")).join(", ")]) { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); }
+    tb.appendChild(tr);
+  }
+  t.appendChild(tb); out.appendChild(t);
+  msg.className = errors.length ? "msg err" : "msg ok";
+  msg.textContent = (save ? "Done. " + all + " marked completed." : all + " completions found. Nothing saved yet — press C to mark them completed.") + (errors.length ? " Problems: " + errors.join(" | ") : "");
+  return all;
+}
+$("lc-check").addEventListener("click", async () => {
+  $("lc-check").disabled = true;
+  try { const n = await lcRun(false); $("lc-save").disabled = !n; } catch (e) { $("lc-msg").className = "msg err"; $("lc-msg").textContent = e.message; }
+  $("lc-check").disabled = false;
+});
+$("lc-save").addEventListener("click", async () => {
+  if (!confirm("Mark everyone who finished on LearnWorlds as completed here?\n\nNobody is emailed.")) return;
+  $("lc-save").disabled = true;
+  try { await lcRun(true); refreshAfterChange(); } catch (e) { $("lc-msg").className = "msg err"; $("lc-msg").textContent = e.message; }
+});
 
 // ---------------- email the imported LearnWorlds students ----------------
 async function miCall(body) {
