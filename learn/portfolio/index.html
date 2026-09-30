@@ -482,6 +482,11 @@
         <p>A guided imagery exercise with an audio guide, then rate how vivid each sense was.</p>
         <span id="imagery-status">Open →</span>
       </a>
+      <a class="tool" href="?tool=reflect-scp">
+        <h3>Reflection checkpoint — self-confidence, PST &amp; growth mindset</h3>
+        <p>What you have learned in this unit and how you will use it with yourself and your athletes.</p>
+        <span id="reflect-scp-status">Open →</span>
+      </a>
       <a class="tool" href="?tool=standards">
         <h3>My standards audit</h3>
         <p>Where your members are on their journey, the standards you hold for each stage, and why athletes may be staying at beginner level.</p>
@@ -2958,6 +2963,24 @@ $("id-reset").onclick = () => { clearInterval(idClock.run); idClock = { left: 30
 // One page, many units: add a unit here and link Rise to ?tool=<key>.
 // Question types: text, three (three boxes side by side), actions (1-3 actions), scale (1-10).
 const REFLECT = {
+  "reflect-scp": {
+    unit: "Self-Confidence, Psychological Skills Training & Growth Mindset",
+    title: "Reflection checkpoint — self-confidence, psychological skills training and growth mindset",
+    lede: "Use this reflective cycle to review your understanding of self-confidence, psychological skills training and growth mindset now that you have finished this unit, and plan how you will apply it.",
+    lookTitle: "Look back",
+    look: [["imagery", "My imagery exercise"], ["anxiety", "What makes athletes anxious?"], ["dependence", "Dependent, independent or interdependent?"]],
+    qs: [
+      { k: "learned", type: "text", q: "What are the most important things you have learned in this unit?", hint: "Pick two or three ideas that changed how you think about confidence, mental skills or mindset." },
+      { k: "confidence", type: "text", q: "Where do you feel confident as a coach, and where does your confidence drop? How do your athletes see that?", hint: "Think about your body language, your voice and your decisions when you feel less sure." },
+      { k: "pst", type: "three", q: "How will you use psychological skills — for yourself and with your athletes?", hint: "Give a real example for each: when, with whom, and what you will say or do.",
+        boxes: [["imagery", "Imagery", "e.g. Before a heavy single, have the athlete picture the lift and feel the positions"], ["selftalk", "Self-talk", "e.g. Swap “don't miss it” for one positive cue word"], ["goals", "Goal setting", "e.g. One process goal per session, reviewed after class"]] },
+      { k: "fixed", type: "text", q: "Think of a recent time you or an athlete showed a fixed mindset. What happened, and how could you reframe it with a growth mindset?", hint: "e.g. “I'm just not good at double-unders” → “I can't do them yet — here is what I will practise.”" },
+      { k: "words", type: "actions", q: "Which words or phrases will you use to encourage a growth mindset in your athletes?", hint: "Up to three phrases you will use in your next sessions.", ph: "e.g. “You can't do it yet — what will you practise?”" },
+      { k: "actions", type: "actions", q: "What will you apply in your coaching over the next two weeks?", hint: "Up to three specific actions." },
+      { k: "measure", type: "text", q: "How will you know it is working?", hint: "What will you see or hear from your athletes — and from yourself?" },
+      { k: "confidence_pst", type: "scale", q: "How confident do you feel using psychological skills training with your athletes?", ends: ["Not yet", "Very confident"] },
+    ],
+  },
   "reflect-lps-post": {
     unit: "Learning Physical Skills and Making Effective Sessions",
     title: "Reflection checkpoint — learning and instructing physical skills",
@@ -3076,7 +3099,7 @@ function rfRender(cfg) {
       A[item.k].forEach((v, j) => {
         const row = document.createElement("div"); row.className = "pt";
         const n = document.createElement("span"); n.textContent = (j + 1) + ".";
-        row.append(n, ta(A[item.k], j, j === 0 ? "e.g. Ask two athletes after each class what they want more of" : "", "46px"));
+        row.append(n, ta(A[item.k], j, j === 0 ? (item.ph || "e.g. Ask two athletes after each class what they want more of") : "", "46px"));
         d.appendChild(row);
       });
     }
