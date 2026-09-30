@@ -191,6 +191,11 @@
   .pick4 button.on{border-color:var(--accent);background:#16303F}
   .match{font-size:14px;padding:10px 12px;margin:0 0 12px;border-left:4px solid var(--good);background:var(--panel)}
   .match.off{border-left-color:#E0B84F}
+  .tags{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+  .tags button{font:inherit;font-size:12.5px;padding:6px 10px;background:var(--panel);color:var(--muted);border:1px solid var(--line);cursor:pointer;border-radius:14px}
+  .tags button.on{background:var(--accent);border-color:var(--accent);color:#0C1116;font-weight:700}
+  .ch input.nm{width:100%;font:inherit;font-size:17px;font-weight:700;padding:9px 10px;background:var(--panel);color:var(--ink);border:1px solid var(--line);margin:0 0 10px}
+  .goal{font-size:14px;color:var(--muted)} .goal b{color:var(--good)}
   .cmp{width:100%;font-size:14px}
   .cmp td,.cmp th{padding:7px 6px}
   .up{color:var(--good);font-weight:700} .down{color:var(--bad);font-weight:700}
@@ -282,6 +287,11 @@
         <h3>Four-way coaching model reflective report</h3>
         <p>Reflect on recent sessions with Hersey and Blanchard's four styles: telling, selling, participating and delegating.</p>
         <span id="leadership-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=characters">
+        <h3>The athletes I coach</h3>
+        <p>Create character names for the different people you coach — their traits, what makes them different, and what they need from you.</p>
+        <span id="characters-status">Open →</span>
       </a>
     </div>
   </section>
@@ -662,6 +672,42 @@
       <span class="savestate" id="sl-state"></span>
     </div>
   </section>
+  <!-- athlete characters -->
+  <section id="characters" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Multidimensional Model of Sport Leadership</p>
+    <h1>The athletes I coach</h1>
+    <p class="lede">Spend 10–15 minutes reflecting on the different people you coach regularly. Give each type a character name, note the traits you have seen, and what makes them different. Aim for 5–10 characters of your own.</p>
+
+    <div class="panel noprint">
+      <h2>15-minute timer</h2>
+      <div class="timer"><span class="clock" id="ch-clock">15:00</span>
+        <button class="btn small" id="ch-start" type="button">Start</button>
+        <button class="btn ghost small" id="ch-reset" type="button">Reset</button>
+        <span class="goal" id="ch-goal"></span></div>
+    </div>
+
+    <div id="ch-list"></div>
+    <button class="btn ghost small noprint" id="ch-add" type="button" style="margin:-6px 0 18px">+ Add a character</button>
+
+    <div class="panel">
+      <h2>What makes my athletes different</h2>
+      <p class="lede" style="font-size:14px;margin:0 0 8px">How often each factor came up across your characters.</p>
+      <div class="bars" id="ch-bars"></div>
+    </div>
+
+    <div class="panel">
+      <h2>My reflections</h2>
+      <p class="lede noprint" style="font-size:14px;margin:0 0 10px">Which character do you find easiest to coach, and which the hardest? Do you coach every character the same way? Where does what the athlete prefers differ from what the situation requires?</p>
+      <textarea id="ch-notes" placeholder="Write your thoughts here…"></textarea>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="ch-save" type="button">Save</button>
+      <button class="btn ghost" id="ch-download" type="button">Download PDF</button>
+      <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+      <span class="savestate" id="ch-state"></span>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -670,7 +716,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -709,6 +755,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (ls && ls.data.result && tool === "listening") await lsSave();
   if (ax && tool === "anxiety") await axSave();
   if (sl && tool === "leadership") await slSave();
+  if (ch && tool === "characters") await chSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -725,6 +772,7 @@ async function boot() {
   if (tool === "listening") return openListening();
   if (tool === "anxiety") return openAnxiety();
   if (tool === "leadership") return openLeadership();
+  if (tool === "characters") return openCharacters();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -741,6 +789,8 @@ async function boot() {
   if (axr) $("anxiety-status").textContent = "Last saved " + new Date(axr.updated_at).toLocaleDateString("en-GB") + " →";
   const slr = (data || []).find((r) => r.tool === "leadership");
   if (slr) $("leadership-status").textContent = "Last saved " + new Date(slr.updated_at).toLocaleDateString("en-GB") + " →";
+  const chr = (data || []).find((r) => r.tool === "characters");
+  if (chr) $("characters-status").textContent = ((chr.data && chr.data.chars || []).filter((c) => (c.name || "").trim()).length) + " characters →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -1863,6 +1913,109 @@ async function slSave() {
 $("sl-notes").addEventListener("input", slChanged);
 $("sl-save").onclick = async () => { if (await slSave()) $("sl-state").textContent = "Saved ✓"; };
 $("sl-download").onclick = async () => { await slSave(); window.print(); };
+
+// ---------------- athlete characters ----------------
+const CH_FACTORS = ["Age", "Training experience", "Goals", "Motivation", "Confidence", "Personality colour", "Learning style", "Injury history", "Life outside the gym", "Social needs", "Competitiveness", "Attendance"];
+const CH_EG = [
+  ["e.g. The Newbie", "e.g. Nervous, asks lots of questions, compares themselves to others", "e.g. Clear steps, reassurance, early wins"],
+  ["e.g. The Competitor", "e.g. Always checks the whiteboard, pushes for load over form", "e.g. A firm standard, and a reason why it matters"],
+];
+let ch = null;
+let chTimer = null;
+let chClock = { left: 900, run: null };
+const blankChar = () => ({ name: "", traits: "", factors: [], needs: "", adapt: "" });
+
+async function openCharacters() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "characters").maybeSingle();
+  ch = data || { tool: "characters", data: { notes: "" } };
+  ch.data.chars = ch.data.chars && ch.data.chars.length ? ch.data.chars : [blankChar(), blankChar(), blankChar()];
+  $("ch-notes").value = ch.data.notes || "";
+  chRender();
+  show("characters");
+}
+
+function chRender() {
+  const box = $("ch-list"); box.innerHTML = "";
+  ch.data.chars.forEach((c, i) => {
+    const d = document.createElement("div"); d.className = "panel ch";
+    if (ch.data.chars.length > 1) {
+      const del = document.createElement("button"); del.type = "button"; del.className = "btn ghost small noprint"; del.textContent = "Remove"; del.style.float = "right";
+      del.onclick = () => { ch.data.chars.splice(i, 1); chRender(); chChanged(); };
+      d.appendChild(del);
+    }
+    const h = document.createElement("h2"); h.textContent = "Character " + (i + 1); d.appendChild(h);
+    const eg = CH_EG[i] || ["Character name", "", ""];
+    const nm = document.createElement("input"); nm.className = "nm"; nm.value = c.name; nm.placeholder = eg[0]; nm.maxLength = 60;
+    nm.oninput = () => { c.name = nm.value; chChanged(); chSummary(); };
+    d.appendChild(nm);
+    const field = (label, key, ph) => {
+      const w = document.createElement("div"); w.className = "fld";
+      const l = document.createElement("label"); l.textContent = label;
+      const t = document.createElement("textarea"); t.value = c[key] || ""; t.placeholder = ph || ""; t.style.minHeight = "64px";
+      t.oninput = () => { c[key] = t.value; chChanged(); };
+      w.append(l, t); return w;
+    };
+    d.appendChild(field("Traits I have seen", "traits", eg[1]));
+    const tl = document.createElement("label"); tl.textContent = "What makes them different"; tl.style.cssText = "display:block;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 6px";
+    const tags = document.createElement("div"); tags.className = "tags";
+    for (const f of CH_FACTORS) {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = f; b.classList.toggle("on", c.factors.includes(f));
+      b.onclick = () => { c.factors = c.factors.includes(f) ? c.factors.filter((x) => x !== f) : [...c.factors, f]; b.classList.toggle("on"); chSummary(); chChanged(); };
+      tags.appendChild(b);
+    }
+    d.append(tl, tags);
+    d.appendChild(field("What they prefer from me as a coach", "needs", eg[2]));
+    d.appendChild(field("How I will adapt my coaching for them", "adapt", ""));
+    box.appendChild(d);
+  });
+  chSummary();
+}
+$("ch-add").onclick = () => { ch.data.chars.push(blankChar()); chRender(); chChanged(); $("ch-list").lastChild.scrollIntoView({ behavior: "smooth", block: "start" }); };
+
+function chSummary() {
+  const named = ch.data.chars.filter((c) => c.name.trim()).length;
+  $("ch-goal").innerHTML = named >= 5 ? `<b>${named} characters ✓</b>` : named + " of 5–10 characters";
+  const counts = {};
+  for (const c of ch.data.chars) for (const f of c.factors) counts[f] = (counts[f] || 0) + 1;
+  const list = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const max = Math.max(1, ...list.map((x) => x[1]));
+  $("ch-bars").innerHTML = list.length ? "" : '<p class="hist" style="margin:0">Tag what makes each character different and it shows here.</p>';
+  for (const [f, n] of list) {
+    const row = document.createElement("div"); row.className = "b"; row.style.gridTemplateColumns = "150px 1fr 30px";
+    const a = document.createElement("span"); a.textContent = f; a.style.fontWeight = "600";
+    const t = document.createElement("div"); t.className = "t"; t.innerHTML = `<i style="width:${n / max * 100}%;background:var(--accent)"></i>`;
+    const c2 = document.createElement("span"); c2.textContent = n;
+    row.append(a, t, c2); $("ch-bars").appendChild(row);
+  }
+}
+
+function chChanged() { $("ch-state").textContent = "Unsaved changes"; clearTimeout(chTimer); chTimer = setTimeout(chSave, 1500); }
+async function chSave() {
+  clearTimeout(chTimer);
+  ch.data.notes = $("ch-notes").value;
+  const row = { user_id: session.user.id, tool: "characters", data: ch.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("ch-state").textContent = "Not saved — " + error.message; return false; }
+  ch = { ...data, data: ch.data };
+  $("ch-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("ch-notes").addEventListener("input", chChanged);
+$("ch-save").onclick = async () => { if (await chSave()) $("ch-state").textContent = "Saved ✓"; };
+$("ch-download").onclick = async () => { await chSave(); window.print(); };
+function chTick() {
+  const m = Math.floor(chClock.left / 60), s2 = chClock.left % 60;
+  $("ch-clock").textContent = chClock.left === 0 ? "Time!" : m + ":" + String(s2).padStart(2, "0");
+  $("ch-clock").classList.toggle("done", chClock.left === 0);
+  if (chClock.left === 0) { clearInterval(chClock.run); chClock.run = null; $("ch-start").textContent = "Start"; }
+}
+$("ch-start").onclick = () => {
+  if (chClock.run) { clearInterval(chClock.run); chClock.run = null; $("ch-start").textContent = "Start"; return; }
+  if (chClock.left === 0) chClock.left = 900;
+  chClock.run = setInterval(() => { chClock.left = Math.max(0, chClock.left - 1); chTick(); }, 1000);
+  $("ch-start").textContent = "Pause";
+};
+$("ch-reset").onclick = () => { clearInterval(chClock.run); chClock = { left: 900, run: null }; $("ch-start").textContent = "Start"; chTick(); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
