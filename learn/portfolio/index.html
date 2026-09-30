@@ -462,6 +462,11 @@
         <p>Tap a muscle on the body map to see where it starts, where it attaches and what it does — then test yourself.</p>
         <span id="anatomy-status">Open →</span>
       </a>
+      <a class="tool" href="?tool=rpcycle">
+        <h3>Reflective practice cycle</h3>
+        <p>Your first deliberate reflection: thinking about practice, planning and doing, then reflecting after you coach.</p>
+        <span id="rpcycle-status">Open →</span>
+      </a>
     </div>
   </section>
 
@@ -1198,6 +1203,24 @@
       </div>
     </div>
   </section>
+  <!-- reflective practice cycle -->
+  <section id="rpcycle" class="hidden">
+    <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My portfolio</a> · The Coaches Course · Reflection &amp; Observation</p>
+    <h1>Reflective practice cycle</h1>
+    <p class="lede">Your first deliberate reflection using the RP cycle. Be as thorough as you can — this is a skill you will keep developing through the course.</p>
+    <div class="steps5 noprint" id="rp-steps" style="grid-template-columns:repeat(3,1fr)"></div>
+    <div class="panel" id="rp-step"></div>
+    <div class="panel">
+      <h2>My reflection so far</h2>
+      <div class="ph-doc" id="rp-doc"></div>
+    </div>
+    <div class="row noprint">
+      <button class="btn" id="rp-save" type="button">Save</button>
+      <button class="btn ghost" id="rp-download" type="button">Download PDF</button>
+      <a class="btn ghost" href="/learn/" data-back>← Back to my course</a>
+      <span class="savestate" id="rp-state"></span>
+    </div>
+  </section>
 </main>
 
 <script type="module">
@@ -1206,7 +1229,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
-const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors", "philosophy", "observation", "standards", "mmp", "anatomy"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors", "philosophy", "observation", "standards", "mmp", "anatomy", "rpcycle"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
 let doc = null;          // the learn_portfolio row for this tool
@@ -1255,6 +1278,7 @@ document.querySelectorAll("[data-back]").forEach((el) => el.addEventListener("cl
   if (sd && tool === "standards") await stSave();
   if (mm && tool === "mmp") await mmSave();
   if (an && tool === "anatomy") await anSave();
+  if (rp && tool === "rpcycle") await rpSave();
   window.close();
   setTimeout(() => { location.href = "/learn/"; }, 300);
 }));
@@ -1281,6 +1305,7 @@ async function boot() {
   if (tool === "standards") return openStandards();
   if (tool === "mmp") return openMmp();
   if (tool === "anatomy") return openAnatomy();
+  if (tool === "rpcycle") return openRp();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
   if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
@@ -1318,6 +1343,8 @@ async function boot() {
   if (mmr) { const n = (mmr.data && mmr.data.athletes || []).length; $("mmp-status").textContent = n + (n === 1 ? " athlete →" : " athletes →"); }
   const anr = (data || []).find((r) => r.tool === "anatomy");
   if (anr) $("anatomy-status").textContent = ((anr.data && anr.data.known || []).length) + " of " + AN.length + " muscles known →";
+  const rpr = (data || []).find((r) => r.tool === "rpcycle");
+  if (rpr) $("rpcycle-status").textContent = (rpr.data && rpr.data.coached ? "Step 3 · " : "Last saved ") + new Date(rpr.updated_at).toLocaleDateString("en-GB") + " →";
   if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
   show("home");
 }
@@ -4098,6 +4125,111 @@ async function anSave() {
   return true;
 }
 
+
+// ---------------- reflective practice (RP) cycle ----------------
+const RP = [
+  { short: "Thinking about practice", title: "Step 1 — Thinking about practice",
+    intro: "Spend time thinking about your current coaching. This is good practice with the RP cycle, and it identifies your starting point as a coach on this journey.",
+    qs: [["know", "What do I know about my current coaching?"], ["confident", "Where do I feel confident in my coaching?"],
+      ["peers", "Thinking back to my self-perception task in unit 1: did my peers or athletes identify any areas for my personal development?", "spider"],
+      ["conflict", "How often do I face conflict, demotivated participants, or a cultural (environment) issue when coaching?"]] },
+  { short: "Planning and doing", title: "Step 2 — Planning and doing practice",
+    intro: "Continuing from step 1, keep listing your thoughts on these questions. This helps you prepare before reflecting on something you were not ready to reflect on.",
+    qs: [["review", "How can I better review my coaching?"], ["tools", "What tools do I have available to me to review my coaching?"], ["better", "What things am I looking for to make me a better coach?"]] },
+  { short: "Reflecting on practice", title: "Step 3 — Reflecting on practice",
+    intro: "Now you have coached since step 2, answer these questions. Think back not just on that one session, but on all of your coaching sessions as a collective.",
+    qs: [["develop", "What aspects of my coaching practice do I need to develop?"], ["strengths", "What are my biggest strengths when I am coaching?"],
+      ["portray", "Do I portray confidence?"], ["change", "How could my learning help change my coaching for the better? Which elements of my coaching would benefit the most?"]] },
+];
+let rp = null;
+let rpTimer = null;
+let rpStep = 0;
+
+async function openRp() {
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", "rpcycle").maybeSingle();
+  rp = data || { tool: "rpcycle", data: {} };
+  rp.data.a = rp.data.a || {};
+  rpStep = rp.data.coached ? 2 : rpDone(0) ? 1 : 0;
+  rpRender();
+  show("rpcycle");
+}
+const rpDone = (i) => RP[i].qs.every(([k]) => (rp.data.a[k] || "").trim());
+
+function rpRender() {
+  const bar = $("rp-steps"); bar.innerHTML = "";
+  RP.forEach((st, i) => {
+    const b = document.createElement("button"); b.type = "button";
+    b.className = (i === rpStep ? "on " : "") + (rpDone(i) ? "done" : "");
+    b.innerHTML = "<b>" + (i + 1) + "</b>"; b.append(st.short);
+    b.onclick = () => { rpStep = i; rpRender(); };
+    bar.appendChild(b);
+  });
+  const st = RP[rpStep];
+  const box = $("rp-step"); box.innerHTML = "";
+  const h = document.createElement("h2"); h.textContent = st.title;
+  const intro = document.createElement("p"); intro.className = "lede"; intro.style.cssText = "font-size:14.5px;margin:0 0 14px"; intro.textContent = st.intro;
+  box.append(h, intro);
+  if (rpStep === 2 && !rp.data.coached) {
+    const gate = document.createElement("div"); gate.className = "match off"; gate.style.marginBottom = "14px";
+    gate.textContent = "Complete this step after you have coached. Come back once you have been out and done your job.";
+    box.appendChild(gate);
+  }
+  st.qs.forEach(([k, q, link], i) => {
+    const d = document.createElement("div"); d.className = "rq";
+    const hh = document.createElement("h3"); hh.textContent = (i + 1) + ") " + q; d.appendChild(hh);
+    if (link === "spider") { const a = document.createElement("a"); a.href = "?tool=spider"; a.target = "_blank"; a.className = "hist noprint"; a.style.cssText = "display:inline-block;margin:0 0 8px"; a.textContent = "Open my self-perception spider diagram ↗"; d.appendChild(a); }
+    const t = document.createElement("textarea"); t.value = rp.data.a[k] || "";
+    t.oninput = () => { rp.data.a[k] = t.value; rpChanged(); rpDoc(); };
+    t.onchange = () => $("rp-steps").querySelectorAll("button").forEach((b, j) => b.classList.toggle("done", rpDone(j)));
+    d.appendChild(t); box.appendChild(d);
+  });
+  if (rpStep === 1) {
+    const go = document.createElement("div"); go.className = "panel"; go.style.cssText = "background:#16303F;border-color:var(--accent);margin:4px 0 0";
+    const gh = document.createElement("h2"); gh.textContent = "GO COACH"; gh.style.color = "var(--accent)";
+    const gp = document.createElement("p"); gp.className = "lede"; gp.style.cssText = "font-size:14.5px;margin:0 0 12px";
+    gp.textContent = "Once you have answered these questions, take time away from this module and go and do your job. When you have coached, come back and complete step 3.";
+    const gb = document.createElement("button"); gb.type = "button"; gb.className = "btn small";
+    gb.textContent = rp.data.coached ? "✓ Coached on " + new Date(rp.data.coached).toLocaleDateString("en-GB") + " — go to step 3" : "I have coached — go to step 3";
+    gb.onclick = () => { if (!rp.data.coached) { rp.data.coached = new Date().toISOString(); rpChanged(); } rpStep = 2; rpRender(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    go.append(gh, gp, gb); box.appendChild(go);
+  }
+  const nav = document.createElement("div"); nav.className = "vnav";
+  const prev = document.createElement("button"); prev.type = "button"; prev.className = "btn ghost small"; prev.textContent = "← Previous step"; if (!rpStep) prev.style.visibility = "hidden";
+  prev.onclick = () => { rpStep--; rpRender(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const next = document.createElement("button"); next.type = "button"; next.className = "btn small";
+  next.textContent = rpStep === 2 ? "Save ✓" : "Next step →";
+  if (rpStep === 1) next.style.visibility = "hidden";
+  next.onclick = async () => { if (rpStep < 2) { rpStep++; rpRender(); window.scrollTo({ top: 0, behavior: "smooth" }); } else if (await rpSave()) $("rp-state").textContent = "Saved ✓"; };
+  nav.append(prev, next); box.appendChild(nav);
+  rpDoc();
+}
+
+function rpDoc() {
+  const d = $("rp-doc"); d.innerHTML = "";
+  const h = document.createElement("h3"); h.textContent = "Reflective practice cycle"; d.appendChild(h);
+  RP.forEach((st, i) => {
+    const h4 = document.createElement("h4"); h4.textContent = st.title + (i === 2 && rp.data.coached ? " (after coaching, " + new Date(rp.data.coached).toLocaleDateString("en-GB") + ")" : ""); d.appendChild(h4);
+    for (const [k, q] of st.qs) {
+      const p = document.createElement("p"); const b = document.createElement("b"); b.textContent = q; p.appendChild(b); d.appendChild(p);
+      const a = document.createElement("p"); const v = (rp.data.a[k] || "").trim();
+      if (v) { a.textContent = v; a.style.whiteSpace = "pre-wrap"; } else { a.className = "empty"; a.textContent = "Not answered yet"; }
+      a.style.marginBottom = "10px"; d.appendChild(a);
+    }
+  });
+}
+
+function rpChanged() { $("rp-state").textContent = "Unsaved changes"; clearTimeout(rpTimer); rpTimer = setTimeout(rpSave, 1500); }
+async function rpSave() {
+  clearTimeout(rpTimer);
+  const row = { user_id: session.user.id, tool: "rpcycle", data: rp.data, updated_at: new Date().toISOString() };
+  const { data, error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" }).select("*").single();
+  if (error) { $("rp-state").textContent = "Not saved — " + error.message; return false; }
+  rp = { ...data, data: rp.data };
+  $("rp-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("rp-save").onclick = async () => { if (await rpSave()) $("rp-state").textContent = "Saved ✓"; };
+$("rp-download").onclick = async () => { await rpSave(); window.print(); };
 
 // ---------------- rating links ----------------
 async function loadInvites() {
