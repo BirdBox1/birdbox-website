@@ -42,15 +42,15 @@
   .week .t{font-weight:700;flex:1 1 180px}
   .week .s{font-size:13px;color:var(--muted)}
   .week .s.all{color:var(--good)}
-  .week .body{padding:0 18px 18px;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .week .body{padding:0 18px 18px;display:grid;gap:14px}
   .rep{border:1px solid var(--line);padding:16px;background:var(--paper)}
   .rep h3{margin:0 0 4px;font-size:15px}
   .rep .st{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
   .rep .st.ok{color:var(--good)}
   .rep label{display:block;font-size:14px;font-weight:600;margin:12px 0 6px;line-height:1.4}
   .rep textarea{width:100%;min-height:76px;font:inherit;font-size:15px;padding:10px;background:var(--panel);color:var(--ink);border:1px solid var(--line);resize:vertical}
-  .scale{display:flex;flex-wrap:wrap;gap:4px}
-  .scale button{font:inherit;font-size:14px;width:36px;height:36px;background:var(--panel);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .scale{display:flex;gap:4px;max-width:396px}
+  .scale button{font:inherit;font-size:14px;flex:1 1 0;min-width:0;padding:0;height:38px;background:var(--panel);color:var(--ink);border:1px solid var(--line);cursor:pointer}
   .scale button.on{background:var(--accent);color:#0C1116;border-color:var(--accent)}
   .comment{border-left:3px solid var(--accent);padding:8px 12px;margin-top:14px;font-size:14px;line-height:1.55;white-space:pre-wrap}
   .comment b{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
@@ -60,6 +60,15 @@
   .locked{opacity:.5}
   .hidden{display:none!important}
   .soon{color:var(--muted);font-size:14px;line-height:1.6}
+  .rep .intro{font-size:14px;line-height:1.55;color:var(--muted);margin:0 0 6px}
+  .rep .sec{margin:22px 0 0;padding-top:14px;border-top:1px solid var(--line)}
+  .rep .sec b{display:block;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .rep .sec span{display:block;font-size:13px;color:var(--muted);margin-top:4px}
+  .ends{display:flex;justify-content:space-between;max-width:396px;font-size:12px;color:var(--muted);margin-top:4px}
+  .choice{display:grid;gap:6px}
+  .choice button{font:inherit;font-size:14px;text-align:left;padding:10px 12px;background:var(--panel);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .choice button.on{background:var(--accent);color:#0C1116;border-color:var(--accent)}
+  .rep .qn{color:var(--accent);font-weight:800;margin-right:6px}
 </style>
 </head>
 <body>
@@ -82,7 +91,7 @@
   <div id="app" class="hidden">
     <p class="kicker" id="m-kicker">Mentorship</p>
     <h1>My mentorship</h1>
-    <p class="lede">Each week starts with a short plan and ends with a reflection. Your mentor reads both and replies here.</p>
+    <p class="lede">Each week has two reflections: one at the start, before the week's learning, and one at the end. Your mentor reads both and replies here.</p>
 
     <div class="panel">
       <div class="facts">
@@ -107,30 +116,8 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 
-// The weekly questions. scale = 1–10 buttons, otherwise a text box.
-const Q = {
-  start: {
-    title: "Start of the week",
-    qs: [
-      ["focus", "What do you want to focus on in your coaching this week?"],
-      ["success", "What will success look like by the end of the week?"],
-      ["obstacles", "What might get in the way, and how will you handle it?"],
-      ["raise", "Is there anything you want to raise with your mentor this week?"],
-      ["confidence", "How confident are you that you will achieve your focus? (1–10)", "scale"],
-    ],
-  },
-  end: {
-    title: "End of the week",
-    qs: [
-      ["how", "How did your focus go this week?"],
-      ["well", "What went well, and why?"],
-      ["differently", "What would you do differently next time?"],
-      ["learned", "What did you learn from your mentor this week?"],
-      ["next", "What will you carry into next week?"],
-      ["rating", "How would you rate your week as a coach? (1–10)", "scale"],
-    ],
-  },
-};
+import { WEEKS } from "/learn/mentorship/weeks.js";
+const KIND = { start: "Start of the week", end: "End of the week" };
 
 let m = null, refl = new Map();
 
@@ -166,18 +153,21 @@ function render() {
   $("f-week").textContent = "Week " + now + " of " + m.weeks;
   $("f-start").textContent = new Date(m.start_date + "T00:00:00").toLocaleDateString("en-GB");
   const box = $("weeks"); box.innerHTML = "";
-  for (let w = now; w >= 1; w--) box.appendChild(weekBlock(w, w === now));
+  // open this week; if its questions aren't ready yet, also open the latest week that has them
+  let ready = now; while (ready > 1 && !WEEKS[ready]) ready--;
+  for (let w = now; w >= 1; w--) box.appendChild(weekBlock(w, w === now || w === ready));
 }
 
 function weekBlock(w, open) {
   const d = document.createElement("details"); d.className = "week"; d.open = open;
   const s = document.createElement("summary");
   const done = ["start", "end"].filter((k) => refl.get(w + ":" + k)?.submitted_at).length;
-  s.innerHTML = `<span class="n">Week ${w}</span><span class="t"></span><span class="s${done === 2 ? " all" : ""}">${done === 2 ? "✓ Both reflections done" : done + " of 2 reflections done"}</span>`;
+  s.innerHTML = `<span class="n">Week ${w}</span><span class="t"></span><span class="s${done === 2 ? " all" : ""}">${!WEEKS[w] ? "Coming soon" : done === 2 ? "✓ Both reflections done" : done + " of 2 reflections done"}</span>`;
   const from = new Date(new Date(m.start_date + "T00:00:00").getTime() + (w - 1) * 7 * 86400000);
-  s.querySelector(".t").textContent = "Week of " + from.toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+  s.querySelector(".t").textContent = (WEEKS[w] ? WEEKS[w].title + " · " : "") + "w/c " + from.toLocaleDateString("en-GB", { day: "numeric", month: "long" });
   const body = document.createElement("div"); body.className = "body";
-  body.append(report(w, "start"), report(w, "end"));
+  if (WEEKS[w]) body.append(report(w, "start"), report(w, "end"));
+  else { const p = document.createElement("p"); p.className = "soon"; p.textContent = "This week's reflections will appear here soon. Your mentor is preparing them."; body.append(p); }
   d.append(s, body);
   // keep the "x of 2 done" line up to date after sending
   d.addEventListener("saved", () => {
@@ -189,18 +179,38 @@ function weekBlock(w, open) {
 }
 
 function report(w, kind) {
-  const def = Q[kind], key = w + ":" + kind;
+  const def = WEEKS[w][kind], key = w + ":" + kind;
   const row = refl.get(key) || { answers: {} };
   const answers = { ...(row.answers || {}) };
   const el = document.createElement("div"); el.className = "rep";
-  const h = document.createElement("h3"); h.textContent = def.title;
+  const h = document.createElement("h3"); h.textContent = KIND[kind] + " — " + def.title;
   const st = document.createElement("p");
   st.className = "st" + (row.submitted_at ? " ok" : "");
   st.textContent = row.submitted_at ? "Sent to your mentor " + new Date(row.submitted_at).toLocaleDateString("en-GB") : row.id ? "Draft saved" : "Not started";
   el.append(h, st);
-  for (const [k, label, type] of def.qs) {
-    const l = document.createElement("label"); l.textContent = label; el.appendChild(l);
-    if (type === "scale") {
+  if (def.intro) { const i = document.createElement("p"); i.className = "intro"; i.textContent = def.intro; el.appendChild(i); }
+  let n = 0;
+  for (const q of def.qs) {
+    if (!Array.isArray(q)) {
+      const d = document.createElement("div"); d.className = "sec";
+      const b = document.createElement("b"); b.textContent = q.section; d.appendChild(b);
+      if (q.note) { const sp = document.createElement("span"); sp.textContent = q.note; d.appendChild(sp); }
+      el.appendChild(d); continue;
+    }
+    const [k, label, type, x, y] = q;
+    const l = document.createElement("label");
+    const num = document.createElement("span"); num.className = "qn"; num.textContent = ++n + ".";
+    l.append(num, document.createTextNode(label)); el.appendChild(l);
+    if (type === "choice") {
+      const ch = document.createElement("div"); ch.className = "choice";
+      for (const opt of x) {
+        const b = document.createElement("button"); b.type = "button"; b.textContent = opt;
+        if (answers[k] === opt) b.classList.add("on");
+        b.onclick = () => { answers[k] = opt; ch.querySelectorAll("button").forEach((z) => z.classList.toggle("on", z === b)); };
+        ch.appendChild(b);
+      }
+      el.appendChild(ch);
+    } else if (type === "scale") {
       const sc = document.createElement("div"); sc.className = "scale";
       for (let i = 1; i <= 10; i++) {
         const b = document.createElement("button"); b.type = "button"; b.textContent = i;
@@ -209,6 +219,7 @@ function report(w, kind) {
         sc.appendChild(b);
       }
       el.appendChild(sc);
+      if (x || y) { const e = document.createElement("div"); e.className = "ends"; e.innerHTML = "<span></span><span></span>"; e.children[0].textContent = "1 = " + (x || ""); e.children[1].textContent = "10 = " + (y || ""); el.appendChild(e); }
     } else {
       const t = document.createElement("textarea"); t.value = answers[k] || "";
       t.oninput = () => { answers[k] = t.value; };
