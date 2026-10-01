@@ -106,10 +106,16 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
-const LABELS = {
-  start: ["Start of the week", { focus: "Focus this week", success: "Success looks like", obstacles: "What might get in the way", raise: "To raise with mentor", confidence: "Confidence (1–10)" }],
-  end: ["End of the week", { how: "How the focus went", well: "What went well", differently: "Do differently", learned: "Learned from mentor", next: "Carry into next week", rating: "Week rating (1–10)" }],
-};
+import { WEEKS, OLD_LABELS } from "/learn/mentorship/weeks.js";
+const KIND = { start: "Start of the week", end: "End of the week" };
+// Question list for a saved reflection: this week's form, plus any older keys it still holds.
+function questionsFor(r) {
+  const def = WEEKS[r.week] && WEEKS[r.week][r.kind];
+  const out = [];
+  if (def) for (const q of def.qs) if (Array.isArray(q)) out.push([q[0], q[1], q[2] === "scale" ? " (1–10)" : ""]);
+  for (const k in (r.answers || {})) if (!out.some((q) => q[0] === k)) out.push([k, OLD_LABELS[k] || k, ""]);
+  return { title: KIND[r.kind] + (def ? " — " + def.title : ""), qs: out };
+}
 let me = null, isAdmin = false, staff = [], list = [], refl = [], current = null;
 
 boot();
@@ -192,14 +198,14 @@ function openDetail(m) {
   const rs = refl.filter((r) => r.mentorship_id === m.id).sort((a, b) => b.week - a.week || (a.kind === "start" ? -1 : 1));
   if (!rs.length) box.innerHTML = '<p class="hint">No reflections yet.</p>';
   for (const r of rs) {
-    const [title, labels] = LABELS[r.kind];
+    const { title, qs } = questionsFor(r);
     const el = document.createElement("div"); el.className = "rep";
-    const h = document.createElement("h3"); h.textContent = "Week " + r.week + " · " + title + (r.submitted_at ? " · sent " + new Date(r.submitted_at).toLocaleDateString("en-GB") : " · draft");
+    const h = document.createElement("h3"); h.textContent = "Week " + r.week + (WEEKS[r.week] ? " (" + WEEKS[r.week].title + ")" : "") + " · " + title + (r.submitted_at ? " · sent " + new Date(r.submitted_at).toLocaleDateString("en-GB") : " · draft");
     el.appendChild(h);
-    for (const k in labels) {
+    for (const [k, label, suffix] of qs) {
       const v = r.answers && r.answers[k]; if (v == null || v === "") continue;
       const qa = document.createElement("div"); qa.className = "qa";
-      const b = document.createElement("b"); b.textContent = labels[k];
+      const b = document.createElement("b"); b.textContent = label + suffix;
       const t = document.createElement("div"); t.textContent = String(v);
       qa.append(b, t); el.appendChild(qa);
     }
