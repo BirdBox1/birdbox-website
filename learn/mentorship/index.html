@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My mentorship — BirdBox Learn</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
+          --line:#342F31; --accent:#4FA8DE; --bad:#F0797D; --good:#5CC48A; }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent)}
+  .bar{display:flex;align-items:center;gap:14px;padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top));
+    border-bottom:1px solid var(--line);background:#0d0b0b}
+  .bar img{height:34px;width:auto;display:block}
+  .bar .name{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .bar .back{margin-left:auto;font-size:13px;color:var(--muted);text-decoration:none}
+  .tabs{display:flex;gap:6px;margin:0 0 28px;flex-wrap:wrap}
+  .tabs a{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:9px 14px;border:1px solid var(--line);color:var(--muted);text-decoration:none}
+  .tabs a.on{border-color:var(--accent);color:var(--ink)}
+  .btn{display:inline-block;font:inherit;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:12px 20px;background:var(--accent);color:#0C1116;border:1px solid var(--accent);cursor:pointer;text-decoration:none;text-align:center}
+  .btn:hover{background:transparent;color:var(--accent)}
+  .btn.ghost{background:none;color:var(--ink);border-color:#6A6466}
+  .btn[disabled]{opacity:.6;cursor:wait}
+  .wrap{max-width:960px;margin:0 auto;padding:36px 20px 64px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  h1{font-size:clamp(26px,4vw,40px);line-height:1.05;font-weight:800;text-transform:uppercase;margin:0 0 10px}
+  .lede{color:var(--muted);font-size:16px;line-height:1.6;margin:0 0 24px;max-width:60ch}
+  .panel{background:var(--panel);border:1px solid var(--line);padding:22px;margin-bottom:16px}
+  .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
+  .fact b{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .fact span{font-size:17px;font-weight:700}
+  .week{background:var(--panel);border:1px solid var(--line);margin-bottom:10px}
+  .week summary{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;padding:16px 18px;cursor:pointer;list-style:none}
+  .week summary::-webkit-details-marker{display:none}
+  .week summary::before{content:"▸";color:var(--accent)}
+  .week[open] summary::before{content:"▾"}
+  .week .n{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+  .week .t{font-weight:700;flex:1 1 180px}
+  .week .s{font-size:13px;color:var(--muted)}
+  .week .s.all{color:var(--good)}
+  .week .body{padding:0 18px 18px;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .rep{border:1px solid var(--line);padding:16px;background:var(--paper)}
+  .rep h3{margin:0 0 4px;font-size:15px}
+  .rep .st{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+  .rep .st.ok{color:var(--good)}
+  .rep label{display:block;font-size:14px;font-weight:600;margin:12px 0 6px;line-height:1.4}
+  .rep textarea{width:100%;min-height:76px;font:inherit;font-size:15px;padding:10px;background:var(--panel);color:var(--ink);border:1px solid var(--line);resize:vertical}
+  .scale{display:flex;flex-wrap:wrap;gap:4px}
+  .scale button{font:inherit;font-size:14px;width:36px;height:36px;background:var(--panel);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .scale button.on{background:var(--accent);color:#0C1116;border-color:var(--accent)}
+  .comment{border-left:3px solid var(--accent);padding:8px 12px;margin-top:14px;font-size:14px;line-height:1.55;white-space:pre-wrap}
+  .comment b{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+  .msg{font-size:14px;min-height:1em}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  .locked{opacity:.5}
+  .hidden{display:none!important}
+  .soon{color:var(--muted);font-size:14px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <a href="/"><img src="/brand/birdBox.png" alt="BirdBox Coaching"></a>
+  <span class="name">BirdBox Learn</span>
+  <a class="back" href="/learn/">&larr; My courses</a>
+</div>
+
+<div class="wrap">
+  <nav class="tabs">
+    <a href="/learn/">My courses</a>
+    <a href="/learn/portfolio/">My portfolio</a>
+    <a class="on" href="/learn/mentorship/">My mentorship</a>
+  </nav>
+
+  <div id="gate" class="lede">Loading…</div>
+
+  <div id="app" class="hidden">
+    <p class="kicker" id="m-kicker">Mentorship</p>
+    <h1>My mentorship</h1>
+    <p class="lede">Each week starts with a short plan and ends with a reflection. Your mentor reads both and replies here.</p>
+
+    <div class="panel">
+      <div class="facts">
+        <div class="fact"><b>Track</b><span id="f-track"></span></div>
+        <div class="fact"><b>Your mentor</b><span id="f-mentor"></span></div>
+        <div class="fact"><b>This week</b><span id="f-week"></span></div>
+        <div class="fact"><b>Started</b><span id="f-start"></span></div>
+      </div>
+    </div>
+
+    <div id="weeks"></div>
+
+    <div class="panel">
+      <p class="kicker">Coming next</p>
+      <p class="soon">Weekly coaching video uploads with feedback from your mentor will appear here soon.</p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
+const $ = (id) => document.getElementById(id);
+
+// The weekly questions. scale = 1–10 buttons, otherwise a text box.
+const Q = {
+  start: {
+    title: "Start of the week",
+    qs: [
+      ["focus", "What do you want to focus on in your coaching this week?"],
+      ["success", "What will success look like by the end of the week?"],
+      ["obstacles", "What might get in the way, and how will you handle it?"],
+      ["raise", "Is there anything you want to raise with your mentor this week?"],
+      ["confidence", "How confident are you that you will achieve your focus? (1–10)", "scale"],
+    ],
+  },
+  end: {
+    title: "End of the week",
+    qs: [
+      ["how", "How did your focus go this week?"],
+      ["well", "What went well, and why?"],
+      ["differently", "What would you do differently next time?"],
+      ["learned", "What did you learn from your mentor this week?"],
+      ["next", "What will you carry into next week?"],
+      ["rating", "How would you rate your week as a coach? (1–10)", "scale"],
+    ],
+  },
+};
+
+let m = null, refl = new Map();
+
+boot();
+async function boot() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { $("gate").innerHTML = 'Please <a href="/learn/">log in</a> first, then come back to your mentorship.'; return; }
+  const { data, error } = await db.from("learn_mentorships").select("*").eq("status", "active").order("created_at", { ascending: false });
+  if (error) { $("gate").textContent = "Could not load your mentorship: " + error.message; return; }
+  if (!data || !data.length) {
+    $("gate").innerHTML = 'There is no mentorship on <b></b> yet. If you have just joined, your mentor will set it up shortly — or write to <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a>.';
+    $("gate").querySelector("b").textContent = session.user.email;
+    return;
+  }
+  m = data[0];
+  const { data: r } = await db.from("learn_mentor_reflections").select("*").eq("mentorship_id", m.id);
+  for (const x of r || []) refl.set(x.week + ":" + x.kind, x);
+  render();
+}
+
+function currentWeek() {
+  const days = Math.floor((Date.now() - new Date(m.start_date + "T00:00:00").getTime()) / 86400000);
+  return Math.max(1, Math.min(m.weeks, Math.floor(days / 7) + 1));
+}
+
+function render() {
+  $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
+  const brand = m.brand === "tgc" ? "The Gymnastics Course" : "The Coaches Course";
+  $("m-kicker").textContent = brand + " · Mentorship";
+  $("f-track").textContent = m.track === "premium" ? "Premium" : "Essential";
+  $("f-mentor").textContent = m.mentor_name || "Being assigned";
+  const now = currentWeek();
+  $("f-week").textContent = "Week " + now + " of " + m.weeks;
+  $("f-start").textContent = new Date(m.start_date + "T00:00:00").toLocaleDateString("en-GB");
+  const box = $("weeks"); box.innerHTML = "";
+  for (let w = now; w >= 1; w--) box.appendChild(weekBlock(w, w === now));
+}
+
+function weekBlock(w, open) {
+  const d = document.createElement("details"); d.className = "week"; d.open = open;
+  const s = document.createElement("summary");
+  const done = ["start", "end"].filter((k) => refl.get(w + ":" + k)?.submitted_at).length;
+  s.innerHTML = `<span class="n">Week ${w}</span><span class="t"></span><span class="s${done === 2 ? " all" : ""}">${done === 2 ? "✓ Both reflections done" : done + " of 2 reflections done"}</span>`;
+  const from = new Date(new Date(m.start_date + "T00:00:00").getTime() + (w - 1) * 7 * 86400000);
+  s.querySelector(".t").textContent = "Week of " + from.toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+  const body = document.createElement("div"); body.className = "body";
+  body.append(report(w, "start"), report(w, "end"));
+  d.append(s, body);
+  // keep the "x of 2 done" line up to date after sending
+  d.addEventListener("saved", () => {
+    const n = ["start", "end"].filter((k) => refl.get(w + ":" + k)?.submitted_at).length;
+    const sp = s.querySelector(".s"); sp.className = "s" + (n === 2 ? " all" : "");
+    sp.textContent = n === 2 ? "✓ Both reflections done" : n + " of 2 reflections done";
+  });
+  return d;
+}
+
+function report(w, kind) {
+  const def = Q[kind], key = w + ":" + kind;
+  const row = refl.get(key) || { answers: {} };
+  const answers = { ...(row.answers || {}) };
+  const el = document.createElement("div"); el.className = "rep";
+  const h = document.createElement("h3"); h.textContent = def.title;
+  const st = document.createElement("p");
+  st.className = "st" + (row.submitted_at ? " ok" : "");
+  st.textContent = row.submitted_at ? "Sent to your mentor " + new Date(row.submitted_at).toLocaleDateString("en-GB") : row.id ? "Draft saved" : "Not started";
+  el.append(h, st);
+  for (const [k, label, type] of def.qs) {
+    const l = document.createElement("label"); l.textContent = label; el.appendChild(l);
+    if (type === "scale") {
+      const sc = document.createElement("div"); sc.className = "scale";
+      for (let i = 1; i <= 10; i++) {
+        const b = document.createElement("button"); b.type = "button"; b.textContent = i;
+        if (answers[k] === i) b.classList.add("on");
+        b.onclick = () => { answers[k] = i; sc.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); };
+        sc.appendChild(b);
+      }
+      el.appendChild(sc);
+    } else {
+      const t = document.createElement("textarea"); t.value = answers[k] || "";
+      t.oninput = () => { answers[k] = t.value; };
+      el.appendChild(t);
+    }
+  }
+  if (row.mentor_comment) {
+    const c = document.createElement("div"); c.className = "comment";
+    c.innerHTML = "<b>From " + (m.mentor_name ? "" : "your mentor") + "</b>";
+    if (m.mentor_name) c.querySelector("b").textContent = "From " + m.mentor_name;
+    c.appendChild(document.createTextNode(row.mentor_comment));
+    el.appendChild(c);
+  }
+  const r = document.createElement("div"); r.className = "row";
+  const save = document.createElement("button"); save.className = "btn ghost"; save.type = "button"; save.textContent = "Save draft";
+  const send = document.createElement("button"); send.className = "btn"; send.type = "button"; send.textContent = row.submitted_at ? "Update" : "Send to my mentor";
+  const msg = document.createElement("span"); msg.className = "msg";
+  const go = async (submit) => {
+    save.disabled = send.disabled = true; msg.className = "msg"; msg.textContent = "Saving…";
+    const rec = { mentorship_id: m.id, week: w, kind, answers, updated_at: new Date().toISOString() };
+    if (submit) rec.submitted_at = row.submitted_at || new Date().toISOString();
+    const { data, error } = await db.from("learn_mentor_reflections").upsert(rec, { onConflict: "mentorship_id,week,kind" }).select("*").single();
+    save.disabled = send.disabled = false;
+    if (error) { msg.className = "msg err"; msg.textContent = error.message; return; }
+    refl.set(key, data); Object.assign(row, data);
+    msg.className = "msg ok"; msg.textContent = submit ? "Sent ✓" : "Saved ✓";
+    st.className = "st" + (data.submitted_at ? " ok" : "");
+    st.textContent = data.submitted_at ? "Sent to your mentor " + new Date(data.submitted_at).toLocaleDateString("en-GB") : "Draft saved";
+    if (submit) send.textContent = "Update";
+    el.dispatchEvent(new Event("saved", { bubbles: true }));
+  };
+  save.onclick = () => go(false); send.onclick = () => go(true);
+  r.append(save, send, msg); el.appendChild(r);
+  return el;
+}
+</script>
+</body>
+</html>
