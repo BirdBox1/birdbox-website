@@ -83,6 +83,15 @@
   }
   .tcc-cta:hover { background: transparent; color: var(--accentText); }
 
+  /* Two buttons in a hero: the primary action, and the free assessment beside
+     it. Wraps to two lines on a phone rather than shrinking either. */
+  .tcc-ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+  .tcc-cta--ghost {
+    background: transparent; color: var(--accentText);
+    border: 1px solid var(--line);
+  }
+  .tcc-cta--ghost:hover { border-color: var(--tcc); color: var(--tcc); }
+
   /* ---------- pathway strip ---------- */
   .tcc-pathway { padding: 46px 0 8px; text-align: center; }
   .tcc-h2 {
@@ -305,7 +314,10 @@
     <img class="tcc-hero__mark" src="../brand/tgc-mark.png" alt="The Gymnastics Course">
     <h1 class="tcc-hero__title">Better positions.<em>Better athletes.</em></h1>
     <p class="tcc-hero__lede">Teach and progress bodyweight movement with confidence &mdash; seminars, online learning, workshops, and programming for coaches who want their athletes moving better.</p>
-    <a class="tcc-cta" href="/tgc/level-1">Start Your Journey &rarr;</a>
+    <div class="tcc-ctas">
+      <a class="tcc-cta" href="/tgc/level-1">Start Your Journey &rarr;</a>
+      <a class="tcc-cta tcc-cta--ghost" href="/tgc/quiz/">Take the Free Gymnastics Assessment &rarr;</a>
+    </div>
   </div>
 </header>
 
