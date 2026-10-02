@@ -83,6 +83,15 @@
   }
   .tcc-cta:hover { background: transparent; color: var(--accentText); }
 
+  /* Two buttons in a hero: the primary action, and the free assessment beside
+     it. Wraps to two lines on a phone rather than shrinking either. */
+  .tcc-ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+  .tcc-cta--ghost {
+    background: transparent; color: var(--accentText);
+    border: 1px solid var(--line);
+  }
+  .tcc-cta--ghost:hover { border-color: var(--tcc); color: var(--tcc); }
+
   /* ---------- pathway strip ---------- */
   .tcc-pathway { padding: 46px 0 8px; text-align: center; }
   .tcc-h2 {
@@ -556,7 +565,10 @@
     <p class="tcc-row__eyebrow">Level 1 &middot; Live Seminar</p>
     <h1 class="tcc-hero__title">Understand gymnastics.<em>Coach with confidence.</em></h1>
     <p class="tcc-hero__lede">A hands-on, immersive weekend for coaches and athletes ready to understand gymnastics, fix movement, and coach with confidence.</p>
-    <a class="tcc-cta" href="#map">View Dates and Book Your Spot &rarr;</a>
+    <div class="tcc-ctas">
+      <a class="tcc-cta" href="#map">View Dates and Book Your Spot &rarr;</a>
+      <a class="tcc-cta tcc-cta--ghost" href="/tgc/quiz/">Take the Free Gymnastics Assessment &rarr;</a>
+    </div>
   </div>
 </header>
 
