@@ -82,6 +82,15 @@
   }
   .tcc-cta:hover { background: transparent; color: var(--accentText); }
 
+  /* Two buttons in a hero: the primary action, and the free assessment beside
+     it. Wraps to two lines on a phone rather than shrinking either. */
+  .tcc-ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+  .tcc-cta--ghost {
+    background: transparent; color: var(--accentText);
+    border: 1px solid var(--line);
+  }
+  .tcc-cta--ghost:hover { border-color: var(--tcc); color: var(--tcc); }
+
   /* ---------- pathway strip ---------- */
   .tcc-pathway { padding: 46px 0 8px; text-align: center; }
   .tcc-h2 {
@@ -307,7 +316,10 @@
     <img class="tcc-hero__mark" src="../brand/tcc-mark.png" alt="The Coaches Course">
     <h1 class="tcc-hero__title">Your journey.<em>Better coaching.</em></h1>
     <p class="tcc-hero__lede">The complete coaching education pathway to develop your skills, grow your career, and make a bigger impact.</p>
-    <a class="tcc-cta" href="/tcc/level-1">Start Your Journey &rarr;</a>
+    <div class="tcc-ctas">
+      <a class="tcc-cta" href="/tcc/level-1">Start Your Journey &rarr;</a>
+      <a class="tcc-cta tcc-cta--ghost" href="/quiz/">Take the Free Coaching Self-Assessment &rarr;</a>
+    </div>
   </div>
 </header>
 
