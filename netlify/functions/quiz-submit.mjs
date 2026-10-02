@@ -161,13 +161,64 @@ const STAGES = {
   },
 };
 
-// The result as the page and the email both consume it.
-function resultFor(key, firstName) {
+
+// ------------------------------------------------------------------- i18n
+//
+// The result texts for a language are a JSON file sitting beside the quiz
+// page — /quiz/i18n/results-fr.json and so on — fetched at request time
+// rather than bundled, so a corrected translation goes live by committing one
+// file with no function deploy.
+//
+// A file only has to carry what it translates. Anything it leaves out falls
+// back to the English below, so a half-finished translation produces a mixed
+// result rather than a broken one, and a missing file produces English.
+const LANGS = ["en", "fr", "es", "de", "it", "pl", "pt"];
+
+function langFrom(body) {
+  const want = String(body && body.lang || "").toLowerCase().slice(0, 2);
+  return LANGS.indexOf(want) > 0 ? want : "en";
+}
+
+async function stagesFor(lang) {
+  const EN = { stages: STAGES, opening: OPENING, closing: CLOSING, greeting: "Hello {name}," };
+  if (lang === "en") return EN;
+  try {
+    const res = await fetch(`${SITE}/quiz/i18n/results-${lang}.json`, {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return EN;
+    const t = await res.json();
+    const stages = {};
+    for (const key of Object.keys(STAGES)) {
+      // The video, the link and the next step stay as they are: those are the
+      // same asset whatever language the words around them are in, until
+      // somebody films or writes a translated one.
+      stages[key] = Object.assign({}, STAGES[key], (t.stages && t.stages[key]) || {});
+      stages[key].videoId = STAGES[key].videoId;
+      stages[key].next = STAGES[key].next;
+    }
+    return {
+      stages,
+      opening: Array.isArray(t.opening) && t.opening.length ? t.opening : OPENING,
+      closing: Array.isArray(t.closing) && t.closing.length ? t.closing : CLOSING,
+      greeting: t.greeting || EN.greeting,
+    };
+  } catch (e) {
+    console.error("i18n fetch failed for", lang, e);
+    return EN;
+  }
+}
+
+// The result as the page and the email both consume it. The stage texts are
+// passed in rather than read from the module, so a translated set can be used
+// without touching anything else.
+function resultFor(key, firstName, pack) {
+  const STAGES = pack.stages, OPENING = pack.opening, CLOSING = pack.closing;
   const s = STAGES[key];
   return {
     key,
     name: s.name,
-    greeting: "Hello " + firstName + ",",
+    greeting: (pack.greeting || "Hello {name},").replace("{name}", firstName),
     opening: OPENING,
     body: s.body,
     bullets: s.bullets || [],
@@ -303,9 +354,10 @@ async function sendResult(to, r) {
 // The country comes from Netlify's geo lookup, so nobody has to be asked for
 // it and every quiz lead carries one — useful for deciding where the next
 // seminar goes as much as for which regional digest they receive.
-export async function fileInterest(supabase, { email, firstName, lastName, archetype, country }) {
+export async function fileInterest(supabase, { email, firstName, lastName, archetype, country, lang }) {
   const { error } = await supabase.from("interest_signups").insert({
     brand: "tcc",
+    lang: lang || "en",
     email,
     name: [firstName, lastName].filter(Boolean).join(" ") || null,
     country: country || null,
@@ -459,6 +511,10 @@ export default async (req, context) => {
 
     const consent = body.marketingConsent === true;
 
+    // Which language the quiz was taken in. Decides the result texts, the
+    // email, and which chain rows the sender will pick later.
+    const lang = langFrom(body);
+
     // Whether the Meta pixel was allowed to run in this browser. Set by
     // consent.js — true after an explicit yes, and true outside Europe where
     // no yes is needed. If it is false, nothing is reported to Meta from
@@ -485,6 +541,7 @@ export default async (req, context) => {
       archetype: key,
       marketing_consent: consent,
       consent_at: consent ? new Date().toISOString() : null,
+      lang,
       utm_source: cut(utm.source),
       utm_medium: cut(utm.medium),
       utm_campaign: cut(utm.campaign),
@@ -528,6 +585,7 @@ export default async (req, context) => {
             start_date: start.toISOString().slice(0, 10),
             status: "active",
             source: "quiz",
+            lang,
           });
           if (enrErr) console.error("drip_enrollments insert failed", enrErr);
         }
@@ -543,6 +601,7 @@ export default async (req, context) => {
           lastName,
           archetype: key,
           country: context?.geo?.country?.code ?? null,
+          lang,
         });
       } catch (e) {
         console.error("interest_signups failed for", email, e);
@@ -573,7 +632,8 @@ export default async (req, context) => {
       }
     }
 
-    const result = resultFor(key, firstName);
+    const pack = await stagesFor(lang);
+    const result = resultFor(key, firstName, pack);
     const sent = await sendResult(email, result);
 
     if (sent && row && row.id) {
