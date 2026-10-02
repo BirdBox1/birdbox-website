@@ -1,0 +1,146 @@
+{
+  "lang": "en",
+  "title": "What kind of coach are you right now?",
+  "lede": "Twelve questions about how you coach today. At the end you will get your current stage, what it means, and the one thing worth working on next.",
+  "chip1": "12 questions",
+  "chip2": "1–2 minutes",
+  "chip3": "Free",
+  "start": "Start the assessment",
+  "back": "Back",
+  "questionOf": "Question {n} of {total}",
+  "almost": "Almost there",
+  "whereSend": "Where should we send your result?",
+  "firstName": "First name",
+  "lastName": "Last name",
+  "email": "Email",
+  "consent": "Send me the follow-up information about my result today, plus the occasional newsletter with articles and podcasts to listen to. You can unsubscribe at any time.",
+  "seeResult": "See my result",
+  "emailOnly": "We use your email to send your result. Nothing else without the tick above.",
+  "needNames": "Both names, please.",
+  "needEmail": "We need a valid email address to send your result to.",
+  "working": "Working out your stage…",
+  "failed": "That did not work. Please try again.",
+  "unreachable": "Could not reach us just then. Please try again.",
+  "resultHead": "Your coaching self-assessment",
+  "yourStage": "Your stage",
+  "learnMore": "Learn more on effective coaching",
+  "nextStep": "Your next step",
+  "emailed": "A copy is on its way to your inbox.",
+  "secondAskHead": "More for {plural}",
+  "secondAskLede": "Want more like this? We will send practical coaching content and the occasional course update, aimed at where you are now.",
+  "yesSend": "Yes, send it",
+  "saving": "Saving…",
+  "saveFailed": "That did not save. Please try again.",
+  "saved": "Done — you are on the list.",
+  "questions": [
+    {
+      "q": "How would you describe your current coaching system or approach?",
+      "a": [
+        "I don’t really have one yet, I am still figuring it out.",
+        "I have a system but I am still refining how to apply it.",
+        "I have a system I trust but I’m working on making it more efficient.",
+        "My system is dialed in and scales well across athletes or staff."
+      ]
+    },
+    {
+      "q": "When you watch someone move, what’s your first reaction?",
+      "a": [
+        "I feel unsure about what to look for",
+        "I can usually tell what’s wrong but not always why",
+        "I can identify root causes and subtle compensations",
+        "I can spot issues instantly and know how to coach them effectively"
+      ]
+    },
+    {
+      "q": "How do you apply educational content you’ve consumed (courses, seminars, videos)?",
+      "a": [
+        "I watch a lot but don’t always use what I learn",
+        "I try to apply things but struggle with consistency",
+        "I’m selective, test ideas, and track what works",
+        "I translate key insights into systems that work in real-time"
+      ]
+    },
+    {
+      "q": "How confident are you in giving movement cues or corrections?",
+      "a": [
+        "I’m not confident yet — I often hesitate",
+        "I give cues but often try several before one lands",
+        "I know which cues to use, but I’m working on delivery and timing",
+        "I can deliver precise cues that reliably create change"
+      ]
+    },
+    {
+      "q": "How do you know if your coaching is working?",
+      "a": [
+        "I go mostly by how things feel or look",
+        "I look for progress but don’t track it systematically",
+        "I collect feedback and observe patterns to adjust",
+        "I use specific markers and structured reflection to assess outcomes"
+      ]
+    },
+    {
+      "q": "What’s your biggest challenge right now?",
+      "a": [
+        "I feel overwhelmed and don’t know where to start",
+        "I want more consistency and confidence in my coaching",
+        "I want to sharpen what I already do well",
+        "I’m focused on scaling my impact and influence"
+      ]
+    },
+    {
+      "q": "How often do you seek feedback on your coaching or performance?",
+      "a": [
+        "Rarely — I’m not sure who to ask or what to ask for",
+        "Occasionally — I ask when things feel off",
+        "Regularly — I have people I trust to give real feedback",
+        "Continuously — I build feedback into my systems"
+      ]
+    },
+    {
+      "q": "When helping someone improve movement, what’s your approach?",
+      "a": [
+        "I try a few things and see what sticks",
+        "I follow a process but often adapt on the fly",
+        "I use a structured approach but adjust based on nuance",
+        "I use an efficient, tested process that creates reliable results"
+      ]
+    },
+    {
+      "q": "How clear are you on your coaching identity?",
+      "a": [
+        "I’m still trying to figure out who I am as a coach",
+        "I have a sense of my style but still compare myself to others",
+        "I’m confident in my style and working on refining it",
+        "I have a strong, unique voice as a coach and lead others with it"
+      ]
+    },
+    {
+      "q": "How do you prepare for coaching sessions or training design?",
+      "a": [
+        "I often improvise or look for inspiration last-minute",
+        "I prepare a plan but sometimes feel unsure about the details",
+        "I use a consistent planning system but occasionally tweak things last-minute",
+        "I follow a robust system that scales easily across clients or groups"
+      ]
+    },
+    {
+      "q": "What’s your approach to professional development right now?",
+      "a": [
+        "I’m trying to absorb as much as I can",
+        "I’m focused on applying what I learn in real situations",
+        "I’m focused on refining what already works for me",
+        "I’m focused on elevating others and scaling my systems"
+      ]
+    },
+    {
+      "q": "What describes your typical coaching conversation?",
+      "a": [
+        "I give basic feedback or instructions and hope it helps",
+        "I try to explain what’s wrong and offer options to improve",
+        "I focus on asking better questions and drawing out ownership",
+        "I coach the person, not just the performance, with clarity and purpose"
+      ]
+    }
+  ],
+  "metaTitle": "Coaching Self-Assessment — BirdBox Coaching"
+}
