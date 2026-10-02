@@ -169,14 +169,63 @@ const FOCUS = {
   },
 };
 
-// The result as the page and the email both consume it.
-function resultFor(key, firstName, scores) {
+
+// ------------------------------------------------------------------- i18n
+//
+// The result texts for a language are a JSON file sitting beside the quiz
+// page — /tgc/quiz/i18n/results-fr.json and so on — fetched at request time
+// rather than bundled, so a corrected translation goes live by committing one
+// file with no function deploy.
+//
+// A file only has to carry what it translates. Anything it leaves out falls
+// back to the English below, so a half-finished translation produces a mixed
+// result rather than a broken one, and a missing file produces English.
+const LANGS = ["en", "fr", "es", "de", "it", "pl", "pt"];
+
+function langFrom(body) {
+  const want = String(body && body.lang || "").toLowerCase().slice(0, 2);
+  return LANGS.indexOf(want) > 0 ? want : "en";
+}
+
+async function packFor(lang) {
+  const EN = { focus: FOCUS, opening: OPENING, closing: CLOSING, greeting: "Hello {name}," };
+  if (lang === "en") return EN;
+  try {
+    const res = await fetch(`${SITE}/tgc/quiz/i18n/results-${lang}.json`, {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return EN;
+    const t = await res.json();
+    const focus = {};
+    for (const key of RUNGS) {
+      // The film stays as it is: the same asset whatever language the words
+      // around it are in, until somebody shoots a translated one.
+      focus[key] = Object.assign({}, FOCUS[key], (t.focus && t.focus[key]) || {});
+      focus[key].video = FOCUS[key].video;
+    }
+    return {
+      focus,
+      opening: Array.isArray(t.opening) && t.opening.length ? t.opening : OPENING,
+      closing: Array.isArray(t.closing) && t.closing.length ? t.closing : CLOSING,
+      greeting: t.greeting || EN.greeting,
+    };
+  } catch (e) {
+    console.error("i18n fetch failed for", lang, e);
+    return EN;
+  }
+}
+
+// The result as the page and the email both consume it. The focus texts are
+// passed in rather than read from the module, so a translated set can be used
+// without touching anything else.
+function resultFor(key, firstName, scores, pack) {
+  const FOCUS = pack.focus, OPENING = pack.opening, CLOSING = pack.closing;
   const f = FOCUS[key];
   return {
     key,
     name: f.name,
     lede: f.lede,
-    greeting: "Hello " + firstName + ",",
+    greeting: (pack.greeting || "Hello {name},").replace("{name}", firstName),
     opening: OPENING,
     body: f.body,
     tryThis: f.tryThis,
@@ -316,9 +365,10 @@ async function sendResult(to, r) {
 // The archetype column carries the focus key. It was added for the TCC quiz
 // and holds the same kind of thing: which of a small set of results this
 // person got.
-export async function fileInterest(supabase, { email, firstName, lastName, focus, country }) {
+export async function fileInterest(supabase, { email, firstName, lastName, focus, country, lang }) {
   const { error } = await supabase.from("interest_signups").insert({
     brand: "tgc",
+    lang: lang || "en",
     email,
     name: [firstName, lastName].filter(Boolean).join(" ") || null,
     country: country || null,
@@ -449,6 +499,10 @@ export default async (req, context) => {
     }
 
     const consent = body.marketingConsent === true;
+
+    // Which language the quiz was taken in. Decides the result texts, the
+    // email, and which chain rows the sender will pick later.
+    const lang = langFrom(body);
     const pixelAllowed = body.pixelAllowed === true;
     const eventId = randomUUID();
 
@@ -470,6 +524,7 @@ export default async (req, context) => {
       archetype: key,
       marketing_consent: consent,
       consent_at: consent ? new Date().toISOString() : null,
+      lang,
       utm_source: cut(utm.source),
       utm_medium: cut(utm.medium),
       utm_campaign: cut(utm.campaign),
@@ -511,6 +566,7 @@ export default async (req, context) => {
             start_date: start.toISOString().slice(0, 10),
             status: "active",
             source: "tgc-quiz",
+            lang,
           });
           if (enrErr) console.error("drip_enrollments insert failed", enrErr);
         }
@@ -524,6 +580,7 @@ export default async (req, context) => {
           firstName,
           lastName,
           focus: key,
+          lang,
           country: context?.geo?.country?.code ?? null,
         });
       } catch (e) {
@@ -544,6 +601,7 @@ export default async (req, context) => {
           firstName,
           lastName,
           focus: key,
+          lang,
           pageUrl: cut(body.pageUrl) || `${SITE}/tgc/quiz/`,
         });
       } catch (e) {
@@ -551,7 +609,8 @@ export default async (req, context) => {
       }
     }
 
-    const result = resultFor(key, firstName, scores);
+    const pack = await packFor(lang);
+    const result = resultFor(key, firstName, scores, pack);
     const sent = await sendResult(email, result);
 
     if (sent && row && row.id) {
