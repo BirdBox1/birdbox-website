@@ -187,17 +187,14 @@
 
   <!-- ---------- intro ---------- -->
   <main id="intro">
-    <h1>What kind of coach are you right now?</h1>
-    <p class="lede">
-      Twelve questions about how you coach today. At the end you will get your
-      current stage, what it means, and the one thing worth working on next.
-    </p>
+    <h1 data-i18n="title"></h1>
+    <p class="lede" data-i18n="lede"></p>
     <div class="chips">
-      <span>12 questions</span>
-      <span>1–2 minutes</span>
-      <span>Free</span>
+      <span data-i18n="chip1"></span>
+      <span data-i18n="chip2"></span>
+      <span data-i18n="chip3"></span>
     </div>
-    <button class="btn" type="button" id="start">Start the assessment</button>
+    <button class="btn" type="button" id="start" data-i18n="start"></button>
   </main>
 
   <!-- ---------- questions ---------- -->
@@ -206,56 +203,52 @@
     <p class="qtext" id="qtext"></p>
     <div class="opts" id="opts"></div>
     <div class="navrow">
-      <button class="btn btn--ghost" type="button" id="back">Back</button>
+      <button class="btn btn--ghost" type="button" id="back" data-i18n="back"></button>
     </div>
   </main>
 
   <!-- ---------- details ---------- -->
   <main id="details" class="hidden">
-    <p class="qcount">Almost there</p>
-    <p class="qtext">Where should we send your result?</p>
+    <p class="qcount" data-i18n="almost"></p>
+    <p class="qtext" data-i18n="whereSend"></p>
     <div class="two">
       <div>
-        <label class="f" for="first">First name</label>
+        <label class="f" for="first" data-i18n="firstName"></label>
         <input id="first" type="text" autocomplete="given-name">
       </div>
       <div>
-        <label class="f" for="last">Last name</label>
+        <label class="f" for="last" data-i18n="lastName"></label>
         <input id="last" type="text" autocomplete="family-name">
       </div>
     </div>
-    <label class="f" for="email">Email</label>
+    <label class="f" for="email" data-i18n="email"></label>
     <input id="email" type="email" autocomplete="email" inputmode="email">
     <label class="tick">
       <input id="consent" type="checkbox">
-      <span>Send me the follow-up information about my result today, plus the
-        occasional newsletter with articles and podcasts to listen to. You can
-        unsubscribe at any time.</span>
+      <span data-i18n="consent"></span>
     </label>
-    <button class="btn" type="button" id="finish">See my result</button>
+    <button class="btn" type="button" id="finish" data-i18n="seeResult"></button>
     <p class="said" id="said"></p>
-    <p class="said" style="color:var(--muted);margin-top:1.2rem">
-      We use your email to send your result. Nothing else without the tick above.
-    </p>
+    <p class="said" style="color:var(--muted);margin-top:1.2rem" data-i18n="emailOnly"></p>
   </main>
 
   <!-- ---------- result ---------- -->
   <main id="result" class="hidden">
-    <p class="qcount">Your coaching self-assessment</p>
+    <p class="qcount" data-i18n="resultHead"></p>
     <div class="stage">
-      <span class="k">Your stage</span>
+      <span class="k" data-i18n="yourStage"></span>
       <div class="v" id="stagename"></div>
     </div>
     <div class="result" id="resultbody"></div>
 
-    <h2>Learn more on effective coaching</h2>
+    <h2 data-i18n="learnMore"></h2>
     <div class="video"><iframe id="video" title="Your stage" allowfullscreen
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"></iframe></div>
 
     <div class="result" id="resultclosing" style="margin-top:1.8rem"></div>
 
     <a class="nextstep" id="nextstep" href="/">
-      <span class="k">Your next step</span>
+      <span class="k" data-i18n="nextStep"></span>
       <span class="v" id="nextsteptext"></span>
     </a>
 
@@ -267,7 +260,7 @@
     <div class="secondask hidden" id="secondask">
       <p class="k" id="secondaskhead"></p>
       <p class="secondask__lede" id="secondasklede"></p>
-      <button class="btn" type="button" id="secondaskgo">Yes, send it</button>
+      <button class="btn" type="button" id="secondaskgo" data-i18n="yesSend"></button>
       <p class="said" id="secondasksaid"></p>
     </div>
   </main>
@@ -287,7 +280,46 @@
   // is carried over from the JotForm this replaces. The score is recomputed
   // on the server from the raw answers — what is sent is only which option
   // was picked, never the result.
-  var QUESTIONS = [
+  // ---------------------------------------------------------------- strings
+  // Every word on this page lives here, and nowhere else. English is built in
+  // so the page works with no network beyond itself; any other language is a
+  // file at /quiz/i18n/<lang>.json with the same keys, which is why adding a
+  // language is one file rather than a copy of this page.
+  var EN = {
+    lang: "en",
+    title: "What kind of coach are you right now?",
+    lede: "Twelve questions about how you coach today. At the end you will get your current stage, what it means, and the one thing worth working on next.",
+    chip1: "12 questions",
+    chip2: "1\u20132 minutes",
+    chip3: "Free",
+    start: "Start the assessment",
+    back: "Back",
+    questionOf: "Question {n} of {total}",
+    almost: "Almost there",
+    whereSend: "Where should we send your result?",
+    firstName: "First name",
+    lastName: "Last name",
+    email: "Email",
+    consent: "Send me the follow-up information about my result today, plus the occasional newsletter with articles and podcasts to listen to. You can unsubscribe at any time.",
+    seeResult: "See my result",
+    emailOnly: "We use your email to send your result. Nothing else without the tick above.",
+    needNames: "Both names, please.",
+    needEmail: "We need a valid email address to send your result to.",
+    working: "Working out your stage\u2026",
+    failed: "That did not work. Please try again.",
+    unreachable: "Could not reach us just then. Please try again.",
+    resultHead: "Your coaching self-assessment",
+    yourStage: "Your stage",
+    learnMore: "Learn more on effective coaching",
+    nextStep: "Your next step",
+    emailed: "A copy is on its way to your inbox.",
+    secondAskHead: "More for {plural}",
+    secondAskLede: "Want more like this? We will send practical coaching content and the occasional course update, aimed at where you are now.",
+    yesSend: "Yes, send it",
+    saving: "Saving\u2026",
+    saveFailed: "That did not save. Please try again.",
+    saved: "Done \u2014 you are on the list.",
+    questions: [
     { q: "How would you describe your current coaching system or approach?",
       a: ["I don’t really have one yet, I am still figuring it out.",
           "I have a system but I am still refining how to apply it.",
@@ -348,10 +380,56 @@
           "I try to explain what’s wrong and offer options to improve",
           "I focus on asking better questions and drawing out ownership",
           "I coach the person, not just the performance, with clarity and purpose"] }
-  ];
+      ]
+  };
+
+  // The language comes from the path (/quiz/fr/) or ?lang=fr, and nothing
+  // else. An unknown or missing language is English.
+  var LANGS = ["en", "fr", "es", "de", "it", "pl", "pt"];
+  function pickLang() {
+    var m = /\/quiz\/([a-z]{2})\/?$/.exec(location.pathname);
+    var q = new URLSearchParams(location.search).get("lang");
+    var want = (m && m[1]) || (q || "").toLowerCase();
+    return LANGS.indexOf(want) > 0 ? want : "en";
+  }
+
+  var S = EN;
+
+  // A translation file only has to carry the keys it changes; anything it
+  // leaves out falls back to the English above, so a half-finished
+  // translation degrades to mixed language rather than to a blank page.
+  async function loadStrings(lang) {
+    if (lang === "en") return;
+    try {
+      var res = await fetch("/quiz/i18n/" + lang + ".json", { cache: "no-cache" });
+      if (!res.ok) return;
+      var t = await res.json();
+      var merged = {};
+      Object.keys(EN).forEach(function (k) { merged[k] = EN[k]; });
+      Object.keys(t).forEach(function (k) {
+        if (t[k] !== null && t[k] !== undefined && t[k] !== "") merged[k] = t[k];
+      });
+      if (!Array.isArray(merged.questions) || merged.questions.length !== EN.questions.length) {
+        merged.questions = EN.questions;
+      }
+      S = merged;
+      document.documentElement.lang = lang;
+    } catch (e) {
+      // Keep English rather than showing nothing.
+    }
+  }
+
+  function applyStatic() {
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      var v = S[el.getAttribute("data-i18n")];
+      if (v) el.textContent = v;
+    });
+    if (S.metaTitle) document.title = S.metaTitle;
+  }
+
 
   var $ = function (id) { return document.getElementById(id); };
-  var answers = new Array(QUESTIONS.length).fill(null);
+  var answers = new Array(EN.questions.length).fill(null);
   var at = 0;
 
   // Where they came from, so a registration weeks later can be traced back
@@ -374,12 +452,13 @@
 
   function progress(done) {
     $("prog").classList.remove("hidden");
-    $("progfill").style.width = Math.round((done / (QUESTIONS.length + 1)) * 100) + "%";
+    $("progfill").style.width = Math.round((done / (S.questions.length + 1)) * 100) + "%";
   }
 
   function paint() {
-    var item = QUESTIONS[at];
-    $("qcount").textContent = "Question " + (at + 1) + " of " + QUESTIONS.length;
+    var item = S.questions[at];
+    $("qcount").textContent = S.questionOf
+      .replace("{n}", at + 1).replace("{total}", S.questions.length);
     $("qtext").textContent = item.q;
     $("back").style.visibility = at === 0 ? "hidden" : "visible";
 
@@ -402,13 +481,17 @@
   }
 
   function next() {
-    if (at < QUESTIONS.length - 1) { at++; paint(); return; }
-    progress(QUESTIONS.length);
+    if (at < S.questions.length - 1) { at++; paint(); return; }
+    progress(S.questions.length);
     show("details");
     $("first").focus();
   }
 
   $("start").addEventListener("click", function () { show("quiz"); paint(); });
+
+  // Nothing is shown until the strings are settled, so a translated page
+  // never flashes English first.
+  loadStrings(pickLang()).then(applyStatic);
   $("back").addEventListener("click", function () { if (at > 0) { at--; paint(); } });
 
   $("finish").addEventListener("click", async function () {
@@ -418,16 +501,16 @@
     var email = $("email").value.trim();
 
     if (!first || !last) {
-      said.className = "said err"; said.textContent = "Both names, please."; return;
+      said.className = "said err"; said.textContent = S.needNames; return;
     }
     if (!email || !/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(email)) {
       said.className = "said err";
-      said.textContent = "We need a valid email address to send your result to.";
+      said.textContent = S.needEmail;
       return;
     }
 
     $("finish").disabled = true;
-    said.className = "said"; said.textContent = "Working out your stage…";
+    said.className = "said"; said.textContent = S.working;
 
     try {
       var res = await fetch("/.netlify/functions/quiz-submit", {
@@ -439,6 +522,7 @@
           lastName: last,
           email: email,
           marketingConsent: $("consent").checked,
+          lang: S.lang,
           // Whether the Meta pixel is allowed to run for this visitor.
           // consent.js decides: true after an explicit yes, and true outside
           // Europe where no yes is needed. If it is false the server reports
@@ -452,14 +536,14 @@
       var data = await res.json();
       if (!res.ok || data.error) {
         said.className = "said err";
-        said.textContent = data.error || "That did not work. Please try again.";
+        said.textContent = data.error || S.failed;
         $("finish").disabled = false;
         return;
       }
       render(data);
     } catch (e) {
       said.className = "said err";
-      said.textContent = "Could not reach us just then. Please try again.";
+      said.textContent = S.unreachable;
       $("finish").disabled = false;
     }
   });
@@ -505,24 +589,20 @@
     $("nextstep").href = r.next.href;
     $("nextsteptext").textContent = r.next.text;
 
-    $("sent").textContent = data.emailed
-      ? "A copy is on its way to your inbox."
-      : "";
+    $("sent").textContent = data.emailed ? S.emailed : "";
 
     // The second ask, only for people who left the box unticked.
     if (!$("consent").checked && data.id) {
-      var plural = r.name + "s";
-      $("secondaskhead").textContent = "More for " + plural;
-      $("secondasklede").textContent =
-        "Want more like this? We will send practical coaching content and the " +
-        "occasional course update, aimed at where you are now.";
+      $("secondaskhead").textContent =
+        S.secondAskHead.replace("{plural}", r.name + (S.lang === "en" ? "s" : ""));
+      $("secondasklede").textContent = S.secondAskLede;
       $("secondask").classList.remove("hidden");
 
       $("secondaskgo").addEventListener("click", async function () {
         var said = $("secondasksaid");
         $("secondaskgo").disabled = true;
         said.className = "said";
-        said.textContent = "Saving…";
+        said.textContent = S.saving;
         try {
           var res = await fetch("/.netlify/functions/quiz-consent", {
             method: "POST",
@@ -532,16 +612,16 @@
           var out = await res.json();
           if (!res.ok || out.error) {
             said.className = "said err";
-            said.textContent = out.error || "That did not save. Please try again.";
+            said.textContent = out.error || S.saveFailed;
             $("secondaskgo").disabled = false;
             return;
           }
           $("secondaskgo").classList.add("hidden");
           said.className = "sent";
-          said.textContent = "Done — you are on the list.";
+          said.textContent = S.saved;
         } catch (e) {
           said.className = "said err";
-          said.textContent = "Could not reach us just then. Please try again.";
+          said.textContent = S.unreachable;
           $("secondaskgo").disabled = false;
         }
       });
