@@ -7,3 +7,73 @@
   from = "/sitemap.xml"
   to = "/.netlify/functions/sitemap"
   status = 200
+
+# Language URLs for the two quizzes. Each serves the same page as the English
+# one, which reads the language out of its own path — no duplicate HTML per
+# language, so a fix to the quiz is a fix everywhere.
+#
+# Status 200 rather than 301: the URL stays as the visitor typed it, which is
+# what the page reads the language from and what the ad links point at.
+#
+# Only the six languages we have are listed, so anything else falls through to
+# the normal 404 rather than serving an English page at a French address.
+
+[[redirects]]
+  from = "/quiz/fr/"
+  to = "/quiz/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/quiz/es/"
+  to = "/quiz/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/quiz/de/"
+  to = "/quiz/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/quiz/it/"
+  to = "/quiz/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/quiz/pl/"
+  to = "/quiz/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/quiz/pt/"
+  to = "/quiz/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/tgc/quiz/fr/"
+  to = "/tgc/quiz/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/tgc/quiz/es/"
+  to = "/tgc/quiz/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/tgc/quiz/de/"
+  to = "/tgc/quiz/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/tgc/quiz/it/"
+  to = "/tgc/quiz/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/tgc/quiz/pl/"
+  to = "/tgc/quiz/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/tgc/quiz/pt/"
+  to = "/tgc/quiz/index.html"
+  status = 200
