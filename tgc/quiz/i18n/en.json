@@ -1,0 +1,152 @@
+{
+  "lang": "en",
+  "metaTitle": "What Your Coaching Needs Next — The Gymnastics Course",
+  "title": "What does your gymnastics coaching need next?",
+  "lede": "Gymnastics coaching is an order of operations. Twelve questions about how you coach today, and you will know which rung you are standing on, why it matters, and one thing to do about it this week.",
+  "chip1": "12 questions",
+  "chip2": "1–2 minutes",
+  "chip3": "Free",
+  "start": "Start the assessment",
+  "back": "Back",
+  "questionOf": "Question {n} of {total}",
+  "almost": "Almost there",
+  "whereSend": "Where should we send your result?",
+  "firstName": "First name",
+  "lastName": "Last name",
+  "email": "Email",
+  "consent": "Send me the follow-up information about my result today, plus the occasional newsletter with articles and podcasts to listen to. You can unsubscribe at any time.",
+  "seeResult": "See my result",
+  "emailOnly": "We use your email to send your result. Nothing else without the tick above.",
+  "needNames": "Both names, please.",
+  "needEmail": "We need a valid email address to send your result to.",
+  "working": "Working out your focus…",
+  "failed": "That did not work. Please try again.",
+  "unreachable": "Could not reach us just then. Please try again.",
+  "resultHead": "Your gymnastics coaching focus",
+  "yourFocus": "Your focus",
+  "tryThisWeek": "Try this week",
+  "theLadder": "The ladder",
+  "whereTaught": "Where this is taught",
+  "watch": "Watch",
+  "nextStep": "Your next step",
+  "rungDone": "Behind you",
+  "rungHere": "You are here",
+  "rungAhead": "Ahead of you",
+  "emailed": "A copy is on its way to your inbox.",
+  "secondAskHead": "More on {focus}",
+  "secondAskLede": "Five short emails on this, one a week. Things worth thinking about, and things you can try with the athletes in front of you.",
+  "yesSend": "Yes, send it",
+  "saving": "Saving…",
+  "saveFailed": "That did not save. Please try again.",
+  "saved": "Done — you are on the list.",
+  "questions": [
+    {
+      "q": "An athlete's swing looks wrong. What usually happens next?",
+      "a": [
+        "I can tell something is off but not what",
+        "I can name the fault after watching a few reps",
+        "I see it on the first rep and can name it",
+        "I see it, name it, and know which position it traces back to"
+      ]
+    },
+    {
+      "q": "Two athletes fail the same movement for different reasons. How often do you catch that?",
+      "a": [
+        "Rarely — they tend to get the same cue",
+        "Sometimes, usually thinking about it afterwards",
+        "Usually, while it is happening",
+        "Always — I go in expecting it and look for it"
+      ]
+    },
+    {
+      "q": "You demonstrate a shape. How do your athletes' versions come back?",
+      "a": [
+        "All over the place",
+        "Roughly similar, hard to say what is off",
+        "Close, and I can pick out the gaps",
+        "Consistent, because I check the same reference points every time"
+      ]
+    },
+    {
+      "q": "How do you decide what an athlete works on next?",
+      "a": [
+        "Whatever the class programme has that day",
+        "Whatever they are struggling with most",
+        "A progression I follow for that movement",
+        "A defined order I could explain and justify for any athlete"
+      ]
+    },
+    {
+      "q": "An athlete wants muscle-ups and cannot hold a hollow. What do you do?",
+      "a": [
+        "Let them work muscle-ups and keep the volume low",
+        "Give them some hollow work alongside",
+        "Hold the muscle-up work until the position is there",
+        "Take them back and rebuild the sequence in order"
+      ]
+    },
+    {
+      "q": "If another coach took your athletes for a month, could they carry on?",
+      "a": [
+        "No — most of it is in my head",
+        "Roughly, from what is on the whiteboard",
+        "Yes, the progression is written down",
+        "Yes, and they would know why each step comes where it does"
+      ]
+    },
+    {
+      "q": "An athlete has strict strength but an inconsistent kip. Your approach?",
+      "a": [
+        "More reps until it clicks",
+        "Show it again, slower",
+        "Break the timing into components and drill those",
+        "Work out which component is mistimed and coach that one"
+      ]
+    },
+    {
+      "q": "How do you coach rhythm and timing?",
+      "a": [
+        "I do not really — it comes with practice",
+        "Counting or tempo cues",
+        "Drills that isolate the timing",
+        "Constraints that make the right timing the only option available"
+      ]
+    },
+    {
+      "q": "A dynamic skill falls apart under fatigue. What is your read?",
+      "a": [
+        "They are tired",
+        "A conditioning problem",
+        "The timing degrades before the strength does",
+        "I know which part of the sequence goes first for that athlete"
+      ]
+    },
+    {
+      "q": "How do you decide how much gymnastics volume an athlete gets?",
+      "a": [
+        "Whatever is in the class workout",
+        "More for the ones who need it",
+        "A set weekly amount by level",
+        "Prescribed against what they are adapting to, and adjusted as it changes"
+      ]
+    },
+    {
+      "q": "An athlete has clean positions and good timing but has stopped progressing. Why?",
+      "a": [
+        "Not sure",
+        "Probably needs to train more",
+        "The dose is not matched to the adaptation",
+        "I would know which variable to change, and by how much"
+      ]
+    },
+    {
+      "q": "How do you manage gymnastics intensity across a week?",
+      "a": [
+        "It is not separated from the rest of their training",
+        "I keep an informal eye on it",
+        "I plan harder and easier days",
+        "I prescribe it deliberately against everything else they are doing"
+      ]
+    }
+  ]
+}
