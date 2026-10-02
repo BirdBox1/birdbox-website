@@ -1,0 +1,77 @@
+{
+  "greeting": "Hello {name},",
+  "opening": [
+    "Thanks for taking the assessment.",
+    "This isn’t a score, and it isn’t a verdict on how good a coach you are. It’s a read on where the next real gain in your coaching is sitting — because gymnastics coaching is an order of operations, and working on the wrong rung is how coaches put in years of effort for very little return.",
+    "Everyone is somewhere on this ladder. Below is where you are, why it matters, and one thing you can do about it this week."
+  ],
+  "closing": [
+    "Wherever you are on this ladder, it isn’t a ceiling. Coaches move up it quickly once they know which rung they’re standing on — the wasted years come from working hard on the wrong one.",
+    "Over the next few weeks we’ll send you five short emails on your focus area. Not a sales sequence — things worth thinking about, and things you can try with the athletes in front of you.",
+    "Nathan Bird and the BirdBox team"
+  ],
+  "focus": {
+    "eye": {
+      "name": "The Coach’s Eye",
+      "lede": "Your focus: seeing and transferring foundational shapes.",
+      "body": [
+        "You can tell when a movement is wrong. Most coaches can. What’s harder — and what separates coaches who get consistent results from coaches who get occasional ones — is knowing what is wrong, in the first rep, and knowing which position it traces back to.",
+        "Right now, that read isn’t reliable yet. It shows up in small ways. Two athletes fail the same movement and get the same cue. You demonstrate a shape and four different versions come back at you. You know something’s off, but by the time you’ve worked out what, the set is finished.",
+        "This is the first rung for a reason. Everything above it depends on it. A methodology you can’t see faults against is a schedule, not a system. Timing work on an athlete whose shape is wrong makes the wrong thing faster. Volume on top of that accumulates the fault instead of the skill.",
+        "The good news is that a coach’s eye is trainable. It isn’t talent, and it isn’t simply years on the floor — plenty of coaches accumulate a decade of watching without it, because they were never looking at anything in particular. But it does take time. Time spent deliberately, on the right things, in the right order. That’s the part nobody can shortcut for you, and it’s also the part that moves fastest once you know where to point your attention."
+      ],
+      "tryThis": [
+        "Pick one movement your class does often. Before the session, write down the three things you will look at, in order — not what good looks like overall, but three specific checkpoints. Coach the whole session looking only at those three.",
+        "A hint: the body is a series of links. A fault you can see is rarely where the fault starts.",
+        "You’ll see more with three deliberate checks than with an open-ended look at everything, because your attention finally has somewhere to go. Do it for a week and you’ll notice the second thing — how much you were missing while looking at all of it."
+      ],
+      "taught": "Movement Assessment is one of the four things TGC Level 1 is built around. Two days of learning to see and correct movement more simply, with your hands on real athletes and coaches watching you do it."
+    },
+    "methodology": {
+      "name": "The Application Methodology",
+      "lede": "Your focus: the foundational steps of a gymnastics coaching methodology, and how to apply them.",
+      "body": [
+        "You can see it. That’s not the gap. You watch an athlete and you know what’s wrong — the question you can’t always answer is what to do about it, in what order, and why that order and not another one.",
+        "It shows up as decisions made in the moment. What an athlete works on next comes from what today’s programme happens to hold, or what they’re struggling with most, or what they’ve asked for. Each is a reasonable answer to a single session. None of them is a method, and the difference shows over months rather than days.",
+        "Here’s the distinction that matters, and it’s the one most coaches miss: a progression is a list of steps. A methodology is the reasoning underneath them. A progression says do this, then this. A methodology says what quality each step is building — control held still, control under lengthening, control expressed — and why that quality has to come before the next one. The steps without the reasoning are a sequence you inherited. With the reasoning, they’re a system you can defend, adapt for an athlete who doesn’t fit, and hand to another coach.",
+        "There’s a straightforward test. If another coach took your athletes for a month, could they carry on? Not guess — carry on, in the same direction, for the same reasons. If the answer lives mostly in your head, you have judgement, which is worth a great deal and doesn’t scale, can’t be handed over, and quietly disappears when you’re tired."
+      ],
+      "tryThis": [
+        "Take one movement and write the order out, start to finish. Then next to each step write two things: what quality that step is building, and why it has to come before the one after it.",
+        "The steps will come easily. The second column is where most coaches find they’ve been improvising — and that column is the methodology."
+      ],
+      "taught": "TGC Level 1 opens on the coaching methodology and the hierarchy of development — the reasoning underneath the steps rather than the steps themselves, and why the order is the order."
+    },
+    "dynamic": {
+      "name": "Dynamic Technical Coaching",
+      "lede": "Your focus: technical coaching toward dynamic movement timing.",
+      "body": [
+        "Your athletes have positions and they have strength. What they don’t reliably have is rhythm — and that’s the point where a lot of otherwise excellent coaching quietly stops.",
+        "You’ll recognise it. An athlete with a solid strict pull-up whose kip has never looked the same twice. Skills that hold together fresh and fall apart at rep eight, where the strength clearly hasn’t gone anywhere but the sequence has. Progress that comes from repetition rather than from coaching, which means it takes months and you can’t say what made the difference.",
+        "Here’s what makes this rung different from the two below it. A position is a thing you can see held still. Timing only exists in motion, which means you can’t coach it by pausing it — and the moment you slow a dynamic movement down to explain it, you’re no longer teaching the thing you’re trying to teach.",
+        "And this is where most coaches make it worse rather than better. Faced with an athlete whose timing is off, the instinct is to explain more: another cue, another rule, another thing to think about on the way up. But every rule you add gives the athlete another piece to monitor, and an athlete monitoring pieces stops moving as a whole. They break the movement down exactly where it needs to stay together. More explicit instruction produces a more decomposed, more self-conscious, more inconsistent athlete — the opposite of what you were aiming at.",
+        "The way through is implicit rather than explicit. Less telling. Conditions arranged so the athlete finds the timing themselves, because the right timing is the only one that works."
+      ],
+      "tryThis": [
+        "Take an athlete whose dynamic skill is inconsistent and stop telling them what to do with their body. Change one thing about the task instead, so the correct timing is the easy one. Then say nothing and let them have ten attempts.",
+        "What they solve on their own will tell you more about what they actually understand than any amount of cueing."
+      ],
+      "taught": "TGC Level 1 teaches spotting and self-spotting, which is the best form of scaling there is. Spotting an athlete through a dynamic movement is how they find the smoothness — and the understanding that comes with it — without you having to talk them through it."
+    },
+    "periodisation": {
+      "name": "Progression Periodisation",
+      "lede": "Your focus: the later stages of athlete development, once position and precision are there.",
+      "body": [
+        "You’re past the problems most coaches are still working on. Your athletes move well, you can see what’s happening, and you have an order you coach in. Which puts you somewhere quite specific — the point where coaching stops being about correcting movement and starts being about prescribing it.",
+        "The symptom is the athlete who’s doing everything right and has stopped progressing. Clean positions, decent timing, showing up, working hard, and flat for three months. There’s nothing to fix, so there’s nothing obvious to coach — and the usual instinct is to add. More reps, more days, more accessory work. Sometimes that’s the answer. Often the athlete was already receiving more than they were adapting to, and the problem was never the amount.",
+        "This rung is about dose. How much of a thing, how hard, how often, and against everything else in their week — because gymnastics volume doesn’t sit in isolation, it competes with every other demand the athlete has. It’s the least visible part of coaching and the one with the longest feedback loop, which is why most coaches never systematise it. You can be wrong for eight weeks before anything tells you.",
+        "Getting it right is what turns a good coach into one whose athletes keep progressing years in."
+      ],
+      "tryThis": [
+        "Pick one athlete who’s stalled. Write down everything they did in the last four weeks — all of it, not just the gymnastics. Then ask a harder question than “what should I add”: what are they actually adapting to, and is anything in that list preventing it?",
+        "The answer is more often subtraction than addition, and almost never what the athlete expects."
+      ],
+      "taught": "Programming and scaling is the fourth thing TGC Level 1 is built around. Gymnastics programming doesn’t need to be hard — it needs to be often, and prescribed against everything else the athlete is doing."
+    }
+  }
+}
