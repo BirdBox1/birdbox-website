@@ -1,0 +1,89 @@
+{
+  "greeting": "Ciao {name},",
+  "nextText": "The Gymnastics Course — Livello 1",
+  "email": {
+    "subject": "Su cosa lavorare adesso come coach: {name}",
+    "heading": "Su cosa lavorare adesso come coach",
+    "yourFocus": "Il tuo focus",
+    "tryThisWeek": "Da provare questa settimana",
+    "whereTaught": "Dove lo insegniamo",
+    "watch": "Video",
+    "watchLede": "Qualche minuto su {name}, e su come appare in palestra.",
+    "watchButton": "Guarda il video",
+    "nextStep": "Prossimo passo"
+  },
+  "opening": [
+    "Grazie per aver completato la valutazione.",
+    "Non è un punteggio, e non è un giudizio su quanto sei bravo come coach. È un'indicazione di dove si trova il tuo prossimo vero margine di miglioramento — perché nel coaching della ginnastica conta l'ordine in cui si affrontano le cose, e lavorare sul gradino sbagliato è il motivo per cui tanti coach ci mettono anni di impegno per ottenere pochissimo.",
+    "Ognuno si trova da qualche parte su questa scala. Qui sotto trovi a che punto sei, perché è importante e una cosa che puoi fare già questa settimana."
+  ],
+  "closing": [
+    "Ovunque tu sia su questa scala, non è un limite. I coach la salgono in fretta una volta capito su quale gradino si trovano — gli anni sprecati nascono dal lavorare sodo su quello sbagliato.",
+    "Nelle prossime settimane ti invieremo cinque brevi email sul tuo focus. Non è una sequenza commerciale: sono spunti su cui riflettere e cose che puoi provare con gli atleti che hai davanti.",
+    "Nathan Bird e il team BirdBox"
+  ],
+  "focus": {
+    "eye": {
+      "name": "L'occhio del coach",
+      "lede": "Il tuo focus: vedere e trasmettere le posizioni fondamentali.",
+      "body": [
+        "Sai riconoscere quando un movimento non va. Ci riesce quasi ogni coach. La parte difficile — ed è ciò che distingue chi ottiene risultati costanti da chi li ottiene solo ogni tanto — è capire cosa non va, già alla prima ripetizione, e da quale posizione nasce il problema.",
+        "Per ora questa lettura non è ancora affidabile, e lo si nota nei dettagli. Due atleti sbagliano lo stesso movimento e ricevono lo stesso cue. Mostri una posizione e te ne ritornano quattro versioni diverse. Senti che qualcosa non va, ma quando capisci cosa, la serie è già finita.",
+        "Non a caso è il primo gradino: tutto il resto si regge su questo. Una metodologia senza la capacità di vedere gli errori è solo un calendario, non un sistema. Lavorare sul timing con un atleta che ha una posizione sbagliata significa soltanto rendere più veloce l'errore. E aggiungere volume, a quel punto, consolida l'errore invece dell'abilità.",
+        "La buona notizia è che l'occhio del coach si può allenare. Non è una questione di talento, né semplicemente di anni passati sul campo — molti coach accumulano dieci anni di osservazione senza svilupparlo, perché non hanno mai guardato nulla di specifico. Però richiede tempo. Tempo dedicato in modo consapevole, alle cose giuste, nell'ordine giusto. È la parte che nessuno può accorciare al posto tuo, ma è anche quella che progredisce più in fretta, una volta che sai dove indirizzare l'attenzione."
+      ],
+      "tryThis": [
+        "Scegli un movimento che fai fare spesso alla tua classe. Prima della lezione, scrivi le tre cose che osserverai, in ordine — non come dovrebbe essere un buon movimento in generale, ma tre punti di controllo specifici. Per tutta la lezione, guarda solo quei tre.",
+        "Un suggerimento: il corpo è una catena. L'errore che vedi raramente è il punto in cui l'errore nasce.",
+        "Con tre controlli mirati vedrai molto di più che guardando tutto senza un criterio, perché finalmente la tua attenzione sa dove andare. Fallo per una settimana e ti accorgerai anche di un'altra cosa: quanto ti sfuggiva quando cercavi di guardare tutto."
+      ],
+      "taught": "Il Movement Assessment è uno dei quattro pilastri su cui si basa TGC Livello 1. Due giorni per imparare a vedere e correggere il movimento in modo più semplice, mettendo le mani su atleti veri, con altri coach che ti osservano."
+    },
+    "methodology": {
+      "name": "La metodologia di applicazione",
+      "lede": "Il tuo focus: i passaggi fondamentali di una metodologia di coaching della ginnastica, e come applicarli.",
+      "body": [
+        "Gli errori li vedi. Il punto non è quello. Osservi un atleta e sai cosa non va — la domanda a cui non sempre sai rispondere è cosa fare, in che ordine, e perché proprio in quell'ordine e non in un altro.",
+        "Lo si nota dalle decisioni prese sul momento. Il prossimo lavoro di un atleta dipende da cosa prevede il programma del giorno, da cosa gli riesce più difficile o da cosa ti ha chiesto. Ognuna di queste è una risposta sensata per una singola lezione. Nessuna è un metodo, e la differenza si vede nell'arco dei mesi, non dei giorni.",
+        "Ecco la distinzione che conta davvero, e che sfugge alla maggior parte dei coach: una progressione è un elenco di passaggi. Una metodologia è il ragionamento che c'è dietro. Una progressione ti dice: fai questo, poi questo. Una metodologia ti dice quale qualità sviluppa ogni passaggio — controllo in posizione statica, controllo in allungamento, controllo espresso nel movimento — e perché quella qualità deve venire prima della successiva. I passaggi senza il ragionamento sono una sequenza che hai ereditato. Con il ragionamento diventano un sistema che puoi motivare, adattare a un atleta che non rientra negli schemi e passare a un altro coach.",
+        "Esiste un test semplice. Se un altro coach seguisse i tuoi atleti per un mese, riuscirebbe a portare avanti il lavoro? Non a tirare a indovinare: a portarlo avanti, nella stessa direzione e per gli stessi motivi. Se la risposta sta soprattutto nella tua testa, quello che hai è buon giudizio — che vale moltissimo, ma non si può replicare né trasmettere, e svanisce senza che te ne accorga nei giorni in cui sei stanco."
+      ],
+      "tryThis": [
+        "Prendi un movimento e scrivi tutta la sequenza, dall'inizio alla fine. Poi, accanto a ogni passaggio, annota due cose: quale qualità sviluppa e perché deve venire prima di quello successivo.",
+        "I passaggi ti verranno facilmente. È nella seconda colonna che la maggior parte dei coach scopre di aver improvvisato — e quella colonna è la metodologia."
+      ],
+      "taught": "TGC Livello 1 parte proprio dalla metodologia di coaching e dalla gerarchia dello sviluppo — il ragionamento dietro i passaggi più che i passaggi stessi, e perché l'ordine è proprio quello."
+    },
+    "dynamic": {
+      "name": "Il coaching tecnico dinamico",
+      "lede": "Il tuo focus: il coaching tecnico per sviluppare il timing nei movimenti dinamici.",
+      "body": [
+        "I tuoi atleti hanno le posizioni e hanno la forza. Quello che manca, o non è affidabile, è il ritmo — ed è proprio lì che molto coaching, per il resto ottimo, si arena senza che nessuno se ne accorga.",
+        "Ti suonerà familiare. Un atleta con una trazione strict solida, ma con un kip che non è mai uguale due volte. Movimenti che reggono quando l'atleta è fresco e crollano all'ottava ripetizione, quando la forza c'è ancora ma la sequenza no. Progressi che arrivano a forza di ripetizioni e non grazie al coaching: per questo servono mesi, e non sai dire cosa abbia fatto la differenza.",
+        "Ecco cosa distingue questo gradino dai due precedenti. Una posizione è qualcosa che puoi osservare da ferma. Il timing esiste solo in movimento: non puoi allenarlo fermandolo. E nel momento in cui rallenti un movimento dinamico per spiegarlo, non stai più insegnando quello che volevi insegnare.",
+        "Ed è qui che la maggior parte dei coach, invece di migliorare la situazione, la peggiora. Davanti a un atleta con il timing sbagliato, l'istinto è spiegare di più: un altro cue, un'altra regola, un'altra cosa a cui pensare durante la salita. Ma ogni regola in più è un altro dettaglio da controllare, e un atleta impegnato a controllare dettagli smette di muoversi in modo fluido e unitario. Spezza il movimento proprio dove dovrebbe restare unito. Più istruzioni esplicite dai, più l'atleta diventa frammentato, impacciato e incostante — l'esatto contrario di quello che volevi ottenere.",
+        "La soluzione passa dall'implicito, non dall'esplicito. Spiegare meno. Creare le condizioni perché sia l'atleta a trovare il timing da solo, perché quello corretto è l'unico che funziona."
+      ],
+      "tryThis": [
+        "Prendi un atleta che è incostante in un movimento dinamico e smetti di dirgli cosa fare con il corpo. Modifica invece un elemento dell'esercizio, in modo che il timing corretto diventi quello più naturale. Poi non dire nulla e lascialo provare dieci volte.",
+        "Quello che riuscirà a risolvere da solo ti dirà quanto ha capito davvero, più di qualsiasi cue."
+      ],
+      "taught": "TGC Livello 1 insegna lo spotting e l'auto-spotting, la miglior forma di scaling che esista. Accompagnare un atleta con lo spotting in un movimento dinamico è il modo in cui trova la fluidità — e la comprensione che ne deriva — senza che tu debba spiegargli tutto a parole."
+    },
+    "periodisation": {
+      "name": "La periodizzazione delle progressioni",
+      "lede": "Il tuo focus: le fasi più avanzate dello sviluppo dell'atleta, quando posizione e precisione sono già acquisite.",
+      "body": [
+        "Hai già superato i problemi su cui la maggior parte dei coach sta ancora lavorando. I tuoi atleti si muovono bene, sai vedere cosa succede e segui un ordine preciso. Questo ti porta in un punto molto specifico: quello in cui il coaching non consiste più nel correggere il movimento, ma nel prescriverlo.",
+        "Il segnale tipico è l'atleta che fa tutto bene ma ha smesso di progredire. Posizioni pulite, timing discreto, sempre presente, si impegna — ed è fermo da tre mesi. Non c'è niente da correggere, quindi non c'è niente di evidente su cui lavorare, e l'istinto è aggiungere. Più ripetizioni, più giorni, più lavoro accessorio. A volte è la risposta giusta. Spesso, però, l'atleta riceveva già più stimoli di quanti riuscisse ad assimilare, e il problema non è mai stato la quantità.",
+        "Questo gradino riguarda la dose. Quanto lavoro, a che intensità, con che frequenza e in rapporto a tutto il resto della settimana — perché il volume di ginnastica non esiste da solo: compete con tutti gli altri carichi a cui l'atleta è sottoposto. È la parte meno visibile del coaching e quella in cui i riscontri arrivano più tardi, ed è per questo che quasi nessun coach la gestisce in modo sistematico. Puoi sbagliare per otto settimane prima che qualcosa te lo faccia capire.",
+        "Gestirla bene è ciò che trasforma un buon coach in un coach i cui atleti continuano a progredire anche dopo anni."
+      ],
+      "tryThis": [
+        "Scegli un atleta in stallo. Scrivi tutto quello che ha fatto nelle ultime quattro settimane — proprio tutto, non solo la ginnastica. Poi fatti una domanda più difficile di «cosa aggiungo?»: a cosa si sta adattando davvero, e c'è qualcosa in questo elenco che glielo impedisce?",
+        "Il più delle volte la risposta è togliere, non aggiungere, e quasi mai è quella che l'atleta si aspetta."
+      ],
+      "taught": "Programmazione e scaling sono il quarto pilastro di TGC Livello 1. Programmare la ginnastica non deve essere complicato: deve essere frequente, e calibrato su tutto il resto che l'atleta fa."
+    }
+  }
+}

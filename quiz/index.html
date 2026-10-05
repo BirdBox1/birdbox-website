@@ -536,7 +536,9 @@
       var data = await res.json();
       if (!res.ok || data.error) {
         said.className = "said err";
-        said.textContent = data.error || S.failed;
+        // The server writes its errors in English, so other languages get the
+        // page's own wording instead.
+        said.textContent = (S.lang === "en" && data.error) || S.failed;
         $("finish").disabled = false;
         return;
       }
@@ -612,7 +614,7 @@
           var out = await res.json();
           if (!res.ok || out.error) {
             said.className = "said err";
-            said.textContent = out.error || S.saveFailed;
+            said.textContent = (S.lang === "en" && out.error) || S.saveFailed;
             $("secondaskgo").disabled = false;
             return;
           }

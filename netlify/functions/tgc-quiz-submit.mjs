@@ -187,8 +187,25 @@ function langFrom(body) {
   return LANGS.indexOf(want) > 0 ? want : "en";
 }
 
+// The fixed wording of the result email — headings, button text, subject.
+// {name} is the focus name.
+const EMAIL_EN = {
+  subject: "What your coaching needs next: {name}",
+  heading: "What your coaching needs next",
+  yourFocus: "Your focus",
+  tryThisWeek: "Try this week",
+  whereTaught: "Where this is taught",
+  watch: "Watch",
+  watchLede: "A few minutes on {name}, and what it looks like on the floor.",
+  watchButton: "Watch the video",
+  nextStep: "Next step",
+};
+
 async function packFor(lang) {
-  const EN = { focus: FOCUS, opening: OPENING, closing: CLOSING, greeting: "Hello {name}," };
+  const EN = {
+    focus: FOCUS, opening: OPENING, closing: CLOSING,
+    greeting: "Hello {name},", email: EMAIL_EN, nextText: null,
+  };
   if (lang === "en") return EN;
   try {
     const res = await fetch(`${SITE}/tgc/quiz/i18n/results-${lang}.json`, {
@@ -208,6 +225,8 @@ async function packFor(lang) {
       opening: Array.isArray(t.opening) && t.opening.length ? t.opening : OPENING,
       closing: Array.isArray(t.closing) && t.closing.length ? t.closing : CLOSING,
       greeting: t.greeting || EN.greeting,
+      email: Object.assign({}, EMAIL_EN, t.email || {}),
+      nextText: t.nextText || null,
     };
   } catch (e) {
     console.error("i18n fetch failed for", lang, e);
@@ -232,8 +251,9 @@ function resultFor(key, firstName, scores, pack) {
     taught: f.taught,
     video: f.video,
     videoUrl: "https://youtu.be/" + f.video,
-    next: NEXT,
+    next: { text: pack.nextText || NEXT.text, href: NEXT.href },
     closing: CLOSING,
+    labels: pack.email,
     scores,
     rungs: RUNGS.map((k, i) => ({ key: k, name: FOCUS[k].name, score: scores[i] })),
   };
@@ -247,6 +267,7 @@ function esc(t) {
 }
 
 function emailHtml(r) {
+  const L = r.labels, fill = (t) => t.replace("{name}", r.name);
   const p = (t) =>
     `<p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:#1d2126">${esc(t)}</p>`;
 
@@ -260,45 +281,44 @@ function emailHtml(r) {
     <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#9aa1a9;
                 font-family:Helvetica,Arial,sans-serif">The Gymnastics Course</div>
     <div style="font-size:20px;font-weight:700;color:#ffffff;margin-top:4px;
-                font-family:Helvetica,Arial,sans-serif">What your coaching needs next</div>
+                font-family:Helvetica,Arial,sans-serif">${esc(L.heading)}</div>
   </td></tr>
   <tr><td style="padding:28px;font-family:Helvetica,Arial,sans-serif">
     ${p(r.greeting)}
     ${r.opening.map(p).join("")}
     <div style="margin:26px 0 16px;padding:14px 18px;background:#f0f2f5;border-left:4px solid #D8393D">
       <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#5b636d">
-        Your focus</div>
+        ${esc(L.yourFocus)}</div>
       <div style="font-size:26px;font-weight:700;color:#101215;margin-top:2px">${esc(r.name)}</div>
       <div style="font-size:14px;color:#3d444c;margin-top:6px">${esc(r.lede)}</div>
     </div>
     ${r.body.map(p).join("")}
     <div style="margin:26px 0;padding:18px;background:#f7f7f5;border:1px solid #e2e2de">
       <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#5b636d;
-                  margin-bottom:10px">Try this week</div>
+                  margin-bottom:10px">${esc(L.tryThisWeek)}</div>
       ${r.tryThis.map(p).join("")}
     </div>
     <div style="margin:26px 0;padding:18px;background:#101215">
       <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#9aa1a9;
-                  margin-bottom:8px">Where this is taught</div>
+                  margin-bottom:8px">${esc(L.whereTaught)}</div>
       <p style="margin:0;font-size:15px;line-height:1.6;color:#e8eaed">${esc(r.taught)}</p>
     </div>
     ${r.video ? `<div style="margin:26px 0;padding:18px;background:#f7f7f5;border:1px solid #e2e2de">
       <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#5b636d;
-                  margin-bottom:10px">Watch</div>
-      <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#1d2126">A few minutes on
-        ${esc(r.name)}, and what it looks like on the floor.</p>
+                  margin-bottom:10px">${esc(L.watch)}</div>
+      <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#1d2126">${esc(fill(L.watchLede))}</p>
       <!-- A link, not an embed. No mainstream mail client plays video inline,
            and a remote still is at the mercy of whatever image proxy the
            reader's client uses. A button always renders. -->
       <a href="${esc(r.videoUrl)}"
          style="display:inline-block;background:#101215;color:#ffffff;text-decoration:none;
-                font-weight:700;font-size:14px;padding:11px 18px">&#9654;&nbsp; Watch the video</a>
+                font-weight:700;font-size:14px;padding:11px 18px">&#9654;&nbsp; ${esc(L.watchButton)}</a>
     </div>` : ""}
     ${r.closing.map(p).join("")}
     <p style="margin:26px 0 0">
       <a href="${SITE}${esc(r.next.href)}"
          style="display:inline-block;background:#D8393D;color:#ffffff;text-decoration:none;
-                font-weight:700;font-size:15px;padding:13px 22px">Next step: ${esc(r.next.text)} &rarr;</a>
+                font-weight:700;font-size:15px;padding:13px 22px">${esc(L.nextStep)}: ${esc(r.next.text)} &rarr;</a>
     </p>
   </td></tr>
   <tr><td style="padding:18px 28px;background:#f7f7f5;border-top:1px solid #e2e2de;
@@ -312,19 +332,20 @@ function emailHtml(r) {
 }
 
 function emailText(r) {
+  const L = r.labels;
   return [
     r.greeting, "",
     ...r.opening, "",
-    "YOUR FOCUS: " + r.name.toUpperCase(),
+    L.yourFocus.toUpperCase() + ": " + r.name.toUpperCase(),
     r.lede, "",
     ...r.body, "",
-    "TRY THIS WEEK", "",
+    L.tryThisWeek.toUpperCase(), "",
     ...r.tryThis, "",
-    "WHERE THIS IS TAUGHT", "",
+    L.whereTaught.toUpperCase(), "",
     r.taught, "",
-    ...(r.video ? ["WATCH", "", r.videoUrl, ""] : []),
+    ...(r.video ? [L.watch.toUpperCase(), "", r.videoUrl, ""] : []),
     ...r.closing, "",
-    "Next step: " + r.next.text + " " + SITE + r.next.href,
+    L.nextStep + ": " + r.next.text + " " + SITE + r.next.href,
   ].join("\n");
 }
 
@@ -339,7 +360,7 @@ async function sendResult(to, r) {
         from: `The Gymnastics Course <${FROM}>`,
         to: [to],
         reply_to: OFFICE,
-        subject: `What your coaching needs next: ${r.name}`,
+        subject: r.labels.subject.replace("{name}", r.name),
         text: emailText(r),
         html: emailHtml(r),
       }),

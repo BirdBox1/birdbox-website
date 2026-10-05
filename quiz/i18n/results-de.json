@@ -1,0 +1,111 @@
+{
+  "greeting": "Hallo {name},",
+  "nextText": "The Coaches Course — Level 1",
+  "email": {
+    "subject": "Deine Entwicklungsstufe als Coach: {name}",
+    "heading": "Deine Selbsteinschätzung als Coach",
+    "yourStage": "Deine Entwicklungsstufe",
+    "learnMore": "Erfahre mehr über effektives Coaching",
+    "watch": "Dein Video zur Stufe {name} ansehen",
+    "nextStep": "Nächster Schritt"
+  },
+  "opening": [
+    "Danke, dass du die Selbsteinschätzung von BirdBox Coaching Development ausgefüllt hast.",
+    "Diese Selbsteinschätzung ist mehr als ein Quiz – sie ist eine Momentaufnahme davon, wo du als Coach gerade stehst. Deine aktuelle Entwicklungsstufe macht deine Stärken sichtbar und zeigt dir konkrete Ansatzpunkte, um mit deinem Coaching noch mehr zu bewirken.",
+    "Jeder Coach durchläuft verschiedene Entwicklungsstufen – jede mit eigenen Herausforderungen, entscheidenden Fortschritten und neuen Entwicklungsfeldern. Wenn du weißt, wo du heute stehst, kannst du deine Energie gezielt dort einsetzen, wo sie dich am meisten weiterbringt – statt endlos Informationen zu sammeln oder dich auf Vermutungen zu verlassen.",
+    "Unten findest du eine ausführliche Beschreibung deiner aktuellen Entwicklungsstufe sowie ein kurzes Video, das die wichtigsten Erkenntnisse anschaulich vermittelt. Lies dir die Beschreibung in Ruhe durch. Überlege, welche Punkte du bei dir wiedererkennst und wie du die Erkenntnisse in deinem eigenen Coaching umsetzen kannst."
+  ],
+  "closing": [
+    "Denk daran: Deine Entwicklungsstufe ist keine Grenze, sondern ein Sprungbrett für deine Weiterentwicklung. Die besten Coaches zeichnen sich nicht allein durch ihr Wissen aus, sondern dadurch, dass sie ihr Handwerk bewusst und kontinuierlich verfeinern.",
+    "Bei BirdBox Coaching unterstützen wir dich mit praktischen Werkzeugen, klaren Vorgehensweisen und einer Community, damit du im Coaching-Alltag präziser, effizienter und wirksamer arbeiten kannst.",
+    "Wenn du tiefer einsteigen möchtest, schau dir zuerst das Video an und überlege, welche Anregungen du daraus für deinen Coaching-Alltag mitnehmen kannst. Darauf aufbauend findest du Möglichkeiten, das Gelernte zu üben, in der Praxis anzuwenden und deine bestehenden Stärken weiter auszubauen.",
+    "Bleib dran. Deine Athleten brauchen nicht nur dein Wissen, sondern auch deine Klarheit, Präsenz und Präzision.",
+    "Viel Erfolg bei deinem nächsten Entwicklungsschritt!",
+    "Dein Team von BirdBox Coaching"
+  ],
+  "stages": {
+    "explorer": {
+      "name": "Explorer",
+      "body": [
+        "Deine Antworten zeigen, dass du dich in der Phase befindest, die wir „Explorer“ nennen. Eines vorweg: Das ist keine Schwäche. Es ist die wichtigste Phase in deiner Entwicklung als Coach. Denn Explorer stellen Fragen, erkennen Lücken und suchen nach besseren Lösungen.",
+        "Vielleicht kennst du gerade dieses Gefühl: Du weißt, dass im Coaching oder bei der Arbeit mit Bewegung mehr möglich ist, als du bisher umsetzt – aber noch nicht, wie du diese Lücke schließen kannst. Vielleicht hast du schon viel Wissen gesammelt – durch Videos, Seminare oder Kurse. Doch daraus ist noch kein praxistaugliches System geworden, das du sicher anwenden kannst.",
+        "Damit bist du nicht allein. Die meisten machen in dieser Phase entweder alles zu kompliziert oder vereinfachen so stark, dass das Wesentliche verloren geht. Es ist völlig normal, dabei unsicher zu sein – egal, ob du Biomechanik verstehen, Bewegungen richtig einordnen oder herausfinden möchtest, wie du nachhaltige Veränderungen bewirken kannst.",
+        "Für Explorer kommt es darauf an, eine solide Grundlage aufzubauen:"
+      ],
+      "bullets": [
+        "Lerne, Bewegungen genau zu beobachten und zu verstehen – nicht nur, was passiert, sondern auch, warum es passiert.",
+        "Übe, aus deinen Beobachtungen konkrete Korrekturen abzuleiten – statt viele verschiedene Cues auf gut Glück auszuprobieren.",
+        "Entwickle nach und nach einen geschulten Blick als Coach, mit dem du Wesentliches erkennst und Unwichtiges ausblendest."
+      ],
+      "after": [
+        "Was dir jetzt am meisten weiterhilft: klare Vorgehensweisen, regelmäßiges Feedback und Unterstützung dabei, das Gelernte in die Praxis umzusetzen. Genau dabei unterstützen wir Explorer bei BirdBox Coaching.",
+        "Wir holen dich dort ab, wo du gerade stehst. Ohne Fachjargon. Ohne Rätselraten. Du bringst die Neugier mit. Wir unterstützen dich Schritt für Schritt dabei, sicherer zu werden – in deinem Coaching, in deinem Verständnis von Bewegung und darin, deine Athleten gezielt voranzubringen.",
+        "Du bist hier richtig. Mit dieser Selbsteinschätzung hast du bereits den ersten Schritt gemacht."
+      ]
+    },
+    "builder": {
+      "name": "Builder",
+      "body": [
+        "Deine Selbsteinschätzung zeigt, dass du dich in der Builder-Phase befindest – einer Phase mit viel Potenzial. Du reagierst nicht mehr nur auf das, was du beim Coachen oder im Training beobachtest. Du hast begonnen, kritischer zu denken, vertiefende Fragen zu stellen und das Gelernte gezielter in der Praxis anzuwenden.",
+        "Wahrscheinlich hast du dich bereits mit Biomechanik beschäftigt, Bewegungen beobachtet und praktische Coaching-Erfahrung gesammelt. Manches klappt, anderes noch nicht. An einem Tag fühlst du dich sicher, am nächsten kommen wieder Zweifel. Das gehört zur Entwicklung als Builder: Du übst und sammelst Erfahrung, verfeinerst aber noch deinen Blick für Bewegung, deine Kommunikation und deine Systeme.",
+        "Eine der größten Herausforderungen in dieser Phase ist mangelnde Konstanz. Manchmal erkennst du, was nicht stimmt, bist dir aber noch nicht sicher, wie du es korrigieren kannst. Oder du gibst einen Cue und hoffst, dass er die gewünschte Wirkung hat. Dein Gespür entwickelt sich. Dir fehlt aber noch ein System, auf das du auch unter Druck zurückgreifen kannst, um klar und verlässlich zu handeln.",
+        "In der Builder-Phase liegt deine größte Chance darin, vom guten Improvisieren zu einem bewussten, zielgerichteten Coaching mit System überzugehen.",
+        "Das bedeutet:"
+      ],
+      "bullets": [
+        "Mach dir klar, worauf du bei Bewegungen achten möchtest.",
+        "Nutze weniger, dafür wirksamere Cues.",
+        "Hole dir Feedback dazu, wie gut deine Korrekturen tatsächlich zu einer besseren Leistung beitragen."
+      ],
+      "after": [
+        "Diese mittlere Entwicklungsphase ist anspruchsvoll – und bietet viel Potenzial. Du arbeitest nicht mehr auf gut Glück, sondern lernst, deinen Coaching-Ansatz bewusst zu gestalten und sicher umzusetzen. Genau auf dem Weg vom Wissen zur verlässlichen Anwendung entwickeln sich starke Coaches.",
+        "Genau in dieser Phase arbeiten wir bei BirdBox Coaching besonders gern mit Buildern – weil du bereit bist, schneller voranzukommen. Wenn du deine Systeme klarer gestalten, sicherer entscheiden und Gespräche über Bewegung führen möchtest, die tatsächlich etwas verändern, bieten wir dir dafür passende Werkzeuge, klare Vorgehensweisen und Unterstützung."
+      ]
+    },
+    "refiner": {
+      "name": "Refiner",
+      "body": [
+        "Deine Selbsteinschätzung zeigt, dass du dich in der Refiner-Phase befindest – einer Phase mit viel Potenzial, die in der Entwicklung eines Coaches oft übersehen wird. Du kennst die Grundlagen und arbeitest jetzt an den Feinheiten. Genau hier sind besonders tiefgreifende Fortschritte möglich.",
+        "Du hast Praxiserfahrung. Du verstehst Bewegungen, kennst deine Systeme und hast genug gecoacht oder trainiert, um Muster zu erkennen. Deine Entscheidungen beruhen auf fachlichen Prinzipien und praktischer Erfahrung. Du reagierst nicht einfach spontan, sondern handelst bewusst und zielgerichtet.",
+        "Auf dieser Stufe gilt allerdings: Kleine Schwächen in deinen Abläufen können später zu großen Problemen führen. Du fragst dich nicht mehr, was du tun sollst, sondern wie du es besser, schneller und verlässlicher umsetzen kannst. Und manchmal ist es schwer zu erkennen, wo du dafür ansetzen musst.",
+        "Vielleicht fragst du dich:"
+      ],
+      "bullets": [
+        "Entgehen mir Feinheiten, die auch anderen nicht auffallen?",
+        "Sind meine Korrekturen so wirksam, wie sie sein könnten?",
+        "Wie kann ich meine Hinweise präziser vermitteln, ohne sie unnötig kompliziert zu machen?"
+      ],
+      "after": [
+        "In der Refiner-Phase geht es um Präzision. Es geht nicht nur darum, deine Aufgabe zu erledigen, sondern darum, souverän, effizient und mit Tiefgang zu arbeiten. Auf dieser Stufe steht weniger das Lernen neuer Inhalte im Mittelpunkt. Wichtiger ist, Unwesentliches wegzulassen und dich auf ein klares, bewusstes und wirksames Vorgehen zu konzentrieren."
+      ],
+      "bullets2": [
+        "Schärfe deinen Blick für Bewegung, um auch unauffällige Ausweichbewegungen zu erkennen.",
+        "Formuliere deine Cues klar und knapp, damit jedes Wort gezielt zur gewünschten Wirkung beiträgt.",
+        "Entwickle deine Kommunikation so weiter, dass sie auch bei mehr Menschen wirksam bleibt – besonders, wenn du Teams coachst oder andere Coaches führst.",
+        "Baue einen Feedbackprozess auf, der dich gezielt weiterbringt, ohne dass du dich in endlosen Analysen verlierst."
+      ],
+      "after2": [
+        "Bei BirdBox Coaching sind wir darauf spezialisiert, Refinern wie dir zu helfen, ihr bereits sehr gutes Coaching noch präziser und wirkungsvoller zu gestalten. Wir wollen dich nicht mit noch mehr Informationen überschütten, sondern dich dabei unterstützen, dein bisheriges Vorgehen kritisch zu prüfen, gezielt zu verfeinern und weiterzuentwickeln."
+      ]
+    },
+    "leader": {
+      "name": "Leader",
+      "body": [
+        "Deine Selbsteinschätzung zeigt, dass du dich in der Leader-Phase befindest. Das ist ein wichtiger Meilenstein. Du hast vermutlich viel Zeit und Energie in deine Entwicklung investiert und dich intensiv damit auseinandergesetzt – und das merkt man.",
+        "Du arbeitest mit einem klaren Ansatz und erkennst den Wert der Biomechanik. Du reagierst nicht nur auf das, was passiert, sondern beobachtest, gibst Orientierung und handelst bewusst und zielgerichtet. Wahrscheinlich hast du bereits Systeme etabliert, ein fundiertes Verständnis von Bewegungsprinzipien entwickelt und einen Feedbackprozess aufgebaut, der die Entwicklung deiner Athleten oder deine eigene unterstützt.",
+        "Die Herausforderung auf dieser Stufe ist, dein Können weiterzuentwickeln, ohne dich auf dem Erreichten auszuruhen. Dabei gewinnen die Feinheiten zunehmend an Bedeutung. Es geht nicht darum, alles grundlegend zu verändern, sondern gezielt dort nachzujustieren, wo kleine Änderungen besonders viel bewirken. Vielleicht stellst du fest, dass sich die Auswirkungen kleiner blinder Flecken oder ungeprüfter Annahmen verstärken, wenn du sie nicht hinterfragst. Und je weiter du in deiner Entwicklung vorankommst, desto schwieriger kann es werden, klares und konstruktives Feedback zu bekommen.",
+        "Die besten Leader betrachten die Grundlagen immer wieder mit frischem Blick – besonders dann, wenn sie mit Athleten kommunizieren, neue Erkenntnisse in ihre Arbeit einbeziehen oder komplexe Bewegungskorrekturen so vermitteln, dass sie die Leistung in der Praxis verbessern. Bei BirdBox sehen wir häufig, dass Leader nicht wegen fehlenden Wissens stagnieren, sondern weil ihre bisherigen Feedbacksysteme mit ihrer Entwicklung nicht mehr Schritt halten.",
+        "Das ist jetzt dein nächster Schritt:"
+      ],
+      "bullets": [
+        "Hole dir gezieltes Feedback von jemandem, der sich mit Leistungsentwicklung auskennt und erkennt, was anderen entgeht.",
+        "Überprüfe deine Coaching-Gespräche: Unterstützt du deine Athleten dabei, eigenständig zu werden, oder gibst du zu oft als Experte die Lösungen vor?",
+        "Überprüfe deine blinden Flecken – besonders, wie du Bewegungseinschränkungen einschätzt und welche Korrekturen du daraus ableitest."
+      ],
+      "after": [
+        "Wenn du dir einen Blick von außen, klarere Systeme oder Unterstützung bei der Weiterentwicklung deines Coachings wünschst, bist du bei BirdBox Coaching richtig. Wir helfen Leadern wie dir, Plateaus zu überwinden, ihr Selbstverständnis als Coach zu stärken und mit ihrem Coaching mehr Menschen weiterzubringen.",
+        "Du leistest bereits großartige Arbeit. Lass uns gemeinsam dafür sorgen, dass du dich weiterhin in die richtige Richtung entwickelst."
+      ]
+    }
+  }
+}

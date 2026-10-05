@@ -1,0 +1,89 @@
+{
+  "greeting": "Hallo {name},",
+  "nextText": "The Gymnastics Course — Level 1",
+  "email": {
+    "subject": "Was dein Coaching jetzt braucht: {name}",
+    "heading": "Was dein Coaching jetzt braucht",
+    "yourFocus": "Dein Schwerpunkt",
+    "tryThisWeek": "Diese Woche ausprobieren",
+    "whereTaught": "Wo du das lernen kannst",
+    "watch": "Video",
+    "watchLede": "Ein paar Minuten zu {name} – und wie das in der Praxis aussieht.",
+    "watchButton": "Video ansehen",
+    "nextStep": "Nächster Schritt"
+  },
+  "opening": [
+    "Danke, dass du dir Zeit für die Selbsteinschätzung genommen hast. Das Ergebnis ist keine Note und kein Urteil darüber, wie gut du als Coach bist.",
+    "Es zeigt dir, wo du ansetzen kannst, um in deinem Coaching den nächsten spürbaren Fortschritt zu machen. Denn beim Gymnastics-Coaching bauen die einzelnen Schritte aufeinander auf. Wer an der falschen Stufe ansetzt, investiert oft jahrelang viel Arbeit und kommt trotzdem kaum voran.",
+    "Jeder Coach befindet sich auf einer dieser Entwicklungsstufen. Unten erfährst du, wo du gerade stehst, warum das wichtig ist und mit welchem konkreten Schritt du diese Woche weiterkommst."
+  ],
+  "closing": [
+    "Egal, auf welcher Entwicklungsstufe du gerade stehst: Sie begrenzt nicht, wie weit du als Coach kommen kannst. Coaches kommen schnell voran, sobald sie wissen, wo sie stehen. Jahre gehen verloren, wenn sie viel Arbeit in die falsche Stufe investieren.",
+    "In den nächsten Wochen schicken wir dir fünf kurze E-Mails zu deinem Schwerpunkt. Keine Serie von Werbemails, sondern Anregungen zum Nachdenken und praktische Ideen, die du direkt mit deinen Athleten ausprobieren kannst.",
+    "Nathan Bird und das BirdBox-Team"
+  ],
+  "focus": {
+    "eye": {
+      "name": "Der Trainerblick",
+      "lede": "Dein Schwerpunkt: grundlegende Körperpositionen erkennen und vermitteln.",
+      "body": [
+        "Du erkennst, wenn eine Bewegung nicht stimmt. Das können die meisten Coaches. Schwieriger ist es, schon bei der ersten Wiederholung genau zu erkennen, was nicht stimmt und auf welche Körperposition der Fehler zurückgeht. Genau das unterscheidet Coaches, die zuverlässig Ergebnisse erzielen, von denen, denen das nur gelegentlich gelingt.",
+        "Im Moment gelingt dir diese Einschätzung noch nicht zuverlässig. Das zeigt sich im Kleinen: Zwei Athleten scheitern an derselben Bewegung und bekommen denselben Cue. Du machst eine Körperposition vor, und deine Athleten setzen sie auf vier unterschiedliche Arten um. Du merkst, dass etwas nicht stimmt – aber bis du den Fehler erkannt hast, ist der Satz schon vorbei.",
+        "Das ist nicht ohne Grund die erste Stufe. Alle weiteren bauen darauf auf. Ohne einen geschulten Blick für Bewegungsfehler bleibt auch eine Methodik ein Ablaufplan statt eines Systems. Wenn die Körperposition eines Athleten nicht stimmt, macht Timing-Training die fehlerhafte Bewegung nur schneller. Mehr Trainingsumfang festigt dann den Fehler, statt die Bewegung zu verbessern.",
+        "Die gute Nachricht: Der Trainerblick lässt sich schulen. Er ist keine Frage des Talents und entsteht auch nicht automatisch durch jahrelange Coaching-Erfahrung. Viele Coaches beobachten zehn Jahre lang Bewegungen, ohne diesen Blick zu entwickeln, weil sie nie gezielt auf bestimmte Merkmale achten. Ihn zu entwickeln, braucht allerdings Zeit. Zeit, in der du bewusst an den richtigen Dingen arbeitest – in der richtigen Reihenfolge. Diesen Lernprozess kann niemand für dich abkürzen. Sobald du aber weißt, worauf du deine Aufmerksamkeit richten solltest, kommst du dabei deutlich schneller voran."
+      ],
+      "tryThis": [
+        "Wähle eine Bewegung, die in deinen Stunden häufig vorkommt. Notiere vor der Stunde drei konkrete Beobachtungspunkte – in der Reihenfolge, in der du sie überprüfen wirst. Gemeint sind einzelne Merkmale, kein allgemeiner Eindruck davon, wie eine gute Ausführung aussieht. Richte deinen Blick beim Coaching während der gesamten Stunde ausschließlich auf diese drei Punkte.",
+        "Ein Hinweis: Die Körperabschnitte sind wie die Glieder einer Kette miteinander verbunden. Wo du einen Fehler siehst, liegt selten auch seine Ursache.",
+        "Mit drei gezielten Beobachtungspunkten erkennst du mehr, als wenn du versuchst, alles gleichzeitig zu erfassen. Denn du weißt genau, worauf du achten sollst. Mach das eine Woche lang, und dir wird noch etwas auffallen: wie viel dir zuvor entgangen ist, während du versucht hast, alles im Blick zu behalten."
+      ],
+      "taught": "Movement Assessment ist eine der vier Säulen von TGC Level 1. An zwei Tagen lernst du, Bewegungen einfacher zu beurteilen und zu korrigieren. Dabei arbeitest du direkt mit Athleten, während Coaches dich bei der Umsetzung beobachten."
+    },
+    "methodology": {
+      "name": "Die Methodik der praktischen Umsetzung",
+      "lede": "Dein Schwerpunkt: die grundlegenden Schritte einer Methodik für Gymnastics-Coaching und ihre praktische Anwendung.",
+      "body": [
+        "Du erkennst die Fehler. Daran liegt es nicht. Du beobachtest einen Athleten und weißt, was nicht stimmt. Was du nicht immer beantworten kannst, ist, wie du den Fehler angehst, in welcher Reihenfolge du vorgehst und warum du genau diese Reihenfolge wählst.",
+        "Das zeigt sich in spontanen Entscheidungen. Woran ein Athlet als Nächstes arbeitet, hängt davon ab, was heute auf dem Programm steht, was ihm am meisten Schwierigkeiten bereitet oder was er sich wünscht. Für eine einzelne Stunde kann jeder dieser Ansätze sinnvoll sein. Für sich genommen ist aber keiner davon eine Methodik. Der Unterschied wird über Monate sichtbar, nicht schon nach ein paar Tagen.",
+        "Hier liegt der entscheidende Unterschied, den die meisten Coaches übersehen: Eine Progression beschreibt eine Abfolge von Schritten. Eine Methodik erklärt, warum diese Schritte so aufeinander aufbauen. Eine Progression sagt: erst das, dann das. Eine Methodik erklärt, welche Fähigkeit der Athlet mit jedem Schritt entwickelt – Kontrolle beim Halten einer Position, Kontrolle beim Nachgeben, Kontrolle in der Bewegung – und warum diese Fähigkeit die Voraussetzung für den nächsten Schritt ist. Ohne diese Begründung folgst du einer Abfolge, die du übernommen hast. Mit ihr hast du ein System, das du begründen, an Athleten mit anderen Voraussetzungen anpassen und an einen anderen Coach weitergeben kannst.",
+        "Es gibt einen einfachen Test: Wenn ein anderer Coach deine Athleten einen Monat lang betreuen würde, könnte er deine Arbeit fortsetzen? Er sollte nicht raten müssen, sondern in derselben Richtung und aus denselben Gründen weiterarbeiten können. Wenn das Vorgehen und seine Begründung größtenteils nur in deinem Kopf sind, verlässt du dich auf dein Urteilsvermögen. Das ist viel wert. Doch ohne ein nachvollziehbares System stößt du bei mehr Athleten an Grenzen und kannst deine Arbeit nicht an einen anderen Coach übergeben. Und wenn du müde bist, kann dich dein Urteilsvermögen unbemerkt im Stich lassen."
+      ],
+      "tryThis": [
+        "Wähle eine Bewegung und schreibe die vollständige Abfolge auf, vom ersten bis zum letzten Schritt. Notiere daneben für jeden Schritt zwei Dinge: welche Fähigkeit der Athlet dabei entwickelt und warum dieser Schritt vor dem nächsten kommen muss.",
+        "Die Schritte sind schnell aufgeschrieben. Beim Ausfüllen der zweiten Spalte merken die meisten Coaches, wie viel sie bisher improvisiert haben. Genau diese zweite Spalte beschreibt deine Methodik."
+      ],
+      "taught": "TGC Level 1 beginnt mit der Coaching-Methodik und der Reihenfolge der Entwicklungsschritte. Dabei geht es um die Begründung für die Abfolge: warum die Schritte aufeinander aufbauen und weshalb sie genau in dieser Reihenfolge kommen."
+    },
+    "dynamic": {
+      "name": "Dynamisches Technik-Coaching",
+      "lede": "Dein Schwerpunkt: das Timing dynamischer Bewegungen durch gezieltes Technik-Coaching verbessern.",
+      "body": [
+        "Deine Athleten beherrschen die Positionen und haben die nötige Kraft. Was ihnen noch fehlt, ist ein konstanter Rhythmus. Genau an diesem Punkt stößt auch ansonsten hervorragendes Coaching oft unbemerkt an seine Grenzen.",
+        "Das kennst du: Ein Athlet beherrscht einen sauberen Strict Pull-up, aber sein Kip sieht jedes Mal anders aus. Eine Bewegung klappt, solange der Athlet ausgeruht ist, fällt aber bei der achten Wiederholung auseinander. Die Kraft ist offensichtlich noch da, der Bewegungsablauf stimmt aber nicht mehr. Oder Fortschritte entstehen durch Wiederholen statt durch Coaching. Das dauert Monate, und du kannst nicht sagen, was den Unterschied gemacht hat.",
+        "Das unterscheidet diese Stufe von den beiden vorherigen: Eine Körperposition kannst du beobachten, während der Athlet sie hält. Timing gibt es nur in der Bewegung. Du kannst es also nicht vermitteln, indem du die Bewegung anhältst. Und sobald du eine dynamische Bewegung verlangsamst, um sie zu erklären, vermittelst du bereits etwas anderes als die Bewegung, um die es eigentlich geht.",
+        "Genau hier verschlechtern die meisten Coaches die Situation, statt sie zu verbessern. Wenn das Timing eines Athleten nicht stimmt, liegt es nahe, noch mehr zu erklären: noch ein Cue, noch eine Regel, noch etwas, woran er bei der Aufwärtsbewegung denken soll. Aber jede zusätzliche Regel verlangt von ihm, ein weiteres Detail bewusst zu kontrollieren. Wenn er jedes Detail einzeln kontrolliert, verliert die Bewegung ihren Fluss. Er zerlegt sie genau dort, wo die einzelnen Teile zusammenwirken müssten. Mit mehr expliziten Anweisungen zerlegt der Athlet die Bewegung stärker in Einzelteile und kontrolliert sich zunehmend selbst. Seine Ausführung wird unbeständiger – genau das Gegenteil von dem, was du erreichen wolltest.",
+        "Hier hilft implizites statt explizites Lernen: Gib weniger vor und gestalte die Übung so, dass der Athlet das Timing selbst findet – weil sie nur mit dem richtigen Timing gelingt."
+      ],
+      "tryThis": [
+        "Wähle einen Athleten, dem eine dynamische Bewegung noch nicht zuverlässig gelingt. Verzichte auf Anweisungen dazu, wie er seinen Körper bewegen soll. Verändere stattdessen einen Aspekt der Aufgabe, sodass ihm das richtige Timing leichter fällt. Sag dann nichts und lass ihn zehn Versuche machen.",
+        "Die Lösungen, die er selbst findet, zeigen dir mehr darüber, was er wirklich verstanden hat, als noch so viele Cues."
+      ],
+      "taught": "In TGC Level 1 lernst du Spotting und Self-Spotting – die beste Möglichkeit, Bewegungen zu skalieren. Durch deine Hilfestellung erlebt der Athlet einen flüssigen Bewegungsablauf und entwickelt ein Verständnis dafür, ohne dass du jeden Schritt erklären musst."
+    },
+    "periodisation": {
+      "name": "Periodisierung der Progressionen",
+      "lede": "Dein Schwerpunkt: die späteren Entwicklungsphasen deiner Athleten, sobald Körperpositionen und präzise Bewegungsausführung stimmen.",
+      "body": [
+        "Du hast die Schwierigkeiten, an denen die meisten Coaches noch arbeiten, bereits hinter dir. Deine Athleten bewegen sich sauber, du erkennst, was passiert, und coachst nach einer klaren Reihenfolge. Damit stehst du an einem ganz bestimmten Punkt: Im Coaching geht es jetzt darum, die Trainingsbelastung gezielt festzulegen, statt Bewegungsfehler zu korrigieren.",
+        "Das zeigt sich an einem Athleten, der alles richtig macht und trotzdem keine Fortschritte mehr erzielt. Saubere Positionen, gutes Timing, regelmäßiges Training, voller Einsatz – und seit drei Monaten Stillstand. Es gibt nichts an der Bewegung zu korrigieren, also auch keinen offensichtlichen Ansatzpunkt für dein Coaching. Der übliche Reflex ist dann, mehr einzuplanen: mehr Wiederholungen, mehr Trainingstage, mehr ergänzende Übungen. Manchmal ist das die Lösung. Oft ist die Belastung aber bereits höher, als der Athlet sie in Trainingsfortschritte umsetzen kann. Es fehlte also gar nicht an Trainingsumfang.",
+        "Auf dieser Stufe geht es um die Trainingsdosis: wie viel, wie intensiv und wie häufig ein Athlet trainiert – und wie das zu den übrigen Belastungen seiner Woche passt. Denn der Umfang des Gymnastics-Trainings lässt sich nicht losgelöst betrachten. Er konkurriert mit allen anderen Anforderungen, die der Athlet bewältigen muss. Diese Belastungssteuerung ist der am wenigsten sichtbare Teil des Coachings. Gleichzeitig dauert es hier am längsten, bis du ihre Wirkung beurteilen kannst. Deshalb entwickeln die meisten Coaches dafür nie ein systematisches Vorgehen. Du kannst acht Wochen lang falschliegen, bevor du überhaupt bemerkst, dass etwas nicht stimmt.",
+        "Genau diese Abstimmung macht aus einem guten Coach einen, dessen Athleten auch nach Jahren noch Fortschritte machen."
+      ],
+      "tryThis": [
+        "Wähle einen Athleten, der keine Fortschritte mehr macht. Schreibe alles auf, was er in den letzten vier Wochen gemacht hat – wirklich alles, nicht nur das Gymnastics-Training. Dann stelle dir eine anspruchsvollere Frage als „Was sollte ich noch hinzufügen?“: „An welche Belastungen passt er sich tatsächlich an, und steht etwas auf dieser Liste dieser Anpassung im Weg?“",
+        "Die Lösung liegt häufiger darin, etwas wegzulassen, als noch mehr hinzuzufügen – und sie ist fast nie das, was der Athlet erwartet."
+      ],
+      "taught": "Programming und Scaling bilden die vierte Säule von TGC Level 1. Gymnastics-Training muss nicht besonders intensiv sein. Entscheidend sind häufige Einheiten, die auf die gesamte übrige Belastung des Athleten abgestimmt sind."
+    }
+  }
+}

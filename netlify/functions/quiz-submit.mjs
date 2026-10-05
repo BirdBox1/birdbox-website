@@ -179,8 +179,22 @@ function langFrom(body) {
   return LANGS.indexOf(want) > 0 ? want : "en";
 }
 
+// The fixed wording of the result email — headings, button text, subject.
+// {name} is the stage name.
+const EMAIL_EN = {
+  subject: "Your coaching stage: {name}",
+  heading: "Your Coaching Self-Assessment",
+  yourStage: "Your stage",
+  learnMore: "Learn more on effective coaching",
+  watch: "Watch your {name} video",
+  nextStep: "Next step",
+};
+
 async function stagesFor(lang) {
-  const EN = { stages: STAGES, opening: OPENING, closing: CLOSING, greeting: "Hello {name}," };
+  const EN = {
+    stages: STAGES, opening: OPENING, closing: CLOSING,
+    greeting: "Hello {name},", email: EMAIL_EN, nextText: null,
+  };
   if (lang === "en") return EN;
   try {
     const res = await fetch(`${SITE}/quiz/i18n/results-${lang}.json`, {
@@ -190,10 +204,12 @@ async function stagesFor(lang) {
     const t = await res.json();
     const stages = {};
     for (const key of Object.keys(STAGES)) {
-      // The video, the link and the next step stay as they are: those are the
+      // The video and the next-step link stay as they are: those are the
       // same asset whatever language the words around them are in, until
-      // somebody films or writes a translated one.
+      // somebody films or builds a translated one. The link's wording is
+      // translated separately, through nextText.
       stages[key] = Object.assign({}, STAGES[key], (t.stages && t.stages[key]) || {});
+      stages[key].video = STAGES[key].video;
       stages[key].videoId = STAGES[key].videoId;
       stages[key].next = STAGES[key].next;
     }
@@ -202,6 +218,8 @@ async function stagesFor(lang) {
       opening: Array.isArray(t.opening) && t.opening.length ? t.opening : OPENING,
       closing: Array.isArray(t.closing) && t.closing.length ? t.closing : CLOSING,
       greeting: t.greeting || EN.greeting,
+      email: Object.assign({}, EMAIL_EN, t.email || {}),
+      nextText: t.nextText || null,
     };
   } catch (e) {
     console.error("i18n fetch failed for", lang, e);
@@ -227,8 +245,9 @@ function resultFor(key, firstName, pack) {
     after2: s.after2 || [],
     video: s.video,
     videoId: s.videoId,
-    next: s.next,
+    next: { text: pack.nextText || s.next.text, href: s.next.href },
     closing: CLOSING,
+    labels: pack.email,
   };
 }
 
@@ -240,6 +259,7 @@ function esc(t) {
 }
 
 function emailHtml(r) {
+  const L = r.labels, fill = (t) => t.replace("{name}", r.name);
   const p = (t) =>
     `<p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:#1d2126">${esc(t)}</p>`;
   const ul = (items) =>
@@ -259,14 +279,14 @@ function emailHtml(r) {
     <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#9aa1a9;
                 font-family:Helvetica,Arial,sans-serif">BirdBox Coaching</div>
     <div style="font-size:20px;font-weight:700;color:#ffffff;margin-top:4px;
-                font-family:Helvetica,Arial,sans-serif">Your Coaching Self-Assessment</div>
+                font-family:Helvetica,Arial,sans-serif">${esc(L.heading)}</div>
   </td></tr>
   <tr><td style="padding:28px;font-family:Helvetica,Arial,sans-serif">
     ${p(r.greeting)}
     ${r.opening.map(p).join("")}
     <div style="margin:26px 0 16px;padding:14px 18px;background:#f0f2f5;border-left:4px solid #2f7fd0">
       <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#5b636d">
-        Your stage</div>
+        ${esc(L.yourStage)}</div>
       <div style="font-size:26px;font-weight:700;color:#101215;margin-top:2px">${esc(r.name)}</div>
     </div>
     ${r.body.map(p).join("")}
@@ -275,17 +295,17 @@ function emailHtml(r) {
     ${ul(r.bullets2)}
     ${r.after2.map(p).join("")}
     <p style="margin:26px 0 10px;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#5b636d">
-      Learn more on effective coaching</p>
+      ${esc(L.learnMore)}</p>
     <p style="margin:0 0 26px">
       <a href="${esc(r.video)}"
          style="display:inline-block;background:#2f7fd0;color:#ffffff;text-decoration:none;
-                font-weight:700;font-size:15px;padding:13px 22px">Watch your ${esc(r.name)} video &rarr;</a>
+                font-weight:700;font-size:15px;padding:13px 22px">${esc(fill(L.watch))} &rarr;</a>
     </p>
     ${r.closing.map(p).join("")}
     <p style="margin:26px 0 0">
       <a href="${SITE}${esc(r.next.href)}"
          style="color:#2f7fd0;font-weight:700;text-decoration:none">
-        Next step: ${esc(r.next.text)} &rarr;</a>
+        ${esc(L.nextStep)}: ${esc(r.next.text)} &rarr;</a>
     </p>
   </td></tr>
   <tr><td style="padding:18px 28px;background:#f7f7f5;border-top:1px solid #e2e2de;
@@ -299,19 +319,20 @@ function emailHtml(r) {
 }
 
 function emailText(r) {
+  const L = r.labels, fill = (t) => t.replace("{name}", r.name);
   const lines = [
     r.greeting, "",
     ...r.opening, "",
-    "YOUR STAGE: " + r.name.toUpperCase(), "",
+    L.yourStage.toUpperCase() + ": " + r.name.toUpperCase(), "",
     ...r.body, "",
     ...r.bullets.map((b) => "- " + b), "",
     ...r.after, "",
     ...r.bullets2.map((b) => "- " + b),
     ...(r.bullets2.length ? [""] : []),
     ...r.after2, "",
-    "Watch your " + r.name + " video: " + r.video, "",
+    fill(L.watch) + ": " + r.video, "",
     ...r.closing, "",
-    "Next step: " + r.next.text + " " + SITE + r.next.href,
+    L.nextStep + ": " + r.next.text + " " + SITE + r.next.href,
   ];
   return lines.join("\n");
 }
@@ -327,7 +348,7 @@ async function sendResult(to, r) {
         from: `BirdBox Coaching <${FROM}>`,
         to: [to],
         reply_to: OFFICE,
-        subject: `Your coaching stage: ${r.name}`,
+        subject: r.labels.subject.replace("{name}", r.name),
         text: emailText(r),
         html: emailHtml(r),
       }),

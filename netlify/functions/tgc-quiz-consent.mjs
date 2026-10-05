@@ -52,7 +52,7 @@ export default async (req, context) => {
       })
       .eq("id", id)
       .eq("brand", "tgc")
-      .select("email, first_name, last_name, archetype");
+      .select("email, first_name, last_name, archetype, lang");
 
     if (error) {
       console.error("tgc-quiz-consent update failed", error);
@@ -84,6 +84,7 @@ export default async (req, context) => {
           start_date: start.toISOString().slice(0, 10),
           status: "active",
           source: "tgc-quiz",
+          lang: row.lang || "en",
         });
         if (enrErr) console.error("drip_enrollments insert failed", enrErr);
       }
@@ -98,6 +99,7 @@ export default async (req, context) => {
     try {
       const { error: intErr } = await supabase.from("interest_signups").insert({
         brand: "tgc",
+        lang: row.lang || "en",
         email: row.email,
         name: [row.first_name, row.last_name].filter(Boolean).join(" ") || null,
         country: context?.geo?.country?.code ?? null,

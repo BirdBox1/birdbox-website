@@ -1,0 +1,111 @@
+{
+  "greeting": "Ciao {name},",
+  "nextText": "The Coaches Course — Livello 1",
+  "email": {
+    "subject": "La tua fase da coach: {name}",
+    "heading": "La tua autovalutazione da coach",
+    "yourStage": "La tua fase",
+    "learnMore": "Approfondisci: come fare coaching in modo efficace",
+    "watch": "Guarda il video sulla fase {name}",
+    "nextStep": "Prossimo passo"
+  },
+  "opening": [
+    "Grazie per aver completato l'autovalutazione BirdBox Coaching Development.",
+    "Non è un semplice quiz: è una fotografia del punto in cui ti trovi oggi nel tuo percorso da coach. La fase in cui sei mette in evidenza sia i tuoi punti di forza sia le opportunità specifiche che ti permetteranno di fare il salto di qualità.",
+    "Ogni coach attraversa diverse fasi, ognuna con le sue sfide, le sue svolte e i suoi margini di crescita. Sapere dove ti trovi oggi ti aiuta a concentrare le energie dove contano davvero, invece di inseguire informazioni all'infinito o procedere a tentativi.",
+    "Qui sotto trovi una spiegazione dettagliata della tua fase attuale e un breve video che ne illustra i punti chiave. Leggila con attenzione, rifletti su ciò in cui ti ritrovi e pensa a come metterla in pratica nel tuo lavoro da coach."
+  ],
+  "closing": [
+    "Ricorda: la tua fase non è un limite, è un trampolino di lancio. I migliori coach non si distinguono per quanto sanno, ma per la consapevolezza con cui continuano a perfezionare il proprio mestiere.",
+    "In BirdBox Coaching siamo qui per supportarti con strumenti, modelli e una community che ti aiutino a diventare più preciso, più rapido e più efficace nel coaching di tutti i giorni.",
+    "Se vuoi approfondire, inizia guardando il video che ti abbiamo preparato e rifletti su come si collega al tuo lavoro quotidiano. Da lì troverai occasioni per esercitarti, applicare e sviluppare ciò che già fai bene.",
+    "Non fermarti. Gli atleti che alleni non hanno bisogno solo delle tue conoscenze: hanno bisogno della tua chiarezza, della tua presenza e della tua precisione.",
+    "Al tuo prossimo salto di qualità!",
+    "Il team di BirdBox Coaching"
+  ],
+  "stages": {
+    "explorer": {
+      "name": "Explorer",
+      "body": [
+        "Dalle tue risposte emerge che ti trovi in quella che chiamiamo fase Explorer. E chiariamolo subito: non è un punto debole. È la fase più importante del percorso di un coach, perché gli Explorer sono quelli che fanno domande, notano cosa manca e cercano sempre qualcosa di meglio.",
+        "In questo momento potresti avvertire una certa tensione: senti che nel coaching e nel movimento c'è molto di più di quello che stai mettendo in pratica... ma non sai bene come colmare la distanza. Forse hai già assorbito tantissime informazioni — video, seminari, perfino corsi — ma non sei ancora riuscito a trasformarle in un sistema concreto, da applicare con sicurezza.",
+        "Non sei l'unico. In questa fase quasi tutti finiscono per complicare troppo le cose, oppure per semplificarle al punto da perdere di vista l'essenziale. È del tutto normale sentirsi insicuri quando si cerca di capire la biomeccanica, di riconoscere cosa succede davvero in un movimento o di ottenere cambiamenti che durino nel tempo.",
+        "Per un Explorer la cosa fondamentale è costruire basi solide:"
+      ],
+      "bullets": [
+        "Imparare a leggere il movimento con chiarezza — non solo cosa succede, ma perché succede.",
+        "Esercitarsi a collegare ciò che si osserva a correzioni precise — senza sparare una dozzina di cue sperando che uno funzioni.",
+        "Iniziare a sviluppare un occhio da coach, che aiuti a distinguere ciò che conta da ciò che si può ignorare."
+      ],
+      "after": [
+        "Adesso il passo più utile per te è avere modelli di riferimento chiari, un feedback costante e qualcuno che ti aiuti a mettere in pratica ciò che stai imparando. È esattamente ciò che facciamo con gli Explorer in BirdBox Coaching.",
+        "Partiamo dal punto in cui ti trovi. Niente paroloni. Niente tentativi alla cieca. Solo un percorso passo dopo passo per passare dalla curiosità alla sicurezza: nel tuo coaching, nella tua comprensione del movimento e nell'impatto che hai sui tuoi atleti.",
+        "Sei nel posto giusto. Iniziando questa valutazione hai già fatto il primo passo."
+      ]
+    },
+    "builder": {
+      "name": "Builder",
+      "body": [
+        "Dalla tua valutazione risulta che sei nella fase Builder — ed è un'ottima posizione in cui trovarsi. Non ti limiti più a reagire a ciò che vedi durante il coaching o l'allenamento. Hai iniziato a ragionare in modo più critico, a porti domande più profonde e ad applicare ciò che hai imparato in modo più consapevole.",
+        "Probabilmente hai già dedicato parecchio tempo a studiare la biomeccanica, a osservare il movimento e ad allenare sul campo. Alcune cose ti tornano, altre no. Un giorno ti senti perfettamente centrato, il giorno dopo molto meno. È il percorso tipico del Builder: stai facendo esperienza, ma stai ancora mettendo a punto il tuo occhio, il tuo linguaggio e i tuoi sistemi.",
+        "Una delle sfide più grandi a questo livello è la mancanza di costanza. A volte vedi cosa non va, ma non sei del tutto sicuro di come correggerlo. Oppure dai un cue e incroci le dita, sperando che funzioni. Stai sviluppando l'intuito, ma non hai ancora un sistema replicabile che ti permetta di usarlo anche sotto pressione, con costanza e chiarezza.",
+        "Nella fase Builder la tua opportunità più grande è passare dall'essere un coach che improvvisa bene... a un coach che applica un sistema in modo consapevole.",
+        "In pratica significa:"
+      ],
+      "bullets": [
+        "Chiarire cosa stai cercando quando osservi un movimento",
+        "Usare meno cue, ma più efficaci",
+        "E ricevere feedback su quanto le tue correzioni si traducano davvero in prestazioni migliori."
+      ],
+      "after": [
+        "È la fase di mezzo: impegnativa, ma ricca di potenziale. Non vai più a tentativi: stai imparando a padroneggiare il tuo modo di allenare. Ed è proprio nello spazio tra la conoscenza e la sua applicazione costante che si formano i grandi coach.",
+        "In BirdBox Coaching amiamo lavorare con i Builder proprio in questa fase, perché sei pronto a fare un salto di qualità. Se vuoi sistemi più precisi, decisioni più sicure e conversazioni sul movimento che portino a cambiamenti reali, abbiamo gli strumenti, i modelli e il supporto giusti per aiutarti."
+      ]
+    },
+    "refiner": {
+      "name": "Refiner",
+      "body": [
+        "La tua valutazione ti colloca nella fase Refiner — una fase di grande valore, ma spesso sottovalutata nel percorso di un coach. Non stai più cercando di capire come si fa: stai perfezionando ciò che fai. Ed è proprio qui che avvengono alcuni dei progressi più profondi.",
+        "Hai esperienza sul campo. Capisci il movimento, conosci i tuoi sistemi e hai allenato abbastanza da riconoscere gli schemi ricorrenti. Le tue decisioni non sono tentativi: si basano su principi ed esperienza. Non reagisci d'istinto: rispondi con lucidità.",
+        "Ma a questo livello la realtà è questa: le piccole inefficienze di oggi diventano grandi lacune domani. Non ti chiedi più cosa fare, ma come farlo meglio, più velocemente e con più costanza. E a volte sembra di inseguire qualcosa che continua a sfuggirti.",
+        "Forse ti stai chiedendo:"
+      ],
+      "bullets": [
+        "Mi sto perdendo dettagli sottili che sfuggono anche agli altri?",
+        "Le mie correzioni hanno tutto l'impatto che potrebbero avere?",
+        "Come posso comunicare in modo più incisivo senza complicare le cose?"
+      ],
+      "after": [
+        "La fase Refiner è una questione di precisione. Non basta più portare a termine il lavoro: bisogna farlo con eleganza, efficienza e profondità. A questo livello non serve tanto imparare di più... quanto eliminare il superfluo, finché resta solo ciò che è chiaro, mirato ed efficace."
+      ],
+      "bullets2": [
+        "Affinare il tuo occhio per cogliere i compensi più sottili",
+        "Rendere i tuoi cue più essenziali, perché ogni parola vada a segno",
+        "Rendere la tua comunicazione efficace anche su larga scala, soprattutto se alleni squadre o guidi altri coach",
+        "Creare un sistema di feedback che ti faccia crescere senza farti cadere nella paralisi da analisi"
+      ],
+      "after2": [
+        "In BirdBox Coaching siamo specializzati nell'aiutare i Refiner come te a passare da molto bravi a davvero eccellenti. Non vogliamo sommergerti di altre informazioni: vogliamo stimolarti, aiutarti a perfezionare e potenziare ciò che fai già."
+      ]
+    },
+    "leader": {
+      "name": "Leader",
+      "body": [
+        "Dalla tua valutazione emerge che sei nella fase Leader — e non è cosa da poco. Probabilmente hai investito tempo, energie e riflessione nella tua crescita, e si vede.",
+        "Hai un approccio chiaro, riconosci il valore della biomeccanica e non ti limiti a reagire: osservi, guidi e agisci in modo consapevole. Probabilmente hai già dei sistemi ben avviati, un'ottima padronanza dei principi del movimento e un ciclo di feedback che fa crescere i tuoi atleti, o te stesso.",
+        "Ma a questo livello la sfida è un'altra: restare al top senza adagiarsi. Nella fase Leader, perfezionarsi diventa una questione più sottile. Non si tratta di stravolgere ciò che fai, ma di fare piccoli aggiustamenti che abbiano un grande effetto. Potresti accorgerti che piccoli punti ciechi o convinzioni date per scontate, se trascurati, iniziano a sommarsi. E a volte, più si sale, più diventa difficile ricevere feedback chiari e costruttivi.",
+        "I migliori leader tornano continuamente sui fondamentali con occhi nuovi — soprattutto nel modo in cui comunicano con gli atleti, si adattano alle nuove informazioni o trasformano correzioni complesse in miglioramenti concreti della prestazione. In BirdBox vediamo spesso leader che si fermano non per mancanza di conoscenze, ma perché i loro sistemi di feedback non sono più all'altezza del loro livello.",
+        "Ecco quindi il tuo prossimo passo:"
+      ],
+      "bullets": [
+        "Cercare un feedback mirato, da qualcuno che conosce bene la prestazione e vede ciò che agli altri sfugge.",
+        "Analizzare le tue conversazioni da coach: accompagni gli atleti verso l'autonomia o resti troppo spesso nel ruolo dell'esperto?",
+        "Fare i conti con i tuoi punti ciechi, soprattutto sulla differenza tra come vengono percepiti i limiti di movimento e come vengono corretti."
+      ],
+      "after": [
+        "Se cerchi uno sguardo esterno, sistemi più efficaci o semplicemente qualcuno che ti aiuti a mettere a punto il tuo modo di allenare, è proprio quello che facciamo in BirdBox Coaching. Lavoriamo con leader come te per superare i momenti di stallo, rafforzare la tua identità da coach e ampliare il tuo impatto.",
+        "Stai già facendo un ottimo lavoro. Facciamo in modo che tu continui a crescere nella direzione giusta."
+      ]
+    }
+  }
+}

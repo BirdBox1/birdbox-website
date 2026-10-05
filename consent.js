@@ -185,30 +185,62 @@
   // someone outside Europe who has opened this from the footer link. The
   // wording changes to match: they are turning something off, not deciding
   // whether to turn it on.
+  // The banner's wording in the languages the quizzes are translated into.
+  // The quiz pages carry the language in the path (/quiz/de/, /tgc/quiz/es/),
+  // and that is read here directly rather than waiting for the page to set
+  // <html lang>, since this can run before the page's own script does.
+  // Everywhere else, and for any language not listed, the banner is English.
+  var WORDS = {
+    en: {
+      on: "We use Meta advertising cookies to see which of our ads bring people to our courses. They are not needed for the site to work. You can switch them off here.",
+      off: "We use Meta advertising cookies to see which of our ads bring people to our courses. They are not needed for the site to work, and we do not set them unless you agree.",
+      privacy: "Privacy notice", reject: "Reject", accept: "Accept",
+      switchOff: "Switch off", keepOn: "Keep on", label: "Cookies", settings: "Cookie settings"
+    },
+    de: {
+      on: "Wir nutzen Werbe-Cookies von Meta, um zu sehen, welche unserer Anzeigen Menschen zu unseren Kursen führen. Für die Funktion der Website sind sie nicht nötig. Du kannst sie hier ausschalten.",
+      off: "Wir nutzen Werbe-Cookies von Meta, um zu sehen, welche unserer Anzeigen Menschen zu unseren Kursen führen. Für die Funktion der Website sind sie nicht nötig, und wir setzen sie nur mit deiner Zustimmung.",
+      privacy: "Datenschutzhinweis", reject: "Ablehnen", accept: "Akzeptieren",
+      switchOff: "Ausschalten", keepOn: "Eingeschaltet lassen", label: "Cookies", settings: "Cookie-Einstellungen"
+    },
+    es: {
+      on: "Usamos cookies publicitarias de Meta para saber qué anuncios traen a la gente a nuestros cursos. No son necesarias para que la web funcione. Puedes desactivarlas aquí.",
+      off: "Usamos cookies publicitarias de Meta para saber qué anuncios traen a la gente a nuestros cursos. No son necesarias para que la web funcione y no las activamos sin tu permiso.",
+      privacy: "Aviso de privacidad", reject: "Rechazar", accept: "Aceptar",
+      switchOff: "Desactivar", keepOn: "Mantener activadas", label: "Cookies", settings: "Configuración de cookies"
+    },
+    it: {
+      on: "Usiamo i cookie pubblicitari di Meta per capire quali annunci portano le persone ai nostri corsi. Non servono al funzionamento del sito. Puoi disattivarli qui.",
+      off: "Usiamo i cookie pubblicitari di Meta per capire quali annunci portano le persone ai nostri corsi. Non servono al funzionamento del sito e non li attiviamo senza il tuo consenso.",
+      privacy: "Informativa sulla privacy", reject: "Rifiuta", accept: "Accetta",
+      switchOff: "Disattiva", keepOn: "Lascia attivi", label: "Cookie", settings: "Impostazioni cookie"
+    }
+  };
+
+  function words() {
+    var m = /\/quiz\/([a-z]{2})\/?$/.exec(location.pathname);
+    var q = new URLSearchParams(location.search).get("lang");
+    var lang = (m && m[1]) || (q || "").toLowerCase();
+    return WORDS[lang] || WORDS.en;
+  }
+
   function show(running) {
     if (box) return;
     style();
 
-    var words = running
-      ? 'We use Meta advertising cookies to see which of our ads bring ' +
-        'people to our courses. They are not needed for the site to work. ' +
-        'You can switch them off here. ' +
-        '<a href="/privacy">Privacy notice</a>'
-      : 'We use Meta advertising cookies to see which of our ads bring ' +
-        'people to our courses. They are not needed for the site to work, ' +
-        'and we do not set them unless you agree. ' +
-        '<a href="/privacy">Privacy notice</a>';
+    var W = words();
+    var text = (running ? W.on : W.off) + ' <a href="/privacy">' + W.privacy + '</a>';
 
     box = document.createElement("div");
     box.className = "bb-consent";
     box.setAttribute("role", "dialog");
-    box.setAttribute("aria-label", "Cookies");
+    box.setAttribute("aria-label", W.label);
     box.innerHTML =
       '<div class="in">' +
-        '<p>' + words + '</p>' +
+        '<p>' + text + '</p>' +
         '<div class="btns">' +
-          '<button type="button" class="no">' + (running ? "Switch off" : "Reject") + '</button>' +
-          '<button type="button" class="yes">' + (running ? "Keep on" : "Accept") + '</button>' +
+          '<button type="button" class="no">' + (running ? W.switchOff : W.reject) + '</button>' +
+          '<button type="button" class="yes">' + (running ? W.keepOn : W.accept) + '</button>' +
         '</div>' +
       '</div>';
 
@@ -234,7 +266,7 @@
     var b = document.createElement("button");
     b.type = "button";
     b.className = "bb-cookie-link";
-    b.textContent = "Cookie settings";
+    b.textContent = words().settings;
     b.onclick = function () { openPanel(); };
 
     if (slot) {
