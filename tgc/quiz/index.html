@@ -41,6 +41,16 @@
   .mark img { height: 34px; width: auto; display: block; }
   .bar .name { font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9; }
 
+  /* Language switcher. Quiet on purpose: the ad has already chosen the
+     language, and this is only the way out when it chose wrong. */
+  .langs { margin-left: auto; display: flex; gap: 0.1rem; }
+  .langs button {
+    background: none; border: 0; padding: 0.35rem 0.45rem; border-radius: 3px;
+    font: inherit; font-size: 0.7rem; letter-spacing: 0.12em; color: #9aa1a9; cursor: pointer;
+  }
+  .langs button:hover { color: #fff; }
+  .langs button[aria-current="true"] { color: #fff; box-shadow: inset 0 -2px 0 currentColor; }
+
   .wrap {
     max-width: 46rem; margin: 0 auto; padding: 0 1.25rem 5rem;
     transition: max-width 0.2s ease;
@@ -235,6 +245,7 @@
 <div class="bar">
   <span class="mark"><img src="/brand/tgc-mark.png" alt=""></span>
   <span class="name">The Gymnastics Course</span>
+  <nav class="langs" id="langs" aria-label="Language"></nav>
 </div>
 
 <div class="wrap">
@@ -582,6 +593,7 @@
   })();
 
   function show(which) {
+    $("langs").classList.toggle("hidden", which === "result");
     ["intro", "quiz", "details", "result"].forEach(function (id) {
       $(id).classList.toggle("hidden", id !== which);
     });
@@ -627,7 +639,60 @@
 
   // Nothing is shown until the strings are settled, so a translated page
   // never flashes English first.
-  loadStrings(pickLang()).then(applyStatic);
+
+  // --------------------------------------------------------------- switcher
+  // The ad sets the language through the address; this is the way out for
+  // anyone it got wrong. Only languages with a finished, reviewed file are
+  // offered, so nobody picks French and gets English. Add a code to LIVE
+  // when its file lands.
+  var LIVE = ["en", "de", "es", "it"];
+  var NAMES = { en: "English", de: "Deutsch", es: "Español", it: "Italiano",
+                fr: "Français", pl: "Polski", pt: "Português" };
+  var BASE_TITLE = document.title;
+
+  function renderLangs() {
+    var nav = $("langs");
+    nav.textContent = "";
+    LIVE.forEach(function (code) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.lang = code;
+      b.textContent = code.toUpperCase();
+      b.title = NAMES[code];
+      b.setAttribute("aria-label", NAMES[code]);
+      if (code === S.lang) b.setAttribute("aria-current", "true");
+      b.addEventListener("click", function () { setLang(code); });
+      nav.append(b);
+    });
+  }
+
+  async function setLang(lang) {
+    if (lang === S.lang) return;
+    if (lang === "en") { S = EN; document.documentElement.lang = "en"; }
+    else { await loadStrings(lang); if (S.lang !== lang) return; }
+
+    applyStatic();
+    if (!S.metaTitle) document.title = BASE_TITLE;
+    // Answers are stored by position, not wording, so a coach can switch on
+    // question 7 and carry on from question 7.
+    if (!$("quiz").classList.contains("hidden")) paint();
+
+    // Rewrite the address without reloading, so the answers so far stay put
+    // and the UTM and Facebook parameters ride along untouched. A ?lang=
+    // would overrule the path on a reload, so it goes.
+    var q = new URLSearchParams(location.search);
+    q.delete("lang");
+    var p = location.pathname.replace(/index\.html$/, "");
+    if (p.slice(-1) !== "/") p += "/";
+    var base = p.replace(new RegExp("/(" + LANGS.join("|") + ")/$"), "/");
+    var qs = q.toString();
+    history.replaceState(null, "", base + (lang === "en" ? "" : lang + "/") +
+      (qs ? "?" + qs : "") + location.hash);
+
+    renderLangs();
+  }
+
+  loadStrings(pickLang()).then(function () { applyStatic(); renderLangs(); });
   $("back").addEventListener("click", function () { if (at > 0) { at--; paint(); } });
 
   $("finish").addEventListener("click", async function () {
