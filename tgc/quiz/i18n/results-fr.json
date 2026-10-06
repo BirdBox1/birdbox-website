@@ -1,0 +1,89 @@
+{
+  "opening": [
+    "Merci d'avoir pris le temps de faire cette évaluation.",
+    "Ce n'est pas une note, et ce n'est pas un jugement sur votre valeur de coach. C'est une lecture de l'endroit où se trouve votre prochain vrai gain — parce que le coaching de gymnastique obéit à un ordre d'opérations, et travailler la mauvaise étape, c'est ainsi que des coachs fournissent des années d'efforts pour très peu de retour.",
+    "Tout le monde se situe quelque part sur cette progression. Voici où vous en êtes, pourquoi cela compte, et une chose que vous pouvez faire cette semaine."
+  ],
+  "closing": [
+    "Où que vous soyez sur cette progression, ce n'est pas un plafond. Les coachs la gravissent vite une fois qu'ils savent sur quelle marche ils se trouvent — les années perdues viennent du travail acharné sur la mauvaise.",
+    "Au cours des prochaines semaines, nous vous enverrons cinq courts e-mails sur votre axe de travail. Pas une séquence de vente — des idées qui méritent réflexion, et des choses à essayer avec les athlètes qui sont devant vous.",
+    "Nathan Bird et l'équipe BirdBox"
+  ],
+  "focus": {
+    "eye": {
+      "lede": "Votre axe de travail : voir et transmettre les positions fondamentales.",
+      "body": [
+        "Vous savez reconnaître qu'un mouvement ne va pas. La plupart des coachs le savent. Ce qui est plus difficile — et ce qui sépare les coachs qui obtiennent des résultats constants de ceux qui en obtiennent occasionnellement — c'est de savoir ce qui ne va pas, dès la première répétition, et à quelle position cela remonte.",
+        "Pour l'instant, cette lecture n'est pas encore fiable. Cela se voit dans de petits détails. Deux athlètes échouent sur le même mouvement et reçoivent la même consigne. Vous démontrez une position et quatre versions différentes vous reviennent. Vous sentez que quelque chose cloche, mais le temps de comprendre quoi, la série est terminée.",
+        "C'est la première étape, et ce n'est pas un hasard. Tout ce qui vient au-dessus en dépend. Une méthodologie face à laquelle vous ne pouvez pas voir les défauts n'est qu'un planning, pas un système. Travailler le timing avec un athlète dont la position est mauvaise ne fait qu'accélérer la mauvaise chose. Ajouter du volume par-dessus accumule le défaut au lieu de la compétence.",
+        "La bonne nouvelle, c'est que l'œil du coach se travaille. Ce n'est pas un talent, et ce ne sont pas simplement des années passées sur le terrain — beaucoup de coachs accumulent dix ans d'observation sans l'acquérir, parce qu'ils n'ont jamais regardé quelque chose de précis. Mais cela demande du temps. Du temps passé délibérément, sur les bonnes choses, dans le bon ordre. C'est la partie que personne ne peut raccourcir à votre place, et c'est aussi celle qui progresse le plus vite une fois que vous savez où diriger votre attention."
+      ],
+      "tryThis": [
+        "Choisissez un mouvement que vos membres pratiquent souvent. Avant la séance, notez les trois choses que vous allez observer, dans l'ordre — non pas à quoi ressemble un bon mouvement en général, mais trois points de contrôle précis. Coachez toute la séance en ne regardant que ces trois-là.",
+        "Un indice : le corps est une série de liens. Un défaut visible est rarement là où le défaut commence.",
+        "Vous verrez davantage avec trois vérifications délibérées qu'avec un regard ouvert sur tout, parce que votre attention a enfin un point d'ancrage. Faites-le pendant une semaine et vous remarquerez la deuxième chose : tout ce qui vous échappait pendant que vous regardiez l'ensemble."
+      ],
+      "taught": "L'évaluation du mouvement est l'un des quatre piliers du TGC Niveau 1. Deux jours à apprendre à voir et à corriger le mouvement plus simplement, les mains sur de vrais athlètes, avec d'autres coachs qui vous regardent faire.",
+      "name": "L'œil du coach"
+    },
+    "methodology": {
+      "lede": "Votre axe de travail : les étapes fondamentales d'une méthodologie de coaching en gymnastique, et comment les appliquer.",
+      "body": [
+        "Vous le voyez. Ce n'est pas là qu'est le manque. Vous observez un athlète et vous savez ce qui ne va pas — la question à laquelle vous ne pouvez pas toujours répondre, c'est quoi faire, dans quel ordre, et pourquoi cet ordre-là plutôt qu'un autre.",
+        "Cela se traduit par des décisions prises dans l'instant. Ce sur quoi un athlète travaille ensuite dépend de ce que contient le programme du jour, de ce qui lui pose le plus de difficulté, ou de ce qu'il a demandé. Chacune de ces réponses est raisonnable à l'échelle d'une séance. Aucune n'est une méthode, et la différence se voit sur des mois, pas sur des jours.",
+        "Voici la distinction qui compte, et c'est celle que la plupart des coachs manquent : une progression est une liste d'étapes. Une méthodologie, c'est le raisonnement qui les sous-tend. Une progression dit : fais ceci, puis cela. Une méthodologie dit quelle qualité chaque étape construit — le contrôle maintenu à l'arrêt, le contrôle en allongement, le contrôle exprimé — et pourquoi cette qualité doit précéder la suivante. Les étapes sans le raisonnement forment une séquence dont vous avez hérité. Avec le raisonnement, elles deviennent un système que vous pouvez défendre, adapter à un athlète qui sort du cadre, et transmettre à un autre coach.",
+        "Il existe un test simple. Si un autre coach reprenait vos athlètes pendant un mois, pourrait-il poursuivre ? Pas deviner — poursuivre, dans la même direction, pour les mêmes raisons. Si la réponse vit surtout dans votre tête, vous avez du jugement : c'est précieux, mais cela ne passe pas à l'échelle, ne se transmet pas, et disparaît discrètement les jours de fatigue."
+      ],
+      "tryThis": [
+        "Prenez un mouvement et écrivez l'ordre complet, du début à la fin. Puis, à côté de chaque étape, notez deux choses : quelle qualité cette étape construit, et pourquoi elle doit précéder la suivante.",
+        "Les étapes viendront facilement. C'est dans la deuxième colonne que la plupart des coachs découvrent qu'ils improvisaient — et cette colonne, c'est la méthodologie."
+      ],
+      "taught": "Le TGC Niveau 1 s'ouvre sur la méthodologie de coaching et la hiérarchie du développement — le raisonnement sous les étapes plutôt que les étapes elles-mêmes, et pourquoi l'ordre est ce qu'il est.",
+      "name": "La méthodologie d'application"
+    },
+    "dynamic": {
+      "lede": "Votre axe de travail : le coaching technique vers le timing du mouvement dynamique.",
+      "body": [
+        "Vos athlètes ont les positions et ils ont la force. Ce qu'ils n'ont pas de façon fiable, c'est le rythme — et c'est précisément là que beaucoup de coachings par ailleurs excellents s'arrêtent sans bruit.",
+        "Vous le reconnaîtrez. Un athlète avec une traction stricte solide dont le kip n'a jamais eu deux fois la même allure. Des mouvements qui tiennent à froid et se délitent à la huitième répétition, où la force est clairement toujours là mais la séquence, non. Des progrès qui viennent de la répétition plutôt que du coaching, ce qui prend des mois sans que vous puissiez dire ce qui a fait la différence.",
+        "Voici ce qui distingue cette étape des deux précédentes. Une position, c'est quelque chose que l'on peut voir maintenu à l'arrêt. Le timing n'existe qu'en mouvement, ce qui veut dire qu'on ne peut pas le coacher en l'arrêtant — et dès l'instant où vous ralentissez un mouvement dynamique pour l'expliquer, vous n'enseignez plus la chose que vous cherchez à enseigner.",
+        "Et c'est là que la plupart des coachs aggravent les choses au lieu de les améliorer. Face à un athlète dont le timing est décalé, l'instinct pousse à expliquer davantage : une consigne de plus, une règle de plus, une chose de plus à penser pendant la montée. Mais chaque règle ajoutée donne à l'athlète un élément supplémentaire à surveiller, et un athlète qui surveille des éléments cesse de bouger comme un tout. Il décompose le mouvement exactement là où il devrait rester solidaire. Davantage d'instructions explicites produit un athlète plus décomposé, plus crispé, plus irrégulier — l'inverse de ce que vous visiez.",
+        "La solution est implicite plutôt qu'explicite. Moins dire. Aménager les conditions pour que l'athlète trouve le timing par lui-même, parce que le bon timing est le seul qui fonctionne."
+      ],
+      "tryThis": [
+        "Prenez un athlète dont un mouvement dynamique est irrégulier et cessez de lui dire quoi faire avec son corps. Modifiez plutôt un élément de la tâche, de sorte que le bon timing devienne le plus facile. Puis ne dites rien et laissez-le faire dix tentatives.",
+        "Ce qu'il résoudra seul vous en dira plus sur ce qu'il comprend réellement que n'importe quelle quantité de consignes."
+      ],
+      "taught": "Le TGC Niveau 1 enseigne la parade et l'auto-parade, qui constituent la meilleure forme d'adaptation qui soit. Parer un athlète à travers un mouvement dynamique, c'est ainsi qu'il trouve la fluidité — et la compréhension qui va avec — sans que vous ayez à le guider par la parole.",
+      "name": "Le coaching technique dynamique"
+    },
+    "periodisation": {
+      "lede": "Votre axe de travail : les étapes avancées du développement de l'athlète, une fois la position et la précision acquises.",
+      "body": [
+        "Vous avez dépassé les problèmes sur lesquels la plupart des coachs travaillent encore. Vos athlètes bougent bien, vous voyez ce qui se passe, et vous avez un ordre dans lequel vous coachez. Cela vous situe à un endroit très précis : le point où le coaching cesse de consister à corriger le mouvement et commence à consister à le prescrire.",
+        "Le symptôme, c'est l'athlète qui fait tout bien et ne progresse plus. Positions propres, timing correct, présent, travailleur — et stagnant depuis trois mois. Il n'y a rien à corriger, donc rien d'évident à coacher — et l'instinct habituel pousse à ajouter. Plus de répétitions, plus de séances, plus de travail accessoire. Parfois c'est la bonne réponse. Souvent, l'athlète recevait déjà plus que ce à quoi il s'adaptait, et le problème n'a jamais été la quantité.",
+        "Cette étape porte sur la dose. Quelle quantité, à quelle intensité, à quelle fréquence, et par rapport à tout le reste de la semaine — parce que le volume de gymnastique n'existe pas isolément : il entre en concurrence avec toutes les autres sollicitations de l'athlète. C'est la partie la moins visible du coaching et celle dont la boucle de retour est la plus longue, raison pour laquelle la plupart des coachs ne la systématisent jamais. Vous pouvez vous tromper pendant huit semaines avant que quoi que ce soit ne vous l'indique.",
+        "Bien la maîtriser, c'est ce qui transforme un bon coach en un coach dont les athlètes progressent encore après des années."
+      ],
+      "tryThis": [
+        "Choisissez un athlète qui stagne. Notez tout ce qu'il a fait ces quatre dernières semaines — tout, pas seulement la gymnastique. Puis posez une question plus exigeante que « qu'est-ce que je dois ajouter ? » : à quoi s'adapte-t-il réellement, et y a-t-il quelque chose dans cette liste qui l'en empêche ?",
+        "La réponse relève plus souvent de la soustraction que de l'addition, et presque jamais de ce à quoi l'athlète s'attend."
+      ],
+      "taught": "La programmation et l'adaptation constituent le quatrième pilier du TGC Niveau 1. La programmation de la gymnastique n'a pas besoin d'être compliquée — elle doit être fréquente, et prescrite en fonction de tout le reste de ce que fait l'athlète.",
+      "name": "La périodisation des progressions"
+    }
+  },
+  "nextText": "The Gymnastics Course — Niveau 1",
+  "email": {
+    "subject": "Ce dont votre coaching a besoin : {name}",
+    "heading": "Ce dont votre coaching a besoin",
+    "watch": "Vidéo",
+    "watchLede": "Quelques minutes sur {name}, et à quoi cela ressemble en salle.",
+    "watchButton": "Voir la vidéo",
+    "nextStep": "Prochaine étape",
+    "yourFocus": "Votre axe de travail",
+    "tryThisWeek": "À essayer cette semaine",
+    "whereTaught": "Où cela s'enseigne"
+  },
+  "greeting": "Bonjour {name},"
+}

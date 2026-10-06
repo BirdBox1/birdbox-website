@@ -1,0 +1,111 @@
+{
+  "opening": [
+    "Merci d'avoir complété l'auto-évaluation BirdBox Coaching Development.",
+    "Ce n'est pas un simple questionnaire — c'est un arrêt sur image de votre position dans votre parcours de coach. L'étape où vous vous trouvez met en lumière à la fois vos forces et les leviers précis qui débloqueront votre prochain niveau d'impact.",
+    "Chaque coach traverse des étapes — chacune avec ses défis, ses déclics et ses marges de progression. Savoir où vous en êtes aujourd'hui vous donne la clarté nécessaire pour concentrer votre énergie là où elle compte le plus, au lieu de courir après une information sans fin ou d'avancer à tâtons.",
+    "Vous trouverez ci-dessous une explication détaillée de votre étape actuelle, accompagnée d'une courte vidéo qui en illustre les idées clés. Lisez-la attentivement, voyez ce qui résonne, et réfléchissez à la façon de la mettre en pratique dans votre propre coaching."
+  ],
+  "closing": [
+    "N'oubliez pas : votre étape n'est pas une limite, c'est un tremplin. Les meilleurs coachs ne se définissent pas par l'étendue de leurs connaissances, mais par la constance avec laquelle ils affinent leur métier.",
+    "Chez BirdBox Coaching, nous sommes là pour vous accompagner avec des outils, des cadres et une communauté, afin de vous aider à devenir plus affûté, plus rapide et plus efficace sur le terrain.",
+    "Si vous voulez aller plus loin, commencez par regarder la vidéo ci-dessus et réfléchissez à la façon dont elle rejoint votre pratique quotidienne. À partir de là, vous trouverez des occasions de pratiquer, d'appliquer et d'élargir ce que vous faites déjà bien.",
+    "Continuez. Les athlètes que vous coachez n'ont pas seulement besoin de vos connaissances — ils ont besoin de votre clarté, de votre présence et de votre précision.",
+    "À votre prochain déclic,",
+    "L'équipe BirdBox Coaching"
+  ],
+  "stages": {
+    "explorer": {
+      "body": [
+        "D'après vos réponses, vous êtes dans ce que nous appelons la phase Explorateur. Et soyons clairs : ce n'est pas une faiblesse. C'est la partie la plus importante du parcours d'un coach. Parce que les Explorateurs sont ceux qui posent des questions, repèrent les manques et cherchent mieux.",
+        "En ce moment, vous ressentez peut-être une tension — le sentiment qu'il y a davantage dans le coaching ou le mouvement que ce que vous appliquez aujourd'hui, sans savoir précisément comment combler l'écart. Vous avez peut-être absorbé beaucoup d'informations — vidéos, séminaires, formations — sans que cela se soit encore assemblé en un système utilisable et solide.",
+        "Vous n'êtes pas seul dans ce cas. Dans cette phase, la plupart des gens compliquent tout à l'excès — ou simplifient à outrance et passent à côté de l'essentiel. Il est tout à fait normal de douter lorsqu'on cherche à comprendre la biomécanique, à reconnaître ce qui se passe réellement dans un mouvement, ou à produire des changements qui durent.",
+        "La clé, pour un Explorateur, est de construire des fondations solides :"
+      ],
+      "bullets": [
+        "Apprendre à voir le mouvement clairement — pas seulement ce qui se passe, mais pourquoi cela se passe.",
+        "S'entraîner à relier ce que l'on observe à des corrections précises — sans lancer douze consignes au hasard.",
+        "Commencer à développer un regard de coach qui permet de filtrer ce qui compte et d'ignorer le reste."
+      ],
+      "after": [
+        "À ce stade, votre meilleure prochaine étape est d'obtenir des cadres clairs, des retours réguliers et un accompagnement dans l'application de ce que vous apprenez. C'est exactement ce que nous apportons aux Explorateurs chez BirdBox Coaching.",
+        "Nous partons d'où vous êtes. Pas de jargon. Pas d'approximation. Simplement une approche étape par étape pour passer de la curiosité à la confiance — dans votre coaching, votre compréhension du mouvement et votre impact sur vos athlètes.",
+        "Vous êtes au bon endroit. Vous avez fait le premier pas en commençant cette évaluation."
+      ],
+      "name": "Explorateur"
+    },
+    "builder": {
+      "body": [
+        "D'après votre évaluation, vous êtes dans la phase Bâtisseur — et c'est une position forte. Vous ne vous contentez plus de réagir à ce que vous voyez en coaching ou à l'entraînement. Vous avez commencé à penser de façon plus critique, à poser des questions plus profondes et à appliquer ce que vous avez appris de manière plus pertinente.",
+        "Vous avez probablement déjà passé du temps à étudier la biomécanique, à observer le mouvement et à coacher en situation réelle. Certaines choses fonctionnent. D'autres non. Un jour vous vous sentez parfaitement en phase, le lendemain beaucoup moins. C'est le parcours du Bâtisseur : vous accumulez les répétitions, mais vous affinez encore votre regard, votre langage et vos systèmes.",
+        "L'un des plus grands défis à ce niveau est l'irrégularité. Parfois vous voyez ce qui ne va pas, sans être totalement sûr de la manière de le corriger. Ou vous donnez une consigne en croisant les doigts pour qu'elle fasse mouche. Votre intuition se développe, mais vous n'avez pas encore construit le système reproductible qui permet de l'appliquer sous pression — avec régularité et clarté.",
+        "Dans la phase Bâtisseur, votre plus grande opportunité est de passer du coach qui improvise bien… à celui qui exécute un système avec intention.",
+        "Cela signifie :"
+      ],
+      "bullets": [
+        "Clarifier ce que vous cherchez dans le mouvement",
+        "Utiliser moins de consignes, mais plus efficaces",
+        "Et obtenir des retours sur la façon dont vos corrections se traduisent réellement en performance."
+      ],
+      "after": [
+        "C'est le milieu, exigeant et puissant. Vous ne devinez plus — vous apprenez à vous approprier votre approche. C'est dans l'écart entre le savoir et son application régulière que se forgent les grands coachs.",
+        "Chez BirdBox Coaching, c'est le moment où nous aimons travailler avec les Bâtisseurs — parce que vous êtes prêt à accélérer. Si vous voulez des systèmes plus affûtés, des décisions plus assurées et des échanges sur le mouvement qui produisent réellement du changement, nous avons les outils, les cadres et l'accompagnement pour vous aider."
+      ],
+      "name": "Bâtisseur"
+    },
+    "refiner": {
+      "body": [
+        "Votre évaluation vous place dans la phase Perfectionniste — une étape puissante mais souvent négligée dans le parcours d'un coach. Vous ne cherchez plus à comprendre : vous affinez. Et c'est là que surviennent certains des déclics les plus profonds.",
+        "Vous avez de l'expérience de terrain. Vous comprenez le mouvement, vous connaissez vos systèmes, et vous avez suffisamment coaché ou entraîné pour reconnaître des schémas. Vos décisions ne sont pas des suppositions : elles s'appuient sur des principes et sur la pratique. Vous ne réagissez pas — vous répondez avec clarté.",
+        "Mais voici la réalité à ce niveau : les petites inefficacités d'aujourd'hui créent les grands écarts de demain. Vous ne luttez plus avec le quoi faire — vous cherchez le comment le faire mieux, plus vite et plus régulièrement. Et parfois, cela donne l'impression de courir après des ombres.",
+        "Vous vous demandez peut-être :"
+      ],
+      "bullets": [
+        "Est-ce que je passe à côté de subtilités que d'autres ne voient pas ?",
+        "Mes corrections ont-elles autant d'effet qu'elles le pourraient ?",
+        "Comment affiner ma façon de transmettre sans la complexifier ?"
+      ],
+      "after": [
+        "La phase Perfectionniste est une affaire de précision. Il ne s'agit plus seulement de faire le travail, mais de l'exécuter avec élégance, efficacité et profondeur. À ce niveau, il s'agit moins d'apprendre davantage… que de retirer le bruit, pour qu'il ne reste que ce qui est clair, intentionnel et efficace."
+      ],
+      "bullets2": [
+        "Affiner votre regard pour repérer les compensations subtiles",
+        "Resserrer vos consignes pour que chaque mot porte",
+        "Faire passer votre communication à l'échelle — surtout si vous encadrez des groupes ou d'autres coachs",
+        "Construire une boucle de retour qui vous aiguise sans vous entraîner dans la sur-analyse"
+      ],
+      "after2": [
+        "Chez BirdBox Coaching, nous aidons les Perfectionnistes comme vous à passer de très bon à remarquablement affûté. Nous ne sommes pas là pour vous déverser davantage d'informations — nous sommes là pour challenger, affiner et amplifier ce que vous faites déjà."
+      ],
+      "name": "Perfectionniste"
+    },
+    "leader": {
+      "body": [
+        "D'après votre évaluation, vous évoluez dans la phase Leader — et ce n'est pas rien. Vous avez probablement investi du temps, de l'énergie et de la réflexion dans votre développement, et cela se voit.",
+        "Votre approche est claire, vous reconnaissez la valeur de la biomécanique, et vous ne vous contentez pas de réagir : vous observez, vous guidez et vous exécutez avec intention. Vous avez probablement des systèmes en place, une solide maîtrise des principes du mouvement, et une boucle de retour qui façonne vos athlètes ou votre propre progression.",
+        "Mais voici le défi à ce niveau : rester affûté sans stagner. Au niveau Leader, l'affinage devient plus subtil. Il ne s'agit pas de tout refondre, mais d'ajuster pour gagner en levier. Vous découvrirez peut-être que de petits angles morts ou présupposés, s'ils ne sont pas traités, finissent par s'accumuler. Et parfois, plus on monte, plus il devient difficile d'obtenir des retours clairs et constructifs.",
+        "Les meilleurs leaders reviennent sans cesse aux fondamentaux avec un regard neuf — en particulier sur leur manière de communiquer avec les athlètes, d'intégrer de nouvelles informations, ou de traduire des corrections complexes en performance réelle. Chez BirdBox, nous voyons souvent des leaders plafonner non par manque de connaissances, mais parce qu'ils ont dépassé leurs systèmes de retour.",
+        "Voici donc votre meilleure prochaine étape :"
+      ],
+      "bullets": [
+        "Chercher un retour ciblé — auprès de quelqu'un qui comprend la performance et voit ce que les autres manquent.",
+        "Auditer vos conversations de coaching — amenez-vous vos athlètes vers l'autonomie, ou restez-vous trop souvent dans le fauteuil de l'expert ?",
+        "Réexaminer vos angles morts — notamment sur l'écart entre la façon dont les limitations de mouvement sont perçues et la façon dont elles sont corrigées."
+      ],
+      "after": [
+        "Si vous voulez un regard extérieur, des systèmes plus affûtés, ou simplement quelqu'un pour vous aider à régler votre moteur de coaching — c'est ce que nous faisons chez BirdBox Coaching. Nous travaillons avec des leaders comme vous pour franchir les plateaux, élever votre identité de coach et démultiplier votre impact.",
+        "Vous faites déjà un excellent travail. Assurons-nous que vous continuiez à construire dans la bonne direction."
+      ],
+      "name": "Leader"
+    }
+  },
+  "nextText": "The Coaches Course — Niveau 1",
+  "email": {
+    "subject": "Votre étape de coach : {name}",
+    "heading": "Votre auto-évaluation de coach",
+    "watch": "Voir votre vidéo {name}",
+    "nextStep": "Prochaine étape",
+    "yourStage": "Votre étape",
+    "learnMore": "En savoir plus sur un coaching efficace"
+  },
+  "greeting": "Bonjour {name},"
+}
