@@ -84,6 +84,10 @@ function reopen() {
   const now = Date.now();
   if (now - lastReopen < MIN_GAP_MS) return;
 
+  // Gone back to the list (or marked it unread): leave it closed.
+  // Re-opening would mark it read again behind your back.
+  if (!document.querySelector(".dm.thread-open")) return;
+
   const row = findRow();
   if (!row) return;   // not on Messages, or no thread open — nothing to do
 
