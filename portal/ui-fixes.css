@@ -69,14 +69,36 @@
    side as before and none of this applies. */
 .dm-back { display: none; }
 
+/* Who you are talking to, with "Mark unread" beside it. */
+.dm-head { margin-bottom: 0.4rem; }
+.dm-head-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.dm-head-row #dm-unread { flex: none; font-size: 0.8rem; }
+
 @media (max-width: 44rem) {
   .dm .dm-thread { display: none; }
   .dm.thread-open #dm-side { display: none; }
   .dm.thread-open .dm-thread { display: block; }
   .dm.thread-open .dm-back {
     display: inline-block;
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.4rem;
     font-size: 0.9rem;
+  }
+  /* The page scrolls on a phone, so pin the header to the top of the
+     screen: the way back is always one tap, however long the
+     conversation. */
+  .dm.thread-open .dm-head {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--card);
+    margin: 0 -1.25rem 0.6rem;
+    padding: 0.6rem 1.25rem 0.5rem;
+    border-bottom: 1px solid var(--rule);
   }
   /* Sitting inside its own scrolling box on a phone means two
      scrollbars fighting. Let the page scroll instead. */

@@ -862,9 +862,17 @@
         </div>
 
         <div class="dm-thread">
-          <button class="textlink dm-back" id="dm-back" type="button">&larr; The team</button>
-          <div class="whenline" style="font-weight:650;color:var(--ink);margin-bottom:0.4rem" id="dm-with">
-            Choose somebody to write to
+          <!-- Stays pinned to the top of the screen on a phone, so the way
+               back to the list is never a scroll through the whole
+               conversation away. -->
+          <div class="dm-head">
+            <button class="textlink dm-back" id="dm-back" type="button">&larr; The team</button>
+            <div class="dm-head-row">
+              <div class="whenline" style="font-weight:650;color:var(--ink)" id="dm-with">
+                Choose somebody to write to
+              </div>
+              <button class="textlink hidden" id="dm-unread" type="button">Mark unread</button>
+            </div>
           </div>
           <div class="chat" id="dm-list"></div>
           <div id="dm-compose" class="hidden" style="margin-top:0.9rem">
@@ -6136,6 +6144,9 @@ function wireExport() {
 // can read back, this one is a private line between two people.
 let dmWith = null;
 let dmUnread = {};
+// The newest message the other person sent in the open conversation —
+// the one "Mark unread" puts back.
+let dmLastTheirs = null;
 
 // The last thing said in each conversation, so the list can be ordered
 // the way every other messenger orders it — most recent at the top —
@@ -6398,6 +6409,7 @@ async function openThread(person) {
 
   $("dm-with").textContent = person.full_name;
   $("dm-compose").classList.remove("hidden");
+  $("dm-unread").classList.add("hidden");
   $("dm-msg").textContent = "";
 
   const list = $("dm-list");
@@ -6419,6 +6431,11 @@ async function openThread(person) {
   }
 
   renderThread(data || [], person);
+
+  // Only something they sent you can be put back to unread.
+  const theirs = (data || []).filter((m) => m.sender_id === person.id);
+  dmLastTheirs = theirs.length ? theirs[theirs.length - 1].id : null;
+  $("dm-unread").classList.toggle("hidden", !dmLastTheirs);
 
   // Marked read once they are on screen, which is the only honest
   // moment to claim it.
@@ -6650,12 +6667,34 @@ function wireMessages() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   });
 
-  // Back to the list of people, on a phone.
-  $("dm-back").onclick = () => {
+  // Back to the list of people, on a phone. The page has been scrolled
+  // down through the conversation, so start the list at its top.
+  const closeThread = () => {
     const panel = document.querySelector(".dm");
     if (panel) panel.classList.remove("thread-open");
     dmWith = null;
+    dmLastTheirs = null;
+    $("dm-with").textContent = "Choose somebody to write to";
+    $("dm-compose").classList.add("hidden");
+    $("dm-unread").classList.add("hidden");
+    $("dm-list").innerHTML = "";
     renderPeople();
+    const top = $("view-messages");
+    if (top && window.matchMedia("(max-width: 44rem)").matches) top.scrollIntoView();
+  };
+  $("dm-back").onclick = closeThread;
+
+  // Puts the conversation back on the unread list, for a question you
+  // have read but cannot answer yet. Closes it too — left open, it
+  // would be marked read again the moment it refreshed.
+  $("dm-unread").onclick = async () => {
+    if (!dmLastTheirs) return;
+    const { error } = await db.from("direct_messages")
+      .update({ read_at: null }).eq("id", dmLastTheirs);
+    if (error) { window.alert("Could not mark it unread: " + error.message); return; }
+    await loadUnread();
+    closeThread();
+    await refreshUnreadFlag();
   };
 
   // The box grows with the message instead of hiding what was typed
