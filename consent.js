@@ -209,6 +209,18 @@
       privacy: "Aviso de privacidad", reject: "Rechazar", accept: "Aceptar",
       switchOff: "Desactivar", keepOn: "Mantener activadas", label: "Cookies", settings: "Configuración de cookies"
     },
+    fr: {
+      on: "Nous utilisons les cookies publicitaires de Meta pour savoir quelles annonces amènent des personnes à nos formations. Ils ne sont pas nécessaires au fonctionnement du site. Vous pouvez les désactiver ici.",
+      off: "Nous utilisons les cookies publicitaires de Meta pour savoir quelles annonces amènent des personnes à nos formations. Ils ne sont pas nécessaires au fonctionnement du site, et nous ne les activons qu'avec votre accord.",
+      privacy: "Politique de confidentialité", reject: "Refuser", accept: "Accepter",
+      switchOff: "Désactiver", keepOn: "Laisser activés", label: "Cookies", settings: "Paramètres des cookies"
+    },
+    pt: {
+      on: "Usamos cookies de publicidade da Meta para saber que anúncios trazem pessoas aos nossos cursos. Não são necessários para o site funcionar. Podes desativá-los aqui.",
+      off: "Usamos cookies de publicidade da Meta para saber que anúncios trazem pessoas aos nossos cursos. Não são necessários para o site funcionar e só os ativamos com o teu consentimento.",
+      privacy: "Aviso de privacidade", reject: "Rejeitar", accept: "Aceitar",
+      switchOff: "Desativar", keepOn: "Manter ativos", label: "Cookies", settings: "Definições de cookies"
+    },
     it: {
       on: "Usiamo i cookie pubblicitari di Meta per capire quali annunci portano le persone ai nostri corsi. Non servono al funzionamento del sito. Puoi disattivarli qui.",
       off: "Usiamo i cookie pubblicitari di Meta per capire quali annunci portano le persone ai nostri corsi. Non servono al funzionamento del sito e non li attiviamo senza il tuo consenso.",

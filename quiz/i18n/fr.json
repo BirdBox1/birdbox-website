@@ -1,0 +1,146 @@
+{
+  "lang": "fr",
+  "title": "Quel type de coach êtes-vous aujourd'hui ?",
+  "lede": "Douze questions sur votre façon de coacher aujourd'hui. À la fin, vous découvrirez votre étape actuelle, ce qu'elle signifie, et la chose qui mérite votre attention ensuite.",
+  "start": "Commencer l'évaluation",
+  "back": "Retour",
+  "almost": "Presque terminé",
+  "whereSend": "Où devons-nous envoyer votre résultat ?",
+  "consent": "Envoyez-moi les informations complémentaires sur mon résultat, ainsi que la newsletter occasionnelle avec des articles et des podcasts à écouter. Vous pouvez vous désabonner à tout moment.",
+  "seeResult": "Voir mon résultat",
+  "resultHead": "Votre auto-évaluation de coach",
+  "yourStage": "Votre étape",
+  "learnMore": "En savoir plus sur un coaching efficace",
+  "nextStep": "Votre prochaine étape",
+  "chip1": "12 questions",
+  "chip2": "1 à 2 minutes",
+  "chip3": "Gratuit",
+  "questionOf": "Question {n} sur {total}",
+  "firstName": "Prénom",
+  "lastName": "Nom",
+  "email": "E-mail",
+  "questions": [
+    {
+      "q": "Comment décririez-vous votre système ou votre approche de coaching aujourd'hui ?",
+      "a": [
+        "Je n'en ai pas vraiment encore, je suis en train de le construire.",
+        "J'ai un système, mais j'affine encore la façon de l'appliquer.",
+        "J'ai un système auquel je fais confiance, mais je travaille à le rendre plus efficace.",
+        "Mon système est bien rodé et s'adapte aussi bien aux athlètes qu'à mon équipe."
+      ]
+    },
+    {
+      "q": "Quand vous observez quelqu'un bouger, quelle est votre première réaction ?",
+      "a": [
+        "Je ne sais pas trop quoi regarder",
+        "Je vois généralement ce qui ne va pas, mais pas toujours pourquoi",
+        "Je sais identifier les causes profondes et les compensations subtiles",
+        "Je repère les problèmes immédiatement et je sais comment les corriger efficacement"
+      ]
+    },
+    {
+      "q": "Comment appliquez-vous les contenus de formation que vous consommez (cours, séminaires, vidéos) ?",
+      "a": [
+        "J'en regarde beaucoup, mais je n'applique pas toujours ce que j'apprends",
+        "J'essaie d'appliquer, mais j'ai du mal à être régulier",
+        "Je suis sélectif, je teste des idées et je note ce qui fonctionne",
+        "Je transforme les idées clés en systèmes qui fonctionnent en temps réel"
+      ]
+    },
+    {
+      "q": "À quel point êtes-vous à l'aise pour donner des consignes ou des corrections de mouvement ?",
+      "a": [
+        "Pas encore à l'aise — j'hésite souvent",
+        "Je donne des consignes, mais j'en essaie souvent plusieurs avant qu'une fonctionne",
+        "Je sais quelles consignes utiliser, mais je travaille la formulation et le moment",
+        "Je donne des consignes précises qui produisent un changement de façon fiable"
+      ]
+    },
+    {
+      "q": "Comment savez-vous si votre coaching fonctionne ?",
+      "a": [
+        "Je me fie surtout à mon ressenti et à ce que je vois",
+        "Je cherche des progrès, mais je ne les suis pas de façon systématique",
+        "Je recueille des retours et j'observe des tendances pour ajuster",
+        "J'utilise des indicateurs précis et une réflexion structurée pour évaluer les résultats"
+      ]
+    },
+    {
+      "q": "Quel est votre plus grand défi en ce moment ?",
+      "a": [
+        "Je me sens débordé et je ne sais pas par où commencer",
+        "Je veux plus de régularité et de confiance dans mon coaching",
+        "Je veux affiner ce que je fais déjà bien",
+        "Je cherche à démultiplier mon impact et mon influence"
+      ]
+    },
+    {
+      "q": "À quelle fréquence sollicitez-vous des retours sur votre coaching ou votre performance ?",
+      "a": [
+        "Rarement — je ne sais pas trop à qui demander ni quoi demander",
+        "De temps en temps — je demande quand quelque chose cloche",
+        "Régulièrement — j'ai des personnes de confiance qui me donnent de vrais retours",
+        "En continu — le retour fait partie intégrante de mes systèmes"
+      ]
+    },
+    {
+      "q": "Quand vous aidez quelqu'un à améliorer son mouvement, quelle est votre approche ?",
+      "a": [
+        "J'essaie plusieurs choses et je vois ce qui prend",
+        "Je suis un processus, mais j'adapte souvent au fil de l'eau",
+        "J'utilise une approche structurée que j'ajuste selon les nuances",
+        "J'utilise un processus éprouvé et efficace qui produit des résultats fiables"
+      ]
+    },
+    {
+      "q": "Votre identité de coach est-elle claire pour vous ?",
+      "a": [
+        "Je cherche encore qui je suis en tant que coach",
+        "J'ai une idée de mon style, mais je me compare encore aux autres",
+        "Je suis sûr de mon style et je travaille à l'affiner",
+        "J'ai une voix forte et singulière de coach, et j'en fais un outil pour guider les autres"
+      ]
+    },
+    {
+      "q": "Comment préparez-vous vos séances ou la conception de vos entraînements ?",
+      "a": [
+        "J'improvise souvent ou je cherche l'inspiration à la dernière minute",
+        "Je prépare un plan, mais les détails me laissent parfois dans le doute",
+        "J'utilise un système de planification régulier, avec quelques ajustements de dernière minute",
+        "Je suis un système solide qui s'adapte facilement à différents clients ou groupes"
+      ]
+    },
+    {
+      "q": "Quelle est votre approche du développement professionnel en ce moment ?",
+      "a": [
+        "J'essaie d'absorber le plus possible",
+        "Je me concentre sur l'application de ce que j'apprends en situation réelle",
+        "Je me concentre sur l'affinage de ce qui fonctionne déjà pour moi",
+        "Je me concentre sur l'évolution des autres et l'amélioration de ma méthodologie"
+      ]
+    },
+    {
+      "q": "Qu'est-ce qui décrit le mieux vos conversations de coaching ?",
+      "a": [
+        "Je donne un retour ou des consignes simples en espérant que cela aide",
+        "J'explique ce qui ne va pas et je propose des pistes d'amélioration",
+        "Je cherche à poser de meilleures questions et à faire émerger la responsabilité de l'athlète",
+        "Je coache la personne, pas seulement la performance, avec clarté et intention"
+      ]
+    }
+  ],
+  "metaTitle": "Auto-évaluation de coach — BirdBox Coaching",
+  "emailOnly": "Nous utilisons votre e-mail pour vous envoyer votre résultat. Rien d'autre sans la case cochée ci-dessus.",
+  "needNames": "Votre prénom et votre nom, s'il vous plaît.",
+  "needEmail": "Nous avons besoin d'une adresse e-mail valide pour vous envoyer votre résultat.",
+  "working": "Calcul de votre étape…",
+  "failed": "Cela n'a pas fonctionné. Veuillez réessayer.",
+  "unreachable": "Impossible de nous joindre pour le moment. Veuillez réessayer.",
+  "emailed": "Une copie est en route vers votre boîte de réception.",
+  "secondAskHead": "Plus de contenu pour l'étape {plural}",
+  "secondAskLede": "Vous en voulez davantage ? Nous vous enverrons du contenu pratique sur le coaching et, de temps en temps, des nouvelles de nos formations, adaptés à l'étape où vous êtes.",
+  "yesSend": "Oui, envoyez-le-moi",
+  "saving": "Enregistrement…",
+  "saveFailed": "Cela n'a pas été enregistré. Veuillez réessayer.",
+  "saved": "C'est fait : vous êtes sur la liste."
+}

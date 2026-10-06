@@ -1,0 +1,146 @@
+{
+  "lang": "pt",
+  "title": "Que tipo de treinador és neste momento?",
+  "lede": "Doze perguntas sobre a forma como treinas hoje. No final ficas a saber a tua fase actual, o que significa, e a única coisa em que vale a pena trabalhar a seguir.",
+  "start": "Começar a avaliação",
+  "back": "Voltar",
+  "almost": "Estamos quase",
+  "whereSend": "Para onde enviamos o teu resultado?",
+  "consent": "Enviem-me as informações complementares sobre o meu resultado, mais a newsletter ocasional com artigos e podcasts para ouvir. Podes cancelar a subscrição a qualquer momento.",
+  "seeResult": "Ver o meu resultado",
+  "resultHead": "A tua auto-avaliação como treinador",
+  "yourStage": "A tua fase",
+  "learnMore": "Sabe mais sobre coaching eficaz",
+  "nextStep": "O teu próximo passo",
+  "chip1": "12 perguntas",
+  "chip2": "1–2 minutos",
+  "chip3": "Gratuito",
+  "questionOf": "Pergunta {n} de {total}",
+  "firstName": "Nome",
+  "lastName": "Apelido",
+  "email": "E-mail",
+  "questions": [
+    {
+      "q": "Como descreverias o teu sistema ou abordagem de treino actual?",
+      "a": [
+        "Ainda não tenho um a sério, ainda estou a construí-lo.",
+        "Tenho um sistema, mas ainda estou a afinar como o aplicar.",
+        "Tenho um sistema em que confio, mas trabalho para o tornar mais eficiente.",
+        "O meu sistema está afinado e funciona bem com atletas e com a equipa."
+      ]
+    },
+    {
+      "q": "Quando vês alguém a mover-se, qual é a tua primeira reacção?",
+      "a": [
+        "Não tenho a certeza do que devo observar",
+        "Normalmente vejo o que está errado, mas nem sempre sei o porquê",
+        "Identifico as causas de base e compensações subtis",
+        "Detecto os problemas de imediato e sei corrigi-los de forma eficaz"
+      ]
+    },
+    {
+      "q": "Como aplicas os conteúdos formativos que consomes (cursos, seminários, vídeos)?",
+      "a": [
+        "Vejo muito, mas nem sempre uso o que aprendo",
+        "Tento aplicar, mas tenho dificuldade em ser consistente",
+        "Sou selectivo, testo ideias e registo o que funciona",
+        "Transformo as ideias-chave em sistemas que funcionam em tempo real"
+      ]
+    },
+    {
+      "q": "Que confiança tens a dar indicações ou correcções de movimento?",
+      "a": [
+        "Ainda pouca — hesito com frequência",
+        "Dou indicações, mas costumo tentar várias até uma resultar",
+        "Sei que indicações usar, mas estou a trabalhar na entrega e no momento de as dar",
+        "Dou indicações precisas que produzem mudança de forma fiável"
+      ]
+    },
+    {
+      "q": "Como sabes se o teu trabalho está a resultar?",
+      "a": [
+        "Guio-me sobretudo pelo que vejo e sinto",
+        "Procuro progressos, mas não os registo de forma sistemática",
+        "Recolho feedback e observo padrões para ajustar",
+        "Uso indicadores concretos e reflexão estruturada para avaliar resultados"
+      ]
+    },
+    {
+      "q": "Qual é o teu maior desafio neste momento?",
+      "a": [
+        "Sinto-me sobrecarregado e não sei por onde começar",
+        "Quero mais consistência e confiança no meu trabalho",
+        "Quero afinar o que já faço bem",
+        "Estou focado em ampliar o meu impacto e a minha influência"
+      ]
+    },
+    {
+      "q": "Com que frequência procuras feedback sobre o teu trabalho?",
+      "a": [
+        "Raramente — não sei bem a quem pedir nem o que pedir",
+        "De vez em quando — pergunto quando algo não bate certo",
+        "Regularmente — tenho pessoas de confiança que me dão feedback verdadeiro",
+        "Continuamente — o feedback faz parte dos meus sistemas"
+      ]
+    },
+    {
+      "q": "Quando ajudas alguém a melhorar o movimento, qual é a tua abordagem?",
+      "a": [
+        "Experimento algumas coisas e vejo o que resulta",
+        "Sigo um processo, mas adapto-o muitas vezes no momento",
+        "Uso uma abordagem estruturada que ajusto consoante os detalhes",
+        "Uso um processo testado e eficiente que dá resultados fiáveis"
+      ]
+    },
+    {
+      "q": "Quão clara é para ti a tua identidade como treinador?",
+      "a": [
+        "Ainda estou a perceber quem sou como treinador",
+        "Tenho uma noção do meu estilo, mas ainda me comparo com os outros",
+        "Sou seguro no meu estilo e trabalho para o afinar",
+        "Tenho uma voz própria e forte como treinador, e é com ela que oriento os outros"
+      ]
+    },
+    {
+      "q": "Como preparas as sessões ou a construção dos treinos?",
+      "a": [
+        "Improviso muitas vezes ou procuro inspiração à última hora",
+        "Preparo um plano, mas por vezes fico na dúvida quanto aos detalhes",
+        "Uso um sistema de planeamento consistente, com ajustes pontuais à última hora",
+        "Sigo um sistema sólido que se adapta facilmente a clientes ou grupos"
+      ]
+    },
+    {
+      "q": "Qual é a tua abordagem à formação profissional neste momento?",
+      "a": [
+        "Tento absorver tudo o que consigo",
+        "Estou focado em aplicar o que aprendo em situações reais",
+        "Estou focado em afinar o que já funciona comigo",
+        "Estou focado em fazer crescer os outros e ampliar os meus sistemas"
+      ]
+    },
+    {
+      "q": "O que descreve melhor as tuas conversas habituais como treinador?",
+      "a": [
+        "Dou feedback ou instruções básicas e espero que ajudem",
+        "Explico o que está errado e proponho formas de melhorar",
+        "Foco-me em fazer melhores perguntas e em criar responsabilidade no atleta",
+        "Treino a pessoa com clareza e intenção, nao apenas o desempenho"
+      ]
+    }
+  ],
+  "metaTitle": "Autoavaliação de treinador — BirdBox Coaching",
+  "emailOnly": "Usamos o teu email para te enviar o resultado. Nada mais sem a caixa assinalada acima.",
+  "needNames": "Indica o teu nome e apelido, por favor.",
+  "needEmail": "Precisamos de um email válido para te enviar o resultado.",
+  "working": "A calcular a tua fase…",
+  "failed": "Não funcionou. Tenta novamente.",
+  "unreachable": "Não conseguimos ligar-nos neste momento. Tenta novamente.",
+  "emailed": "Uma cópia está a caminho da tua caixa de entrada.",
+  "secondAskHead": "Mais para a fase {plural}",
+  "secondAskLede": "Queres mais conteúdo como este? Enviamos-te conteúdo prático de coaching e, de vez em quando, novidades sobre os cursos, pensado para a fase em que estás.",
+  "yesSend": "Sim, envia-me",
+  "saving": "A guardar…",
+  "saveFailed": "Não ficou guardado. Tenta novamente.",
+  "saved": "Feito: já estás na lista."
+}

@@ -47,6 +47,7 @@
   }
   .langs button:hover { color: #fff; }
   .langs button[aria-current="true"] { color: #fff; box-shadow: inset 0 -2px 0 currentColor; }
+  @media (max-width: 420px) { .langs button { padding: 0.35rem 0.28rem; letter-spacing: 0.06em; } }
 
   .wrap {
     max-width: 46rem; margin: 0 auto; padding: 0 1.25rem 5rem;
@@ -509,7 +510,7 @@
   // anyone it got wrong. Only languages with a finished, reviewed file are
   // offered, so nobody picks French and gets English. Add a code to LIVE
   // when its file lands.
-  var LIVE = ["en", "de", "es", "it"];
+  var LIVE = ["en", "fr", "de", "es", "it", "pt"];
   var NAMES = { en: "English", de: "Deutsch", es: "Español", it: "Italiano",
                 fr: "Français", pl: "Polski", pt: "Português" };
   var BASE_TITLE = document.title;

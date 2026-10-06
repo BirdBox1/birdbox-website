@@ -1,0 +1,152 @@
+{
+  "lang": "fr",
+  "title": "De quoi votre coaching de gymnastique a-t-il besoin ensuite ?",
+  "start": "Commencer l'évaluation",
+  "back": "Retour",
+  "almost": "Presque terminé",
+  "whereSend": "Où devons-nous envoyer votre résultat ?",
+  "consent": "Envoyez-moi les informations complémentaires sur mon résultat, ainsi que la newsletter occasionnelle avec des articles et des podcasts à écouter. Vous pouvez vous désabonner à tout moment.",
+  "seeResult": "Voir mon résultat",
+  "emailOnly": "Nous utilisons votre adresse e-mail pour vous envoyer votre résultat. Rien d'autre sans la case cochée ci-dessus.",
+  "yourFocus": "Votre axe de travail",
+  "tryThisWeek": "À essayer cette semaine",
+  "theLadder": "La progression",
+  "whereTaught": "Où cela s'enseigne",
+  "watch": "À regarder",
+  "nextStep": "Votre prochaine étape",
+  "emailed": "Une copie est en route vers votre boîte de réception.",
+  "yesSend": "Oui, envoyez-le-moi",
+  "chip1": "12 questions",
+  "chip2": "1 à 2 minutes",
+  "chip3": "Gratuit",
+  "questionOf": "Question {n} sur {total}",
+  "firstName": "Prénom",
+  "lastName": "Nom",
+  "email": "E-mail",
+  "rungDone": "Acquis",
+  "rungHere": "Vous êtes ici",
+  "rungAhead": "À venir",
+  "questions": [
+    {
+      "q": "Le balancement d'un athlète ne va pas. Que se passe-t-il ensuite, en général ?",
+      "a": [
+        "Je sens que quelque chose cloche, sans savoir quoi",
+        "Je peux nommer le défaut après avoir observé quelques répétitions",
+        "Je le vois dès la première répétition et je peux le nommer",
+        "Je le vois, je le nomme, et je sais à quelle position il remonte"
+      ]
+    },
+    {
+      "q": "Deux athlètes échouent sur le même mouvement pour des raisons différentes. À quelle fréquence le repérez-vous ?",
+      "a": [
+        "Rarement — ils reçoivent souvent la même consigne",
+        "Parfois, généralement en y repensant après coup",
+        "Le plus souvent, sur le moment",
+        "Toujours — je m'y attends et je le cherche activement"
+      ]
+    },
+    {
+      "q": "Vous démontrez une position. À quoi ressemblent les versions de vos athlètes ?",
+      "a": [
+        "Très variables, dans tous les sens",
+        "À peu près similaires, difficile de dire ce qui cloche",
+        "Proches, et je peux identifier les écarts",
+        "Constantes, parce que je vérifie les mêmes points de repère à chaque fois"
+      ]
+    },
+    {
+      "q": "Comment décidez-vous de ce sur quoi un athlète va travailler ensuite ?",
+      "a": [
+        "Ce que le programme du cours prévoit ce jour-là",
+        "Ce qui leur pose le plus de difficulté",
+        "Une progression que je suis pour ce mouvement",
+        "Un ordre défini que je pourrais expliquer et justifier pour n'importe quel athlète"
+      ]
+    },
+    {
+      "q": "Un athlète veut faire des muscle-ups mais ne tient pas une position hollow. Que faites-vous ?",
+      "a": [
+        "Je les laisse travailler les muscle-ups en limitant le volume",
+        "J'ajoute du travail de hollow en parallèle",
+        "Je mets le muscle-up de côté tant que la position n'est pas acquise",
+        "Je reprends depuis le début et je reconstruis la séquence dans l'ordre"
+      ]
+    },
+    {
+      "q": "Si un autre coach reprenait vos athlètes pendant un mois, pourrait-il poursuivre le travail ?",
+      "a": [
+        "Non — l'essentiel est dans ma tête",
+        "Plus ou moins, à partir de ce qui est au tableau",
+        "Oui, la progression est écrite",
+        "Oui, et il saurait pourquoi chaque étape se situe là où elle est"
+      ]
+    },
+    {
+      "q": "Un athlète a la force en strict mais un kip irrégulier. Votre approche ?",
+      "a": [
+        "Davantage de répétitions jusqu'à ce que ça vienne",
+        "Je le remontre, plus lentement",
+        "Je décompose le timing en éléments et je les travaille séparément",
+        "Je détermine quel élément est mal synchronisé et je coache celui-là"
+      ]
+    },
+    {
+      "q": "Comment coachez-vous le rythme et le timing ?",
+      "a": [
+        "Pas vraiment — cela vient avec la pratique",
+        "Par le comptage ou des consignes de tempo",
+        "Des exercices qui isolent le timing",
+        "Des contraintes qui font du bon timing la seule option possible"
+      ]
+    },
+    {
+      "q": "Un mouvement dynamique se dégrade sous la fatigue. Quelle est votre lecture ?",
+      "a": [
+        "Ils sont fatigués",
+        "Un problème de condition physique",
+        "Le timing se dégrade avant la force",
+        "Je sais quelle partie de la séquence lâche en premier chez cet athlète"
+      ]
+    },
+    {
+      "q": "Comment décidez-vous du volume de gymnastique d'un athlète ?",
+      "a": [
+        "Ce que contient le WOD du cours",
+        "Davantage pour ceux qui en ont besoin",
+        "Un volume hebdomadaire fixe selon le niveau",
+        "Prescrit en fonction de ce à quoi ils s'adaptent, et ajusté au fil du temps"
+      ]
+    },
+    {
+      "q": "Un athlète a des positions propres et un bon timing, mais ne progresse plus. Pourquoi ?",
+      "a": [
+        "Je ne sais pas trop",
+        "Il doit sans doute s'entraîner davantage",
+        "La dose n'est pas adaptée à l'adaptation recherchée",
+        "Je saurais quelle variable modifier, et dans quelle mesure"
+      ]
+    },
+    {
+      "q": "Comment gérez-vous l'intensité de la gymnastique sur une semaine ?",
+      "a": [
+        "Elle n'est pas distinguée du reste de leur entraînement",
+        "Je garde un œil dessus, de façon informelle",
+        "Je planifie des journées plus dures et plus légères",
+        "Je la prescris délibérément en fonction de tout le reste de leur charge"
+      ]
+    }
+  ],
+  "lede": "Douze questions sur votre façon de coacher aujourd'hui. À la fin, vous découvrirez votre axe de travail, ce qu'il signifie, et une chose à mettre en pratique cette semaine.",
+  "metaTitle": "Ce dont votre coaching a besoin — The Gymnastics Course",
+  "needNames": "Votre prénom et votre nom, s'il vous plaît.",
+  "needEmail": "Nous avons besoin d'une adresse e-mail valide pour vous envoyer votre résultat.",
+  "working": "Calcul de votre axe de travail…",
+  "failed": "Cela n'a pas fonctionné. Veuillez réessayer.",
+  "unreachable": "Impossible de nous joindre pour le moment. Veuillez réessayer.",
+  "resultHead": "Votre axe de travail en coaching de gymnastique",
+  "secondAskHead": "Plus sur : {focus}",
+  "secondAskLede": "Cinq e-mails courts sur ce sujet, un par semaine. Des pistes de réflexion et des choses à essayer avec les athlètes que vous entraînez.",
+  "saving": "Enregistrement…",
+  "saveFailed": "Cela n'a pas été enregistré. Veuillez réessayer.",
+  "saved": "C'est fait : vous êtes sur la liste."
+}

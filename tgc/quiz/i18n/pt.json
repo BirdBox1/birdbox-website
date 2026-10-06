@@ -1,0 +1,152 @@
+{
+  "lang": "pt",
+  "title": "De que precisa agora o teu coaching de ginástica?",
+  "start": "Começar a avaliação",
+  "back": "Voltar",
+  "almost": "Estamos quase",
+  "whereSend": "Para onde enviamos o teu resultado?",
+  "consent": "Enviem-me as informações complementares sobre o meu resultado, mais a newsletter ocasional com artigos e podcasts para ouvir. Podes cancelar a subscrição a qualquer momento.",
+  "seeResult": "Ver o meu resultado",
+  "emailOnly": "Usamos o teu e-mail para te enviar o resultado. Mais nada sem a caixa assinalada acima.",
+  "yourFocus": "A tua área de trabalho",
+  "tryThisWeek": "Experimenta esta semana",
+  "theLadder": "Os degraus",
+  "whereTaught": "Onde isto se ensina",
+  "watch": "Ver o vídeo",
+  "nextStep": "O teu próximo passo",
+  "emailed": "Uma cópia está a caminho da tua caixa de entrada.",
+  "yesSend": "Sim, enviem",
+  "chip1": "12 perguntas",
+  "chip2": "1–2 minutos",
+  "chip3": "Gratuito",
+  "questionOf": "Pergunta {n} de {total}",
+  "firstName": "Nome",
+  "lastName": "Apelido",
+  "email": "E-mail",
+  "rungDone": "Já ultrapassado",
+  "rungHere": "Estás aqui",
+  "rungAhead": "À tua frente",
+  "questions": [
+    {
+      "q": "O swing de um atleta não está bem. O que costuma acontecer a seguir?",
+      "a": [
+        "Percebo que algo não está certo, mas não o quê",
+        "Consigo identificar o erro depois de ver algumas repetições",
+        "Vejo-o logo na primeira repetição e sei nomeá-lo",
+        "Vejo-o, nomeio-o e sei a que posição remonta"
+      ]
+    },
+    {
+      "q": "Dois atletas falham o mesmo movimento por razões diferentes. Com que frequência dás por isso?",
+      "a": [
+        "Raramente — costumam receber a mesma indicação",
+        "Às vezes, normalmente a pensar nisso depois",
+        "Quase sempre, no momento",
+        "Sempre — conto com isso e procuro-o activamente"
+      ]
+    },
+    {
+      "q": "Demonstras uma posição. Como voltam as versões dos teus atletas?",
+      "a": [
+        "Muito diferentes umas das outras",
+        "Mais ou menos parecidas, difícil dizer o que falha",
+        "Próximas, e consigo apontar as diferenças",
+        "Consistentes, porque verifico sempre os mesmos pontos de referência"
+      ]
+    },
+    {
+      "q": "Como decides no que é que um atleta vai trabalhar a seguir?",
+      "a": [
+        "No que o programa da aula tiver nesse dia",
+        "No que lhe custa mais",
+        "Numa progressão que sigo para esse movimento",
+        "Numa ordem definida que saberia explicar e justificar para qualquer atleta"
+      ]
+    },
+    {
+      "q": "Um atleta quer fazer muscle-ups e não aguenta a posiçao hollow. O que fazes?",
+      "a": [
+        "Deixo-o trabalhar muscle-ups com pouco volume",
+        "Acrescento trabalho de hollow em paralelo",
+        "Suspendo o muscle-up até a posição estar adquirida",
+        "Recuo e reconstruo a sequência pela ordem certa"
+      ]
+    },
+    {
+      "q": "Se outro treinador ficasse com os teus atletas durante um mês, conseguiria continuar?",
+      "a": [
+        "Não — a maior parte está na minha cabeça",
+        "Mais ou menos, pelo que está no quadro",
+        "Sim, a progressão está escrita",
+        "Sim, e saberia porque é que cada passo está onde está"
+      ]
+    },
+    {
+      "q": "Um atleta tem força strict mas um kip inconsistente. Qual é a tua abordagem?",
+      "a": [
+        "Mais repetições até sair",
+        "Mostro outra vez, mais devagar",
+        "Divido o timing em partes e trabalho cada uma",
+        "Descubro qual a parte mal sincronizada e trabalho essa"
+      ]
+    },
+    {
+      "q": "Como treinas o ritmo e o timing?",
+      "a": [
+        "Não trabalho propriamente — vêm com a prática",
+        "A contar ou com indicações de tempo",
+        "Com exercícios que isolam o timing",
+        "Com constrangimentos que tornam o timing certo a única opção possível"
+      ]
+    },
+    {
+      "q": "Um movimento dinâmico degrada-se com a fadiga. Qual é a tua leitura?",
+      "a": [
+        "Está cansado",
+        "Um problema de condição física",
+        "O timing degrada-se antes da força",
+        "Sei que parte da sequência cede primeiro naquele atleta"
+      ]
+    },
+    {
+      "q": "Como decides que volume de ginástica um atleta recebe?",
+      "a": [
+        "O que estiver no WOD da aula",
+        "Mais para quem precisa",
+        "Uma quantidade semanal fixa consoante o nível",
+        "Prescrito em função daquilo a que se está a adaptar, e ajustado à medida que muda"
+      ]
+    },
+    {
+      "q": "Um atleta tem posições limpas e bom timing mas deixou de progredir. Porquê?",
+      "a": [
+        "Não sei bem",
+        "Provavelmente precisa de treinar mais",
+        "A dose não está ajustada à adaptação",
+        "Saberia que variável mudar, e em que medida"
+      ]
+    },
+    {
+      "q": "Como geres a intensidade da ginástica ao longo de uma semana?",
+      "a": [
+        "Não a separo do resto do treino",
+        "Vou acompanhando de forma informal",
+        "Planeio dias mais duros e mais leves",
+        "Prescrevo-a deliberadamente em relação a tudo o resto que ele faz"
+      ]
+    }
+  ],
+  "lede": "Doze perguntas sobre a forma como treinas hoje. No final ficas a saber a tua área de trabalho, o que significa e uma coisa para pôr em prática esta semana.",
+  "metaTitle": "O que o teu coaching precisa — The Gymnastics Course",
+  "needNames": "Indica o teu nome e apelido, por favor.",
+  "needEmail": "Precisamos de um email válido para te enviar o resultado.",
+  "working": "A calcular a tua área de trabalho…",
+  "failed": "Não funcionou. Tenta novamente.",
+  "unreachable": "Não conseguimos ligar-nos neste momento. Tenta novamente.",
+  "resultHead": "A tua área de trabalho no coaching de ginástica",
+  "secondAskHead": "Mais sobre: {focus}",
+  "secondAskLede": "Cinco emails curtos sobre isto, um por semana. Coisas em que vale a pena pensar e coisas que podes experimentar com os atletas que tens à frente.",
+  "saving": "A guardar…",
+  "saveFailed": "Não ficou guardado. Tenta novamente.",
+  "saved": "Feito: já estás na lista."
+}
