@@ -3112,6 +3112,13 @@ async function start() {
       // A link from the scheduling planner names a course, so the portal
     // opens straight onto it rather than making somebody scroll.
       const view = new URLSearchParams(location.search).get("view");
+    // Used once, then taken out of the address. Left in, every reload
+    // afterwards (coach view, an update, signing in) lands on Messages.
+    if (view) {
+      const url = new URL(location.href);
+      url.searchParams.delete("view");
+      history.replaceState(null, "", url);
+    }
     if (view === "messages") openMessages();
     if (view === "broadcast") location.href = "/portal/broadcast/"; 
   const wanted = new URLSearchParams(location.search).get("course");
