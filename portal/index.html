@@ -3087,6 +3087,7 @@ async function start() {
   $("newcourse").classList.toggle("hidden", !admin);
   $("emailsbtn").classList.toggle("hidden", !admin);
   $("invoicesbtn").classList.toggle("hidden", !admin);
+  refreshInvoiceFlag();
   // Every coach can export their own courses and participants. The
   // finances panel inside is admin only.
   $("peoplebtn").classList.toggle("hidden", !admin);
@@ -6315,6 +6316,22 @@ async function refreshWorkshopFlag() {
   setFlag(btn, "Workshops", total);
 }
 
+// A count on the Invoices button: coach invoices submitted and not yet
+// paid, so money owed is visible from the course list rather than only
+// once somebody opens Invoices. Admin only — nobody else pays them.
+// Marking one paid or deleting it clears it.
+async function refreshInvoiceFlag() {
+  const btn = $("invoicesbtn");
+  if (!btn || !me || !isAdmin()) return;
+
+  const { count, error } = await db.from("coach_invoices")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "submitted").is("paid_at", null);
+
+  if (error) console.error("Could not count invoices:", error.message);
+  setFlag(btn, "Invoices", error ? 0 : count);
+}
+
   async function refreshUnreadFlag() {
 
   const total = await loadUnread();
@@ -8074,6 +8091,7 @@ function wirePaid() {
     $("paidwrap").classList.add("hidden");
     const done = paidThen;
     paidInvoice = null; paidThen = null;
+    refreshInvoiceFlag();
     if (done) done();
   };
 }
@@ -8109,6 +8127,7 @@ async function deleteInvoice(inv, afterwards) {
   const { error } = await db.from("coach_invoices").delete().eq("id", inv.id);
 
   if (error) { window.alert("Could not delete it: " + error.message); return; }
+  refreshInvoiceFlag();
   if (afterwards) afterwards();
 }
 
@@ -11336,6 +11355,7 @@ async function refreshAllFlags() {
   await Promise.all([
     refreshUnreadFlag(),
     refreshWorkshopFlag(),
+    refreshInvoiceFlag(),
     refreshReflectionFlag(),
     refreshBlogFlag(),
   ]);
