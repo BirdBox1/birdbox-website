@@ -428,6 +428,63 @@
   .shot .cap.err { color: var(--bad); }
 
   /* ---------------- notes ---------------- */
+
+/* Seminar Wi-Fi drops replies: the note often lands but the browser
+   reports "Load failed". Treat those as retryable, and keep drafts
+   on the device until the server confirms. */
+const NOTE_SELECT = "id, registration_id, staff_id, body, created_at, updated_at, staff ( full_name )";
+
+function isNetworkError(error) {
+  const m = String((error && error.message) || error || "");
+  return /load failed|failed to fetch|networkerror|network request failed|timed? ?out|aborted/i.test(m);
+}
+
+function noteDraftKey(regId) { return "bb-note-draft:" + regId; }
+function readNoteDraft(regId) {
+  try { return localStorage.getItem(noteDraftKey(regId)) || ""; } catch (e) { return ""; }
+}
+function writeNoteDraft(regId, text) {
+  try {
+    if (text) localStorage.setItem(noteDraftKey(regId), text);
+    else localStorage.removeItem(noteDraftKey(regId));
+  } catch (e) {}
+}
+
+function newNoteId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return null;
+}
+
+/* Insert with a client-made id so a retry after a lost reply cannot
+   create a duplicate: if the first attempt landed, we just read it back. */
+async function insertNoteReliably(row, onRetry) {
+  const id = newNoteId();
+  if (id) row = { ...row, id };
+  const waits = [0, 1500, 3000, 6000, 10000];
+  let lastError = null;
+
+  for (let i = 0; i < waits.length; i++) {
+    if (waits[i]) {
+      if (onRetry) onRetry(i);
+      await new Promise(r => setTimeout(r, waits[i]));
+    }
+
+    if (id && i > 0) {
+      const { data: existing, error: readErr } = await db.from("participant_notes")
+        .select(NOTE_SELECT).eq("id", id).maybeSingle();
+      if (existing) return { data: existing, error: null };
+      if (readErr && isNetworkError(readErr)) { lastError = readErr; continue; }
+    }
+
+    const { data, error } = await db.from("participant_notes")
+      .insert(row).select(NOTE_SELECT).single();
+    if (!error) return { data, error: null };
+    if (id && error.code === "23505") continue; // landed already; read it back next round
+    if (!isNetworkError(error)) return { data: null, error };
+    lastError = error;
+  }
+  return { data: null, error: lastError };
+}
   .notes { margin-top: 0.7rem; }
   .notes .head {
     display: flex; align-items: baseline; gap: 0.5rem; justify-content: space-between;
@@ -4171,31 +4228,41 @@ function renderNotes(box, course, reg, notes) {
   const btn = box.querySelector(".addnote button");
   const msg = box.querySelector(".addnote .note-msg");
 
+  const draft = readNoteDraft(reg.id);
+  if (draft) {
+    ta.value = draft;
+    msg.className = "note-msg";
+    msg.textContent = "Unsaved draft restored — tap Add note to save it.";
+  }
+  ta.addEventListener("input", () => writeNoteDraft(reg.id, ta.value.trim()));
+
   btn.addEventListener("click", async () => {
     const body = ta.value.trim();
     if (!body) return;
+    writeNoteDraft(reg.id, body);
 
     btn.disabled = true;
     msg.className = "note-msg";
     msg.textContent = "Saving…";
 
-    const { data, error } = await db.from("participant_notes")
-      .insert({
-        registration_id: reg.id,
-        course_id: course.id,
-        staff_id: me.id,
-        body,
-      })
-      .select("id, registration_id, staff_id, body, created_at, updated_at, staff ( full_name )")
-      .single();
+    const { data, error } = await insertNoteReliably({
+      registration_id: reg.id,
+      course_id: course.id,
+      staff_id: me.id,
+      body,
+    }, attempt => { msg.textContent = `Connection dropped — retrying (${attempt})…`; });
 
     btn.disabled = false;
 
     if (error) {
       msg.className = "note-msg err";
-      msg.textContent = "Could not save: " + error.message;
+      msg.textContent = isNetworkError(error)
+        ? "No connection — your note is kept on this device. Tap Add note again when you have signal."
+        : "Could not save: " + error.message;
       return;
     }
+
+    writeNoteDraft(reg.id, "");
 
     const none = list.querySelector(".nonotes");
     if (none) none.remove();
@@ -4291,24 +4358,47 @@ function renderOneNote(list, note, lead) {
         msg.className = "note-msg";
         msg.textContent = "Saving…";
 
-        const { data, error } = await db.from("participant_notes")
+        let { data, error } = await db.from("participant_notes")
           .update({ body: next, updated_at: new Date().toISOString() })
           .eq("id", note.id)
           .eq("updated_at", known)
           .select("body, updated_at")
           .maybeSingle();
 
+        // Lost reply: check whether the edit landed before calling it a failure.
+        let current = null;
+        if (error && isNetworkError(error)) {
+          await new Promise(r => setTimeout(r, 1500));
+          const res = await db.from("participant_notes")
+            .select("body, updated_at").eq("id", note.id).maybeSingle();
+          if (!res.error && res.data) {
+            current = res.data;
+            if (current.body === next) { data = current; error = null; }
+            else if (current.updated_at === known) {
+              ({ data, error } = await db.from("participant_notes")
+                .update({ body: next, updated_at: new Date().toISOString() })
+                .eq("id", note.id).eq("updated_at", known)
+                .select("body, updated_at").maybeSingle());
+              current = null;
+            } else error = null;
+          }
+        }
+
         saveBtn.disabled = false;
 
         if (error) {
           msg.className = "note-msg err";
-          msg.textContent = "Could not save: " + error.message;
+          msg.textContent = isNetworkError(error)
+            ? "No connection — your edit is still in the box. Tap Save again when you have signal."
+            : "Could not save: " + error.message;
           return;
         }
 
         if (!data) {
-          const { data: current } = await db.from("participant_notes")
-            .select("body, updated_at").eq("id", note.id).maybeSingle();
+          if (!current) {
+            ({ data: current } = await db.from("participant_notes")
+              .select("body, updated_at").eq("id", note.id).maybeSingle());
+          }
           msg.className = "note-msg err";
           msg.textContent = "Someone else edited this note while you were writing. Theirs is shown below — copy anything you need and edit again.";
           if (current) { note.body = current.body; finish(current.body, current.updated_at); }
