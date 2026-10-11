@@ -2360,7 +2360,74 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
-const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+// On an iPad left asleep or on patchy mobile data the login can lapse
+// without the page noticing; saves then go out signed-out and the
+// database refuses them with a row-level security error. Catch the
+// 401, try to refresh the login once, and if that fails ask for the
+// password in place so nothing typed on the page is lost.
+async function authAwareFetch(input, init) {
+  const res = await fetch(input, init);
+  const url = typeof input === "string" ? input : input.url;
+  let signedIn = false;
+  try { signedIn = !!me; } catch (e) { /* page still loading */ }
+  if (res.status !== 401 || /\/auth\/v1\//.test(url) || !signedIn) return res;
+
+  const { data } = await db.auth.refreshSession().catch(() => ({ data: {} }));
+  const token = data && data.session && data.session.access_token;
+  if (!token) { showReauth(); return res; }
+
+  const headers = new Headers((init && init.headers) || {});
+  headers.set("Authorization", "Bearer " + token);
+  return fetch(input, { ...init, headers });
+}
+
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  global: { fetch: authAwareFetch },
+});
+
+function showReauth() {
+  if (document.getElementById("reauth")) return;
+  const box = document.createElement("div");
+  box.id = "reauth";
+  box.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px";
+  box.innerHTML = `
+    <div style="background:#fff;color:#111;max-width:380px;width:100%;border-radius:10px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.25)">
+      <h3 style="margin:0 0 6px">You've been signed out</h3>
+      <p style="margin:0 0 12px;font-size:14px">Sign in again to keep going. Everything on the page stays as it is — then tap save again.</p>
+      <input id="reauth-email" type="email" autocomplete="username" placeholder="Email" style="width:100%;box-sizing:border-box;padding:10px;margin-bottom:8px;font-size:16px">
+      <input id="reauth-pass" type="password" autocomplete="current-password" placeholder="Password" style="width:100%;box-sizing:border-box;padding:10px;margin-bottom:10px;font-size:16px">
+      <button id="reauth-go" class="btn wide" type="button">Sign in</button>
+      <p id="reauth-msg" style="margin:8px 0 0;font-size:14px;color:#b00020"></p>
+    </div>`;
+  document.body.append(box);
+  const email = box.querySelector("#reauth-email");
+  const pass = box.querySelector("#reauth-pass");
+  const go = box.querySelector("#reauth-go");
+  const msg = box.querySelector("#reauth-msg");
+  email.value = ($("email") && $("email").value) || "";
+  (email.value ? pass : email).focus();
+
+  const submit = async () => {
+    go.disabled = true; msg.textContent = "";
+    const { data, error } = await db.auth.signInWithPassword({
+      email: email.value.trim(), password: pass.value,
+    });
+    go.disabled = false;
+    if (error) { msg.textContent = "That email and password did not match. Try again."; return; }
+    if (me && data.user && data.user.id !== me.id) { location.reload(); return; }
+    box.remove();
+  };
+  go.addEventListener("click", submit);
+  pass.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+}
+
+// Coming back to the tab after the iPad slept: check the login is
+// still there before the next save finds out the hard way.
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState !== "visible" || !me) return;
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) showReauth();
+});
 
 const LOW_NUMBERS = 5;
 const LOW_DAYS_OUT = 24;
