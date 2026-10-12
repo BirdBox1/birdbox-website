@@ -170,6 +170,16 @@
       <h2>Give someone access</h2>
       <div class="grid2">
         <div class="field">
+          <label for="e-first">First name</label>
+          <input id="e-first" type="text" autocomplete="off" placeholder="First name">
+        </div>
+        <div class="field">
+          <label for="e-last">Last name</label>
+          <input id="e-last" type="text" autocomplete="off" placeholder="Last name">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
           <label for="e-course">Course</label>
           <select id="e-course"></select>
         </div>
@@ -786,21 +796,27 @@ $("e-go").addEventListener("click", async () => {
   const msg = $("e-msg");
   const email = $("e-email").value.trim().toLowerCase();
   const courseId = $("e-course").value;
+  const first = $("e-first").value.trim();
+  const last = $("e-last").value.trim();
   if (!courseId || !validEmail(email)) { msg.className = "msg err"; msg.textContent = "Pick a course and type a valid email."; return; }
   $("e-go").disabled = true;
   try {
     if (courseId === "__ALL__") {
       await giveAllCourses(email);
+      await saveNames(email, null, first, last);
       msg.className = "msg ok";
       msg.textContent = email + " now has every course, including any added later. They log in at birdboxcoaching.com/learn with “Email me a login link”.";
     } else {
       const { error } = await db.from("learn_enrolments")
-        .upsert({ course_id: courseId, email, source: "manual" }, { onConflict: "course_id,email", ignoreDuplicates: true });
+        .upsert({ course_id: courseId, email, source: "manual", first_name: first || null, last_name: last || null }, { onConflict: "course_id,email", ignoreDuplicates: true });
       if (error) throw new Error(error.message);
+      await saveNames(email, courseId, first, last);
       msg.className = "msg ok";
       msg.textContent = email + " can now open this course. They log in at birdboxcoaching.com/learn with “Email me a login link”.";
     }
     $("e-email").value = "";
+    $("e-first").value = "";
+    $("e-last").value = "";
     refreshAfterChange();
   } catch (e) {
     msg.className = "msg err"; msg.textContent = e.message;
@@ -808,6 +824,18 @@ $("e-go").addEventListener("click", async () => {
     $("e-go").disabled = false;
   }
 });
+
+// Puts the typed name on the learner's enrolment(s), also when they already had access.
+async function saveNames(email, courseId, first, last) {
+  const patch = {};
+  if (first) patch.first_name = first;
+  if (last) patch.last_name = last;
+  if (!Object.keys(patch).length) return;
+  let q = db.from("learn_enrolments").update(patch).eq("email", email);
+  if (courseId) q = q.eq("course_id", courseId);
+  const { error } = await q;
+  if (error) throw new Error(error.message);
+}
 
 async function giveAllCourses(email) {
   const { error } = await db.from("learn_all_access").upsert({ email, note: "staff" }, { onConflict: "email" });
