@@ -212,6 +212,13 @@ export default async (req) => {
         ? `Looking forward to seeing you at ${course.title}`
         : `${course.title} — this weekend`);
 
+    // On a course with the seminar offer, the follow-up must carry the
+    // button. Coaches can rewrite or translate every word, but not
+    // remove the one thing that gives each attendee their link.
+    if (email.kind === "followup" && offerCourse(course) && !OFFER_MARK.test(email.body)) {
+      return json({ error: "The 50% offer button is missing from the email. Put it back and send again." }, 409);
+    }
+
     // The follow-up carries each attendee's own link to the online
     // course at the seminar rate, where the body asks for it.
     const offers = email.kind === "followup" && OFFER_MARK.test(email.body)
@@ -339,6 +346,10 @@ async function sendTestToSelf(staff, { courseId, subject, body }) {
     .from("courses").select("id, brand, type, level, title").eq("id", courseId).single();
   if (!course) return json({ error: "Course not found" }, 404);
 
+  if (offerCourse(course) && !OFFER_MARK.test(body)) {
+    return json({ error: "The 50% offer button is missing from the email. Put it back and send again." }, 409);
+  }
+
   const brand = BRAND_LOGO[String(course.brand || "").toLowerCase()] || null;
   const b = String(course.brand || "").toLowerCase();
   const level = String(course.level == null ? "" : course.level).replace(/\D/g, "");
@@ -432,6 +443,12 @@ const OFFER_LABEL = "Claim my 50% place";
 // the same brand and level. TCC Level 1 gets TCC Level 1 Online, TGC
 // Level 1 gets TGC Level 1 Online.
 const OFFER_COURSES = new Set(["tcc:1", "tgc:1"]);
+
+function offerCourse(course) {
+  const brand = String(course.brand || "").toLowerCase();
+  const level = String(course.level == null ? "" : course.level).replace(/\D/g, "");
+  return course.type === "live_seminar" && OFFER_COURSES.has(`${brand}:${level}`);
+}
 
 // One link per attendee, kept for good: sending the follow-up again
 // reuses it rather than making a second.
