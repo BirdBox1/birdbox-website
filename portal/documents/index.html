@@ -202,6 +202,20 @@
 </div>
 
 <script type="module">
+
+// A click on a window's dark background closes it — but only a real
+// click there. Selecting text inside the box and letting go just past
+// its edge also lands as a click on the background, which closed the
+// window and lost whatever had been typed. So a background click only
+// counts when the press started on the background too.
+(function () {
+  let pressedOn = null;
+  document.addEventListener("pointerdown", (e) => { pressedOn = e.target; }, true);
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (t && t.matches && t.matches("#sendwrap") && pressedOn !== t) e.stopImmediatePropagation();
+  }, true);
+})();
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
