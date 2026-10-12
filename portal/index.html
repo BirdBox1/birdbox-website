@@ -1944,6 +1944,11 @@ async function insertNoteReliably(row, onRetry) {
       <textarea id="fu-body" style="min-height:24rem"></textarea>
     </div>
 
+    <p class="whenline hidden" id="fu-write-warn">
+      Write your own message where it says "Write your message here" — replace that line
+      (or delete it) and the email can be sent.
+    </p>
+
     <p class="msg err hidden" id="fu-button-warn">
       The 50% offer button line has been changed or deleted. It must stay exactly as it was,
       on its own line, or nobody gets their link.
@@ -7139,7 +7144,7 @@ async function openFollowup(course) {
   $("fu-body").value = followupDraft(full);
   checkOfferLine();
   $("fu-note").textContent = fuTemplate
-    ? "Ready to send as it is. Edit or translate any of it — only the offer button line must stay."
+    ? "Write your message where it says \"Write your message here\", then check the rest. Edit or translate any of it — only the offer button line must stay."
     : "Write the email in your own words. It starts with \"Hi {first name},\" and ends with your name.";
   checkOfferLine();
   $("fuwrap").classList.remove("hidden");
@@ -7159,11 +7164,16 @@ function fillFollowup(text, course) {
 // the portal and the send function both refuse an email without it.
 const OFFER_LINE = "[[ 50% OFFER BUTTON — leave this line exactly as it is ]]";
 
+// Where the standard text leaves room for the coach ({{personal_note}}).
+// The email cannot go out while this prompt is still in it: the coach
+// writes their message in its place, or deletes the line.
+const WRITE_LINE = "[[ Write your message here — what you saw, how they did, what to work on next ]]";
+
 function followupDraft(course) {
   const name = (me && me.full_name) || "";
   if (!fuTemplate) return "Hi {first name},\n\n\n\n" + name;
   const fixed = fillFollowup(fuTemplate.body, course)
-    .replace(/\{\{\s*personal_note\s*\}\}/gi, "")
+    .replace(/\{\{\s*personal_note\s*\}\}/gi, WRITE_LINE)
     .replace(/\{\{\s*offer_button\s*\}\}/gi, OFFER_LINE)
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -7180,11 +7190,14 @@ function offerLineOk(text) {
   return lines.filter((l) => l === OFFER_LINE).length === 1;
 }
 function checkOfferLine() {
-  const ok = offerLineOk($("fu-body").value);
+  const text = $("fu-body").value;
+  const ok = offerLineOk(text);
+  const written = !text.includes(WRITE_LINE);
   $("fu-button-warn").classList.toggle("hidden", ok);
-  $("fu-send").disabled = !ok;
-  $("fu-test").disabled = !ok;
-  return ok;
+  $("fu-write-warn").classList.toggle("hidden", written);
+  $("fu-send").disabled = !(ok && written);
+  $("fu-test").disabled = !(ok && written);
+  return ok && written;
 }
 
 function wireFollowup() {
@@ -7227,7 +7240,9 @@ function wireFollowup() {
     }
     if (!checkOfferLine()) {
       msg.className = "msg err";
-      msg.textContent = "Put the 50% offer button line back before sending.";
+      msg.textContent = $("fu-body").value.includes(WRITE_LINE)
+        ? "Write your message where it says \"Write your message here\" first."
+        : "Put the 50% offer button line back before sending.";
       return null;
     }
 
