@@ -47,8 +47,8 @@
 //   level online course. The token is the proof they were there, so
 //   nobody else can get the rate, and it is used once.
 //   full   pay the discounted price once, by card.
-//   plan   20% deposit today, then the rest over 2 to 6 monthly card
-//          payments starting a month later. Access on the deposit.
+//   plan   2 to 6 equal monthly card payments, the first today (a
+//          plain subscription, no trial). Access on the first payment.
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
@@ -67,9 +67,8 @@ const supabase = createClient(
 const PLAN_CHOICES = [3, 4, 5, 6, 7, 8];
 const PLAN_MONTHS = 3; // fallback only
 
-// The seminar offer: deposit today, then the balance monthly.
+// The seminar offer: equal monthly payments, the first today.
 const OFFER_PLAN_CHOICES = [2, 3, 4, 5, 6];
-const OFFER_DEPOSIT_PERCENT = 20;
 
 const KIND = "online_course_sale";
 const ALERT_EMAIL = "info@birdboxcoaching.com";
@@ -381,7 +380,6 @@ async function offerPayload(o, context, preview) {
     level: o.level,
     title: products[0].label.replace(/\s*\([^)]*\)\s*$/, ""),
     discount_percent: o.discount_percent,
-    deposit_percent: OFFER_DEPOSIT_PERCENT,
     months: OFFER_PLAN_CHOICES,
     currency,
     prices: offerPrices,
@@ -411,8 +409,7 @@ async function seminarCheckout(req, body) {
   if (!prices[currency]) return json({ error: `This course is not on sale in ${currency}` }, 400);
 
   const price = discounted(prices[currency], o.discount_percent);
-  const deposit = option === "plan" ? Math.round(price * OFFER_DEPOSIT_PERCENT / 100) : 0;
-  const each = option === "plan" ? Math.round((price - deposit) / months) : 0;
+  const each = option === "plan" ? Math.round(price / months) : 0;
   const vatRow = (await vatList()).find((v) => v.code === country) || null;
   const origin = new URL(req.url).origin;
   const name = `${product.label} — seminar rate (${o.discount_percent}% off)`;
@@ -431,7 +428,6 @@ async function seminarCheckout(req, body) {
     country,
     vat_percent: vatRow ? String(vatRow.rate) : "0",
     offer_id: o.id,
-    deposit_cents: String(deposit),
   };
 
   const item = (amount, title, recurring) => {
@@ -470,27 +466,17 @@ async function seminarCheckout(req, body) {
   };
 
   if (option === "plan") {
-    // The deposit is a one-off item charged today. The monthly price
-    // starts a month later, by a one-month trial on the subscription:
-    // Stripe charges one-off items at checkout even during a trial, so
-    // today's payment is the deposit alone. (Checkout refuses
-    // billing_cycle_anchor + proration_behavior "none" with one-off
-    // items, which is how this was first written.)
-    const firstMonthly = new Date();
-    firstMonthly.setUTCMonth(firstMonthly.getUTCMonth() + 1);
-    session.line_items = [
-      item(each, `${name} — ${months} monthly payments`, true),
-      item(deposit, `${name} — ${OFFER_DEPOSIT_PERCENT}% deposit`, false),
-    ];
+    // Equal monthly payments, the first today: a plain subscription,
+    // cancelled after the last payment once checkout completes.
+    session.line_items = [item(each, `${name} — ${months} monthly payments`, true)];
     session.subscription_data = {
-      description: `${name} — ${OFFER_DEPOSIT_PERCENT}% deposit, then ${months} monthly payments`,
-      trial_end: Math.floor(firstMonthly.getTime() / 1000),
+      description: `${name} — ${months} monthly payments`,
       metadata,
     };
     session.custom_text.submit = {
       message:
-        `Today you pay the ${OFFER_DEPOSIT_PERCENT}% deposit and get access straight away. ` +
-        `The rest is ${months} monthly payments from this card, starting a month from today, then the plan ends by itself.`,
+        `You are paying the first of ${months} monthly payments today and get access straight away. ` +
+        `The other ${months - 1} are taken from this card on the same day each month, then the plan ends by itself.`,
     };
   } else {
     session.line_items = [item(price, name, false)];
@@ -591,8 +577,8 @@ export async function onOnlineSaleCompleted(session) {
     try {
       const sub = await stripe.subscriptions.retrieve(row.stripe_subscription_id);
       const months = row.months || PLAN_MONTHS;
-      // The first monthly payment: the end of the trial on a seminar
-      // offer plan (deposit first), otherwise the start of the plan.
+      // The first monthly payment (the end of a trial, if a plan ever
+      // has one; otherwise the start of the plan).
       const anchor = new Date((sub.trial_end || sub.billing_cycle_anchor) * 1000);
       const end = new Date(anchor);
       end.setUTCMonth(end.getUTCMonth() + months - 1);
@@ -628,8 +614,7 @@ export async function onOnlineSaleCompleted(session) {
 
   const money = `${((full.amount_total || 0) / 100).toFixed(2)} ${String(full.currency || "").toUpperCase()}`;
   const how = (row.option === "plan"
-    ? (row.deposit_cents ? `${OFFER_DEPOSIT_PERCENT}% deposit, then ${row.months} monthly payments`
-                         : `first of ${row.months} monthly payments`)
+    ? `first of ${row.months} monthly payments`
     : "paid in full") + (row.offer_id ? ", seminar rate" : "");
 
   if (result.status !== "enrolled") {

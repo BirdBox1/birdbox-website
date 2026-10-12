@@ -175,17 +175,16 @@
 
     $("full-h").textContent = "Pay in full — " + money(p.offer, cur);
 
-    var deposit = Math.round(p.offer * data.deposit_percent / 100);
     var m = state.months;
-    var each = Math.round((p.offer - deposit) / m);
-    $("plan-s").textContent = money(deposit, cur) + " deposit today, then " + m + " monthly payments of " +
-      money(each, cur) + ". Access straight away.";
+    var each = Math.round(p.offer / m);
+    $("plan-s").textContent = m + " monthly payments of " + money(each, cur) +
+      ", the first today. Access straight away.";
 
     var months = $("months");
     var keep = String(m);
     months.innerHTML = "";
     data.months.forEach(function (n) {
-      var e = Math.round((p.offer - deposit) / n);
+      var e = Math.round(p.offer / n);
       opt(months, n, n + " months — " + money(e, cur) + " a month", String(n) === keep);
     });
 
