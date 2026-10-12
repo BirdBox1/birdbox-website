@@ -28,6 +28,7 @@
   .mark img { width: 24px; height: 24px; object-fit: contain; }
   .bar .name { font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9; }
   .wrap { max-width: 38rem; margin: 0 auto; padding: 2.4rem 16px 4rem; }
+  .preview { background: #3a2f12; border: 1px solid #8a6d1f; color: #f3d98b; border-radius: 6px; padding: 0.7rem 0.9rem; font-size: 0.92rem; margin: 0 0 1.4rem; }
   .kicker { font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 0.6rem; }
   h1 { font-size: clamp(1.5rem, 5vw, 2.1rem); line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 0.8rem; }
   .lead { color: #c9ccd0; margin: 0 0 1.8rem; }
@@ -72,6 +73,7 @@
   </section>
 
   <section id="offer" class="hidden">
+    <p class="preview hidden" id="preview-note">Preview — this is the page your attendees see. Each attendee's own link lets them pay; this one cannot.</p>
     <p class="kicker">Seminar attendee rate</p>
     <h1 id="title"></h1>
     <p class="lead" id="lead"></p>
@@ -123,7 +125,9 @@
 (function () {
   var API = "/.netlify/functions/online-checkout";
   var SYMBOL = { EUR: "€", GBP: "£", USD: "US$", AUD: "A$", CAD: "C$" };
-  var token = new URLSearchParams(location.search).get("t") || "";
+  var qs = new URLSearchParams(location.search);
+  var token = qs.get("t") || "";
+  var preview = qs.get("preview") || "";
   var data = null;
   var state = { option: "full", currency: null, country: "", language: null, months: null };
   var $ = function (id) { return document.getElementById(id); };
@@ -237,7 +241,7 @@
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        offer: token, option: state.option, months: state.months,
+        offer: token, preview: preview || undefined, option: state.option, months: state.months,
         language: state.language, currency: state.currency, country: state.country,
       }),
     })
@@ -254,9 +258,10 @@
       });
   }
 
-  if (!token) { problem("This link is not working", "Use the button in your coach's email to open your offer."); return; }
+  if (preview) $("preview-note").classList.remove("hidden");
+  if (!token && !preview) { problem("This link is not working", "Use the button in your coach's email to open your offer."); return; }
 
-  fetch(API + "?offer=" + encodeURIComponent(token), { cache: "no-store" })
+  fetch(API + (preview ? "?preview=" + encodeURIComponent(preview) : "?offer=" + encodeURIComponent(token)), { cache: "no-store" })
     .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
     .then(function (res) {
       if (res.j.redeemed) {

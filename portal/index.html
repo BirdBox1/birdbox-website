@@ -1956,6 +1956,7 @@ async function insertNoteReliably(row, onRetry) {
 
     <div class="row">
       <button class="btn ghost" id="fu-close" type="button">Cancel</button>
+      <button class="btn ghost" id="fu-test" type="button">Send a test to me</button>
       <button class="btn" id="fu-send" type="button">Send to everyone</button>
     </div>
   </div>
@@ -7142,24 +7143,24 @@ function wireFollowup() {
   });
 
 
-  $("fu-send").onclick = async () => {
-    if (!fuCourse) return;
+  // The email exactly as it will go out: Hi {{first_name}}, — the
+  // standard section, with the coach's note where it says
+  // {{personal_note}} (or first, if it does not) and {{offer_button}},
+  // which the send function turns into each person's own link — the
+  // coach's name. Null, with the reason shown, if it is not ready.
+  function composeFollowup() {
     const subject = $("fu-subject").value.trim();
     const personal = $("fu-personal").value.trim();
     const msg = $("fu-msg");
 
-    if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return; }
+    if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return null; }
     if (!personal && !fuTemplate) {
       msg.className = "msg err";
       msg.textContent = "Write the email first.";
       $("fu-personal").focus();
-      return;
+      return null;
     }
 
-    // Hi {{first_name}}, — the standard section, with the coach's note
-    // where it says {{personal_note}} (or first, if it does not) and
-    // {{offer_button}}, which the send function turns into each
-    // person's own link — the coach's name.
     let middle = personal;
     if (fuTemplate) {
       const fixed = fillFollowup(fuTemplate.body, fuCourse).trim();
@@ -7173,6 +7174,44 @@ function wireFollowup() {
       middle,
       (me && me.full_name) || "",
     ].filter(Boolean).join("\n\n");
+    return { subject, body };
+  }
+
+  // The real email, through the same service as the real send, to the
+  // coach alone. The offer button opens a preview of the offer page,
+  // which cannot take a payment.
+  $("fu-test").onclick = async () => {
+    if (!fuCourse) return;
+    const email = composeFollowup();
+    if (!email) return;
+    const msg = $("fu-msg");
+    $("fu-test").disabled = true;
+    msg.className = "msg"; msg.textContent = "Sending you a test…";
+    try {
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+      const res = await fetch("/.netlify/functions/course-email-send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+        body: JSON.stringify({ test: true, courseId: fuCourse.id, subject: email.subject, body: email.body }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+      msg.className = "msg ok";
+      msg.textContent = `Test sent to ${out.sentTo}. Nobody else got it.`;
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("fu-test").disabled = false;
+  };
+
+  $("fu-send").onclick = async () => {
+    if (!fuCourse) return;
+    const composed = composeFollowup();
+    if (!composed) return;
+    const { subject, body } = composed;
+    const msg = $("fu-msg");
 
     // Only the people who were actually there. Somebody who booked and
     // did not turn up has no use for "putting it into practice".

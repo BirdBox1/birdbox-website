@@ -103,11 +103,16 @@ const digits = (v) => String(v == null ? "" : v).replace(/\D/g, "");
 export default async (req, context) => {
   try {
     if (req.method === "GET") {
-      const token = new URL(req.url).searchParams.get("offer");
+      const params = new URL(req.url).searchParams;
+      if (params.get("preview")) return await previewOffer(params.get("preview"), context);
+      const token = params.get("offer");
       return token ? await seminarOffer(token, context) : await offer(req, context);
     }
     if (req.method === "POST") {
       const body = await req.json();
+      if (body.preview) {
+        return json({ error: "This is a preview, so it cannot take a payment. Attendees pay from their own link." }, 409);
+      }
       return body.offer ? await seminarCheckout(req, body) : await checkout(req, body);
     }
     return json({ error: "Method not allowed" }, 405);
@@ -326,11 +331,25 @@ async function findOffer(token) {
 
 const discounted = (cents, pct) => Math.round(cents * (100 - pct) / 100);
 
+// What a coach's test email opens: the offer page as an attendee sees
+// it, for /offer/?preview=tcc-1, with no person behind it.
+const PREVIEW_COURSES = new Set(["tcc-1", "tgc-1"]);
+async function previewOffer(code, context) {
+  const c = String(code || "").toLowerCase();
+  if (!PREVIEW_COURSES.has(c)) return json({ error: "There is no preview for that course." }, 404);
+  const [brand, level] = c.split("-");
+  return offerPayload({ brand, level, discount_percent: 50, registrations: { first_name: "", email: "" } },
+    context, true);
+}
+
 async function seminarOffer(token, context) {
   const o = await findOffer(token);
   if (!o) return json({ error: "This link is not valid. Reply to your coach's email and we will sort it out." }, 404);
   if (o.redeemed_at) return json({ redeemed: true, first_name: o.registrations.first_name || "" });
+  return offerPayload(o, context, false);
+}
 
+async function offerPayload(o, context, preview) {
   const { prices, products } = await loadOffer(o.brand, o.level);
   if (!products.length || !Object.keys(prices).length) {
     return json({ error: "This course is not on sale right now. Reply to your coach's email and we will help." }, 409);
@@ -347,11 +366,12 @@ async function seminarOffer(token, context) {
   let currency = currencyForCountry(country);
   if (!offerPrices[currency]) currency = offerPrices.EUR ? "EUR" : Object.keys(offerPrices)[0];
 
-  if (!o.opened_at) {
+  if (!preview && !o.opened_at) {
     await supabase.from("online_offers").update({ opened_at: new Date().toISOString() }).eq("id", o.id);
   }
 
   return json({
+    preview,
     first_name: o.registrations.first_name || "",
     email: o.registrations.email || "",
     brand: o.brand,
