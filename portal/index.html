@@ -430,62 +430,6 @@
 
   /* ---------------- notes ---------------- */
 
-/* Seminar Wi-Fi drops replies: the note often lands but the browser
-   reports "Load failed". Treat those as retryable, and keep drafts
-   on the device until the server confirms. */
-const NOTE_SELECT = "id, registration_id, staff_id, body, created_at, updated_at, staff ( full_name )";
-
-function isNetworkError(error) {
-  const m = String((error && error.message) || error || "");
-  return /load failed|failed to fetch|networkerror|network request failed|timed? ?out|aborted/i.test(m);
-}
-
-function noteDraftKey(regId) { return "bb-note-draft:" + regId; }
-function readNoteDraft(regId) {
-  try { return localStorage.getItem(noteDraftKey(regId)) || ""; } catch (e) { return ""; }
-}
-function writeNoteDraft(regId, text) {
-  try {
-    if (text) localStorage.setItem(noteDraftKey(regId), text);
-    else localStorage.removeItem(noteDraftKey(regId));
-  } catch (e) {}
-}
-
-function newNoteId() {
-  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-  return null;
-}
-
-/* Insert with a client-made id so a retry after a lost reply cannot
-   create a duplicate: if the first attempt landed, we just read it back. */
-async function insertNoteReliably(row, onRetry) {
-  const id = newNoteId();
-  if (id) row = { ...row, id };
-  const waits = [0, 1500, 3000, 6000, 10000];
-  let lastError = null;
-
-  for (let i = 0; i < waits.length; i++) {
-    if (waits[i]) {
-      if (onRetry) onRetry(i);
-      await new Promise(r => setTimeout(r, waits[i]));
-    }
-
-    if (id && i > 0) {
-      const { data: existing, error: readErr } = await db.from("participant_notes")
-        .select(NOTE_SELECT).eq("id", id).maybeSingle();
-      if (existing) return { data: existing, error: null };
-      if (readErr && isNetworkError(readErr)) { lastError = readErr; continue; }
-    }
-
-    const { data, error } = await db.from("participant_notes")
-      .insert(row).select(NOTE_SELECT).single();
-    if (!error) return { data, error: null };
-    if (id && error.code === "23505") continue; // landed already; read it back next round
-    if (!isNetworkError(error)) return { data: null, error };
-    lastError = error;
-  }
-  return { data: null, error: lastError };
-}
   .notes { margin-top: 0.7rem; }
   .notes .head {
     display: flex; align-items: baseline; gap: 0.5rem; justify-content: space-between;
@@ -2438,6 +2382,63 @@ async function authAwareFetch(input, init) {
 const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   global: { fetch: authAwareFetch },
 });
+
+/* Seminar Wi-Fi drops replies: the note often lands but the browser
+   reports "Load failed". Treat those as retryable, and keep drafts
+   on the device until the server confirms. */
+const NOTE_SELECT = "id, registration_id, staff_id, body, created_at, updated_at, staff ( full_name )";
+
+function isNetworkError(error) {
+  const m = String((error && error.message) || error || "");
+  return /load failed|failed to fetch|networkerror|network request failed|timed? ?out|aborted/i.test(m);
+}
+
+function noteDraftKey(regId) { return "bb-note-draft:" + regId; }
+function readNoteDraft(regId) {
+  try { return localStorage.getItem(noteDraftKey(regId)) || ""; } catch (e) { return ""; }
+}
+function writeNoteDraft(regId, text) {
+  try {
+    if (text) localStorage.setItem(noteDraftKey(regId), text);
+    else localStorage.removeItem(noteDraftKey(regId));
+  } catch (e) {}
+}
+
+function newNoteId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return null;
+}
+
+/* Insert with a client-made id so a retry after a lost reply cannot
+   create a duplicate: if the first attempt landed, we just read it back. */
+async function insertNoteReliably(row, onRetry) {
+  const id = newNoteId();
+  if (id) row = { ...row, id };
+  const waits = [0, 1500, 3000, 6000, 10000];
+  let lastError = null;
+
+  for (let i = 0; i < waits.length; i++) {
+    if (waits[i]) {
+      if (onRetry) onRetry(i);
+      await new Promise(r => setTimeout(r, waits[i]));
+    }
+
+    if (id && i > 0) {
+      const { data: existing, error: readErr } = await db.from("participant_notes")
+        .select(NOTE_SELECT).eq("id", id).maybeSingle();
+      if (existing) return { data: existing, error: null };
+      if (readErr && isNetworkError(readErr)) { lastError = readErr; continue; }
+    }
+
+    const { data, error } = await db.from("participant_notes")
+      .insert(row).select(NOTE_SELECT).single();
+    if (!error) return { data, error: null };
+    if (id && error.code === "23505") continue; // landed already; read it back next round
+    if (!isNetworkError(error)) return { data: null, error };
+    lastError = error;
+  }
+  return { data: null, error: lastError };
+}
 
 function showReauth() {
   if (document.getElementById("reauth")) return;
