@@ -7186,6 +7186,7 @@ async function openFollowup(course) {
   $("fu-body").value = followupDraft(full);
   $("fu-message").value = "";
   fuMessageAdded = false;
+  disarmFollowupSend();
   $("fu-message-wrap").classList.toggle("hidden", !needsMessage());
   $("fu-message-done").classList.add("hidden");
   checkOfferLine();
@@ -7215,6 +7216,17 @@ const OFFER_LINE = "[[ 50% OFFER BUTTON — leave this line exactly as it is ]]"
 // A standard text with {{personal_note}} (TGC Level 1) asks for the
 // coach's own message. It is written in its own box above the email
 // and is required, so no placeholder ever sits in the email itself.
+// The send button needs a second, deliberate click (see fu-send).
+let fuSendArmedAt = 0;
+let fuSendDisarm = null;
+function disarmFollowupSend() {
+  fuSendArmedAt = 0;
+  clearTimeout(fuSendDisarm);
+  const b = $("fu-send");
+  b.textContent = "Send to everyone";
+  b.classList.remove("danger");
+}
+
 // Set once the coach's message has gone into the email body.
 let fuMessageAdded = false;
 
@@ -7275,7 +7287,9 @@ function checkOfferLine() {
 function wireFollowup() {
   $("fu-body").addEventListener("input", checkOfferLine);
   $("fu-message").addEventListener("input", checkOfferLine);
-  $("fu-message").addEventListener("blur", addMessageToEmail);
+  for (const id of ["fu-body", "fu-subject", "fu-message", "fu-btn-label", "fu-btn-url"]) {
+    $(id).addEventListener("input", disarmFollowupSend);
+  }
   $("fu-message-add").onclick = addMessageToEmail;
 
   // A coach's own button: one line in the email, drawn as a button
@@ -7403,10 +7417,24 @@ function wireFollowup() {
       return;
     }
 
-    if (!window.confirm(
-      `Send this to ${attended.length} participant${attended.length === 1 ? "" : "s"} ` +
-      `who attended "${fuCourse.title}"?\n\nThis cannot be unsent.`
-    )) return;
+    // Two deliberate clicks, on a button that has not just moved. The
+    // first arms it; the second, at least a second later and within
+    // eight, sends. A stray click (or Enter) can no longer send to the
+    // whole group, which is how London went out mid-edit.
+    const btn = $("fu-send");
+    const now = Date.now();
+    if (!fuSendArmedAt || now - fuSendArmedAt > 8000) {
+      fuSendArmedAt = now;
+      btn.textContent = `Yes, send to ${attended.length} ${attended.length === 1 ? "person" : "people"}`;
+      btn.classList.add("danger");
+      msg.className = "msg err";
+      msg.textContent = `This goes to all ${attended.length} who attended "${fuCourse.title}" and cannot be unsent. Click again to send.`;
+      clearTimeout(fuSendDisarm);
+      fuSendDisarm = setTimeout(disarmFollowupSend, 8000);
+      return;
+    }
+    if (now - fuSendArmedAt < 1000) return;
+    disarmFollowupSend();
 
     $("fu-send").disabled = true;
     msg.className = "msg"; msg.textContent = "Sending…";
