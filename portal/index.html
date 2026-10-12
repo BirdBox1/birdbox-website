@@ -1937,9 +1937,13 @@ async function insertNoteReliably(row, onRetry) {
       <input id="fu-subject" type="text">
     </div>
 
+    <p class="whenline" style="margin:0 0 0.6rem;font-weight:600">
+      Edit and change anything in this email to make it personal to you and this group.
+    </p>
+
     <div class="field">
       <label for="fu-body">The email
-        <span class="hint">edit or translate anything — {first name} becomes each person's name</span>
+        <span class="hint">{first name} becomes each person's name</span>
       </label>
       <textarea id="fu-body" style="min-height:24rem"></textarea>
     </div>
