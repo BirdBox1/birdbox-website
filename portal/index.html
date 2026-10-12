@@ -1938,10 +1938,10 @@ async function insertNoteReliably(row, onRetry) {
 
     <div class="field">
       <label for="fu-personal">Your personal note
-        <span class="hint">goes straight after "Hi {first name}," — what you saw, how they did, what to work on</span>
+        <span class="hint" id="fu-personal-hint">optional — a line or two of your own, added after the opening paragraph</span>
       </label>
       <textarea id="fu-personal" style="min-height:10rem"
-        placeholder="Great to have you with us at the weekend…"></textarea>
+        placeholder="Anything you want to add for the group…"></textarea>
     </div>
 
     <div class="field" id="fu-fixed-wrap">
@@ -7109,11 +7109,17 @@ async function openFollowup(course) {
     (fuTemplate && fuTemplate.subject) || "Following up on {{course_title}}", full);
   $("fu-personal").value = "";
   $("fu-fixed").textContent = fuTemplate
-    ? fillFollowup(fuTemplate.body, full).replace(/\{\{\s*offer_button\s*\}\}/gi, "[ Claim my 50% place ]")
+    ? "Hi {first name},\n\n" + fillFollowup(fuTemplate.body, full)
+        .replace(/\{\{\s*offer_button\s*\}\}/gi, "[ Claim my 50% place ]")
+        .replace(/\{\{\s*personal_note\s*\}\}/gi, "[ your note goes here, if you write one ]") +
+      "\n\n" + ((me && me.full_name) || "")
     : "";
   $("fu-fixed-wrap").classList.toggle("hidden", !fuTemplate);
+  $("fu-personal-hint").textContent = fuTemplate
+    ? "optional — a line or two of your own, added after the opening paragraph"
+    : "the whole email, in your own words";
   $("fu-note").textContent = fuTemplate
-    ? "Write your note first — the standard section follows on from it, then your name."
+    ? "The email is ready to send as it is. Add a note if there is something you want to say to the group."
     : "Write the email in your own words. It starts with \"Hi {first name},\" and ends with your name.";
   $("fu-send").disabled = false;
   $("fuwrap").classList.remove("hidden");
@@ -7143,20 +7149,28 @@ function wireFollowup() {
     const msg = $("fu-msg");
 
     if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return; }
-    if (!personal) {
+    if (!personal && !fuTemplate) {
       msg.className = "msg err";
-      msg.textContent = "Write your personal note first — it is what makes this email worth opening.";
+      msg.textContent = "Write the email first.";
       $("fu-personal").focus();
       return;
     }
 
-    // Hi {{first_name}}, — the coach's note — the standard section
-    // (with {{offer_button}}, which the send function turns into each
-    // person's own link) — the coach's name.
+    // Hi {{first_name}}, — the standard section, with the coach's note
+    // where it says {{personal_note}} (or first, if it does not) and
+    // {{offer_button}}, which the send function turns into each
+    // person's own link — the coach's name.
+    let middle = personal;
+    if (fuTemplate) {
+      const fixed = fillFollowup(fuTemplate.body, fuCourse).trim();
+      const mark = /\{\{\s*personal_note\s*\}\}/i;
+      middle = mark.test(fixed)
+        ? fixed.replace(mark, personal).replace(/\n{3,}/g, "\n\n")
+        : [personal, fixed].filter(Boolean).join("\n\n");
+    }
     const body = [
       "Hi {{first_name}},",
-      personal,
-      fuTemplate ? fillFollowup(fuTemplate.body, fuCourse).trim() : "",
+      middle,
       (me && me.full_name) || "",
     ].filter(Boolean).join("\n\n");
 

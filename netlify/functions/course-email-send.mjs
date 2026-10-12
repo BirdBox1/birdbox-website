@@ -54,8 +54,8 @@ const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.
 // The brand the participant actually registered for, so the email
 // carries the right identity. Filenames are case-sensitive on Netlify.
 const BRAND_LOGO = {
-  tcc: { file: "tcc.png", alt: "The Coaches Course" },
-  tgc: { file: "tgc.png", alt: "The Gymnastics Course" },
+  tcc: { file: "tcc.png", alt: "The Coaches Course", accent: "#1f6fa8" },
+  tgc: { file: "tgc.png", alt: "The Gymnastics Course", accent: "#c62f33" },
   tec: { file: "tec.png", alt: "The Endurance Course" },
   twc: { file: "twc.png", alt: "The Weightlifting Course" },
 };
@@ -251,6 +251,7 @@ export default async (req) => {
             text,
             brand,
             offerUrl,
+            rich: email.kind === "followup",
           });
           return { person: p, result };
         })
@@ -434,22 +435,43 @@ function withOffer(text, url) {
 // email
 // ---------------------------------------------------------------
 
-function template(text, brand, offerUrl) {
+// A paragraph written all in capitals is a section heading. On the
+// follow-up it is drawn as one — brand colour, a rule above — and the
+// offer button sits in its own highlighted box. Colours are solid and
+// mid-toned so they survive the dark mode of mail apps.
+function isHeading(p) {
+  return p.length <= 80 && !/\n/.test(p) && /[A-Z]/.test(p) && p === p.toUpperCase();
+}
+
+function template(text, brand, offerUrl, rich = false) {
   const buttonLine = offerUrl ? `${OFFER_LABEL}: ${offerUrl}` : null;
+  const accent = (brand && brand.accent) || "#16181b";
+  const body = "font-size:16px;line-height:1.65;color:#16181b";
   const paras = String(text)
     .split(/\n{2,}/)
     .map((p) => p.trim())
     .filter(Boolean)
-    .map((p) =>
-      p === buttonLine
-        ? `<p style="margin:8px 0 24px"><a href="${escapeHtml(offerUrl)}"
-             style="display:inline-block;background:#16181b;color:#ffffff;text-decoration:none;
-                    font-weight:bold;font-size:16px;padding:14px 26px;border-radius:5px">${
-             escapeHtml(OFFER_LABEL)}</a></p>`
-        : `<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#16181b">${
-            escapeHtml(p).replace(/\n/g, "<br>")
-          }</p>`
-    )
+    .map((p) => {
+      if (p === buttonLine) {
+        return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                 style="margin:8px 0 24px;background:#f4f3f0;border-left:4px solid ${accent};border-radius:4px">
+          <tr><td style="padding:20px 22px">
+            <p style="margin:0 0 4px;font-size:12px;letter-spacing:2px;text-transform:uppercase;
+                      font-weight:bold;color:${accent}">Seminar attendee rate</p>
+            <p style="margin:0 0 16px;font-size:22px;font-weight:bold;color:#16181b">50% off the online course</p>
+            <a href="${escapeHtml(offerUrl)}"
+               style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;
+                      font-weight:bold;font-size:16px;padding:14px 28px;border-radius:5px">${
+              escapeHtml(OFFER_LABEL)} &rarr;</a>
+            <p style="margin:12px 0 0;font-size:13px;color:#6c7178">Pay in full, or a 20% deposit then 2&ndash;6 monthly payments.</p>
+          </td></tr></table>`;
+      }
+      if (rich && isHeading(p)) {
+        return `<p style="margin:28px 0 12px;padding-top:22px;border-top:1px solid #e0ddd7;
+                          font-size:13px;letter-spacing:2px;font-weight:bold;color:${accent}">${escapeHtml(p)}</p>`;
+      }
+      return `<p style="margin:0 0 16px;${body}">${escapeHtml(p).replace(/\n/g, "<br>")}</p>`;
+    })
     .join("");
 
   // The brand logo sits on its own white band under the black bar.
@@ -506,7 +528,7 @@ function describeFailure(status, detail) {
   return message || `rejected (HTTP ${status})`;
 }
 
-async function sendEmail({ to, sender, subject, text, brand, offerUrl = null }) {
+async function sendEmail({ to, sender, subject, text, brand, offerUrl = null, rich = false }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("No Resend key; not sending to", to);
@@ -520,7 +542,7 @@ async function sendEmail({ to, sender, subject, text, brand, offerUrl = null }) 
     reply_to: sender.replyTo,
     subject,
     text,
-    html: template(text, brand, offerUrl),
+    html: template(text, brand, offerUrl, rich),
   });
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
