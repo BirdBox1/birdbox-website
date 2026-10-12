@@ -1960,6 +1960,17 @@ async function insertNoteReliably(row, onRetry) {
       Write your message to the group in the box at the top — the email cannot be sent without it.
     </p>
 
+    <div class="field" style="margin-top:-0.4rem">
+      <label>Add a button
+        <span class="hint">e.g. a link to register for Level 2 — it goes where your cursor is in the email</span>
+      </label>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <input id="fu-btn-label" type="text" placeholder="Button text, e.g. Register for Level 2" style="flex:1 1 12rem">
+        <input id="fu-btn-url" type="url" placeholder="https://birdboxcoaching.com/c/…" style="flex:2 1 16rem">
+        <button class="btn ghost" id="fu-btn-insert" type="button">Insert</button>
+      </div>
+    </div>
+
     <p class="msg err hidden" id="fu-button-warn">
       The 50% offer button line has been changed or deleted. It must stay exactly as it was,
       on its own line, or nobody gets their link.
@@ -7234,6 +7245,30 @@ function checkOfferLine() {
 function wireFollowup() {
   $("fu-body").addEventListener("input", checkOfferLine);
   $("fu-message").addEventListener("input", checkOfferLine);
+
+  // A coach's own button: one line in the email, drawn as a button
+  // when it is sent (course-email-send, COACH_BUTTON).
+  $("fu-btn-insert").onclick = () => {
+    const label = $("fu-btn-label").value.trim().replace(/[|\[\]\n]/g, " ");
+    const url = $("fu-btn-url").value.trim();
+    const msg = $("fu-msg");
+    if (!label) { msg.className = "msg err"; msg.textContent = "Give the button some text."; return; }
+    if (!/^https:\/\/\S+$/.test(url)) {
+      msg.className = "msg err";
+      msg.textContent = "The link must be a full web address starting with https://";
+      return;
+    }
+    const ta = $("fu-body");
+    const at = typeof ta.selectionStart === "number" ? ta.selectionStart : ta.value.length;
+    const before = ta.value.slice(0, at).replace(/\s*$/, "");
+    const after = ta.value.slice(at).replace(/^\s*/, "");
+    const line = `[[ BUTTON: ${label} | ${url} ]]`;
+    ta.value = [before, line, after].filter(Boolean).join("\n\n");
+    $("fu-btn-label").value = "";
+    $("fu-btn-url").value = "";
+    msg.className = "msg"; msg.textContent = "Button added — it shows as a button in the sent email.";
+    checkOfferLine();
+  };
   $("fu-button-restore").onclick = () => {
     const ta = $("fu-body");
     // Take out any half-edited copy, then put the line back before the sign-off.

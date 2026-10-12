@@ -491,6 +491,19 @@ async function offerLinks(course, people) {
 
 // The plain-text version gets the link written out. Anybody without
 // a link (not ticked as attended) loses the button line altogether.
+// A coach's own button, added in the portal as a line of its own:
+//   [[ BUTTON: Register for Level 2 | https://birdboxcoaching.com/... ]]
+// Drawn as a brand-coloured button; the plain-text version gets
+// "Register for Level 2: https://…". Only https links.
+const COACH_BUTTON = /^\[\[\s*BUTTON:\s*(.+?)\s*\|\s*(https:\/\/[^\s\]]+)\s*\]\]$/i;
+
+function plainButtons(text) {
+  return String(text).split("\n").map((l) => {
+    const m = l.trim().match(COACH_BUTTON);
+    return m ? `${m[1]}: ${m[2]}` : l;
+  }).join("\n");
+}
+
 function withOffer(text, url) {
   return String(text).replace(new RegExp(OFFER_MARK.source + "\\n?", "gi"),
     url ? `${OFFER_LABEL}: ${url}\n` : "");
@@ -529,6 +542,16 @@ function template(text, brand, offerUrl, rich = false, inlineLogo = false) {
     .map((p) => p.trim())
     .filter(Boolean)
     .map((p) => {
+      const own = p.match(COACH_BUTTON);
+      if (own) {
+        return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px"><tr>
+          <td bgcolor="${accent}" style="background-color:${accent};border-radius:5px">
+            <a href="${escapeHtml(own[2])}" target="_blank"
+               style="display:block;padding:14px 28px;color:#ffffff;text-decoration:none;
+                      font-weight:bold;font-size:16px;${font}"><span style="color:#ffffff">${
+              escapeHtml(own[1])} &rarr;</span></a>
+          </td></tr></table>`;
+      }
       if (p === buttonLine) {
         return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
                  style="margin:8px 0 24px"><tr>
@@ -647,7 +670,7 @@ async function sendEmail({ to, sender, subject, text, brand, offerUrl = null, ri
     ...(copyOffice ? { cc: [OFFICE] } : {}),
     reply_to: sender.replyTo,
     subject,
-    text,
+    text: plainButtons(text),
     html: template(text, brand, offerUrl, rich, !!logo),
     ...(logo ? { attachments: [logo] } : {}),
   });
