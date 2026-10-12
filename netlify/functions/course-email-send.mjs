@@ -54,8 +54,8 @@ const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.
 // The brand the participant actually registered for, so the email
 // carries the right identity. Filenames are case-sensitive on Netlify.
 const BRAND_LOGO = {
-  tcc: { file: "tcc.png", alt: "The Coaches Course", accent: "#1f6fa8" },
-  tgc: { file: "tgc.png", alt: "The Gymnastics Course", accent: "#c62f33" },
+  tcc: { file: "tcc.png", alt: "The Coaches Course", accent: "#1f6fa8", headingDark: "#4fa8de" },
+  tgc: { file: "tgc.png", alt: "The Gymnastics Course", accent: "#c62f33", headingDark: "#e8585c" },
   tec: { file: "tec.png", alt: "The Endurance Course" },
   twc: { file: "twc.png", alt: "The Weightlifting Course" },
 };
@@ -435,18 +435,31 @@ function withOffer(text, url) {
 // email
 // ---------------------------------------------------------------
 
-// A paragraph written all in capitals is a section heading. On the
-// follow-up it is drawn as one — brand colour, a rule above — and the
-// offer button sits in its own highlighted box. Colours are solid and
-// mid-toned so they survive the dark mode of mail apps.
+// A paragraph written all in capitals is a section heading.
 function isHeading(p) {
   return p.length <= 80 && !/\n/.test(p) && /[A-Z]/.test(p) && p === p.toUpperCase();
 }
 
+// Two looks. The ordinary course emails are light. The follow-up is
+// dark throughout, like the website: mail apps in dark mode recolour a
+// light email (Gmail turned the logo band and the offer button to mud)
+// but leave an email that is already dark alone, so it looks the same
+// whichever mode the reader uses. Its headings are drawn in the brand
+// colour with a rule above, and the offer sits in its own box.
+const LIGHT = {
+  page: "#f4f3f0", card: "#ffffff", line: "#e0ddd7", text: "#16181b",
+  muted: "#6c7178", box: "#f4f3f0", scheme: "light",
+};
+const DARK = {
+  page: "#0b0c0e", card: "#16181b", line: "#2c3035", text: "#eceae6",
+  muted: "#9aa1a9", box: "#1f2226", scheme: "dark",
+};
+
 function template(text, brand, offerUrl, rich = false) {
+  const c = rich ? DARK : LIGHT;
   const buttonLine = offerUrl ? `${OFFER_LABEL}: ${offerUrl}` : null;
-  const accent = (brand && brand.accent) || "#16181b";
-  const body = "font-size:16px;line-height:1.65;color:#16181b";
+  const accent = (brand && brand.accent) || "#2f7fd0";
+  const headingColour = (brand && brand.headingDark && rich) ? brand.headingDark : accent;
   const paras = String(text)
     .split(/\n{2,}/)
     .map((p) => p.trim())
@@ -454,49 +467,58 @@ function template(text, brand, offerUrl, rich = false) {
     .map((p) => {
       if (p === buttonLine) {
         return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-                 style="margin:8px 0 24px;background:#f4f3f0;border-left:4px solid ${accent};border-radius:4px">
+                 style="margin:8px 0 24px;background:${c.box};border-left:4px solid ${accent};border-radius:4px">
           <tr><td style="padding:20px 22px">
             <p style="margin:0 0 4px;font-size:12px;letter-spacing:2px;text-transform:uppercase;
-                      font-weight:bold;color:${accent}">Seminar attendee rate</p>
-            <p style="margin:0 0 16px;font-size:22px;font-weight:bold;color:#16181b">50% off the online course</p>
+                      font-weight:bold;color:${headingColour}">Seminar attendee rate</p>
+            <p style="margin:0 0 16px;font-size:22px;font-weight:bold;color:${c.text}">50% off the online course</p>
             <a href="${escapeHtml(offerUrl)}"
                style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;
                       font-weight:bold;font-size:16px;padding:14px 28px;border-radius:5px">${
               escapeHtml(OFFER_LABEL)} &rarr;</a>
-            <p style="margin:12px 0 0;font-size:13px;color:#6c7178">Pay in full, or a 20% deposit then 2&ndash;6 monthly payments.</p>
+            <p style="margin:12px 0 0;font-size:13px;color:${c.muted}">Pay in full, or a 20% deposit then 2&ndash;6 monthly payments.</p>
           </td></tr></table>`;
       }
       if (rich && isHeading(p)) {
-        return `<p style="margin:28px 0 12px;padding-top:22px;border-top:1px solid #e0ddd7;
-                          font-size:13px;letter-spacing:2px;font-weight:bold;color:${accent}">${escapeHtml(p)}</p>`;
+        return `<p style="margin:28px 0 12px;padding-top:22px;border-top:1px solid ${c.line};
+                          font-size:13px;letter-spacing:2px;font-weight:bold;color:${headingColour}">${escapeHtml(p)}</p>`;
       }
-      return `<p style="margin:0 0 16px;${body}">${escapeHtml(p).replace(/\n/g, "<br>")}</p>`;
+      return `<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:${c.text}">${
+        escapeHtml(p).replace(/\n/g, "<br>")}</p>`;
     })
     .join("");
 
-  // The brand logo sits on its own white band under the black bar.
-  // The marks are dark lettering, so they would disappear on black.
-  const logoBand = brand
-    ? `<tr><td style="padding:18px 28px 14px;border-bottom:1px solid #e0ddd7;background:#ffffff">
-          <img src="${SITE_URL}/brand/${brand.file}" alt="${escapeHtml(brand.alt)}"
-               height="44" style="height:44px;width:auto;display:block;border:0">
-        </td></tr>`
+  // The brand logos are dark lettering on white, so on the light email
+  // they sit on a white band, and on the dark one on a white tile.
+  const logo = brand
+    ? `<img src="${SITE_URL}/brand/${brand.file}" alt="${escapeHtml(brand.alt)}"
+            height="44" style="height:44px;width:auto;display:block;border:0">`
     : "";
+  const logoBand = !brand ? "" : rich
+    ? `<tr><td style="padding:22px 28px 0;background:${c.card}">
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td style="background:#ffffff;border-radius:6px;padding:8px 12px">${logo}</td>
+          </tr></table>
+        </td></tr>`
+    : `<tr><td style="padding:18px 28px 14px;border-bottom:1px solid ${c.line};background:#ffffff">${logo}</td></tr>`;
 
   return `<!DOCTYPE html>
-<html><body style="margin:0;padding:0;background:#f4f3f0">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3f0">
+<html><head>
+<meta name="color-scheme" content="${c.scheme}">
+<meta name="supported-color-schemes" content="${c.scheme}">
+</head><body style="margin:0;padding:0;background:${c.page}">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${c.page}">
     <tr><td align="center" style="padding:32px 16px">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-             style="max-width:600px;background:#ffffff;border:1px solid #e0ddd7;border-radius:6px">
+             style="max-width:600px;background:${c.card};border:1px solid ${c.line};border-radius:6px">
         <tr><td style="padding:14px 28px;background:#0d0e10;border-radius:5px 5px 0 0">
           <span style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#9aa1a9;
                        font-family:Helvetica,Arial,sans-serif">BirdBox Coaching</span>
         </td></tr>
         ${logoBand}
-        <tr><td style="padding:28px;font-family:Helvetica,Arial,sans-serif">${paras}</td></tr>
-        <tr><td style="padding:18px 28px;border-top:1px solid #e0ddd7;
-                       font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6c7178">
+        <tr><td style="padding:28px;font-family:Helvetica,Arial,sans-serif;background:${c.card}">${paras}</td></tr>
+        <tr><td style="padding:18px 28px;border-top:1px solid ${c.line};background:${c.card};
+                       font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:${c.muted}">
           BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland
         </td></tr>
       </table>
