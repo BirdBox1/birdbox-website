@@ -1937,19 +1937,17 @@ async function insertNoteReliably(row, onRetry) {
     </div>
 
     <div class="field">
-      <label for="fu-personal">Your personal note
-        <span class="hint" id="fu-personal-hint">optional — a line or two of your own, added after the opening paragraph</span>
+      <label for="fu-body">The email
+        <span class="hint">edit or translate anything — {first name} becomes each person's name</span>
       </label>
-      <textarea id="fu-personal" style="min-height:10rem"
-        placeholder="Anything you want to add for the group…"></textarea>
+      <textarea id="fu-body" style="min-height:24rem"></textarea>
     </div>
 
-    <div class="field" id="fu-fixed-wrap">
-      <label>Then the standard section
-        <span class="hint">the same for everyone; the button is each person's own 50% link</span>
-      </label>
-      <div id="fu-fixed" style="white-space:pre-wrap;border:1px solid var(--line, #ddd);border-radius:6px;padding:0.8rem 1rem;max-height:18rem;overflow:auto;opacity:0.85;font-size:0.95rem"></div>
-    </div>
+    <p class="msg err hidden" id="fu-button-warn">
+      The 50% offer button line has been changed or deleted. It must stay exactly as it was,
+      on its own line, or nobody gets their link.
+      <button class="btn ghost tiny" id="fu-button-restore" type="button">Put it back</button>
+    </p>
 
     <p class="whenline" id="fu-note"></p>
     <p class="msg" id="fu-msg"></p>
@@ -7108,21 +7106,12 @@ async function openFollowup(course) {
 
   $("fu-subject").value = fillFollowup(
     (fuTemplate && fuTemplate.subject) || "Following up on {{course_title}}", full);
-  $("fu-personal").value = "";
-  $("fu-fixed").textContent = fuTemplate
-    ? "Hi {first name},\n\n" + fillFollowup(fuTemplate.body, full)
-        .replace(/\{\{\s*offer_button\s*\}\}/gi, "[ Claim my 50% place ]")
-        .replace(/\{\{\s*personal_note\s*\}\}/gi, "[ your note goes here, if you write one ]") +
-      "\n\n" + ((me && me.full_name) || "")
-    : "";
-  $("fu-fixed-wrap").classList.toggle("hidden", !fuTemplate);
-  $("fu-personal-hint").textContent = fuTemplate
-    ? "optional — a line or two of your own, added after the opening paragraph"
-    : "the whole email, in your own words";
+  $("fu-body").value = followupDraft(full);
+  checkOfferLine();
   $("fu-note").textContent = fuTemplate
-    ? "The email is ready to send as it is. Add a note if there is something you want to say to the group."
+    ? "Ready to send as it is. Edit or translate any of it — only the offer button line must stay."
     : "Write the email in your own words. It starts with \"Hi {first name},\" and ends with your name.";
-  $("fu-send").disabled = false;
+  checkOfferLine();
   $("fuwrap").classList.remove("hidden");
 }
 
@@ -7135,7 +7124,53 @@ function fillFollowup(text, course) {
     .replace(/\{\{\s*coach_name\s*\}\}/gi, (me && me.full_name) || "");
 }
 
+// The offer button, as the coach sees it in the draft. Each attendee's
+// own 50% link goes where this line is, so it cannot be edited away:
+// the portal and the send function both refuse an email without it.
+const OFFER_LINE = "[[ 50% OFFER BUTTON — leave this line exactly as it is ]]";
+
+function followupDraft(course) {
+  const name = (me && me.full_name) || "";
+  if (!fuTemplate) return "Hi {first name},\n\n\n\n" + name;
+  const fixed = fillFollowup(fuTemplate.body, course)
+    .replace(/\{\{\s*personal_note\s*\}\}/gi, "")
+    .replace(/\{\{\s*offer_button\s*\}\}/gi, OFFER_LINE)
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return ["Hi {first name},", fixed, name].join("\n\n");
+}
+
+// Does this course's follow-up carry the offer, and is the line intact?
+function needsOfferLine() {
+  return !!(fuTemplate && /\{\{\s*offer_button\s*\}\}/i.test(fuTemplate.body));
+}
+function offerLineOk(text) {
+  if (!needsOfferLine()) return true;
+  const lines = String(text).split("\n").map((l) => l.trim());
+  return lines.filter((l) => l === OFFER_LINE).length === 1;
+}
+function checkOfferLine() {
+  const ok = offerLineOk($("fu-body").value);
+  $("fu-button-warn").classList.toggle("hidden", ok);
+  $("fu-send").disabled = !ok;
+  $("fu-test").disabled = !ok;
+  return ok;
+}
+
 function wireFollowup() {
+  $("fu-body").addEventListener("input", checkOfferLine);
+  $("fu-button-restore").onclick = () => {
+    const ta = $("fu-body");
+    // Take out any half-edited copy, then put the line back before the sign-off.
+    const lines = ta.value.split("\n").filter((l) => !/50%\s*OFFER\s*BUTTON/i.test(l));
+    const name = (me && me.full_name) || "";
+    let at = lines.length;
+    if (name && lines.length && lines[lines.length - 1].trim() === name) at = lines.length - 1;
+    lines.splice(at, 0, OFFER_LINE, "");
+    ta.value = lines.join("\n").replace(/\n{3,}/g, "\n\n");
+    checkOfferLine();
+  };
+
   $("fu-open").onclick = () => { if (currentCourse) openFollowup(currentCourse); };
   $("fu-close").onclick = () => { $("fuwrap").classList.add("hidden"); };
   $("fuwrap").addEventListener("click", (e) => {
@@ -7150,30 +7185,25 @@ function wireFollowup() {
   // coach's name. Null, with the reason shown, if it is not ready.
   function composeFollowup() {
     const subject = $("fu-subject").value.trim();
-    const personal = $("fu-personal").value.trim();
+    const text = $("fu-body").value.trim();
     const msg = $("fu-msg");
 
     if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return null; }
-    if (!personal && !fuTemplate) {
+    if (!text.replace(/hi \{first name\},?/i, "").trim()) {
       msg.className = "msg err";
       msg.textContent = "Write the email first.";
-      $("fu-personal").focus();
+      $("fu-body").focus();
+      return null;
+    }
+    if (!checkOfferLine()) {
+      msg.className = "msg err";
+      msg.textContent = "Put the 50% offer button line back before sending.";
       return null;
     }
 
-    let middle = personal;
-    if (fuTemplate) {
-      const fixed = fillFollowup(fuTemplate.body, fuCourse).trim();
-      const mark = /\{\{\s*personal_note\s*\}\}/i;
-      middle = mark.test(fixed)
-        ? fixed.replace(mark, personal).replace(/\n{3,}/g, "\n\n")
-        : [personal, fixed].filter(Boolean).join("\n\n");
-    }
-    const body = [
-      "Hi {{first_name}},",
-      middle,
-      (me && me.full_name) || "",
-    ].filter(Boolean).join("\n\n");
+    const body = text
+      .split("\n").map((l) => (l.trim() === OFFER_LINE ? "{{offer_button}}" : l)).join("\n")
+      .replace(/\{\s*first name\s*\}/gi, "{{first_name}}");
     return { subject, body };
   }
 
