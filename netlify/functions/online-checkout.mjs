@@ -465,18 +465,20 @@ async function seminarCheckout(req, body) {
 
   if (option === "plan") {
     // The deposit is a one-off item charged today. The monthly price
-    // starts a month later: billing anchored there with no proration,
-    // so today's invoice is the deposit alone.
-    const anchor = new Date();
-    anchor.setUTCMonth(anchor.getUTCMonth() + 1);
+    // starts a month later, by a one-month trial on the subscription:
+    // Stripe charges one-off items at checkout even during a trial, so
+    // today's payment is the deposit alone. (Checkout refuses
+    // billing_cycle_anchor + proration_behavior "none" with one-off
+    // items, which is how this was first written.)
+    const firstMonthly = new Date();
+    firstMonthly.setUTCMonth(firstMonthly.getUTCMonth() + 1);
     session.line_items = [
       item(each, `${name} — ${months} monthly payments`, true),
       item(deposit, `${name} — ${OFFER_DEPOSIT_PERCENT}% deposit`, false),
     ];
     session.subscription_data = {
       description: `${name} — ${OFFER_DEPOSIT_PERCENT}% deposit, then ${months} monthly payments`,
-      billing_cycle_anchor: Math.floor(anchor.getTime() / 1000),
-      proration_behavior: "none",
+      trial_end: Math.floor(firstMonthly.getTime() / 1000),
       metadata,
     };
     session.custom_text.submit = {
@@ -583,7 +585,9 @@ export async function onOnlineSaleCompleted(session) {
     try {
       const sub = await stripe.subscriptions.retrieve(row.stripe_subscription_id);
       const months = row.months || PLAN_MONTHS;
-      const anchor = new Date(sub.billing_cycle_anchor * 1000);
+      // The first monthly payment: the end of the trial on a seminar
+      // offer plan (deposit first), otherwise the start of the plan.
+      const anchor = new Date((sub.trial_end || sub.billing_cycle_anchor) * 1000);
       const end = new Date(anchor);
       end.setUTCMonth(end.getUTCMonth() + months - 1);
       end.setUTCDate(end.getUTCDate() + 15);
