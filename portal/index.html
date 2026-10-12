@@ -1937,17 +1937,24 @@ async function insertNoteReliably(row, onRetry) {
     </div>
 
     <div class="field">
-      <label for="fu-body">The email as it will send
-        <span class="hint">edit anything here; {{first_name}} becomes each person's name</span>
+      <label for="fu-personal">Your personal note
+        <span class="hint">goes straight after "Hi {first name}," — what you saw, how they did, what to work on</span>
       </label>
-      <textarea id="fu-body" style="min-height:20rem"></textarea>
+      <textarea id="fu-personal" style="min-height:10rem"
+        placeholder="Great to have you with us at the weekend…"></textarea>
+    </div>
+
+    <div class="field" id="fu-fixed-wrap">
+      <label>Then the standard section
+        <span class="hint">the same for everyone; the button is each person's own 50% link</span>
+      </label>
+      <div id="fu-fixed" style="white-space:pre-wrap;border:1px solid var(--line, #ddd);border-radius:6px;padding:0.8rem 1rem;max-height:18rem;overflow:auto;opacity:0.85;font-size:0.95rem"></div>
     </div>
 
     <p class="whenline" id="fu-note"></p>
     <p class="msg" id="fu-msg"></p>
 
     <div class="row">
-      <button class="btn ghost" id="fu-rebuild" type="button">Reset from template</button>
       <button class="btn ghost" id="fu-close" type="button">Cancel</button>
       <button class="btn" id="fu-send" type="button">Send to everyone</button>
     </div>
@@ -7089,25 +7096,25 @@ async function openFollowup(course) {
     .eq("language", "en")
     .maybeSingle();
 
-  if (!tpl) {
-    window.alert(
-      "No follow-up template is set up for this course yet.\n\n" +
-      `It needs a row in email_templates with kind 'followup', type '${full.type}', ` +
-      `brand '${full.brand}' and level '${level}'.`
-    );
-    return;
-  }
-  fuTemplate = tpl;
+  // The template is only the standard section. With none, the coach's
+  // own note is the whole email.
+  fuTemplate = tpl && String(tpl.body || "").trim() ? tpl : null;
 
   $("fu-h").textContent = "Follow-up email — " + full.title;
   $("fu-sub").textContent = followupRow && followupRow.status === "sent"
     ? `Already sent ${fmtWhen(followupRow.sent_at)}. Sending again writes a second email to everyone.`
     : "Goes to everyone who attended, one at a time, from your own address.";
 
-  $("fu-subject").value = fillFollowup(tpl.subject || "", full);
-  $("fu-body").value = fillFollowup(tpl.body, full);
-  $("fu-note").textContent =
-    "Edit anything before sending — you were there, so say what is worth saying.";
+  $("fu-subject").value = fillFollowup(
+    (fuTemplate && fuTemplate.subject) || "Following up on {{course_title}}", full);
+  $("fu-personal").value = "";
+  $("fu-fixed").textContent = fuTemplate
+    ? fillFollowup(fuTemplate.body, full).replace(/\{\{\s*offer_button\s*\}\}/gi, "[ Claim my 50% place ]")
+    : "";
+  $("fu-fixed-wrap").classList.toggle("hidden", !fuTemplate);
+  $("fu-note").textContent = fuTemplate
+    ? "Write your note first — the standard section follows on from it, then your name."
+    : "Write the email in your own words. It starts with \"Hi {first name},\" and ends with your name.";
   $("fu-send").disabled = false;
   $("fuwrap").classList.remove("hidden");
 }
@@ -7128,21 +7135,30 @@ function wireFollowup() {
     if (e.target === $("fuwrap")) $("fuwrap").classList.add("hidden");
   });
 
-  $("fu-rebuild").onclick = () => {
-    if (!fuTemplate || !fuCourse) return;
-    if (!window.confirm("Reset from the template? Your edits will be lost.")) return;
-    $("fu-subject").value = fillFollowup(fuTemplate.subject || "", fuCourse);
-    $("fu-body").value = fillFollowup(fuTemplate.body, fuCourse);
-  };
 
   $("fu-send").onclick = async () => {
     if (!fuCourse) return;
     const subject = $("fu-subject").value.trim();
-    const body = $("fu-body").value.trim();
+    const personal = $("fu-personal").value.trim();
     const msg = $("fu-msg");
 
     if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return; }
-    if (!body) { msg.className = "msg err"; msg.textContent = "There is nothing to send."; return; }
+    if (!personal) {
+      msg.className = "msg err";
+      msg.textContent = "Write your personal note first — it is what makes this email worth opening.";
+      $("fu-personal").focus();
+      return;
+    }
+
+    // Hi {{first_name}}, — the coach's note — the standard section
+    // (with {{offer_button}}, which the send function turns into each
+    // person's own link) — the coach's name.
+    const body = [
+      "Hi {{first_name}},",
+      personal,
+      fuTemplate ? fillFollowup(fuTemplate.body, fuCourse).trim() : "",
+      (me && me.full_name) || "",
+    ].filter(Boolean).join("\n\n");
 
     // Only the people who were actually there. Somebody who booked and
     // did not turn up has no use for "putting it into practice".

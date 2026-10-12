@@ -18,6 +18,7 @@
 // check and the database agree.
 
 import { createClient } from "@supabase/supabase-js";
+import { randomBytes } from "node:crypto";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -108,7 +109,7 @@ export default async (req) => {
 
     const { data: course } = await supabase
       .from("courses")
-      .select("id, brand, title, city, country, starts_at, host_name, host_email")
+      .select("id, brand, type, level, title, city, country, starts_at, host_name, host_email")
       .eq("id", email.course_id)
       .single();
 
@@ -207,6 +208,12 @@ export default async (req) => {
         ? `Looking forward to seeing you at ${course.title}`
         : `${course.title} — this weekend`);
 
+    // The follow-up carries each attendee's own link to the online
+    // course at the seminar rate, where the body asks for it.
+    const offers = email.kind === "followup" && OFFER_MARK.test(email.body)
+      ? await offerLinks(course, people)
+      : {};
+
     let sent = 0;
     let failed = 0;
     const problems = [];
@@ -235,13 +242,15 @@ export default async (req) => {
       const results = await Promise.all(
         chunk.map(async (p) => {
           // Greet each person by name, whatever the body says.
-          const text = personalise(email.body, p);
+          const offerUrl = offers[p.id] || null;
+          const text = withOffer(personalise(email.body, p), offerUrl);
           const result = await sendEmail({
             to: p.email,
             sender,
             subject,
             text,
             brand,
+            offerUrl,
           });
           return { person: p, result };
         })
@@ -363,18 +372,83 @@ function personalise(body, person) {
 }
 
 // ---------------------------------------------------------------
+// the seminar offer
+// ---------------------------------------------------------------
+
+// Where the follow-up's fixed section wants the button.
+const OFFER_MARK = /\{\{\s*offer_button\s*\}\}/i;
+const OFFER_LABEL = "Claim my 50% place";
+
+// Live seminars whose online course is sold at the seminar rate:
+// the same brand and level. TCC Level 1 gets TCC Level 1 Online, TGC
+// Level 1 gets TGC Level 1 Online.
+const OFFER_COURSES = new Set(["tcc:1", "tgc:1"]);
+
+// One link per attendee, kept for good: sending the follow-up again
+// reuses it rather than making a second.
+async function offerLinks(course, people) {
+  const brand = String(course.brand || "").toLowerCase();
+  const level = String(course.level == null ? "" : course.level).replace(/\D/g, "");
+  if (course.type !== "live_seminar" || !OFFER_COURSES.has(`${brand}:${level}`)) return {};
+
+  const attended = people.filter((p) => p.attended === true);
+  if (!attended.length) return {};
+
+  const ids = attended.map((p) => p.id);
+  const { data: existing } = await supabase
+    .from("online_offers").select("registration_id, token").in("registration_id", ids);
+  const byReg = Object.fromEntries((existing || []).map((o) => [o.registration_id, o.token]));
+
+  const fresh = attended
+    .filter((p) => !byReg[p.id])
+    .map((p) => ({
+      token: randomBytes(18).toString("base64url"),
+      registration_id: p.id,
+      course_id: course.id,
+      brand,
+      level,
+    }));
+  if (fresh.length) {
+    const { error } = await supabase.from("online_offers")
+      .upsert(fresh, { onConflict: "registration_id", ignoreDuplicates: true });
+    if (error) console.error("Could not make offer links:", error.message);
+    const { data: again } = await supabase
+      .from("online_offers").select("registration_id, token").in("registration_id", ids);
+    for (const o of again || []) byReg[o.registration_id] = o.token;
+  }
+
+  const site = (process.env.SITE_URL || "https://birdboxcoaching.com").replace(/\/+$/, "");
+  const out = {};
+  for (const [reg, token] of Object.entries(byReg)) out[reg] = `${site}/offer/?t=${token}`;
+  return out;
+}
+
+// The plain-text version gets the link written out. Anybody without
+// a link (not ticked as attended) loses the button line altogether.
+function withOffer(text, url) {
+  return String(text).replace(new RegExp(OFFER_MARK.source + "\\n?", "gi"),
+    url ? `${OFFER_LABEL}: ${url}\n` : "");
+}
+
+// ---------------------------------------------------------------
 // email
 // ---------------------------------------------------------------
 
-function template(text, brand) {
+function template(text, brand, offerUrl) {
+  const buttonLine = offerUrl ? `${OFFER_LABEL}: ${offerUrl}` : null;
   const paras = String(text)
     .split(/\n{2,}/)
     .map((p) => p.trim())
     .filter(Boolean)
     .map((p) =>
-      `<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#16181b">${
-        escapeHtml(p).replace(/\n/g, "<br>")
-      }</p>`
+      p === buttonLine
+        ? `<p style="margin:8px 0 24px"><a href="${escapeHtml(offerUrl)}"
+             style="display:inline-block;background:#16181b;color:#ffffff;text-decoration:none;
+                    font-weight:bold;font-size:16px;padding:14px 26px;border-radius:5px">${
+             escapeHtml(OFFER_LABEL)}</a></p>`
+        : `<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#16181b">${
+            escapeHtml(p).replace(/\n/g, "<br>")
+          }</p>`
     )
     .join("");
 
@@ -432,7 +506,7 @@ function describeFailure(status, detail) {
   return message || `rejected (HTTP ${status})`;
 }
 
-async function sendEmail({ to, sender, subject, text, brand }) {
+async function sendEmail({ to, sender, subject, text, brand, offerUrl = null }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("No Resend key; not sending to", to);
@@ -446,7 +520,7 @@ async function sendEmail({ to, sender, subject, text, brand }) {
     reply_to: sender.replyTo,
     subject,
     text,
-    html: template(text, brand),
+    html: template(text, brand, offerUrl),
   });
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {

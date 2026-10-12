@@ -39,6 +39,16 @@
 //   plan   3 to 8 monthly card payments (buyer's choice), as a Stripe subscription
 //          that cancels itself after the last one. Access is given on
 //          the first payment. A failed payment alerts the office.
+//
+// SEMINAR OFFER (?offer=TOKEN)
+//   Everyone who attended a live seminar gets a personal link in the
+//   coach's follow-up email (online_offers, made by course-email-send).
+//   It opens /offer/ at the seminar rate — 50% off the same brand and
+//   level online course. The token is the proof they were there, so
+//   nobody else can get the rate, and it is used once.
+//   full   pay the discounted price once, card or Klarna.
+//   plan   20% deposit today, then the rest over 2 to 6 monthly card
+//          payments starting a month later. Access on the deposit.
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
@@ -56,6 +66,10 @@ const supabase = createClient(
 // page changes too.
 const PLAN_CHOICES = [3, 4, 5, 6, 7, 8];
 const PLAN_MONTHS = 3; // fallback only
+
+// The seminar offer: deposit today, then the balance monthly.
+const OFFER_PLAN_CHOICES = [2, 3, 4, 5, 6];
+const OFFER_DEPOSIT_PERCENT = 20;
 
 const KIND = "online_course_sale";
 const ALERT_EMAIL = "info@birdboxcoaching.com";
@@ -88,8 +102,14 @@ const digits = (v) => String(v == null ? "" : v).replace(/\D/g, "");
 
 export default async (req, context) => {
   try {
-    if (req.method === "GET") return await offer(req, context);
-    if (req.method === "POST") return await checkout(req);
+    if (req.method === "GET") {
+      const token = new URL(req.url).searchParams.get("offer");
+      return token ? await seminarOffer(token, context) : await offer(req, context);
+    }
+    if (req.method === "POST") {
+      const body = await req.json();
+      return body.offer ? await seminarCheckout(req, body) : await checkout(req, body);
+    }
     return json({ error: "Method not allowed" }, 405);
   } catch (err) {
     console.error("online-checkout failed:", err);
@@ -182,8 +202,7 @@ async function vatList() {
 // start the Stripe Checkout
 // ---------------------------------------------------------------
 
-async function checkout(req) {
-  const body = await req.json();
+async function checkout(req, body) {
   const brand = String(body.brand || "").toLowerCase();
   const level = digits(body.level);
   const language = String(body.language || "");
@@ -285,6 +304,181 @@ async function checkout(req) {
 }
 
 // ---------------------------------------------------------------
+// the seminar offer: a personal link from the follow-up email
+// ---------------------------------------------------------------
+
+async function findOffer(token) {
+  const t = String(token || "").trim();
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(t)) return null;
+  const { data } = await supabase
+    .from("online_offers")
+    .select("id, token, registration_id, brand, level, discount_percent, opened_at, redeemed_at, " +
+            "registrations ( first_name, last_name, email, attended, status )")
+    .eq("token", t)
+    .maybeSingle();
+  if (!data || !data.registrations) return null;
+  // Only somebody who actually turned up. A later "did not attend"
+  // or a cancellation takes the offer away again.
+  const r = data.registrations;
+  if (r.attended !== true || (r.status || "active") !== "active") return null;
+  return data;
+}
+
+const discounted = (cents, pct) => Math.round(cents * (100 - pct) / 100);
+
+async function seminarOffer(token, context) {
+  const o = await findOffer(token);
+  if (!o) return json({ error: "This link is not valid. Reply to your coach's email and we will sort it out." }, 404);
+  if (o.redeemed_at) return json({ redeemed: true, first_name: o.registrations.first_name || "" });
+
+  const { prices, products } = await loadOffer(o.brand, o.level);
+  if (!products.length || !Object.keys(prices).length) {
+    return json({ error: "This course is not on sale right now. Reply to your coach's email and we will help." }, 409);
+  }
+
+  const offerPrices = {};
+  for (const [cur, cents] of Object.entries(prices)) {
+    offerPrices[cur] = { full: cents, offer: discounted(cents, o.discount_percent) };
+  }
+
+  let country = null;
+  try { country = context?.geo?.country?.code || null; } catch (e) { country = null; }
+  country = country ? String(country).toUpperCase() : null;
+  let currency = currencyForCountry(country);
+  if (!offerPrices[currency]) currency = offerPrices.EUR ? "EUR" : Object.keys(offerPrices)[0];
+
+  if (!o.opened_at) {
+    await supabase.from("online_offers").update({ opened_at: new Date().toISOString() }).eq("id", o.id);
+  }
+
+  return json({
+    first_name: o.registrations.first_name || "",
+    email: o.registrations.email || "",
+    brand: o.brand,
+    level: o.level,
+    title: products[0].label.replace(/\s*\([^)]*\)\s*$/, ""),
+    discount_percent: o.discount_percent,
+    deposit_percent: OFFER_DEPOSIT_PERCENT,
+    months: OFFER_PLAN_CHOICES,
+    currency,
+    prices: offerPrices,
+    languages: products.map((p) => ({ language: p.language, label: p.label })),
+    country,
+    vat: await vatList(),
+  }, 200, { "Cache-Control": "no-store" });
+}
+
+async function seminarCheckout(req, body) {
+  const o = await findOffer(body.offer);
+  if (!o) return json({ error: "This link is not valid." }, 404);
+  if (o.redeemed_at) return json({ error: "This offer has already been used." }, 409);
+
+  const language = String(body.language || "");
+  const currency = String(body.currency || "").toUpperCase();
+  const option = body.option === "plan" ? "plan" : "full";
+  const country = String(body.country || "").toUpperCase();
+  const months = option === "plan" ? parseInt(body.months, 10) : 1;
+  if (!/^[A-Z]{2}$/.test(country)) return json({ error: "Choose your country" }, 400);
+  if (option === "plan" && !OFFER_PLAN_CHOICES.includes(months)) return json({ error: "Choose how many monthly payments" }, 400);
+  if (!CURRENCIES.includes(currency)) return json({ error: "Choose a currency" }, 400);
+
+  const { prices, products } = await loadOffer(o.brand, o.level);
+  const product = products.find((p) => p.language === language) || (products.length === 1 ? products[0] : null);
+  if (!product) return json({ error: "Choose a language" }, 400);
+  if (!prices[currency]) return json({ error: `This course is not on sale in ${currency}` }, 400);
+
+  const price = discounted(prices[currency], o.discount_percent);
+  const deposit = option === "plan" ? Math.round(price * OFFER_DEPOSIT_PERCENT / 100) : 0;
+  const each = option === "plan" ? Math.round((price - deposit) / months) : 0;
+  const vatRow = (await vatList()).find((v) => v.code === country) || null;
+  const origin = new URL(req.url).origin;
+  const name = `${product.label} — seminar rate (${o.discount_percent}% off)`;
+
+  const metadata = {
+    kind: KIND,
+    brand: o.brand,
+    level: o.level,
+    language: product.language,
+    lw_course_id: product.lw_course_id,
+    label: product.label,
+    currency,
+    option,
+    price_cents: String(price),
+    months: String(months),
+    country,
+    vat_percent: vatRow ? String(vatRow.rate) : "0",
+    offer_id: o.id,
+    deposit_cents: String(deposit),
+  };
+
+  const item = (amount, title, recurring) => {
+    const li = {
+      quantity: 1,
+      price_data: {
+        currency: currency.toLowerCase(),
+        unit_amount: amount,
+        product_data: { name: title },
+      },
+    };
+    if (recurring) li.price_data.recurring = { interval: "month" };
+    if (vatRow) li.tax_rates = [vatRow.id];
+    return li;
+  };
+
+  const session = {
+    mode: option === "plan" ? "subscription" : "payment",
+    payment_method_types: option === "plan" ? ["card"] : ["card", "klarna"],
+    customer_email: o.registrations.email || undefined,
+    billing_address_collection: "required",
+    consent_collection: { terms_of_service: "required" },
+    custom_text: {
+      terms_of_service_acceptance: {
+        message:
+          "I agree to the BirdBox Coaching terms of sale. I ask for access to start straight away, " +
+          "and understand that I lose my right to cancel and the course is non-refundable once access has been given.",
+      },
+    },
+    metadata,
+    success_url: `${origin}/online-welcome/?session_id={CHECKOUT_SESSION_ID}${(await isOnSite(product.lw_course_id)) ? "&site=1" : ""}`,
+    cancel_url: `${origin}/offer/?t=${encodeURIComponent(o.token)}`,
+  };
+
+  if (option === "plan") {
+    // The deposit is a one-off item charged today. The monthly price
+    // starts a month later: billing anchored there with no proration,
+    // so today's invoice is the deposit alone.
+    const anchor = new Date();
+    anchor.setUTCMonth(anchor.getUTCMonth() + 1);
+    session.line_items = [
+      item(each, `${name} — ${months} monthly payments`, true),
+      item(deposit, `${name} — ${OFFER_DEPOSIT_PERCENT}% deposit`, false),
+    ];
+    session.subscription_data = {
+      description: `${name} — ${OFFER_DEPOSIT_PERCENT}% deposit, then ${months} monthly payments`,
+      billing_cycle_anchor: Math.floor(anchor.getTime() / 1000),
+      proration_behavior: "none",
+      metadata,
+    };
+    session.custom_text.submit = {
+      message:
+        `Today you pay the ${OFFER_DEPOSIT_PERCENT}% deposit and get access straight away. ` +
+        `The rest is ${months} monthly payments from this card, starting a month from today, then the plan ends by itself.`,
+    };
+  } else {
+    session.line_items = [item(price, name, false)];
+    session.customer_creation = "always";
+    session.invoice_creation = {
+      enabled: true,
+      invoice_data: { description: name, metadata: { kind: KIND, label: name } },
+    };
+    session.payment_intent_data = { description: name };
+  }
+
+  const created = await stripe.checkout.sessions.create(session);
+  return json({ url: created.url });
+}
+
+// ---------------------------------------------------------------
 // called by stripe-webhook.mjs
 // ---------------------------------------------------------------
 
@@ -342,9 +536,17 @@ export async function onOnlineSaleCompleted(session) {
       amount_paid_cents: full.amount_total ?? null,
       tax_cents: full.total_details?.amount_tax ?? null,
       status: paid ? "paid" : "pending",
+      offer_id: meta.offer_id || null,
+      deposit_cents: parseInt(meta.deposit_cents, 10) || null,
     }).select("*").single();
     if (error) throw new Error("online_sales: " + error.message);
     row = data;
+  }
+  // A seminar offer is used once, as soon as it is paid for.
+  if (paid && row.offer_id) {
+    await supabase.from("online_offers")
+      .update({ redeemed_at: new Date().toISOString(), online_sale_id: row.id })
+      .eq("id", row.offer_id).is("redeemed_at", null);
   }
   if (row.learnworlds_status === "enrolled") return;
 
@@ -395,7 +597,10 @@ export async function onOnlineSaleCompleted(session) {
   }).eq("id", row.id);
 
   const money = `${((full.amount_total || 0) / 100).toFixed(2)} ${String(full.currency || "").toUpperCase()}`;
-  const how = row.option === "plan" ? `first of ${row.months} monthly payments` : "paid in full";
+  const how = (row.option === "plan"
+    ? (row.deposit_cents ? `${OFFER_DEPOSIT_PERCENT}% deposit, then ${row.months} monthly payments`
+                         : `first of ${row.months} monthly payments`)
+    : "paid in full") + (row.offer_id ? ", seminar rate" : "");
 
   if (result.status !== "enrolled") {
     await alert("Online course SOLD but NOT enrolled",
