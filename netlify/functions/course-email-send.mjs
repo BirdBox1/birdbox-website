@@ -70,7 +70,10 @@ export default async (req) => {
     const staff = await requireStaff(req);
     if (!staff) return json({ error: "Not authorised" }, 401);
 
-    const { emailId, attendedOnly, registrationId } = await req.json();
+    const input = await req.json();
+    if (input.test) return await sendTestToSelf(staff, input);
+
+    const { emailId, attendedOnly, registrationId } = input;
     if (!emailId) return json({ error: "Missing email" }, 400);
 
     const { data: email } = await supabase
@@ -316,6 +319,50 @@ export default async (req) => {
     return json({ error: err.message || "Something went wrong" }, 500);
   }
 };
+
+// ---------------------------------------------------------------
+// a test to the coach alone
+// ---------------------------------------------------------------
+
+// The follow-up exactly as attendees will get it — same service, same
+// sender, same design and logo — but only to the coach who asked, and
+// nothing is recorded as sent. The offer button opens a preview of the
+// offer page, which cannot take a payment.
+async function sendTestToSelf(staff, { courseId, subject, body }) {
+  if (!courseId || !String(body || "").trim()) return json({ error: "There is nothing to send." }, 400);
+  if (!staff.email) return json({ error: "Your staff profile has no email address." }, 409);
+  if (!(await isLeadOrAdmin(staff, courseId))) {
+    return json({ error: "Only the lead coach can send the follow-up" }, 403);
+  }
+
+  const { data: course } = await supabase
+    .from("courses").select("id, brand, type, level, title").eq("id", courseId).single();
+  if (!course) return json({ error: "Course not found" }, 404);
+
+  const brand = BRAND_LOGO[String(course.brand || "").toLowerCase()] || null;
+  const b = String(course.brand || "").toLowerCase();
+  const level = String(course.level == null ? "" : course.level).replace(/\D/g, "");
+  const site = (process.env.SITE_URL || "https://birdboxcoaching.com").replace(/\/+$/, "");
+  const offerUrl = OFFER_MARK.test(body) && course.type === "live_seminar" && OFFER_COURSES.has(`${b}:${level}`)
+    ? `${site}/offer/?preview=${b}-${level}`
+    : null;
+
+  const first = String(staff.full_name || "").split(" ")[0];
+  const text = withOffer(personalise(body, { first_name: first }), offerUrl);
+  const result = await sendEmail({
+    to: staff.email,
+    sender: senderFor(staff),
+    subject: "[TEST] " + (String(subject || "").trim() || course.title),
+    text,
+    brand,
+    offerUrl,
+    rich: true,
+    copyOffice: false,
+  });
+
+  if (!result.ok) return json({ error: `The test was not sent: ${result.error}` }, 502);
+  return json({ ok: true, sentTo: staff.email });
+}
 
 // ---------------------------------------------------------------
 // who is asking
@@ -566,7 +613,7 @@ async function logoAttachment(file) {
   return logoCache[file];
 }
 
-async function sendEmail({ to, sender, subject, text, brand, offerUrl = null, rich = false }) {
+async function sendEmail({ to, sender, subject, text, brand, offerUrl = null, rich = false, copyOffice = true }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("No Resend key; not sending to", to);
@@ -580,7 +627,7 @@ async function sendEmail({ to, sender, subject, text, brand, offerUrl = null, ri
   const payload = JSON.stringify({
     from: sender.from,
     to: [to],
-    cc: [OFFICE],
+    ...(copyOffice ? { cc: [OFFICE] } : {}),
     reply_to: sender.replyTo,
     subject,
     text,
