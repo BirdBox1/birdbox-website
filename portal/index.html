@@ -428,6 +428,63 @@
   .shot .cap.err { color: var(--bad); }
 
   /* ---------------- notes ---------------- */
+
+/* Seminar Wi-Fi drops replies: the note often lands but the browser
+   reports "Load failed". Treat those as retryable, and keep drafts
+   on the device until the server confirms. */
+const NOTE_SELECT = "id, registration_id, staff_id, body, created_at, updated_at, staff ( full_name )";
+
+function isNetworkError(error) {
+  const m = String((error && error.message) || error || "");
+  return /load failed|failed to fetch|networkerror|network request failed|timed? ?out|aborted/i.test(m);
+}
+
+function noteDraftKey(regId) { return "bb-note-draft:" + regId; }
+function readNoteDraft(regId) {
+  try { return localStorage.getItem(noteDraftKey(regId)) || ""; } catch (e) { return ""; }
+}
+function writeNoteDraft(regId, text) {
+  try {
+    if (text) localStorage.setItem(noteDraftKey(regId), text);
+    else localStorage.removeItem(noteDraftKey(regId));
+  } catch (e) {}
+}
+
+function newNoteId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return null;
+}
+
+/* Insert with a client-made id so a retry after a lost reply cannot
+   create a duplicate: if the first attempt landed, we just read it back. */
+async function insertNoteReliably(row, onRetry) {
+  const id = newNoteId();
+  if (id) row = { ...row, id };
+  const waits = [0, 1500, 3000, 6000, 10000];
+  let lastError = null;
+
+  for (let i = 0; i < waits.length; i++) {
+    if (waits[i]) {
+      if (onRetry) onRetry(i);
+      await new Promise(r => setTimeout(r, waits[i]));
+    }
+
+    if (id && i > 0) {
+      const { data: existing, error: readErr } = await db.from("participant_notes")
+        .select(NOTE_SELECT).eq("id", id).maybeSingle();
+      if (existing) return { data: existing, error: null };
+      if (readErr && isNetworkError(readErr)) { lastError = readErr; continue; }
+    }
+
+    const { data, error } = await db.from("participant_notes")
+      .insert(row).select(NOTE_SELECT).single();
+    if (!error) return { data, error: null };
+    if (id && error.code === "23505") continue; // landed already; read it back next round
+    if (!isNetworkError(error)) return { data: null, error };
+    lastError = error;
+  }
+  return { data: null, error: lastError };
+}
   .notes { margin-top: 0.7rem; }
   .notes .head {
     display: flex; align-items: baseline; gap: 0.5rem; justify-content: space-between;
@@ -2303,7 +2360,74 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
-const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+// On an iPad left asleep or on patchy mobile data the login can lapse
+// without the page noticing; saves then go out signed-out and the
+// database refuses them with a row-level security error. Catch the
+// 401, try to refresh the login once, and if that fails ask for the
+// password in place so nothing typed on the page is lost.
+async function authAwareFetch(input, init) {
+  const res = await fetch(input, init);
+  const url = typeof input === "string" ? input : input.url;
+  let signedIn = false;
+  try { signedIn = !!me; } catch (e) { /* page still loading */ }
+  if (res.status !== 401 || /\/auth\/v1\//.test(url) || !signedIn) return res;
+
+  const { data } = await db.auth.refreshSession().catch(() => ({ data: {} }));
+  const token = data && data.session && data.session.access_token;
+  if (!token) { showReauth(); return res; }
+
+  const headers = new Headers((init && init.headers) || {});
+  headers.set("Authorization", "Bearer " + token);
+  return fetch(input, { ...init, headers });
+}
+
+const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  global: { fetch: authAwareFetch },
+});
+
+function showReauth() {
+  if (document.getElementById("reauth")) return;
+  const box = document.createElement("div");
+  box.id = "reauth";
+  box.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px";
+  box.innerHTML = `
+    <div style="background:#fff;color:#111;max-width:380px;width:100%;border-radius:10px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.25)">
+      <h3 style="margin:0 0 6px">You've been signed out</h3>
+      <p style="margin:0 0 12px;font-size:14px">Sign in again to keep going. Everything on the page stays as it is — then tap save again.</p>
+      <input id="reauth-email" type="email" autocomplete="username" placeholder="Email" style="width:100%;box-sizing:border-box;padding:10px;margin-bottom:8px;font-size:16px">
+      <input id="reauth-pass" type="password" autocomplete="current-password" placeholder="Password" style="width:100%;box-sizing:border-box;padding:10px;margin-bottom:10px;font-size:16px">
+      <button id="reauth-go" class="btn wide" type="button">Sign in</button>
+      <p id="reauth-msg" style="margin:8px 0 0;font-size:14px;color:#b00020"></p>
+    </div>`;
+  document.body.append(box);
+  const email = box.querySelector("#reauth-email");
+  const pass = box.querySelector("#reauth-pass");
+  const go = box.querySelector("#reauth-go");
+  const msg = box.querySelector("#reauth-msg");
+  email.value = ($("email") && $("email").value) || "";
+  (email.value ? pass : email).focus();
+
+  const submit = async () => {
+    go.disabled = true; msg.textContent = "";
+    const { data, error } = await db.auth.signInWithPassword({
+      email: email.value.trim(), password: pass.value,
+    });
+    go.disabled = false;
+    if (error) { msg.textContent = "That email and password did not match. Try again."; return; }
+    if (me && data.user && data.user.id !== me.id) { location.reload(); return; }
+    box.remove();
+  };
+  go.addEventListener("click", submit);
+  pass.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+}
+
+// Coming back to the tab after the iPad slept: check the login is
+// still there before the next save finds out the hard way.
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState !== "visible" || !me) return;
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) showReauth();
+});
 
 const LOW_NUMBERS = 5;
 const LOW_DAYS_OUT = 24;
@@ -4171,31 +4295,41 @@ function renderNotes(box, course, reg, notes) {
   const btn = box.querySelector(".addnote button");
   const msg = box.querySelector(".addnote .note-msg");
 
+  const draft = readNoteDraft(reg.id);
+  if (draft) {
+    ta.value = draft;
+    msg.className = "note-msg";
+    msg.textContent = "Unsaved draft restored — tap Add note to save it.";
+  }
+  ta.addEventListener("input", () => writeNoteDraft(reg.id, ta.value.trim()));
+
   btn.addEventListener("click", async () => {
     const body = ta.value.trim();
     if (!body) return;
+    writeNoteDraft(reg.id, body);
 
     btn.disabled = true;
     msg.className = "note-msg";
     msg.textContent = "Saving…";
 
-    const { data, error } = await db.from("participant_notes")
-      .insert({
-        registration_id: reg.id,
-        course_id: course.id,
-        staff_id: me.id,
-        body,
-      })
-      .select("id, registration_id, staff_id, body, created_at, updated_at, staff ( full_name )")
-      .single();
+    const { data, error } = await insertNoteReliably({
+      registration_id: reg.id,
+      course_id: course.id,
+      staff_id: me.id,
+      body,
+    }, attempt => { msg.textContent = `Connection dropped — retrying (${attempt})…`; });
 
     btn.disabled = false;
 
     if (error) {
       msg.className = "note-msg err";
-      msg.textContent = "Could not save: " + error.message;
+      msg.textContent = isNetworkError(error)
+        ? "No connection — your note is kept on this device. Tap Add note again when you have signal."
+        : "Could not save: " + error.message;
       return;
     }
+
+    writeNoteDraft(reg.id, "");
 
     const none = list.querySelector(".nonotes");
     if (none) none.remove();
@@ -4291,24 +4425,47 @@ function renderOneNote(list, note, lead) {
         msg.className = "note-msg";
         msg.textContent = "Saving…";
 
-        const { data, error } = await db.from("participant_notes")
+        let { data, error } = await db.from("participant_notes")
           .update({ body: next, updated_at: new Date().toISOString() })
           .eq("id", note.id)
           .eq("updated_at", known)
           .select("body, updated_at")
           .maybeSingle();
 
+        // Lost reply: check whether the edit landed before calling it a failure.
+        let current = null;
+        if (error && isNetworkError(error)) {
+          await new Promise(r => setTimeout(r, 1500));
+          const res = await db.from("participant_notes")
+            .select("body, updated_at").eq("id", note.id).maybeSingle();
+          if (!res.error && res.data) {
+            current = res.data;
+            if (current.body === next) { data = current; error = null; }
+            else if (current.updated_at === known) {
+              ({ data, error } = await db.from("participant_notes")
+                .update({ body: next, updated_at: new Date().toISOString() })
+                .eq("id", note.id).eq("updated_at", known)
+                .select("body, updated_at").maybeSingle());
+              current = null;
+            } else error = null;
+          }
+        }
+
         saveBtn.disabled = false;
 
         if (error) {
           msg.className = "note-msg err";
-          msg.textContent = "Could not save: " + error.message;
+          msg.textContent = isNetworkError(error)
+            ? "No connection — your edit is still in the box. Tap Save again when you have signal."
+            : "Could not save: " + error.message;
           return;
         }
 
         if (!data) {
-          const { data: current } = await db.from("participant_notes")
-            .select("body, updated_at").eq("id", note.id).maybeSingle();
+          if (!current) {
+            ({ data: current } = await db.from("participant_notes")
+              .select("body, updated_at").eq("id", note.id).maybeSingle());
+          }
           msg.className = "note-msg err";
           msg.textContent = "Someone else edited this note while you were writing. Theirs is shown below — copy anything you need and edit again.";
           if (current) { note.body = current.body; finish(current.body, current.updated_at); }
