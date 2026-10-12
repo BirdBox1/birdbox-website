@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Your Seminar Rate — BirdBox Coaching</title>
+<!--
+  The seminar offer. Reached only from the personal link in a coach's
+  follow-up email (?t=TOKEN). The token is checked by
+  netlify/functions/online-checkout, which also makes the Stripe
+  Checkout — this page only shows the choices.
+-->
+<style>
+  :root {
+    --ink: #eceae6; --paper: #101215; --panel: #191c20; --shell: #0d0e10;
+    --rule: rgba(255,255,255,0.14); --muted: #99a0a8; --accent: #2f7fd0; --err: #ff8a80;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased; min-height: 100vh;
+  }
+  .bar { background: var(--shell); padding: 0.7rem 1.25rem; display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid var(--rule); }
+  .mark { width: 32px; height: 32px; border-radius: 4px; background: #fff; display: grid; place-items: center; flex: none; }
+  .mark img { width: 24px; height: 24px; object-fit: contain; }
+  .bar .name { font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9; }
+  .wrap { max-width: 38rem; margin: 0 auto; padding: 2.4rem 16px 4rem; }
+  .kicker { font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 0.6rem; }
+  h1 { font-size: clamp(1.5rem, 5vw, 2.1rem); line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 0.8rem; }
+  .lead { color: #c9ccd0; margin: 0 0 1.8rem; }
+  .price { display: flex; align-items: baseline; gap: 0.8rem; flex-wrap: wrap; margin: 0 0 0.3rem; }
+  .price .now { font-size: 2.2rem; font-weight: 750; letter-spacing: -0.02em; }
+  .price .was { color: var(--muted); text-decoration: line-through; font-size: 1.1rem; }
+  .price .off { background: var(--accent); color: #fff; font-size: 0.8rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 3px; }
+  .vat { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.8rem; min-height: 1.2em; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.6rem; }
+  .fields .wide { grid-column: 1 / -1; }
+  @media (max-width: 520px) { .fields { grid-template-columns: 1fr; } }
+  label { display: block; font-size: 0.85rem; font-weight: 650; margin-bottom: 0.35rem; color: #c9ccd0; }
+  select { width: 100%; background: var(--panel); color: var(--ink); border: 1px solid #3a3f45; padding: 0.7rem 0.8rem; font-size: 16px; border-radius: 5px; }
+  .opts { display: grid; gap: 12px; margin-bottom: 1.4rem; }
+  .opt { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid #3a3f45; border-radius: 6px; padding: 1rem 1.1rem; cursor: pointer; }
+  .opt:hover { border-color: #6a7078; }
+  .opt[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .opt b { display: block; font-size: 1.05rem; margin-bottom: 0.2rem; }
+  .opt span { color: var(--muted); font-size: 0.92rem; }
+  .months { display: none; }
+  .months.show { display: block; }
+  .go { display: block; width: 100%; background: var(--accent); color: #fff; border: 0; font: inherit; font-weight: 700; font-size: 1.05rem; padding: 1rem; border-radius: 6px; cursor: pointer; }
+  .go:disabled { opacity: 0.6; cursor: default; }
+  .msg { margin: 0.9rem 0 0; min-height: 1.4em; color: var(--muted); }
+  .msg.err { color: var(--err); }
+  .small { color: var(--muted); font-size: 0.88rem; margin-top: 1.6rem; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="mark"><img src="/brand/birdbox-mark.png" alt=""></div>
+  <span class="name">BirdBox Coaching</span>
+</div>
+
+<main class="wrap">
+  <p id="loading" class="lead">Loading your offer…</p>
+
+  <section id="problem" class="hidden">
+    <h1 id="problem-h">This link is not working</h1>
+    <p class="lead" id="problem-text"></p>
+  </section>
+
+  <section id="offer" class="hidden">
+    <p class="kicker">Seminar attendee rate</p>
+    <h1 id="title"></h1>
+    <p class="lead" id="lead"></p>
+
+    <div class="price">
+      <span class="now" id="now"></span>
+      <span class="was" id="was"></span>
+      <span class="off" id="off"></span>
+    </div>
+    <p class="vat" id="vat"></p>
+
+    <div class="fields">
+      <div id="lang-wrap" class="wide">
+        <label for="language">Course language</label>
+        <select id="language"></select>
+      </div>
+      <div>
+        <label for="country">Where are you based?</label>
+        <select id="country"></select>
+      </div>
+      <div>
+        <label for="currency">Currency</label>
+        <select id="currency"></select>
+      </div>
+    </div>
+
+    <div class="opts">
+      <button class="opt" type="button" id="opt-full" aria-pressed="true">
+        <b id="full-h">Pay in full</b>
+        <span id="full-s">One payment by card or Klarna. Access straight away.</span>
+      </button>
+      <button class="opt" type="button" id="opt-plan" aria-pressed="false">
+        <b>Spread the cost monthly</b>
+        <span id="plan-s"></span>
+      </button>
+      <div class="months" id="months-wrap">
+        <label for="months">Over how many months?</label>
+        <select id="months"></select>
+      </div>
+    </div>
+
+    <button class="go" type="button" id="go">Continue to payment</button>
+    <p class="msg" id="msg"></p>
+    <p class="small">You get access as soon as you have paid — your login details are emailed to you straight away. Questions? Just reply to your coach's email.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var API = "/.netlify/functions/online-checkout";
+  var SYMBOL = { EUR: "€", GBP: "£", USD: "US$", AUD: "A$", CAD: "C$" };
+  var token = new URLSearchParams(location.search).get("t") || "";
+  var data = null;
+  var state = { option: "full", currency: null, country: "", language: null, months: null };
+  var $ = function (id) { return document.getElementById(id); };
+
+  function money(cents, cur) {
+    var n = cents / 100;
+    var txt = n % 1 === 0 ? n.toLocaleString("en-IE") : n.toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (SYMBOL[cur] || cur + " ") + txt;
+  }
+
+  function problem(heading, text) {
+    $("loading").classList.add("hidden");
+    $("problem-h").textContent = heading;
+    $("problem-text").textContent = text;
+    $("problem").classList.remove("hidden");
+  }
+
+  var CODES = ("AD AE AF AG AL AM AO AR AT AU AZ BA BB BD BE BF BG BH BI BJ BN BO BR BS BT BW BY BZ CA CD CF CG CH CI CL CM CN CO CR CU CV CY CZ DE DJ DK DM DO DZ EC EE EG ER ES ET FI FJ FR GA GB GD GE GH GI GM GN GQ GR GT GW GY HK HN HR HT HU ID IE IL IM IN IQ IR IS IT JE JM JO JP KE KG KH KM KN KR KW KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MG MK ML MM MN MO MR MT MU MV MW MX MY MZ NA NE NG NI NL NO NP NZ OM PA PE PG PH PK PL PR PS PT PY QA RE RO RS RU RW SA SB SC SD SE SG SI SK SL SM SN SO SR SS SV SY SZ TD TG TH TJ TL TM TN TO TR TT TW TZ UA UG US UY UZ VA VC VE VN VU WS XK YE ZA ZM ZW").split(" ");
+  var names = null;
+  try { names = new Intl.DisplayNames(["en"], { type: "region" }); } catch (e) {}
+  function countryName(c) {
+    if (c === "XK") return "Kosovo";
+    try { return (names && names.of(c)) || c; } catch (e) { return c; }
+  }
+
+  function vatRate() {
+    var list = data.vat || [];
+    for (var i = 0; i < list.length; i++) if (list[i].code === state.country) return list[i].rate;
+    return 0;
+  }
+
+  function opt(sel, value, text, selected) {
+    var o = document.createElement("option");
+    o.value = value; o.textContent = text; if (selected) o.selected = true;
+    sel.append(o);
+  }
+
+  function render() {
+    var p = data.prices[state.currency];
+    var cur = state.currency;
+    $("now").textContent = money(p.offer, cur);
+    $("was").textContent = money(p.full, cur);
+    var rate = vatRate();
+    $("vat").textContent = rate ? "Plus VAT at " + rate + "% for " + countryName(state.country) + "." : "";
+
+    $("full-h").textContent = "Pay in full — " + money(p.offer, cur);
+
+    var deposit = Math.round(p.offer * data.deposit_percent / 100);
+    var m = state.months;
+    var each = Math.round((p.offer - deposit) / m);
+    $("plan-s").textContent = money(deposit, cur) + " deposit today, then " + m + " monthly payments of " +
+      money(each, cur) + ". Access straight away.";
+
+    var months = $("months");
+    var keep = String(m);
+    months.innerHTML = "";
+    data.months.forEach(function (n) {
+      var e = Math.round((p.offer - deposit) / n);
+      opt(months, n, n + " months — " + money(e, cur) + " a month", String(n) === keep);
+    });
+
+    $("opt-full").setAttribute("aria-pressed", String(state.option === "full"));
+    $("opt-plan").setAttribute("aria-pressed", String(state.option === "plan"));
+    $("months-wrap").classList.toggle("show", state.option === "plan");
+  }
+
+  function setup() {
+    $("title").textContent = data.title;
+    $("lead").textContent = (data.first_name ? data.first_name + ", because" : "Because") +
+      " you came to the live seminar, you can get the online course at half price. It supports everything" +
+      " we covered and in places goes further, so you can keep going back to it.";
+    $("off").textContent = data.discount_percent + "% off";
+
+    var lang = $("language");
+    data.languages.forEach(function (l, i) { opt(lang, l.language, l.label, i === 0); });
+    state.language = data.languages[0].language;
+    if (data.languages.length < 2) $("lang-wrap").classList.add("hidden");
+
+    var countries = CODES.map(function (c) { return { code: c, name: countryName(c) }; })
+      .sort(function (a, b) { return a.name.localeCompare(b.name); });
+    var csel = $("country");
+    opt(csel, "", "Choose…", !data.country);
+    countries.forEach(function (c) { opt(csel, c.code, c.name, c.code === data.country); });
+    state.country = data.country || "";
+
+    var cursel = $("currency");
+    Object.keys(data.prices).forEach(function (c) { opt(cursel, c, c, c === data.currency); });
+    state.currency = data.currency;
+
+    state.months = data.months[data.months.length - 1];
+
+    lang.onchange = function () { state.language = lang.value; };
+    csel.onchange = function () { state.country = csel.value; render(); };
+    cursel.onchange = function () { state.currency = cursel.value; render(); };
+    $("months").onchange = function (e) { state.months = parseInt(e.target.value, 10); render(); };
+    $("opt-full").onclick = function () { state.option = "full"; render(); };
+    $("opt-plan").onclick = function () { state.option = "plan"; render(); };
+    $("go").onclick = pay;
+
+    render();
+    $("loading").classList.add("hidden");
+    $("offer").classList.remove("hidden");
+  }
+
+  function pay() {
+    var msg = $("msg");
+    if (!state.country) { msg.className = "msg err"; msg.textContent = "Choose where you are based."; return; }
+    $("go").disabled = true;
+    msg.className = "msg"; msg.textContent = "Taking you to secure payment…";
+    fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        offer: token, option: state.option, months: state.months,
+        language: state.language, currency: state.currency, country: state.country,
+      }),
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.j.url) throw new Error(res.j.error || "That did not work. Try again.");
+        location.href = res.j.url;
+      })
+      .catch(function (err) {
+        $("go").disabled = false;
+        msg.className = "msg err";
+        msg.textContent = err.message === "Failed to fetch" || err.message === "Load failed"
+          ? "No connection. Check your signal and try again." : err.message;
+      });
+  }
+
+  if (!token) { problem("This link is not working", "Use the button in your coach's email to open your offer."); return; }
+
+  fetch(API + "?offer=" + encodeURIComponent(token), { cache: "no-store" })
+    .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+    .then(function (res) {
+      if (res.j.redeemed) {
+        problem("You're already in", "This offer has been used" +
+          (res.j.first_name ? ", " + res.j.first_name : "") +
+          ". Your login details were emailed when you paid — check your inbox, or reply to your coach's email if you can't find them.");
+        return;
+      }
+      if (!res.ok) { problem("This link is not working", res.j.error || "Reply to your coach's email and we will sort it out."); return; }
+      data = res.j;
+      setup();
+    })
+    .catch(function () { problem("Could not load your offer", "Check your connection and refresh the page."); });
+})();
+</script>
+</body>
+</html>
