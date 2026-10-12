@@ -262,6 +262,7 @@
   }
   .course .seats--nearly { color: var(--warn); border-color: #e8c9a4; background: #fff8f0; }
   .course .seats--full   { color: #fff; background: var(--good); border-color: var(--good); }
+  .course .card-online { flex-basis: 100%; text-align: right; font-size: 0.68rem; font-weight: 600; color: var(--muted); margin-top: 0.05rem; font-variant-numeric: tabular-nums; }
   .course .card-income { flex-basis: 100%; text-align: right; font-size: 0.72rem; font-weight: 700; color: var(--good); margin-top: 0.15rem; font-variant-numeric: tabular-nums; }
 
   /* Sits with the tabs rather than above the list, so it reads as
@@ -3418,6 +3419,25 @@ async function loadCourses() {
     income[r.course_id] = (income[r.course_id] || 0) + (r.amount_paid_cents || 0);
   }
 
+  // Online course sales that came from a course's follow-up email (the
+  // 50% seminar offer), by course and currency. Admins only — the same
+  // people who see the income figure. The value of the sale, whether
+  // paid in full or on a plan.
+  const online = {};
+  if (isAdmin()) {
+    const { data: sold } = await db.from("online_offers")
+      .select("course_id, online_sales!online_offers_online_sale_id_fkey ( price_cents, currency )")
+      .in("course_id", rows.map((c) => c.id))
+      .not("online_sale_id", "is", null);
+    for (const o of sold || []) {
+      const s = o.online_sales;
+      if (!s || !s.price_cents) continue;
+      const byCur = (online[o.course_id] = online[o.course_id] || { count: 0, cur: {} });
+      byCur.count++;
+      byCur.cur[s.currency] = (byCur.cur[s.currency] || 0) + s.price_cents;
+    }
+  }
+
   // Soonest first is the default because it answers the question the
   // page is usually open for: what is coming up. The archived tabs
   // flip it, because there "recent" means most recently run.
@@ -3643,6 +3663,16 @@ async function loadCourses() {
       incEl.textContent = money(income[c.id] || 0, c.currency);
       incEl.title = "Income received (excludes refunds)";
       el.querySelector(".topright").append(incEl);
+
+      // Online course sold from this course's follow-up email.
+      const on = online[c.id];
+      if (on) {
+        const onEl = document.createElement("span");
+        onEl.className = "card-online";
+        onEl.textContent = "+ " + Object.entries(on.cur).map(([cur, cents]) => money(cents, cur)).join(" + ") + " online";
+        onEl.title = `${on.count} online course sale${on.count === 1 ? "" : "s"} at the seminar rate, from the follow-up email (value of the sale, before VAT)`;
+        el.querySelector(".topright").append(onEl);
+      }
     }
     el.querySelector(".line").textContent =
       [c.city, countryName(c.country)].filter(Boolean).join(", ") || "Location to be confirmed";
