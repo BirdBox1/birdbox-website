@@ -268,6 +268,9 @@ async function checkout(req, body) {
   if (vatRow) lineItem.tax_rates = [vatRow.id];
 
   const session = {
+    // The buyer picked their currency on our page; Stripe's Adaptive
+    // Pricing would offer them another one (CHF, say) on top. Off.
+    adaptive_pricing: { enabled: false },
     mode: option === "plan" ? "subscription" : "payment",
     payment_method_types: ["card"],
     line_items: [lineItem],
@@ -446,6 +449,9 @@ async function seminarCheckout(req, body) {
   };
 
   const session = {
+    // The buyer picked their currency on our page; Stripe's Adaptive
+    // Pricing would offer them another one (CHF, say) on top. Off.
+    adaptive_pricing: { enabled: false },
     mode: option === "plan" ? "subscription" : "payment",
     payment_method_types: ["card"],
     customer_email: o.registrations.email || undefined,
