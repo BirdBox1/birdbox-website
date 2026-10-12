@@ -545,7 +545,7 @@ function template(text, brand, offerUrl, rich = false, inlineLogo = false) {
                   escapeHtml(OFFER_LABEL)} &rarr;</span></a>
               </td>
             </tr></table>
-            <p style="margin:12px 0 0;font-size:13px;line-height:1.5;color:${C.muted}">Pay in full, or a 20% deposit then 2&ndash;6 monthly payments.</p>
+            <p style="margin:12px 0 0;font-size:13px;line-height:1.5;color:${C.muted}">Pay in full, or spread it over 2&ndash;6 monthly payments.</p>
           </td>
         </tr></table>`;
       }
