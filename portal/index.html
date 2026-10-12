@@ -1943,11 +1943,17 @@ async function insertNoteReliably(row, onRetry) {
 
     <div class="field hidden" id="fu-message-wrap">
       <label for="fu-message">Your message to the group
-        <span class="hint">required — it goes at the top of the email, after "Hi {first name},"</span>
+        <span class="hint">required — it goes into the email below, straight after "Hi {first name},"</span>
       </label>
       <textarea id="fu-message" style="min-height:8rem"
         placeholder="What you saw, how they did, what to work on next…"></textarea>
+      <div class="row" style="margin-top:0.4rem">
+        <button class="btn small" id="fu-message-add" type="button">Add to email</button>
+      </div>
     </div>
+    <p class="whenline hidden" id="fu-message-done" style="color:var(--good)">
+      ✓ Your message is in the email below — edit it there if you want to change it.
+    </p>
 
     <div class="field">
       <label for="fu-body">The rest of the email
@@ -7179,7 +7185,9 @@ async function openFollowup(course) {
     (fuTemplate && fuTemplate.subject) || "Following up on {{course_title}}", full);
   $("fu-body").value = followupDraft(full);
   $("fu-message").value = "";
+  fuMessageAdded = false;
   $("fu-message-wrap").classList.toggle("hidden", !needsMessage());
+  $("fu-message-done").classList.add("hidden");
   checkOfferLine();
   $("fu-note").textContent = fuTemplate
     ? (needsMessage()
@@ -7207,6 +7215,28 @@ const OFFER_LINE = "[[ 50% OFFER BUTTON — leave this line exactly as it is ]]"
 // A standard text with {{personal_note}} (TGC Level 1) asks for the
 // coach's own message. It is written in its own box above the email
 // and is required, so no placeholder ever sits in the email itself.
+// Set once the coach's message has gone into the email body.
+let fuMessageAdded = false;
+
+// Put the coach's message straight after the greeting (or first, if
+// the greeting was taken out), so they see it in the email itself.
+function addMessageToEmail() {
+  const message = $("fu-message").value.trim();
+  if (!message) return false;
+  const ta = $("fu-body");
+  const lines = ta.value.split("\n");
+  const greet = /^\s*(hi|hello|dear|hola|bonjour|ciao|hallo|olá|ola)\b/i.test(lines[0] || "");
+  ta.value = greet
+    ? [lines[0], "", message, "", lines.slice(1).join("\n").trim()].join("\n")
+    : message + "\n\n" + ta.value.trim();
+  $("fu-message").value = "";
+  fuMessageAdded = true;
+  $("fu-message-wrap").classList.add("hidden");
+  $("fu-message-done").classList.remove("hidden");
+  checkOfferLine();
+  return true;
+}
+
 function needsMessage() {
   return !!(fuTemplate && /\{\{\s*personal_note\s*\}\}/i.test(fuTemplate.body));
 }
@@ -7234,7 +7264,7 @@ function offerLineOk(text) {
 function checkOfferLine() {
   const text = $("fu-body").value;
   const ok = offerLineOk(text);
-  const written = !needsMessage() || !!$("fu-message").value.trim();
+  const written = !needsMessage() || fuMessageAdded || !!$("fu-message").value.trim();
   $("fu-button-warn").classList.toggle("hidden", ok);
   $("fu-write-warn").classList.toggle("hidden", written);
   $("fu-send").disabled = !(ok && written);
@@ -7245,6 +7275,8 @@ function checkOfferLine() {
 function wireFollowup() {
   $("fu-body").addEventListener("input", checkOfferLine);
   $("fu-message").addEventListener("input", checkOfferLine);
+  $("fu-message").addEventListener("blur", addMessageToEmail);
+  $("fu-message-add").onclick = addMessageToEmail;
 
   // A coach's own button: one line in the email, drawn as a button
   // when it is sent (course-email-send, COACH_BUTTON).
@@ -7307,22 +7339,15 @@ function wireFollowup() {
     }
     if (!checkOfferLine()) {
       msg.className = "msg err";
-      msg.textContent = needsMessage() && !$("fu-message").value.trim()
+      msg.textContent = needsMessage() && !fuMessageAdded && !$("fu-message").value.trim()
         ? "Write your message to the group in the box at the top first."
         : "Put the 50% offer button line back before sending.";
       return null;
     }
 
-    // The coach's message goes straight after the greeting (or first,
-    // if the greeting was taken out).
-    let full = text;
-    const message = needsMessage() ? $("fu-message").value.trim() : "";
-    if (message) {
-      const lines = full.split("\n");
-      const g = lines.findIndex((l) => /^\s*(hi|hello|dear|hola|bonjour|ciao|hallo|olá|ola)\b/i.test(l));
-      if (g === 0) full = [lines[0], "", message, "", lines.slice(1).join("\n").trim()].join("\n");
-      else full = message + "\n\n" + full;
-    }
+    // A message still sitting in the top box goes into the email now.
+    if (needsMessage() && !fuMessageAdded) addMessageToEmail();
+    const full = $("fu-body").value.trim();
 
     const body = full
       .split("\n").map((l) => (l.trim() === OFFER_LINE ? "{{offer_button}}" : l)).join("\n")
