@@ -62,6 +62,8 @@ const $ = (id) => document.getElementById(id);
 const show = (id) => ["loading", "bad", "form", "thanks"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 const t = new URLSearchParams(location.search).get("t") || "";
 const picks = {};
+// The default qualities are stored in English; show them in Spanish (scores stay keyed on the stored word).
+const ES_TRAIT = {"Integrity": "Integridad", "Flexibility": "Flexibilidad", "Loyalty": "Lealtad", "Confidence": "Confianza", "Accountability": "Responsabilidad", "Candor": "Franqueza", "Preparedness": "Preparación", "Resourcefulness": "Ingenio", "Self-discipline": "Autodisciplina", "Patience": "Paciencia"};
 
 (async () => {
   let d = null;
@@ -76,7 +78,7 @@ const picks = {};
     ", que le puntúes en las cualidades de coaching que aparecen abajo. Puntúa cada una del 1 (necesita mucho trabajo) al 10 (excelente). Sé sincero: le ayuda a crecer. Se tarda unos 2 minutos.";
   for (const q of d.qualities) {
     const box = document.createElement("div"); box.className = "q";
-    const h = document.createElement("h3"); h.textContent = q;
+    const h = document.createElement("h3"); h.textContent = ES_TRAIT[q] || q;
     const sc = document.createElement("div"); sc.className = "scale";
     for (let v = 1; v <= 10; v++) {
       const b = document.createElement("button"); b.type = "button"; b.textContent = v;
