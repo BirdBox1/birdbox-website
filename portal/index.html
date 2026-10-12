@@ -1941,16 +1941,23 @@ async function insertNoteReliably(row, onRetry) {
       Edit and change anything in this email to make it personal to you and this group.
     </p>
 
+    <div class="field hidden" id="fu-message-wrap">
+      <label for="fu-message">Your message to the group
+        <span class="hint">required — it goes at the top of the email, after "Hi {first name},"</span>
+      </label>
+      <textarea id="fu-message" style="min-height:8rem"
+        placeholder="What you saw, how they did, what to work on next…"></textarea>
+    </div>
+
     <div class="field">
-      <label for="fu-body">The email
+      <label for="fu-body">The rest of the email
         <span class="hint">{first name} becomes each person's name</span>
       </label>
       <textarea id="fu-body" style="min-height:24rem"></textarea>
     </div>
 
     <p class="whenline hidden" id="fu-write-warn">
-      Write your own message where it says "Write your message here" — replace that line
-      (or delete it) and the email can be sent.
+      Write your message to the group in the box at the top — the email cannot be sent without it.
     </p>
 
     <p class="msg err hidden" id="fu-button-warn">
@@ -7146,9 +7153,13 @@ async function openFollowup(course) {
   $("fu-subject").value = fillFollowup(
     (fuTemplate && fuTemplate.subject) || "Following up on {{course_title}}", full);
   $("fu-body").value = followupDraft(full);
+  $("fu-message").value = "";
+  $("fu-message-wrap").classList.toggle("hidden", !needsMessage());
   checkOfferLine();
   $("fu-note").textContent = fuTemplate
-    ? "Write your message where it says \"Write your message here\", then check the rest. Edit or translate any of it — only the offer button line must stay."
+    ? (needsMessage()
+        ? "Write your message in the box at the top, then check the rest. Edit or translate any of it — only the offer button line must stay."
+        : "Edit or translate any of it — only the offer button line must stay.")
     : "Write the email in your own words. It starts with \"Hi {first name},\" and ends with your name.";
   checkOfferLine();
   $("fuwrap").classList.remove("hidden");
@@ -7168,16 +7179,18 @@ function fillFollowup(text, course) {
 // the portal and the send function both refuse an email without it.
 const OFFER_LINE = "[[ 50% OFFER BUTTON — leave this line exactly as it is ]]";
 
-// Where the standard text leaves room for the coach ({{personal_note}}).
-// The email cannot go out while this prompt is still in it: the coach
-// writes their message in its place, or deletes the line.
-const WRITE_LINE = "[[ Write your message here — what you saw, how they did, what to work on next ]]";
+// A standard text with {{personal_note}} (TGC Level 1) asks for the
+// coach's own message. It is written in its own box above the email
+// and is required, so no placeholder ever sits in the email itself.
+function needsMessage() {
+  return !!(fuTemplate && /\{\{\s*personal_note\s*\}\}/i.test(fuTemplate.body));
+}
 
 function followupDraft(course) {
   const name = (me && me.full_name) || "";
   if (!fuTemplate) return "Hi {first name},\n\n\n\n" + name;
   const fixed = fillFollowup(fuTemplate.body, course)
-    .replace(/\{\{\s*personal_note\s*\}\}/gi, WRITE_LINE)
+    .replace(/\{\{\s*personal_note\s*\}\}/gi, "")
     .replace(/\{\{\s*offer_button\s*\}\}/gi, OFFER_LINE)
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -7196,7 +7209,7 @@ function offerLineOk(text) {
 function checkOfferLine() {
   const text = $("fu-body").value;
   const ok = offerLineOk(text);
-  const written = !text.includes(WRITE_LINE);
+  const written = !needsMessage() || !!$("fu-message").value.trim();
   $("fu-button-warn").classList.toggle("hidden", ok);
   $("fu-write-warn").classList.toggle("hidden", written);
   $("fu-send").disabled = !(ok && written);
@@ -7206,6 +7219,7 @@ function checkOfferLine() {
 
 function wireFollowup() {
   $("fu-body").addEventListener("input", checkOfferLine);
+  $("fu-message").addEventListener("input", checkOfferLine);
   $("fu-button-restore").onclick = () => {
     const ta = $("fu-body");
     // Take out any half-edited copy, then put the line back before the sign-off.
@@ -7244,13 +7258,24 @@ function wireFollowup() {
     }
     if (!checkOfferLine()) {
       msg.className = "msg err";
-      msg.textContent = $("fu-body").value.includes(WRITE_LINE)
-        ? "Write your message where it says \"Write your message here\" first."
+      msg.textContent = needsMessage() && !$("fu-message").value.trim()
+        ? "Write your message to the group in the box at the top first."
         : "Put the 50% offer button line back before sending.";
       return null;
     }
 
-    const body = text
+    // The coach's message goes straight after the greeting (or first,
+    // if the greeting was taken out).
+    let full = text;
+    const message = needsMessage() ? $("fu-message").value.trim() : "";
+    if (message) {
+      const lines = full.split("\n");
+      const g = lines.findIndex((l) => /^\s*(hi|hello|dear|hola|bonjour|ciao|hallo|olá|ola)\b/i.test(l));
+      if (g === 0) full = [lines[0], "", message, "", lines.slice(1).join("\n").trim()].join("\n");
+      else full = message + "\n\n" + full;
+    }
+
+    const body = full
       .split("\n").map((l) => (l.trim() === OFFER_LINE ? "{{offer_button}}" : l)).join("\n")
       .replace(/\{\s*first name\s*\}/gi, "{{first_name}}");
     return { subject, body };
