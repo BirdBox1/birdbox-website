@@ -1512,6 +1512,14 @@ const PF_COURSES = [
   ] },
 ];
 async function pfHome(rows) {
+  // The portfolio follows the language of the learner's course: someone whose portfolio
+  // courses are all in Spanish is sent to the Spanish portfolio.
+  try {
+    const { data: en } = await db.from("learn_enrolments").select("learn_courses(brand, language)").eq("user_id", session.user.id);
+    const brands = new Set(PF_COURSES.map((c) => c.brand));
+    const langs = (en || []).map((e) => e.learn_courses).filter((c) => c && brands.has(String(c.brand || "").toLowerCase())).map((c) => c.language);
+    if (langs.length && langs.every((l) => l === "es")) { location.replace("/learn/portfolio/es/"); return; }
+  } catch (e) { /* stay on this page */ }
   const done = new Set((rows || []).map((r) => r.tool).filter((t) => t !== "_unlocked"));
   const unl = (rows || []).find((r) => r.tool === "_unlocked");
   const open = new Set([...done, ...((unl && unl.data && unl.data.tools) || [])]);
