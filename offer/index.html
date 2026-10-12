@@ -14,7 +14,7 @@
 <style>
   :root {
     --ink: #eceae6; --paper: #101215; --panel: #191c20; --shell: #0d0e10;
-    --rule: rgba(255,255,255,0.14); --muted: #99a0a8; --accent: #2f7fd0; --err: #ff8a80;
+    --rule: rgba(255,255,255,0.14); --muted: #99a0a8; --accent: #2f7fd0; --accentText: #4fa8de; --err: #ff8a80;
   }
   *, *::before, *::after { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
@@ -29,7 +29,7 @@
   .bar .name { font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9; }
   .wrap { max-width: 38rem; margin: 0 auto; padding: 2.4rem 16px 4rem; }
   .preview { background: #3a2f12; border: 1px solid #8a6d1f; color: #f3d98b; border-radius: 6px; padding: 0.7rem 0.9rem; font-size: 0.92rem; margin: 0 0 1.4rem; }
-  .kicker { font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 0.6rem; }
+  .kicker { font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accentText); font-weight: 700; margin: 0 0 0.6rem; }
   h1 { font-size: clamp(1.5rem, 5vw, 2.1rem); line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 0.8rem; }
   .lead { color: #c9ccd0; margin: 0 0 1.8rem; }
   .price { display: flex; align-items: baseline; gap: 0.8rem; flex-wrap: wrap; margin: 0 0 0.3rem; }
@@ -194,7 +194,17 @@
     $("months-wrap").classList.toggle("show", state.option === "plan");
   }
 
+  // Each brand in its own colour: TGC red, TCC (and anything else) blue.
+  var BRAND_COLOURS = {
+    tgc: { accent: "#c62f33", text: "#e8585c" },
+    tcc: { accent: "#2f7fd0", text: "#4fa8de" },
+  };
+
   function setup() {
+    var colours = BRAND_COLOURS[data.brand] || BRAND_COLOURS.tcc;
+    document.documentElement.style.setProperty("--accent", colours.accent);
+    document.documentElement.style.setProperty("--accentText", colours.text);
+
     $("title").textContent = data.title;
     $("lead").textContent = (data.first_name ? data.first_name + ", because" : "Because") +
       " you came to the live seminar, you can get the online course at half price. It supports everything" +
