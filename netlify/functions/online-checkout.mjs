@@ -35,7 +35,7 @@
 // both kept on the sale as the two pieces of location evidence.
 //
 // PAYMENT OPTIONS
-//   full   card or Klarna, once. Klarna pays us in full up front.
+//   full   one card payment. (Klarna was removed in September 2026.)
 //   plan   3 to 8 monthly card payments (buyer's choice), as a Stripe subscription
 //          that cancels itself after the last one. Access is given on
 //          the first payment. A failed payment alerts the office.
@@ -46,7 +46,7 @@
 //   It opens /offer/ at the seminar rate — 50% off the same brand and
 //   level online course. The token is the proof they were there, so
 //   nobody else can get the rate, and it is used once.
-//   full   pay the discounted price once, card or Klarna.
+//   full   pay the discounted price once, by card.
 //   plan   20% deposit today, then the rest over 2 to 6 monthly card
 //          payments starting a month later. Access on the deposit.
 
@@ -264,7 +264,7 @@ async function checkout(req, body) {
 
   const session = {
     mode: option === "plan" ? "subscription" : "payment",
-    payment_method_types: option === "plan" ? ["card"] : ["card", "klarna"],
+    payment_method_types: ["card"],
     line_items: [lineItem],
     billing_address_collection: "required",
     consent_collection: { terms_of_service: "required" },
@@ -427,7 +427,7 @@ async function seminarCheckout(req, body) {
 
   const session = {
     mode: option === "plan" ? "subscription" : "payment",
-    payment_method_types: option === "plan" ? ["card"] : ["card", "klarna"],
+    payment_method_types: ["card"],
     customer_email: o.registrations.email || undefined,
     billing_address_collection: "required",
     consent_collection: { terms_of_service: "required" },

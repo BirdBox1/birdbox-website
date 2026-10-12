@@ -194,7 +194,7 @@
     }
 
     option("full", "Pay in full", money(price, state.currency), vatNote,
-      "Card or Klarna. Instant access.");
+      "One card payment. Instant access.");
 
     // How many months, 3 to 8.
     var mwrap = el("div", "ob-field");
