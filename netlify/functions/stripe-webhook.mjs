@@ -477,6 +477,13 @@ async function onInvoicePaid(invoice) {
     return;
   }
 
+  // Invoices that only document money already recorded: the one the
+  // seminar checkout makes for its own payment (it carries
+  // payment_option), and an invoice issued afterwards for a card
+  // payment (payment-invoice.mjs). Filing them below as a host's
+  // payment would count the same money twice.
+  if (invoice.metadata?.payment_option || invoice.metadata?.kind === "retro_invoice") return;
+
   const registrationId = invoice.metadata?.registration_id;
 
   // An invoice carrying a course rather than a registration is money

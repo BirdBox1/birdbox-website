@@ -3995,7 +3995,7 @@ async function openCourse(course) {
   box.innerHTML = '<p class="empty">Loading…</p>';
 
   const { data, error } = await db.from("registrations")
-    .select("id, first_name, last_name, email, phone, country, created_at, payment_status, attended, certificate_sent_at, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name, learnworlds_language, learnworlds_status, learnworlds_user_id, learnworlds_enrolled_at, learnworlds_error, attendance_marked_at, attendance_marked_by, invoice_id, payment_overdue_at, payment_overdue_note")
+    .select("id, first_name, last_name, email, phone, country, created_at, payment_status, attended, certificate_sent_at, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name, learnworlds_language, learnworlds_status, learnworlds_user_id, learnworlds_enrolled_at, learnworlds_error, attendance_marked_at, attendance_marked_by, invoice_id, payment_overdue_at, payment_overdue_note, stripe_session_id, retro_invoice_number")
     .eq("course_id", course.id)
     .order("last_name", { ascending: true });
 
@@ -6027,7 +6027,7 @@ async function runPeopleSearch() {
     // Named explicitly: registrations points at courses twice — once
     // for the course itself and once for transferred_from_course_id —
     // so an unqualified join cannot tell which is meant.
-    .select("id, first_name, last_name, email, phone, status, attended, payment_status, created_at, course_id, courses!registrations_course_id_fkey ( id, title, city, country, starts_at, timezone, brand, level, type, status, archived, slug )")
+    .select("id, first_name, last_name, email, phone, status, attended, payment_status, created_at, course_id, source, invoice_id, stripe_session_id, courses!registrations_course_id_fkey ( id, title, city, country, starts_at, timezone, brand, level, type, status, archived, slug )")
     // One word: match it anywhere. More than one: fetch on the first
     // word and narrow below, because "every word appears somewhere in
     // the name" is not a thing a single query can ask for.
@@ -6158,6 +6158,20 @@ async function runPeopleSearch() {
         flags.append(again);
       } else if (cert) {
         pill("certificate " + cert.reference, "on");
+      }
+
+      // Asking for an invoice for what they paid: from here, without
+      // opening the course first.
+      if (isAdmin() && (r.stripe_session_id || r.invoice_id) && window.openPaymentInvoice) {
+        const inv = document.createElement("button");
+        inv.className = "btn ghost tiny";
+        inv.type = "button";
+        inv.textContent = "Invoice";
+        inv.onclick = (e) => {
+          e.stopPropagation();
+          window.openPaymentInvoice(r.id);
+        };
+        flags.append(inv);
       }
 
       // Asking for the online course at 50%: send their link from
@@ -10202,6 +10216,13 @@ function buildActions(box, course, reg, status) {
 
   add("Edit", "ghost small", () => openEdit(reg));
 
+  // They paid by card and only have the receipt: send the invoice for
+  // that payment (portal/payment-invoice.js). Never a second charge.
+  if ((reg.stripe_session_id || reg.invoice_id) && window.openPaymentInvoice) {
+    add(reg.retro_invoice_number ? "Invoice sent" : "Invoice", "ghost small",
+        () => window.openPaymentInvoice(reg.id));
+  }
+
   if (status === "active") {
     add("Send confirmation", "ghost small", (b) => sendConfirmation(reg, b));
   }
@@ -11939,5 +11960,6 @@ start();
   <script src="/portal/viewas.js"></script>
   <script type="module" src="/portal/switch.js"></script>
   <script type="module" src="/portal/online-invoice.js"></script>
+  <script type="module" src="/portal/payment-invoice.js"></script>
 </body>
 </html>
