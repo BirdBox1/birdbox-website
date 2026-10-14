@@ -25,9 +25,9 @@
 // whoever asks, rather than emailing a formal document to every
 // individual who buys a place for themselves.
 //
-// Switzerland is excluded (see NO_AUTO_INVOICE). An invoice asserts a
-// VAT treatment in a way a receipt does not, and the Swiss position
-// is unresolved, so those are raised by hand for now.
+// NO_AUTO_INVOICE lists any venue country left out while its VAT
+// position is unsettled. Switzerland was, until October 2026: no VAT
+// is charged there, and its invoices now show none.
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
@@ -70,7 +70,7 @@ const LABEL_MAX = 50;
 // Venue countries that get no automatic invoice, by ISO code.
 // Delete an entry once its VAT position is settled and every seminar
 // there starts invoicing itself. Nothing else needs changing.
-const NO_AUTO_INVOICE = ["CH"];
+const NO_AUTO_INVOICE = [];
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
