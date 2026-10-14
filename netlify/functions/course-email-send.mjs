@@ -54,7 +54,7 @@ const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.
 
 // The brand the participant actually registered for, so the email
 // carries the right identity. Filenames are case-sensitive on Netlify.
-const BRAND_LOGO = {
+export const BRAND_LOGO = {
   tcc: { file: "tcc.png", alt: "The Coaches Course", accent: "#1f6fa8" },
   tgc: { file: "tgc.png", alt: "The Gymnastics Course", accent: "#c62f33" },
   tec: { file: "tec.png", alt: "The Endurance Course" },
@@ -407,7 +407,7 @@ async function isLeadOrAdmin(staff, courseId) {
   return data?.role === "lead_coach";
 }
 
-function senderFor(staff) {
+export function senderFor(staff) {
   const email = (staff.email || "").trim().toLowerCase();
   const domain = email.split("@")[1] || "";
   const verified = VERIFIED_DOMAINS.includes(domain);
@@ -504,7 +504,7 @@ function plainButtons(text) {
   }).join("\n");
 }
 
-function withOffer(text, url) {
+export function withOffer(text, url) {
   return String(text).replace(new RegExp(OFFER_MARK.source + "\\n?", "gi"),
     url ? `${OFFER_LABEL}: ${url}\n` : "");
 }
@@ -653,7 +653,7 @@ async function logoAttachment(file) {
   return logoCache[file];
 }
 
-async function sendEmail({ to, sender, subject, text, brand, offerUrl = null, rich = false, copyOffice = true }) {
+export async function sendEmail({ to, sender, subject, text, brand, offerUrl = null, rich = false, copyOffice = true }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("No Resend key; not sending to", to);

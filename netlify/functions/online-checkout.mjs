@@ -45,7 +45,14 @@
 //   coach's follow-up email (online_offers, made by course-email-send).
 //   It opens /offer/ at the seminar rate — 50% off the same brand and
 //   level online course. The token is the proof they were there, so
-//   nobody else can get the rate, and it is used once.
+//   nobody else can get the rate, and it is used once. The office can
+//   also send it on its own from the portal (online-offer-send.mjs).
+//
+//   The page takes their name and billing address. The address's
+//   country sets the VAT, and the address goes on the Stripe customer
+//   and so on the invoice. The course itself always goes to the email
+//   on the REGISTRATION — it cannot be changed on the page — so a
+//   forwarded link buys nothing for anyone else.
 //   full   pay the discounted price once, by card.
 //   plan   2 to 6 equal monthly card payments, the first today (a
 //          plain subscription, no trial). Access on the first payment.
@@ -320,7 +327,7 @@ async function findOffer(token) {
   const { data } = await supabase
     .from("online_offers")
     .select("id, token, registration_id, brand, level, discount_percent, opened_at, redeemed_at, " +
-            "registrations ( first_name, last_name, email, attended, status )")
+            "registrations ( first_name, last_name, email, attended, status, country, source )")
     .eq("token", t)
     .maybeSingle();
   if (!data || !data.registrations) return null;
@@ -346,7 +353,7 @@ async function previewOffer(code, context) {
 
 async function seminarOffer(token, context) {
   const o = await findOffer(token);
-  if (!o) return json({ error: "This link is not valid. Reply to your coach's email and we will sort it out." }, 404);
+  if (!o) return json({ error: "This link is not valid. Reply to the email we sent you and we will sort it out." }, 404);
   if (o.redeemed_at) return json({ redeemed: true, first_name: o.registrations.first_name || "" });
   return offerPayload(o, context, false);
 }
@@ -354,7 +361,7 @@ async function seminarOffer(token, context) {
 async function offerPayload(o, context, preview) {
   const { prices, products } = await loadOffer(o.brand, o.level);
   if (!products.length || !Object.keys(prices).length) {
-    return json({ error: "This course is not on sale right now. Reply to your coach's email and we will help." }, 409);
+    return json({ error: "This course is not on sale right now. Reply to the email we sent you and we will help." }, 409);
   }
 
   const offerPrices = {};
@@ -375,6 +382,7 @@ async function offerPayload(o, context, preview) {
   return json({
     preview,
     first_name: o.registrations.first_name || "",
+    last_name: o.registrations.last_name || "",
     email: o.registrations.email || "",
     brand: o.brand,
     level: o.level,
@@ -399,8 +407,18 @@ async function seminarCheckout(req, body) {
   const option = body.option === "plan" ? "plan" : "full";
   const country = String(body.country || "").toUpperCase();
   const months = option === "plan" ? parseInt(body.months, 10) : 1;
+  const text = (v, max = 120) => String(v == null ? "" : v).trim().slice(0, max);
+  const billName = text(body.name);
+  const address = {
+    line1: text(body.line1), line2: text(body.line2),
+    city: text(body.city, 80), postal_code: text(body.postcode, 20), country,
+  };
+  if (!billName) return json({ error: "Enter your name" }, 400);
+  if (!address.line1 || !address.city) return json({ error: "Enter your billing address" }, 400);
   if (!/^[A-Z]{2}$/.test(country)) return json({ error: "Choose your country" }, 400);
   if (option === "plan" && !OFFER_PLAN_CHOICES.includes(months)) return json({ error: "Choose how many monthly payments" }, 400);
+  const reg = o.registrations;
+  if (!reg.email) return json({ error: "There is no email on your booking. Reply to our email and we will sort it out." }, 409);
   if (!CURRENCIES.includes(currency)) return json({ error: "Choose a currency" }, 400);
 
   const { prices, products } = await loadOffer(o.brand, o.level);
@@ -428,7 +446,27 @@ async function seminarCheckout(req, body) {
     country,
     vat_percent: vatRow ? String(vatRow.rate) : "0",
     offer_id: o.id,
+    // Who gets the course: the person on the registration, always.
+    enrol_email: reg.email,
+    enrol_first: reg.first_name || "",
+    enrol_last: reg.last_name || "",
   };
+
+  // Their billing details on a Stripe customer, so the invoice carries
+  // the address that set the VAT. The email is the registration's: the
+  // receipt and the course both go to them.
+  const customer = await stripe.customers.create({
+    name: billName,
+    email: reg.email,
+    address: {
+      line1: address.line1,
+      line2: address.line2 || undefined,
+      city: address.city,
+      postal_code: address.postal_code || undefined,
+      country,
+    },
+    metadata: { offer_id: o.id, registration_id: o.registration_id || "" },
+  });
 
   const item = (amount, title, recurring) => {
     const li = {
@@ -450,8 +488,7 @@ async function seminarCheckout(req, body) {
     adaptive_pricing: { enabled: false },
     mode: option === "plan" ? "subscription" : "payment",
     payment_method_types: ["card"],
-    customer_email: o.registrations.email || undefined,
-    billing_address_collection: "required",
+    customer: customer.id,
     consent_collection: { terms_of_service: "required" },
     custom_text: {
       terms_of_service_acceptance: {
@@ -480,7 +517,6 @@ async function seminarCheckout(req, body) {
     };
   } else {
     session.line_items = [item(price, name, false)];
-    session.customer_creation = "always";
     session.invoice_creation = {
       enabled: true,
       invoice_data: { description: name, metadata: { kind: KIND, label: name } },
@@ -517,10 +553,16 @@ export async function onOnlineSaleCompleted(session) {
   });
   const meta = full.metadata || {};
   const details = full.customer_details || {};
-  const email = details.email || full.customer_email || null;
+  // A seminar offer always enrols the person on the registration,
+  // whatever name they billed under.
+  const email = meta.enrol_email || details.email || full.customer_email || null;
   const parts = String(details.name || "").trim().split(/\s+/);
-  const first = parts.shift() || "";
-  const last = parts.join(" ");
+  let first = parts.shift() || "";
+  let last = parts.join(" ");
+  if (meta.enrol_email) {
+    first = meta.enrol_first || first;
+    last = meta.enrol_last || last;
+  }
   const paid = full.payment_status === "paid" || full.payment_status === "no_payment_required";
 
   // One row per checkout. A second delivery finds it and stops if the
@@ -537,7 +579,7 @@ export async function onOnlineSaleCompleted(session) {
       email,
       first_name: first || null,
       last_name: last || null,
-      country: details.address?.country || null,
+      country: details.address?.country || meta.country || null,
       brand: meta.brand || null,
       level: meta.level || null,
       language: meta.language || null,

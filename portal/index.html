@@ -4045,6 +4045,7 @@ async function openCourse(course) {
   }
 
   const notesByReg = await loadNotes(course.id);
+  await loadOffers(regs);
 
   let paid = 0, owing = 0, chasing = 0;
 
@@ -4142,6 +4143,12 @@ async function openCourse(course) {
         addPill("online access pending", "warn");
       }
     }
+
+    // The online course at the seminar rate: sent, opened, bought.
+    const off = offerByReg[r.id];
+    if (off && off.redeemed_at) addPill("online course bought at 50%", "on");
+    else if (off && off.opened_at && off.emailed_at) addPill("50% link opened", "warn");
+    else if (off && off.emailed_at) addPill("50% link sent", "warn");
 
     const line = el.querySelector(".money");
     const bits = [];
@@ -6151,6 +6158,20 @@ async function runPeopleSearch() {
         flags.append(again);
       } else if (cert) {
         pill("certificate " + cert.reference, "on");
+      }
+
+      // Asking for the online course at 50%: send their link from
+      // here, without opening the course first.
+      if (isAdmin() && regStatus === "active" && offerCourse(c)) {
+        const half = document.createElement("button");
+        half.className = "btn ghost tiny";
+        half.type = "button";
+        half.textContent = "Send 50% link";
+        half.onclick = (e) => {
+          e.stopPropagation();
+          sendOfferLink(r, half);
+        };
+        flags.append(half);
       }
 
       row.append(who, flags);
@@ -10208,7 +10229,86 @@ function buildActions(box, course, reg, status) {
     );
   }
 
+  // They asked for the online course at 50%. One click: they are
+  // emailed their own link, give their billing address there (which
+  // sets the VAT), choose full or monthly, pay, and are enrolled.
+  if (status === "active" && offerCourse(course)) {
+    const off = offerByReg[reg.id];
+    if (!(off && off.redeemed_at)) {
+      add(off && off.emailed_at ? "Resend 50% link" : "Send 50% link", "ghost small",
+          (b) => sendOfferLink(reg, b, () => openCourse(course)));
+    }
+  }
+  // The same 50% as a Stripe invoice, for someone (a business) who
+  // needs an invoice up front (portal/online-invoice.js).
+  if (course.type === "live_seminar" && window.openOnlineInvoiceFor) {
+    add("50% invoice", "ghost small", () => window.openOnlineInvoiceFor(reg.id));
+  }
+
   add("Delete", "ghost small", (b) => deleteParticipant(reg, b));
+}
+
+/* ---------- the online course at the seminar rate ---------- */
+
+// Level 1 seminars only, the same as the follow-up email's offer.
+function offerCourse(course) {
+  const level = String(course.level == null ? "" : course.level).replace(/\D/g, "");
+  return course.type === "live_seminar" &&
+    ["tcc:1", "tgc:1"].includes(`${String(course.brand || "").toLowerCase()}:${level}`);
+}
+
+let offerByReg = {};
+
+async function loadOffers(regs) {
+  offerByReg = {};
+  if (!isAdmin() || !regs.length) return;
+  const { data, error } = await db.from("online_offers")
+    .select("registration_id, emailed_at, opened_at, redeemed_at")
+    .in("registration_id", regs.map((r) => r.id));
+  if (error) { console.error("Could not load online offers:", error.message); return; }
+  for (const o of data || []) offerByReg[o.registration_id] = o;
+}
+
+async function callOffer(payload) {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) throw new Error("Your session has expired — sign in again.");
+  const res = await fetch("/.netlify/functions/online-offer-send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+    body: JSON.stringify(payload),
+  });
+  let data = {};
+  try { data = await res.json(); } catch (e) { /* not json */ }
+  if (!res.ok || data.error) throw new Error(data.error || "That did not work.");
+  return data;
+}
+
+async function sendOfferLink(reg, btn, done) {
+  const who = `${reg.first_name} ${reg.last_name}`;
+  const payload = { registration_id: reg.id };
+  const was = btn ? btn.textContent : "";
+  if (btn) { btn.disabled = true; btn.textContent = "Sending…"; }
+  try {
+    let r = await callOffer(payload);
+    if (r.needs_attended) {
+      if (!window.confirm(`${who} is not marked as attended, and the 50% is only for people who completed the seminar.\n\nMark them attended and send the link?`)) return;
+      payload.mark_attended = true;
+      r = await callOffer(payload);
+    }
+    if (r.already_sent) {
+      if (!window.confirm(`${who} was already sent their 50% link on ${fmtDay(r.already_sent)}.\n\nSend it again?`)) return;
+      payload.resend = true;
+      r = await callOffer(payload);
+    }
+    if (r.sent) {
+      window.alert(`Sent to ${r.to}. Nothing else to do — when they pay they are enrolled automatically.`);
+      if (done) done();
+    }
+  } catch (err) {
+    window.alert(err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = was; }
+  }
 }
 
 /* ---------- participant invoices (places bought in bulk) ---------- */
