@@ -41,7 +41,11 @@
   .fields .wide { grid-column: 1 / -1; }
   @media (max-width: 520px) { .fields { grid-template-columns: 1fr; } }
   label { display: block; font-size: 0.85rem; font-weight: 650; margin-bottom: 0.35rem; color: #c9ccd0; }
-  select { width: 100%; background: var(--panel); color: var(--ink); border: 1px solid #3a3f45; padding: 0.7rem 0.8rem; font-size: 16px; border-radius: 5px; }
+  select, input { width: 100%; background: var(--panel); color: var(--ink); border: 1px solid #3a3f45; padding: 0.7rem 0.8rem; font-size: 16px; border-radius: 5px; font-family: inherit; }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  h2 { font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.8rem; font-weight: 700; }
+  .login { background: var(--panel); border: 1px solid #3a3f45; border-radius: 5px; padding: 0.7rem 0.8rem; word-break: break-all; }
+  .hint { color: var(--muted); font-size: 0.85rem; margin: 0.35rem 0 0; }
   .opts { display: grid; gap: 12px; margin-bottom: 1.4rem; }
   .opt { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid #3a3f45; border-radius: 6px; padding: 1rem 1.1rem; cursor: pointer; }
   .opt:hover { border-color: #6a7078; }
@@ -85,14 +89,44 @@
     </div>
     <p class="vat" id="vat"></p>
 
+    <h2>Your course</h2>
     <div class="fields">
       <div id="lang-wrap" class="wide">
         <label for="language">Course language</label>
         <select id="language"></select>
       </div>
+      <div class="wide">
+        <label>Your email</label>
+        <div class="login" id="login"></div>
+        <p class="hint">The seminar rate is just for you, so your course is sent to the email you booked the seminar with. If this is wrong, reply to our email before paying.</p>
+      </div>
+    </div>
+
+    <h2>Billing address</h2>
+    <p class="hint" style="margin:-0.4rem 0 0.9rem">This goes on your invoice and sets the VAT for where you live.</p>
+    <div class="fields">
+      <div class="wide">
+        <label for="bname">Name for the invoice</label>
+        <input id="bname" type="text" autocomplete="name">
+      </div>
+      <div class="wide">
+        <label for="line1">Address</label>
+        <input id="line1" type="text" autocomplete="address-line1">
+      </div>
+      <div class="wide">
+        <input id="line2" type="text" autocomplete="address-line2" aria-label="Address line 2 (optional)" placeholder="Address line 2 (optional)">
+      </div>
       <div>
-        <label for="country">Where are you based?</label>
-        <select id="country"></select>
+        <label for="city">Town / city</label>
+        <input id="city" type="text" autocomplete="address-level2">
+      </div>
+      <div>
+        <label for="postcode">Postcode</label>
+        <input id="postcode" type="text" autocomplete="postal-code">
+      </div>
+      <div>
+        <label for="country">Country</label>
+        <select id="country" autocomplete="country"></select>
       </div>
       <div>
         <label for="currency">Currency</label>
@@ -117,7 +151,7 @@
 
     <button class="go" type="button" id="go">Continue to payment</button>
     <p class="msg" id="msg"></p>
-    <p class="small">You get access as soon as you have paid — your login details are emailed to you straight away. Questions? Just reply to your coach's email.</p>
+    <p class="small">No account or password needed now — as soon as you have paid, we email you a link straight into the course. Questions? Just reply to our email.</p>
   </section>
 </main>
 
@@ -129,7 +163,15 @@
   var token = qs.get("t") || "";
   var preview = qs.get("preview") || "";
   var data = null;
-  var state = { option: "full", currency: null, country: "", language: null, months: null };
+  var state = { option: "full", currency: null, country: "", language: null, months: null, curPicked: false };
+  var EURO = "AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE IS LI NO CH AD MC SM VA ME AL BA MK RS XK MD UA".split(" ");
+  function currencyFor(c) {
+    if (["GB", "IM", "JE", "GG", "GI"].indexOf(c) >= 0) return "GBP";
+    if (c === "AU") return "AUD";
+    if (c === "CA") return "CAD";
+    if (!c || EURO.indexOf(c) >= 0) return "EUR";
+    return "USD";
+  }
   var $ = function (id) { return document.getElementById(id); };
 
   function money(cents, cur) {
@@ -171,7 +213,9 @@
     $("now").textContent = money(p.offer, cur);
     $("was").textContent = money(p.full, cur);
     var rate = vatRate();
-    $("vat").textContent = rate ? "Plus VAT at " + rate + "% for " + countryName(state.country) + "." : "";
+    $("vat").textContent = !state.country ? "Plus any VAT for where you live — add your billing address below."
+      : rate ? "Plus VAT at " + rate + "% for " + countryName(state.country) + "."
+      : "No VAT for " + countryName(state.country) + ".";
 
     $("full-h").textContent = "Pay in full — " + money(p.offer, cur);
 
@@ -209,6 +253,8 @@
       " you came to the live seminar, you can get the online course at half price. It supports everything" +
       " we covered and in places goes further, so you can keep going back to it.";
     $("off").textContent = data.discount_percent + "% off";
+    $("login").textContent = data.email || "—";
+    $("bname").value = [data.first_name, data.last_name].filter(Boolean).join(" ");
 
     var lang = $("language");
     data.languages.forEach(function (l, i) { opt(lang, l.language, l.label, i === 0); });
@@ -217,10 +263,12 @@
 
     var countries = CODES.map(function (c) { return { code: c, name: countryName(c) }; })
       .sort(function (a, b) { return a.name.localeCompare(b.name); });
+    // Where they live is for them to say: nothing chosen until they do,
+    // so the VAT is never guessed from where they are browsing.
     var csel = $("country");
-    opt(csel, "", "Choose…", !data.country);
-    countries.forEach(function (c) { opt(csel, c.code, c.name, c.code === data.country); });
-    state.country = data.country || "";
+    opt(csel, "", "Choose…", true);
+    countries.forEach(function (c) { opt(csel, c.code, c.name, false); });
+    state.country = "";
 
     var cursel = $("currency");
     Object.keys(data.prices).forEach(function (c) { opt(cursel, c, c, c === data.currency); });
@@ -229,8 +277,13 @@
     state.months = data.months[data.months.length - 1];
 
     lang.onchange = function () { state.language = lang.value; };
-    csel.onchange = function () { state.country = csel.value; render(); };
-    cursel.onchange = function () { state.currency = cursel.value; render(); };
+    csel.onchange = function () {
+      state.country = csel.value;
+      var c = currencyFor(state.country);
+      if (!state.curPicked && data.prices[c]) { state.currency = c; cursel.value = c; }
+      render();
+    };
+    cursel.onchange = function () { state.currency = cursel.value; state.curPicked = true; render(); };
     $("months").onchange = function (e) { state.months = parseInt(e.target.value, 10); render(); };
     $("opt-full").onclick = function () { state.option = "full"; render(); };
     $("opt-plan").onclick = function () { state.option = "plan"; render(); };
@@ -243,7 +296,17 @@
 
   function pay() {
     var msg = $("msg");
-    if (!state.country) { msg.className = "msg err"; msg.textContent = "Choose where you are based."; return; }
+    var bill = {
+      name: $("bname").value.trim(), line1: $("line1").value.trim(), line2: $("line2").value.trim(),
+      city: $("city").value.trim(), postcode: $("postcode").value.trim(),
+    };
+    var missing = !bill.name ? "bname" : !bill.line1 ? "line1" : !bill.city ? "city" : !state.country ? "country" : null;
+    if (missing) {
+      msg.className = "msg err";
+      msg.textContent = missing === "country" ? "Choose your country." : missing === "bname" ? "Enter your name for the invoice." : "Enter your billing address.";
+      $(missing).focus();
+      return;
+    }
     $("go").disabled = true;
     msg.className = "msg"; msg.textContent = "Taking you to secure payment…";
     fetch(API, {
@@ -252,6 +315,7 @@
       body: JSON.stringify({
         offer: token, preview: preview || undefined, option: state.option, months: state.months,
         language: state.language, currency: state.currency, country: state.country,
+        name: bill.name, line1: bill.line1, line2: bill.line2, city: bill.city, postcode: bill.postcode,
       }),
     })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
@@ -268,7 +332,7 @@
   }
 
   if (preview) $("preview-note").classList.remove("hidden");
-  if (!token && !preview) { problem("This link is not working", "Use the button in your coach's email to open your offer."); return; }
+  if (!token && !preview) { problem("This link is not working", "Use the button in the email we sent you to open your offer."); return; }
 
   fetch(API + (preview ? "?preview=" + encodeURIComponent(preview) : "?offer=" + encodeURIComponent(token)), { cache: "no-store" })
     .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
@@ -276,10 +340,10 @@
       if (res.j.redeemed) {
         problem("You're already in", "This offer has been used" +
           (res.j.first_name ? ", " + res.j.first_name : "") +
-          ". Your login details were emailed when you paid — check your inbox, or reply to your coach's email if you can't find them.");
+          ". Your course link was emailed when you paid — check your inbox, or reply to the email we sent you if you can't find them.");
         return;
       }
-      if (!res.ok) { problem("This link is not working", res.j.error || "Reply to your coach's email and we will sort it out."); return; }
+      if (!res.ok) { problem("This link is not working", res.j.error || "Reply to the email we sent you and we will sort it out."); return; }
       data = res.j;
       setup();
     })

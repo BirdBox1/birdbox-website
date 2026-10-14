@@ -15,6 +15,10 @@
 // Admin only. Actions:
 //
 //   options          the courses and VAT countries for the form
+//   prefill          everything the form needs for someone who has
+//                    been on a seminar: their name, who their last
+//                    invoice was made out to, the matching online
+//                    course, its full price and the 50% discount
 //   list             recent online invoices and where each one is
 //   create_and_send  build the Stripe invoice and email it
 //   resend           email an unpaid invoice again
@@ -32,6 +36,12 @@
 // from the same vat_rates table the checkout uses. No rate for the
 // country means no VAT. An EU business with a VAT number can be
 // invoiced on reverse charge.
+//
+// The seminar 50%: from a participant's card in the portal, the form
+// opens already filled in from their registration. The invoice is
+// made out to whoever their seminar was invoiced to (a group invoice,
+// or the name and address on their card payment), at the full online
+// price less the discount, and is linked back to the registration.
 
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
@@ -74,6 +84,7 @@ export default async (request) => {
 
     switch (body.action) {
       case "options":         return await options();
+      case "prefill":         return await prefill(body);
       case "list":            return await list();
       case "create_and_send": return await createAndSend(body, me);
       case "resend":          return await resend(body);
@@ -120,11 +131,145 @@ async function options() {
 async function list() {
   const { data, error } = await supabase
     .from("online_invoices")
-    .select("id, created_at, first_name, last_name, email, product_label, total_cents, currency, status, due_date, paid_at, stripe_invoice_number, hosted_invoice_url, learnworlds_status, learnworlds_error, user_was_created")
+    .select("id, created_at, first_name, last_name, email, product_label, discount_percent, registration_id, total_cents, currency, status, due_date, paid_at, stripe_invoice_number, hosted_invoice_url, learnworlds_status, learnworlds_error, user_was_created")
     .order("created_at", { ascending: false })
     .limit(40);
   if (error) return json({ error: error.message }, 500);
   return json({ invoices: data || [] });
+}
+
+// ---------------------------------------------------------------
+// filled in from a seminar registration
+// ---------------------------------------------------------------
+
+const SEMINAR_DISCOUNT = 50;
+
+async function prefill(b) {
+  const { data: reg, error } = await supabase
+    .from("registrations")
+    .select("id, first_name, last_name, email, country, source, currency, stripe_customer_id, invoice_id, learnworlds_language, " +
+            "courses!registrations_course_id_fkey(id, title, brand, level, language, currency, country)")
+    .eq("id", b.registration_id)
+    .maybeSingle();
+  if (error) return json({ error: error.message }, 500);
+  if (!reg) return json({ error: "Registration not found." }, 404);
+  const course = reg.courses || {};
+  const person = `${reg.first_name || ""} ${reg.last_name || ""}`.trim();
+
+  // Who the invoice is made out to: their last invoice if there was
+  // one, otherwise the details on the card they paid with.
+  //
+  // The country sets the VAT (the online course is taxed where the
+  // buyer LIVES, not where the seminar was), so it is only filled in
+  // from a real billing address. A RegFox or hand-added registration
+  // mostly carries the venue's country, so it is left blank to be
+  // asked.
+  const bill = {
+    name: person, business: "", line1: "", line2: "", city: "", postcode: "",
+    country: reg.source === "stripe" ? (reg.country || "").toUpperCase() : "",
+    vat_number: "", from: "",
+  };
+  if (reg.invoice_id) {
+    const { data: inv } = await supabase
+      .from("invoices")
+      .select("payer_name, business_name, address_line1, address_line2, city, postcode, address_country, vat_number, stripe_invoice_number")
+      .eq("id", reg.invoice_id)
+      .maybeSingle();
+    if (inv) {
+      Object.assign(bill, {
+        name: inv.payer_name || person,
+        business: inv.business_name || "",
+        line1: inv.address_line1 || "", line2: inv.address_line2 || "",
+        city: inv.city || "", postcode: inv.postcode || "",
+        country: (inv.address_country || bill.country || "").toUpperCase(),
+        vat_number: inv.vat_number || "",
+        from: `their seminar invoice${inv.stripe_invoice_number ? " " + inv.stripe_invoice_number : ""}`,
+      });
+    }
+  } else if (reg.stripe_customer_id) {
+    try {
+      const c = await stripe.customers.retrieve(reg.stripe_customer_id, { expand: ["tax_ids"] });
+      if (c && !c.deleted) {
+        const a = c.address || {};
+        const tax = c.tax_ids && c.tax_ids.data && c.tax_ids.data[0];
+        Object.assign(bill, {
+          name: c.name || person,
+          line1: a.line1 || "", line2: a.line2 || "",
+          city: a.city || "", postcode: a.postal_code || "",
+          country: (a.country || bill.country || "").toUpperCase(),
+          vat_number: tax ? tax.value : "",
+          from: "the card payment for their seminar",
+        });
+      }
+    } catch (err) {
+      console.warn("Could not read the Stripe customer", reg.stripe_customer_id, err.message);
+    }
+  }
+
+  // The online course that matches their seminar, in their language
+  // where there is one, else English, else whatever there is.
+  const lvl = digits(course.level);
+  const { data: lc } = await supabase
+    .from("learn_courses")
+    .select("brand, level, language, lw_course_id")
+    .eq("brand", course.brand || "")
+    .eq("active", true)
+    .not("lw_course_id", "is", null);
+  const same = (lc || []).filter((c) => digits(c.level) === lvl);
+  const want = [reg.learnworlds_language, course.language, "en"].filter(Boolean).map((l) => String(l).toLowerCase());
+  let match = null;
+  for (const l of want) { match = same.find((c) => c.language === l); if (match) break; }
+  if (!match) match = same[0] || null;
+
+  // Full price, in the currency they paid the seminar in if the
+  // online course has a price in it.
+  const { data: pr } = await supabase
+    .from("course_prices")
+    .select("level, currency, price_cents")
+    .eq("brand", course.brand || "")
+    .eq("type", "online_course");
+  const prices = {};
+  for (const r of pr || []) {
+    if (digits(r.level) === lvl && r.price_cents > 0) prices[String(r.currency).toUpperCase()] = r.price_cents;
+  }
+  const curWant = [reg.currency, course.currency, "EUR"].filter(Boolean).map((c) => String(c).toUpperCase());
+  const currency = curWant.find((c) => prices[c]) || Object.keys(prices)[0] || "EUR";
+
+  // The discount on their seminar offer, if they were sent one.
+  const { data: off } = await supabase
+    .from("online_offers")
+    .select("discount_percent")
+    .eq("registration_id", reg.id)
+    .limit(1)
+    .maybeSingle();
+
+  // So the same person is not invoiced twice by accident.
+  const safeEmail = String(reg.email || "").replace(/[,()%*\s]/g, "");
+  const { data: earlier } = await supabase
+    .from("online_invoices")
+    .select("id, created_at, product_label, status, total_cents, currency, stripe_invoice_number")
+    .or(safeEmail ? `registration_id.eq.${reg.id},email.ilike.${safeEmail}` : `registration_id.eq.${reg.id}`)
+    .neq("status", "void")
+    .order("created_at", { ascending: false });
+
+  return json({
+    registration_id: reg.id,
+    seminar: course.title || "",
+    first_name: reg.first_name || "",
+    last_name: reg.last_name || "",
+    email: reg.email || "",
+    bill,
+    product_id: match ? match.lw_course_id : "",
+    currency,
+    prices,
+    price: prices[currency] ? prices[currency] / 100 : null,
+    discount_percent: (off && off.discount_percent) || SEMINAR_DISCOUNT,
+    earlier: earlier || [],
+  });
+}
+
+function digits(v) {
+  return String(v == null ? "" : v).replace(/\D/g, "");
 }
 
 // ---------------------------------------------------------------
@@ -137,6 +282,12 @@ async function createAndSend(b, me) {
   const email = clean(b.email);
   const country = (clean(b.country) || "").toUpperCase();
   const business = clean(b.business_name);
+  const person = `${first} ${last}`;
+  const billName = clean(b.bill_name) || person;
+  const address = {
+    line1: clean(b.address_line1), line2: clean(b.address_line2),
+    city: clean(b.city), postcode: clean(b.postcode),
+  };
 
   if (!first || !last) return json({ error: "First and last name are both needed." }, 400);
   if (!email || !email.includes("@") || email.startsWith("@") || email.endsWith("@")) {
@@ -147,6 +298,19 @@ async function createAndSend(b, me) {
   const priceCents = Math.round(Number(b.price) * 100);
   if (!Number.isFinite(priceCents) || priceCents <= 0) return json({ error: "The price must be more than zero." }, 400);
   const currency = (clean(b.currency) || "EUR").toUpperCase();
+
+  const discountPct = Number(b.discount_percent) || 0;
+  if (discountPct < 0 || discountPct >= 100) return json({ error: "The discount must be between 0 and 99%." }, 400);
+  const netCents = Math.round(priceCents * (100 - discountPct) / 100);
+
+  // From a participant's card: checked, so the link cannot point at
+  // the wrong person.
+  let registrationId = null;
+  if (b.registration_id) {
+    const { data: reg } = await supabase.from("registrations").select("id").eq("id", b.registration_id).maybeSingle();
+    if (!reg) return json({ error: "That registration no longer exists." }, 400);
+    registrationId = reg.id;
+  }
 
   // The course, checked against the live academy list rather than
   // trusted from the browser, so an invoice can never name a course
@@ -191,8 +355,8 @@ async function createAndSend(b, me) {
     }
   }
 
-  const vat = Math.round(priceCents * vatRate / 100);
-  const total = priceCents + vat;
+  const vat = Math.round(netCents * vatRate / 100);
+  const total = netCents + vat;
 
   const { data: row, error: insErr } = await supabase
     .from("online_invoices")
@@ -207,6 +371,13 @@ async function createAndSend(b, me) {
       product_id: product.id,
       product_label: label,
       price_cents: priceCents,
+      discount_percent: discountPct,
+      registration_id: registrationId,
+      bill_name: billName === person ? null : billName,
+      address_line1: address.line1,
+      address_line2: address.line2,
+      city: address.city,
+      postcode: address.postcode,
       currency,
       vat_country: vatCountry,
       vat_rate: vatRate,
@@ -222,9 +393,15 @@ async function createAndSend(b, me) {
   let stripeInvoiceId = null;
   try {
     const customer = await stripe.customers.create({
-      name: business || `${first} ${last}`,
+      name: business || billName,
       email,
-      address: { country },
+      address: {
+        country,
+        line1: address.line1 || undefined,
+        line2: address.line2 || undefined,
+        city: address.city || undefined,
+        postal_code: address.postcode || undefined,
+      },
       tax_exempt: reverse ? "reverse" : "none",
       metadata: { online_invoice_id: row.id },
     });
@@ -235,7 +412,18 @@ async function createAndSend(b, me) {
     }
 
     const customFields = [];
-    if (business) customFields.push({ name: "Attention", value: `${first} ${last}`.slice(0, 30) });
+    if (business) customFields.push({ name: "Attention", value: billName.slice(0, 30) });
+    if (billName.toLowerCase() !== person.toLowerCase()) customFields.push({ name: "Course for", value: person.slice(0, 30) });
+
+    let discounts;
+    if (discountPct > 0) {
+      const coupon = await stripe.coupons.create({
+        percent_off: discountPct,
+        duration: "once",
+        name: registrationId ? `${discountPct}% seminar attendee discount` : `${discountPct}% discount`,
+      });
+      discounts = [{ coupon: coupon.id }];
+    }
 
     const invoice = await stripe.invoices.create({
       customer: customer.id,
@@ -250,9 +438,11 @@ async function createAndSend(b, me) {
           `course is added to it — watch for an email from BirdBox Academy to set your password.`,
       default_tax_rates: taxRateId ? [taxRateId] : [],
       custom_fields: customFields.length ? customFields : undefined,
+      discounts,
       metadata: {
         kind: KIND,
         online_invoice_id: row.id,
+        registration_id: registrationId || "",
       },
     });
     stripeInvoiceId = invoice.id;
