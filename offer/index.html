@@ -46,6 +46,9 @@
   h2 { font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.8rem; font-weight: 700; }
   .login { background: var(--panel); border: 1px solid #3a3f45; border-radius: 5px; padding: 0.7rem 0.8rem; word-break: break-all; }
   .hint { color: var(--muted); font-size: 0.85rem; margin: 0.35rem 0 0; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+  .seg button { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid #3a3f45; border-radius: 5px; padding: 0.65rem; cursor: pointer; }
+  .seg button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); font-weight: 650; }
   .opts { display: grid; gap: 12px; margin-bottom: 1.4rem; }
   .opt { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid #3a3f45; border-radius: 6px; padding: 1rem 1.1rem; cursor: pointer; }
   .opt:hover { border-color: #6a7078; }
@@ -104,10 +107,23 @@
 
     <h2>Billing address</h2>
     <p class="hint" style="margin:-0.4rem 0 0.9rem">This goes on your invoice and sets the VAT for where you live.</p>
+    <div class="seg" role="group" aria-label="Buying as">
+      <button type="button" id="as-person" aria-pressed="true">Buying as an individual</button>
+      <button type="button" id="as-business" aria-pressed="false">Buying as a business</button>
+    </div>
     <div class="fields">
       <div class="wide">
-        <label for="bname">Name for the invoice</label>
+        <label for="bname" id="bname-label">Name for the invoice</label>
         <input id="bname" type="text" autocomplete="name">
+      </div>
+      <div class="wide biz hidden">
+        <label for="bizname">Business name</label>
+        <input id="bizname" type="text" autocomplete="organization">
+      </div>
+      <div class="wide biz hidden">
+        <label for="vatno">VAT number <span style="font-weight:400;color:var(--muted)">— optional</span></label>
+        <input id="vatno" type="text" autocomplete="off" placeholder="e.g. NL123456789B01">
+        <p class="hint">An EU business outside Ireland with a valid VAT number pays no VAT (reverse charge). We check the number with the EU when you continue.</p>
       </div>
       <div class="wide">
         <label for="line1">Address</label>
@@ -163,7 +179,13 @@
   var token = qs.get("t") || "";
   var preview = qs.get("preview") || "";
   var data = null;
-  var state = { option: "full", currency: null, country: "", language: null, months: null, curPicked: false };
+  var state = { option: "full", currency: null, country: "", language: null, months: null, curPicked: false, business: false };
+  var EU = "AT BE BG HR CY CZ DK EE FI FR DE GR HU IT LV LT LU MT NL PL PT RO SK SI ES SE".split(" ");
+  // Reverse charge: a business with a VAT number in an EU country
+  // other than Ireland. The server checks the number itself.
+  function reverseCharge() {
+    return state.business && EU.indexOf(state.country) >= 0 && $("vatno").value.replace(/\s/g, "").length >= 4;
+  }
   var EURO = "AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE IS LI NO CH AD MC SM VA ME AL BA MK RS XK MD UA".split(" ");
   function currencyFor(c) {
     if (["GB", "IM", "JE", "GG", "GI"].indexOf(c) >= 0) return "GBP";
@@ -214,8 +236,13 @@
     $("was").textContent = money(p.full, cur);
     var rate = vatRate();
     $("vat").textContent = !state.country ? "Plus any VAT for where you live — add your billing address below."
+      : reverseCharge() ? "No VAT — reverse charge for your business (the VAT number is checked when you continue)."
       : rate ? "Plus VAT at " + rate + "% for " + countryName(state.country) + "."
       : "No VAT for " + countryName(state.country) + ".";
+    $("as-person").setAttribute("aria-pressed", String(!state.business));
+    $("as-business").setAttribute("aria-pressed", String(state.business));
+    document.querySelectorAll(".biz").forEach(function (el) { el.classList.toggle("hidden", !state.business); });
+    $("bname-label").textContent = state.business ? "Your name" : "Name for the invoice";
 
     $("full-h").textContent = "Pay in full — " + money(p.offer, cur);
 
@@ -287,6 +314,9 @@
     $("months").onchange = function (e) { state.months = parseInt(e.target.value, 10); render(); };
     $("opt-full").onclick = function () { state.option = "full"; render(); };
     $("opt-plan").onclick = function () { state.option = "plan"; render(); };
+    $("as-person").onclick = function () { state.business = false; render(); };
+    $("as-business").onclick = function () { state.business = true; render(); };
+    $("vatno").oninput = render;
     $("go").onclick = pay;
 
     render();
@@ -300,15 +330,17 @@
       name: $("bname").value.trim(), line1: $("line1").value.trim(), line2: $("line2").value.trim(),
       city: $("city").value.trim(), postcode: $("postcode").value.trim(),
     };
-    var missing = !bill.name ? "bname" : !bill.line1 ? "line1" : !bill.city ? "city" : !state.country ? "country" : null;
+    var biz = state.business ? $("bizname").value.trim() : "";
+    var missing = !bill.name ? "bname" : state.business && !biz ? "bizname" : !bill.line1 ? "line1" : !bill.city ? "city" : !state.country ? "country" : null;
     if (missing) {
       msg.className = "msg err";
-      msg.textContent = missing === "country" ? "Choose your country." : missing === "bname" ? "Enter your name for the invoice." : "Enter your billing address.";
+      msg.textContent = missing === "country" ? "Choose your country." : missing === "bname" ? "Enter your name."
+        : missing === "bizname" ? "Enter the business name." : "Enter your billing address.";
       $(missing).focus();
       return;
     }
     $("go").disabled = true;
-    msg.className = "msg"; msg.textContent = "Taking you to secure payment…";
+    msg.className = "msg"; msg.textContent = reverseCharge() ? "Checking your VAT number…" : "Taking you to secure payment…";
     fetch(API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -316,6 +348,8 @@
         offer: token, preview: preview || undefined, option: state.option, months: state.months,
         language: state.language, currency: state.currency, country: state.country,
         name: bill.name, line1: bill.line1, line2: bill.line2, city: bill.city, postcode: bill.postcode,
+        business: state.business || undefined, business_name: biz || undefined,
+        vat_number: state.business ? $("vatno").value.trim() : undefined,
       }),
     })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
