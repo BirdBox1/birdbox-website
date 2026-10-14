@@ -53,6 +53,12 @@
 //   and so on the invoice. The course itself always goes to the email
 //   on the REGISTRATION — it cannot be changed on the page — so a
 //   forwarded link buys nothing for anyone else.
+//
+//   A business can buy too: business name and VAT number. An EU
+//   business outside Ireland whose VAT number the EU's VIES register
+//   confirms pays no VAT (reverse charge), and the invoice says so.
+//   An Irish business, or one without a valid number, pays VAT as
+//   normal, with its name on the invoice. Card only.
 //   full   pay the discounted price once, by card.
 //   plan   2 to 6 equal monthly card payments, the first today (a
 //          plain subscription, no trial). Access on the first payment.
@@ -193,6 +199,41 @@ async function offer(req, context) {
 }
 
 // Every VAT rate we hold, as { code, rate, id }.
+// VAT numbers. Greece is EL in VAT numbers, GR everywhere else.
+const EU_VAT_PREFIXES = new Set(["AT","BE","BG","CY","CZ","DE","DK","EE","EL","ES","FI","FR","HR","HU","IE","IT","LT","LU","LV","MT","NL","PL","PT","RO","SE","SI","SK","XI"]);
+const euPrefix = (country) => (country === "GR" ? "EL" : country);
+
+function taxIdFor(raw, country) {
+  const v = String(raw || "").toUpperCase().replace(/[\s.\-]/g, "");
+  if (!v) return null;
+  const has = /^[A-Z]{2}/.test(v);
+  let prefix = has ? v.slice(0, 2) : euPrefix(String(country || "").toUpperCase());
+  if (prefix === "GR") prefix = "EL";
+  const number = has ? v.slice(2) : v;
+  const value = prefix + number;
+  if (EU_VAT_PREFIXES.has(prefix)) return { type: "eu_vat", value, number, eu: true, prefix };
+  if (prefix === "GB") return { type: "gb_vat", value, number, eu: false, prefix };
+  return { type: null, value: String(raw).trim(), number, eu: false, prefix };
+}
+
+// The EU's own register. true = valid, false = not valid, null = the
+// register (or that country's part of it) did not answer.
+async function viesCheck(prefix, number) {
+  try {
+    const res = await fetch(
+      `https://ec.europa.eu/taxation_customs/vies/rest-api/ms/${prefix}/vat/${encodeURIComponent(number)}`,
+      { signal: AbortSignal.timeout(8000), headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    const j = await res.json();
+    if (j.isValid === true) return true;
+    if (j.userError && j.userError !== "VALID" && j.userError !== "INVALID") return null;
+    return false;
+  } catch (err) {
+    console.warn("VIES check failed", prefix, err.message);
+    return null;
+  }
+}
+
 async function vatList() {
   const { data } = await supabase
     .from("vat_rates")
@@ -428,7 +469,27 @@ async function seminarCheckout(req, body) {
 
   const price = discounted(prices[currency], o.discount_percent);
   const each = option === "plan" ? Math.round(price / months) : 0;
-  const vatRow = (await vatList()).find((v) => v.code === country) || null;
+  // Buying as a business: the name goes on the invoice, and a VAT
+  // number the EU confirms takes the VAT off (outside Ireland).
+  const isBusiness = !!body.business;
+  const businessName = isBusiness ? text(body.business_name) : "";
+  if (isBusiness && !businessName) return json({ error: "Enter the business name" }, 400);
+  const taxId = isBusiness ? taxIdFor(body.vat_number, country) : null;
+  let reverse = false;
+  let viesDown = false;
+  if (taxId && taxId.eu && taxId.prefix !== "IE") {
+    if (taxId.prefix !== euPrefix(country)) {
+      return json({ error: `That VAT number is not from ${country}. It must match the country of your billing address.` }, 400);
+    }
+    const check = await viesCheck(taxId.prefix, taxId.number);
+    if (check === false) {
+      return json({ error: "The EU VAT register does not recognise that VAT number. Check it, or leave it blank and pay with VAT." }, 400);
+    }
+    if (check === null) viesDown = true;
+    reverse = true;
+  }
+
+  const vatRow = reverse ? null : (await vatList()).find((v) => v.code === country) || null;
   const origin = new URL(req.url).origin;
   const name = `${product.label} — seminar rate (${o.discount_percent}% off)`;
 
@@ -445,6 +506,7 @@ async function seminarCheckout(req, body) {
     months: String(months),
     country,
     vat_percent: vatRow ? String(vatRow.rate) : "0",
+    reverse_charge: reverse ? "1" : "",
     offer_id: o.id,
     // Who gets the course: the person on the registration, always.
     enrol_email: reg.email,
@@ -455,9 +517,19 @@ async function seminarCheckout(req, body) {
   // Their billing details on a Stripe customer, so the invoice carries
   // the address that set the VAT. The email is the registration's: the
   // receipt and the course both go to them.
+  const invoiceFields = [];
+  if (businessName) invoiceFields.push({ name: "Attention", value: billName.slice(0, 30) });
+  if (taxId && !taxId.type) invoiceFields.push({ name: "Customer VAT no.", value: taxId.value.slice(0, 30) });
   const customer = await stripe.customers.create({
-    name: billName,
+    name: businessName || billName,
     email: reg.email,
+    tax_exempt: reverse ? "reverse" : "none",
+    invoice_settings: {
+      custom_fields: invoiceFields.length ? invoiceFields : undefined,
+      footer: reverse
+        ? "Reverse charge: VAT to be accounted for by the recipient (Article 196, Council Directive 2006/112/EC)."
+        : undefined,
+    },
     address: {
       line1: address.line1,
       line2: address.line2 || undefined,
@@ -467,6 +539,20 @@ async function seminarCheckout(req, body) {
     },
     metadata: { offer_id: o.id, registration_id: o.registration_id || "" },
   });
+  if (taxId && taxId.type) {
+    try {
+      await stripe.customers.createTaxId(customer.id, { type: taxId.type, value: taxId.value });
+    } catch (err) {
+      console.warn("Stripe rejected the VAT number", taxId.value, err.message);
+      if (reverse) return json({ error: "That VAT number was not accepted. Check it, or leave it blank and pay with VAT." }, 400);
+    }
+  }
+  if (viesDown) {
+    await alert("Seminar offer — VAT number not checked",
+      `${businessName} (${reg.email}) is buying ${product.label} with VAT number ${taxId.value} and no VAT ` +
+      `(reverse charge), but the EU VIES register was not answering, so the number could not be checked. ` +
+      `Check it at https://ec.europa.eu/taxation_customs/vies/ — if it is not valid, VAT is owed on this sale.`);
+  }
 
   const item = (amount, title, recurring) => {
     const li = {
