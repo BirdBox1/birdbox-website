@@ -164,16 +164,11 @@ function form(d) {
       <div><label for="pi-post">Postcode</label><input id="pi-post" type="text"></div>
       <div><label for="pi-country">Country code</label><input id="pi-country" type="text" maxlength="2" placeholder="e.g. DE"></div>
     </div>
-    <p class="warn" id="pi-ch"></p>
     <div class="row" style="justify-content:flex-start"><button class="btn go" id="pi-make" type="button">Make invoice and email it</button></div>`;
   const set = (id, v) => { box.querySelector("#" + id).value = v || ""; };
   set("pi-name", b.name); set("pi-biz", b.business_name); set("pi-vat", b.vat_number);
   set("pi-a1", b.line1); set("pi-a2", b.line2); set("pi-city", b.city);
   set("pi-post", b.postcode); set("pi-country", b.country);
-  if (d.venue_country === "CH") {
-    box.querySelector("#pi-ch").textContent =
-      "Swiss seminar: the invoice shows the VAT exactly as charged on the payment. Swiss invoices were left manual while the VAT position was being settled — check with your accountant if unsure.";
-  }
   box.querySelector("#pi-make").onclick = (e) => {
     const v = (id) => box.querySelector("#" + id).value.trim();
     const payload = {
