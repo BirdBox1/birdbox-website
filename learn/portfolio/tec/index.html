@@ -455,6 +455,11 @@
         <p>The Endurance Course, Methodology: the laws, rules and hierarchy held up against your own training or coaching.</p>
         <span id="tec-methodology-status">Open →</span>
       </a>
+      <a class="tool" href="?tool=tec-physiology-1">
+        <h3>My engine</h3>
+        <p>The Endurance Course, Physiology 1: which parts of the engine your training develops most, and which it leaves behind.</p>
+        <span id="tec-physiology-1-status">Open →</span>
+      </a>
     </div>
   </section>
 
@@ -1444,6 +1449,7 @@ const PF_COURSES = [
   { key: "tec1", brand: "tec", level: 1, name: "The Endurance Course", colour: "#104F2C", units: [
     { n: 1, name: "Introduction", tools: ["tec-start"] },
     { n: 3, name: "Methodology", tools: ["tec-methodology"] },
+    { n: 4, name: "Physiology 1: The Engine and the Fuel", tools: ["tec-physiology-1"] },
   ] },
 ];
 async function pfHome(rows) {
@@ -3093,6 +3099,18 @@ const REFLECT = {
       { k: "challenge", type: "text", q: "What do you find hardest about endurance training or coaching right now?", hint: "Be specific — a real situation is more useful than a general answer." },
       { k: "goals", type: "actions", q: "What do you want to learn from this course?", hint: "Up to three things you want to understand or do better.", ph: "e.g. How to set training zones I can trust" },
       { k: "confidence", type: "scale", q: "How confident do you feel planning endurance training today?", ends: ["Not yet", "Very confident"] },
+    ],
+  },
+  "tec-physiology-1": {
+    course: "The Endurance Course",
+    unit: "Physiology 1: The Engine and the Fuel",
+    title: "My engine",
+    lede: "Look at your own training or coaching through the engine and the fuel. There are no wrong answers. We will come back to this in Physiology 2 and again at the end of the course.",
+    qs: [
+      { k: "most", type: "text", q: "Which part of the engine does your training develop most? How do you know?", hint: "Energy systems, fuel, delivery (heart and blood) or extraction (muscle). Use a real week of training as your evidence." },
+      { k: "least", type: "text", q: "Which part does it develop least, and what might that be costing you or your athlete?", hint: "Think about the HOLD level: where does performance start to fade?" },
+      { k: "switch", type: "text", q: "Before this lesson, did you think of sessions as either aerobic or anaerobic? How would you now describe one of your sessions?", hint: "Name the session, its duration and intensity, and which systems carry most of the work." },
+      { k: "vo2", type: "text", q: "If you or an athlete had a VO2max test tomorrow, what would the number tell you, and what would it not tell you?", hint: "Absolute or relative? Delivery or extraction? What else decides performance?" },
     ],
   },
   "tec-methodology": {
