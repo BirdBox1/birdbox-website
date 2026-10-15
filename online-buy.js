@@ -35,6 +35,42 @@
     de: "Der ganze Kurs auf Deutsch",
     pt: "Todo o curso em português",
   };
+  // The rest of the box in the chosen course language. A language
+  // without its own words here falls back to English.
+  var WORDS = {
+    en: {
+      lang: "Choose your course language", course: "Your course", cur: "Choose your currency",
+      where: "Where are you based?", choose: "Choose\u2026", how: "Choose how to pay",
+      full: "Pay in full", fullNote: "One card payment. Instant access.",
+      plan: "Monthly payments", n: "Number of payments", of: " payments of ", month: "/ month ",
+      planNote: function (m) { return "Card. Instant access on the first payment; the plan ends by itself after " + m + " payments."; },
+      vatMaybe: "+ VAT where applicable", vat: function (r) { return "+ " + r + "% VAT"; }, noVat: "no VAT",
+      go: "Continue to secure checkout \u2192", opening: "Opening checkout\u2026",
+      vatInfo: "VAT applies to buyers in the EU and UK, at the rate for the country you are based in. ",
+      paidSite: "As soon as you have paid, we email you how to log in on this website and the course is already in your account.",
+      paidLw: "As soon as you have paid, your BirdBox Academy login is emailed to you and the course is already in your account.",
+      already: "Already enrolled? ", mine: "Go to My courses \u2192", lwLogin: "Log in to BirdBox Academy \u2192",
+      needCountry: "Choose where you are based first.",
+      retry: " Please try again, or email info@birdboxcoaching.com.",
+    },
+    es: {
+      lang: "Elige el idioma del curso", course: "Tu curso", cur: "Elige tu moneda",
+      where: "\u00bfD\u00f3nde resides?", choose: "Elige\u2026", how: "Elige c\u00f3mo pagar",
+      full: "Pago \u00fanico", fullNote: "Un solo pago con tarjeta. Acceso inmediato.",
+      plan: "Pagos mensuales", n: "N\u00famero de pagos", of: " pagos de ", month: "/ mes ",
+      planNote: function (m) { return "Tarjeta. Acceso inmediato con el primer pago; el plan termina solo despu\u00e9s de " + m + " pagos."; },
+      vatMaybe: "+ IVA si corresponde", vat: function (r) { return "+ " + r + "% IVA"; }, noVat: "sin IVA",
+      go: "Continuar al pago seguro \u2192", opening: "Abriendo el pago\u2026",
+      vatInfo: "Se aplica IVA a compradores de la UE y el Reino Unido, seg\u00fan el pa\u00eds donde residas. ",
+      paidSite: "En cuanto pagues, te enviamos por email c\u00f3mo entrar en esta web y el curso ya estar\u00e1 en tu cuenta.",
+      paidLw: "En cuanto pagues, te enviamos por email tu acceso a BirdBox Academy y el curso ya estar\u00e1 en tu cuenta.",
+      already: "\u00bfYa est\u00e1s inscrito? ", mine: "Ir a Mis cursos \u2192", lwLogin: "Entrar en BirdBox Academy \u2192",
+      needCountry: "Primero elige d\u00f3nde resides.",
+      retry: " Vuelve a intentarlo o escribe a info@birdboxcoaching.com.",
+    },
+  };
+  function W() { return WORDS[state.language] || WORDS.en; }
+
   // The language picked to start with: ?lang=es in the link, else the
   // visitor's browser language when the course is sold in it.
   function startLanguage(list) {
@@ -49,14 +85,20 @@
 
   // Every country, named in English, for the "Where are you based?" list.
   var CODES = ("AD AE AF AG AL AM AO AR AT AU AZ BA BB BD BE BF BG BH BI BJ BN BO BR BS BT BW BY BZ CA CD CF CG CH CI CL CM CN CO CR CU CV CY CZ DE DJ DK DM DO DZ EC EE EG ER ES ET FI FJ FR GA GB GD GE GH GI GM GN GQ GR GT GW GY HK HN HR HT HU ID IE IL IM IN IQ IR IS IT JE JM JO JP KE KG KH KM KN KR KW KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MG MK ML MM MN MO MR MT MU MV MW MX MY MZ NA NE NG NI NL NO NP NZ OM PA PE PG PH PK PL PR PS PT PY QA RE RO RS RU RW SA SB SC SD SE SG SI SK SL SM SN SO SR SS SV SY SZ TD TG TH TJ TL TM TN TO TR TT TW TZ UA UG US UY UZ VA VC VE VN VU WS XK YE ZA ZM ZW").split(" ");
-  var names = null;
-  try { names = new Intl.DisplayNames(["en"], { type: "region" }); } catch (e) { names = null; }
-  function countryName(c) {
-    if (c === "XK") return "Kosovo";
-    try { return (names && names.of(c)) || c; } catch (e) { return c; }
+  // Named in the chosen course language, so a Spanish buyer reads España.
+  var countryLists = {};
+  function countries() {
+    var lang = WORDS[state.language] ? state.language : "en";
+    if (countryLists[lang]) return countryLists[lang];
+    var names = null;
+    try { names = new Intl.DisplayNames([lang], { type: "region" }); } catch (e) { names = null; }
+    function countryName(c) {
+      if (c === "XK") return "Kosovo";
+      try { return (names && names.of(c)) || c; } catch (e) { return c; }
+    }
+    return (countryLists[lang] = CODES.map(function (c) { return { code: c, name: countryName(c) }; })
+      .sort(function (a, b) { return a.name.localeCompare(b.name, lang); }));
   }
-  var COUNTRIES = CODES.map(function (c) { return { code: c, name: countryName(c) }; })
-    .sort(function (a, b) { return a.name.localeCompare(b.name); });
 
   function vatFor(code) {
     var list = (state.offer && state.offer.vat) || [];
@@ -113,6 +155,7 @@
     var o = state.offer;
     box.innerHTML = "";
 
+    var w = W();
     var currencies = Object.keys(o.prices);
     if (!currencies.length || !o.languages.length) {
       box.appendChild(el("p", "ob-small", "Online enrolment is opening soon. Email info@birdboxcoaching.com and we will get you started."));
@@ -135,7 +178,7 @@
     // large tiles in each language's own words so nobody misses it.
     if (o.languages.length > 1) {
       var lh = el("div", "ob-field");
-      lh.appendChild(stepLabel("Choose your course language"));
+      lh.appendChild(stepLabel(w.lang));
       box.appendChild(lh);
       var lt = el("div", "ob-opts ob-langs");
       o.languages.forEach(function (l) {
@@ -150,14 +193,14 @@
       box.appendChild(lt);
     } else {
       var only = el("div", "ob-field");
-      var ol = el("label", null, "Your course");
+      var ol = el("label", null, w.course);
       only.appendChild(ol);
       only.appendChild(el("div", "ob-only", o.languages[0].label));
       row.appendChild(only);
     }
 
     var cf = el("div", "ob-field");
-    var cl = stepLabel("Choose your currency", "ob-cur");
+    var cl = stepLabel(w.cur, "ob-cur");
     var cs = el("select");
     cs.id = "ob-cur";
     currencies.forEach(function (c) {
@@ -173,13 +216,13 @@
     // Where they are based decides the VAT, so it is asked here, filled
     // in from where they are browsing.
     var kf = el("div", "ob-field");
-    var kl = stepLabel("Where are you based?", "ob-country");
+    var kl = stepLabel(w.where, "ob-country");
     var ks = el("select");
     ks.id = "ob-country";
-    var blank = el("option", null, "Choose\u2026");
+    var blank = el("option", null, w.choose);
     blank.value = "";
     ks.appendChild(blank);
-    COUNTRIES.forEach(function (c) {
+    countries().forEach(function (c) {
       var op = el("option", null, c.name);
       op.value = c.code;
       ks.appendChild(op);
@@ -192,12 +235,12 @@
 
     var price = o.prices[state.currency];
     var rate = state.country ? vatFor(state.country) : 0;
-    var vatNote = !state.country ? "+ VAT where applicable"
-      : rate > 0 ? "+ " + rate + "% VAT" : "no VAT";
+    var vatNote = !state.country ? w.vatMaybe
+      : rate > 0 ? w.vat(rate) : w.noVat;
     var each = Math.round(price / state.months);
 
     var ph = el("div", "ob-field");
-    ph.appendChild(stepLabel("Choose how to pay"));
+    ph.appendChild(stepLabel(w.how));
     box.appendChild(ph);
 
     var opts = el("div", "ob-opts");
@@ -219,18 +262,17 @@
       opts.appendChild(b);
     }
 
-    option("full", "Pay in full", money(price, state.currency), vatNote,
-      "One card payment. Instant access.");
+    option("full", w.full, money(price, state.currency), vatNote, w.fullNote);
 
     // How many months, 3 to 8.
     var mwrap = el("div", "ob-field");
     mwrap.style.marginTop = "10px";
-    var ml = el("label", null, "Number of payments");
+    var ml = el("label", null, w.n);
     ml.htmlFor = "ob-months";
     var msel = el("select");
     msel.id = "ob-months";
     o.months.forEach(function (n) {
-      var op = el("option", null, n + " payments of " + money(Math.round(price / n), state.currency));
+      var op = el("option", null, n + w.of + money(Math.round(price / n), state.currency));
       op.value = String(n);
       msel.appendChild(op);
     });
@@ -238,24 +280,21 @@
     msel.onchange = function () { state.months = parseInt(msel.value, 10); state.option = "plan"; render(); };
     mwrap.appendChild(ml); mwrap.appendChild(msel);
 
-    option("plan", "Monthly payments", money(each, state.currency), "/ month " + vatNote,
-      "Card. Instant access on the first payment; the plan ends by itself after " + state.months + " payments.", mwrap);
+    option("plan", w.plan, money(each, state.currency), w.month + vatNote,
+      w.planNote(state.months), mwrap);
     box.appendChild(opts);
 
-    var go = el("button", "tcc-cta ob-go", "Continue to secure checkout \u2192");
+    var go = el("button", "tcc-cta ob-go", w.go);
     go.type = "button";
     go.onclick = function () { buy(go); };
     box.appendChild(go);
 
     box.appendChild(el("p", "ob-small",
-      "VAT applies to buyers in the EU and UK, at the rate for the country you are based in. " +
-      (o.on_site
-        ? "As soon as you have paid, we email you how to log in on this website and the course is already in your account."
-        : "As soon as you have paid, your BirdBox Academy login is emailed to you and the course is already in your account.")));
+      w.vatInfo + (o.on_site ? w.paidSite : w.paidLw)));
 
     var li = el("p", "ob-small");
-    li.appendChild(document.createTextNode("Already enrolled? "));
-    var la = el("a", null, o.on_site ? "Go to My courses \u2192" : "Log in to BirdBox Academy \u2192");
+    li.appendChild(document.createTextNode(w.already));
+    var la = el("a", null, o.on_site ? w.mine : w.lwLogin);
     la.href = o.on_site ? "/learn/" : "https://www.birdboxacademy.com";
     la.style.color = "var(--accentText)";
     la.style.fontWeight = "700";
@@ -277,13 +316,13 @@
 
   function buy(btn) {
     if (!state.country) {
-      showError("Choose where you are based first.");
+      showError(W().needCountry);
       var k = document.getElementById("ob-country");
       if (k) k.focus();
       return;
     }
     btn.disabled = true;
-    btn.textContent = "Opening checkout…";
+    btn.textContent = W().opening;
     fetch(API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -305,8 +344,8 @@
       })
       .catch(function (e) {
         btn.disabled = false;
-        btn.textContent = "Continue to secure checkout →";
-        showError(e.message + " Please try again, or email info@birdboxcoaching.com.");
+        btn.textContent = W().go;
+        showError(e.message + W().retry);
       });
   }
 
