@@ -1295,11 +1295,12 @@
   <section id="levers" class="hidden">
     <p class="kicker"><a href="?" style="color:inherit;text-decoration:none">← My TEC portfolio</a> · The Endurance Course · Methodology</p>
     <h1>The training levers</h1>
-    <p class="lede">The rules tell us the order; the levers are what we change to follow them. Set this week's training below and see which rule speaks up.</p>
+    <p class="lede">The rules tell us the order; the levers are what we change to follow them. Pick an example week, or choose My own week and set the levers yourself, then see which rule speaks up.</p>
     <div class="lv-presets" role="group" aria-label="Example weeks">
       <button type="button" data-preset="base" aria-pressed="true">Base block</button>
       <button type="button" data-preset="busy" aria-pressed="false">Busy week</button>
       <button type="button" data-preset="rush" aria-pressed="false">Too much, too soon</button>
+      <button type="button" data-preset="own" aria-pressed="false">My own week</button>
     </div>
     <div class="lv-grid">
       <div class="lv-panel">
@@ -1603,7 +1604,7 @@ function openLevers() {
     { id: "frequency", name: "Frequency", an: "How often you drive: sessions per week." },
     { id: "recovery", name: "Recovery", an: "Time in the garage: rest, sleep and fuel between sessions." },
   ];
-  const PRESETS = { base: { volume: 2, intensity: 1, frequency: 3, recovery: 3 }, busy: { volume: 1, intensity: 3, frequency: 1, recovery: 3 }, rush: { volume: 4, intensity: 4, frequency: 1, recovery: 1 } };
+  const PRESETS = { base: { volume: 2, intensity: 1, frequency: 3, recovery: 3 }, busy: { volume: 1, intensity: 3, frequency: 1, recovery: 3 }, rush: { volume: 4, intensity: 4, frequency: 1, recovery: 1 }, own: { volume: 2, intensity: 2, frequency: 2, recovery: 2 } };
   const RULES = ["Protective strength before volume", "Consistency before intensity", "Hold before you raise again", "Rest is part of the rep"];
   let st = { ...PRESETS.base }, last = null;
   const lv = $("lv-levers"); lv.innerHTML = "";
@@ -1614,7 +1615,7 @@ function openLevers() {
     d.querySelector("input").addEventListener("input", (e) => {
       const v = Number(e.target.value), before = st[l.id];
       st[l.id] = v; last = v > before ? { id: l.id, jump: v - before } : null;
-      press(null); draw();
+      press("own"); draw();
     });
   }
   const rl = $("lv-rules"); rl.innerHTML = "";
