@@ -59,10 +59,12 @@
   .cert input{width:100%;font:inherit;font-size:16px;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:10px}
   .cert .hint{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 10px}
   .empty{background:var(--panel);border:1px solid var(--line);padding:24px;color:var(--muted);line-height:1.6;max-width:640px}
-  .levels .lvl{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:26px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
-  .levels .lvl:first-child{margin-top:0}
-  .levels .lvl h3{font-size:14px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin:0}
-  .levels .lvl span{font-size:12px;color:var(--muted)}
+  .levels .lvl{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:40px 0 16px}
+  .levels .lvl:first-child{margin-top:4px}
+  .levels .lvl h3{font-size:26px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin:0;
+    padding-left:14px;border-left:6px solid var(--c,#4FA8DE);line-height:1}
+  .levels .lvl .n{font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--t,#4FA8DE)}
+  .levels .lvl span.hint{flex-basis:100%;font-size:13px;color:var(--muted);padding-left:20px}
   .course[draggable="true"]{cursor:grab}
   .course.dragging{opacity:.4}
   .course.over{outline:2px dashed var(--t,#4FA8DE);outline-offset:3px}
@@ -259,6 +261,7 @@ function saveOrder(key, slugs) { try { const o = readOrder(); o[key] = slugs; lo
 function showLevels(k) {
   if (!allCards.length) allCards = [...document.querySelectorAll("#courses .course")];
   const root = $("courses"); root.innerHTML = "";
+  const bc = BRAND[k] || BRAND.tcc; root.style.setProperty("--c", bc.c); root.style.setProperty("--t", bc.t);
   const mine = allCards.filter((c) => c.dataset.brand === k);
   const levels = [...new Set(mine.map((c) => c.dataset.level))].sort((a, b) => (Number(a) || 99) - (Number(b) || 99));
   const order = readOrder();
@@ -269,10 +272,11 @@ function showLevels(k) {
       .sort((a, b) => { const ia = saved.indexOf(a.dataset.slug), ib = saved.indexOf(b.dataset.slug); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
     const head = document.createElement("div"); head.className = "lvl";
     const h = document.createElement("h3"); h.textContent = lv ? "Level " + lv : "Courses";
-    head.appendChild(h);
+    const n = document.createElement("span"); n.className = "n"; n.textContent = cards.length === 1 ? "1 course" : cards.length + " courses";
+    head.append(h, n);
     const grid = document.createElement("div"); grid.className = "grid";
     if (cards.length > 1) {
-      const hint = document.createElement("span"); hint.textContent = "Drag the courses to put them in the order you want.";
+      const hint = document.createElement("span"); hint.className = "hint"; hint.textContent = "Drag the courses to put them in the order you want.";
       head.appendChild(hint);
       cards.forEach((c) => makeDraggable(c, grid, key));
     } else cards.forEach((c) => c.removeAttribute("draggable"));
