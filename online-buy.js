@@ -25,6 +25,28 @@
   var SYMBOL = { EUR: "€", GBP: "£", USD: "US$", AUD: "A$", CAD: "C$" };
   var state = { offer: null, currency: null, language: null, option: "full", months: null, country: "" };
 
+  // Each language named, and described, in its own words.
+  var LANG_NAME = { en: "English", es: "Español", fr: "Français", it: "Italiano", de: "Deutsch", pt: "Português" };
+  var LANG_NOTE = {
+    en: "Course, videos and portfolio in English",
+    es: "Curso, vídeos y portafolio en español",
+    fr: "Cours, vidéos et portfolio en français",
+    it: "Corso, video e portfolio in italiano",
+    de: "Kurs, Videos und Portfolio auf Deutsch",
+    pt: "Curso, vídeos e portfólio em português",
+  };
+  // The language picked to start with: ?lang=es in the link, else the
+  // visitor's browser language when the course is sold in it.
+  function startLanguage(list) {
+    var codes = list.map(function (l) { return l.language; });
+    var want = null;
+    try { want = new URLSearchParams(location.search).get("lang"); } catch (e) {}
+    if (want && codes.indexOf(want) > -1) return want;
+    var nav = String((navigator.languages && navigator.languages[0]) || navigator.language || "").slice(0, 2).toLowerCase();
+    if (codes.indexOf(nav) > -1) return nav;
+    return codes[0] || null;
+  }
+
   // Every country, named in English, for the "Where are you based?" list.
   var CODES = ("AD AE AF AG AL AM AO AR AT AU AZ BA BB BD BE BF BG BH BI BJ BN BO BR BS BT BW BY BZ CA CD CF CG CH CI CL CM CN CO CR CU CV CY CZ DE DJ DK DM DO DZ EC EE EG ER ES ET FI FJ FR GA GB GD GE GH GI GM GN GQ GR GT GW GY HK HN HR HT HU ID IE IL IM IN IQ IR IS IT JE JM JO JP KE KG KH KM KN KR KW KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MG MK ML MM MN MO MR MT MU MV MW MX MY MZ NA NE NG NI NL NO NP NZ OM PA PE PG PH PK PL PR PS PT PY QA RE RO RS RU RW SA SB SC SD SE SG SI SK SL SM SN SO SR SS SV SY SZ TD TG TH TJ TL TM TN TO TR TT TW TZ UA UG US UY UZ VA VC VE VN VU WS XK YE ZA ZM ZW").split(" ");
   var names = null;
@@ -60,6 +82,8 @@
     ".ob-opt[aria-pressed=true]{border-color:var(--tcc);box-shadow:inset 0 0 0 1px var(--tcc);background:#403834}",
     ".ob-opt[aria-pressed=true] .ob-opt__k::before{content:\"\\2713  \"}",
     ".ob-opt__note,.ob-small{color:#B7B1B3!important}",
+    ".ob-langs .ob-opt__k{font-size:20px;letter-spacing:.04em;text-transform:none;color:var(--ink)}",
+    ".ob-opt__lang{font-size:15px;color:#B7B1B3;margin-top:2px}",
     ".ob-opt__k{font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accentText);margin-bottom:6px}",
     ".ob-opt__amt{font-size:30px;font-weight:800}",
     ".ob-opt__amt small{font-size:13px;font-weight:600;color:var(--muted)}",
@@ -107,21 +131,23 @@
 
     var row = el("div", "ob-row");
 
-    // Language — only asked when there is a choice.
+    // Language — only asked when there is a choice, and asked first, as
+    // large tiles in each language's own words so nobody misses it.
     if (o.languages.length > 1) {
-      var lf = el("div", "ob-field");
-      var ll = stepLabel("Choose your course language", "ob-lang");
-      var ls = el("select");
-      ls.id = "ob-lang";
+      var lh = el("div", "ob-field");
+      lh.appendChild(stepLabel("Choose your course language"));
+      box.appendChild(lh);
+      var lt = el("div", "ob-opts ob-langs");
       o.languages.forEach(function (l) {
-        var op = el("option", null, l.label);
-        op.value = l.language;
-        ls.appendChild(op);
+        var b = el("button", "ob-opt");
+        b.type = "button";
+        b.setAttribute("aria-pressed", String(l.language === state.language));
+        b.appendChild(el("div", "ob-opt__k", LANG_NAME[l.language] || l.language));
+        b.appendChild(el("div", "ob-opt__lang", LANG_NOTE[l.language] || l.label));
+        b.onclick = function () { state.language = l.language; render(); };
+        lt.appendChild(b);
       });
-      ls.value = state.language;
-      ls.onchange = function () { state.language = ls.value; };
-      lf.appendChild(ll); lf.appendChild(ls);
-      row.appendChild(lf);
+      box.appendChild(lt);
     } else {
       var only = el("div", "ob-field");
       var ol = el("label", null, "Your course");
@@ -293,7 +319,7 @@
       state.currency = d.currency;
       state.months = d.months && d.months.length ? d.months[0] : 3;
       state.country = d.country && CODES.indexOf(d.country) > -1 ? d.country : "";
-      state.language = d.languages[0] ? d.languages[0].language : null;
+      state.language = startLanguage(d.languages);
       render();
     })
     .catch(function () {
