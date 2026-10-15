@@ -201,6 +201,15 @@ const EMAIL_EN = {
   nextStep: "Next step",
 };
 
+// The translated result films, by language: YouTube ids from Nico's
+// ASSESSMENTS PROFILES VIDEOS sheet. A language or rung missing here gets
+// the English film.
+const VIDEOS = {
+  de: { eye: "nr2YmkVsJnA", methodology: "lgaQxQRSHNw", dynamic: "rih8XUWxgU0", periodisation: "HXFrK9FGoDo" },
+  it: { eye: "lYrG33iIm4g", methodology: "zNKTSPx-Cxg", dynamic: "u0uLDtWrHlQ", periodisation: "Q_lXMwJVVeA" },
+  es: { eye: "DPdywy9p3go", methodology: "PSmDNsK-Il4", dynamic: "5VmFI3Q2GqU", periodisation: "5u_sPReTrpA" },
+};
+
 async function packFor(lang) {
   const EN = {
     focus: FOCUS, opening: OPENING, closing: CLOSING,
@@ -215,10 +224,10 @@ async function packFor(lang) {
     const t = await res.json();
     const focus = {};
     for (const key of RUNGS) {
-      // The film stays as it is: the same asset whatever language the words
-      // around it are in, until somebody shoots a translated one.
+      // The film is the language's own where Nico has made one, and the
+      // English one until then.
       focus[key] = Object.assign({}, FOCUS[key], (t.focus && t.focus[key]) || {});
-      focus[key].video = FOCUS[key].video;
+      focus[key].video = (VIDEOS[lang] && VIDEOS[lang][key]) || FOCUS[key].video;
     }
     return {
       focus,
