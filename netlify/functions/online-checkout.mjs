@@ -69,6 +69,25 @@ import { enrolById, isOnSite, LEARN_URL, learnStartLink } from "./learnworlds.mj
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+// What the Stripe payment page says, in the course language. A language
+// without its own words here still gets Stripe's page in that language,
+// with our two lines of text in English.
+const STRIPE_LOCALES = ["es", "fr", "it", "de", "pt"];
+function stripeWords(language) {
+  const es = language === "es";
+  return {
+    locale: STRIPE_LOCALES.includes(language) ? language : "auto",
+    description: es
+      ? "Curso online. Acceso inmediato: te enviamos tus datos de acceso por email en cuanto pagas."
+      : "Online course. Instant access — your login details are emailed as soon as you have paid.",
+    terms: es
+      ? "Acepto las condiciones de venta de BirdBox Coaching. Pido que el acceso empiece de inmediato " +
+        "y entiendo que pierdo mi derecho de desistimiento y que el curso no es reembolsable una vez dado el acceso."
+      : "I agree to the BirdBox Coaching terms of sale. I ask for access to start straight away, " +
+        "and understand that I lose my right to cancel and the course is non-refundable once access has been given.",
+  };
+}
+
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -307,7 +326,7 @@ async function checkout(req, body) {
       unit_amount: option === "plan" ? each : price,
       product_data: {
         name: option === "plan" ? `${name} — ${months} monthly payments` : name,
-        description: "Online course. Instant access — your login details are emailed as soon as you have paid.",
+        description: stripeWords(product.language).description,
       },
     },
   };
@@ -318,6 +337,8 @@ async function checkout(req, body) {
     // The buyer picked their currency on our page; Stripe's Adaptive
     // Pricing would offer them another one (CHF, say) on top. Off.
     adaptive_pricing: { enabled: false },
+    // Stripe's page in the course language the buyer picked.
+    locale: stripeWords(product.language).locale,
     mode: option === "plan" ? "subscription" : "payment",
     payment_method_types: ["card"],
     line_items: [lineItem],
@@ -325,9 +346,7 @@ async function checkout(req, body) {
     consent_collection: { terms_of_service: "required" },
     custom_text: {
       terms_of_service_acceptance: {
-        message:
-          "I agree to the BirdBox Coaching terms of sale. I ask for access to start straight away, " +
-          "and understand that I lose my right to cancel and the course is non-refundable once access has been given.",
+        message: stripeWords(product.language).terms,
       },
     },
     metadata,
@@ -572,15 +591,15 @@ async function seminarCheckout(req, body) {
     // The buyer picked their currency on our page; Stripe's Adaptive
     // Pricing would offer them another one (CHF, say) on top. Off.
     adaptive_pricing: { enabled: false },
+    // Stripe's page in the course language the buyer picked.
+    locale: stripeWords(product.language).locale,
     mode: option === "plan" ? "subscription" : "payment",
     payment_method_types: ["card"],
     customer: customer.id,
     consent_collection: { terms_of_service: "required" },
     custom_text: {
       terms_of_service_acceptance: {
-        message:
-          "I agree to the BirdBox Coaching terms of sale. I ask for access to start straight away, " +
-          "and understand that I lose my right to cancel and the course is non-refundable once access has been given.",
+        message: stripeWords(product.language).terms,
       },
     },
     metadata,
