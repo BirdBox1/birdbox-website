@@ -226,6 +226,12 @@
       off: "Usiamo i cookie pubblicitari di Meta per capire quali annunci portano le persone ai nostri corsi. Non servono al funzionamento del sito e non li attiviamo senza il tuo consenso.",
       privacy: "Informativa sulla privacy", reject: "Rifiuta", accept: "Accetta",
       switchOff: "Disattiva", keepOn: "Lascia attivi", label: "Cookie", settings: "Impostazioni cookie"
+    },
+    pl: {
+      on: "Używamy reklamowych plików cookie Meta, żeby wiedzieć, które reklamy przyprowadzają ludzi na nasze kursy. Nie są potrzebne do działania strony. Możesz je tutaj wyłączyć.",
+      off: "Używamy reklamowych plików cookie Meta, żeby wiedzieć, które reklamy przyprowadzają ludzi na nasze kursy. Nie są potrzebne do działania strony i włączamy je tylko za twoją zgodą.",
+      privacy: "Polityka prywatności", reject: "Odrzuć", accept: "Akceptuj",
+      switchOff: "Wyłącz", keepOn: "Pozostaw włączone", label: "Cookies", settings: "Ustawienia cookies"
     }
   };
 

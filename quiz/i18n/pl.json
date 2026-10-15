@@ -1,0 +1,146 @@
+{
+  "lang": "pl",
+  "title": "Jakim trenerem jesteś w tej chwili?",
+  "lede": "Dwanaście pytań o to, jak coachujesz dzisiaj. Na końcu poznasz swój obecny etap, jego znaczenie i jedną rzecz, nad którą warto popracować dalej.",
+  "start": "Rozpocznij ocenę",
+  "back": "Wstecz",
+  "almost": "Już prawie",
+  "whereSend": "Gdzie mamy wysłać twój wynik?",
+  "consent": "Wyślijcie mi informacje uzupełniające do mojego wyniku oraz okazjonalny newsletter z artykułami i podcastami. W każdej chwili możesz zrezygnować z subskrypcji.",
+  "seeResult": "Zobacz mój wynik",
+  "nextStep": "Twój następny krok",
+  "chip1": "12 pytań",
+  "chip2": "1–2 minuty",
+  "chip3": "Bezpłatnie",
+  "questionOf": "Pytanie {n} z {total}",
+  "firstName": "Imię",
+  "lastName": "Nazwisko",
+  "email": "E-mail",
+  "emailed": "Kopia jest już w drodze na twoją skrzynkę.",
+  "needNames": "Podaj, proszę, swoje imię i nazwisko.",
+  "needEmail": "Potrzebujemy poprawnego adresu e-mail, żeby wysłać ci wynik.",
+  "failed": "Coś poszło nie tak. Spróbuj ponownie.",
+  "unreachable": "Nie udało się z nami połączyć. Spróbuj ponownie.",
+  "saving": "Zapisywanie…",
+  "saveFailed": "Nie udało się zapisać. Spróbuj ponownie.",
+  "saved": "Gotowe — jesteś na liście.",
+  "resultHead": "Twoja samoocena jako trenera",
+  "yourStage": "Twój etap",
+  "learnMore": "Dowiedz się więcej o skutecznym coachingu",
+  "questions": [
+    {
+      "q": "Jak opisałbyś swój obecny system lub sposób pracy jako trener?",
+      "a": [
+        "Właściwie jeszcze go nie mam, wciąż go wypracowuję.",
+        "Mam system, ale wciąż dopracowuję sposób jego stosowania.",
+        "Mam system, któremu ufam, ale pracuję nad jego większą efektywnością.",
+        "Mój system jest dopracowany i dobrze skaluje się na zawodników i zespół."
+      ]
+    },
+    {
+      "q": "Kiedy patrzysz, jak ktoś się porusza, jaka jest twoja pierwsza reakcja?",
+      "a": [
+        "Nie jestem pewien, na co patrzeć",
+        "Zwykle widzę, co jest nie tak, ale nie zawsze rozumiem dlaczego",
+        "Rozpoznaję przyczyny źródłowe i subtelne kompensacje",
+        "Dostrzegam problemy natychmiast i wiem, jak skutecznie je skorygować"
+      ]
+    },
+    {
+      "q": "Jak wykorzystujesz treści edukacyjne, z których korzystasz (kursy, seminaria, filmy)?",
+      "a": [
+        "Oglądam dużo, ale nie zawsze stosuję to, czego się uczę",
+        "Próbuję stosować, ale mam problem z konsekwencją",
+        "Jestem wybiórczy, testuję pomysły i notuję, co działa",
+        "Przekładam kluczowe wnioski na systemy, które działają na bieżąco"
+      ]
+    },
+    {
+      "q": "Na ile pewnie czujesz się, dając wskazówki lub korekty ruchu?",
+      "a": [
+        "Jeszcze niepewnie — często się waham",
+        "Daję wskazówki, ale często próbuję kilku, zanim któraś zadziała",
+        "Wiem, których wskazówek użyć, ale pracuję nad sposobem i momentem ich podania",
+        "Podaję precyzyjne wskazówki, które niezawodnie wywołują zmianę"
+      ]
+    },
+    {
+      "q": "Skąd wiesz, czy twoja praca przynosi efekty?",
+      "a": [
+        "Kieruję się głównie tym, jak to wygląda i jak to czuję",
+        "Szukam postępów, ale nie śledzę ich systematycznie",
+        "Zbieram informacje zwrotne i obserwuję wzorce, by korygować",
+        "Używam konkretnych wskaźników i uporządkowanej refleksji do oceny efektów"
+      ]
+    },
+    {
+      "q": "Jakie jest twoje największe wyzwanie w tej chwili?",
+      "a": [
+        "Czuję się przytłoczony i nie wiem, od czego zacząć",
+        "Chcę większej konsekwencji i pewności w swojej pracy",
+        "Chcę doszlifować to, co już robię dobrze",
+        "Koncentruję się na skalowaniu swojego wpływu"
+      ]
+    },
+    {
+      "q": "Jak często szukasz informacji zwrotnej na temat swojej pracy?",
+      "a": [
+        "Rzadko — nie wiem, kogo pytać ani o co",
+        "Czasami — pytam, gdy coś mi nie gra",
+        "Regularnie — mam osoby, które dają mi szczerą informację zwrotną",
+        "Stale — informacja zwrotna jest wbudowana w moje systemy"
+      ]
+    },
+    {
+      "q": "Kiedy pomagasz komuś poprawić ruch, jakie jest twoje podejście?",
+      "a": [
+        "Próbuję kilku rzeczy i patrzę, co zadziała",
+        "Trzymam się procesu, ale często dostosowuję go na bieżąco",
+        "Stosuję uporządkowane podejście, korygowane według niuansów",
+        "Stosuję sprawdzony, efektywny proces dający powtarzalne efekty"
+      ]
+    },
+    {
+      "q": "Na ile jasna jest dla ciebie twoja tożsamość jako trenera?",
+      "a": [
+        "Wciąż szukam tego, kim jestem jako trener",
+        "Wyczuwam swój styl, ale wciąż porównuję się z innymi",
+        "Jestem pewny swojego stylu i pracuję nad jego dopracowaniem",
+        "Mam mocny, własny głos jako trener i prowadzę nim innych"
+      ]
+    },
+    {
+      "q": "Jak przygotowujesz się do zajęć lub do planowania treningu?",
+      "a": [
+        "Często improwizuję albo szukam inspiracji na ostatnią chwilę",
+        "Przygotowuję plan, ale czasem nie jestem pewien szczegółów",
+        "Mam stały system planowania, z drobnymi zmianami na ostatnią chwilę",
+        "Trzymam się solidnego systemu, który łatwo skaluje się na klientów i grupy"
+      ]
+    },
+    {
+      "q": "Jak podchodzisz obecnie do własnego rozwoju zawodowego?",
+      "a": [
+        "Staram się przyswoić jak najwięcej",
+        "Koncentruję się na stosowaniu wiedzy w realnych sytuacjach",
+        "Koncentruję się na dopracowaniu tego, co już u mnie działa",
+        "Koncentruję się na rozwijaniu innych i skalowaniu moich systemów"
+      ]
+    },
+    {
+      "q": "Co najlepiej opisuje twoje typowe rozmowy trenerskie?",
+      "a": [
+        "Daję podstawową informację zwrotną lub instrukcje i liczę, że pomogą",
+        "Tłumaczę, co jest nie tak i proponuję sposoby poprawy",
+        "Skupiam się na lepszych pytaniach i na budowaniu odpowiedzialności zawodnika",
+        "Pracuję z człowiekiem, a nie tylko z wynikiem — z jasnością i intencją"
+      ]
+    }
+  ],
+  "metaTitle": "Samoocena trenera — BirdBox Coaching",
+  "emailOnly": "Twojego adresu użyjemy, aby wysłać ci wynik. Nic poza tym, bez zaznaczenia pola powyżej.",
+  "working": "Ustalamy twój etap…",
+  "secondAskHead": "Więcej dla etapu {plural}",
+  "secondAskLede": "Chcesz więcej takich treści? Będziemy wysyłać praktyczne materiały o coachingu i od czasu do czasu informacje o kursach, dopasowane do etapu, na którym jesteś.",
+  "yesSend": "Tak, wyślijcie"
+}

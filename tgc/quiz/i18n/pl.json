@@ -1,0 +1,152 @@
+{
+  "lang": "pl",
+  "title": "Czego aktualnie potrzebuje twój gimnastyczny coaching?",
+  "start": "Rozpocznij ocenę",
+  "back": "Wstecz",
+  "almost": "Już prawie",
+  "whereSend": "Gdzie mamy wysłać twój wynik?",
+  "consent": "Wyślijcie mi informacje uzupełniające do mojego wyniku oraz okazjonalny newsletter z artykułami i podcastami. W każdej chwili możesz zrezygnować z subskrypcji.",
+  "seeResult": "Zobacz mój wynik",
+  "nextStep": "Twój następny krok",
+  "chip1": "12 pytań",
+  "chip2": "1–2 minuty",
+  "chip3": "Bezpłatnie",
+  "questionOf": "Pytanie {n} z {total}",
+  "firstName": "Imię",
+  "lastName": "Nazwisko",
+  "email": "E-mail",
+  "emailed": "Kopia jest już w drodze na twoją skrzynkę.",
+  "needNames": "Podaj, proszę, swoje imię i nazwisko.",
+  "needEmail": "Potrzebujemy poprawnego adresu e-mail, żeby wysłać ci wynik.",
+  "failed": "Coś poszło nie tak. Spróbuj ponownie.",
+  "unreachable": "Nie udało się z nami połączyć. Spróbuj ponownie.",
+  "saving": "Zapisywanie…",
+  "saveFailed": "Nie udało się zapisać. Spróbuj ponownie.",
+  "saved": "Gotowe — jesteś na liście.",
+  "emailOnly": "Twojego adresu użyjemy, aby wysłać ci wynik. Nic poza tym, bez zaznaczenia pola powyżej.",
+  "yourFocus": "Twój obszar pracy",
+  "tryThisWeek": "Wypróbuj w tym tygodniu",
+  "theLadder": "Kolejne szczeble",
+  "whereTaught": "Gdzie tego uczymy",
+  "watch": "Obejrzyj",
+  "yesSend": "Tak, wyślijcie",
+  "rungDone": "Za tobą",
+  "rungHere": "Jesteś tutaj",
+  "rungAhead": "Przed tobą",
+  "lede": "Dwanaście pytań o to, jak coachujesz dzisiaj. Na końcu poznasz swój obszar do pracy, jego znaczenie i jedną rzecz do wdrożenia w tym tygodniu.",
+  "metaTitle": "Czego potrzebuje twój coaching — The Gymnastics Course",
+  "working": "Ustalamy twój obszar pracy…",
+  "resultHead": "Twój obszar pracy w coachingu gimnastycznym",
+  "secondAskHead": "Więcej o: {focus}",
+  "secondAskLede": "Pięć krótkich e-maili na ten temat, jeden w tygodniu. Rzeczy warte przemyślenia i takie, które możesz wypróbować z zawodnikami, których masz przed sobą.",
+  "questions": [
+    {
+      "q": "Swing zawodnika wygląda źle. Co zwykle wtedy się dzieje?",
+      "a": [
+        "Widzę, że coś jest nie tak, ale nie wiem co",
+        "Potrafię nazwać błąd po kilku powtórzeniach",
+        "Widzę go w pierwszym powtórzeniu i potrafię nazwać",
+        "Widzę go, nazywam i wiem, do której pozycji się sprowadza"
+      ]
+    },
+    {
+      "q": "Dwóch zawodników nie radzi sobie z tym samym ruchem z różnych powodów. Jak często to wychwytujesz?",
+      "a": [
+        "Rzadko — zwykle dostają tę samą wskazówkę",
+        "Czasami - zazwyczaj, gdy później o tym pomyślę",
+        "Często, na bieżąco",
+        "Zawsze — spodziewam się i aktywnie tego szukam"
+      ]
+    },
+    {
+      "q": "Pokazujesz pozycję. Jak wyglądają wersje wykonania przez twoich zawodników?",
+      "a": [
+        "Zupełnie różnie",
+        "Z grubsza podobnie, trudno powiedzieć co nie gra",
+        "Blisko i potrafię wskazać różnice",
+        "Spójnie, bo za każdym razem sprawdzam te same punkty odniesienia"
+      ]
+    },
+    {
+      "q": "W jaki sposób decydujesz, nad czym zawodnik powinien pracować w następnej kolejności?",
+      "a": [
+        "Wybieram to, co danego dnia przewiduje program zajęć",
+        "Wybieram to, co sprawia mu największą trudność",
+        "Aplikuję progresję, którą stosuję dla tego ruchu",
+        "Stosuję określoną kolejność, którą potrafię wyjaśnić i uzasadnić dla każdego zawodnika"
+      ]
+    },
+    {
+      "q": "Zawodnik chce robić muscle-upy, ale nie utrzymuje pozycji hollow. Co robisz?",
+      "a": [
+        "Pozwalam mu ćwiczyć muscle-upy przy niskiej objętości",
+        "Dokładam równolegle pracę nad hollow",
+        "Wstrzymuję muscle-upy, dopóki pozycja nie jest opanowana",
+        "Cofam się i odbudowuję sekwencję po kolei"
+      ]
+    },
+    {
+      "q": "Gdyby inny trener przejął Twoich zawodników na miesiąc, czy byliby w stanie bez problemu kontynuować pracę?",
+      "a": [
+        "Nie — większość jest w mojej głowie",
+        "Mniej więcej, na podstawie tego, co jest na tablicy",
+        "Tak, progresja jest spisana",
+        "Tak i rozumieliby, skąd wynika kolejność poszczególnych kroków."
+      ]
+    },
+    {
+      "q": "Zawodnik ma siłę w wersji strict, ale brakuje powtarzalności w kip. Twoje podejście?",
+      "a": [
+        "Więcej powtórzeń, aż zaskoczy",
+        "Pokazuję jeszcze raz, wolniej",
+        "Rozkładam timing na elementy i ćwiczę je osobno",
+        "Ustalam, który element jest źle zgrany, i pracuję właśnie nad nim"
+      ]
+    },
+    {
+      "q": "Jak uczysz rytmu i timingu?",
+      "a": [
+        "Właściwie nie uczę — przychodzą z praktyką",
+        "Licząc lub przez wskazówki tempa",
+        "Ćwiczeniami, które izolują timing",
+        "Ograniczeniami, przy których właściwy timing jest jedyną możliwą opcją"
+      ]
+    },
+    {
+      "q": "Dynamiczny element rozpada się pod wpływem zmęczenia. Jak to odczytujesz?",
+      "a": [
+        "Jest zmęczony",
+        "Problem z wydolnością",
+        "Timing rozpada się wcześniej niż wyczerpuje siła",
+        "Wiem, która część sekwencji u tego zawodnika puszcza jako pierwsza"
+      ]
+    },
+    {
+      "q": "Jak ustalasz, ile objętości gimnastycznej dostaje zawodnik?",
+      "a": [
+        "Tyle, ile jest w WOD-zie na zajęciach",
+        "Więcej dla tych, którzy tego potrzebują",
+        "Stała tygodniowa ilość zależna od poziomu",
+        "Przepisana względem tego, do czego się adaptuje i korygowana na bieżąco"
+      ]
+    },
+    {
+      "q": "Zawodnik ma wzorowe pozycje i dobry timing, ale przestał robić postępy. Dlaczego?",
+      "a": [
+        "Nie wiem",
+        "Pewnie musi trenować więcej",
+        "Dawka nie jest dopasowana do adaptacji",
+        "Wiedziałbym, którą zmienną zmienić i o ile"
+      ]
+    },
+    {
+      "q": "Jak zarządzasz intensywnością gimnastyki w skali tygodnia?",
+      "a": [
+        "Nie oddzielam jej od reszty treningu",
+        "Pilnuję jej nieformalnie",
+        "Planuję dni cięższe i lżejsze",
+        "Przypisuję ją świadomie względem wszystkiego, co jeszcze robi"
+      ]
+    }
+  ]
+}
