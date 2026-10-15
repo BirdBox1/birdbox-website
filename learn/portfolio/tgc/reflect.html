@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reflection — BirdBox Learn</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
+          --line:#342F31; --accent:#E0555A; --bad:#F0797D; --good:#5CC48A; }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .bar{display:flex;align-items:center;gap:14px;padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top));
+    border-bottom:1px solid var(--line);background:#0d0b0b}
+  .bar img{height:34px;width:auto;display:block}
+  .bar .name{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .bar .nav{margin-left:auto;display:flex;gap:8px}
+  .btn{display:inline-block;font:inherit;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:12px 20px;background:var(--accent);color:#fff;border:1px solid var(--accent);cursor:pointer;text-decoration:none;text-align:center}
+  .btn:hover{background:transparent;color:var(--accent)}
+  .btn.ghost{background:none;color:var(--ink);border-color:#6A6466}
+  .btn.small{font-size:11px;padding:7px 12px}
+  .wrap{max-width:900px;margin:0 auto;padding:36px 20px 64px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  .kicker a{color:inherit;text-decoration:none}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.05;font-weight:800;text-transform:uppercase;margin:0 0 10px}
+  h2{font-size:15px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 12px}
+  h3{font-size:16px;margin:0 0 6px;line-height:1.4}
+  .lede{color:var(--muted);font-size:16px;line-height:1.6;margin:0 0 24px;max-width:70ch}
+  .hidden{display:none!important}
+  .panel{background:var(--panel);border:1px solid var(--line);padding:22px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);padding:22px;max-width:440px}
+  .card label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+  .card input{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:6px}
+  .msg{font-size:14px;line-height:1.5;margin:12px 0 0;min-height:1em}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  .task{background:var(--panel2);border-left:4px solid var(--accent);padding:14px 16px;line-height:1.6;font-size:15px;margin:0 0 20px}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px}
+  .steps button{font:inherit;text-align:left;background:var(--panel);color:var(--muted);border:1px solid var(--line);padding:10px 12px;cursor:pointer;font-size:13px;line-height:1.3}
+  .steps button b{display:block;font-size:18px;color:var(--ink)}
+  .steps button.on{border-color:var(--accent);color:var(--ink)}
+  .steps button.done b::after{content:" ✓";color:var(--good);font-size:14px}
+  .rq{margin:0 0 18px}
+  .hint{color:var(--muted);font-size:14px;line-height:1.5;margin:0 0 8px}
+  textarea{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);min-height:96px;resize:vertical;line-height:1.5}
+  .gate{background:var(--panel2);border-left:4px solid #6A6466;padding:12px 14px;margin:0 0 14px;color:var(--muted);font-size:14px}
+  .go{background:#3A1A1C;border:1px solid var(--accent);padding:18px;margin:4px 0 0}
+  .go h2{color:var(--accent)}
+  .vnav{display:flex;justify-content:space-between;margin-top:16px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .state{font-size:13px;color:var(--muted)}
+  .doc h3{font-size:18px;margin:0 0 10px}
+  .doc h4{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:18px 0 8px}
+  .doc p{margin:0 0 4px;line-height:1.55;font-size:15px}
+  .doc .empty{color:var(--muted);font-style:italic}
+  @media(max-width:600px){.steps{grid-template-columns:1fr}}
+  @media print{
+    body{background:#fff;color:#000} .bar,.noprint{display:none!important}
+    .panel{border:none;background:none;padding:0} .doc h4{color:#85151A} .doc .empty{color:#777}
+    #rf-step{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="bar">
+  <a href="/learn/"><img src="/brand/birdBox.png" alt="BirdBox"></a>
+  <span class="name">My TGC portfolio</span>
+  <div class="nav"><a class="btn ghost small" href="index.html">My TGC portfolio</a> <a class="btn ghost small" href="/learn/" id="b-course">← Back to my course</a></div>
+</div>
+
+<main class="wrap">
+  <p id="loading" class="lede">Loading…</p>
+
+  <section id="login" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My TGC portfolio</h1>
+    <p class="lede">Log in with the email address you bought your course with, and your reflection opens here.</p>
+    <form class="card" id="login-form">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="email" required>
+      <label for="l-pass">Password</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn" type="submit">Log in</button>
+      <button class="btn ghost" id="l-link" type="button" style="margin-top:10px">Email me a login link</button>
+      <div id="l-msg" class="msg"></div>
+    </form>
+  </section>
+
+  <section id="soon" class="hidden">
+    <p class="kicker">The Gymnastics Course</p>
+    <h1>Coming soon</h1>
+    <p class="lede">The TGC portfolio is still being built. It will open here once it is ready.</p>
+    <a class="btn" href="/learn/">← My courses</a>
+  </section>
+
+  <section id="reflect" class="hidden">
+    <p class="kicker"><a href="index.html">← My portfolio</a> · The Gymnastics Course · <span id="rf-unit"></span></p>
+    <h1 id="rf-title"></h1>
+    <p class="lede" id="rf-lede"></p>
+    <div class="task noprint" id="rf-task"></div>
+    <div class="steps noprint" id="rf-steps"></div>
+    <div class="panel noprint" id="rf-step"></div>
+    <div class="panel">
+      <h2 class="noprint">My reflection so far</h2>
+      <div class="doc" id="rf-doc"></div>
+    </div>
+    <div class="row noprint">
+      <button class="btn" id="rf-save" type="button">Save</button>
+      <button class="btn ghost" id="rf-download" type="button">Download PDF</button>
+      <span class="state" id="rf-state"></span>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
+const $ = (id) => document.getElementById(id);
+const show = (id) => ["loading", "login", "soon", "reflect"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+
+// While the TGC portfolio is built and tested, only these logins can open it; everyone else sees
+// "coming soon". Keep this list the same in learn/portfolio/tgc/index.html, headpath.html and reflect.html.
+// To launch: set TGC_LIVE to true in all three, and add tgc1 to PORTFOLIOS in /learn/index.html.
+const TGC_LIVE = false, TGC_TESTERS = ["nathan@birdboxcoaching.com"];
+const canOpen = (s) => TGC_LIVE || TGC_TESTERS.includes(String((s && s.user && s.user.email) || "").toLowerCase());
+
+// TGC reflections use the reflective practice (RP) cycle taught in TCC's Reflection and Observation
+// unit (Rea & Oakley, 2009): 1 thinking about practice, 2 planning and doing practice (then go and
+// coach), 3 reflecting on practice. Each task gives its own questions for the three steps.
+// To add a reflection: add an entry here, list it in index.html, and link its lesson button to
+// /learn/portfolio/tgc/?tool=<short name>.
+const TASKS = {
+  "tgc-movement": {
+    unit: "Lesson 2 · What Is Gymnastics",
+    title: "Coaching movement execution over completing the task",
+    lede: "Use the reflective practice cycle to plan a process that helps your athletes value how well they move over simply finishing the task, try it in your coaching, then reflect on what happened.",
+    task: "In gymnastics the execution score starts at 10 and every fault is a deduction. How might you implement a process that helps you coach the value of movement execution over completing a task? For example, using a rating scale of 1–10 on movement performance as a feedback tool to your athletes.",
+    steps: [
+      { short: "Thinking about practice", title: "Step 1 — Thinking about practice",
+        intro: "Think about your coaching as it is now. This identifies your starting point.",
+        qs: [["now", "In my sessions now, what do my athletes value more: finishing the workout or moving well? How do I know?"],
+          ["reward", "What do I currently say or do that rewards good movement, and what rewards just getting it done (times, reps, scores on the board)?"],
+          ["drop", "When and where does movement quality drop off when athletes chase the task?", "e.g. under fatigue, against the clock, when others are watching"]] },
+      { short: "Planning and doing", title: "Step 2 — Planning and doing practice",
+        intro: "Plan the process you will use. Then take time away from this unit and go and coach with it.",
+        qs: [["process", "What process will I use to coach the value of movement execution over completing the task?", "e.g. a 1–10 movement rating given as feedback after each set"],
+          ["standard", "Pick one movement. What does a 10 look like, and what takes points off?", "Describe the positions and faults you will score, like an execution panel."],
+          ["introduce", "How and when will I introduce it to my athletes, and how will I use it during the session?"],
+          ["look", "What will I look and listen for to know whether it is working?"]] },
+      { short: "Reflecting on practice", title: "Step 3 — Reflecting on practice",
+        intro: "Now you have coached with your process, answer these questions. Think about all the sessions where you used it, not just one.",
+        qs: [["happened", "What happened when I used my process? How did my athletes respond?"],
+          ["quality", "Did movement execution change? What did I see?"],
+          ["keep", "What will I keep, change or stop doing?"],
+          ["next", "How will this become part of my coaching from now on?"]] },
+    ],
+  },
+};
+// Lesson buttons link to the portfolio home with ?tool=<short name>, which sends them here.
+const params = new URLSearchParams(location.search);
+const key = params.get("t") || "tgc-movement", cfg = TASKS[key];
+
+let session = null, rf = null, step = 0, timer = null;
+
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const { error } = await db.auth.signInWithPassword({ email: $("l-email").value.trim(), password: $("l-pass").value });
+  if (error) { $("l-msg").className = "msg err"; $("l-msg").textContent = "That email and password did not match. Try again, or use the login link."; return; }
+  boot();
+});
+$("l-link").addEventListener("click", async () => {
+  const email = $("l-email").value.trim().toLowerCase();
+  if (!email.includes("@")) { $("l-msg").className = "msg err"; $("l-msg").textContent = "Type your email first."; return; }
+  await fetch("/.netlify/functions/learn-access", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, next: location.pathname + location.search }) }).catch(() => {});
+  $("l-msg").className = "msg ok"; $("l-msg").textContent = "If that email has a course, a login link is on its way. Tap it and you come straight back here.";
+});
+// The lesson opens this page in a new tab, so "back" saves, closes it, and the lesson is still underneath.
+$("b-course").onclick = async (e) => {
+  e.preventDefault();
+  if (rf) await save();
+  window.close(); setTimeout(() => { location.href = "/learn/"; }, 300);
+};
+
+async function unlock() {
+  try {
+    const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", "_unlocked").maybeSingle();
+    const list = (data && data.data && data.data.tools) || [];
+    if (!list.includes(key)) await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: "_unlocked", data: { tools: [...list, key] } }, { onConflict: "user_id,tool" });
+  } catch (e) { /* never block the task */ }
+}
+
+async function boot() {
+  ({ data: { session } } = await db.auth.getSession());
+  if (!session) { show("login"); return; }
+  if (!canOpen(session) || !cfg) { show("soon"); return; }
+  if (params.get("tool")) unlock();
+  const { data } = await db.from("learn_portfolio").select("*").eq("user_id", session.user.id).eq("tool", key).maybeSingle();
+  rf = data || { tool: key, data: {} };
+  rf.data.a = rf.data.a || {};
+  $("rf-unit").textContent = cfg.unit; $("rf-title").textContent = cfg.title; $("rf-lede").textContent = cfg.lede;
+  $("rf-task").innerHTML = "<b>TASK</b><br>"; $("rf-task").append(cfg.task);
+  document.title = cfg.title + " — BirdBox Learn";
+  step = rf.data.coached ? 2 : done(0) ? 1 : 0;
+  render(); show("reflect");
+}
+const done = (i) => cfg.steps[i].qs.every(([k]) => (rf.data.a[k] || "").trim());
+const top = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
+function render() {
+  const bar = $("rf-steps"); bar.innerHTML = "";
+  cfg.steps.forEach((st, i) => {
+    const b = document.createElement("button"); b.type = "button";
+    b.className = (i === step ? "on " : "") + (done(i) ? "done" : "");
+    b.innerHTML = "<b>" + (i + 1) + "</b>"; b.append(st.short);
+    b.onclick = () => { step = i; render(); };
+    bar.appendChild(b);
+  });
+  const st = cfg.steps[step], box = $("rf-step"); box.innerHTML = "";
+  const h = document.createElement("h2"); h.textContent = st.title;
+  const intro = document.createElement("p"); intro.className = "lede"; intro.style.cssText = "font-size:15px;margin:0 0 16px"; intro.textContent = st.intro;
+  box.append(h, intro);
+  if (step === 2 && !rf.data.coached) {
+    const g = document.createElement("div"); g.className = "gate";
+    g.textContent = "Complete this step after you have coached with your process. Come back once you have been out and done your job.";
+    box.appendChild(g);
+  }
+  st.qs.forEach(([k, q, hint], i) => {
+    const d = document.createElement("div"); d.className = "rq";
+    const hh = document.createElement("h3"); hh.textContent = (i + 1) + ") " + q; d.appendChild(hh);
+    if (hint) { const p = document.createElement("p"); p.className = "hint"; p.textContent = hint; d.appendChild(p); }
+    const t = document.createElement("textarea"); t.value = rf.data.a[k] || "";
+    t.oninput = () => { rf.data.a[k] = t.value; changed(); doc(); };
+    t.onchange = () => $("rf-steps").querySelectorAll("button").forEach((b, j) => b.classList.toggle("done", done(j)));
+    d.appendChild(t); box.appendChild(d);
+  });
+  if (step === 1) {
+    const go = document.createElement("div"); go.className = "go";
+    const gh = document.createElement("h2"); gh.textContent = "GO COACH";
+    const gp = document.createElement("p"); gp.className = "lede"; gp.style.cssText = "font-size:15px;margin:0 0 12px";
+    gp.textContent = "Once you have answered these questions, take time away from this unit and coach with your process. When you have coached, come back and complete step 3.";
+    const gb = document.createElement("button"); gb.type = "button"; gb.className = "btn small";
+    gb.textContent = rf.data.coached ? "✓ Coached on " + new Date(rf.data.coached).toLocaleDateString("en-GB") + " — go to step 3" : "I have coached — go to step 3";
+    gb.onclick = () => { if (!rf.data.coached) { rf.data.coached = new Date().toISOString(); changed(); } step = 2; render(); top(); };
+    go.append(gh, gp, gb); box.appendChild(go);
+  }
+  const nav = document.createElement("div"); nav.className = "vnav";
+  const prev = document.createElement("button"); prev.type = "button"; prev.className = "btn ghost small"; prev.textContent = "← Previous step";
+  if (!step) prev.style.visibility = "hidden";
+  prev.onclick = () => { step--; render(); top(); };
+  const next = document.createElement("button"); next.type = "button"; next.className = "btn small";
+  next.textContent = step === 2 ? "Save ✓" : "Next step →";
+  if (step === 1) next.style.visibility = "hidden";
+  next.onclick = async () => { if (step < 2) { step++; render(); top(); } else if (await save()) $("rf-state").textContent = "Saved ✓"; };
+  nav.append(prev, next); box.appendChild(nav);
+  doc();
+}
+
+function doc() {
+  const d = $("rf-doc"); d.innerHTML = "";
+  const h = document.createElement("h3"); h.textContent = cfg.title; d.appendChild(h);
+  const tk = document.createElement("p"); tk.className = "empty"; tk.style.fontStyle = "normal"; tk.textContent = "Reflective practice cycle · " + cfg.unit; d.appendChild(tk);
+  cfg.steps.forEach((st, i) => {
+    const h4 = document.createElement("h4"); h4.textContent = st.title + (i === 2 && rf.data.coached ? " (after coaching, " + new Date(rf.data.coached).toLocaleDateString("en-GB") + ")" : ""); d.appendChild(h4);
+    for (const [k, q] of st.qs) {
+      const p = document.createElement("p"); const b = document.createElement("b"); b.textContent = q; p.appendChild(b); d.appendChild(p);
+      const a = document.createElement("p"); const v = (rf.data.a[k] || "").trim();
+      if (v) { a.textContent = v; a.style.whiteSpace = "pre-wrap"; } else { a.className = "empty"; a.textContent = "Not answered yet"; }
+      a.style.marginBottom = "10px"; d.appendChild(a);
+    }
+  });
+}
+
+function changed() { $("rf-state").textContent = "Unsaved changes"; clearTimeout(timer); timer = setTimeout(save, 1500); }
+async function save() {
+  clearTimeout(timer);
+  const row = { user_id: session.user.id, tool: key, data: rf.data, updated_at: new Date().toISOString() };
+  const { error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" });
+  if (error) { $("rf-state").textContent = "Not saved — " + error.message; return false; }
+  $("rf-state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("rf-save").onclick = async () => { if (await save()) $("rf-state").textContent = "Saved ✓"; };
+$("rf-download").onclick = async () => { await save(); window.print(); };
+boot();
+</script>
+</body>
+</html>

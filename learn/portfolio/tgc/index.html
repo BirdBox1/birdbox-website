@@ -98,20 +98,25 @@ const show = (id) => ["loading", "login", "home", "soon"].forEach((s) => $(s).cl
 // TGC Level 1 portfolio tasks, by lesson (lesson numbers as in the Rise course).
 // To add a task: add it to TASKS with its page, then list its key under its lesson.
 const TASKS = {
+  "tgc-movement": { page: "reflect.html?t=tgc-movement", title: "Reflection — coaching movement execution over completing the task",
+    text: "A reflective practice cycle: plan a process that helps athletes value how well they move, go and coach with it, then reflect.",
+    count: (row) => { const a = (row && row.data && row.data.a) || {}; if (!Object.values(a).some((v) => String(v || "").trim())) return null; return row.data.coached ? "Step 3 · after coaching" : "In progress"; } },
   "tgc-headpath": { page: "headpath.html", title: "Head path review — bar muscle-up",
     text: "Film a bar muscle-up from the side, trace the head path, and write your critical review. Compare reps side by side.",
     count: (row) => { const n = (row && row.data && row.data.reviews || []).length; return n ? n + (n === 1 ? " review saved" : " reviews saved") : null; } },
 };
 const UNITS = [
+  { n: 2, name: "What Is Gymnastics", tools: ["tgc-movement"] },
   { n: 12, name: "Butterfly Pull-Ups and Bar Muscle-Ups", tools: ["tgc-headpath"] },
 ];
 // The lesson buttons link here with ?tool=<short name>; send them on to the task.
-const SHORT = { headpath: "tgc-headpath" };
+const SHORT = { headpath: "tgc-headpath", movement: "tgc-movement" };
+const withParam = (page, kv) => page + (page.includes("?") ? "&" : "?") + kv;
 
 let session = null;
 // While the TGC portfolio is built and tested, only these logins can open it; everyone else sees
-// "coming soon". Keep this list the same in learn/portfolio/tgc/index.html and headpath.html.
-// To launch: set TGC_LIVE to true in both, and add tgc1 to PORTFOLIOS in /learn/index.html.
+// "coming soon". Keep this list the same in learn/portfolio/tgc/index.html, headpath.html and reflect.html.
+// To launch: set TGC_LIVE to true in all three, and add tgc1 to PORTFOLIOS in /learn/index.html.
 const TGC_LIVE = false, TGC_TESTERS = ["nathan@birdboxcoaching.com"];
 const canOpen = (s) => TGC_LIVE || TGC_TESTERS.includes(String((s && s.user && s.user.email) || "").toLowerCase());
 
@@ -132,7 +137,7 @@ $("l-link").addEventListener("click", async () => {
 async function boot() {
   // A lesson button: go straight to the task (it records that the learner reached it).
   const short = new URLSearchParams(location.search).get("tool");
-  if (short && SHORT[short]) { location.replace(TASKS[SHORT[short]].page + "?tool=" + encodeURIComponent(short)); return; }
+  if (short && SHORT[short]) { location.replace(withParam(TASKS[SHORT[short]].page, "tool=" + encodeURIComponent(short))); return; }
 
   ({ data: { session } } = await db.auth.getSession());
   if (!session) { show("login"); return; }
@@ -157,7 +162,7 @@ async function boot() {
       const task = TASKS[t], a = document.createElement("a"); a.className = "tool";
       a.innerHTML = "<b></b><p></p><span></span>";
       a.querySelector("b").textContent = task.title; a.querySelector("p").textContent = task.text;
-      if (open(t)) { a.href = task.page + "?h=1"; a.querySelector("span").textContent = (task.count(byTool[t]) || "Not started") + " →"; }
+      if (open(t)) { a.href = withParam(task.page, "h=1"); a.querySelector("span").textContent = (task.count(byTool[t]) || "Not started") + " →"; }
       else { a.classList.add("locked"); a.querySelector("span").textContent = "🔒 Opens from its button in Lesson " + u.n; }
       g.appendChild(a);
     }
