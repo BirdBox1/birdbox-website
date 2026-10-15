@@ -1572,7 +1572,10 @@ async function pfHome(rows) {
     const { data: en } = await db.from("learn_enrolments").select("learn_courses(brand, language)").eq("user_id", session.user.id);
     const brands = new Set(PF_COURSES.map((c) => c.brand));
     const langs = (en || []).map((e) => e.learn_courses).filter((c) => c && brands.has(String(c.brand || "").toLowerCase())).map((c) => c.language);
-    if (langs.length && !langs.includes("es")) { location.replace("/learn/portfolio/"); return; }
+    let staff = false;
+    try { const { data: ad } = await db.rpc("learn_is_admin"); staff = !!ad; } catch (e) {}
+    if (!staff) { try { const { data: st } = await db.from("learn_all_access").select("email").eq("email", session.user.email).maybeSingle(); staff = !!st; } catch (e) {} }
+    if (!staff && langs.length && !langs.includes("es")) { location.replace("/learn/portfolio/"); return; }
   } catch (e) { /* stay on this page */ }
   const done = new Set((rows || []).map((r) => r.tool).filter((t) => t !== "_unlocked"));
   const unl = (rows || []).find((r) => r.tool === "_unlocked");

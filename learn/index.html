@@ -49,6 +49,8 @@
   .prog div{height:100%;background:var(--c,#4FA8DE)}
   .course .btn{background:var(--c,#4FA8DE);border-color:var(--c,#4FA8DE)}
   .course .btn:hover{background:transparent;color:var(--c,#4FA8DE)}
+  .course .btn.pf{margin-top:10px;background:none;color:var(--ink);border-color:var(--c,#4FA8DE)}
+  .course .btn.pf:hover{background:var(--c,#4FA8DE);color:#0C1116}
   .cert{margin-top:10px}
   .cert .btn{width:100%;background:none;color:var(--ink);border-color:#6A6466}
   .cert .btn:hover{border-color:var(--ink);color:var(--ink)}
@@ -103,7 +105,7 @@
     <div id="courses" class="grid"></div>
 
     <div class="extra">
-      <div class="box">
+      <div class="box" id="tcc-pf">
         <h3>My TCC portfolio</h3>
         <p style="margin:0 0 12px">Your Coaches Course tasks, like the self-perception spider diagram, saved to your account.</p>
         <a class="btn small" href="/learn/portfolio/">Open my TCC portfolio →</a>
@@ -145,6 +147,20 @@ const BRAND = {
   tec: { c: "#5CC48A", mark: "/brand/tec-mark.png" },
 };
 const LANG = { en: "English", es: "Español", fr: "Français", it: "Italiano", de: "Deutsch" };
+// Course portfolios, by brand and level, then by language. A course whose language has no
+// portfolio of its own falls back to the English one. Courses not listed have no portfolio yet.
+// To add one (e.g. TGC), add its brand and level here.
+const PORTFOLIOS = {
+  tcc1: { en: "/learn/portfolio/", es: "/learn/portfolio/es/" },
+  tec: { en: "/learn/portfolio/tec/" },
+};
+function portfolioFor(c) {
+  const brand = String(c.brand || "").toLowerCase();
+  const level = (String(c.level || "").match(/\d+/) || [""])[0];
+  const p = PORTFOLIOS[brand + level] || PORTFOLIOS[brand];
+  if (!p) return null;
+  return p[c.language] ? { href: p[c.language], own: true } : { href: p.en, own: false };
+}
 
 function view(id) {
   ["loading", "login", "home"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
@@ -256,7 +272,11 @@ async function boot() {
   if (!tecStaff) {
     try { const { data: st } = await db.from("learn_all_access").select("email").eq("email", session.user.email).maybeSingle(); tecStaff = !!st; } catch (e) {}
   }
-  $("tec-pf").classList.toggle("hidden", !(tecStaff || list.some((c) => String(c.brand || "").toLowerCase() === "tec")));
+  // The portfolio boxes below the courses are a fallback: each course card now has its own
+  // portfolio button, so a box only shows when no card carries that portfolio.
+  const cardPf = new Set(list.map((c) => portfolioFor(c) && String(c.brand || "").toLowerCase()).filter(Boolean));
+  $("tcc-pf").classList.toggle("hidden", cardPf.has("tcc"));
+  $("tec-pf").classList.toggle("hidden", cardPf.has("tec") || !(tecStaff || list.some((c) => String(c.brand || "").toLowerCase() === "tec")));
 
   if (!list.length) {
     box.outerHTML = '<div id="courses" class="empty"></div>';
@@ -309,6 +329,14 @@ async function boot() {
     if (!c.current_version) { go.removeAttribute("href"); go.style.opacity = ".5"; }
 
     card.append(top, st, prog, go);
+    const pf = portfolioFor(c);
+    if (pf) {
+      const pb = document.createElement("a");
+      pb.className = "btn pf";
+      pb.href = pf.href;
+      pb.textContent = pf.own ? "Open my portfolio →" : "Open my portfolio (English) →";
+      card.appendChild(pb);
+    }
     if (done && c.current_version) card.appendChild(certBlock(c, certByCourse.get(c.id), defaultName));
     box.appendChild(card);
   }

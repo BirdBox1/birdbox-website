@@ -460,6 +460,16 @@
         <p>The Endurance Course, Physiology 1: which parts of the engine your training develops most, and which it leaves behind.</p>
         <span id="tec-physiology-1-status">Open →</span>
       </a>
+      <a class="tool" href="?tool=tec-physiology-2">
+        <h3>Holding it</h3>
+        <p>The Endurance Course, Physiology 2: where your pace fades, which intensity domain your training sits in, and how you could train durability.</p>
+        <span id="tec-physiology-2-status">Open →</span>
+      </a>
+      <a class="tool" href="?tool=tec-physiology-3">
+        <h3>Spending and recharging</h3>
+        <p>The Endurance Course, Physiology 3: where you spend your work above the line, how you recover between efforts, and how you pace.</p>
+        <span id="tec-physiology-3-status">Open →</span>
+      </a>
     </div>
   </section>
 
@@ -1450,6 +1460,8 @@ const PF_COURSES = [
     { n: 1, name: "Introduction", tools: ["tec-start"] },
     { n: 3, name: "Methodology", tools: ["tec-methodology"] },
     { n: 4, name: "Physiology 1: The Engine and the Fuel", tools: ["tec-physiology-1"] },
+    { n: 5, name: "Physiology 2: Cruising Speed and Holding It", tools: ["tec-physiology-2"] },
+    { n: 6, name: "Physiology 3: Above the Line", tools: ["tec-physiology-3"] },
   ] },
 ];
 async function pfHome(rows) {
@@ -3099,6 +3111,30 @@ const REFLECT = {
       { k: "challenge", type: "text", q: "What do you find hardest about endurance training or coaching right now?", hint: "Be specific — a real situation is more useful than a general answer." },
       { k: "goals", type: "actions", q: "What do you want to learn from this course?", hint: "Up to three things you want to understand or do better.", ph: "e.g. How to set training zones I can trust" },
       { k: "confidence", type: "scale", q: "How confident do you feel planning endurance training today?", ends: ["Not yet", "Very confident"] },
+    ],
+  },
+  "tec-physiology-3": {
+    course: "The Endurance Course",
+    unit: "Physiology 3: Above the Line",
+    title: "Spending and recharging",
+    lede: "Look at your own racing and training through W′: where you spend it, how you recharge it, and how you pace. There are no wrong answers. We come back to pacing in Psychology and again when we plan races.",
+    qs: [
+      { k: "spend", type: "text", q: "Think of a race or hard session. Where did you, or your athlete, spend the most work above the line? Was it worth it?", hint: "A fast start, a surge, a hill, a station. What did it cost later?" },
+      { k: "recover", type: "text", q: "How do you recover between hard efforts in training: easy, or steady? What does the evidence in this lesson suggest?", hint: "Think about how much comes back after two minutes, and what slows it down." },
+      { k: "tolerance", type: "text", q: "Have you used the phrase \"lactate tolerance\"? How would you now explain what high-intensity training changes to an athlete?", hint: "Buffering and transport capacity, in your own words." },
+      { k: "pace", type: "text", q: "How would you pace an event of your usual length, based on this lesson?", hint: "Event length, where the hard parts are, and how close to the line you would sit." },
+    ],
+  },
+  "tec-physiology-2": {
+    course: "The Endurance Course",
+    unit: "Physiology 2: Cruising Speed and Holding It",
+    title: "Holding it",
+    lede: "Look at your own training or coaching through cruising speed and durability. There are no wrong answers. We will come back to this at the end of the course, when you apply what you have learned to an athlete.",
+    qs: [
+      { k: "fade", type: "text", q: "Think of a race or session where pace faded late on. Which factor do you think was the limiter, and why?", hint: "VO2max, the share of it you could hold, economy or durability. Stay with the physiology; we cover mechanics and psychology later." },
+      { k: "domain", type: "text", q: "Which intensity domain does most of your training sit in? Is that deliberate?", hint: "Moderate, heavy or severe. Use a real week of training as your evidence." },
+      { k: "testing", type: "text", q: "How do you, or your athletes, currently test? Fresh, or after fatigue? What might you be missing?", hint: "Think about what a fresh test cannot tell you about the last part of a race." },
+      { k: "durability", type: "text", q: "What is one change you could make to train durability, not just fitness?", hint: "Think about session length, fuelling, and where in a session the hard work sits." },
     ],
   },
   "tec-physiology-1": {
