@@ -1,0 +1,111 @@
+{
+  "opening": [
+    "Dziękujemy za wypełnienie samooceny BirdBox Coaching Development.",
+    "To nie jest zwykły test — to obraz tego, gdzie jesteś teraz na swojej drodze trenerskiej. Etap, na którym się znajdujesz, pokazuje zarówno twoje mocne strony, jak i konkretne możliwości, które odblokują kolejny poziom twojego wpływu.",
+    "Każdy trener przechodzi przez etapy — każdy z własnymi wyzwaniami, przełomami i granicami rozwoju. Świadomość tego, gdzie jesteś dzisiaj, daje ci jasność, by skierować energię tam, gdzie ma największe znaczenie, zamiast gonić za niekończącą się ilością informacji lub działać po omacku.",
+    "Poniżej znajdziesz szczegółowe omówienie swojego etapu oraz krótki film, który przybliża najważniejsze wnioski. Przeczytaj spokojnie, zwróć uwagę na to, co do ciebie trafia, i zastanów się, jak przenieść to do własnej pracy."
+  ],
+  "closing": [
+    "Pamiętaj: twój etap nie jest granicą, lecz pasem startowym. Najlepszych trenerów nie definiuje to, ile wiedzą, ale to, jak świadomie szlifują swoje rzemiosło.",
+    "W BirdBox Coaching wspieramy cię narzędziami, ramami pracy i społecznością, które pomogą ci stawać się precyzyjniejszym, szybszym i skuteczniejszym w codziennej pracy trenerskiej.",
+    "Jeśli chcesz pójść głębiej, zacznij od obejrzenia filmu i zastanowienia się, jak łączy się z twoją codzienną pracą. Od tego momentu znajdziesz okazje, by ćwiczyć, stosować i rozwijać to, co już robisz dobrze.",
+    "Działaj dalej. Zawodnicy, z którymi pracujesz, potrzebują nie tylko twojej wiedzy — potrzebują twojej jasności, obecności i precyzji.",
+    "Za twój kolejny przełom,",
+    "Zespół BirdBox Coaching"
+  ],
+  "nextText": "The Coaches Course — Level 1",
+  "email": {
+    "subject": "Twój etap jako trenera: {name}",
+    "heading": "Twoja samoocena jako trenera",
+    "watch": "Obejrzyj film o etapie {name}",
+    "nextStep": "Następny krok",
+    "yourStage": "Twój etap",
+    "learnMore": "Dowiedz się więcej o skutecznym coachingu"
+  },
+  "greeting": "Cześć {name},",
+  "stages": {
+    "explorer": {
+      "name": "Explorer",
+      "body": [
+        "Na podstawie twoich odpowiedzi jesteś w fazie, którą nazywamy Explorer (Odkrywca). I żeby było jasne: to nie jest słabość. To najważniejsza część drogi trenerskiej. Bo to Explorerzy zadają pytania, dostrzegają luki i szukają czegoś lepszego.",
+        "Być może czujesz teraz pewne napięcie — przeczucie, że w pracy trenerskiej i w ruchu jest więcej, niż obecnie stosujesz, ale nie wiesz dokładnie, jak zasypać tę lukę. Może przyswoiłeś mnóstwo informacji — filmy, seminaria, nawet kursy — ale nie złożyły się jeszcze w użyteczny, pewny system.",
+        "Nie jesteś w tym sam. W tej fazie większość osób albo wszystko nadmiernie komplikuje, albo upraszcza tak bardzo, że gubi to, co istotne. To zupełnie normalne czuć niepewność, gdy próbujesz zrozumieć biomechanikę, rozpoznać, co naprawdę dzieje się w ruchu albo wprowadzić zmiany, które się utrzymają.",
+        "Kluczem dla Explorera jest zbudowanie solidnych podstaw:"
+      ],
+      "bullets": [
+        "Nauczyć się widzieć ruch wyraźnie — nie tylko co się dzieje, ale dlaczego tak się dzieje.",
+        "Ćwiczyć łączenie obserwacji z konkretnymi korektami — bez rzucania kilkunastu wskazówek na chybił-trafił.",
+        "Zacząć budować trenerskie spojrzenie, które pozwala odfiltrować to, co ważne, i pominąć resztę."
+      ],
+      "after": [
+        "Twoim najlepszym kolejnym krokiem są teraz jasne ramy pracy, regularna informacja zwrotna i wsparcie we wdrażaniu tego, czego się uczysz. Dokładnie w tym pomagamy Explorerom w BirdBox Coaching.",
+        "Zaczynamy od miejsca, w którym jesteś. Bez żargonu. Bez zgadywania. Po prostu podejście krok po kroku, które przeprowadzi cię od ciekawości do pewności — w twojej pracy, w rozumieniu ruchu i we wpływie na zawodników.",
+        "Jesteś we właściwym miejscu. Pierwszy krok zrobiłeś, zaczynając tę ocenę."
+      ]
+    },
+    "builder": {
+      "name": "Builder",
+      "body": [
+        "Zgodnie z twoją oceną jesteś w fazie Builder (Budowniczy)— a to mocna pozycja. Nie reagujesz już tylko na to, co widzisz na treningu. Zacząłeś myśleć bardziej krytycznie, zadawać głębsze pytania i stosować wiedzę w bardziej sensowny sposób.",
+        "Prawdopodobnie poświęciłeś już czas na studiowanie biomechaniki, obserwację ruchu i pracę w realnych sytuacjach. Część rzeczy działa. Część nie. Jednego dnia czujesz, że wszystko gra, następnego już nie. To właśnie droga Buildera: zbierasz powtórzenia, ale wciąż dopracowujesz swoje spojrzenie, język i systemy.",
+        "Jednym z największych wyzwań na tym poziomie jest niekonsekwencja. Czasem widzisz, co jest nie tak, ale nie masz pewności, jak to skorygować. Albo dajesz wskazówkę i trzymasz kciuki, żeby zadziałała. Twoja intuicja rośnie, ale nie masz jeszcze powtarzalnego systemu, by stosować ją pod presją — konsekwentnie i z jasnością.",
+        "W fazie Builder twoją największą szansą jest przejście od trenera, który dobrze improwizuje… do takiego, który świadomie realizuje system.",
+        "To znaczy:"
+      ],
+      "bullets": [
+        "Doprecyzować, czego szukasz w ruchu",
+        "Używać mniej wskazówek, ale skuteczniejszych",
+        "I zbierać informacje o tym, jak twoje korekty rzeczywiście przekładają się na lepsze wyniki."
+      ],
+      "after": [
+        "To wymagający, mocny etap w połowie drogi. Nie zgadujesz już — uczysz się brać pełną odpowiedzialność za swoje podejście trenerskie. To właśnie w przestrzeni między wiedzą a jej konsekwentnym stosowaniem wykuwają się świetni trenerzy.",
+        "W BirdBox Coaching właśnie tu najbardziej lubimy pracować z Builderami, bo jesteś gotowy przyspieszyć. Jeśli chcesz ostrzejszych systemów, pewniejszych decyzji i rozmów o ruchu, które naprawdę wywołują zmianę — mamy narzędzia, ramy i wsparcie, które w tym pomogą."
+      ]
+    },
+    "refiner": {
+      "name": "Refiner",
+      "body": [
+        "Twoja ocena umieszcza cię w fazie Refiner (Szlifierz) — mocnym, ale często pomijanym etapie drogi trenerskiej. Nie dochodzisz już do tego, jak coś działa: dopracowujesz. I właśnie tam zdarzają się najgłębsze przełomy.",
+        "Masz doświadczenie z realnej pracy. Rozumiesz ruch, znasz swoje systemy i przepracowałeś wystarczająco dużo, by rozpoznawać wzorce. Twoje decyzje nie są zgadywaniem — opierają się na zasadach i praktyce. Nie reagujesz: odpowiadasz z jasnością.",
+        "Ale tak wygląda rzeczywistość na tym poziomie: drobne nieefektywności dziś tworzą duże różnice później. Nie zmagasz się już z tym, co robić, lecz z tym, jak robić to lepiej, szybciej i bardziej konsekwentnie. A to czasem przypomina gonienie cieni.",
+        "Być może zadajesz sobie pytania:"
+      ],
+      "bullets": [
+        "Czy umykają mi niuanse, których inni też nie widzą?",
+        "Czy moje korekty trafiają tak głęboko, jak mogłyby?",
+        "Jak podostrzyć sposób przekazu, nie komplikując go?"
+      ],
+      "after": [
+        "Faza Refiner dotyczy precyzji. Nie chodzi już tylko o to, żeby wykonać robotę, ale żeby zrobić to elegancko, efektywnie i z głębią. Na tym poziomie mniej chodzi o uczenie się więcej… a bardziej o usuwanie szumu, aż zostanie tylko to, co jasne, świadome i skuteczne."
+      ],
+      "bullets2": [
+        "Doszlifuj swoje spojrzenie, by wychwytywać subtelne kompensacje",
+        "Zacieśnij wskazówki, by każde słowo miało cel",
+        "Skaluj swoją komunikację — zwłaszcza jeśli prowadzisz grupy lub innych trenerów",
+        "Zbuduj pętlę informacji zwrotnej, która cię doskonali, nie wciągając w nadmierną analizę"
+      ],
+      "after2": [
+        "W BirdBox Coaching pomagamy Refinerom takim jak ty przejść od bardzo dobrego do wyjątkowo precyzyjnego. Nie chodzi o to, by zasypać cię kolejnymi informacjami — chodzi o to, by rzucić wyzwanie, dopracować i wzmocnić to, co już robisz."
+      ]
+    },
+    "leader": {
+      "name": "Leader",
+      "body": [
+        "Na podstawie twojej oceny działasz w fazie Leader (Lider) — a to niemało. Prawdopodobnie zainwestowałeś czas, energię i refleksję w swój rozwój, i to widać.",
+        "Masz jasność w swoim podejściu, dostrzegasz wartość biomechaniki i nie tylko reagujesz: obserwujesz, prowadzisz i działasz z intencją. Masz pewnie wdrożone systemy, solidne rozumienie zasad ruchu i pętlę informacji zwrotnej, która kształtuje twoich zawodników albo twój własny rozwój.",
+        "Ale wyzwanie na tym poziomie brzmi: pozostać ostrym, nie popadając w stagnację. Na poziomie Leader dopracowywanie staje się subtelniejsze. Nie chodzi o przebudowę tego, co robisz, lecz o regulację dla dźwigni. Możesz odkryć, że drobne martwe punkty lub założenia, nieporuszone, zaczynają się kumulować. A czasem im wyżej jesteś, tym trudniej o jasną, konstruktywną informację zwrotną.",
+        "Najlepsi liderzy wracają nieustannie do podstaw ze świeżym spojrzeniem — zwłaszcza w tym, jak rozmawiają z zawodnikami, jak przyjmują nowe informacje i jak przekładają złożone korekty na realne wyniki. W BirdBox często widzimy, że liderzy stają w miejscu nie z braku wiedzy, ale dlatego, że wyrośli ze swoich systemów informacji zwrotnej.",
+        "Dlatego twój najlepszy kolejny krok to:"
+      ],
+      "bullets": [
+        "Szukaj ukierunkowanej informacji zwrotnej — od kogoś, kto rozumie wynik sportowy i widzi to, co umyka innym.",
+        "Przeanalizuj swoje rozmowy trenerskie — prowadzisz zawodników do samodzielności, czy zbyt często zostajesz w fotelu eksperta?",
+        "Przyjrzyj się swoim martwym punktom — zwłaszcza różnicy między tym, jak postrzegane są ograniczenia ruchu, a tym, jak się je koryguje."
+      ],
+      "after": [
+        "Jeśli chcesz spojrzenia z zewnątrz, ostrzejszych systemów albo po prostu kogoś, kto pomoże ci wyregulować twój trenerski silnik — właśnie tym zajmujemy się w BirdBox Coaching. Pracujemy z liderami takimi jak ty, by przebić się przez plateau, wzmocnić twoją tożsamość trenerską i zwiększyć zasięg twojego wpływu.",
+        "Już robisz świetną robotę. Zadbajmy o to, byś budował dalej we właściwym kierunku."
+      ]
+    }
+  }
+}

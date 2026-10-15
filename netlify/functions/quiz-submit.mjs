@@ -190,6 +190,16 @@ const EMAIL_EN = {
   nextStep: "Next step",
 };
 
+// The translated result videos, by language: YouTube ids from Nico's
+// ASSESSMENTS PROFILES VIDEOS sheet. A language or stage missing here gets
+// the English video. German Builder and Refiner are still to come: the sheet
+// had the Explorer and Leader videos in their rows.
+const VIDEOS = {
+  de: { explorer: "bwZUnunDvqc", leader: "-5PaJIivTf8" },
+  it: { explorer: "78FyDb5kGSg", builder: "gQBxMh57pIc", refiner: "y2Cg0dET4bo", leader: "gqh8irdx6O4" },
+  es: { explorer: "WvPkz8mfLW8", builder: "tf0UkJEOSu0", refiner: "tpuRRcHUPns", leader: "4C_i2Rqe_Wk" },
+};
+
 async function stagesFor(lang) {
   const EN = {
     stages: STAGES, opening: OPENING, closing: CLOSING,
@@ -204,13 +214,13 @@ async function stagesFor(lang) {
     const t = await res.json();
     const stages = {};
     for (const key of Object.keys(STAGES)) {
-      // The video and the next-step link stay as they are: those are the
-      // same asset whatever language the words around them are in, until
-      // somebody films or builds a translated one. The link's wording is
-      // translated separately, through nextText.
+      // The video is the language's own where Nico has made one, and the
+      // English one until then. The next-step link stays as it is; its
+      // wording is translated separately, through nextText.
       stages[key] = Object.assign({}, STAGES[key], (t.stages && t.stages[key]) || {});
-      stages[key].video = STAGES[key].video;
-      stages[key].videoId = STAGES[key].videoId;
+      const id = VIDEOS[lang] && VIDEOS[lang][key];
+      stages[key].video = id ? "https://youtu.be/" + id : STAGES[key].video;
+      stages[key].videoId = id || STAGES[key].videoId;
       stages[key].next = STAGES[key].next;
     }
     return {
