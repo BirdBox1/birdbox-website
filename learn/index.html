@@ -47,10 +47,10 @@
   .course .status.done{color:var(--good)}
   .prog{height:6px;background:var(--panel2);margin-bottom:16px}
   .prog div{height:100%;background:var(--c,#4FA8DE)}
-  .course .btn{background:var(--c,#4FA8DE);border-color:var(--c,#4FA8DE)}
-  .course .btn:hover{background:transparent;color:var(--c,#4FA8DE)}
+  .course .btn{background:var(--c,#4FA8DE);border-color:var(--c,#4FA8DE);color:var(--on,#0C1116)}
+  .course .btn:hover{background:transparent;color:var(--t,#4FA8DE)}
   .course .btn.pf{margin-top:10px;background:none;color:var(--ink);border-color:var(--c,#4FA8DE)}
-  .course .btn.pf:hover{background:var(--c,#4FA8DE);color:#0C1116}
+  .course .btn.pf:hover{background:var(--c,#4FA8DE);color:var(--on,#0C1116)}
   .cert{margin-top:10px}
   .cert .btn{width:100%;background:none;color:var(--ink);border-color:#6A6466}
   .cert .btn:hover{border-color:var(--ink);color:var(--ink)}
@@ -64,19 +64,19 @@
   @media (max-width:640px){.brands{grid-template-columns:repeat(2,minmax(0,1fr))}}
   .brand{display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c);
     padding:18px 16px;text-decoration:none;color:var(--ink);min-height:190px}
-  a.brand:hover{border-color:var(--c)}
+  a.brand:hover{border-color:var(--t)}
   .brand img{height:48px;width:auto;max-width:100%;object-fit:contain;align-self:flex-start;margin-bottom:6px}
   .brand h3{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin:0}
   .brand p{margin:0;font-size:13px;line-height:1.4;color:var(--muted)}
-  .brand .st{margin-top:auto;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--c)}
+  .brand .st{margin-top:auto;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--t)}
   .brand.off img{filter:grayscale(1);opacity:.6}
   .brand.off .st{color:var(--muted)}
   .brandinfo{display:flex;gap:24px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c);padding:24px;max-width:760px}
   .brandinfo img{width:90px;height:90px;object-fit:contain;flex:none}
   .brandinfo h3{font-size:20px;margin:0 0 8px}
   .brandinfo p{margin:0 0 18px;color:var(--muted);line-height:1.6;font-size:15px}
-  .brandinfo .btn{background:var(--c);border-color:var(--c)}
-  .brandinfo .btn:hover{background:transparent;color:var(--c)}
+  .brandinfo .btn{background:var(--c);border-color:var(--c);color:var(--on)}
+  .brandinfo .btn:hover{background:transparent;color:var(--t)}
   .brandinfo .btn.ghost{background:none;color:var(--ink);border-color:#6A6466;margin-left:8px}
   @media (max-width:640px){.brandinfo{flex-direction:column}.brandinfo .btn.ghost{margin:10px 0 0}}
   .brandhead{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin:0 0 18px}
@@ -173,12 +173,14 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ
 const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const $ = (id) => document.getElementById(id);
+// c: the logo colour (bars, borders, buttons). t: a lighter shade of it for small text on the
+// dark background. on: the text colour on a button filled with c.
 const BRAND = {
-  tcc: { c: "#4FA8DE", mark: "/brand/tcc-mark.png" },
-  tgc: { c: "#D8393D", mark: "/brand/tgc-mark.png" },
-  twc: { c: "#E0A12B", mark: "/brand/twc-mark.png" },
-  tec: { c: "#5CC48A", mark: "/brand/tec-mark.png" },
-  birdbox: { c: "#B7B1B3", mark: "/brand/birdbox-mark.png" },
+  tcc: { c: "#298DE9", t: "#298DE9", on: "#0C1116", mark: "/brand/tcc-mark.png" },
+  tgc: { c: "#85151A", t: "#E0555A", on: "#FFFFFF", mark: "/brand/tgc-mark.png" },
+  twc: { c: "#F1A509", t: "#F1A509", on: "#0C1116", mark: "/brand/twc-mark.png" },
+  tec: { c: "#10502C", t: "#5CC48A", on: "#FFFFFF", mark: "/brand/tec-mark.png" },
+  birdbox: { c: "#B7B1B3", t: "#B7B1B3", on: "#0C1116", mark: "/brand/birdbox-mark.png" },
 };
 const LANG = { en: "English", es: "Español", fr: "Français", it: "Italiano", de: "Deutsch" };
 // Course portfolios, by brand and level, then by language. A course whose language has no
@@ -228,7 +230,7 @@ function renderFamilies(list) {
     const b = BRAND[f.k] || BRAND.tcc;
     const el = document.createElement(n || f.page ? "a" : "div");
     el.className = "brand" + (n ? "" : " off");
-    el.style.setProperty("--c", b.c);
+    el.style.setProperty("--c", b.c); el.style.setProperty("--t", b.t); el.style.setProperty("--on", b.on);
     if (n || f.page) el.href = "#" + f.k;
     const img = document.createElement("img"); img.src = b.mark; img.alt = "";
     img.onerror = () => { img.onerror = null; img.src = "/brand/birdBox.png"; };
@@ -255,7 +257,7 @@ function route() {
     document.querySelectorAll("#courses .course").forEach((c) => { c.style.display = c.dataset.brand === k ? "" : "none"; });
   } else {
     const b = BRAND[k] || BRAND.tcc;
-    $("brandinfo").style.setProperty("--c", b.c);
+    $("brandinfo").style.setProperty("--c", b.c); $("brandinfo").style.setProperty("--t", b.t); $("brandinfo").style.setProperty("--on", b.on);
     $("bi-mark").src = b.mark;
     const sale = onSale(f);
     $("bi-name").textContent = sale ? f.title : f.name;
@@ -405,7 +407,7 @@ async function boot() {
     const card = document.createElement("div");
     card.className = "course";
     card.dataset.brand = String(c.brand || "").toLowerCase();
-    card.style.setProperty("--c", b.c);
+    card.style.setProperty("--c", b.c); card.style.setProperty("--t", b.t); card.style.setProperty("--on", b.on);
 
     const top = document.createElement("div");
     top.className = "top";
