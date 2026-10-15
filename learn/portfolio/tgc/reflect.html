@@ -132,6 +132,21 @@ const canOpen = (s) => TGC_LIVE || TGC_TESTERS.includes(String((s && s.user && s
 // To add a reflection: add an entry here, list it in index.html, and link its lesson button to
 // /learn/portfolio/tgc/?tool=<short name>.
 const TASKS = {
+  // A single-step task: step 1 of the cycle (thinking about practice) as the learner's starting point.
+  "tgc-start": {
+    unit: "Lesson 1 · Introduction", kind: "My starting point",
+    title: "Welcome to your TGC portfolio — my starting point",
+    lede: "Through the course, the tasks in each unit build here into a record of your coaching. Start by reflecting on where you are now with coaching bodyweight and gymnastics movements. There are no wrong answers: this is your starting point, and you can look back at it as the course goes on.",
+    steps: [
+      { short: "Thinking about practice", title: "Thinking about practice — my starting point",
+        intro: "Think about your coaching, and your own training, as they are today.",
+        qs: [["understanding", "What is my current understanding of coaching bodyweight and gymnastics movements?", "e.g. how I would teach a pull-up, a handstand or a muscle-up today"],
+          ["standards", "What standards do I hold for gymnastics movements, for my athletes and for myself?", "e.g. when do I let an athlete kip, go upside down or move on to the rings?"],
+          ["guided", "What has guided my coaching of gymnastics so far?", "e.g. courses, coaches I have learned from, my own training, CrossFit, social media"],
+          ["confident", "Where do I feel confident coaching gymnastics, and where am I less sure?"],
+          ["learn", "What am I looking to learn from this course?", "Up to three things you want to understand or do better."]] },
+    ],
+  },
   "tgc-movement": {
     unit: "Lesson 2 · What Is Gymnastics",
     title: "Coaching movement execution over completing the task",
@@ -201,11 +216,14 @@ async function boot() {
   rf = data || { tool: key, data: {} };
   rf.data.a = rf.data.a || {};
   $("rf-unit").textContent = cfg.unit; $("rf-title").textContent = cfg.title; $("rf-lede").textContent = cfg.lede;
-  $("rf-task").innerHTML = "<b>TASK</b><br>"; $("rf-task").append(cfg.task);
+  $("rf-task").classList.toggle("hidden", !cfg.task);
+  if (cfg.task) { $("rf-task").innerHTML = "<b>TASK</b><br>"; $("rf-task").append(cfg.task); }
+  $("rf-steps").classList.toggle("hidden", cfg.steps.length < 2);
   document.title = cfg.title + " — BirdBox Learn";
-  step = rf.data.coached ? 2 : done(0) ? 1 : 0;
+  step = Math.min(cfg.steps.length - 1, rf.data.coached ? 2 : done(0) ? 1 : 0);
   render(); show("reflect");
 }
+const last = () => cfg.steps.length - 1, cycle = () => cfg.steps.length === 3;   // the full RP cycle has a GO COACH break
 const done = (i) => cfg.steps[i].qs.every(([k]) => (rf.data.a[k] || "").trim());
 const top = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
@@ -222,7 +240,7 @@ function render() {
   const h = document.createElement("h2"); h.textContent = st.title;
   const intro = document.createElement("p"); intro.className = "lede"; intro.style.cssText = "font-size:15px;margin:0 0 16px"; intro.textContent = st.intro;
   box.append(h, intro);
-  if (step === 2 && !rf.data.coached) {
+  if (cycle() && step === 2 && !rf.data.coached) {
     const g = document.createElement("div"); g.className = "gate";
     g.textContent = "Complete this step after you have coached with your process. Come back once you have been out and done your job.";
     box.appendChild(g);
@@ -236,7 +254,7 @@ function render() {
     t.onchange = () => $("rf-steps").querySelectorAll("button").forEach((b, j) => b.classList.toggle("done", done(j)));
     d.appendChild(t); box.appendChild(d);
   });
-  if (step === 1) {
+  if (cycle() && step === 1) {
     const go = document.createElement("div"); go.className = "go";
     const gh = document.createElement("h2"); gh.textContent = "GO COACH";
     const gp = document.createElement("p"); gp.className = "lede"; gp.style.cssText = "font-size:15px;margin:0 0 12px";
@@ -251,9 +269,9 @@ function render() {
   if (!step) prev.style.visibility = "hidden";
   prev.onclick = () => { step--; render(); top(); };
   const next = document.createElement("button"); next.type = "button"; next.className = "btn small";
-  next.textContent = step === 2 ? "Save ✓" : "Next step →";
-  if (step === 1) next.style.visibility = "hidden";
-  next.onclick = async () => { if (step < 2) { step++; render(); top(); } else if (await save()) $("rf-state").textContent = "Saved ✓"; };
+  next.textContent = step === last() ? "Save ✓" : "Next step →";
+  if (cycle() && step === 1) next.style.visibility = "hidden";
+  next.onclick = async () => { if (step < last()) { step++; render(); top(); } else if (await save()) $("rf-state").textContent = "Saved ✓"; };
   nav.append(prev, next); box.appendChild(nav);
   doc();
 }
@@ -261,7 +279,7 @@ function render() {
 function doc() {
   const d = $("rf-doc"); d.innerHTML = "";
   const h = document.createElement("h3"); h.textContent = cfg.title; d.appendChild(h);
-  const tk = document.createElement("p"); tk.className = "empty"; tk.style.fontStyle = "normal"; tk.textContent = "Reflective practice cycle · " + cfg.unit; d.appendChild(tk);
+  const tk = document.createElement("p"); tk.className = "empty"; tk.style.fontStyle = "normal"; tk.textContent = (cfg.kind || "Reflective practice cycle") + " · " + cfg.unit; d.appendChild(tk);
   cfg.steps.forEach((st, i) => {
     const h4 = document.createElement("h4"); h4.textContent = st.title + (i === 2 && rf.data.coached ? " (after coaching, " + new Date(rf.data.coached).toLocaleDateString("en-GB") + ")" : ""); d.appendChild(h4);
     for (const [k, q] of st.qs) {
