@@ -1309,6 +1309,8 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
 const $ = (id) => document.getElementById(id);
 const tool = new URLSearchParams(location.search).get("tool") || "";
+// This portfolio holds only some of the shared tools, so a status label may not exist.
+const setStatus = (id, text) => { const el = $(id); if (el) el.textContent = text; };
 const show = (id) => ["loading", "login", "home", "spider", "concern", "reactions", "colours", "video", "listening", "anxiety", "leadership", "characters", "values", "identity", "reflect", "metaphors", "philosophy", "observation", "standards", "mmp", "anatomy", "rpcycle", "sevent", "dependence", "imagery"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 
 let session = null;
@@ -1472,52 +1474,52 @@ async function boot() {
   if (tool === "imagery") return openIm();
   const { data } = await db.from("learn_portfolio").select("tool, updated_at, data").eq("user_id", session.user.id);
   const sp = (data || []).find((r) => r.tool === "spider");
-  if (sp) $("spider-status").textContent = "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →";
+  if (sp) setStatus("spider-status", "Last saved " + new Date(sp.updated_at).toLocaleDateString("en-GB") + " →");
   const tr0 = (data || []).find((r) => r.tool === "traits");
-  if (tr0) $("traits-status").textContent = "Last saved " + new Date(tr0.updated_at).toLocaleDateString("en-GB") + " →";
+  if (tr0) setStatus("traits-status", "Last saved " + new Date(tr0.updated_at).toLocaleDateString("en-GB") + " →");
   const cn = (data || []).find((r) => r.tool === "concern");
   const rn = (data || []).find((r) => r.tool === "reactions");
-  if (rn) $("reactions-status").textContent = "Last saved " + new Date(rn.updated_at).toLocaleDateString("en-GB") + " →";
+  if (rn) setStatus("reactions-status", "Last saved " + new Date(rn.updated_at).toLocaleDateString("en-GB") + " →");
   const co0 = (data || []).find((r) => r.tool === "colours");
-  if (co0) $("colours-status").textContent = co0.data && co0.data.result ? "Your colour: " + co0.data.result.main + " →" : "Last saved " + new Date(co0.updated_at).toLocaleDateString("en-GB") + " →";
+  if (co0) setStatus("colours-status", co0.data && co0.data.result ? "Your colour: " + co0.data.result.main + " →" : "Last saved " + new Date(co0.updated_at).toLocaleDateString("en-GB") + " →");
   const vd = (data || []).find((r) => r.tool === "video");
-  if (vd) $("video-status").textContent = "Last saved " + new Date(vd.updated_at).toLocaleDateString("en-GB") + " →";
+  if (vd) setStatus("video-status", "Last saved " + new Date(vd.updated_at).toLocaleDateString("en-GB") + " →");
   const lsr = (data || []).find((r) => r.tool === "listening");
-  if (lsr) $("listening-status").textContent = lsr.data && lsr.data.result ? "Your result: " + lsr.data.result.band + " (" + lsr.data.result.total + ") →" : "Last saved " + new Date(lsr.updated_at).toLocaleDateString("en-GB") + " →";
+  if (lsr) setStatus("listening-status", lsr.data && lsr.data.result ? "Your result: " + lsr.data.result.band + " (" + lsr.data.result.total + ") →" : "Last saved " + new Date(lsr.updated_at).toLocaleDateString("en-GB") + " →");
   const axr = (data || []).find((r) => r.tool === "anxiety");
-  if (axr) $("anxiety-status").textContent = "Last saved " + new Date(axr.updated_at).toLocaleDateString("en-GB") + " →";
+  if (axr) setStatus("anxiety-status", "Last saved " + new Date(axr.updated_at).toLocaleDateString("en-GB") + " →");
   const slr = (data || []).find((r) => r.tool === "leadership");
-  if (slr) $("leadership-status").textContent = "Last saved " + new Date(slr.updated_at).toLocaleDateString("en-GB") + " →";
+  if (slr) setStatus("leadership-status", "Last saved " + new Date(slr.updated_at).toLocaleDateString("en-GB") + " →");
   const chr = (data || []).find((r) => r.tool === "characters");
-  if (chr) $("characters-status").textContent = ((chr.data && chr.data.chars || []).filter((c) => (c.name || "").trim()).length) + " characters →";
+  if (chr) setStatus("characters-status", ((chr.data && chr.data.chars || []).filter((c) => (c.name || "").trim()).length) + " characters →");
   const var0 = (data || []).find((r) => r.tool === "values");
-  if (var0) $("values-status").textContent = ((var0.data && var0.data.values || []).filter((v) => (v.name || "").trim()).length) + " values →";
+  if (var0) setStatus("values-status", ((var0.data && var0.data.values || []).filter((v) => (v.name || "").trim()).length) + " values →");
   const idr = (data || []).find((r) => r.tool === "identity");
-  if (idr) $("identity-status").textContent = "Last saved " + new Date(idr.updated_at).toLocaleDateString("en-GB") + " →";
+  if (idr) setStatus("identity-status", "Last saved " + new Date(idr.updated_at).toLocaleDateString("en-GB") + " →");
   for (const k in REFLECT) { const r = (data || []).find((x) => x.tool === k); const el = $(k + "-status"); if (r && el) el.textContent = "Last saved " + new Date(r.updated_at).toLocaleDateString("en-GB") + " →"; }
   const mtr = (data || []).find((r) => r.tool === "metaphors");
-  if (mtr) $("metaphors-status").textContent = ((mtr.data && mtr.data.rows || []).filter((r) => (r.m || "").trim()).length) + " metaphors →";
+  if (mtr) setStatus("metaphors-status", ((mtr.data && mtr.data.rows || []).filter((r) => (r.m || "").trim()).length) + " metaphors →");
   const phr = (data || []).find((r) => r.tool === "philosophy");
-  if (phr) $("philosophy-status").textContent = "Last saved " + new Date(phr.updated_at).toLocaleDateString("en-GB") + " →";
+  if (phr) setStatus("philosophy-status", "Last saved " + new Date(phr.updated_at).toLocaleDateString("en-GB") + " →");
   const ckr = (data || []).find((r) => r.tool === "checklist");
-  if (ckr) $("checklist-status").textContent = "Last saved " + new Date(ckr.updated_at).toLocaleDateString("en-GB") + " →";
+  if (ckr) setStatus("checklist-status", "Last saved " + new Date(ckr.updated_at).toLocaleDateString("en-GB") + " →");
   const obr = (data || []).find((r) => r.tool === "observation");
-  if (obr) $("observation-status").textContent = "Last saved " + new Date(obr.updated_at).toLocaleDateString("en-GB") + " →";
+  if (obr) setStatus("observation-status", "Last saved " + new Date(obr.updated_at).toLocaleDateString("en-GB") + " →");
   const sdr = (data || []).find((r) => r.tool === "standards");
-  if (sdr) $("standards-status").textContent = "Last saved " + new Date(sdr.updated_at).toLocaleDateString("en-GB") + " →";
+  if (sdr) setStatus("standards-status", "Last saved " + new Date(sdr.updated_at).toLocaleDateString("en-GB") + " →");
   const mmr = (data || []).find((r) => r.tool === "mmp");
-  if (mmr) { const n = (mmr.data && mmr.data.athletes || []).length; $("mmp-status").textContent = n + (n === 1 ? " athlete →" : " athletes →"); }
+  if (mmr) { const n = (mmr.data && mmr.data.athletes || []).length; setStatus("mmp-status", n + (n === 1 ? " athlete →" : " athletes →")); }
   const anr = (data || []).find((r) => r.tool === "anatomy");
-  if (anr) $("anatomy-status").textContent = ((anr.data && anr.data.known || []).length) + " of " + AN.length + " muscles known →";
+  if (anr) setStatus("anatomy-status", ((anr.data && anr.data.known || []).length) + " of " + AN.length + " muscles known →");
   const rpr = (data || []).find((r) => r.tool === "rpcycle");
-  if (rpr) $("rpcycle-status").textContent = (rpr.data && rpr.data.coached ? "Step 3 · " : "Last saved ") + new Date(rpr.updated_at).toLocaleDateString("en-GB") + " →";
+  if (rpr) setStatus("rpcycle-status", (rpr.data && rpr.data.coached ? "Step 3 · " : "Last saved ") + new Date(rpr.updated_at).toLocaleDateString("en-GB") + " →");
   const ser = (data || []).find((r) => r.tool === "sevent");
-  if (ser) { const n = (ser.data && ser.data.events || []).length; $("sevent-status").textContent = n + (n === 1 ? " event →" : " events →"); }
+  if (ser) { const n = (ser.data && ser.data.events || []).length; setStatus("sevent-status", n + (n === 1 ? " event →" : " events →")); }
   const dpr = (data || []).find((r) => r.tool === "dependence");
-  if (dpr) $("dependence-status").textContent = dpr.data && dpr.data.result ? "Your result: " + dpr.data.result.main + " →" : "Last saved " + new Date(dpr.updated_at).toLocaleDateString("en-GB") + " →";
+  if (dpr) setStatus("dependence-status", dpr.data && dpr.data.result ? "Your result: " + dpr.data.result.main + " →" : "Last saved " + new Date(dpr.updated_at).toLocaleDateString("en-GB") + " →");
   const imr = (data || []).find((r) => r.tool === "imagery");
-  if (imr) $("imagery-status").textContent = "Last saved " + new Date(imr.updated_at).toLocaleDateString("en-GB") + " →";
-  if (cn) $("concern-status").textContent = "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →";
+  if (imr) setStatus("imagery-status", "Last saved " + new Date(imr.updated_at).toLocaleDateString("en-GB") + " →");
+  if (cn) setStatus("concern-status", "Last saved " + new Date(cn.updated_at).toLocaleDateString("en-GB") + " →");
   await pfHome(data);
   show("home");
 }
@@ -5286,11 +5288,11 @@ async function imCheckFile() {
 async function imPlay() {
   if (imAudio) {
     if (!imAudio.paused) { imAudio.pause(); $("im-play").textContent = "▶ Continue"; return; }
-    imAudio.play(); $("im-play").textContent = "❚❚ Pause"; $("im-status").textContent = "Close your eyes and listen.";
+    imAudio.play(); $("im-play").textContent = "❚❚ Pause"; setStatus("im-status", "Close your eyes and listen.");
     return;
   }
   if (imPlaying) return;
-  imPlaying = true; $("im-play").textContent = "Playing…"; $("im-status").textContent = "Close your eyes and listen.";
+  imPlaying = true; $("im-play").textContent = "Playing…"; setStatus("im-status", "Close your eyes and listen.");
   speechSynthesis.cancel();
   for (let i = 0; i < IM_SCRIPT.length && imPlaying; i++) {
     document.querySelectorAll("#im-script p").forEach((p, j) => p.style.color = j === i ? "var(--accent)" : j < i ? "var(--muted)" : "var(--ink)");
@@ -5306,7 +5308,7 @@ function imStop() {
   if (imAudio) { imAudio.pause(); imAudio.currentTime = 0; }
   imPlaying = false; clearTimeout(imWait);
   if ("speechSynthesis" in window) speechSynthesis.cancel();
-  $("im-play").textContent = "▶ Play the audio guide"; $("im-status").textContent = "";
+  $("im-play").textContent = "▶ Play the audio guide"; setStatus("im-status", "");
   document.querySelectorAll("#im-script p").forEach((p) => p.style.color = "var(--ink)");
 }
 $("im-play").onclick = imPlay;
