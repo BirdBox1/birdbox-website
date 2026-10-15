@@ -611,7 +611,11 @@ function withPatchedText(f, renames) {
 }
 
 async function uploadOne(versionId, f, rel) {
-  const blob = await f.getBlob();
+  // Supabase stores a file's type from the blob itself, not the contentType
+  // option. Files from a zip have no type, so they were saved as
+  // "application/octet-stream" and browsers refused the course's CSS.
+  const raw = await f.getBlob();
+  const blob = raw.type === typeOf(rel) ? raw : new Blob([raw], { type: typeOf(rel) });
   const key = versionId + "/" + rel;
   let last;
   for (let tryNo = 1; tryNo <= 6; tryNo++) {
