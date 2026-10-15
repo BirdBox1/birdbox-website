@@ -763,8 +763,8 @@ $("b-sum").onclick = () => {
 // ---------- views and login ----------
 const VIEWS = ["loading", "login", "list", "editor", "compare", "soon"];
 // While the TGC portfolio is built and tested, only these logins can open it; everyone else sees
-// "coming soon". Keep this list the same in learn/portfolio/tgc/index.html, headpath.html and reflect.html.
-// To launch: set TGC_LIVE to true in all three, and add tgc1 to PORTFOLIOS in /learn/index.html.
+// "coming soon". Keep this list the same in every page in learn/portfolio/tgc/.
+// To launch: set TGC_LIVE to true in all of them, and add tgc1 to PORTFOLIOS in /learn/index.html.
 const TGC_LIVE = false, TGC_TESTERS = ["nathan@birdboxcoaching.com"];
 const canOpen = (s) => TGC_LIVE || TGC_TESTERS.includes(String((s && s.user && s.user.email) || "").toLowerCase());
 
