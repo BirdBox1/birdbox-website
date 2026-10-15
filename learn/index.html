@@ -59,6 +59,29 @@
   .cert input{width:100%;font:inherit;font-size:16px;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:10px}
   .cert .hint{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 10px}
   .empty{background:var(--panel);border:1px solid var(--line);padding:24px;color:var(--muted);line-height:1.6;max-width:640px}
+  .brands{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin:8px 0 8px}
+  @media (max-width:960px){.brands{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media (max-width:640px){.brands{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .brand{display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c);
+    padding:18px 16px;text-decoration:none;color:var(--ink);min-height:190px}
+  a.brand:hover{border-color:var(--c)}
+  .brand img{height:48px;width:auto;max-width:100%;object-fit:contain;align-self:flex-start;margin-bottom:6px}
+  .brand h3{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin:0}
+  .brand p{margin:0;font-size:13px;line-height:1.4;color:var(--muted)}
+  .brand .st{margin-top:auto;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--c)}
+  .brand.off img{filter:grayscale(1);opacity:.6}
+  .brand.off .st{color:var(--muted)}
+  .brandinfo{display:flex;gap:24px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c);padding:24px;max-width:760px}
+  .brandinfo img{width:90px;height:90px;object-fit:contain;flex:none}
+  .brandinfo h3{font-size:20px;margin:0 0 8px}
+  .brandinfo p{margin:0 0 18px;color:var(--muted);line-height:1.6;font-size:15px}
+  .brandinfo .btn{background:var(--c);border-color:var(--c)}
+  .brandinfo .btn:hover{background:transparent;color:var(--c)}
+  .brandinfo .btn.ghost{background:none;color:var(--ink);border-color:#6A6466;margin-left:8px}
+  @media (max-width:640px){.brandinfo{flex-direction:column}.brandinfo .btn.ghost{margin:10px 0 0}}
+  .brandhead{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin:0 0 18px}
+  .brandhead h2{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0}
+  .brandhead a{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;text-decoration:none}
   .extra{margin-top:40px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
   .extra .box{background:var(--panel);border:1px solid var(--line);padding:20px 22px;font-size:15px;line-height:1.6;color:var(--muted)}
   .extra h3{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin:0 0 10px}
@@ -102,7 +125,17 @@
       <strong>Welcome — your account is set up.</strong> Your course is below. Set a password now (at the bottom of this page) so you can log in any time without waiting for an email.
     </div>
     <p class="lede">Pick up where you left off. Your progress saves as you go, on any device.</p>
-    <div id="courses" class="grid"></div>
+    <div id="brands" class="brands"></div>
+    <div id="brandhead" class="brandhead hidden"><a href="#">← All my courses</a><h2 id="brand-title"></h2></div>
+    <div id="brandinfo" class="brandinfo hidden">
+      <img id="bi-mark" alt="">
+      <div>
+        <h3 id="bi-name"></h3>
+        <p id="bi-text"></p>
+        <div class="bi-btns"><a class="btn" id="bi-buy"></a><a class="btn ghost" id="bi-more">Find out more</a></div>
+      </div>
+    </div>
+    <div id="courses" class="grid hidden"></div>
 
     <div class="extra">
       <div class="box" id="tcc-pf">
@@ -145,6 +178,7 @@ const BRAND = {
   tgc: { c: "#D8393D", mark: "/brand/tgc-mark.png" },
   twc: { c: "#E0A12B", mark: "/brand/twc-mark.png" },
   tec: { c: "#5CC48A", mark: "/brand/tec-mark.png" },
+  birdbox: { c: "#B7B1B3", mark: "/brand/birdbox-mark.png" },
 };
 const LANG = { en: "English", es: "Español", fr: "Français", it: "Italiano", de: "Deutsch" };
 // Course portfolios, by brand and level, then by language. A course whose language has no
@@ -161,6 +195,79 @@ function portfolioFor(c) {
   if (!p) return null;
   return p[c.language] ? { href: p[c.language], own: true } : { href: p.en, own: false };
 }
+
+// The first page: one tile per course family. Tiles for families the learner owns open
+// their courses; the others link to the course page, so learners can see what else we offer.
+const FAMILIES = [
+  { k: "tcc", short: "TCC", name: "The Coaches Course", page: "/tcc/", buy: "/tcc/online-level-1/#buy",
+    title: "The Coaches Course — Level 1 Online",
+    text: "The full BirdBox Level 1 coaching curriculum, at your own pace: video lessons, an interactive learner portfolio, practical frameworks and 44 CEUs." },
+  { k: "tgc", short: "TGC", name: "The Gymnastics Course", page: "/tgc/", buy: "/tgc/online-level-1/#buy",
+    title: "The Gymnastics Course — Level 1 Online",
+    text: "The full TGC methodology, at your own pace: video instruction, proven progressions, 35 CEUs and certification as a TGC Level 1 Trainer." },
+  { k: "tec", short: "TEC", name: "The Endurance Course", page: "/tec/", buy: null,
+    title: "The Endurance Course — Level 1 Online",
+    text: "A science-based endurance course for coaches and athletes, from first-time runners to HYROX and CrossFit competitors.",
+    soon: "A science-based endurance course for coaches and athletes, from first-time runners to HYROX and CrossFit competitors. Coming soon: register your interest to hear first." },
+  { k: "twc", short: "TWC", name: "The Weightlifting Course", page: "/twc/", buy: null,
+    title: "The Weightlifting Course — Level 1 Online",
+    text: "The Weightlifting Course from BirdBox Coaching, online and at your own pace.",
+    soon: "The Weightlifting Course from BirdBox Coaching is coming soon. Register your interest to hear first." },
+  { k: "birdbox", short: "BirdBox", name: "Short courses on behaviour change, physical activity and mental health", page: null, buy: null },
+];
+// A family is on sale when it has a buy link. TEC and TWC have none yet, so their tiles
+// say "Coming soon" and link to their register-interest pages.
+const onSale = (f) => !!f.buy;
+let ownedFamilies = new Map();
+function renderFamilies(list) {
+  ownedFamilies = new Map();
+  for (const c of list) { const k = String(c.brand || "").toLowerCase(); ownedFamilies.set(k, (ownedFamilies.get(k) || 0) + 1); }
+  const root = $("brands"); root.innerHTML = "";
+  for (const f of FAMILIES) {
+    const n = ownedFamilies.get(f.k) || 0;
+    const b = BRAND[f.k] || BRAND.tcc;
+    const el = document.createElement(n || f.page ? "a" : "div");
+    el.className = "brand" + (n ? "" : " off");
+    el.style.setProperty("--c", b.c);
+    if (n || f.page) el.href = "#" + f.k;
+    const img = document.createElement("img"); img.src = b.mark; img.alt = "";
+    img.onerror = () => { img.onerror = null; img.src = "/brand/birdBox.png"; };
+    const h = document.createElement("h3"); h.textContent = "My " + f.short + " courses";
+    const p = document.createElement("p"); p.textContent = f.name;
+    const st = document.createElement("span"); st.className = "st";
+    st.textContent = n ? (n === 1 ? "1 course →" : n + " courses →") : onSale(f) ? "Explore →" : "Coming soon";
+    el.append(img, h, p, st);
+    root.appendChild(el);
+  }
+}
+function route() {
+  const k = location.hash.slice(1);
+  const f = FAMILIES.find((x) => x.k === k);
+  const owned = !!(f && ownedFamilies.get(k));
+  const info = !!(f && !owned && f.page);
+  $("brands").classList.toggle("hidden", owned || info);
+  $("brandhead").classList.toggle("hidden", !(owned || info));
+  $("courses").classList.toggle("hidden", !owned);
+  $("brandinfo").classList.toggle("hidden", !info);
+  if (!owned && !info) return;
+  $("brand-title").textContent = owned ? "My " + f.short + " courses" : f.name;
+  if (owned) {
+    document.querySelectorAll("#courses .course").forEach((c) => { c.style.display = c.dataset.brand === k ? "" : "none"; });
+  } else {
+    const b = BRAND[k] || BRAND.tcc;
+    $("brandinfo").style.setProperty("--c", b.c);
+    $("bi-mark").src = b.mark;
+    const sale = onSale(f);
+    $("bi-name").textContent = sale ? f.title : f.name;
+    $("bi-text").textContent = sale ? f.text : (f.soon || f.text);
+    $("bi-buy").textContent = sale ? "Buy now →" : "Register your interest →";
+    $("bi-buy").href = sale ? f.buy : f.page;
+    $("bi-more").href = f.page;
+    $("bi-more").classList.toggle("hidden", !sale);
+  }
+  window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", route);
 
 function view(id) {
   ["loading", "login", "home"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
@@ -278,10 +385,12 @@ async function boot() {
   $("tcc-pf").classList.toggle("hidden", cardPf.has("tcc"));
   $("tec-pf").classList.toggle("hidden", cardPf.has("tec") || !(tecStaff || list.some((c) => String(c.brand || "").toLowerCase() === "tec")));
 
+  renderFamilies(list);
   if (!list.length) {
     box.outerHTML = '<div id="courses" class="empty"></div>';
     $("courses").innerHTML = "There are no courses on <strong></strong> yet. If you bought a course with a different email, log out and use that one. If you have only just paid, give it a couple of minutes and refresh.";
     $("courses").querySelector("strong").textContent = session.user.email;
+    route();
     view("home");
     return;
   }
@@ -295,6 +404,7 @@ async function boot() {
 
     const card = document.createElement("div");
     card.className = "course";
+    card.dataset.brand = String(c.brand || "").toLowerCase();
     card.style.setProperty("--c", b.c);
 
     const top = document.createElement("div");
@@ -340,6 +450,7 @@ async function boot() {
     if (done && c.current_version) card.appendChild(certBlock(c, certByCourse.get(c.id), defaultName));
     box.appendChild(card);
   }
+  route();
   view("home");
 }
 
