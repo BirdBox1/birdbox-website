@@ -28,12 +28,12 @@
   // Each language named, and described, in its own words.
   var LANG_NAME = { en: "English", es: "Español", fr: "Français", it: "Italiano", de: "Deutsch", pt: "Português" };
   var LANG_NOTE = {
-    en: "Course, videos and portfolio in English",
-    es: "Curso, vídeos y portafolio en español",
-    fr: "Cours, vidéos et portfolio en français",
-    it: "Corso, video e portfolio in italiano",
-    de: "Kurs, Videos und Portfolio auf Deutsch",
-    pt: "Curso, vídeos e portfólio em português",
+    en: "The whole course in English",
+    es: "Todo el curso en español",
+    fr: "Tout le cours en français",
+    it: "Tutto il corso in italiano",
+    de: "Der ganze Kurs auf Deutsch",
+    pt: "Todo o curso em português",
   };
   // The language picked to start with: ?lang=es in the link, else the
   // visitor's browser language when the course is sold in it.
