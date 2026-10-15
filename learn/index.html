@@ -39,11 +39,11 @@
   .hidden{display:none!important}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
   .course{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c,#4FA8DE);padding:22px}
-  .course .top{display:flex;gap:16px;align-items:center;margin-bottom:16px}
+  .course .top{display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;min-height:92px}
   .course img{width:60px;height:60px;object-fit:contain;flex:none}
   .course h2{font-size:17px;line-height:1.3;margin:0 0 4px}
   .course .meta{font-size:13px;color:var(--muted)}
-  .course .status{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:auto 0 8px}
+  .course .status{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
   .course .status.done{color:var(--good)}
   .prog{height:6px;background:var(--panel2);margin-bottom:16px}
   .prog div{height:100%;background:var(--c,#4FA8DE)}
@@ -51,14 +51,21 @@
   .course .btn:hover{background:transparent;color:var(--t,#4FA8DE)}
   .course .btn.pf{margin-top:10px;background:none;color:var(--ink);border-color:var(--c,#4FA8DE)}
   .course .btn.pf:hover{background:var(--c,#4FA8DE);color:var(--on,#0C1116)}
-  .cert{margin-top:10px}
-  .cert .btn{width:100%;background:none;color:var(--ink);border-color:#6A6466}
-  .cert .btn:hover{border-color:var(--ink);color:var(--ink)}
+  .cert{margin-top:auto;padding-top:10px}
+  .cert .btn{width:100%;background:#3A3537;color:var(--ink);border-color:#3A3537}
+  .cert .btn:hover{background:#4A4547;border-color:#4A4547;color:var(--ink)}
   .cert form{margin-top:10px}
   .cert label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
   .cert input{width:100%;font:inherit;font-size:16px;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:10px}
   .cert .hint{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 10px}
   .empty{background:var(--panel);border:1px solid var(--line);padding:24px;color:var(--muted);line-height:1.6;max-width:640px}
+  .levels .lvl{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:26px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .levels .lvl:first-child{margin-top:0}
+  .levels .lvl h3{font-size:14px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin:0}
+  .levels .lvl span{font-size:12px;color:var(--muted)}
+  .course[draggable="true"]{cursor:grab}
+  .course.dragging{opacity:.4}
+  .course.over{outline:2px dashed var(--t,#4FA8DE);outline-offset:3px}
   .brands{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin:8px 0 8px}
   @media (max-width:960px){.brands{grid-template-columns:repeat(3,minmax(0,1fr))}}
   @media (max-width:640px){.brands{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -135,7 +142,7 @@
         <div class="bi-btns"><a class="btn" id="bi-buy"></a><a class="btn ghost" id="bi-more">Find out more</a></div>
       </div>
     </div>
-    <div id="courses" class="grid hidden"></div>
+    <div id="courses" class="levels hidden"></div>
 
     <div class="extra">
       <div class="box" id="tcc-pf">
@@ -242,6 +249,52 @@ function renderFamilies(list) {
     root.appendChild(el);
   }
 }
+// Inside a course family, cards are grouped by level. Where a level has the course in more
+// than one language, the learner can drag the cards into the order they want; the order is
+// remembered on this device.
+let allCards = [];
+const ORDER_KEY = "bb-course-order";
+function readOrder() { try { return JSON.parse(localStorage.getItem(ORDER_KEY) || "{}"); } catch (e) { return {}; } }
+function saveOrder(key, slugs) { try { const o = readOrder(); o[key] = slugs; localStorage.setItem(ORDER_KEY, JSON.stringify(o)); } catch (e) {} }
+function showLevels(k) {
+  if (!allCards.length) allCards = [...document.querySelectorAll("#courses .course")];
+  const root = $("courses"); root.innerHTML = "";
+  const mine = allCards.filter((c) => c.dataset.brand === k);
+  const levels = [...new Set(mine.map((c) => c.dataset.level))].sort((a, b) => (Number(a) || 99) - (Number(b) || 99));
+  const order = readOrder();
+  for (const lv of levels) {
+    const key = k + "-" + (lv || "0");
+    const saved = order[key] || [];
+    const cards = mine.filter((c) => c.dataset.level === lv)
+      .sort((a, b) => { const ia = saved.indexOf(a.dataset.slug), ib = saved.indexOf(b.dataset.slug); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
+    const head = document.createElement("div"); head.className = "lvl";
+    const h = document.createElement("h3"); h.textContent = lv ? "Level " + lv : "Courses";
+    head.appendChild(h);
+    const grid = document.createElement("div"); grid.className = "grid";
+    if (cards.length > 1) {
+      const hint = document.createElement("span"); hint.textContent = "Drag the courses to put them in the order you want.";
+      head.appendChild(hint);
+      cards.forEach((c) => makeDraggable(c, grid, key));
+    } else cards.forEach((c) => c.removeAttribute("draggable"));
+    cards.forEach((c) => grid.appendChild(c));
+    root.append(head, grid);
+  }
+}
+let dragged = null;
+function makeDraggable(card, grid, key) {
+  card.draggable = true;
+  card.ondragstart = (e) => { dragged = card; card.classList.add("dragging"); try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", card.dataset.slug); } catch (x) {} };
+  card.ondragend = () => { card.classList.remove("dragging"); grid.querySelectorAll(".over").forEach((x) => x.classList.remove("over")); dragged = null; };
+  card.ondragover = (e) => { if (dragged && dragged !== card && dragged.parentNode === grid) { e.preventDefault(); card.classList.add("over"); } };
+  card.ondragleave = () => card.classList.remove("over");
+  card.ondrop = (e) => {
+    e.preventDefault(); card.classList.remove("over");
+    if (!dragged || dragged === card || dragged.parentNode !== grid) return;
+    const items = [...grid.children];
+    grid.insertBefore(dragged, items.indexOf(dragged) < items.indexOf(card) ? card.nextSibling : card);
+    saveOrder(key, [...grid.children].map((x) => x.dataset.slug));
+  };
+}
 function route() {
   const k = location.hash.slice(1);
   const f = FAMILIES.find((x) => x.k === k);
@@ -254,7 +307,7 @@ function route() {
   if (!owned && !info) return;
   $("brand-title").textContent = owned ? "My " + f.short + " courses" : f.name;
   if (owned) {
-    document.querySelectorAll("#courses .course").forEach((c) => { c.style.display = c.dataset.brand === k ? "" : "none"; });
+    showLevels(k);
   } else {
     const b = BRAND[k] || BRAND.tcc;
     $("brandinfo").style.setProperty("--c", b.c); $("brandinfo").style.setProperty("--t", b.t); $("brandinfo").style.setProperty("--on", b.on);
@@ -407,6 +460,8 @@ async function boot() {
     const card = document.createElement("div");
     card.className = "course";
     card.dataset.brand = String(c.brand || "").toLowerCase();
+    card.dataset.slug = c.slug;
+    card.dataset.level = (String(c.level || "").match(/\d+/) || [""])[0];
     card.style.setProperty("--c", b.c); card.style.setProperty("--t", b.t); card.style.setProperty("--on", b.on);
 
     const top = document.createElement("div");
