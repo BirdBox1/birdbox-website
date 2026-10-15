@@ -104,9 +104,14 @@
 
     <div class="extra">
       <div class="box">
-        <h3>My portfolio</h3>
-        <p style="margin:0 0 12px">Your course tasks, like the self-perception spider diagram, saved to your account.</p>
-        <a class="btn small" href="/learn/portfolio/">Open my portfolio →</a>
+        <h3>My TCC portfolio</h3>
+        <p style="margin:0 0 12px">Your Coaches Course tasks, like the self-perception spider diagram, saved to your account.</p>
+        <a class="btn small" href="/learn/portfolio/">Open my TCC portfolio →</a>
+      </div>
+      <div class="box hidden" id="tec-pf">
+        <h3>My TEC portfolio</h3>
+        <p style="margin:0 0 12px">Your Endurance Course tasks and reflections, saved to your account.</p>
+        <a class="btn small" href="/learn/portfolio/tec/" style="background:#3BA46A;border-color:#3BA46A">Open my TEC portfolio →</a>
       </div>
       <div class="box">
         <h3>Set or change your password</h3>
@@ -245,6 +250,14 @@ async function boot() {
 
   const box = $("courses");
   box.innerHTML = "";
+  // The TEC portfolio box shows for learners enrolled in The Endurance Course,
+  // and for staff while the course is still in development.
+  let tecStaff = !!isAdmin;
+  if (!tecStaff) {
+    try { const { data: st } = await db.from("learn_all_access").select("email").eq("email", session.user.email).maybeSingle(); tecStaff = !!st; } catch (e) {}
+  }
+  $("tec-pf").classList.toggle("hidden", !(tecStaff || list.some((c) => String(c.brand || "").toLowerCase() === "tec")));
+
   if (!list.length) {
     box.outerHTML = '<div id="courses" class="empty"></div>';
     $("courses").innerHTML = "There are no courses on <strong></strong> yet. If you bought a course with a different email, log out and use that one. If you have only just paid, give it a couple of minutes and refresh.";
