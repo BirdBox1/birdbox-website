@@ -1,0 +1,89 @@
+{
+  "opening": [
+    "Dziękujemy za wypełnienie oceny.",
+    "To nie jest ocena w sensie szkolnym ani werdykt na temat tego, jak dobrym jesteś trenerem. To wskazówka, gdzie leży twój następny realny postęp — bo coaching gimnastyczny to określona kolejność działań, a praca nad niewłaściwym szczeblem jest powodem, dla którego trenerzy wkładają lata wysiłku przy znikomym zwrocie.",
+    "Każdy jest gdzieś na tej drabinie. Poniżej znajdziesz, gdzie jesteś, dlaczego to ma znaczenie i jedną rzecz, którą możesz zrobić w tym tygodniu."
+  ],
+  "closing": [
+    "Gdziekolwiek jesteś na tej drabinie, to nie jest sufit. Trenerzy wspinają się po niej szybko, gdy wiedzą, na którym szczeblu stoją — stracone lata biorą się z ciężkiej pracy na niewłaściwym.",
+    "W najbliższych tygodniach wyślemy ci pięć krótkich e-maili dotyczących twojego obszaru pracy. To nie jest sekwencja sprzedażowa — to rzeczy warte przemyślenia i takie, które możesz wypróbować z zawodnikami, których masz przed sobą.",
+    "Nathan Bird i zespół BirdBox"
+  ],
+  "nextText": "The Gymnastics Course — Level 1",
+  "email": {
+    "subject": "Czego potrzebuje twój coaching: {name}",
+    "heading": "Czego potrzebuje twój coaching",
+    "watch": "Film",
+    "watchLede": "Kilka minut o obszarze {name} i o tym, jak wygląda on na sali.",
+    "watchButton": "Obejrzyj film",
+    "nextStep": "Następny krok",
+    "yourFocus": "Twój obszar pracy",
+    "tryThisWeek": "Wypróbuj w tym tygodniu",
+    "whereTaught": "Gdzie tego uczymy"
+  },
+  "greeting": "Cześć {name},",
+  "focus": {
+    "eye": {
+      "name": "Oko trenera",
+      "lede": "Twój obszar pracy: widzieć i przekazywać pozycje fundamentalne.",
+      "body": [
+        "Potrafisz rozpoznać, że ruch jest nieprawidłowy. Większość trenerów potrafi. Trudniejsze — i to właśnie oddziela trenerów z powtarzalnymi wynikami od tych z przypadkowymi — jest wiedzieć, co jest nie tak, już w pierwszym powtórzeniu, i do której pozycji to się sprowadza.",
+        "Na razie ten odczyt nie jest jeszcze pewny. Widać to w drobiazgach. Dwóch zawodników nie radzi sobie z tym samym ruchem i dostaje tę samą wskazówkę. Pokazujesz pozycję, a wraca do ciebie cztery różne wersje. Czujesz, że coś nie gra, ale zanim ustalisz co, seria się kończy.",
+        "To nie przypadek, że jest to pierwszy szczebel. Wszystko powyżej od niego zależy. Metodyka, wobec której nie widzisz błędów, jest harmonogramem, a nie systemem. Praca nad timingiem z zawodnikiem o złej pozycji sprawia jedynie, że błędny ruch staje się szybszy. Dołożona do tego objętość kumuluje błąd zamiast umiejętności.",
+        "Dobra wiadomość jest taka, że oko trenera da się wytrenować. To nie talent ani po prostu lata na sali — wielu trenerów gromadzi dekadę obserwacji, nie wypracowując go, bo nigdy nie patrzyli na nic konkretnego. Ale to wymaga czasu. Czasu spędzonego świadomie, na właściwych rzeczach, we właściwej kolejności. Tego nikt nie skróci za ciebie — i to jednocześnie ta część, która idzie najszybciej, gdy już wiesz, gdzie kierować uwagę."
+      ],
+      "tryThis": [
+        "Wybierz jeden ruch, który twoje zajęcia wykonują często. Przed sesją zapisz trzy rzeczy, na które będziesz patrzeć, po kolei — nie jak wygląda dobry ruch ogólnie, lecz trzy konkretne punkty kontrolne. Prowadź całą sesję, patrząc wyłącznie na te trzy.",
+        "Wskazówka: ciało to łańcuch ogniw. Błąd, który widzisz, rzadko znajduje się tam, gdzie się zaczyna.",
+        "Zobaczysz więcej przy trzech świadomych sprawdzeniach niż przy otwartym patrzeniu na wszystko, bo twoja uwaga wreszcie ma dokąd pójść. Rób tak przez tydzień, a zauważysz drugą rzecz: jak wiele ci umykało, gdy patrzyłeś na całość."
+      ],
+      "taught": "Ocena ruchu to jeden z czterech filarów TGC Level 1. Dwa dni nauki prostszego widzenia i korygowania ruchu, z rękami na prawdziwych zawodnikach i innymi trenerami, którzy cię obserwują."
+    },
+    "methodology": {
+      "name": "Metodyka stosowania",
+      "lede": "Twój obszar pracy: podstawowe kroki metodyki coachingu gimnastycznego i sposób ich stosowania.",
+      "body": [
+        "Widzisz to. Nie tu jest luka. Obserwujesz zawodnika i wiesz, co jest nie tak — pytanie, na które nie zawsze umiesz odpowiedzieć, brzmi: co z tym zrobić, w jakiej kolejności i dlaczego akurat w tej.",
+        "Objawia się to decyzjami podejmowanymi na bieżąco. To, nad czym zawodnik pracuje dalej, wynika z tego, co akurat jest w dzisiejszym programie, co sprawia mu największą trudność albo o co poprosił. Każda z tych odpowiedzi jest rozsądna dla pojedynczej sesji. Żadna nie jest metodą, a różnica widoczna jest w miesiącach, nie w dniach.",
+        "Oto rozróżnienie, które ma znaczenie i które umyka większości trenerów: progresja to lista kroków. Metodyka to uzasadnienie, które pod nimi leży. Progresja mówi: zrób to, potem to. Metodyka mówi, jaką jakość buduje każdy krok — kontrolę w bezruchu, kontrolę w wydłużeniu, kontrolę w ekspresji — i dlaczego ta jakość musi poprzedzać następną. Kroki bez uzasadnienia to sekwencja, którą odziedziczyłeś. Z uzasadnieniem stają się systemem, którego możesz bronić, który dopasujesz do zawodnika spoza schematu i przekażesz innemu trenerowi.",
+        "Jest prosty test. Gdyby inny trener przejął twoich zawodników na miesiąc, mógłby kontynuować? Nie zgadywać — kontynuować, w tym samym kierunku i z tych samych powodów. Jeśli odpowiedź mieszka głównie w twojej głowie, masz wyczucie: jest ono bardzo cenne, ale nie skaluje się, nie da się go przekazać i po cichu znika, gdy jesteś zmęczony."
+      ],
+      "tryThis": [
+        "Weź jeden ruch i rozpisz całą kolejność, od początku do końca. Następnie obok każdego kroku zapisz dwie rzeczy: jaką jakość buduje i dlaczego musi poprzedzać następny.",
+        "Kroki przyjdą łatwo. To w drugiej kolumnie większość trenerów odkrywa, że improwizowała — a ta kolumna to właśnie metodyka."
+      ],
+      "taught": "TGC Level 1 zaczyna się od metodyki coachingu i hierarchii rozwoju — od uzasadnienia pod krokami, a nie od samych kroków, i od tego, dlaczego kolejność jest taka, jaka jest."
+    },
+    "dynamic": {
+      "name": "Dynamiczny coaching techniczny",
+      "lede": "Twój obszar pracy: coaching techniczny w kierunku timingu ruchu dynamicznego.",
+      "body": [
+        "Twoi zawodnicy mają pozycje i mają siłę. Czego nie mają w sposób powtarzalny, to rytm — i właśnie w tym miejscu wiele skądinąd świetnego coachingu po cichu się zatrzymuje.",
+        "Rozpoznasz to. Zawodnik z solidnym podciągnięciem strict, którego kip nigdy nie wyglądał dwa razy tak samo. Elementy, które trzymają się na świeżo i rozpadają w ósmym powtórzeniu, gdzie siła wyraźnie nie zniknęła, a sekwencja tak. Postęp, który wynika z powtarzania, a nie z coachingu — zajmuje miesiące i nie umiesz powiedzieć, co zrobiło różnicę.",
+        "Oto co odróżnia ten szczebel od dwóch poniżej. Pozycję można zobaczyć utrzymaną w bezruchu. Timing istnieje wyłącznie w ruchu, co oznacza, że nie da się go uczyć, zatrzymując go — a w chwili, gdy spowalniasz ruch dynamiczny, żeby go wyjaśnić, przestajesz uczyć tego, czego chciałeś nauczyć.",
+        "I tu większość trenerów pogarsza sprawę zamiast ją poprawić. Wobec zawodnika z rozjechanym timingiem odruchem jest tłumaczyć więcej: kolejna wskazówka, kolejna zasada, kolejna rzecz do przemyślenia w drodze do góry. Ale każda dołożona zasada daje zawodnikowi kolejny element do kontrolowania, a zawodnik kontrolujący elementy przestaje poruszać się jako całość. Rozkłada ruch dokładnie tam, gdzie powinien on pozostać spójny. Więcej jawnych instrukcji daje zawodnika bardziej rozłożonego na części, bardziej skupionego na sobie i mniej powtarzalnego — czyli odwrotność zamierzonego celu.",
+        "Droga wyjścia jest niejawna, nie jawna. Mniej mówienia. Takie ustawienie warunków, by zawodnik sam znalazł timing, bo właściwy timing jest jedynym, który działa."
+      ],
+      "tryThis": [
+        "Weź zawodnika z niestabilnym elementem dynamicznym i przestań mówić mu, co ma robić ze swoim ciałem. Zamiast tego zmień jedną rzecz w zadaniu, tak by właściwy timing był tym łatwiejszym. Potem nic nie mów i daj mu dziesięć prób.",
+        "To, co rozwiąże sam, powie ci o jego rzeczywistym rozumieniu więcej niż jakakolwiek liczba wskazówek."
+      ],
+      "taught": "TGC Level 1 uczy asekuracji i autoasekuracji, które są najlepszą formą skalowania, jaka istnieje. Przeprowadzenie zawodnika przez ruch dynamiczny z asekuracją to sposób, w jaki znajduje on płynność — i zrozumienie, które z niej wynika — bez konieczności prowadzenia go słowami."
+    },
+    "periodisation": {
+      "name": "Periodyzacja progresji",
+      "lede": "Twój obszar pracy: późniejsze etapy rozwoju zawodnika, gdy pozycja i precyzja są już na miejscu.",
+      "body": [
+        "Masz za sobą problemy, nad którymi większość trenerów wciąż pracuje. Twoi zawodnicy poruszają się dobrze, widzisz, co się dzieje, i masz kolejność, w której pracujesz. To stawia cię w bardzo konkretnym miejscu: tam, gdzie coaching przestaje polegać na korygowaniu ruchu, a zaczyna na jego przepisywaniu.",
+        "Objawem jest zawodnik, który robi wszystko dobrze i przestał robić postępy. Czyste pozycje, przyzwoity timing, przychodzi regularnie, pracuje ciężko — i od trzech miesięcy stoi w miejscu. Nie ma czego poprawiać, więc nie ma nic oczywistego do trenowania — a zwykłym odruchem jest dołożyć. Więcej powtórzeń, więcej dni, więcej pracy dodatkowej. Czasem to jest odpowiedź. Często zawodnik dostawał już więcej, niż był w stanie zaadaptować, a problemem nigdy nie była ilość.",
+        "Ten szczebel dotyczy dawki. Ile, jak mocno, jak często i względem wszystkiego innego w jego tygodniu — bo objętość gimnastyczna nie istnieje w oderwaniu: konkuruje z każdym innym obciążeniem zawodnika. To najmniej widoczna część coachingu i ta o najdłuższej pętli informacji zwrotnej, dlatego większość trenerów nigdy jej nie usystematyzuje. Możesz się mylić przez osiem tygodni, zanim cokolwiek ci to powie.",
+        "Opanowanie tego zamienia dobrego trenera w takiego, którego zawodnicy robią postępy także po latach."
+      ],
+      "tryThis": [
+        "Wybierz jednego zawodnika, który stoi w miejscu. Zapisz wszystko, co robił przez ostatnie cztery tygodnie — wszystko, nie tylko gimnastykę. Potem zadaj trudniejsze pytanie niż „co dołożyć\": do czego on się właściwie adaptuje i czy coś na tej liście mu to uniemożliwia?",
+        "Odpowiedzią częściej jest odjęcie niż dodanie — i prawie nigdy to, czego zawodnik się spodziewa."
+      ],
+      "taught": "Programowanie i skalowanie to czwarty filar TGC Level 1. Programowanie gimnastyki nie musi być skomplikowane — musi być częste i przepisane względem wszystkiego innego, co robi zawodnik."
+    }
+  }
+}
