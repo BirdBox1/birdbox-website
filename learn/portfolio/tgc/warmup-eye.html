@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Warm-up coaches eye — BirdBox Learn</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
+          --line:#342F31; --accent:#E0555A; --bad:#F0797D; --good:#5CC48A; --amber:#F2B24C; }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .bar{display:flex;align-items:center;gap:14px;padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top));
+    border-bottom:1px solid var(--line);background:#0d0b0b}
+  .bar img{height:34px;width:auto;display:block}
+  .bar .name{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .bar .nav{margin-left:auto;display:flex;gap:8px}
+  .btn{display:inline-block;font:inherit;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:12px 20px;background:var(--accent);color:#fff;border:1px solid var(--accent);cursor:pointer;text-decoration:none;text-align:center}
+  .btn:hover{background:transparent;color:var(--accent)}
+  .btn.ghost{background:none;color:var(--ink);border-color:#6A6466}
+  .btn.small{font-size:11px;padding:7px 12px}
+  .wrap{max-width:900px;margin:0 auto;padding:36px 20px 64px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  .kicker a{color:inherit;text-decoration:none}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.05;font-weight:800;text-transform:uppercase;margin:0 0 10px}
+  h2{font-size:15px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 12px}
+  .lede{color:var(--muted);font-size:16px;line-height:1.6;margin:0 0 24px;max-width:70ch}
+  .sub{color:var(--muted);font-size:14.5px;line-height:1.55;margin:0 0 14px}
+  .hidden{display:none!important}
+  .panel{background:var(--panel);border:1px solid var(--line);padding:22px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);padding:22px;max-width:440px}
+  .card label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+  .card input{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:6px}
+  .msg{font-size:14px;line-height:1.5;margin:12px 0 0;min-height:1em}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  .item{border-top:1px solid var(--line);padding:16px 0}
+  .item:first-child{border-top:none;padding-top:0}
+  .item .rule{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .item h3{font-size:16px;line-height:1.4;margin:4px 0 10px}
+  .scale10{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;max-width:520px}
+  .scale10 button{font:inherit;font-weight:800;font-size:14px;padding:8px 0;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .scale10 button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .ends{display:flex;justify-content:space-between;max-width:520px;font-size:12px;color:var(--muted);margin:4px 0 10px}
+  label.f{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+  textarea,select,input[type=date]{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);line-height:1.5}
+  textarea{min-height:70px;resize:vertical}
+  input[type=date]{max-width:240px}
+  .bars .b{display:grid;grid-template-columns:minmax(120px,210px) 1fr 44px;gap:10px;align-items:center;margin:8px 0;font-size:14px}
+  .bars .t{height:14px;background:var(--panel2);position:relative}
+  .bars .t i{display:block;height:100%}
+  .bars .t s{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;opacity:.7}
+  .bars .low{color:var(--amber);font-weight:700}
+  .key{font-size:13px;color:var(--muted);margin-top:8px}
+  .hist{font-size:14px;color:var(--muted);line-height:1.6}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .state{font-size:13px;color:var(--muted)}
+  @media print{
+    body{background:#fff;color:#000} .bar,.noprint{display:none!important}
+    .panel{border:1px solid #ccc;background:none} textarea,select,input{border:1px solid #ccc;background:#fff;color:#000}
+    .scale10 button{background:#fff;color:#000} .scale10 button.on{background:#85151A;color:#fff}
+  }
+  .obs{border:1px solid var(--line);background:var(--panel2);padding:14px 16px;margin:0 0 10px;cursor:pointer}
+  .obs:hover{border-color:var(--accent)}
+  .obs{display:flex;gap:12px;align-items:center}
+  .obs .txt{flex:1;min-width:0}
+  .obs b{display:block;font-size:16px}
+  .obs .del{flex:none;font:inherit;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:none;color:var(--muted);border:1px solid #6A6466;padding:6px 10px;cursor:pointer}
+  .obs .del:hover{color:var(--bad);border-color:var(--bad)}
+  .obs span{font-size:13px;color:var(--muted)}
+  .fault{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:10px;align-items:start;border-top:1px solid var(--line);padding:12px 0}
+  .fault:first-child{border-top:none}
+  .fault .t b{display:block;font-size:15px}
+  .fault .t small{display:block;color:var(--muted);font-size:13px;line-height:1.45;margin-top:2px}
+  .fault input[type=number]{width:100%;font:inherit;font-size:15px;padding:8px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .fault textarea{grid-column:1 / -1;min-height:44px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0}
+  .tags label{display:flex;gap:6px;align-items:center;font-size:14px;border:1px solid var(--line);padding:6px 10px;cursor:pointer;background:var(--paper)}
+  .tags input{accent-color:var(--accent)}
+  .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+  input[type=text]{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .vsrc{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+  .vsrc input[type=text]{flex:1;min-width:200px;font-size:14px;padding:9px 10px}
+  .vsrc .note{font-size:12px;color:var(--muted);width:100%}
+  .vwork{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;align-items:start}
+  .vwork>*{min-width:0}
+  .vwork.has{gap:18px}
+  @media(min-width:900px){.vwork.has{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}.vwork.has.wide{grid-template-columns:minmax(0,1fr)}}
+  .vwork.wide .vplayer video{max-height:56vh}
+  .vwork.wide .vplayer iframe{max-height:56vh;max-width:calc(56vh * 16 / 9);margin:0 auto}
+  .vplayer iframe.portrait{aspect-ratio:9/16;width:auto;height:min(70vh,640px);max-width:100%;margin:0 auto}
+  .vplayer{position:sticky;top:0;z-index:6;background:var(--panel);padding:6px 0 8px}
+  .vplayer .screen{background:#000;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+  .vplayer video{display:block;width:100%;max-height:70vh;object-fit:contain;background:#000}
+  .vplayer iframe{display:block;width:100%;aspect-ratio:16/9;border:0;background:#000}
+  .vplayer .empty{color:var(--muted);font-size:14px;padding:22px 16px;text-align:center;line-height:1.6}
+  @media(max-width:899px){.vplayer video{max-height:34vh}.vplayer iframe{max-height:34vh}}
+</style>
+</head>
+<body>
+<div class="bar">
+  <a href="/learn/"><img src="/brand/birdBox.png" alt="BirdBox"></a>
+  <span class="name">My TGC portfolio</span>
+  <div class="nav"><a class="btn ghost small" href="index.html">My TGC portfolio</a> <a class="btn ghost small" href="/learn/" id="b-course">← Back to my course</a></div>
+</div>
+
+<main class="wrap">
+  <p id="loading" class="lede">Loading…</p>
+
+  <section id="login" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My TGC portfolio</h1>
+    <p class="lede">Log in with the email address you bought your course with, and your observations open here.</p>
+    <form class="card" id="login-form">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="email" required>
+      <label for="l-pass">Password</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn" type="submit">Log in</button>
+      <button class="btn ghost" id="l-link" type="button" style="margin-top:10px">Email me a login link</button>
+      <div id="l-msg" class="msg"></div>
+    </form>
+  </section>
+
+  <section id="soon" class="hidden">
+    <p class="kicker">The Gymnastics Course</p>
+    <h1>Coming soon</h1>
+    <p class="lede">The TGC portfolio is still being built. It will open here once it is ready.</p>
+    <a class="btn" href="/learn/">← My courses</a>
+  </section>
+
+  <section id="eye" class="hidden">
+    <p class="kicker"><a href="index.html">← My portfolio</a> · The Gymnastics Course · Lesson 4 · Warming Up</p>
+    <h1>Warm-up coaches eye</h1>
+    <p class="lede">A warm-up gives you an assessment of every athlete without being invasive. Run a PVC pipe warm-up or your standardised gymnastics warm-up, record the faults you see, then follow one athlete: where will that fault show up in their gymnastics, and what will you do about it?</p>
+
+    <div id="list-view">
+      <div class="panel">
+        <div class="row" style="margin:0 0 14px"><button class="btn" id="b-new" type="button">+ New observation</button><span class="state" id="count"></span></div>
+        <div id="obs-list"></div>
+      </div>
+    </div>
+
+    <div id="edit-view" class="hidden">
+      <div class="row noprint" style="margin:0 0 14px"><button class="btn ghost small" id="b-all" type="button">← All my observations</button></div>
+
+      <div class="panel">
+        <h2>1. The session</h2>
+        <div class="g2">
+          <div><label class="f" for="o-date">Date</label><input type="date" id="o-date" style="max-width:none"></div>
+          <div><label class="f" for="o-group">Class or group</label><input type="text" id="o-group" placeholder="e.g. 6pm class, 12 athletes"></div>
+        </div>
+        <label class="f">Warm-up I watched</label>
+        <div class="tags" id="o-type"></div>
+        <label class="f" for="o-stand">Where I stood to watch, and why</label>
+        <input type="text" id="o-stand" placeholder="e.g. Side of the room for crab walks, to see hip and shoulder extension">
+      </div>
+
+      <div class="panel">
+        <h2>2. Faults I saw</h2>
+        <p class="sub">For each fault, write how many athletes showed it, and what you noticed. Leave it at 0 if you did not see it. If you filmed the warm-up, add the video and watch it as you go (optional).</p>
+        <div id="o-vsrc"></div>
+        <div class="vwork" id="o-work"><div class="vplayer hidden" id="o-player"></div><div id="o-faults"></div></div>
+      </div>
+
+      <div class="panel">
+        <h2>3. One athlete</h2>
+        <p class="sub">Pick one athlete and one fault from today. Use initials or a first name only.</p>
+        <div class="g2">
+          <div><label class="f" for="o-who">Athlete</label><input type="text" id="o-who" placeholder="e.g. J.M."></div>
+          <div><label class="f" for="o-fault">The fault</label><select id="o-fault"></select></div>
+        </div>
+        <label class="f" for="o-why">Why might they move like this?</label>
+        <textarea id="o-why" placeholder="e.g. Awareness, a range of motion limitation, an injury, or a habit of chasing the Rx rep?"></textarea>
+        <label class="f">Where will this fault show up in their gymnastics?</label>
+        <div class="tags" id="o-where"></div>
+        <label class="f">How I will respond</label>
+        <div class="tags" id="o-resp"></div>
+        <label class="f" for="o-plan">Exactly what I will do</label>
+        <textarea id="o-plan" placeholder="e.g. Constraint: PVC press with the back against the wall so the head cannot push forward. Then thoracic mobility before overhead work for two weeks."></textarea>
+        <label class="f" for="o-after">What happened next (add this after you have followed it up)</label>
+        <textarea id="o-after"></textarea>
+      </div>
+
+      <div class="row noprint">
+        <button class="btn" id="b-save" type="button">Save</button>
+        <button class="btn ghost" id="b-pdf" type="button">Download PDF</button>
+        <button class="btn ghost" id="b-del" type="button">Delete this observation</button>
+        <span class="state" id="state"></span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
+const $ = (id) => document.getElementById(id);
+const show = (id) => ["loading", "login", "soon", "eye"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+
+// While the TGC portfolio is built and tested, only these logins can open it; everyone else sees
+// "coming soon". Keep this list the same in every page in learn/portfolio/tgc/.
+// To launch: set TGC_LIVE to true in all of them, and add tgc1 to PORTFOLIOS in /learn/index.html.
+const TGC_LIVE = false, TGC_TESTERS = ["nathan@birdboxcoaching.com"];
+const canOpen = (s) => TGC_LIVE || TGC_TESTERS.includes(String((s && s.user && s.user.email) || "").toLowerCase());
+
+const TOOL = "tgc-warmup-eye";
+// The faults taught in Lesson 4 · Warming Up.
+const FAULTS = [
+  ["head", "Forward head when pressing", "PVC pipe · pushing the head down and forward to finish the press"],
+  ["elbow", "Elbows bending", "PVC pipe or line drills · elbows flex when pulling back or holding lockout"],
+  ["thoracic", "Thoracic spine limitation", "PVC pipe · cannot pull the pipe back; poor rotation and extension"],
+  ["rom", "Shoulder range of motion limitation", "PVC pipe · the body compromises (ribs, back) to get the pipe behind"],
+  ["unstable", "Shoulder instability", "PVC pipe · range is there, but the armpits turn to the floor"],
+  ["hips", "Hips not opening", "Line drills · e.g. crab walk, the hips drop towards the floor"],
+  ["knees", "Significant knee bend", "Line drills · e.g. gymnastics bear crawl, legs not locked out (hamstring or nerve tension)"],
+];
+const TYPES = ["PVC pipe warm-up", "Standardised gymnastics warm-up", "D.R.O.M warm-up", "Other"];
+const WHERE = ["Pull-up bar (arch and kipping)", "Bar muscle-up", "Handstand", "Ring support and dips", "Ring muscle-up", "Overhead squat and snatch", "Pressing", "Other"];
+const RESP = ["Cue", "Constraint", "Intervention · mobility", "Intervention · stability", "Intervention · strengthening"];
+
+let session = null, doc = null, cur = null, timer = null;
+const vLocal = {};   // videos chosen from the device this visit, by observation id (never uploaded)
+// A pasted link → something the page can play (same as the TCC video review).
+function vEmbed(url) {
+  const u = String(url || "").trim();
+  if (!u) return null;
+  let m;
+  if ((m = u.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/)))
+    return { kind: "iframe", portrait: /\/shorts\//.test(u), src: "https://www.youtube-nocookie.com/embed/" + m[1] + "?rel=0&playsinline=1" + (location.protocol.startsWith("http") ? "&origin=" + encodeURIComponent(location.origin) : "") };
+  if ((m = u.match(/vimeo\.com\/(?:video\/)?(\d+)(?:\/(\w+))?/))) return { kind: "iframe", src: "https://player.vimeo.com/video/" + m[1] + (m[2] ? "?h=" + m[2] : "") };
+  if ((m = u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]+)/))) return { kind: "iframe", src: "https://drive.google.com/file/d/" + m[1] + "/preview" };
+  if (/dropbox\.com\//.test(u)) { const d = u.replace(/([?&])dl=[01]/, "$1raw=1"); return { kind: "video", src: /[?&]raw=1/.test(d) ? d : d + (d.includes("?") ? "&" : "?") + "raw=1" }; }
+  if (/^https?:\/\/.+\.(mp4|mov|m4v|webm)(\?|$)/i.test(u)) return { kind: "video", src: u };
+  if (/^https?:\/\//.test(u)) return { kind: "open", src: u };
+  return null;
+}
+function player(o) {
+  const loc = vLocal[o.id], e = loc ? { kind: "video", src: loc.url } : vEmbed(o.link);
+  const box = $("o-player"); box.innerHTML = "";
+  box.classList.toggle("hidden", !e); $("o-work").classList.toggle("has", !!e); $("o-work").classList.remove("wide");
+  if (e) {
+    const screen = document.createElement("div"); screen.className = "screen";
+    // Landscape videos take the full width with the fault check underneath; portrait ones sit beside it.
+    const wide = (on) => $("o-work").classList.toggle("wide", on);
+    if (e.kind === "iframe") {
+      const f = document.createElement("iframe"); f.src = e.src; f.allow = "autoplay; fullscreen; picture-in-picture; encrypted-media"; f.allowFullscreen = true;
+      f.referrerPolicy = "strict-origin-when-cross-origin";   // YouTube will not play an embed that does not say which site it is on
+      if (e.portrait) f.className = "portrait";
+      screen.appendChild(f); wide(!e.portrait);
+    }
+    else if (e.kind === "video") {
+      const v = document.createElement("video"); v.src = e.src; v.controls = true; v.playsInline = true; v.preload = "metadata"; screen.appendChild(v);
+      wide(false); v.onloadedmetadata = () => wide(v.videoWidth > v.videoHeight);
+      v.onerror = () => { screen.innerHTML = '<div class="empty">This video will not play here. Try choosing it from your device instead, or open the link in a new tab.</div>'; };
+    } else {
+      const d = document.createElement("div"); d.className = "empty"; d.append("This link cannot be played on the page. ");
+      const a = document.createElement("a"); a.href = e.src; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open it in a new tab"; d.appendChild(a);
+      d.append(" — or use a YouTube (unlisted), Vimeo or Google Drive link, or choose the file from your device.");
+      screen.appendChild(d);
+    }
+    box.appendChild(screen);
+  }
+  const src = $("o-vsrc"); src.innerHTML = ""; src.className = "vsrc noprint";
+  const pick = document.createElement("label"); pick.className = "btn ghost small"; pick.textContent = loc ? "Choose a different video" : "Add a video from my device";
+  const file = document.createElement("input"); file.type = "file"; file.accept = "video/*"; file.hidden = true;
+  file.onchange = () => {
+    const f = file.files && file.files[0]; if (!f) return;
+    if (vLocal[o.id]) URL.revokeObjectURL(vLocal[o.id].url);
+    vLocal[o.id] = { url: URL.createObjectURL(f), name: f.name }; o.file = f.name; changed(); player(o);
+  };
+  pick.appendChild(file);
+  const link = document.createElement("input"); link.type = "text"; link.placeholder = "…or paste a link (YouTube, Vimeo, Google Drive, Dropbox)"; link.value = o.link || "";
+  link.onchange = () => { o.link = link.value.trim(); if (vLocal[o.id]) { URL.revokeObjectURL(vLocal[o.id].url); delete vLocal[o.id]; } changed(); player(o); };
+  const note = document.createElement("span"); note.className = "note";
+  note.textContent = loc ? "Playing “" + loc.name + "” from your device. It is not uploaded, so choose it again next time you open this observation."
+    : o.file && !o.link ? "Last time you used “" + o.file + "” from your device — choose it again to watch it here."
+    : "Optional. Videos chosen from your device stay on your device — nothing is uploaded.";
+  src.append(pick, link, note);
+}
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const { error } = await db.auth.signInWithPassword({ email: $("l-email").value.trim(), password: $("l-pass").value });
+  if (error) { $("l-msg").className = "msg err"; $("l-msg").textContent = "That email and password did not match. Try again, or use the login link."; return; }
+  boot();
+});
+$("l-link").addEventListener("click", async () => {
+  const email = $("l-email").value.trim().toLowerCase();
+  if (!email.includes("@")) { $("l-msg").className = "msg err"; $("l-msg").textContent = "Type your email first."; return; }
+  await fetch("/.netlify/functions/learn-access", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, next: location.pathname + location.search }) }).catch(() => {});
+  $("l-msg").className = "msg ok"; $("l-msg").textContent = "If that email has a course, a login link is on its way. Tap it and you come straight back here.";
+});
+// The lesson opens this page in a new tab, so "back" saves, closes it, and the lesson is still underneath.
+$("b-course").onclick = async (e) => {
+  e.preventDefault();
+  if (doc) await save();
+  window.close(); setTimeout(() => { location.href = "/learn/"; }, 300);
+};
+async function unlock() {
+  try {
+    const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", "_unlocked").maybeSingle();
+    const list = (data && data.data && data.data.tools) || [];
+    if (!list.includes(TOOL)) await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: "_unlocked", data: { tools: [...list, TOOL] } }, { onConflict: "user_id,tool" });
+  } catch (e) { /* never block the task */ }
+}
+function changed() { $("state").textContent = "Unsaved changes"; clearTimeout(timer); timer = setTimeout(save, 1500); }
+async function save() {
+  clearTimeout(timer);
+  const row = { user_id: session.user.id, tool: TOOL, data: doc, updated_at: new Date().toISOString() };
+  const { error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" });
+  if (error) { $("state").textContent = "Not saved — " + error.message; return false; }
+  $("state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("b-save").onclick = async () => { if (await save()) $("state").textContent = "Saved ✓"; };
+$("b-pdf").onclick = async () => { await save(); window.print(); };
+async function boot() {
+  ({ data: { session } } = await db.auth.getSession());
+  if (!session) { show("login"); return; }
+  if (!canOpen(session)) { show("soon"); return; }
+  if (new URLSearchParams(location.search).get("tool")) unlock();
+  const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", TOOL).maybeSingle();
+  doc = (data && data.data) || {}; doc.obs = doc.obs || [];
+  list(); show("eye");
+}
+const fmt = (d) => (d ? new Date(d).toLocaleDateString("en-GB") : "No date");
+function list() {
+  $("list-view").classList.remove("hidden"); $("edit-view").classList.add("hidden");
+  $("count").textContent = doc.obs.length ? doc.obs.length + (doc.obs.length === 1 ? " observation" : " observations") : "";
+  const box = $("obs-list"); box.innerHTML = "";
+  if (!doc.obs.length) { box.innerHTML = '<p class="sub" style="margin:0">No observations yet. After your next warm-up, press “New observation”.</p>'; return; }
+  [...doc.obs].sort((a, b) => (b.date || "").localeCompare(a.date || "")).forEach((o) => {
+    const seen = FAULTS.filter(([k]) => (o.n[k] || 0) > 0).map(([, t]) => t);
+    const d = document.createElement("div"); d.className = "obs";
+    d.innerHTML = '<div class="txt"><b></b><span></span></div><button class="del noprint" type="button">Delete</button>';
+    d.querySelector("b").textContent = fmt(o.date) + (o.group ? " · " + o.group : "");
+    d.querySelector("span").textContent = (o.type.length ? o.type.join(", ") + " · " : "") + (seen.length ? seen.length + " faults seen" : "No faults recorded") + (o.who ? " · following " + o.who : "");
+    d.onclick = () => edit(o);
+    d.querySelector(".del").onclick = async (ev) => {
+      ev.stopPropagation();
+      if (!confirm("Delete this observation" + (o.date ? " from " + fmt(o.date) : "") + "? This cannot be undone.")) return;
+      doc.obs = doc.obs.filter((x) => x !== o); await save(); list();
+    };
+    box.appendChild(d);
+  });
+}
+$("b-new").onclick = () => {
+  const o = { id: String(Date.now()), date: new Date().toISOString().slice(0, 10), group: "", type: [], stand: "", n: {}, note: {}, who: "", fault: "", why: "", where: [], resp: [], plan: "", after: "" };
+  doc.obs.push(o); edit(o); changed();
+};
+$("b-all").onclick = async () => { await save(); const v = $("o-player").querySelector("video"); if (v) v.pause(); list(); window.scrollTo(0, 0); };
+$("b-del").onclick = async () => {
+  if (!cur || !confirm("Delete this observation? This cannot be undone.")) return;
+  doc.obs = doc.obs.filter((o) => o !== cur); cur = null; await save(); list();
+};
+function tags(id, opts, arr) {
+  const box = $(id); box.innerHTML = "";
+  for (const t of opts) {
+    const l = document.createElement("label"), c = document.createElement("input"); c.type = "checkbox"; c.checked = arr.includes(t);
+    c.onchange = () => { const i = arr.indexOf(t); if (c.checked && i < 0) arr.push(t); if (!c.checked && i >= 0) arr.splice(i, 1); changed(); };
+    l.append(c, t); box.appendChild(l);
+  }
+}
+function edit(o) {
+  cur = o;
+  $("list-view").classList.add("hidden"); $("edit-view").classList.remove("hidden"); window.scrollTo(0, 0);
+  for (const [id, k] of [["o-date", "date"], ["o-group", "group"], ["o-stand", "stand"], ["o-who", "who"], ["o-why", "why"], ["o-plan", "plan"], ["o-after", "after"]]) {
+    const el = $(id); el.value = o[k] || ""; el.oninput = el.onchange = () => { o[k] = el.value; changed(); };
+  }
+  tags("o-type", TYPES, o.type); tags("o-where", WHERE, o.where); tags("o-resp", RESP, o.resp);
+  const box = $("o-faults"); box.innerHTML = "";
+  for (const [k, t, sub] of FAULTS) {
+    const r = document.createElement("div"); r.className = "fault";
+    r.innerHTML = '<div class="t"><b></b><small></small></div>';
+    r.querySelector("b").textContent = t; r.querySelector("small").textContent = sub;
+    const w = document.createElement("div"); const lb = document.createElement("label"); lb.className = "f"; lb.style.margin = "0 0 4px"; lb.textContent = "Athletes";
+    const n = document.createElement("input"); n.type = "number"; n.min = 0; n.value = o.n[k] || 0;
+    n.oninput = () => { o.n[k] = Math.max(0, +n.value || 0); ta.classList.toggle("hidden", !o.n[k] && !o.note[k]); changed(); };
+    w.append(lb, n);
+    const ta = document.createElement("textarea"); ta.value = o.note[k] || ""; ta.placeholder = "What did you notice?"; ta.classList.toggle("hidden", !o.n[k] && !o.note[k]);
+    ta.oninput = () => { o.note[k] = ta.value; changed(); };
+    r.append(w, ta); box.appendChild(r);
+  }
+  player(o);
+  const sel = $("o-fault");
+  sel.innerHTML = '<option value="">Choose…</option>' + FAULTS.map(([k, t]) => `<option value="${k}">${t}</option>`).join("");
+  sel.value = o.fault || ""; sel.onchange = () => { o.fault = sel.value; changed(); };
+}
+boot();
+</script>
+</body>
+</html>

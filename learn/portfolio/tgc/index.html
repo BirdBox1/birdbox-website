@@ -98,6 +98,12 @@ const show = (id) => ["loading", "login", "home", "soon"].forEach((s) => $(s).cl
 // TGC Level 1 portfolio tasks, by lesson (lesson numbers as in the Rise course).
 // To add a task: add it to TASKS with its page, then list its key under its lesson.
 const TASKS = {
+  "tgc-warmup-eye": { page: "warmup-eye.html", title: "Warm-up coaches eye",
+    text: "Record the faults you see in a PVC pipe or standardised warm-up, then follow one athlete: where will it show up, and what will you do?",
+    count: (row) => { const n = ((row && row.data && row.data.obs) || []).length; return n ? n + (n === 1 ? " observation" : " observations") : null; } },
+  "tgc-warmup-plan": { page: "warmup-plan.html", title: "My standardised warm-up",
+    text: "Build the gymnastics warm-up you will use, structured with R.A.M.P, and plan what you will look for.",
+    count: (row) => { const d = (row && row.data) || {}; const any = Object.values(d.ramp || {}).some((v) => (v.mv || "").trim()) || Object.values(d.drills || {}).some((v) => v.on); return any ? "In progress" : null; } },
   "tgc-start": { page: "reflect.html?t=tgc-start", title: "Welcome to your portfolio — my starting point",
     text: "Reflect on where you are now with coaching bodyweight and gymnastics movements, what has guided you so far, and what you want to learn.",
     count: (row) => { const a = (row && row.data && row.data.a) || {}, n = Object.values(a).filter((v) => String(v || "").trim()).length; return n ? (n >= 5 ? "Complete" : n + " of 5 answered") : null; } },
@@ -115,10 +121,11 @@ const UNITS = [
   { n: 1, name: "Introduction", tools: ["tgc-start"] },
   { n: 2, name: "What Is Gymnastics", tools: ["tgc-movement"] },
   { n: 3, name: "TGC Methodology", tools: ["tgc-methodology"] },
+  { n: 4, name: "Warming Up", tools: ["tgc-warmup-eye", "tgc-warmup-plan"] },
   { n: 12, name: "Butterfly Pull-Ups and Bar Muscle-Ups", tools: ["tgc-headpath"] },
 ];
 // The lesson buttons link here with ?tool=<short name>; send them on to the task.
-const SHORT = { start: "tgc-start", headpath: "tgc-headpath", movement: "tgc-movement", methodology: "tgc-methodology" };
+const SHORT = { start: "tgc-start", headpath: "tgc-headpath", movement: "tgc-movement", methodology: "tgc-methodology", warmupeye: "tgc-warmup-eye", warmupplan: "tgc-warmup-plan" };
 const withParam = (page, kv) => page + (page.includes("?") ? "&" : "?") + kv;
 
 let session = null;

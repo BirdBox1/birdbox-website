@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My standardised warm-up — BirdBox Learn</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
+          --line:#342F31; --accent:#E0555A; --bad:#F0797D; --good:#5CC48A; --amber:#F2B24C; }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .bar{display:flex;align-items:center;gap:14px;padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top));
+    border-bottom:1px solid var(--line);background:#0d0b0b}
+  .bar img{height:34px;width:auto;display:block}
+  .bar .name{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .bar .nav{margin-left:auto;display:flex;gap:8px}
+  .btn{display:inline-block;font:inherit;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:12px 20px;background:var(--accent);color:#fff;border:1px solid var(--accent);cursor:pointer;text-decoration:none;text-align:center}
+  .btn:hover{background:transparent;color:var(--accent)}
+  .btn.ghost{background:none;color:var(--ink);border-color:#6A6466}
+  .btn.small{font-size:11px;padding:7px 12px}
+  .wrap{max-width:900px;margin:0 auto;padding:36px 20px 64px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  .kicker a{color:inherit;text-decoration:none}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.05;font-weight:800;text-transform:uppercase;margin:0 0 10px}
+  h2{font-size:15px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 12px}
+  .lede{color:var(--muted);font-size:16px;line-height:1.6;margin:0 0 24px;max-width:70ch}
+  .sub{color:var(--muted);font-size:14.5px;line-height:1.55;margin:0 0 14px}
+  .hidden{display:none!important}
+  .panel{background:var(--panel);border:1px solid var(--line);padding:22px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);padding:22px;max-width:440px}
+  .card label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+  .card input{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:6px}
+  .msg{font-size:14px;line-height:1.5;margin:12px 0 0;min-height:1em}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  .item{border-top:1px solid var(--line);padding:16px 0}
+  .item:first-child{border-top:none;padding-top:0}
+  .item .rule{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .item h3{font-size:16px;line-height:1.4;margin:4px 0 10px}
+  .scale10{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;max-width:520px}
+  .scale10 button{font:inherit;font-weight:800;font-size:14px;padding:8px 0;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .scale10 button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .ends{display:flex;justify-content:space-between;max-width:520px;font-size:12px;color:var(--muted);margin:4px 0 10px}
+  label.f{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+  textarea,select,input[type=date]{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);line-height:1.5}
+  textarea{min-height:70px;resize:vertical}
+  input[type=date]{max-width:240px}
+  .bars .b{display:grid;grid-template-columns:minmax(120px,210px) 1fr 44px;gap:10px;align-items:center;margin:8px 0;font-size:14px}
+  .bars .t{height:14px;background:var(--panel2);position:relative}
+  .bars .t i{display:block;height:100%}
+  .bars .t s{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;opacity:.7}
+  .bars .low{color:var(--amber);font-weight:700}
+  .key{font-size:13px;color:var(--muted);margin-top:8px}
+  .hist{font-size:14px;color:var(--muted);line-height:1.6}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .state{font-size:13px;color:var(--muted)}
+  @media print{
+    body{background:#fff;color:#000} .bar,.noprint{display:none!important}
+    .panel{border:1px solid #ccc;background:none} textarea,select,input{border:1px solid #ccc;background:#fff;color:#000}
+    .scale10 button{background:#fff;color:#000} .scale10 button.on{background:#85151A;color:#fff}
+  }
+  .obs{border:1px solid var(--line);background:var(--panel2);padding:14px 16px;margin:0 0 10px;cursor:pointer}
+  .obs:hover{border-color:var(--accent)}
+  .obs b{display:block;font-size:16px}
+  .obs span{font-size:13px;color:var(--muted)}
+  .fault{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:10px;align-items:start;border-top:1px solid var(--line);padding:12px 0}
+  .fault:first-child{border-top:none}
+  .fault .t b{display:block;font-size:15px}
+  .fault .t small{display:block;color:var(--muted);font-size:13px;line-height:1.45;margin-top:2px}
+  .fault input[type=number]{width:100%;font:inherit;font-size:15px;padding:8px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .fault textarea{grid-column:1 / -1;min-height:44px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0}
+  .tags label{display:flex;gap:6px;align-items:center;font-size:14px;border:1px solid var(--line);padding:6px 10px;cursor:pointer;background:var(--paper)}
+  .tags input{accent-color:var(--accent)}
+  .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+  input[type=text]{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="bar">
+  <a href="/learn/"><img src="/brand/birdBox.png" alt="BirdBox"></a>
+  <span class="name">My TGC portfolio</span>
+  <div class="nav"><a class="btn ghost small" href="index.html">My TGC portfolio</a> <a class="btn ghost small" href="/learn/" id="b-course">← Back to my course</a></div>
+</div>
+
+<main class="wrap">
+  <p id="loading" class="lede">Loading…</p>
+
+  <section id="login" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My TGC portfolio</h1>
+    <p class="lede">Log in with the email address you bought your course with, and your warm-up plan opens here.</p>
+    <form class="card" id="login-form">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="email" required>
+      <label for="l-pass">Password</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn" type="submit">Log in</button>
+      <button class="btn ghost" id="l-link" type="button" style="margin-top:10px">Email me a login link</button>
+      <div id="l-msg" class="msg"></div>
+    </form>
+  </section>
+
+  <section id="soon" class="hidden">
+    <p class="kicker">The Gymnastics Course</p>
+    <h1>Coming soon</h1>
+    <p class="lede">The TGC portfolio is still being built. It will open here once it is ready.</p>
+    <a class="btn" href="/learn/">← My courses</a>
+  </section>
+
+  <section id="eye" class="hidden">
+    <p class="kicker"><a href="index.html">← My portfolio</a> · The Gymnastics Course · Lesson 4 · Warming Up</p>
+    <h1>My standardised warm-up</h1>
+    <p class="lede">Frequent exposure to gymnastics shapes is the most effective way of developing positions. Build the standardised gymnastics warm-up you will use with your athletes, structured with R.A.M.P, and plan what you will look for while they move.</p>
+
+    <div class="panel">
+      <h2>1. My warm-up, structured with R.A.M.P</h2>
+      <p class="sub">List the movements and how long each part takes. Remember that mobilise and potentiate can carry on later in the session.</p>
+      <div id="ramp"></div>
+      <p class="sub" id="ramp-total" style="margin:6px 0 0"></p>
+    </div>
+
+    <div class="panel">
+      <h2>2. My standardised line drills</h2>
+      <p class="sub">Tick the drills you will use every session. For each one, write what you will look for and where you will stand to see it.</p>
+      <div id="drills"></div>
+      <label class="f" for="p-other">Other drills I will use</label>
+      <input type="text" id="p-other" placeholder="e.g. Seal drag, duck walk">
+    </div>
+
+    <div class="panel">
+      <h2>3. Planes of motion</h2>
+      <p class="sub">Most benchmark workouts and strength work move athletes in the sagittal plane. Rotating at speed under load in a workout can be dangerous, so the warm-up is a safe place to train rotation.</p>
+      <label class="f" for="p-planes">How my warm-up trains rotation (the transverse plane) and side-to-side movement (the frontal plane)</label>
+      <textarea id="p-planes" placeholder="e.g. Arabesque with rotation, then lateral bear crawls"></textarea>
+    </div>
+
+    <div class="panel">
+      <h2>4. When I would use D.R.O.M instead</h2>
+      <p class="sub">A dynamic range of motion warm-up suits sessions where movement positions are the main objective.</p>
+      <textarea id="p-drom" placeholder="e.g. Before a handstand skill session, I slowly open the shoulders and wrists and ask athletes what they feel."></textarea>
+    </div>
+
+    <div class="panel">
+      <h2>5. My reflections</h2>
+      <p class="sub">What do you currently do, and not do, in your warm-ups? What changes would you like to make to your coaching practice or your own warm-up?</p>
+      <textarea id="p-notes" style="min-height:110px" placeholder="Write your thoughts here…"></textarea>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="b-save" type="button">Save</button>
+      <button class="btn ghost" id="b-pdf" type="button">Download PDF</button>
+      <span class="state" id="state"></span>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
+const $ = (id) => document.getElementById(id);
+const show = (id) => ["loading", "login", "soon", "eye"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+
+// While the TGC portfolio is built and tested, only these logins can open it; everyone else sees
+// "coming soon". Keep this list the same in every page in learn/portfolio/tgc/.
+// To launch: set TGC_LIVE to true in all of them, and add tgc1 to PORTFOLIOS in /learn/index.html.
+const TGC_LIVE = false, TGC_TESTERS = ["nathan@birdboxcoaching.com"];
+const canOpen = (s) => TGC_LIVE || TGC_TESTERS.includes(String((s && s.user && s.user.email) || "").toLowerCase());
+
+const TOOL = "tgc-warmup-plan";
+// Lesson 4 · Warming Up: R.A.M.P and the standardised line drills from the unit.
+const RAMP = [
+  ["raise", "Raise", "Raise body temperature, heart rate, breathing rate, blood flow and joint viscosity.", "e.g. 400 m easy row, then skips and shuffles"],
+  ["activate", "Activate", "Switch on the key muscle groups and neural pathways for the session.", "e.g. Hollow and arch holds, scapular pull-ups"],
+  ["mobilise", "Mobilise", "Take the key joints through the ranges of motion the session needs.", "e.g. PVC pipe pass-throughs and presses, wrist preparation"],
+  ["potentiate", "Potentiate", "Build up the intensity of the movement patterns used in the session.", "e.g. Kip swings, building to the first working sets"],
+];
+const DRILLS = [
+  ["arabesque", "Arabesque with rotation"], ["inchworm", "Inchworm"], ["crab", "Crab walk"], ["bear", "Gymnastics bear crawl"],
+  ["mechbear", "Mechanical bear crawl"], ["duck", "Duck walk"], ["seal", "Seal drag"], ["lunge", "Walking lunge"],
+];
+let session = null, doc = null, timer = null;
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const { error } = await db.auth.signInWithPassword({ email: $("l-email").value.trim(), password: $("l-pass").value });
+  if (error) { $("l-msg").className = "msg err"; $("l-msg").textContent = "That email and password did not match. Try again, or use the login link."; return; }
+  boot();
+});
+$("l-link").addEventListener("click", async () => {
+  const email = $("l-email").value.trim().toLowerCase();
+  if (!email.includes("@")) { $("l-msg").className = "msg err"; $("l-msg").textContent = "Type your email first."; return; }
+  await fetch("/.netlify/functions/learn-access", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, next: location.pathname + location.search }) }).catch(() => {});
+  $("l-msg").className = "msg ok"; $("l-msg").textContent = "If that email has a course, a login link is on its way. Tap it and you come straight back here.";
+});
+// The lesson opens this page in a new tab, so "back" saves, closes it, and the lesson is still underneath.
+$("b-course").onclick = async (e) => {
+  e.preventDefault();
+  if (doc) await save();
+  window.close(); setTimeout(() => { location.href = "/learn/"; }, 300);
+};
+async function unlock() {
+  try {
+    const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", "_unlocked").maybeSingle();
+    const list = (data && data.data && data.data.tools) || [];
+    if (!list.includes(TOOL)) await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: "_unlocked", data: { tools: [...list, TOOL] } }, { onConflict: "user_id,tool" });
+  } catch (e) { /* never block the task */ }
+}
+function changed() { $("state").textContent = "Unsaved changes"; clearTimeout(timer); timer = setTimeout(save, 1500); }
+async function save() {
+  clearTimeout(timer);
+  const row = { user_id: session.user.id, tool: TOOL, data: doc, updated_at: new Date().toISOString() };
+  const { error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" });
+  if (error) { $("state").textContent = "Not saved — " + error.message; return false; }
+  $("state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("b-save").onclick = async () => { if (await save()) $("state").textContent = "Saved ✓"; };
+$("b-pdf").onclick = async () => { await save(); window.print(); };
+async function boot() {
+  ({ data: { session } } = await db.auth.getSession());
+  if (!session) { show("login"); return; }
+  if (!canOpen(session)) { show("soon"); return; }
+  if (new URLSearchParams(location.search).get("tool")) unlock();
+  const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", TOOL).maybeSingle();
+  doc = (data && data.data) || {}; doc.ramp = doc.ramp || {}; doc.drills = doc.drills || {};
+  render(); show("eye");
+}
+function total() {
+  const m = RAMP.reduce((a, [k]) => a + (+((doc.ramp[k] || {}).min) || 0), 0);
+  $("ramp-total").textContent = m ? "Total: " + m + " minutes" : "";
+}
+function render() {
+  const rb = $("ramp"); rb.innerHTML = "";
+  for (const [k, t, sub, ph] of RAMP) {
+    const v = doc.ramp[k] = doc.ramp[k] || { mv: "", min: "" };
+    const d = document.createElement("div"); d.className = "item";
+    d.innerHTML = '<span class="rule"></span><p class="sub" style="margin:2px 0 8px"></p>';
+    d.querySelector(".rule").textContent = t; d.querySelector("p").textContent = sub;
+    const g = document.createElement("div"); g.style.cssText = "display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:10px";
+    const ta = document.createElement("textarea"); ta.value = v.mv; ta.placeholder = ph; ta.oninput = () => { v.mv = ta.value; changed(); };
+    const w = document.createElement("div"); const lb = document.createElement("label"); lb.className = "f"; lb.style.margin = "0 0 4px"; lb.textContent = "Minutes";
+    const n = document.createElement("input"); n.type = "number"; n.min = 0; n.value = v.min; n.style.cssText = "width:100%;font:inherit;font-size:15px;padding:8px;background:var(--paper);color:var(--ink);border:1px solid var(--line)";
+    n.oninput = () => { v.min = n.value; total(); changed(); };
+    w.append(lb, n); g.append(ta, w); d.appendChild(g); rb.appendChild(d);
+  }
+  total();
+  const db_ = $("drills"); db_.innerHTML = "";
+  for (const [k, t] of DRILLS) {
+    const v = doc.drills[k] = doc.drills[k] || { on: false, look: "", stand: "" };
+    const d = document.createElement("div"); d.className = "item";
+    const l = document.createElement("label"); l.style.cssText = "display:flex;gap:10px;align-items:center;font-weight:700;font-size:16px;cursor:pointer";
+    const c = document.createElement("input"); c.type = "checkbox"; c.checked = v.on; c.style.cssText = "width:18px;height:18px;accent-color:var(--accent)";
+    l.append(c, t);
+    const more = document.createElement("div"); more.className = "g2"; more.style.marginTop = "8px"; more.classList.toggle("hidden", !v.on);
+    const mk = (key, label, ph) => { const w = document.createElement("div"); const lb = document.createElement("label"); lb.className = "f"; lb.style.marginTop = "0"; lb.textContent = label;
+      const ta = document.createElement("textarea"); ta.style.minHeight = "56px"; ta.value = v[key]; ta.placeholder = ph; ta.oninput = () => { v[key] = ta.value; changed(); }; w.append(lb, ta); return w; };
+    more.append(mk("look", "What I look for", k === "bear" ? "e.g. Legs locked out, hips high, shoulders over the hands" : ""), mk("stand", "Where I stand", k === "crab" ? "e.g. Side of the room, to see hip and shoulder extension" : ""));
+    c.onchange = () => { v.on = c.checked; more.classList.toggle("hidden", !v.on); changed(); };
+    d.append(l, more); db_.appendChild(d);
+  }
+  for (const [id, key] of [["p-other", "other"], ["p-planes", "planes"], ["p-drom", "drom"], ["p-notes", "notes"]]) {
+    const el = $(id); el.value = doc[key] || ""; el.oninput = () => { doc[key] = el.value; changed(); };
+  }
+}
+boot();
+</script>
+</body>
+</html>
