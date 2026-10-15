@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My TGC portfolio — BirdBox Learn</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
+          --line:#342F31; --accent:#E0555A; --bad:#F0797D; --good:#5CC48A; }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .bar{display:flex;align-items:center;gap:14px;padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top));
+    border-bottom:1px solid var(--line);background:#0d0b0b}
+  .bar img{height:34px;width:auto;display:block}
+  .bar .name{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .bar .nav{margin-left:auto}
+  .btn{display:inline-block;font:inherit;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:12px 20px;background:var(--accent);color:#fff;border:1px solid var(--accent);cursor:pointer;text-decoration:none;text-align:center}
+  .btn:hover{background:transparent;color:var(--accent)}
+  .btn.ghost{background:none;color:var(--ink);border-color:#6A6466}
+  .btn.small{font-size:11px;padding:7px 12px}
+  .wrap{max-width:900px;margin:0 auto;padding:36px 20px 64px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.05;font-weight:800;text-transform:uppercase;margin:0 0 10px}
+  .lede{color:var(--muted);font-size:16px;line-height:1.6;margin:0 0 24px;max-width:66ch}
+  .hidden{display:none!important}
+  .card{background:var(--panel);border:1px solid var(--line);padding:22px;max-width:440px}
+  .card label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+  .card input{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:6px}
+  .msg{font-size:14px;line-height:1.5;margin:12px 0 0;min-height:1em}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  .pf-unit{background:var(--panel);border:1px solid var(--line);margin-bottom:10px}
+  .pf-unit summary{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;padding:16px 18px;cursor:pointer;list-style:none}
+  .pf-unit summary::-webkit-details-marker{display:none}
+  .pf-num{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .pf-uname{font-weight:800;font-size:17px}
+  .pf-count{margin-left:auto;font-size:13px;color:var(--muted)}
+  .pf-count.all{color:var(--good)}
+  .pf-unit.locked summary{opacity:.6}
+  .tools{display:grid;gap:10px;padding:0 18px 18px}
+  a.tool{display:block;background:var(--panel2);border:1px solid var(--line);padding:16px;color:var(--ink);text-decoration:none}
+  a.tool:hover{border-color:var(--accent)}
+  a.tool b{display:block;font-size:16px;margin-bottom:4px}
+  a.tool p{margin:0 0 6px;color:var(--muted);font-size:14px;line-height:1.5}
+  a.tool span{font-size:13px;font-weight:700;color:var(--accent)}
+  a.tool.locked{opacity:.55;cursor:default}
+  a.tool.locked span{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="bar">
+  <a href="/learn/"><img src="/brand/birdBox.png" alt="BirdBox"></a>
+  <span class="name">My TGC portfolio</span>
+  <div class="nav"><a class="btn ghost small" href="/learn/">← My courses</a></div>
+</div>
+
+<main class="wrap">
+  <p id="loading" class="lede">Loading…</p>
+
+  <section id="login" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My TGC portfolio</h1>
+    <p class="lede">Log in with the email address you bought your course with, and your portfolio opens here.</p>
+    <form class="card" id="login-form">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="email" required>
+      <label for="l-pass">Password</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn" type="submit">Log in</button>
+      <button class="btn ghost" id="l-link" type="button" style="margin-top:10px">Email me a login link</button>
+      <div id="l-msg" class="msg"></div>
+    </form>
+  </section>
+
+<section id="soon" class="hidden">
+    <p class="kicker">The Gymnastics Course</p>
+    <h1>Coming soon</h1>
+    <p class="lede">The TGC portfolio is still being built. It will open here once it is ready.</p>
+    <a class="btn" href="/learn/">← My courses</a>
+  </section>
+  <section id="home" class="hidden">
+    <p class="kicker">The Gymnastics Course · Level 1</p>
+    <h1>My TGC portfolio</h1>
+    <p class="lede">Your coaching work from the course, unit by unit. Each task opens from its button in the lesson; after that you can come back to it here at any time.</p>
+    <div id="units"></div>
+  </section>
+</main>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
+const $ = (id) => document.getElementById(id);
+const show = (id) => ["loading", "login", "home", "soon"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+
+// TGC Level 1 portfolio tasks, by lesson (lesson numbers as in the Rise course).
+// To add a task: add it to TASKS with its page, then list its key under its lesson.
+const TASKS = {
+  "tgc-headpath": { page: "headpath.html", title: "Head path review — bar muscle-up",
+    text: "Film a bar muscle-up from the side, trace the head path, and write your critical review. Compare reps side by side.",
+    count: (row) => { const n = (row && row.data && row.data.reviews || []).length; return n ? n + (n === 1 ? " review saved" : " reviews saved") : null; } },
+};
+const UNITS = [
+  { n: 12, name: "Butterfly Pull-Ups and Bar Muscle-Ups", tools: ["tgc-headpath"] },
+];
+// The lesson buttons link here with ?tool=<short name>; send them on to the task.
+const SHORT = { headpath: "tgc-headpath" };
+
+let session = null;
+// While the TGC portfolio is built and tested, only these logins can open it; everyone else sees
+// "coming soon". Keep this list the same in learn/portfolio/tgc/index.html and headpath.html.
+// To launch: set TGC_LIVE to true in both, and add tgc1 to PORTFOLIOS in /learn/index.html.
+const TGC_LIVE = false, TGC_TESTERS = ["nathan@birdboxcoaching.com"];
+const canOpen = (s) => TGC_LIVE || TGC_TESTERS.includes(String((s && s.user && s.user.email) || "").toLowerCase());
+
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const { error } = await db.auth.signInWithPassword({ email: $("l-email").value.trim(), password: $("l-pass").value });
+  if (error) { $("l-msg").className = "msg err"; $("l-msg").textContent = "That email and password did not match. Try again, or use the login link."; return; }
+  boot();
+});
+$("l-link").addEventListener("click", async () => {
+  const email = $("l-email").value.trim().toLowerCase();
+  if (!email.includes("@")) { $("l-msg").className = "msg err"; $("l-msg").textContent = "Type your email first."; return; }
+  await fetch("/.netlify/functions/learn-access", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, next: location.pathname + location.search }) }).catch(() => {});
+  $("l-msg").className = "msg ok"; $("l-msg").textContent = "If that email has a course, a login link is on its way. Tap it and you come straight back here.";
+});
+
+async function boot() {
+  // A lesson button: go straight to the task (it records that the learner reached it).
+  const short = new URLSearchParams(location.search).get("tool");
+  if (short && SHORT[short]) { location.replace(TASKS[SHORT[short]].page + "?tool=" + encodeURIComponent(short)); return; }
+
+  ({ data: { session } } = await db.auth.getSession());
+  if (!session) { show("login"); return; }
+  if (!canOpen(session)) { show("soon"); return; }
+  const { data: rows } = await db.from("learn_portfolio").select("tool, data").eq("user_id", session.user.id);
+  const byTool = Object.fromEntries((rows || []).map((r) => [r.tool, r]));
+  const unl = new Set((byTool._unlocked && byTool._unlocked.data && byTool._unlocked.data.tools) || []);
+  let everything = false;
+  try { const { data: st } = await db.from("learn_all_access").select("email").eq("email", session.user.email).maybeSingle(); everything = !!st; } catch (e) {}
+
+  const root = $("units"); root.innerHTML = "";
+  let first = null;
+  for (const u of UNITS) {
+    const open = (t) => everything || unl.has(t) || !!byTool[t];
+    const reached = u.tools.some(open), started = u.tools.filter((t) => byTool[t]).length;
+    const d = document.createElement("details"); d.className = "pf-unit" + (reached ? "" : " locked");
+    d.innerHTML = `<summary><span class="pf-num">Lesson ${u.n}</span><span class="pf-uname"></span>` +
+      (reached ? `<span class="pf-count${started === u.tools.length ? " all" : ""}">${started} of ${u.tools.length} started</span>` : '<span class="pf-count">🔒 Opens when you reach this lesson</span>') + "</summary>";
+    d.querySelector(".pf-uname").textContent = u.name;
+    const g = document.createElement("div"); g.className = "tools";
+    for (const t of u.tools) {
+      const task = TASKS[t], a = document.createElement("a"); a.className = "tool";
+      a.innerHTML = "<b></b><p></p><span></span>";
+      a.querySelector("b").textContent = task.title; a.querySelector("p").textContent = task.text;
+      if (open(t)) { a.href = task.page + "?h=1"; a.querySelector("span").textContent = (task.count(byTool[t]) || "Not started") + " →"; }
+      else { a.classList.add("locked"); a.querySelector("span").textContent = "🔒 Opens from its button in Lesson " + u.n; }
+      g.appendChild(a);
+    }
+    d.appendChild(g); root.appendChild(d);
+    if (reached && !first) first = d;
+  }
+  if (first) first.open = true;
+  show("home");
+}
+boot();
+</script>
+</body>
+</html>
