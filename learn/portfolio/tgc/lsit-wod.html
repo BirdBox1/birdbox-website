@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>L-sit workout planner — BirdBox Learn</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
+          --line:#342F31; --accent:#E0555A; --bad:#F0797D; --good:#5CC48A; --amber:#F2B24C; }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .bar{display:flex;align-items:center;gap:14px;padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top));
+    border-bottom:1px solid var(--line);background:#0d0b0b}
+  .bar img{height:34px;width:auto;display:block}
+  .bar .name{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .bar .nav{margin-left:auto;display:flex;gap:8px}
+  .btn{display:inline-block;font:inherit;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:12px 20px;background:var(--accent);color:#fff;border:1px solid var(--accent);cursor:pointer;text-decoration:none;text-align:center}
+  .btn:hover{background:transparent;color:var(--accent)}
+  .btn.ghost{background:none;color:var(--ink);border-color:#6A6466}
+  .btn.small{font-size:11px;padding:7px 12px}
+  .wrap{max-width:900px;margin:0 auto;padding:36px 20px 64px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  .kicker a{color:inherit;text-decoration:none}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.05;font-weight:800;text-transform:uppercase;margin:0 0 10px}
+  h2{font-size:15px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 12px}
+  .lede{color:var(--muted);font-size:16px;line-height:1.6;margin:0 0 24px;max-width:70ch}
+  .sub{color:var(--muted);font-size:14.5px;line-height:1.55;margin:0 0 14px}
+  .hidden{display:none!important}
+  .panel{background:var(--panel);border:1px solid var(--line);padding:22px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);padding:22px;max-width:440px}
+  .card label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+  .card input{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:6px}
+  .msg{font-size:14px;line-height:1.5;margin:12px 0 0;min-height:1em}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  .item{border-top:1px solid var(--line);padding:16px 0}
+  .item:first-child{border-top:none;padding-top:0}
+  .item .rule{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .item h3{font-size:16px;line-height:1.4;margin:4px 0 10px}
+  .scale10{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;max-width:520px}
+  .scale10 button{font:inherit;font-weight:800;font-size:14px;padding:8px 0;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .scale10 button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .ends{display:flex;justify-content:space-between;max-width:520px;font-size:12px;color:var(--muted);margin:4px 0 10px}
+  label.f{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+  textarea,select,input[type=date]{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);line-height:1.5}
+  textarea{min-height:70px;resize:vertical}
+  input[type=date]{max-width:240px}
+  .bars .b{display:grid;grid-template-columns:minmax(120px,210px) 1fr 44px;gap:10px;align-items:center;margin:8px 0;font-size:14px}
+  .bars .t{height:14px;background:var(--panel2);position:relative}
+  .bars .t i{display:block;height:100%}
+  .bars .t s{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;opacity:.7}
+  .bars .low{color:var(--amber);font-weight:700}
+  .key{font-size:13px;color:var(--muted);margin-top:8px}
+  .hist{font-size:14px;color:var(--muted);line-height:1.6}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .state{font-size:13px;color:var(--muted)}
+  @media print{
+    body{background:#fff;color:#000} .bar,.noprint{display:none!important}
+    .panel{border:1px solid #ccc;background:none} textarea,select,input{border:1px solid #ccc;background:#fff;color:#000}
+    .scale10 button{background:#fff;color:#000} .scale10 button.on{background:#85151A;color:#fff}
+  }
+  .obs{border:1px solid var(--line);background:var(--panel2);padding:14px 16px;margin:0 0 10px;cursor:pointer}
+  .obs:hover{border-color:var(--accent)}
+  .obs b{display:block;font-size:16px}
+  .obs span{font-size:13px;color:var(--muted)}
+  .fault{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:10px;align-items:start;border-top:1px solid var(--line);padding:12px 0}
+  .fault:first-child{border-top:none}
+  .fault .t b{display:block;font-size:15px}
+  .fault .t small{display:block;color:var(--muted);font-size:13px;line-height:1.45;margin-top:2px}
+  .fault input[type=number]{width:100%;font:inherit;font-size:15px;padding:8px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .fault textarea{grid-column:1 / -1;min-height:44px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0}
+  .tags label{display:flex;gap:6px;align-items:center;font-size:14px;border:1px solid var(--line);padding:6px 10px;cursor:pointer;background:var(--paper)}
+  .tags input{accent-color:var(--accent)}
+  .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+  input[type=text]{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .seg{display:flex;gap:4px;flex-wrap:wrap}
+  .seg button{font:inherit;font-size:12px;font-weight:800;padding:8px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  #ghint{font-size:13px;color:var(--muted);line-height:1.5}
+  .grid5{display:grid;grid-template-columns:110px repeat(5,minmax(0,1fr));gap:4px;font-size:13px;margin-top:6px}
+  .grid5 .h{font-weight:800;color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:6px 2px;align-self:end}
+  .grid5 .r{font-weight:800;padding:10px 4px;align-self:center}
+  .grid5 button{font:inherit;font-size:12px;padding:10px 4px;background:var(--paper);color:var(--muted);border:1px solid var(--line);cursor:pointer;line-height:1.25}
+  .grid5 button.on{background:#3A1A1C;border-color:var(--accent);color:#fff}
+  .grid5 button.goal{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:800}
+  @media(max-width:560px){.grid5{grid-template-columns:76px repeat(5,minmax(0,1fr));font-size:11px}.grid5 button{font-size:10.5px;padding:8px 2px}}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chips label{display:flex;gap:6px;align-items:center;font-size:14px;border:1px solid var(--line);padding:7px 10px;cursor:pointer;background:var(--paper)}
+  .chips input{accent-color:var(--accent)}
+  .ath{display:grid;grid-template-columns:minmax(0,150px) minmax(0,210px) minmax(0,1fr) auto;gap:8px;align-items:start;border-top:1px solid var(--line);padding:10px 0}
+  .ath:first-child{border-top:none}
+  @media(max-width:640px){.ath{grid-template-columns:1fr}}
+  .ath select{font:inherit;font-size:14px;padding:9px 8px;background:var(--paper);color:var(--ink);border:1px solid var(--line);width:100%}
+  .ath textarea{min-height:42px}
+</style>
+</head>
+<body>
+<div class="bar">
+  <a href="/learn/"><img src="/brand/birdBox.png" alt="BirdBox"></a>
+  <span class="name">My TGC portfolio</span>
+  <div class="nav"><a class="btn ghost small" href="index.html">My TGC portfolio</a> <a class="btn ghost small" href="/learn/" id="b-course">← Back to my course</a></div>
+</div>
+
+<main class="wrap">
+  <p id="loading" class="lede">Loading…</p>
+
+  <section id="login" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My TGC portfolio</h1>
+    <p class="lede">Log in with the email address you bought your course with, and your L-sit workout planner opens here.</p>
+    <form class="card" id="login-form">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="email" required>
+      <label for="l-pass">Password</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn" type="submit">Log in</button>
+      <button class="btn ghost" id="l-link" type="button" style="margin-top:10px">Email me a login link</button>
+      <div id="l-msg" class="msg"></div>
+    </form>
+  </section>
+
+  <section id="soon" class="hidden">
+    <p class="kicker">The Gymnastics Course</p>
+    <h1>Coming soon</h1>
+    <p class="lede">The TGC portfolio is still being built. It will open here once it is ready.</p>
+    <a class="btn" href="/learn/">← My courses</a>
+  </section>
+
+  <section id="eye" class="hidden">
+    <p class="kicker"><a href="index.html">← My portfolio</a> · The Gymnastics Course · Lesson 8 · L-sits, V-sits &amp; Gymnastics Conditioning</p>
+    <h1>My L-sit workout of the day</h1>
+    <p class="lede">Plan a workout with L-sits for your best athlete, then scale it so every athlete in the room gets the same stimulus in a position they can hold with mastery. There is no "Rx" in gymnastics: the aim is position and perfection, not just getting through the time.</p>
+
+    <div class="panel">
+      <h2>1. My workout</h2>
+      <p class="sub">Write the workout as you would put it on the board for your best athlete.</p>
+      <textarea id="p-workout" style="min-height:90px" placeholder="e.g. Accumulate a 3-minute L-sit hold on the rings. Every time you break, complete 6 calories on the assault bike."></textarea>
+    </div>
+
+    <div class="panel">
+      <h2>2. The stimulus</h2>
+      <p class="sub">What is this workout for? Mastery comes first, then volume, then intensity. A training workout is not a competition workout: not every day is a test.</p>
+      <div class="chips" id="stim"></div>
+      <label class="f" for="p-stim">Explain the stimulus as you will to the class</label>
+      <textarea id="p-stim" placeholder="e.g. Quality time under tension, working for long periods without losing the shape. The bike lets you recover while keeping some intensity."></textarea>
+    </div>
+
+    <div class="panel">
+      <h2>3. Scaling options</h2>
+      <p class="sub">Most of your class will need to scale to hold the shape with virtuosity. First mark the position your workout is written for, then choose the easier positions you will offer. Every one keeps the same key points.</p>
+      <div class="seg noprint" id="gmode"><button type="button" data-m="written">1 · Mark the workout as written</button><button type="button" data-m="scale">2 · Choose the scaling options</button></div>
+      <p class="note" id="ghint" style="margin:8px 0 0"></p>
+      <div class="grid5" id="grid"></div>
+      <label class="f">My athletes and their position</label>
+      <div id="ath"></div>
+      <button class="btn ghost small noprint" id="b-add" type="button" style="margin-top:8px">+ Add an athlete</button>
+    </div>
+
+    <div class="panel">
+      <h2>4. The shape we will not lose</h2>
+      <p class="sub">Tick the key points every athlete must keep at their level. If they cannot keep them, they scale.</p>
+      <div class="chips" id="keys"></div>
+      <label class="f" for="p-break">What an athlete does when the shape breaks</label>
+      <textarea id="p-break" placeholder="e.g. They come down as soon as the elbow loses supination or the shoulders lift, do the 6 calories, then set the shape again from the grip up."></textarea>
+    </div>
+
+    <div class="panel">
+      <h2>5. After the session</h2>
+      <p class="sub">Did the scaling keep the stimulus for everyone? Who is ready to move up a level, or needs to move down?</p>
+      <textarea id="p-after" style="min-height:100px" placeholder="Write this after you have coached the workout…"></textarea>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="b-save" type="button">Save</button>
+      <button class="btn ghost" id="b-pdf" type="button">Download PDF</button>
+      <span class="state" id="state"></span>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
+const $ = (id) => document.getElementById(id);
+const show = (id) => ["loading", "login", "soon", "eye"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+
+// While the TGC portfolio is built and tested, only these logins can open it; everyone else sees
+// "coming soon". Keep this list the same in every page in learn/portfolio/tgc/.
+// To launch: set TGC_LIVE to true in all of them, and add tgc1 to PORTFOLIOS in /learn/index.html.
+const TGC_LIVE = false, TGC_TESTERS = ["nathan@birdboxcoaching.com"];
+const canOpen = (s) => TGC_LIVE || TGC_TESTERS.includes(String((s && s.user && s.user.email) || "").toLowerCase());
+
+const TOOL = "tgc-lsit-wod";
+// Lesson 8 · L-sits, V-sits & Gymnastics Conditioning: the workout, its stimulus, and the 15 positions from the
+// lesson's whiteboard (floor, parallettes and rings, from a support hold to a V-sit).
+const STIM = [["position", "Position and perfection"], ["tut", "Time under tension"], ["volume", "Volume at low intensity"], ["intensity", "Intensity"]];
+const APP = [["floor", "Floor"], ["pbars", "Parallettes"], ["rings", "Rings"]];
+const LEVELS = [["support", "Support hold"], ["tuck", "Tuck sit"], ["one", "One leg straight"], ["lsit", "L-sit"], ["vsit", "V-sit"]];
+const KEYS = [["grip", "Firm grip, thumb around"], ["sup", "Supination at the elbow"], ["hum", "Neutral humeral head"], ["scap", "Scapulae set back and down (lower trapezius)"],
+  ["trap", "No upper trapezius elevation"], ["hips", "Hips compressed forward"], ["eyes", "Eyes on the horizon"], ["tight", "Squeeze everything tight"], ["toes", "Toes pointed away"], ["breathe", "Breathe"]];
+const posName = (k) => { const [a, l] = k.split("-"); return (LEVELS.find((x) => x[0] === l) || [, ""])[1] + " on " + ((APP.find((x) => x[0] === a) || [, ""])[1] || "").toLowerCase(); };
+let session = null, doc = null, timer = null;
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const { error } = await db.auth.signInWithPassword({ email: $("l-email").value.trim(), password: $("l-pass").value });
+  if (error) { $("l-msg").className = "msg err"; $("l-msg").textContent = "That email and password did not match. Try again, or use the login link."; return; }
+  boot();
+});
+$("l-link").addEventListener("click", async () => {
+  const email = $("l-email").value.trim().toLowerCase();
+  if (!email.includes("@")) { $("l-msg").className = "msg err"; $("l-msg").textContent = "Type your email first."; return; }
+  await fetch("/.netlify/functions/learn-access", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, next: location.pathname + location.search }) }).catch(() => {});
+  $("l-msg").className = "msg ok"; $("l-msg").textContent = "If that email has a course, a login link is on its way. Tap it and you come straight back here.";
+});
+// The lesson opens this page in a new tab, so "back" saves, closes it, and the lesson is still underneath.
+$("b-course").onclick = async (e) => {
+  e.preventDefault();
+  if (doc) await save();
+  window.close(); setTimeout(() => { location.href = "/learn/"; }, 300);
+};
+async function unlock() {
+  try {
+    const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", "_unlocked").maybeSingle();
+    const list = (data && data.data && data.data.tools) || [];
+    if (!list.includes(TOOL)) await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: "_unlocked", data: { tools: [...list, TOOL] } }, { onConflict: "user_id,tool" });
+  } catch (e) { /* never block the task */ }
+}
+function changed() { $("state").textContent = "Unsaved changes"; clearTimeout(timer); timer = setTimeout(save, 1500); }
+async function save() {
+  clearTimeout(timer);
+  const row = { user_id: session.user.id, tool: TOOL, data: doc, updated_at: new Date().toISOString() };
+  const { error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" });
+  if (error) { $("state").textContent = "Not saved — " + error.message; return false; }
+  $("state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("b-save").onclick = async () => { if (await save()) $("state").textContent = "Saved ✓"; };
+$("b-pdf").onclick = async () => { await save(); window.print(); };
+async function boot() {
+  ({ data: { session } } = await db.auth.getSession());
+  if (!session) { show("login"); return; }
+  if (!canOpen(session)) { show("soon"); return; }
+  if (new URLSearchParams(location.search).get("tool")) unlock();
+  const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", TOOL).maybeSingle();
+  doc = (data && data.data) || {}; doc.grid = doc.grid || {}; doc.athletes = doc.athletes || []; doc.keys = doc.keys || {};
+  render(); show("eye");
+}
+function render() {
+  // 1, 2, 5: text
+  for (const [id, key] of [["p-workout", "workout"], ["p-stim", "stimText"], ["p-break", "breakRule"], ["p-after", "after"]]) { const el = $(id); el.value = doc[key] || ""; el.oninput = () => { doc[key] = el.value; changed(); }; }
+  // the stimulus
+  $("stim").innerHTML = "";
+  for (const [k, t] of STIM) { const l = document.createElement("label"), r = document.createElement("input"); r.type = "radio"; r.name = "stim"; r.checked = doc.stim === k; r.onchange = () => { doc.stim = k; changed(); }; l.append(r, t); $("stim").appendChild(l); }
+  // the scaling grid: first the position the workout is written for, then the scaling options around it
+  renderGrid();
+  renderAth();
+  // key points
+  $("keys").innerHTML = "";
+  for (const [k, t] of KEYS) { const l = document.createElement("label"), c = document.createElement("input"); c.type = "checkbox"; c.checked = !!doc.keys[k]; c.onchange = () => { doc.keys[k] = c.checked; changed(); }; l.append(c, t); $("keys").appendChild(l); }
+}
+let gmode = null;
+function renderGrid() {
+  if (!gmode) gmode = doc.written ? "scale" : "written";
+  $("gmode").querySelectorAll("button").forEach((b) => { b.classList.toggle("on", b.dataset.m === gmode); b.onclick = () => { gmode = b.dataset.m; renderGrid(); }; });
+  $("ghint").textContent = gmode === "written" ? "Tap the position your workout is written for." : doc.written ? `Written for: ${posName(doc.written)}. Tap the positions you will offer as scaling options.` : "Mark the workout as written first.";
+  const g = $("grid"); g.innerHTML = '<span></span>' + LEVELS.map(([, t]) => `<span class="h">${t}</span>`).join("");
+  for (const [a, at] of APP) {
+    const r = document.createElement("span"); r.className = "r"; r.textContent = at; g.appendChild(r);
+    for (const [l, lt] of LEVELS) {
+      const k = a + "-" + l, b = document.createElement("button"), w = k === doc.written; b.type = "button"; b.textContent = w ? lt + " · as written" : lt;
+      b.classList.toggle("on", !w && !!doc.grid[k]); b.classList.toggle("goal", w); b.title = posName(k);
+      b.onclick = () => {
+        if (gmode === "written") { doc.written = k; delete doc.grid[k]; gmode = "scale"; }
+        else if (!w) { doc.grid[k] = !doc.grid[k]; if (!doc.grid[k]) delete doc.grid[k]; }
+        renderGrid(); changed();
+      };
+      g.appendChild(b);
+    }
+  }
+  renderAth();
+}
+function renderAth() {
+  const box = $("ath"); box.innerHTML = "";
+  const offered = [...(doc.written ? [doc.written] : []), ...APP.flatMap(([a]) => LEVELS.map(([l]) => a + "-" + l)).filter((k) => doc.grid[k] && k !== doc.written)];
+  doc.athletes.forEach((v, i) => {
+    const row = document.createElement("div"); row.className = "ath";
+    const who = document.createElement("input"); who.type = "text"; who.placeholder = "Athlete"; who.value = v.who || ""; who.oninput = () => { v.who = who.value; changed(); };
+    const sel = document.createElement("select"); sel.innerHTML = '<option value="">Position…</option>' + offered.map((k) => `<option value="${k}">${posName(k)}${k === doc.written ? " (as written)" : ""}</option>`).join("");
+    if (v.pos && !offered.includes(v.pos)) sel.innerHTML += `<option value="${v.pos}">${posName(v.pos)}</option>`;
+    sel.value = v.pos || ""; sel.onchange = () => { v.pos = sel.value; changed(); };
+    const why = document.createElement("textarea"); why.placeholder = "Why this position for them"; why.value = v.why || ""; why.oninput = () => { v.why = why.value; changed(); };
+    const del = document.createElement("button"); del.type = "button"; del.className = "btn ghost small noprint"; del.textContent = "Delete";
+    del.onclick = () => { if ((v.who || v.why) && !confirm("Delete this athlete from the plan?")) return; doc.athletes.splice(i, 1); renderAth(); changed(); };
+    row.append(who, sel, why, del); box.appendChild(row);
+  });
+  if (!doc.athletes.length) { const p = document.createElement("p"); p.className = "sub"; p.style.margin = "0"; p.textContent = "Add the athletes in your class, or groups of them, and give each one the position they will hold with mastery. For example, ring support exposure in a tucked ring support, or one leg straight on parallettes to build a virtuous shape on a static apparatus."; box.appendChild(p); }
+}
+$("b-add").onclick = () => { doc.athletes.push({ who: "", pos: "", why: "" }); renderAth(); changed(); const ins = $("ath").querySelectorAll("input[type=text]"); if (ins.length) ins[ins.length - 1].focus(); };
+boot();
+</script>
+</body>
+</html>
