@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The arch — BirdBox Learn</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
+          --line:#342F31; --accent:#E0555A; --bad:#F0797D; --good:#5CC48A; --amber:#F2B24C; }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .bar{display:flex;align-items:center;gap:14px;padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top));
+    border-bottom:1px solid var(--line);background:#0d0b0b}
+  .bar img{height:34px;width:auto;display:block}
+  .bar .name{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .bar .nav{margin-left:auto;display:flex;gap:8px}
+  .btn{display:inline-block;font:inherit;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:12px 20px;background:var(--accent);color:#fff;border:1px solid var(--accent);cursor:pointer;text-decoration:none;text-align:center}
+  .btn:hover{background:transparent;color:var(--accent)}
+  .btn.ghost{background:none;color:var(--ink);border-color:#6A6466}
+  .btn.small{font-size:11px;padding:7px 12px}
+  .wrap{max-width:900px;margin:0 auto;padding:36px 20px 64px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  .kicker a{color:inherit;text-decoration:none}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.05;font-weight:800;text-transform:uppercase;margin:0 0 10px}
+  h2{font-size:15px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 12px}
+  .lede{color:var(--muted);font-size:16px;line-height:1.6;margin:0 0 24px;max-width:70ch}
+  .sub{color:var(--muted);font-size:14.5px;line-height:1.55;margin:0 0 14px}
+  .note{font-size:12.5px;color:var(--muted);line-height:1.5}
+  .note a{color:var(--muted)}
+  .hidden{display:none!important}
+  .panel{background:var(--panel);border:1px solid var(--line);padding:22px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);padding:22px;max-width:440px}
+  .card label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+  .card input{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:6px}
+  .msg{font-size:14px;line-height:1.5;margin:12px 0 0;min-height:1em}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  .item{border-top:1px solid var(--line);padding:16px 0}
+  .item:first-child{border-top:none;padding-top:0}
+  .item .rule{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .item h3{font-size:16px;line-height:1.4;margin:4px 0 10px}
+  .scale10{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;max-width:520px}
+  .scale10 button{font:inherit;font-weight:800;font-size:14px;padding:8px 0;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .scale10 button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .ends{display:flex;justify-content:space-between;max-width:520px;font-size:12px;color:var(--muted);margin:4px 0 10px}
+  label.f{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+  textarea,select,input[type=date]{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);line-height:1.5}
+  textarea{min-height:70px;resize:vertical}
+  input[type=date]{max-width:240px}
+  .bars .b{display:grid;grid-template-columns:minmax(120px,210px) 1fr 44px;gap:10px;align-items:center;margin:8px 0;font-size:14px}
+  .bars .t{height:14px;background:var(--panel2);position:relative}
+  .bars .t i{display:block;height:100%}
+  .bars .t s{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;opacity:.7}
+  .bars .low{color:var(--amber);font-weight:700}
+  .key{font-size:13px;color:var(--muted);margin-top:8px}
+  .hist{font-size:14px;color:var(--muted);line-height:1.6}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .state{font-size:13px;color:var(--muted)}
+  @media print{
+    body{background:#fff;color:#000} .bar,.noprint{display:none!important}
+    .panel{border:1px solid #ccc;background:none} textarea,select,input{border:1px solid #ccc;background:#fff;color:#000}
+    .scale10 button{background:#fff;color:#000} .scale10 button.on{background:#85151A;color:#fff}
+  }
+  .obs{border:1px solid var(--line);background:var(--panel2);padding:14px 16px;margin:0 0 10px;cursor:pointer}
+  .obs:hover{border-color:var(--accent)}
+  .obs b{display:block;font-size:16px}
+  .obs span{font-size:13px;color:var(--muted)}
+  .fault{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:10px;align-items:start;border-top:1px solid var(--line);padding:12px 0}
+  .fault:first-child{border-top:none}
+  .fault .t b{display:block;font-size:15px}
+  .fault .t small{display:block;color:var(--muted);font-size:13px;line-height:1.45;margin-top:2px}
+  .fault input[type=number]{width:100%;font:inherit;font-size:15px;padding:8px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .fault textarea{grid-column:1 / -1;min-height:44px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0}
+  .tags label{display:flex;gap:6px;align-items:center;font-size:14px;border:1px solid var(--line);padding:6px 10px;cursor:pointer;background:var(--paper)}
+  .tags input{accent-color:var(--accent)}
+  .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+  input[type=text]{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .boards{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:760px){.boards{grid-template-columns:1fr 1fr}}
+  .board{background:#F4F3EF;border:1px solid var(--line);position:relative}
+  .boards.solo{grid-template-columns:minmax(0,1fr);max-width:460px;margin:0 auto}
+  .boards.solo .board:last-child{display:none}
+  .board svg{display:block;width:100%;height:auto}
+  .board .cap{position:absolute;left:10px;top:8px;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#555}
+  .ctl{display:grid;grid-template-columns:1fr;gap:14px;margin-top:16px}
+  @media(min-width:760px){.ctl{grid-template-columns:1fr 1fr 1fr}}
+  .ctl label.f{margin:0 0 6px}
+  .ctl input[type=range]{width:100%;accent-color:var(--accent)}
+  .ends2{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:2px}
+  .seg{display:flex;gap:4px;flex-wrap:wrap}
+  .seg button{font:inherit;font-size:12px;font-weight:800;padding:7px 10px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .verdict{margin-top:16px;padding:14px 16px;border-left:4px solid var(--accent);background:var(--panel2)}
+  .verdict b{display:block;font-size:18px;margin-bottom:4px}
+  .verdict p{margin:0;color:var(--muted);line-height:1.55;font-size:15px}
+  .verdict .warn{color:var(--amber);margin-top:8px}
+  .quad{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:12px}
+  .quad button{font:inherit;text-align:left;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer;line-height:1.35;font-size:13px}
+  .quad button b{display:block;font-size:14px}
+  .quad button.on{border-color:var(--accent)}
+  .drill{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .drill button{font:inherit;text-align:left;padding:12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer;line-height:1.4;font-size:13px}
+  .drill button b{display:block;font-size:14px;margin-bottom:2px}
+  .drill button.on{border-color:var(--accent);background:#3A1A1C}
+  .tg{display:flex;gap:6px;flex-wrap:wrap}
+  .tg button{font:inherit;font-size:12.5px;font-weight:800;padding:8px 11px;background:var(--paper);color:var(--muted);border:1px solid var(--line);cursor:pointer}
+  .tg button::before{content:"○ ";color:var(--muted)}
+  .tg button.on{color:var(--ink);border-color:var(--good)}
+  .tg button.on::before{content:"● ";color:var(--good)}
+  .spine{background:#F4F3EF;border:1px solid var(--line);max-width:520px}
+  .spine svg{display:block;width:100%;height:auto}
+  .ctl.four{grid-template-columns:1fr}
+  @media(min-width:640px){.ctl.four{grid-template-columns:1fr 1fr}}
+  .two{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
+  @media(min-width:760px){.two{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="bar">
+  <a href="/learn/"><img src="/brand/birdBox.png" alt="BirdBox"></a>
+  <span class="name">My TGC portfolio</span>
+  <div class="nav"><a class="btn ghost small" href="index.html">My TGC portfolio</a> <a class="btn ghost small" href="/learn/" id="b-course">← Back to my course</a></div>
+</div>
+
+<main class="wrap">
+  <p id="loading" class="lede">Loading…</p>
+
+  <section id="login" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My TGC portfolio</h1>
+    <p class="lede">Log in with the email address you bought your course with, and the arch tool opens here.</p>
+    <form class="card" id="login-form">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="email" required>
+      <label for="l-pass">Password</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn" type="submit">Log in</button>
+      <button class="btn ghost" id="l-link" type="button" style="margin-top:10px">Email me a login link</button>
+      <div id="l-msg" class="msg"></div>
+    </form>
+  </section>
+
+  <section id="soon" class="hidden">
+    <p class="kicker">The Gymnastics Course</p>
+    <h1>Coming soon</h1>
+    <p class="lede">The TGC portfolio is still being built. It will open here once it is ready.</p>
+    <a class="btn" href="/learn/">← My courses</a>
+  </section>
+
+  <section id="eye" class="hidden">
+    <p class="kicker"><a href="index.html">← My portfolio</a> · The Gymnastics Course · Lesson 6 · The Arch</p>
+    <h1>The arch: length and tension</h1>
+    <p class="lede">The pelvis does not change in the arch: the bottom stays squeezed in a posterior pelvic tilt, and the shape comes from extension of the thoracic spine, with the abs in tight to protect the lower back. Switch the tension on and off, rise into the arch, and watch the length from fingertips to toes.</p>
+
+    <div class="panel">
+      <div class="boards" id="boards">
+        <div class="board"><span class="cap">Standing arch</span><svg id="sv-stand" viewBox="0 0 400 470" role="img" aria-label="Standing skeleton in the arch"></svg></div>
+        <div class="board"><span class="cap">On the floor · arch hold</span><svg id="sv-floor" viewBox="0 0 400 300" role="img" aria-label="Skeleton lying face down in the arch hold"></svg></div>
+      </div>
+      <label class="f">Length and tension</label>
+      <div class="tg" id="tg"></div>
+      <div class="ctl four">
+        <div><label class="f" for="r-arch">Arch</label><input type="range" id="r-arch" min="0" max="100" value="0"><div class="ends2"><span>Flat</span><span>Rise</span></div></div>
+        <div><label class="f" for="r-pel">Pelvis</label><input type="range" id="r-pel" min="-100" max="100" value="-100"><div class="ends2"><span>Posterior tilt</span><span>Anterior tilt</span></div></div>
+        <div><label class="f" for="r-sh">Shoulder flexion range</label><input type="range" id="r-sh" min="135" max="180" value="180"><div class="ends2"><span>135°</span><span id="sh-v">180° · full</span></div></div>
+        <div><label class="f" for="r-sp">Spine</label><input type="range" id="r-sp" min="0" max="100" value="50"><div class="ends2"><span>Close-set</span><span>Wide-set</span></div></div>
+      </div>
+      <div class="verdict" id="verdict"></div>
+      <div class="quad" id="quad"></div>
+    </div>
+
+    <div class="panel">
+      <h2>My athlete's spine</h2>
+      <div class="two">
+        <div class="spine"><svg id="sv-spine" viewBox="0 0 400 330" role="img" aria-label="Close-up of four thoracic vertebrae from the side"></svg></div>
+        <div>
+          <p class="sub">Not every athlete rises to the same height, and it is not only tight muscles or strength. The shape and size of each athlete's spinous processes and facet joints decide how far the spine can extend. With less interspinous space, or a facet that restricts extension, the spinous processes meet sooner and the arch stops there.</p>
+          <p class="sub">A longer torso with larger vertebrae often has more space between them. Move the arch and the spine above, and watch the spinous processes come together. Where bone meets bone, more mobility or strength work will not change it: coach length and tension, not height.</p>
+          <p class="sub" id="spine-state"></p>
+        </div>
+      </div>
+    </div>
+
+    <p class="note" style="margin:-8px 0 18px">Rib cage and hip bone illustrations: <a href="https://commons.wikimedia.org/wiki/File:202204_Lateral_view_of_thoracic_skelton.svg" target="_blank" rel="noopener">Lateral view of thoracic skeleton</a> and <a href="https://commons.wikimedia.org/wiki/File:202112_Lateral_view_of_right_hip_bone.svg" target="_blank" rel="noopener">Lateral view of right hip bone</a> © DBCLS TogoTV, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, placed and moved to show the arch. Skull: <a href="https://commons.wikimedia.org/wiki/File:Human_skull_side_simplified_(bones).svg" target="_blank" rel="noopener">Human skull side</a> by LadyofHats (Mariana Ruiz Villarreal), public domain, labels removed and recoloured. Other bones and the spine close-up drawn by BirdBox to match.</p>
+
+    <div class="panel">
+      <h2>My notes</h2>
+      <label class="f" for="n-lose">Which part of the arch do my athletes lose first, and what do I see?</label>
+      <textarea id="n-lose" placeholder="e.g. The glutes switch off as they rise, the pelvis tips and the lower back takes the arch."></textarea>
+      <label class="f" for="n-shape">Which athletes are limited by their shape (spine or shoulder range) rather than tension, and how will I adapt for them?</label>
+      <textarea id="n-shape" placeholder="e.g. One member has little shoulder flexion: I will let her hands sit wider for now and work on her shoulders, and keep her lower back protected."></textarea>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="b-save" type="button">Save</button>
+      <button class="btn ghost" id="b-pdf" type="button">Download PDF</button>
+      <span class="state" id="state"></span>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
+const $ = (id) => document.getElementById(id);
+const show = (id) => ["loading", "login", "soon", "eye"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+
+// While the TGC portfolio is built and tested, only these logins can open it; everyone else sees
+// "coming soon". Keep this list the same in every page in learn/portfolio/tgc/.
+// To launch: set TGC_LIVE to true in all of them, and add tgc1 to PORTFOLIOS in /learn/index.html.
+const TGC_LIVE = false, TGC_TESTERS = ["nathan@birdboxcoaching.com"];
+const canOpen = (s) => TGC_LIVE || TGC_TESTERS.includes(String((s && s.user && s.user.email) || "").toLowerCase());
+
+const TOOL = "tgc-arch";
+let session = null, doc = null, timer = null;
+
+// ---------- the skeleton (the same rig as the pelvis and rib cage tool) ----------
+// Body coordinates: hip joint at the origin, y up, facing +x; 1 unit ≈ 0.44 cm (about 1.75 m tall).
+// E: arch, 0 flat … 1 full rise. sh: shoulder flexion range in degrees. sp: spine, 0 close-set … 1 wide-set.
+const st = { E: 0, P: -1, sh: 180, sp: 0.5, toes: true, knees: true, glutes: true, together: true, abs: true, headN: true, reach: false };
+const TENSION = [["toes", "Toes pointed"], ["knees", "Knees locked out"], ["glutes", "Glutes squeezed"], ["together", "Legs together"], ["abs", "Abs tight"], ["headN", "Head neutral"], ["reach", "Reach long"]];
+const rot = ([x, y], d) => { const a = d * Math.PI / 180, c = Math.cos(a), s = Math.sin(a); return [x * c - y * s, x * s + y * c]; };
+const add = (p, q) => [p[0] + q[0], p[1] + q[1]];
+const sub = (p, q) => [p[0] - q[0], p[1] - q[1]];
+const KT = 0.2025, KP = 0.141;                        // DBCLS rib cage and hip bone: viewBox units → body units
+const TBAND = [20, 40], TPV = [[-8, 20], [-6, 40]];    // thoracic bands (rib cage frame, up from T12) and where they bend
+
+// ---------- the spine close-up: how far can these vertebrae extend before the spinous processes meet? ----------
+const THF = 12;                                        // close-up degrees per level at a full rise
+const vert = (s) => { const h = 25 + 4 * s, w = 5.6 - 1.4 * s, ang = (68 - 3 * s) * Math.PI / 180, len = 34 - 2 * s, bh = 8.5 + 1.5 * s;
+  const root = [-17, 0], tip = [root[0] - len * Math.cos(ang), root[1] - len * Math.sin(ang)]; return { h, w, bh, root, tip, piv: [2, h / 2] }; };
+function segNear(p1, p2, q1, q2) {
+  let m = 1e9, at = null;
+  for (let i = 0; i <= 30; i++) { const a = [p1[0] + (p2[0] - p1[0]) * i / 30, p1[1] + (p2[1] - p1[1]) * i / 30];
+    for (let j = 0; j <= 30; j++) { const b = [q1[0] + (q2[0] - q1[0]) * j / 30, q1[1] + (q2[1] - q1[1]) * j / 30], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (d < m) { m = d; at = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; } } }
+  return { d: m, at };
+}
+// the vertebra above, in the frame of the one below, after extending by th degrees
+const above = (g, th) => (p) => add(g.piv, rot([p[0] - g.piv[0], p[1] + g.h - g.piv[1]], th));
+const gapAt = (s, th) => { const g = vert(s), up = above(g, th); return segNear(up(g.root), up(g.tip), g.root, g.tip).d - g.w; };
+const maxCache = {};
+function spineMax(s) {                                 // the arch (0 … 1) at which the spinous processes meet
+  const k = s.toFixed(2); if (k in maxCache) return maxCache[k];
+  let th = 0; while (th < THF * 1.4 && gapAt(s, th) > 0) th += 0.1;
+  return (maxCache[k] = Math.min(1, th / THF));
+}
+
+function body() {
+  const maxE = spineMax(st.sp), Et = Math.min(st.E, maxE), over = Math.max(0, st.E - maxE);
+  // reaching long and tall takes every joint to the end of its range: full shoulder flexion with the shoulder
+  // blades lifting, the elbows locked and the toes pointed all the way. Without it the elbows stay soft. Bones never change length.
+  const range = Math.max(135, Math.min(180, st.sh)), A = range, shortSh = 180 - range, elbow = st.reach ? 0 : 16;
+  // Abs tight: the extension comes from the thoracic spine. Abs off: it drops into the lower back.
+  const tau = (st.abs ? 32 : 16) * Et;
+  // abs tight: the lower back still extends a little as the athlete rises, under control; abs off, it takes the arch
+  // chasing height: past what the thoracic spine can give (its end range, or the top of the rise), the extra comes
+  // from the lower back even with the abs tight
+  let lam = st.abs ? 12 * Math.min(st.E, 0.7) + 50 * Math.max(0, st.E - 0.7) + 40 * over : 34 * st.E + 12 * over;
+  if (!st.abs) lam += shortSh * 0.25 * (0.4 + 0.6 * st.E); // closed shoulders chase the arm line with the lower back
+  // the pelvis: where the slider puts it. Squeezed glutes hold it there; without them it tips anterior as the athlete rises
+  const P = st.glutes ? st.P : Math.min(1, st.P + 0.4 + 1.2 * st.E), ant = (P + 1) / 2;
+  lam += 14 * ant;                                     // an anterior pelvis extends the lower back
+  // lifting the head pulls the spine into over-extension and blocks the abs from staying tight
+  if (!st.headN) lam += 6 + 10 * st.E;
+  if (st.reach && st.abs) lam = Math.max(0, lam - 2);
+  const pel = -P * 20, pl = (p) => rot(p, pel);
+  const Sa = pl([-14, 16]);                            // top of the sacrum (S1)
+  const T = add(Sa, rot([0, 42], lam * 0.6));          // top of the lumbar spine (T12)
+  const L = -2 + 9 * (P + 1) + 0.3 * lam;              // lumbar curve
+  const C = [(Sa[0] + T[0]) / 2 + L * 0.9, (Sa[1] + T[1]) / 2];
+  // Thoracic extension is spread through the thoracic spine, not hinged at T12: the rib cage is split into
+  // three bands (lower, middle, upper thoracic), each extending a third of the way on the one below.
+  const box0 = -6 + lam, dT = tau / 3, box = box0 + tau;
+  const bxk = (p, k) => { let q = p; for (let j = k; j >= 1; j--) q = add(TPV[j - 1], rot(sub(q, TPV[j - 1]), dT)); return add(T, rot(q, box0 + dT)); };
+  const bx = (p) => bxk(p, p[1] < TBAND[0] ? 0 : p[1] < TBAND[1] ? 1 : 2);
+  const headUp = !st.headN, headAng = box + (headUp ? 38 : 0);   // head neutral: in line with the spine; lifted: the neck extends
+  const N = bx([6, 64]), atlas = add(N, rot([3, 27], box + (headUp ? 16 : 0))), head = add(atlas, rot([3.5, 12.4], headAng));
+  // shoulder: the scapula rotates upward a third of the arm's movement, and elevates when reaching long
+  const piv = bx([2, 46]), lift = st.reach ? rot([0, 7], box) : [0, 0];
+  const sc = (p) => { const q = bxk(p, 2); return add(add(piv, rot([q[0] - piv[0], q[1] - piv[1]], A / 3)), lift); };
+  const Sh = sc([16, 55]);
+  const d = rot([Math.sin(A * Math.PI / 180), -Math.cos(A * Math.PI / 180)], box), hand = 177;
+  const fd = rot(d, -elbow), El = add(Sh, [d[0] * 75, d[1] * 75]), Wr = add(El, [fd[0] * 59, fd[1] * 59]), Ha = add(El, [fd[0] * (hand - 75), fd[1] * (hand - 75)]);
+  return { Sa, T, C, L, P, lam, tau, Et, over, maxE, A, head, atlas, Sh, El, Wr, Ha, d, pel, box, bx, bxk, pl, sc, headAng, spineTop: bx([-2, 58]) };
+}
+// legs in the body frame: the far leg only shows when the legs come apart
+function legs(floor) {
+  const make = (far) => {
+    const hx = floor ? (st.glutes ? 9 : 3) * st.E : 0;              // the glutes extend the hips a little in the arch hold
+    const thighDir = rot([0, -1], -(hx - (far ? 7 : 0)));
+    const kneeBend = (st.knees ? 0 : 24) + (far ? 8 : 0);
+    const shinDir = rot(thighDir, -kneeBend);
+    const k = [thighDir[0] * 100, thighDir[1] * 100], a = add(k, [shinDir[0] * 96, shinDir[1] * 96]);
+    const pointed = floor && st.toes && !far, fwd = rot(shinDir, 90);  // forward of the shin; standing, the feet are flat on the floor
+    const footDir = pointed ? rot(shinDir, st.reach ? 20 : 8) : fwd;
+    const t = add(a, [footDir[0] * 36, footDir[1] * 36]), h = pointed ? add(a, [-fwd[0] * 7, -fwd[1] * 7]) : add(a, [-fwd[0] * 9 + shinDir[0] * 8, -fwd[1] * 9 + shinDir[1] * 8]);
+    return { hip: [0, 0], k, a, t, h, thighDir, shinDir, fwd, far };
+  };
+  return st.together ? [make(false)] : [make(true), make(false)];
+}
+// lying face down, the body settles like a rigid object until its centre of mass sits over what touches the floor
+function settle(pts, com) {
+  let best = 0, found = false;
+  for (let t = -60; t <= 60; t += 0.25) {
+    const q = pts.map((p) => rot(p, t)), fm = Math.max(...q.map((p) => p[0]));
+    const g = q.filter((p) => p[0] > fm - 0.6).map((p) => p[1]), gc = rot(com, t)[1];
+    if (gc >= Math.min(...g) - 0.5 && gc <= Math.max(...g) + 0.5 && (!found || Math.abs(t) < Math.abs(best))) { best = t; found = true; }
+  }
+  return best;
+}
+// outlines of the DBCLS rib cage and hip bone (their own viewBox units), so the floor meets the drawn bones
+const HULL_T = [[91.1,155.4],[92.6,131.7],[99,102.4],[105.7,78.9],[113.4,57.1],[119.8,41.4],[160.5,21.3],[179.5,30.1],[224.7,63.5],[254.8,103.4],[282.7,160.4],[292.9,186.5],[301.3,213.4],[308.4,261.6],[308.8,283.6],[308.4,304.9],[305.1,316.9],[299.7,329.6],[291.5,339.3],[281,347.7],[227.7,379],[215.1,378.1],[163.3,367.4],[149.1,357.5],[98.8,223.9]];
+const HULL_P = [[69.8,132.9],[73.5,120.6],[78.4,108.3],[86.4,92],[92.6,80.8],[116.3,51.7],[142.1,29.3],[180.4,13.8],[220.2,22.1],[258.3,38.8],[284.3,57],[305.1,79.7],[320.2,101.2],[326.7,115.2],[322.3,296.4],[304.8,322.5],[281.9,355.8],[266.6,372.4],[239.3,381.6],[218.1,386.2],[200.3,383.6],[183.7,375],[173.1,363.9],[88.3,200.2],[71,139.7]];
+const curveB0 = (b, t) => { const m = 1 - t; return [m * m * b.Sa[0] + 2 * m * t * b.C[0] + t * t * b.T[0], m * m * b.Sa[1] + 2 * m * t * b.C[1] + t * t * b.T[1]]; };
+const INK = "#151515", BONE = "#D2C5B0", BONE_D = "#A89A80", BONE_E = "#7C6B52", DISC = "#A9BFF2", MARK = "#D9363E", HOT = "#EBA39A";
+function draw(svgId, mode) {
+  const floor = mode === "floor", lg = legs(floor), near = lg[lg.length - 1];
+  let b = body();
+  // front surfaces (with soft tissue) that can touch the floor, and the centre of mass
+  let lev = 0;
+  if (floor) {
+    const fw = (p, k) => add(p, [k, 0]);
+    // the bottom is squeezed down: the lower belly and the front of the pelvis (with their soft tissue) rest on the floor
+    const belly = add(curveB0(b, 0.45), [24, 0]);
+    const front = [fw(b.pl([13, -11]), 5), fw(b.pl([12, 17.5]), 6), belly,
+      ...HULL_T.map((q) => fw(b.bx([5 + (q[0] - 182) * KT, (345 - q[1]) * KT]), 3)), ...HULL_P.map((q) => b.pl([(q[0] - 242) * KP, (252 - q[1]) * KP])),
+      add(b.atlas, rot([17, -8], b.headAng)), add(b.atlas, rot([19, 10], b.headAng))];
+    for (const g of lg) for (const [p, k] of [[[g.thighDir[0] * 50, g.thighDir[1] * 50], 11], [g.k, 6], [add(g.k, [g.shinDir[0] * 48, g.shinDir[1] * 48]), 5], [g.a, 4]])
+      front.push(add(p, [g.fwd[0] * k, g.fwd[1] * k])), front.push(g.t);
+    const mid = [(b.Sa[0] + b.T[0]) / 2, (b.Sa[1] + b.T[1]) / 2];
+    const W = [[b.bx([4, 10]), 0.3], [mid, 0.24], [b.head, 0.08], [b.El, 0.1], [[near.thighDir[0] * 45, near.thighDir[1] * 45], 0.2], [add(near.k, [near.shinDir[0] * 50, near.shinDir[1] * 50]), 0.12]];
+    const com = W.reduce((s, [p, w]) => add(s, [p[0] * w, p[1] * w]), [0, 0]).map((v) => v / W.reduce((s, [, w]) => s + w, 0));
+    // the arch hold is held actively: the body pivots on the squeezed-down pelvis, chest and legs lifting evenly;
+    // when nothing lifts (flat on the floor) it simply settles
+    const pelvisPts = front.slice(0, 3), rest = front.slice(3), ok = [];
+    for (let t = -40; t <= 40; t += 0.25) { const fp = Math.max(...pelvisPts.map((p) => rot(p, t)[0])), fo = Math.max(...rest.map((p) => rot(p, t)[0])); if (fp >= fo + 2) ok.push(t); }
+    lev = ok.length ? (ok[0] + ok[ok.length - 1]) / 2 : settle(front, com);
+    var floorY = -Math.max(...front.map((p) => rot(p, lev)[0]));
+  }
+  const U = (p) => { if (floor) { const q = rot(p, lev); return [q[1], -q[0]]; } return p; };
+  // lying down, arms that cannot reach the line would go through the floor: the hands go wider (a Y) and rest
+  // on it, so from the side the arms look shorter
+  if (floor) {
+    const S = U(b.Sh), H = U(b.Ha), lim = floorY + 4;
+    if (H[1] < lim) {
+      const Ui = (q) => rot([-q[1], q[0]], -lev), v = sub(H, S), l = Math.hypot(...v) * 0.88, h = Math.max(0, S[1] - lim);
+      const th = Math.asin(Math.min(1, h / l)), dir = [Math.sign(v[0] || 1) * Math.cos(th), -Math.sin(th)];
+      const at = (k) => Ui(add(S, [dir[0] * l * k, dir[1] * l * k]));
+      b = { ...b, El: at(75 / 177), Wr: at(134 / 177), Ha: at(1), wide: true };
+    }
+  }
+  // frame the whole skeleton, fingertips to toes
+  const ends = [U(b.Ha), U(near.t), U(near.h), U(b.head)];
+  let sx, sy, K;
+  if (floor) { K = 0.6; const mid = (Math.min(...ends.map((p) => p[0])) + Math.max(...ends.map((p) => p[0]))) / 2; sx = (p) => 200 + K * (p[0] - mid); sy = (p) => 262 - K * (p[1] - floorY); }
+  else { K = 0.78; const mid = (Math.min(...ends.map((p) => p[0])) + Math.max(...ends.map((p) => p[0]))) / 2, foot = Math.min(...lg.map((g) => Math.min(g.t[1], g.h[1], g.a[1] - 4))); sx = (p) => 200 + K * (p[0] - mid); sy = (p) => 452 - K * (p[1] - foot); }
+  const scr = (p) => { const q = U(p); return [sx(q), sy(q)]; };
+  const P = (p) => { const q = scr(p); return q[0].toFixed(1) + "," + q[1].toFixed(1); };
+  const poly = (pts, fill, stroke, w = 1.2, extra = "") => `<polygon points="${pts.join(" ")}" fill="${fill}" stroke="${stroke}" stroke-width="${w}" stroke-linejoin="round" ${extra}/>`;
+  const placed = (href, map, w = 400, h = 400, extra = "") => {
+    const o = map([0, 0]), x = map([1, 0]), y = map([0, 1]);
+    return `<image href="${href}" ${extra} width="${w}" height="${h}" preserveAspectRatio="none" transform="matrix(${(x[0] - o[0]).toFixed(5)} ${(x[1] - o[1]).toFixed(5)} ${(y[0] - o[0]).toFixed(5)} ${(y[1] - o[1]).toFixed(5)} ${o[0].toFixed(2)} ${o[1].toFixed(2)})"/>`;
+  };
+  const smooth = (xy) => {
+    const n = xy.length, f = (v) => v.toFixed(1); let d = `M${f(xy[0][0])},${f(xy[0][1])}`;
+    for (let i = 0; i < n; i++) {
+      const p0 = xy[(i - 1 + n) % n], p1 = xy[i], p2 = xy[(i + 1) % n], p3 = xy[(i + 2) % n];
+      d += ` C${f(p1[0] + (p2[0] - p0[0]) / 6)},${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)},${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])},${f(p2[1])}`;
+    }
+    return d + "Z";
+  };
+  const curveB = (t) => { const a = b.Sa, c = b.C, e = b.T, m = 1 - t; return [m * m * a[0] + 2 * m * t * c[0] + t * t * e[0], m * m * a[1] + 2 * m * t * c[1] + t * t * e[1]]; };
+  const tang = (t) => { const a = b.Sa, c = b.C, e = b.T; const d = [2 * (1 - t) * (c[0] - a[0]) + 2 * t * (e[0] - c[0]), 2 * (1 - t) * (c[1] - a[1]) + 2 * t * (e[1] - c[1])]; const n = Math.hypot(...d) || 1; return [d[0] / n, d[1] / n]; };
+  const bone = (pts, fill = BONE) => poly(pts.map(P), fill, BONE_E, 1.1);
+  let s = "";
+  if (floor) s += `<line x1="0" y1="263" x2="400" y2="263" stroke="#9A9A94" stroke-width="3"/>`;
+
+  // ----- legs: femur, patella, tibia and fibula, foot (the far leg first, darker)
+  for (const g of lg) {
+    const fill = g.far ? BONE_D : BONE;
+    const u = sub(g.k, g.hip), n = Math.hypot(...u), t = [u[0] / n, u[1] / n], nn = [-t[1], t[0]];
+    const at = (r, o) => [g.hip[0] + t[0] * r + nn[0] * o, g.hip[1] + t[1] * r + nn[1] * o];
+    s += bone([at(-2, -4), at(6, -7), at(12, -6), at(n - 10, -3.6), at(n - 4, -6.5), at(n + 3, -5), at(n + 4, 4), at(n - 4, 5.5), at(n - 10, 3), at(10, 3.5), at(4, 7), at(-4, 6)], fill);
+    const hp = scr(g.hip); s += `<circle cx="${hp[0].toFixed(1)}" cy="${hp[1].toFixed(1)}" r="${(6.5 * K).toFixed(1)}" fill="${fill}" stroke="${BONE_E}" stroke-width="1.1"/>`;
+    const pat = scr(add(g.k, [g.fwd[0] * 7, g.fwd[1] * 7])); s += `<circle cx="${pat[0].toFixed(1)}" cy="${pat[1].toFixed(1)}" r="${(3.6 * K).toFixed(1)}" fill="${fill}" stroke="${BONE_E}" stroke-width="1.1"/>`;
+    const v = sub(g.a, g.k), m = Math.hypot(...v), tt = [v[0] / m, v[1] / m], n2 = [-tt[1], tt[0]];
+    const sh = (r, o) => [g.k[0] + tt[0] * r + n2[0] * o, g.k[1] + tt[1] * r + n2[1] * o];
+    s += bone([sh(-3, -5), sh(4, -4), sh(m - 6, -2.2), sh(m, -3.5), sh(m + 2, 0), sh(m - 6, 3.4), sh(8, 3), sh(-3, 5.5)], fill);
+    s += bone([sh(6, -4.6), sh(m - 4, -3.9), sh(m - 3, -5.4), sh(5, -6)], BONE_D);
+    const fd = sub(g.t, g.a), fl = Math.hypot(...fd), fu = [fd[0] / fl, fd[1] / fl], fn = [-fu[1], fu[0]];
+    const ft = (r, o) => [g.a[0] + fu[0] * r + fn[0] * o, g.a[1] + fu[1] * r + fn[1] * o];
+    s += bone([g.h, ft(-2, 5), ft(fl * 0.55, 4), ft(fl, 1.5), ft(fl, -1.5), ft(fl * 0.55, -3), ft(2, -5)], fill);
+  }
+  // sacrum, then the DBCLS hip bone about the hip joint
+  const sac = [[-9, 17], [-15, 19.5], [-21, 17], [-25.5, 9], [-27, 0], [-25.5, -8], [-22, -14], [-19.5, -18.5], [-17.5, -17], [-17.5, -11], [-15.5, -3], [-12.5, 5], [-10, 11]].map(b.pl).map(scr);
+  s += `<path d="${smooth(sac)}" fill="${BONE}" stroke="${BONE_E}" stroke-width="1.1"/>`;
+  s += placed("anatomy/dbcls-hip-bone-lateral.svg", (q) => scr(b.pl([(q[0] - 242) * KP, (252 - q[1]) * KP])));
+  // lumbar vertebrae: they turn red when the lower back takes the extension
+  const lumb = b.lam > 16 ? HOT : BONE;
+  for (let i = 0; i < 5; i++) {
+    const t0 = i / 5 + 0.015, t1 = (i + 1) / 5 - 0.015, c0 = curveB(t0), c1 = curveB(t1), tm = (t0 + t1) / 2, d = tang(tm), n = [-d[1], d[0]], c = curveB(tm);
+    const q = (p, along, k) => [p[0] + d[0] * along + n[0] * k, p[1] + d[1] * along + n[1] * k];
+    s += bone([q(c0, 0, -6.5), q(c1, 0, -6.5), q(c1, 0, 5.5), q(c0, 0, 5.5)], lumb);
+    s += bone([q(c, -2, 5.5), q(c, 2.5, 5.5), q(c, 0.5, 13), q(c, -3.5, 13.5)], b.lam > 16 ? HOT : BONE_D);
+    if (i < 4) { const e = curveB((i + 1) / 5); s += poly([q(e, -0.9, -6), q(e, 0.9, -6), q(e, 0.9, 5), q(e, -0.9, 5)].map(P), DISC, BONE_E, 0.8); }
+  }
+  // the DBCLS rib cage with the thoracic spine and sternum, sitting on T12
+  // the three bands overlap a little so no gap opens between them
+  const qb = TBAND.map((y) => 345 - y / KT), bands = [[qb[0] - 6, 520], [qb[1] - 6, qb[0] + 6], [-120, qb[1] + 6]];
+  bands.forEach(([y0, y1], k) => {
+    const cid = `tb${k}-${svgId}`;
+    s += `<clipPath id="${cid}" clipPathUnits="userSpaceOnUse"><rect x="-60" y="${y0.toFixed(1)}" width="520" height="${(y1 - y0).toFixed(1)}"/></clipPath>`;
+    s += placed("anatomy/dbcls-thorax-lateral.svg", (q) => scr(b.bxk([5 + (q[0] - 182) * KT, (345 - q[1]) * KT], k)), 400, 400, `clip-path="url(#${cid})"`);
+  });
+  // cervical vertebrae and the skull
+  const c0 = b.bx([1, 64]), c1 = b.atlas;
+  for (let i = 0; i < 6; i++) {
+    const f = (i + 0.5) / 6, c = [c0[0] + (c1[0] - c0[0]) * f, c0[1] + (c1[1] - c0[1]) * f], v = sub(c1, c0), m = Math.hypot(...v) || 1, d = [v[0] / m, v[1] / m], n = [-d[1], d[0]];
+    const q = (along, k) => [c[0] + d[0] * along + n[0] * k, c[1] + d[1] * along + n[1] * k];
+    s += bone([q(-1.6, -4.2), q(1.6, -4.2), q(1.6, 3.5), q(-1.6, 3.5)]) + bone([q(-1, 3.5), q(1, 3.5), q(0, 8.5)], BONE_D);
+  }
+  const KS = 0.0884;
+  s += placed("anatomy/skull-lateral-ladyofhats.svg", (q) => scr(add(b.atlas, rot([-(q[0] - 310) * KS, (380 - q[1]) * KS], b.headAng))), 540, 540);
+  // shoulder girdle and the arm
+  const scap = [[-3, 61], [7, 63], [19, 65], [22, 62], [25, 59], [20, 57.5], [17.5, 56.5], [16, 51], [10, 38], [3, 27], [-2, 33], [-5, 47]].map(b.sc).map(scr);
+  s += `<path d="${smooth(scap)}" fill="${BONE}" fill-opacity=".92" stroke="${BONE_E}" stroke-width="1.1"/>`;
+  { const a1 = scr(b.sc([-4, 54])), a2 = scr(b.sc([19, 63])); s += `<line x1="${a1[0].toFixed(1)}" y1="${a1[1].toFixed(1)}" x2="${a2[0].toFixed(1)}" y2="${a2[1].toFixed(1)}" stroke="${BONE_D}" stroke-width="${(2.6 * K).toFixed(1)}" stroke-linecap="round"/>`; }
+  { const k0 = scr(b.bx([14, 58])), kc = scr(b.bx([19, 64])), k1 = scr(b.sc([20, 64]));
+    const cl = `M${k0[0].toFixed(1)},${k0[1].toFixed(1)} Q${kc[0].toFixed(1)},${kc[1].toFixed(1)} ${k1[0].toFixed(1)},${k1[1].toFixed(1)}`;
+    s += `<path d="${cl}" fill="none" stroke="${BONE_E}" stroke-width="${(4.6 * K).toFixed(1)}" stroke-linecap="round"/><path d="${cl}" fill="none" stroke="${BONE}" stroke-width="${(3 * K).toFixed(1)}" stroke-linecap="round"/>`; }
+  {
+    const limb = (A2, B2, w1, w2) => { const u = sub(B2, A2), n0 = Math.hypot(...u) || 1, t = [u[0] / n0, u[1] / n0], n = [-t[1], t[0]];
+      const q = (r, o) => [A2[0] + t[0] * r + n[0] * o, A2[1] + t[1] * r + n[1] * o];
+      return [q(-2, -w1 * 1.5), q(6, -w1), q(n0 - 6, -w2), q(n0 + 2, -w2 * 1.6), q(n0 + 2, w2 * 1.6), q(n0 - 6, w2), q(6, w1), q(-2, w1 * 1.5)]; };
+    s += bone(limb(b.El, b.Wr, 2.2, 1.8).map((p) => add(p, [0, 2.6])), BONE_D) + bone(limb(b.El, b.Wr, 2.4, 2));
+    const shs = scr(b.Sh); s += bone(limb(b.Sh, b.El, 3.2, 2.8)) + `<circle cx="${shs[0].toFixed(1)}" cy="${shs[1].toFixed(1)}" r="${(5.6 * K).toFixed(1)}" fill="${BONE}" stroke="${BONE_E}" stroke-width="1.1"/>`;
+    const t = sub(b.Ha, b.Wr), m = Math.hypot(...t), d = [t[0] / m, t[1] / m], n = [-d[1], d[0]], q = (r, o) => [b.Wr[0] + d[0] * r + n[0] * o, b.Wr[1] + d[1] * r + n[1] * o];
+    s += bone([q(0, -3.5), q(m * 0.4, -5.5), q(m, -2), q(m, 2), q(m * 0.4, 5.5), q(0, 3.5)]);
+  }
+  // ----- the body line, and the length from fingertips to toes
+  s += `<path d="M${P(b.head)} L${P(b.spineTop)} L${P(b.bxk(TPV[1], 2))} L${P(b.bxk(TPV[0], 1))} L${P(b.T)} Q${P(b.C)} ${P(b.Sa)} L${P([0, 0])} L${P(near.k)} L${P(near.a)} L${P(near.t)}" fill="none" stroke="${INK}" stroke-width="2" stroke-dasharray="6 5" stroke-linecap="round" opacity=".55"/>`;
+  const end = floor ? near.t : near.h;                 // standing, the feet are flat: measure to the floor
+  const f1 = scr(b.Ha), f2 = scr(end), len = Math.hypot(...sub(b.Ha, end)) * 0.0044;
+  s += `<line x1="${f1[0].toFixed(1)}" y1="${f1[1].toFixed(1)}" x2="${f2[0].toFixed(1)}" y2="${f2[1].toFixed(1)}" stroke="${MARK}" stroke-width="2" stroke-dasharray="2 5" stroke-linecap="round"/>`;
+  for (const q of [f1, f2]) s += `<circle cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="4" fill="${MARK}" stroke="#fff" stroke-width="1.5"/>`;
+  const lx = floor ? 200 : 200, ly = floor ? 34 : 30;
+  s += `<text x="${lx}" y="${ly}" text-anchor="middle" font-size="13" font-weight="800" fill="${MARK}" font-family="-apple-system,Helvetica,Arial">${floor ? "Fingertips to toes" : "Fingertips to floor"}: ${len.toFixed(2)} m</text>`;
+  if (!floor) {
+    const asis = b.pl([12, 17.5]), costal = b.bx([27, 2]);
+    for (const p of [asis, costal]) { const q = scr(p); s += `<circle cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="5" fill="${MARK}" stroke="#fff" stroke-width="1.5"/>`; }
+    const lab = (p, t) => { const q = scr(p); return `<text x="${(q[0] + 10).toFixed(0)}" y="${(q[1] + 4).toFixed(0)}" font-size="11" font-weight="700" fill="#333" font-family="-apple-system,Helvetica,Arial" paint-order="stroke" stroke="#F4F3EF" stroke-width="3">${t}</text>`; };
+    s += lab(asis, "front of hip (ASIS)") + lab(costal, "bottom of rib cage");
+  }
+  $(svgId).innerHTML = s;
+  return { b, len };
+}
+
+// ---------- the spine close-up ----------
+function drawSpine(b) {
+  const g = vert(st.sp), th = (st.abs ? b.Et : b.Et * 0.47) * THF;
+  // four thoracic vertebrae; each one extends on the one below
+  const frames = [(p) => p];
+  for (let i = 1; i < 4; i++) { const prev = frames[i - 1], up = above(g, th); frames.push((p) => prev(up(p))); }
+  const turn = -1.5 * th, mid = frames[1]([0, g.h / 2]);
+  const S = 2.55, sx = (p) => { const q = add(mid, rot(sub(p, mid), turn)); return [205 + S * (q[0] - mid[0]), 170 - S * (q[1] - mid[1])]; };
+  const P = (p) => sx(p).map((v) => v.toFixed(1)).join(",");
+  const poly = (pts, fill, extra = "") => `<polygon points="${pts.join(" ")}" fill="${fill}" stroke="${BONE_E}" stroke-width="1.2" stroke-linejoin="round" ${extra}/>`;
+  let s = "";
+  const near = [];
+  for (let i = 0; i < 3; i++) { const lo = frames[i], hi = frames[i + 1], r = segNear(hi(g.root), hi(g.tip), lo(g.root), lo(g.tip)); near.push({ ...r, gap: r.d - g.w }); }
+  // interspinous spaces (shaded) between neighbouring spinous processes
+  for (let i = 0; i < 3; i++) {
+    const lo = frames[i], hi = frames[i + 1], pts = [hi(g.root), hi(g.tip), lo(g.tip), lo(g.root)].map(P);
+    s += `<polygon points="${pts.join(" ")}" fill="#F2B24C" opacity="${near[i].gap <= 0.3 ? 0.15 : 0.3}"/>`;
+  }
+  // discs
+  for (let i = 0; i < 3; i++) { const lo = frames[i], hi = frames[i + 1]; s += poly([lo([-10, g.bh]), lo([14, g.bh]), hi([14, -g.bh]), hi([-10, -g.bh])].map(P), DISC); }
+  for (let i = 0; i < 4; i++) {
+    const f = frames[i], m = (p) => f(p);
+    // vertebral body
+    s += poly([[-10, -g.bh + 1.5], [-8.5, -g.bh], [12.5, -g.bh], [14, -g.bh + 1.5], [14.5, 0], [14, g.bh - 1.5], [12.5, g.bh], [-8.5, g.bh], [-10, g.bh - 1.5]].map(m).map(P), BONE);
+    // pedicle and lamina
+    s += poly([[-10, 4.5], [-15, 5.5], [-19, 3], [-19, -3], [-15, -5.5], [-10, -4.5]].map(m).map(P), BONE_D);
+    // facets: superior and inferior articular processes
+    s += poly([[-12, 4], [-12.5, g.h / 2 - 1], [-17.5, g.h / 2 - 1], [-18, 3.5]].map(m).map(P), BONE);
+    s += poly([[-12.5, -3], [-12.5, -g.h / 2 + 1], [-17.5, -g.h / 2 + 1], [-18, -3]].map(m).map(P), BONE);
+    // spinous process, sloping down and back like a roof tile
+    const r0 = g.root, t0 = g.tip, u = sub(t0, r0), n0 = Math.hypot(...u), d = [u[0] / n0, u[1] / n0], n = [-d[1], d[0]], w = g.w / 2;
+    const q = (a, k) => [r0[0] + d[0] * a + n[0] * k, r0[1] + d[1] * a + n[1] * k];
+    s += poly([q(-3, w * 1.6), q(4, w), q(n0, w), q(n0 + w * 0.8, w * 0.5), q(n0 + w, 0), q(n0 + w * 0.8, -w * 0.5), q(n0, -w), q(4, -w), q(-3, -w * 1.6)].map(m).map(P), BONE);
+  }
+  const hit = near.some((r) => r.gap <= 0.3);
+  for (const r of near) if (r.gap <= 0.3) { const p = sx(r.at); s += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="6" fill="${MARK}" stroke="#fff" stroke-width="1.5"/>`; }
+  // labels on the second vertebra
+  const lab = (p, t, dx, dy, anchor = "start") => { const a = sx(frames[1](p)); return `<line x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${(a[0] + dx * 0.8).toFixed(1)}" y2="${(a[1] + dy * 0.8).toFixed(1)}" stroke="#333" stroke-width="1"/><text x="${(a[0] + dx).toFixed(0)}" y="${(a[1] + dy + 4).toFixed(0)}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="#333" font-family="-apple-system,Helvetica,Arial" paint-order="stroke" stroke="#F4F3EF" stroke-width="3">${t}</text>`; };
+  s += lab([12, 0], "vertebral body", 34, -6) + lab([2, g.h / 2], "disc", 44, -4);
+  s += lab([-14, g.h / 2 - 2], "facet joint", 40, -38);
+  s += lab([g.root[0] - 10, g.root[1] - 14], "spinous process", -40, 10, "end");
+  { const a = sx(frames[1]([(g.root[0] + g.tip[0]) / 2 - 2, (g.root[1] + g.tip[1]) / 2 + g.h / 2 - 3])); s += `<text x="${(a[0] - 26).toFixed(0)}" y="${(a[1] - 54).toFixed(0)}" text-anchor="end" font-size="11" font-weight="700" fill="#B07A16" font-family="-apple-system,Helvetica,Arial" paint-order="stroke" stroke="#F4F3EF" stroke-width="3">interspinous space</text><line x1="${(a[0] - 24).toFixed(1)}" y1="${(a[1] - 50).toFixed(1)}" x2="${a[0].toFixed(1)}" y2="${a[1].toFixed(1)}" stroke="#B07A16" stroke-width="1"/>`; }
+  s += `<text x="12" y="22" font-size="11" font-weight="800" letter-spacing="1.4" fill="#555" font-family="-apple-system,Helvetica,Arial">THORACIC SPINE · SIDE VIEW</text>`;
+  s += `<text x="388" y="22" text-anchor="end" font-size="11" fill="#555" font-family="-apple-system,Helvetica,Arial">front of the body →</text>`;
+  if (hit) s += `<text x="388" y="318" text-anchor="end" font-size="12" font-weight="800" fill="${MARK}" font-family="-apple-system,Helvetica,Arial">bone meets bone: end range</text>`;
+  $("sv-spine").innerHTML = s;
+  const pct = Math.round(spineMax(st.sp) * 100);
+  $("spine-state").innerHTML = pct >= 100 ? "<b>This spine:</b> the spinous processes never meet in this arch; tension and length decide the shape." : `<b>This spine:</b> the spinous processes meet at about ${pct}% of a full rise. Past that, the extra can only come from the lower back.`;
+}
+
+// ---------- what the shape is ----------
+const SHAPES = {
+  base: { t: "Long and tight base", p: "Lying face down with the bottom squeezed into the floor in a posterior pelvic tilt, the legs locked out and together and the toes pointed away long. It is the hollow's pelvis, turned over: start every arch from here.", set: { E: 0, toes: true, knees: true, glutes: true, together: true, abs: true, headN: true, reach: true } },
+  lumbar: { t: "Lumbar hyperextension", p: "The abs let go, so the extension drops into the lower back instead of coming from the thoracic spine. The glutes can still be squeezed and the pelvis still posterior: hyperextension happens anyway. If the glutes let go too, the pelvis tips anterior and all positive tension is lost. This is the unsafe, hyperextended arch.", set: { E: 0.9, toes: true, knees: true, glutes: true, together: true, abs: false, headN: true, reach: false } },
+  rise: { t: "Arch rise, abs tight", p: "The bottom stays squeezed down and the abs stay in tight, so the extension comes from the thoracic spine: the rib cage opens and the chest lifts while the lower back is protected.", set: { E: 0.65, toes: true, knees: true, glutes: true, together: true, abs: true, headN: true, reach: false } },
+  long: { t: "Arch rise, reaching long and tall", p: "The same arch, now reaching long through the fingertips and the toes, with the arms in line with the thoracic curve and the head neutral. Length and tension, not height: this is the arch to coach.", set: { E: 0.65, toes: true, knees: true, glutes: true, together: true, abs: true, headN: true, reach: true } },
+};
+const allTight = () => st.toes && st.knees && st.glutes && st.together && st.abs && st.headN;
+function verdict(b) {
+  const key = (!st.abs || b.P > -0.4) && st.E > 0.3 ? "lumbar" : st.E < 0.15 ? (allTight() ? "base" : null) : !allTight() ? null : st.reach ? "long" : "rise";
+  const box = $("verdict"); box.innerHTML = "";
+  const t = document.createElement("b"), p = document.createElement("p");
+  if (key) { t.textContent = SHAPES[key].t; p.textContent = SHAPES[key].p; }
+  else { t.textContent = "Tension missing"; p.textContent = "Switch the tension back on: every part of the body works as one solid unit in the arch."; }
+  if (key && key !== "lumbar" && b.lam > 16) { t.textContent = "Lumbar hyperextension: chasing height"; p.textContent = "The thoracic spine has no more to give, so the extra height comes from the lower back (red), even with the abs tight. Bring the arch down until the lower back is protected, and reach long instead: length and tension, not height."; }
+  box.append(t, p);
+  const notes = [];
+  if (b.P > -0.4) notes.push("The pelvis has tipped anterior: the lower back extends and the positive tension is lost. Squeeze the glutes to bring the pelvis back to a posterior tilt and hold it there.");
+  else if (!st.glutes) notes.push("Glutes off: nothing holds the pelvis, so as the athlete rises it tips anterior. Squeeze the glutes to keep the posterior tilt fixed.");
+  else if (st.P > -0.8) notes.push("The pelvis is only partly posterior. Squeeze the glutes harder to finish the posterior tilt: the bottom down into the floor.");
+  else if (!st.abs && st.E > 0.15) notes.push("Abs off: the bend drops into the lower back (red). Keep the abs in tight, breathing through the diaphragm, so the extension comes from the thoracic spine.");
+  if (!st.knees) notes.push("Knees bent: the line shortens and the legs lose their length and tension. Lock the knees out.");
+  if (!st.headN) notes.push("Head lifted: looking up makes it hard to keep the abs tight, the spine over-extends and the line loses length and tension. Keep the head neutral, in line with the spine.");
+  if (!st.toes) notes.push("Toes not pointed: the line stops at the ankle. Point the toes away long.");
+  if (!st.together) notes.push("Legs apart: squeeze the inside of the feet together, as if holding paper between them, for torque and active tissue.");
+  if (b.over > 0.02) notes.push(st.abs ? "This spine has reached its bony end range: the spinous processes meet (see your athlete's spine below). More strength or mobility will not change it, and any more height comes from the lower back, so coach length and tension, not height." : "This spine has reached its bony end range, and with the abs off the extra comes from the lower back.");
+  if (b.wide) notes.push("Lying down, the arms cannot reach the line, so the hands go wider (a Y) to rest on the floor; from the side the arms look shorter. This is the compromise for limited shoulder flexion.");
+  if (st.sh < 170) notes.push(st.abs ? `Shoulder flexion is limited to ${st.sh}°, so the arms cannot get in line with the thoracic curve. Adapt the arm position for now and teach the long-term goal; do not let the lower back make up the difference.` : `Shoulder flexion is limited to ${st.sh}°: with the abs off, the athlete chases the arm line by arching the lower back.`);
+  for (const n of notes) { const w = document.createElement("p"); w.className = "warn"; w.textContent = n; box.appendChild(w); }
+  $("quad").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x.dataset.k === key));
+}
+function render() {
+  $("r-arch").value = Math.round(st.E * 100); $("r-pel").value = Math.round(st.P * 100); $("r-sh").value = st.sh; $("r-sp").value = Math.round(st.sp * 100);
+  $("sh-v").textContent = st.sh >= 180 ? "180° · full" : st.sh + "°";
+  $("tg").querySelectorAll("button").forEach((x) => x.classList.toggle("on", !!st[x.dataset.k]));
+  draw("sv-stand", "stand"); const { b } = draw("sv-floor", "floor");
+  drawSpine(b); verdict(b);
+}
+$("tg").innerHTML = TENSION.map(([k, t]) => `<button type="button" data-k="${k}">${t}</button>`).join("");
+$("tg").querySelectorAll("button").forEach((x) => (x.onclick = () => {
+  st[x.dataset.k] = !st[x.dataset.k];
+  if (x.dataset.k === "glutes" && st.glutes && st.P > -1) tween({ P: -1 });     // squeezing the glutes takes the pelvis back to posterior
+  else render();
+}));
+// you cannot squeeze the glutes in an anterior tilt: moving the pelvis past neutral lets them go
+$("r-pel").oninput = () => { st.P = $("r-pel").value / 100; if (st.P > 0) st.glutes = false; render(); };
+$("r-arch").oninput = () => { st.E = $("r-arch").value / 100; render(); };
+$("r-sh").oninput = () => { st.sh = +$("r-sh").value; render(); };
+$("r-sp").oninput = () => { st.sp = $("r-sp").value / 100; render(); };
+$("quad").innerHTML = Object.entries(SHAPES).map(([k, v], i) => `<button type="button" data-k="${k}"><b>${i + 1} · ${v.t}</b>${["Flat, tight, long", "The fault: abs off, lower back takes it", "Thoracic extension, lower back protected", "The target: length, not height"][i]}</button>`).join("");
+$("quad").querySelectorAll("button").forEach((x) => (x.onclick = () => { const { E, ...rest } = SHAPES[x.dataset.k].set; Object.assign(st, rest); tween({ E, P: -1 }); }));
+let anim = null;
+function tween(to, ms = 650) {
+  cancelAnimationFrame(anim);
+  const from = { E: st.E, P: st.P }, t0 = performance.now();
+  const step = (now) => { const k = Math.min(1, (now - t0) / ms), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; for (const q in to) st[q] = from[q] + (to[q] - from[q]) * e; render(); if (k < 1) anim = requestAnimationFrame(step); };
+  anim = requestAnimationFrame(step);
+}
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const { error } = await db.auth.signInWithPassword({ email: $("l-email").value.trim(), password: $("l-pass").value });
+  if (error) { $("l-msg").className = "msg err"; $("l-msg").textContent = "That email and password did not match. Try again, or use the login link."; return; }
+  boot();
+});
+$("l-link").addEventListener("click", async () => {
+  const email = $("l-email").value.trim().toLowerCase();
+  if (!email.includes("@")) { $("l-msg").className = "msg err"; $("l-msg").textContent = "Type your email first."; return; }
+  await fetch("/.netlify/functions/learn-access", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, next: location.pathname + location.search }) }).catch(() => {});
+  $("l-msg").className = "msg ok"; $("l-msg").textContent = "If that email has a course, a login link is on its way. Tap it and you come straight back here.";
+});
+// The lesson opens this page in a new tab, so "back" saves, closes it, and the lesson is still underneath.
+$("b-course").onclick = async (e) => {
+  e.preventDefault();
+  if (doc) await save();
+  window.close(); setTimeout(() => { location.href = "/learn/"; }, 300);
+};
+async function unlock() {
+  try {
+    const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", "_unlocked").maybeSingle();
+    const list = (data && data.data && data.data.tools) || [];
+    if (!list.includes(TOOL)) await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: "_unlocked", data: { tools: [...list, TOOL] } }, { onConflict: "user_id,tool" });
+  } catch (e) { /* never block the task */ }
+}
+function changed() { $("state").textContent = "Unsaved changes"; clearTimeout(timer); timer = setTimeout(save, 1500); }
+async function save() {
+  clearTimeout(timer);
+  const row = { user_id: session.user.id, tool: TOOL, data: doc, updated_at: new Date().toISOString() };
+  const { error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" });
+  if (error) { $("state").textContent = "Not saved — " + error.message; return false; }
+  $("state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("b-save").onclick = async () => { if (await save()) $("state").textContent = "Saved ✓"; };
+$("b-pdf").onclick = async () => { await save(); window.print(); };
+async function boot() {
+  ({ data: { session } } = await db.auth.getSession());
+  if (!session) { show("login"); return; }
+  if (!canOpen(session)) { show("soon"); return; }
+  if (new URLSearchParams(location.search).get("tool")) unlock();
+  const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", TOOL).maybeSingle();
+  doc = (data && data.data) || {};
+  for (const [id, k] of [["n-lose", "lose"], ["n-shape", "shape"]]) { const el = $(id); el.value = doc[k] || ""; el.oninput = () => { doc[k] = el.value; changed(); }; }
+  show("eye"); render();
+}
+boot();
+</script>
+</body>
+</html>
