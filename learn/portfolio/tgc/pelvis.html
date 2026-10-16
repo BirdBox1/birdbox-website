@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pelvis and rib cage — BirdBox Learn</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
+          --line:#342F31; --accent:#E0555A; --bad:#F0797D; --good:#5CC48A; --amber:#F2B24C; }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .bar{display:flex;align-items:center;gap:14px;padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top));
+    border-bottom:1px solid var(--line);background:#0d0b0b}
+  .bar img{height:34px;width:auto;display:block}
+  .bar .name{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .bar .nav{margin-left:auto;display:flex;gap:8px}
+  .btn{display:inline-block;font:inherit;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:12px 20px;background:var(--accent);color:#fff;border:1px solid var(--accent);cursor:pointer;text-decoration:none;text-align:center}
+  .btn:hover{background:transparent;color:var(--accent)}
+  .btn.ghost{background:none;color:var(--ink);border-color:#6A6466}
+  .btn.small{font-size:11px;padding:7px 12px}
+  .wrap{max-width:900px;margin:0 auto;padding:36px 20px 64px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  .kicker a{color:inherit;text-decoration:none}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.05;font-weight:800;text-transform:uppercase;margin:0 0 10px}
+  h2{font-size:15px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 12px}
+  .lede{color:var(--muted);font-size:16px;line-height:1.6;margin:0 0 24px;max-width:70ch}
+  .sub{color:var(--muted);font-size:14.5px;line-height:1.55;margin:0 0 14px}
+  .note{font-size:12.5px;color:var(--muted);line-height:1.5}
+  .note a{color:var(--muted)}
+  .hidden{display:none!important}
+  .panel{background:var(--panel);border:1px solid var(--line);padding:22px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);padding:22px;max-width:440px}
+  .card label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+  .card input{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:6px}
+  .msg{font-size:14px;line-height:1.5;margin:12px 0 0;min-height:1em}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  .item{border-top:1px solid var(--line);padding:16px 0}
+  .item:first-child{border-top:none;padding-top:0}
+  .item .rule{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .item h3{font-size:16px;line-height:1.4;margin:4px 0 10px}
+  .scale10{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;max-width:520px}
+  .scale10 button{font:inherit;font-weight:800;font-size:14px;padding:8px 0;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .scale10 button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .ends{display:flex;justify-content:space-between;max-width:520px;font-size:12px;color:var(--muted);margin:4px 0 10px}
+  label.f{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+  textarea,select,input[type=date]{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);line-height:1.5}
+  textarea{min-height:70px;resize:vertical}
+  input[type=date]{max-width:240px}
+  .bars .b{display:grid;grid-template-columns:minmax(120px,210px) 1fr 44px;gap:10px;align-items:center;margin:8px 0;font-size:14px}
+  .bars .t{height:14px;background:var(--panel2);position:relative}
+  .bars .t i{display:block;height:100%}
+  .bars .t s{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;opacity:.7}
+  .bars .low{color:var(--amber);font-weight:700}
+  .key{font-size:13px;color:var(--muted);margin-top:8px}
+  .hist{font-size:14px;color:var(--muted);line-height:1.6}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .state{font-size:13px;color:var(--muted)}
+  @media print{
+    body{background:#fff;color:#000} .bar,.noprint{display:none!important}
+    .panel{border:1px solid #ccc;background:none} textarea,select,input{border:1px solid #ccc;background:#fff;color:#000}
+    .scale10 button{background:#fff;color:#000} .scale10 button.on{background:#85151A;color:#fff}
+  }
+  .obs{border:1px solid var(--line);background:var(--panel2);padding:14px 16px;margin:0 0 10px;cursor:pointer}
+  .obs:hover{border-color:var(--accent)}
+  .obs b{display:block;font-size:16px}
+  .obs span{font-size:13px;color:var(--muted)}
+  .fault{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:10px;align-items:start;border-top:1px solid var(--line);padding:12px 0}
+  .fault:first-child{border-top:none}
+  .fault .t b{display:block;font-size:15px}
+  .fault .t small{display:block;color:var(--muted);font-size:13px;line-height:1.45;margin-top:2px}
+  .fault input[type=number]{width:100%;font:inherit;font-size:15px;padding:8px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .fault textarea{grid-column:1 / -1;min-height:44px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0}
+  .tags label{display:flex;gap:6px;align-items:center;font-size:14px;border:1px solid var(--line);padding:6px 10px;cursor:pointer;background:var(--paper)}
+  .tags input{accent-color:var(--accent)}
+  .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+  input[type=text]{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .boards{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:760px){.boards{grid-template-columns:1fr 1fr}}
+  .board{background:#F4F3EF;border:1px solid var(--line);position:relative}
+  .boards.solo{grid-template-columns:minmax(0,1fr);max-width:460px;margin:0 auto}
+  .boards.solo .board:last-child{display:none}
+  .board svg{display:block;width:100%;height:auto}
+  .board .cap{position:absolute;left:10px;top:8px;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#555}
+  .ctl{display:grid;grid-template-columns:1fr;gap:14px;margin-top:16px}
+  @media(min-width:760px){.ctl{grid-template-columns:1fr 1fr 1fr}}
+  .ctl label.f{margin:0 0 6px}
+  .ctl input[type=range]{width:100%;accent-color:var(--accent)}
+  .ends2{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:2px}
+  .seg{display:flex;gap:4px;flex-wrap:wrap}
+  .seg button{font:inherit;font-size:12px;font-weight:800;padding:7px 10px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .verdict{margin-top:16px;padding:14px 16px;border-left:4px solid var(--accent);background:var(--panel2)}
+  .verdict b{display:block;font-size:18px;margin-bottom:4px}
+  .verdict p{margin:0;color:var(--muted);line-height:1.55;font-size:15px}
+  .verdict .warn{color:var(--amber);margin-top:8px}
+  .quad{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:12px}
+  .quad button{font:inherit;text-align:left;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer;line-height:1.35;font-size:13px}
+  .quad button b{display:block;font-size:14px}
+  .quad button.on{border-color:var(--accent)}
+  .drill{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .drill button{font:inherit;text-align:left;padding:12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer;line-height:1.4;font-size:13px}
+  .drill button b{display:block;font-size:14px;margin-bottom:2px}
+  .drill button.on{border-color:var(--accent);background:#3A1A1C}
+</style>
+</head>
+<body>
+<div class="bar">
+  <a href="/learn/"><img src="/brand/birdBox.png" alt="BirdBox"></a>
+  <span class="name">My TGC portfolio</span>
+  <div class="nav"><a class="btn ghost small" href="index.html">My TGC portfolio</a> <a class="btn ghost small" href="/learn/" id="b-course">← Back to my course</a></div>
+</div>
+
+<main class="wrap">
+  <p id="loading" class="lede">Loading…</p>
+
+  <section id="login" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My TGC portfolio</h1>
+    <p class="lede">Log in with the email address you bought your course with, and the pelvis and rib cage tool opens here.</p>
+    <form class="card" id="login-form">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="email" required>
+      <label for="l-pass">Password</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn" type="submit">Log in</button>
+      <button class="btn ghost" id="l-link" type="button" style="margin-top:10px">Email me a login link</button>
+      <div id="l-msg" class="msg"></div>
+    </form>
+  </section>
+
+  <section id="soon" class="hidden">
+    <p class="kicker">The Gymnastics Course</p>
+    <h1>Coming soon</h1>
+    <p class="lede">The TGC portfolio is still being built. It will open here once it is ready.</p>
+    <a class="btn" href="/learn/">← My courses</a>
+  </section>
+
+  <section id="eye" class="hidden">
+    <p class="kicker"><a href="index.html">← My portfolio</a> · The Gymnastics Course · Lesson 5 · The Hollow</p>
+    <h1>Pelvis and rib cage: the four-way complex</h1>
+    <p class="lede">The pelvis tilts anteriorly or posteriorly, and the rib cage opens or comes down. Move them below and watch what happens to the shape, standing and on the floor. Posterior pelvic tilt with the rib cage down is your hollow: a straight line. Anterior pelvic tilt with the rib cage open is your squat shape.</p>
+
+    <div class="panel">
+      <div class="boards" id="boards">
+        <div class="board"><span class="cap">Standing</span><svg id="sv-stand" viewBox="0 0 400 470" role="img" aria-label="Standing figure"></svg></div>
+        <div class="board"><span class="cap" id="cap-floor">On the floor · hollow</span><svg id="sv-floor" viewBox="0 0 400 410" role="img" aria-label="Figure lying on the floor"></svg></div>
+      </div>
+      <div class="ctl">
+        <div><label class="f" for="r-pel">Pelvis</label><input type="range" id="r-pel" min="-100" max="100" value="0"><div class="ends2"><span>Posterior tilt</span><span>Anterior tilt</span></div></div>
+        <div><label class="f" for="r-rib">Rib cage</label><input type="range" id="r-rib" min="-100" max="100" value="0"><div class="ends2"><span>Down</span><span>Open</span></div></div>
+        <div><label class="f" for="r-arm">Arms</label><input type="range" id="r-arm" min="0" max="180" value="0"><div class="ends2"><span>By the sides</span><span>Overhead</span></div></div>
+      </div>
+      <label class="f">Lever on the floor</label>
+      <div class="seg" id="lever"><button type="button" data-l="tuck">Tucked</button><button type="button" data-l="one">One leg straight</button><button type="button" data-l="full">Full hollow</button></div>
+      <div class="verdict" id="verdict"></div>
+      <div class="quad" id="quad"></div>
+    </div>
+
+    <p class="note" style="margin:-8px 0 18px">Rib cage and hip bone illustrations: <a href="https://commons.wikimedia.org/wiki/File:202204_Lateral_view_of_thoracic_skelton.svg" target="_blank" rel="noopener">Lateral view of thoracic skeleton</a> and <a href="https://commons.wikimedia.org/wiki/File:202112_Lateral_view_of_right_hip_bone.svg" target="_blank" rel="noopener">Lateral view of right hip bone</a> © DBCLS TogoTV, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, placed and moved to show pelvic and rib cage position. Skull: <a href="https://commons.wikimedia.org/wiki/File:Human_skull_side_simplified_(bones).svg" target="_blank" rel="noopener">Human skull side</a> by LadyofHats (Mariana Ruiz Villarreal), public domain, labels removed and recoloured. Other bones drawn by BirdBox to match.</p>
+
+    <div class="panel">
+      <h2>The four-way complex drill</h2>
+      <p class="sub">Break the shapes down with your athletes: 10 reps of each, so they feel where the pelvis and rib cage are every time. Press one to see it.</p>
+      <div class="drill" id="drill"></div>
+    </div>
+
+    <div class="panel">
+      <h2>My notes</h2>
+      <label class="f" for="n-hard">Which of the four does each of my athletes find hardest, and what do I see?</label>
+      <textarea id="n-hard" placeholder="e.g. Most of my members cannot keep the rib cage down while they tilt the pelvis; the ribs flare straight away."></textarea>
+      <label class="f" for="n-use">How will I use the four-way complex in my sessions?</label>
+      <textarea id="n-use" placeholder="e.g. Before air squats with new members, and before hollow holds in every gymnastics session."></textarea>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="b-save" type="button">Save</button>
+      <button class="btn ghost" id="b-pdf" type="button">Download PDF</button>
+      <span class="state" id="state"></span>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
+const $ = (id) => document.getElementById(id);
+const show = (id) => ["loading", "login", "soon", "eye"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+
+// While the TGC portfolio is built and tested, only these logins can open it; everyone else sees
+// "coming soon". Keep this list the same in every page in learn/portfolio/tgc/.
+// To launch: set TGC_LIVE to true in all of them, and add tgc1 to PORTFOLIOS in /learn/index.html.
+const TGC_LIVE = false, TGC_TESTERS = ["nathan@birdboxcoaching.com"];
+const canOpen = (s) => TGC_LIVE || TGC_TESTERS.includes(String((s && s.user && s.user.email) || "").toLowerCase());
+
+const TOOL = "tgc-pelvis";
+let session = null, doc = null, timer = null;
+
+// ---------- the figure (drawn like the whiteboard: rib cage box, pelvis triangle, body line) ----------
+// Body coordinates: hip joint at the origin, y up, facing +x. P: -1 posterior … +1 anterior pelvic tilt.
+// R: -1 rib cage down … +1 open. A: arm angle from by the sides (0) to overhead (180).
+const st = { P: 0, R: 0, A: 0, lever: "full", view: "floor" };   // view: the right-hand panel, set only by the shape buttons
+const rot = ([x, y], d) => { const a = d * Math.PI / 180, c = Math.cos(a), s = Math.sin(a); return [x * c - y * s, x * s + y * c]; };
+const add = (p, q) => [p[0] + q[0], p[1] + q[1]];
+// Real proportions: about 1.75 m tall, 1 unit ≈ 0.44 cm. The rib cage and hip bone are DBCLS illustrations
+// (CC BY 4.0); the other bones are drawn to match them.
+const KT = 0.2025, KP = 0.141;                        // DBCLS rib cage and hip bone: viewBox units → body units
+function body(mode) {
+  const floor = mode === "floor", squat = mode === "squat", { A } = st;
+  // Lying down, the rib cage can only open so far before the pelvis would leave the floor; standing shows it all.
+  const R = floor ? Math.min(st.R, 0.45) : st.R;
+  // At the bottom of a squat the pelvis can only tuck under a little (the "butt wink"), not a full posterior tilt.
+  const P = squat ? Math.max(st.P, -0.5) : st.P;
+  const pel = -P * 20;                                   // anterior tilt tips the front of the pelvis (ASIS) down
+  const pl = (p) => rot(p, pel);
+  const Sa = pl([-14, 16]);                              // top of the sacrum (S1)
+  const L = 9 * (P + 1) + 7 * (R + 1) - 2;               // lumbar curve: anterior tilt and an open rib cage arch the lower back
+  const T = add(Sa, [-3 * R, 42]);                       // top of the lumbar spine (T12)
+  const C = [(Sa[0] + T[0]) / 2 + L * 0.9, (Sa[1] + T[1]) / 2];
+  const box0 = 12 * R + 2;                               // an open rib cage tips back
+  // on the floor, abs down lifts the shoulder blades — but only in a hollow (posterior pelvis); with the pelvis
+  // anterior the upper back cannot hold itself up on the sacrum, so the thoracic spine rests on the floor
+  const curl = floor ? 14 * Math.max(0, -R) * Math.max(0, Math.min(1, (0.2 - P) / 1.2)) : 0;
+  const box = box0 - curl;
+  const bx = (p) => add(T, rot(p, box)), bx0 = (p) => add(T, rot(p, box0));
+  const N = bx([6, 64]), atlas = add(N, rot([3, 27], box * 0.6)), head = add(atlas, rot([3.5, 12.4], box * 0.6));
+  // shoulder: the scapula rotates upward about a third of the arm's movement; the humerus sits in the glenoid
+  const piv = bx([2, 46]), scapRot = A / 3;
+  const sc = (p) => { const q = bx(p); return add(piv, rot([q[0] - piv[0], q[1] - piv[1]], scapRot)); };
+  const Sh = sc([16, 55]);
+  // In the squat the trunk keeps the same incline for balance (centre of mass over the feet): an open rib cage
+  // tips the thorax back, so the whole body leans further forward to keep it there. The arms hang with gravity.
+  const lean = squat ? box + 24 : 0;
+  const d = rot([Math.sin(A * Math.PI / 180), -Math.cos(A * Math.PI / 180)], squat ? lean : box);
+  const El = add(Sh, [d[0] * 75, d[1] * 75]), Wr = add(Sh, [d[0] * 134, d[1] * 134]), Ha = add(Sh, [d[0] * 177, d[1] * 177]);
+  return { Sa, T, C, L, head, atlas, Sh, El, Wr, Ha, d, pel, box, bx, bx0, pl, sc, P, R, curl, lean, headAng: box * 0.6, spineTop: bx([-2, 58]) };
+}
+const INK = "#151515", SKIN = "#EDD3BE", SKIN_E = "#BE957A", BONE = "#D2C5B0", BONE_D = "#A89A80", BONE_E = "#7C6B52", DISC = "#A9BFF2", MARK = "#D9363E";
+function draw(svgId, mode) {
+  const floor = mode === "floor", squat = mode === "squat";
+  const b = body(mode);
+  // ----- legs (hip → knee → ankle; heel and toe), in this view's frame
+  let legs;
+  let hip = [0, 0], lean = 0;
+  if (!floor) {
+    // the squat view sits the skeleton into a full squat; the standing view stays upright
+    const e = squat ? 1 : 0;
+    const ankle = [0, -196], shin = (10 + 30 * e) * Math.PI / 180, thigh = (90 - 78 * e) * Math.PI / 180;
+    const knee = [ankle[0] + 96 * Math.sin(shin), ankle[1] + 96 * Math.cos(shin)];
+    hip = [knee[0] - 100 * Math.cos(thigh), knee[1] + 100 * Math.sin(thigh)];
+    lean = b.lean;                                       // the trunk inclines forward to keep the centre of mass over the feet
+    legs = [{ k: knee, a: ankle, t: [32, -205], h: [-9, -205], hip }];
+  }
+  else {
+    // In the hollow the legs carry on the line of the posteriorly tilted pelvis: low and long, no bend at the hip.
+    // As the pelvis tips anteriorly the hip closes and the legs come up: the pike that breaks the hollow.
+    const an = (10 + 38 * Math.max(0, st.P)) * Math.PI / 180, c = Math.cos(an), si = Math.sin(an);
+    const at = (r, o = 0) => [r * c - o * si, r * si + o * c];
+    const straight = { k: at(100), a: at(196), t: at(220, -2), h: at(196, 7) };
+    const tuck = { k: [-30, 70], a: [20, 50], t: [40, 47], h: [16, 42] };
+    legs = st.lever === "tuck" ? [tuck] : st.lever === "one" ? [tuck, straight] : [straight];
+    legs.forEach((g) => (g.hip = [0, 0]));
+  }
+  // ----- floor view: turn the upper body onto its back (head to the left); legs are already in the floor frame
+  // On the floor the whole trunk settles so that the back of the sacrum and the thoracic spine both rest on it
+  // (lying down, nothing holds the trunk up); a hollow then lifts the shoulder blades from there.
+  let lev = 0;
+  if (floor && b.curl < 0.01) {
+    // the lower common support of the pelvis and the rib cage: like a rigid object, the trunk settles until both touch (not in the hollow, where the shoulders lift)
+    const pelvisPts = [[-27, 0], [-25.5, -8], [-19.5, -18.5], [-24, 14]].map(b.pl);
+    const thoraxPts = [[-13, 8], [-15, 20], [-15, 30], [-14, 42], [-13, 52]].map(b.bx0);
+    const all = [...pelvisPts, ...thoraxPts], h = (p, t) => p[0] * Math.cos(t) - p[1] * Math.sin(t);
+    let best = null;
+    for (const A2 of pelvisPts) for (const B2 of thoraxPts) {
+      const t = Math.atan((A2[0] - B2[0]) / (A2[1] - B2[1] || 1e-6)), base = h(A2, t);
+      if (Math.abs(t) > 1.2) continue;
+      if (all.every((q) => h(q, t) >= base - 0.01) && (!best || Math.abs(t) < Math.abs(best))) best = t;
+    }
+    lev = best == null ? 0 : best * 180 / Math.PI;
+  }
+  const U = (p) => { if (floor) { const q = rot(p, lev); return [-q[1], q[0]]; } return add(hip, rot(p, -lean)); };
+  const curveB = (t) => { const a = b.Sa, c = b.C, e = b.T, m = 1 - t; return [m * m * a[0] + 2 * m * t * c[0] + t * t * e[0], m * m * a[1] + 2 * m * t * c[1] + t * t * e[1]]; };
+  const tang = (t) => { const a = b.Sa, c = b.C, e = b.T; const d = [2 * (1 - t) * (c[0] - a[0]) + 2 * t * (e[0] - c[0]), 2 * (1 - t) * (c[1] - a[1]) + 2 * t * (e[1] - c[1])]; const n = Math.hypot(...d) || 1; return [d[0] / n, d[1] / n]; };
+  const behind = (t, k) => { const p = curveB(t), d = tang(t); return [p[0] - d[1] * k, p[1] + d[0] * k]; };
+  let floorY = 0, sx, sy;
+  if (floor) {
+    // contact with the floor: the back of the sacrum and coccyx, the spinous processes, the shoulder blade and the back of the skull
+    const occiput = add(b.atlas, rot([-18.4, 7.1], b.headAng));
+    const back = [b.pl([-27, 0]), b.pl([-25.5, -8]), b.pl([-19.5, -18.5]), b.bx([-13, 8]), b.bx([-15, 30]), b.bx([-13, 52]), b.sc([3, 27]), occiput, ...[0.1, 0.3, 0.5, 0.7, 0.9].map((t) => behind(t, 13.5))].map(U);
+    floorY = Math.min(...back.map((p) => p[1])) + 1.5;
+    sx = (p) => 232 + 0.74 * p[0]; sy = (p) => 318 - 0.74 * (p[1] - floorY);
+  } else if (squat) { sx = (p) => 150 + 1.0 * p[0]; sy = (p) => 168 - 1.0 * p[1]; }
+  else { sx = (p) => 175 + 0.92 * p[0]; sy = (p) => 275 - 0.92 * p[1]; }
+  const K = floor ? 0.74 : squat ? 1.0 : 0.92;                       // framed on the trunk: the pelvis and rib cage are what matter
+  const P = (p) => { const q = U(p); return sx(q).toFixed(1) + "," + sy(q).toFixed(1); };       // body-frame point → svg
+  const PL = (p) => sx(p).toFixed(1) + "," + sy(p).toFixed(1);                                      // legs (already in view frame)
+  const scr = (p) => { const q = U(p); return [sx(q), sy(q)]; };
+  const poly = (pts, fill, stroke, w = 1.2, extra = "") => `<polygon points="${pts.join(" ")}" fill="${fill}" stroke="${stroke}" stroke-width="${w}" stroke-linejoin="round" ${extra}/>`;
+  // place a DBCLS illustration with an affine map from its viewBox to the screen
+  const placed = (href, map, w = 400, h = 400) => {
+    const o = map([0, 0]), x = map([1, 0]), y = map([0, 1]);
+    return `<image href="${href}" width="${w}" height="${h}" preserveAspectRatio="none" transform="matrix(${(x[0] - o[0]).toFixed(5)} ${(x[1] - o[1]).toFixed(5)} ${(y[0] - o[0]).toFixed(5)} ${(y[1] - o[1]).toFixed(5)} ${o[0].toFixed(2)} ${o[1].toFixed(2)})"/>`;
+  };
+  let s = "";
+  if (floor) s += `<line x1="0" y1="319" x2="400" y2="319" stroke="#9A9A94" stroke-width="3"/>`;
+
+  // ----- lower back gap on the floor
+  if (floor) {
+    const lc = [0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1].map((t) => U(behind(t, 13.5)));
+    const gap = Math.max(...lc.map((p) => p[1] - floorY));
+    if (gap > 7 && b.L > 5) s += poly([...lc.map(PL), PL([lc[lc.length - 1][0], floorY]), PL([lc[0][0], floorY])], "#F2B24C", "#E09A2E", 1, 'opacity=".35" stroke-dasharray="3 3"');
+  }
+
+  // ----- skeleton only (no skin): the bones are what we coach from
+  const seg = (A, B, ra, rb, rm, bulge = 0) => {
+    const u = [B[0] - A[0], B[1] - A[1]], n0 = Math.hypot(...u) || 1, t = [u[0] / n0, u[1] / n0], n = [-t[1], t[0]];
+    const M = [A[0] + u[0] * 0.38, A[1] + u[1] * 0.38], pt = (p, k) => [p[0] + n[0] * k, p[1] + n[1] * k];
+    return [pt(A, ra), pt(M, rm), pt(B, rb), pt(B, -rb), pt(M, -rm - bulge), pt(A, -ra)];
+  };
+  const smooth = (xy) => {                           // closed Catmull-Rom curve through screen points, as cubic Béziers
+    const n = xy.length, f = (v) => v.toFixed(1); let d = `M${f(xy[0][0])},${f(xy[0][1])}`;
+    for (let i = 0; i < n; i++) {
+      const p0 = xy[(i - 1 + n) % n], p1 = xy[i], p2 = xy[(i + 1) % n], p3 = xy[(i + 2) % n];
+      d += ` C${f(p1[0] + (p2[0] - p0[0]) / 6)},${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)},${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])},${f(p2[1])}`;
+    }
+    return d + "Z";
+  };
+  const toXY = (view) => (p) => view === PL ? [sx(p), sy(p)] : scr(p);
+  // ----- skeleton
+  const bone = (pts, view = P, fill = BONE) => poly(pts.map(view), fill, BONE_E, 1.1);
+  // legs: femur (head, neck, greater trochanter, shaft, condyles), patella, tibia and fibula, foot
+  for (const g of legs) {
+    const u = [g.k[0] - g.hip[0], g.k[1] - g.hip[1]], n = Math.hypot(...u), t = [u[0] / n, u[1] / n], nn = [-t[1], t[0]];
+    const at = (r, o) => [g.hip[0] + t[0] * r + nn[0] * o, g.hip[1] + t[1] * r + nn[1] * o];
+    s += bone([at(-2, -4), at(6, -7), at(12, -6), at(n - 10, -3.6), at(n - 4, -6.5), at(n + 3, -5), at(n + 4, 4), at(n - 4, 5.5), at(n - 10, 3), at(10, 3.5), at(4, 7), at(-4, 6)], PL);
+    s += `<circle cx="${sx(g.hip).toFixed(1)}" cy="${sy(g.hip).toFixed(1)}" r="${(6.5 * K).toFixed(1)}" fill="${BONE}" stroke="${BONE_E}" stroke-width="1.1"/>`;
+    const pat = [g.k[0] + nn[0] * 7, g.k[1] + nn[1] * 7];
+    s += `<circle cx="${sx(pat).toFixed(1)}" cy="${sy(pat).toFixed(1)}" r="${(3.6 * K).toFixed(1)}" fill="${BONE}" stroke="${BONE_E}" stroke-width="1.1"/>`;
+    const v = [g.a[0] - g.k[0], g.a[1] - g.k[1]], m = Math.hypot(...v), tt = [v[0] / m, v[1] / m], n2 = [-tt[1], tt[0]];
+    const sh = (r, o) => [g.k[0] + tt[0] * r + n2[0] * o, g.k[1] + tt[1] * r + n2[1] * o];
+    s += bone([sh(-3, -5), sh(4, -4), sh(m - 6, -2.2), sh(m, -3.5), sh(m + 2, 0), sh(m - 6, 3.4), sh(8, 3), sh(-3, 5.5)], PL);
+    s += bone([sh(6, -4.6), sh(m - 4, -3.9), sh(m - 3, -5.4), sh(5, -6)], PL, BONE_D);
+    s += bone([g.h, [g.a[0] - n2[0] * 3, g.a[1] - n2[1] * 3], [g.a[0] + n2[0] * 4, g.a[1] + n2[1] * 4], g.t, [g.t[0] + (g.h[0] - g.a[0]) * 0.1, g.t[1] + (g.h[1] - g.a[1]) * 0.1 - 3]], PL);
+  }
+  // sacrum and coccyx, behind the hip bone
+  // sacrum: a curved wedge from S1 down to the coccyx, its back edge showing behind the ilium
+  const sac = [[-9, 17], [-15, 19.5], [-21, 17], [-25.5, 9], [-27, 0], [-25.5, -8], [-22, -14], [-19.5, -18.5], [-17.5, -17], [-17.5, -11], [-15.5, -3], [-12.5, 5], [-10, 11]].map(b.pl).map(scr);
+  s += `<path d="${smooth(sac)}" fill="${BONE}" stroke="${BONE_E}" stroke-width="1.1"/>`;
+  for (const [y0, y1] of [[13, 10], [6, 3], [-1, -4]]) { const a2 = scr(b.pl([-23.5, y0])), b2 = scr(b.pl([-18, y1])); s += `<line x1="${a2[0].toFixed(1)}" y1="${a2[1].toFixed(1)}" x2="${b2[0].toFixed(1)}" y2="${b2[1].toFixed(1)}" stroke="${BONE_D}" stroke-width="1.2"/>`; }
+  // the DBCLS hip bone, about the hip joint (acetabulum)
+  s += placed("anatomy/dbcls-hip-bone-lateral.svg", (q) => scr(b.pl([(q[0] - 242) * KP, (252 - q[1]) * KP])));
+  // lumbar vertebrae (bodies, discs, spinous processes), in the DBCLS style
+  for (let i = 0; i < 5; i++) {
+    const t0 = i / 5 + 0.015, t1 = (i + 1) / 5 - 0.015, c0 = curveB(t0), c1 = curveB(t1), tm = (t0 + t1) / 2, d = tang(tm), n = [-d[1], d[0]], c = curveB(tm);
+    const q = (p, along, k) => [p[0] + d[0] * along + n[0] * k, p[1] + d[1] * along + n[1] * k];
+    s += bone([q(c0, 0, -6.5), q(c1, 0, -6.5), q(c1, 0, 5.5), q(c0, 0, 5.5)]);
+    s += bone([q(c, -2, 5.5), q(c, 2.5, 5.5), q(c, 0.5, 13), q(c, -3.5, 13.5)], P, BONE_D);
+    if (i < 4) { const e = curveB((i + 1) / 5); s += poly([q(e, -0.9, -6), q(e, 0.9, -6), q(e, 0.9, 5), q(e, -0.9, 5)].map(P), DISC, BONE_E, 0.8); }
+  }
+  // the DBCLS rib cage with the thoracic spine and sternum, sitting on T12
+  s += placed("anatomy/dbcls-thorax-lateral.svg", (q) => scr(b.bx([5 + (q[0] - 182) * KT, (345 - q[1]) * KT])));
+  // cervical vertebrae
+  const c0 = b.bx([1, 64]), c1 = b.atlas;
+  for (let i = 0; i < 6; i++) {
+    const f = (i + 0.5) / 6, c = [c0[0] + (c1[0] - c0[0]) * f, c0[1] + (c1[1] - c0[1]) * f], v = [c1[0] - c0[0], c1[1] - c0[1]], m = Math.hypot(...v) || 1, d = [v[0] / m, v[1] / m], n = [-d[1], d[0]];
+    const q = (along, k) => [c[0] + d[0] * along + n[0] * k, c[1] + d[1] * along + n[1] * k];
+    s += bone([q(-1.6, -4.2), q(1.6, -4.2), q(1.6, 3.5), q(-1.6, 3.5)]) + bone([q(-1, 3.5), q(1, 3.5), q(0, 8.5)], P, BONE_D);
+  }
+
+  // the skull (LadyofHats, public domain), mirrored to face forward, on the atlas
+  const KS = 0.0884;
+  s += placed("anatomy/skull-lateral-ladyofhats.svg", (q) => scr(add(b.atlas, rot([-(q[0] - 310) * KS, (380 - q[1]) * KS], b.headAng))), 540, 540);
+
+  // ----- shoulder girdle: scapula on the back of the rib cage, clavicle from the sternum to the acromion
+  const scap = [[-3, 61], [7, 63], [19, 65], [22, 62], [25, 59], [20, 57.5], [17.5, 56.5], [16, 51], [10, 38], [3, 27], [-2, 33], [-5, 47]].map(b.sc).map(scr);
+  s += `<path d="${smooth(scap)}" fill="${BONE}" fill-opacity=".92" stroke="${BONE_E}" stroke-width="1.1"/>`;
+  { const a1 = scr(b.sc([-4, 54])), a2 = scr(b.sc([19, 63])); s += `<line x1="${a1[0].toFixed(1)}" y1="${a1[1].toFixed(1)}" x2="${a2[0].toFixed(1)}" y2="${a2[1].toFixed(1)}" stroke="${BONE_D}" stroke-width="${(2.6 * K).toFixed(1)}" stroke-linecap="round"/>`; }
+  { const c0 = scr(b.bx([14, 58])), cc = scr(b.bx([19, 64])), c1 = scr(b.sc([20, 64]));
+    const cl = `M${c0[0].toFixed(1)},${c0[1].toFixed(1)} Q${cc[0].toFixed(1)},${cc[1].toFixed(1)} ${c1[0].toFixed(1)},${c1[1].toFixed(1)}`;
+    s += `<path d="${cl}" fill="none" stroke="${BONE_E}" stroke-width="${(4.6 * K).toFixed(1)}" stroke-linecap="round"/><path d="${cl}" fill="none" stroke="${BONE}" stroke-width="${(3 * K).toFixed(1)}" stroke-linecap="round"/>`; }
+  // ----- the arm, as bones: humerus from the glenoid, radius and ulna, hand
+  {
+    const limb = (A2, B2, w1, w2) => { const u = [B2[0] - A2[0], B2[1] - A2[1]], n0 = Math.hypot(...u) || 1, t = [u[0] / n0, u[1] / n0], n = [-t[1], t[0]];
+      const q = (r, o) => [A2[0] + t[0] * r + n[0] * o, A2[1] + t[1] * r + n[1] * o];
+      return [q(-2, -w1 * 1.5), q(6, -w1), q(n0 - 6, -w2), q(n0 + 2, -w2 * 1.6), q(n0 + 2, w2 * 1.6), q(n0 - 6, w2), q(6, w1), q(-2, w1 * 1.5)]; };
+    s += bone(limb(b.El, b.Wr, 2.2, 1.8).map((p) => add(p, rot([0, 2.6], 0))), P, BONE_D) + bone(limb(b.El, b.Wr, 2.4, 2));
+    s += bone(limb(b.Sh, b.El, 3.2, 2.8)) + `<circle cx="${scr(b.Sh)[0].toFixed(1)}" cy="${scr(b.Sh)[1].toFixed(1)}" r="${(5.6 * K).toFixed(1)}" fill="${BONE}" stroke="${BONE_E}" stroke-width="1.1"/>`;
+    const t = [b.Ha[0] - b.Wr[0], b.Ha[1] - b.Wr[1]], m = Math.hypot(...t), d = [t[0] / m, t[1] / m], n = [-d[1], d[0]], q = (r, o) => [b.Wr[0] + d[0] * r + n[0] * o, b.Wr[1] + d[1] * r + n[1] * o];
+    s += bone([q(0, -3.5), q(m * 0.4, -5.5), q(m, -2), q(m, 2), q(m * 0.4, 5.5), q(0, 3.5)]);
+  }
+
+  // ----- the body line (dashed), and the two landmarks to coach from
+  let tail = ` L${P([0, 0])}`;
+  if (floor && st.lever !== "tuck") { const g = legs[legs.length - 1]; tail = ` Q${PL([g.k[0] * 0.35, Math.min(U(b.Sa)[1], g.k[1] * 0.35)])} ${PL(g.k)} L${PL(g.t)}`; }
+  else if (!floor) tail += ` L${PL(legs[0].k)} L${PL(legs[0].a)}`;
+  s += `<path d="M${P(b.head)} L${P(b.spineTop)} L${P(b.T)} Q${P(b.C)} ${P(b.Sa)}${tail}" fill="none" stroke="${INK}" stroke-width="2" stroke-dasharray="6 5" stroke-linecap="round" opacity=".6"/>`;
+  const asis = b.pl([12, 17.5]), costal = b.bx([27, 2]);
+  for (const p of [asis, costal]) { const q = scr(p); s += `<circle cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="5.5" fill="${MARK}" stroke="#fff" stroke-width="1.5"/>`; }
+  const lab = (p, t, dx, dy) => { const q = scr(p); return `<text x="${(q[0] + dx).toFixed(0)}" y="${(q[1] + dy).toFixed(0)}" font-size="11" font-weight="700" fill="#333" font-family="-apple-system,Helvetica,Arial" paint-order="stroke" stroke="#F4F3EF" stroke-width="3">${t}</text>`; };
+  s += lab(asis, "front of hip (ASIS)", floor ? -10 : 12, floor ? -44 : 4) + lab(costal, "bottom of rib cage", floor ? -110 : 12, floor ? -44 : 4);
+  if (floor) for (const [p, dx] of [[asis, -10], [costal, -110]]) { const q = scr(p); s += `<line x1="${q[0].toFixed(1)}" y1="${(q[1] - 6).toFixed(1)}" x2="${(q[0] + (dx < -50 ? -20 : 10)).toFixed(1)}" y2="${(q[1] - 38).toFixed(1)}" stroke="#333" stroke-width="1"/>`; }
+  $(svgId).innerHTML = s;
+  return b;
+}
+
+// ---------- what the shape is ----------
+const SHAPES = {
+  hollow: { t: "Hollow — a straight line", p: "Posterior pelvic tilt with the rib cage down. The lower back is flat (pressed into the floor), the abs pull the rib cage down towards the hips, the bottom squeezes forward and there is no bend at the hip. There must be a force from the front and behind. This is the shape for hollow holds, hanging and handstands.", P: -1, R: -1 },
+  squat: { t: "Squat and weightlifting shape", p: "Anterior pelvic tilt with the rib cage open. This is the shape that initiates the air squat and the lifts. If an athlete cannot find this shape, they cannot organise a squat — teach the shape first.", P: 1, R: 1 },
+  hips: { t: "Mixed — the shape breaks at the hips", p: "The rib cage is down but the pelvis tips anteriorly. If you were aiming for a hollow, this is the bend at the hip: the bottom pushes out and the line breaks. Holding the rib cage down while moving only the pelvis is the hardest part of the four-way complex.", P: 1, R: -1 },
+  ribs: { t: "Mixed — the shape breaks at the rib cage", p: "The pelvis is posterior but the rib cage opens. If you were aiming for a hollow, this is the rib flare: the line breaks at the rib cage, often as the arms go overhead.", P: -1, R: 1 },
+};
+function verdict(b) {
+  const { P, R, A } = st;
+  const z = (v) => (v < -0.4 ? -1 : v > 0.4 ? 1 : 0), zp = z(P), zr = z(R);
+  const key = zp === -1 && zr === -1 ? "hollow" : zp === 1 && zr === 1 ? "squat" : zp === 1 && zr === -1 ? "hips" : zp === -1 && zr === 1 ? "ribs" : null;
+  const box = $("verdict"); box.innerHTML = "";
+  const t = document.createElement("b"), p = document.createElement("p");
+  if (key) { t.textContent = SHAPES[key].t; p.textContent = SHAPES[key].p; }
+  else { t.textContent = "In between"; p.textContent = "Move the pelvis and the rib cage further to find the four positions of the complex."; }
+  box.append(t, p);
+  const notes = [];
+  if (A > 120 && R > 0.2 && key !== "squat") notes.push("Arms overhead pull the rib cage open. Keep it down to hold the hollow line on the bar and in a handstand.");
+  if (key === "squat" && st.view === "squat" && !drillT) notes.push("The skeleton sits into the squat: hips back, knees forward over the feet, the trunk inclined. The anterior tilt and open rib cage are what let the hips hinge back.");
+  if (A > 120 && key === "hollow") notes.push("Arms by the ears with the rib cage still down: the hollow line you want in the hang and the handstand.");
+  if (st.view === "squat" && P < -0.4 && !drillT) notes.push("In the squat, the pelvis can only tuck under a little at the bottom (often called a butt wink): the lower back rounds. Bring the pelvis back to anterior to keep the squat shape.");
+  if (R > 0.45 && st.view === "floor" && !drillT) notes.push("Lying down, the rib cage can only open so far before the pelvis would lift off the floor, so the floor skeleton stops there. The standing skeleton shows the full opening.");
+  if (b.L > 5 && key !== "hollow" && st.view === "floor" && !drillT) notes.push("On the floor, the lower back has lifted off the floor (shaded) — this is no longer a hollow.");
+  for (const n of notes) { const w = document.createElement("p"); w.className = "warn"; w.textContent = n; box.appendChild(w); }
+  $("quad").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x.dataset.k === key));
+}
+function render() {
+  $("r-pel").value = Math.round(st.P * 100); $("r-rib").value = Math.round(st.R * 100); $("r-arm").value = Math.round(st.A);
+  const sqKey = st.view === "squat";
+  $("boards").classList.toggle("solo", !!drillT); $("verdict").style.display = drillT ? "none" : "";
+  $("cap-floor").textContent = sqKey ? "Squat" : "On the floor · hollow";
+  draw("sv-stand", "stand"); const b = draw("sv-floor", sqKey ? "squat" : "floor");
+  $("lever").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x.dataset.l === st.lever));
+  verdict(b);
+}
+$("r-pel").oninput = () => { stopDrill(); st.P = $("r-pel").value / 100; render(); };
+$("r-rib").oninput = () => { stopDrill(); st.R = $("r-rib").value / 100; render(); };
+$("r-arm").oninput = () => { st.A = +$("r-arm").value; render(); };
+$("lever").querySelectorAll("button").forEach((x) => (x.onclick = () => { st.lever = x.dataset.l; render(); }));
+$("quad").innerHTML = Object.entries(SHAPES).map(([k, v]) => `<button type="button" data-k="${k}"><b>${v.t.split(" — ")[0]}</b>${v.P < 0 ? "Posterior" : "Anterior"} pelvis · rib cage ${v.R < 0 ? "down" : "open"}</button>`).join("");
+$("quad").querySelectorAll("button").forEach((x) => (x.onclick = () => { stopDrill(); st.view = x.dataset.k === "squat" ? "squat" : "floor"; tween({ P: SHAPES[x.dataset.k].P, R: SHAPES[x.dataset.k].R }); }));
+
+// ---------- smooth movement and the four-way complex drill ----------
+let anim = null, drillT = null;
+function tween(to, ms = 650) {
+  cancelAnimationFrame(anim);
+  const from = { P: st.P, R: st.R }, t0 = performance.now();
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / ms), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    if ("P" in to) st.P = from.P + (to.P - from.P) * e;
+    if ("R" in to) st.R = from.R + (to.R - from.R) * e;
+    render(); if (k < 1) anim = requestAnimationFrame(step);
+  };
+  anim = requestAnimationFrame(step);
+}
+const DRILL = [
+  { t: "1 · Anterior pelvic tilt", s: "Hold the pelvis anterior; rib cage down, then open. Open is the weightlifting shape.", fix: { P: 1 }, move: "R" },
+  { t: "2 · Posterior pelvic tilt", s: "Hold the pelvis posterior, bottom squeezed tight; rib cage down (your hollow), then open.", fix: { P: -1 }, move: "R" },
+  { t: "3 · Rib cage fixed down", s: "Keep the rib cage down while the hips tilt anterior and posterior. The hardest: the ribs want to flare.", fix: { R: -1 }, move: "P" },
+  { t: "4 · Rib cage open", s: "Keep the rib cage open while the hips tilt. Most athletes find this one the easiest.", fix: { R: 1 }, move: "P" },
+];
+$("drill").innerHTML = DRILL.map((d, i) => `<button type="button" data-i="${i}"><b>${d.t}</b>${d.s}</button>`).join("");
+function stopDrill() { const was = !!drillT; clearInterval(drillT); drillT = null; $("drill").querySelectorAll("button").forEach((x) => x.classList.remove("on")); if (was) render(); }
+$("drill").querySelectorAll("button").forEach((x) => (x.onclick = () => {
+  const on = x.classList.contains("on"); stopDrill(); if (on) return;
+  x.classList.add("on");
+  const d = DRILL[+x.dataset.i]; let v = -1;
+  drillT = setInterval(() => { v = -v; tween({ [d.move]: v }); }, 1300);
+  tween({ ...d.fix, [d.move]: v });
+  $("boards").scrollIntoView({ behavior: "smooth", block: "start" });
+}));
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const { error } = await db.auth.signInWithPassword({ email: $("l-email").value.trim(), password: $("l-pass").value });
+  if (error) { $("l-msg").className = "msg err"; $("l-msg").textContent = "That email and password did not match. Try again, or use the login link."; return; }
+  boot();
+});
+$("l-link").addEventListener("click", async () => {
+  const email = $("l-email").value.trim().toLowerCase();
+  if (!email.includes("@")) { $("l-msg").className = "msg err"; $("l-msg").textContent = "Type your email first."; return; }
+  await fetch("/.netlify/functions/learn-access", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, next: location.pathname + location.search }) }).catch(() => {});
+  $("l-msg").className = "msg ok"; $("l-msg").textContent = "If that email has a course, a login link is on its way. Tap it and you come straight back here.";
+});
+// The lesson opens this page in a new tab, so "back" saves, closes it, and the lesson is still underneath.
+$("b-course").onclick = async (e) => {
+  e.preventDefault();
+  if (doc) await save();
+  window.close(); setTimeout(() => { location.href = "/learn/"; }, 300);
+};
+async function unlock() {
+  try {
+    const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", "_unlocked").maybeSingle();
+    const list = (data && data.data && data.data.tools) || [];
+    if (!list.includes(TOOL)) await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: "_unlocked", data: { tools: [...list, TOOL] } }, { onConflict: "user_id,tool" });
+  } catch (e) { /* never block the task */ }
+}
+function changed() { $("state").textContent = "Unsaved changes"; clearTimeout(timer); timer = setTimeout(save, 1500); }
+async function save() {
+  clearTimeout(timer);
+  const row = { user_id: session.user.id, tool: TOOL, data: doc, updated_at: new Date().toISOString() };
+  const { error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" });
+  if (error) { $("state").textContent = "Not saved — " + error.message; return false; }
+  $("state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("b-save").onclick = async () => { if (await save()) $("state").textContent = "Saved ✓"; };
+$("b-pdf").onclick = async () => { await save(); window.print(); };
+async function boot() {
+  ({ data: { session } } = await db.auth.getSession());
+  if (!session) { show("login"); return; }
+  if (!canOpen(session)) { show("soon"); return; }
+  if (new URLSearchParams(location.search).get("tool")) unlock();
+  const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", TOOL).maybeSingle();
+  doc = (data && data.data) || {};
+  for (const [id, k] of [["n-hard", "hard"], ["n-use", "use"]]) { const el = $(id); el.value = doc[k] || ""; el.oninput = () => { doc[k] = el.value; changed(); }; }
+  show("eye"); render();
+}
+boot();
+</script>
+</body>
+</html>
