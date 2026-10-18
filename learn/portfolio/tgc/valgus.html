@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Valgus knee check — BirdBox Learn</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
+          --line:#342F31; --accent:#E0555A; --bad:#F0797D; --good:#5CC48A; --amber:#F2B24C; }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .bar{display:flex;align-items:center;gap:14px;padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top));
+    border-bottom:1px solid var(--line);background:#0d0b0b}
+  .bar img{height:34px;width:auto;display:block}
+  .bar .name{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .bar .nav{margin-left:auto;display:flex;gap:8px}
+  .btn{display:inline-block;font:inherit;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:12px 20px;background:var(--accent);color:#fff;border:1px solid var(--accent);cursor:pointer;text-decoration:none;text-align:center}
+  .btn:hover{background:transparent;color:var(--accent)}
+  .btn:disabled{opacity:.45;cursor:default}
+  .btn.ghost{background:none;color:var(--ink);border-color:#6A6466}
+  .btn.small{font-size:11px;padding:7px 12px}
+  .wrap{max-width:900px;margin:0 auto;padding:36px 20px 64px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  .kicker a{color:inherit;text-decoration:none}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.05;font-weight:800;text-transform:uppercase;margin:0 0 10px}
+  h2{font-size:15px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 12px}
+  .lede{color:var(--muted);font-size:16px;line-height:1.6;margin:0 0 24px;max-width:70ch}
+  .sub{color:var(--muted);font-size:14.5px;line-height:1.55;margin:0 0 14px}
+  .hidden{display:none!important}
+  .panel{background:var(--panel);border:1px solid var(--line);padding:22px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);padding:22px;max-width:440px}
+  .card label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+  .card input{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:6px}
+  .msg{font-size:14px;line-height:1.5;margin:12px 0 0;min-height:1em}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  label.f{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+  textarea,input[type=text]{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);line-height:1.5}
+  textarea{min-height:70px;resize:vertical}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .state{font-size:13px;color:var(--muted)}
+  .note{font-size:13px;color:var(--muted);line-height:1.5}
+  .howto{border-left:3px solid var(--accent);background:var(--panel2);padding:10px 14px;margin:12px 0 10px;font-size:14px;line-height:1.5}
+  .howto ol{display:flex;flex-wrap:wrap;gap:6px;list-style:none;counter-reset:pt;margin:10px 0 0;padding:0}
+  .howto li{counter-increment:pt;font-size:12px;font-weight:700;padding:5px 9px;border:1px solid var(--line);color:var(--muted)}
+  .howto li::before{content:counter(pt) " · "}
+  .howto li.now{background:var(--accent);border-color:var(--accent);color:#fff}
+  .howto li.done{color:var(--ink)} .howto li.done::after{content:" ✓"}
+  .obs{display:flex;gap:14px;align-items:center;border:1px solid var(--line);background:var(--panel2);padding:14px 16px;margin:0 0 10px;cursor:pointer}
+  .obs:hover{border-color:var(--accent)}
+  .obs img,.obs .ph{width:64px;height:64px;object-fit:cover;background:var(--paper);flex:none}
+  .obs .txt{flex:1;min-width:0} .obs b{display:block;font-size:16px} .obs span{font-size:13px;color:var(--muted)}
+  .obs .del{flex:none;font:inherit;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:none;color:var(--muted);border:1px solid #6A6466;padding:6px 10px;cursor:pointer}
+  .obs .del:hover{color:var(--bad);border-color:var(--bad)}
+  .vwrap{display:flex;gap:18px;align-items:flex-start;margin-top:12px}
+  .vleft{flex:0 1 auto;min-width:0}
+  .vside{flex:1 1 260px;min-width:240px;position:sticky;top:8px}
+  @media(max-width:760px){.vwrap{flex-direction:column}.vside{position:static;width:100%}}
+  .stage{position:relative;background:#000;max-width:100%}
+  .stage video{display:block;width:100%;height:100%;object-fit:contain}
+  .stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  .stage canvas.mark{cursor:crosshair}
+  .vctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .vside input[type=range]{width:100%;margin:10px 0;accent-color:var(--accent)}
+  .tstat{margin:10px 0 0;padding:10px 14px;border-left:3px solid var(--accent);background:var(--panel2);font-size:14px;line-height:1.5}
+  .tstat.err{border-left-color:var(--bad);color:var(--bad)}
+  .prog{height:8px;background:var(--panel2);margin:8px 0 2px} .prog > i{display:block;height:100%;width:0;background:var(--accent);transition:width .1s}
+  .qbox{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:baseline;margin:12px 0 0}
+  .qbox strong{font-size:28px;color:var(--accent)} .qbox span{font-size:13px;color:var(--muted);line-height:1.45}
+  #chart{display:block;width:100%;height:200px;background:var(--paper);border:1px solid var(--line);cursor:pointer;margin:6px 0 4px}
+  .verdict{border:1px solid var(--line);border-left:4px solid var(--good);background:var(--panel2);padding:14px 16px;margin:12px 0 0}
+  .verdict.bad{border-left-color:var(--bad)} .verdict.min{border-left-color:var(--amber)}
+  .verdict .when{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--amber)}
+  .verdict h3{font-size:18px;margin:3px 0 8px} .verdict p{margin:0 0 8px;font-size:14px;line-height:1.55}
+  .verdict p.cue b{color:var(--accent)} .verdict details{font-size:14px;line-height:1.55;margin:0 0 8px} .verdict summary{cursor:pointer;font-weight:700}
+  .verdict details p{margin:6px 0 0}
+  @media print{ body{background:#fff;color:#000} .bar,.noprint{display:none!important} .panel{border:1px solid #ccc;background:none} }
+</style>
+</head>
+<body>
+<div class="bar">
+  <a href="/learn/"><img src="/brand/birdBox.png" alt="BirdBox"></a>
+  <span class="name">My TGC portfolio</span>
+  <div class="nav"><a class="btn ghost small" href="index.html">My TGC portfolio</a> <a class="btn ghost small" href="/learn/" id="b-course">← Back to my course</a></div>
+</div>
+
+<main class="wrap">
+  <p id="loading" class="lede">Loading…</p>
+
+  <section id="login" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My TGC portfolio</h1>
+    <p class="lede">Film an athlete from the front, mark their Q angle, and check whether the knee stays out over the foot through a pistol or a pistol scale.</p>
+    <form class="card" id="login-form">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="email" required>
+      <label for="l-pass">Password</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn" type="submit">Log in</button>
+      <button class="btn ghost" id="l-link" type="button" style="margin-top:10px">Email me a login link</button>
+      <div id="l-msg" class="msg"></div>
+    </form>
+  </section>
+
+  <section id="soon" class="hidden">
+    <p class="kicker">The Gymnastics Course</p>
+    <h1>Coming soon</h1>
+    <p class="lede">The TGC portfolio is still being built. It will open here once it is ready.</p>
+    <a class="btn" href="/learn/">← My courses</a>
+  </section>
+
+  <section id="eye" class="hidden">
+    <p class="kicker"><a href="index.html">← My portfolio</a> · The Gymnastics Course · Lesson 13 · Pistols</p>
+    <h1>Valgus knee check</h1>
+    <p class="lede">Pistol Rule No.2: never allow a valgus knee. Film the athlete from the front, mark their Q angle while they stand tall, and the tracker follows the standing leg through the rep: is the knee kept out over the foot, within the athlete's own limit, so they are safe to progress?</p>
+
+    <div id="v-list">
+      <div class="row noprint" style="margin-bottom:14px"><button class="btn" id="b-new" type="button">+ New check</button></div>
+      <div id="obs-list"></div>
+    </div>
+
+    <div id="v-edit" class="hidden">
+      <div class="row noprint" style="margin-bottom:14px"><button class="btn ghost small" id="b-back" type="button">← My checks</button></div>
+
+      <div class="panel">
+        <h2>1. The athlete</h2>
+        <label class="f" for="o-who">Athlete</label><input type="text" id="o-who" placeholder="Name or initials">
+        <label class="f" for="o-move">Movement</label><input type="text" id="o-move" placeholder="e.g. Pistol to a box, pistol scale 2, full pistol">
+        <p class="note" style="margin:12px 0 0">The video stays on your device: only the measurements and one small picture of the knee are saved in your portfolio. Only film athletes who agreed to be filmed, for your own learning.</p>
+      </div>
+
+      <div class="panel">
+        <h2>2. The Q angle and the rep</h2>
+        <p class="sub">Film straight from the front, at knee height, with the whole body in the frame and the camera still. Open the video, pause while the athlete <b>stands tall before the rep, with the standing knee straight</b> (on both feet, or already on one leg), and press <b>Use this frame for the Q angle</b>. Click the three points on the leg they will stand on: the front of the hip bone (ASIS), the centre of the knee cap, then the bump below the knee cap (tibial tuberosity). As soon as the third point goes in, the tracker follows that leg through the rep and plays it back on a loop with the knee marked. If you move a point, the check runs again.</p>
+        <div class="row noprint"><label class="btn ghost small" for="v-file" style="cursor:pointer">Open a video</label><input type="file" id="v-file" accept="video/*" class="hidden"></div>
+        <div class="vwrap">
+          <div class="vleft"><div id="vbox" class="hidden"><div class="stage" id="vstage"><video id="vid" playsinline muted preload="auto"></video><canvas id="vcv"></canvas></div></div></div>
+          <div class="vside">
+            <div id="vctlbox" class="hidden noprint">
+              <div class="vctl">
+                <button class="btn ghost small" id="v-back" type="button">◀ 1 frame</button>
+                <button class="btn small" id="v-play" type="button">Play</button>
+                <button class="btn ghost small" id="v-fwd" type="button">1 frame ▶</button>
+              </div>
+              <input type="range" id="v-seek" min="0" max="1000" value="0" aria-label="Move through the video">
+              <button class="btn small" id="v-use" type="button" style="width:100%">Use this frame for the Q angle</button>
+            </div>
+            <div id="mui" class="hidden noprint">
+              <div class="howto"><span id="m-how"></span><ol id="m-order"></ol></div>
+              <div class="row"><button class="btn ghost small" id="m-undo" type="button">Undo last point</button><button class="btn small hidden" id="t-go" type="button">Check the knee</button></div>
+            </div>
+            <div class="tstat hidden" id="v-state"><span></span><div class="prog hidden"><i></i></div></div>
+            <div id="qbox" class="qbox hidden"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>3. Safe to progress?</h2>
+        <p class="sub" id="r-empty">Mark the Q angle and check the knee to see the result.</p>
+        <div id="r-box" class="hidden">
+          <canvas id="chart" aria-label="How far the knee goes inside the line from the hip to the ankle through the rep"></canvas>
+          <p class="note">How far the knee goes inside the line from the hip to the ankle, as a percentage of the leg's length, through the rep. The dashed line is the limit: from this athlete's Q angle on the way down and up, and 15% at the bottom, where the thigh folds onto the shin. The shaded part is where the athlete is down on the standing leg, which is what is judged. With the video open, click the chart to go to that moment.</p>
+          <div id="verdict"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>4. How I will coach it</h2>
+        <label class="f" for="o-cue">My cue</label>
+        <input type="text" id="o-cue" placeholder="e.g. Knee out over the second toe; press the big toe down">
+        <label class="f" for="o-fix">Drills, interventions or the scale I will use</label>
+        <textarea id="o-fix" placeholder="e.g. Isometric adductor hold, banded crab walks, back to the gymnastics air squat"></textarea>
+        <label class="f" for="o-notes">Notes</label>
+        <textarea id="o-notes" placeholder="Anything else I noticed"></textarea>
+      </div>
+
+      <div class="row noprint">
+        <button class="btn" id="b-save" type="button">Save</button>
+        <button class="btn ghost" id="b-pdf" type="button">Download PDF</button>
+        <button class="btn ghost" id="b-del" type="button">Delete this check</button>
+        <span class="state" id="state"></span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
+const $ = (id) => document.getElementById(id);
+const show = (id) => ["loading", "login", "soon", "eye"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+
+// While the TGC portfolio is built and tested, only these logins can open it; everyone else sees
+// "coming soon". Keep this list the same in every page in learn/portfolio/tgc/.
+// To launch: set TGC_LIVE to true in all of them, and add tgc1 to PORTFOLIOS in /learn/index.html.
+const TGC_LIVE = false, TGC_TESTERS = ["nathan@birdboxcoaching.com"];
+const canOpen = (s) => TGC_LIVE || TGC_TESTERS.includes(String((s && s.user && s.user.email) || "").toLowerCase());
+
+// Lesson 13 · Pistols (built 18 Oct 2026). Nathan: "only thing I would like here is a valgus knee checker, considering
+// Q angle, there is an acceptable limit depending on the athlete, so a front video basically confirming if they are safe
+// or not to progress" (Pistol Rule No.2: never allow a valgus knee; the squat itself is left for TCC).
+const TOOL = "tgc-valgus", FPS = 15, MAXS = 10;
+const QPTS = [["asis", "Front of the hip bone (ASIS)"], ["pat", "Centre of the knee cap"], ["tt", "Bump below the knee cap (tibial tuberosity)"]];
+
+// What is measured (calibrated 18 Oct on Nathan's four front-on pistols; he rated 09.14.35 and 09.14.38 safe, 09.14.19 and
+// 09.14.34 valgus). The standing leg is the one the coach marks (the free leg reaching towards the camera sits lower in the
+// picture, so "the lower foot" picks the wrong leg: the first calibration did, and 09.14.19 then read safe). Inward is towards the
+// other hip.
+//  - On the way down and up (the hip down 15 to 42% of the leg's length; from about 45% the thigh starts to fold and the angle
+//    jumps: 23° on safe 09.14.38): the knee's angle in from the line from the hip to the
+//    ankle. Safe reps at most 11°; 09.14.19 29 to 53°. The limit is the athlete's own Q angle plus 5° for the tracker: the knee
+//    may come in as far as their anatomy sets it, not past it.
+//  - Deeper (past 42%): the thigh folds onto the shin and that angle cannot be read, so it is how far the knee sits inside the
+//    hip-to-ankle line, as % of the leg's length. Safe at most 10%; 09.14.34 19 to 22%. Limit 15%.
+// (Claude's starting lines from four reps, for Nathan to check.)
+const MID = [0.15, 0.42], DEEP_LIMIT = 15, Q_ALLOW = 5;
+const limitFor = (q) => (q || 15) + Q_ALLOW;
+const HOLD = 3;   // frames in a row past the limit (0.2 s) before it counts, so one frame of tracker wobble does not
+
+let session = null, doc = null, cur = null, timer = null, landmarker = null, tracking = false, drag = null;
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const { error } = await db.auth.signInWithPassword({ email: $("l-email").value.trim(), password: $("l-pass").value });
+  if (error) { $("l-msg").className = "msg err"; $("l-msg").textContent = "That email and password did not match. Try again, or use the login link."; return; }
+  boot();
+});
+$("l-link").addEventListener("click", async () => {
+  const email = $("l-email").value.trim().toLowerCase();
+  if (!email.includes("@")) { $("l-msg").className = "msg err"; $("l-msg").textContent = "Type your email first."; return; }
+  await fetch("/.netlify/functions/learn-access", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, next: location.pathname + location.search }) }).catch(() => {});
+  $("l-msg").className = "msg ok"; $("l-msg").textContent = "If that email has a course, a login link is on its way. Tap it and you come straight back here.";
+});
+// The lesson opens this page in a new tab, so "back" saves, closes it, and the lesson is still underneath.
+$("b-course").onclick = async (e) => { e.preventDefault(); if (cur) await save(); window.close(); setTimeout(() => { location.href = "/learn/"; }, 300); };
+async function unlock() {
+  try {
+    const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", "_unlocked").maybeSingle();
+    const list = (data && data.data && data.data.tools) || [];
+    if (!list.includes(TOOL)) await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: "_unlocked", data: { tools: [...list, TOOL] } }, { onConflict: "user_id,tool" });
+  } catch (e) { /* never block the task */ }
+}
+function changed() { $("state").textContent = "Unsaved changes"; clearTimeout(timer); timer = setTimeout(save, 1500); }
+async function save() {
+  clearTimeout(timer);
+  try {
+    if (cur) cur.updated = new Date().toISOString();
+    const { error } = await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: TOOL, data: doc, updated_at: new Date().toISOString() }, { onConflict: "user_id,tool" });
+    if (error) throw error;
+    $("state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return true;
+  } catch (e) { $("state").textContent = "Not saved — " + (e.message || e); return false; }
+}
+$("b-save").onclick = async () => { if (await save()) $("state").textContent = "Saved ✓"; };
+$("b-pdf").onclick = async () => { await save(); window.print(); };
+async function boot() {
+  ({ data: { session } } = await db.auth.getSession());
+  if (!session) { show("login"); return; }
+  if (!canOpen(session)) { show("soon"); return; }
+  if (new URLSearchParams(location.search).get("tool")) unlock();
+  const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", TOOL).maybeSingle();
+  doc = (data && data.data) || {}; doc.obs = doc.obs || [];
+  list(); show("eye");
+}
+
+// ---------- the list of checks ----------
+const esc = (t) => String(t || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const when = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+function list() {
+  $("v-list").classList.remove("hidden"); $("v-edit").classList.add("hidden"); cur = null; vid.pause();
+  const box = $("obs-list"); box.innerHTML = "";
+  const obs = [...doc.obs].sort((a, b) => (b.created || "").localeCompare(a.created || ""));
+  if (!obs.length) { box.innerHTML = '<p class="sub">No checks yet. Press <b>New check</b>, open a front-on video of a pistol or a pistol scale, and mark the Q angle.</p>'; return; }
+  for (const o of obs) {
+    const d = document.createElement("div"); d.className = "obs";
+    const v = o.result ? (o.result.safe ? "safe to progress" : "valgus knee: not yet") : "not checked yet";
+    d.innerHTML = `${o.thumb ? `<img src="${o.thumb}" alt="">` : '<span class="ph"></span>'}<div class="txt"><b>${esc(o.who) || "Athlete"}${o.move ? " · " + esc(o.move) : ""}</b><span>${when(o.created)}${o.q && o.q.angle != null ? " · Q angle " + o.q.angle.toFixed(0) + "°" : ""} · ${v}</span></div>`;
+    const x = document.createElement("button"); x.type = "button"; x.className = "del noprint"; x.textContent = "Delete";
+    x.onclick = (e) => { e.stopPropagation(); del(o); };
+    d.appendChild(x); d.onclick = () => edit(o); box.appendChild(d);
+  }
+}
+$("b-new").onclick = () => { const o = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), created: new Date().toISOString(), who: "" }; doc.obs.push(o); edit(o); };
+$("b-back").onclick = async () => { await save(); list(); };
+async function del(o) {
+  if (!o || !confirm(`Delete the check of ${o.who || "this athlete"}? This cannot be undone.`)) return;
+  doc.obs = doc.obs.filter((x) => x !== o); if (cur === o) cur = null;
+  await save(); list();
+}
+$("b-del").onclick = () => del(cur);
+
+// ---------- one check ----------
+const vid = $("vid"), vcv = $("vcv");
+function edit(o) {
+  cur = o; $("v-list").classList.add("hidden"); $("v-edit").classList.remove("hidden");
+  $("vbox").classList.add("hidden"); $("vctlbox").classList.add("hidden"); vid.removeAttribute("src"); vid.load(); $("v-file").value = "";
+  for (const [id, k] of [["o-who", "who"], ["o-move", "move"], ["o-cue", "cue"], ["o-fix", "fix"], ["o-notes", "notes"]]) { const el = $(id); el.value = o[k] || ""; el.oninput = () => { o[k] = el.value; changed(); }; }
+  say(o.result ? "Open the same video to play the rep back with the knee marked." : ""); markUI(); qInfo(); result(); window.scrollTo(0, 0);
+}
+function say(msg, { err = false, pct = null } = {}) {
+  const b = $("v-state"); b.classList.toggle("hidden", !msg); b.classList.toggle("err", err); b.querySelector("span").textContent = msg;
+  const p = b.querySelector(".prog"); p.classList.toggle("hidden", pct == null); if (pct != null) p.firstElementChild.style.width = pct + "%";
+}
+const seekTo = (t) => new Promise((res) => { let to; const done = () => { clearTimeout(to); vid.removeEventListener("seeked", done); res(); }; vid.addEventListener("seeked", done); to = setTimeout(done, 3000); vid.currentTime = t; });
+$("v-file").onchange = async () => {
+  const f = $("v-file").files[0]; if (!f || !cur) return;
+  vid.src = URL.createObjectURL(f); await new Promise((r) => (vid.onloadedmetadata = r));
+  const st = $("vstage"); st.style.aspectRatio = vid.videoWidth + " / " + vid.videoHeight; st.style.width = `min(100%, calc(70vh * ${vid.videoWidth / vid.videoHeight}))`;
+  $("vbox").classList.remove("hidden"); $("vctlbox").classList.remove("hidden");
+  await seekTo(cur.q && cur.q.t != null ? cur.q.t : 0); draw(); markUI();
+  say(cur.q && nextQ() >= QPTS.length ? (cur.result ? "Press Play to see the rep with the knee marked." : "Press Check the knee.") : "Pause while the athlete stands tall before the rep, with the standing knee straight (on both feet or already on one leg), then press Use this frame for the Q angle.");
+};
+$("v-play").onclick = () => { if (vid.paused) vid.play(); else vid.pause(); };
+vid.addEventListener("play", () => ($("v-play").textContent = "Pause")); vid.addEventListener("pause", () => ($("v-play").textContent = "Play"));
+$("v-back").onclick = () => { vid.pause(); vid.currentTime = Math.max(0, vid.currentTime - 1 / FPS); };
+$("v-fwd").onclick = () => { vid.pause(); vid.currentTime = Math.min(vid.duration, vid.currentTime + 1 / FPS); };
+$("v-seek").oninput = () => { vid.pause(); vid.currentTime = (vid.duration || 0) * $("v-seek").value / 1000; };
+vid.addEventListener("timeupdate", () => { if (vid.duration) $("v-seek").value = Math.round(1000 * vid.currentTime / vid.duration); });
+for (const e of ["seeked", "pause", "play", "loadedmetadata"]) vid.addEventListener(e, draw);
+window.addEventListener("resize", draw);
+// once checked, the rep loops (Nathan, 18 Oct: "when marked make it play continuously")
+(function loop() { if (!vid.paused) { const tr = cur && cur.track; if (tr && !tracking && (vid.currentTime >= tr.t0 + (tr.pts.length - 1) / tr.fps || vid.currentTime < tr.t0 - 0.05)) vid.currentTime = tr.t0; draw(); } requestAnimationFrame(loop); })();
+$("v-use").onclick = () => {
+  if (!cur || !vid.currentSrc) return; vid.pause();
+  if (cur.result && !confirm("Mark the Q angle again on this frame? The knee check will be cleared.")) return;
+  cur.q = { t: +vid.currentTime.toFixed(3), w: vid.videoWidth, h: vid.videoHeight, pts: {} }; delete cur.result; delete cur.track; delete cur.thumb;
+  markUI(); qInfo(); result(); draw(); changed();
+};
+
+// ---------- marking the Q angle ----------
+const nextQ = () => { if (!cur || !cur.q) return 0; const n = QPTS.findIndex(([k]) => !cur.q.pts[k]); return n < 0 ? QPTS.length : n; };
+const onQFrame = () => cur && cur.q && Math.abs(vid.currentTime - cur.q.t) < 0.05;
+function markUI() {
+  const on = !!(cur && cur.q), n = on ? nextQ() : 0;
+  $("mui").classList.toggle("hidden", !on);
+  vcv.classList.toggle("mark", on && n < QPTS.length);
+  if (!on) return;
+  $("m-how").innerHTML = n < QPTS.length ? `<b>Click the ${QPTS[n][1].toLowerCase()}</b> on the leg the athlete will stand on: point ${n + 1} of ${QPTS.length}. Drag a point to move it.` : "<b>The Q angle is marked.</b> Drag a point to move it, then press Check the knee.";
+  $("m-order").innerHTML = QPTS.map(([k, name], i) => `<li class="${cur.q.pts[k] ? "done" : i === n ? "now" : ""}">${name}</li>`).join("");
+  $("m-undo").disabled = !Object.keys(cur.q.pts).length;
+  $("t-go").classList.toggle("hidden", n < QPTS.length); $("t-go").textContent = cur.track ? "Check again" : "Check the knee";
+}
+const vat = (e) => { const r = vcv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
+vcv.addEventListener("pointerdown", async (e) => {
+  if (!cur || !cur.q || tracking) return;
+  if (!onQFrame()) { vid.pause(); await seekTo(cur.q.t); draw(); say("Back on the Q angle frame: click again."); return; }
+  const q = vat(e), r = vcv.getBoundingClientRect();
+  const hit = QPTS.map(([k]) => k).find((k) => cur.q.pts[k] && Math.hypot((cur.q.pts[k][0] - q[0]) * r.width, (cur.q.pts[k][1] - q[1]) * r.height) < 16);
+  if (hit) { drag = hit; vcv.setPointerCapture(e.pointerId); return; }
+  const n = nextQ(); if (n >= QPTS.length) return;
+  cur.q.pts[QPTS[n][0]] = q; afterMark();
+});
+vcv.addEventListener("pointermove", (e) => { if (!drag) return; cur.q.pts[drag] = vat(e).map((v) => Math.max(0, Math.min(1, v))); qCalc(); draw(); });
+vcv.addEventListener("pointerup", () => { if (!drag) return; drag = null; afterMark(); });
+$("m-undo").onclick = () => { const ks = QPTS.map(([k]) => k).filter((k) => cur.q.pts[k]); if (ks.length) delete cur.q.pts[ks[ks.length - 1]]; afterMark(); };
+function afterMark() {
+  qCalc(); if (cur.result) { delete cur.result; delete cur.track; result(); }
+  markUI(); qInfo(); draw(); changed();
+  // the third point in, or a point moved after that: the knee is checked straight away
+  if (nextQ() >= QPTS.length && !drag && !cur.track && !tracking) track();
+}
+// the Q angle: between the line from the ASIS through the centre of the knee cap (carried on) and the line from the knee cap
+// to the tibial tuberosity
+function qCalc() {
+  const q = cur.q, P = q && q.pts; if (!P || !P.asis || !P.pat || !P.tt) { if (q) q.angle = null; return; }
+  const a = [(P.pat[0] - P.asis[0]) * q.w, (P.pat[1] - P.asis[1]) * q.h], b = [(P.tt[0] - P.pat[0]) * q.w, (P.tt[1] - P.pat[1]) * q.h];
+  q.angle = Math.acos(Math.max(-1, Math.min(1, (a[0] * b[0] + a[1] * b[1]) / (Math.hypot(...a) * Math.hypot(...b) || 1)))) * 180 / Math.PI;
+}
+function qInfo() {
+  const box = $("qbox"), a = cur && cur.q && cur.q.angle;
+  box.classList.toggle("hidden", a == null); if (a == null) return;
+  box.innerHTML = `<strong>${a.toFixed(0)}°</strong><span><b>Q angle.</b> This athlete's own line from the hip to the knee. Standing, healthy adults average about 13 to 14° in men and 17° in women (higher than lying down, and higher with a wider pelvis); above about 15° in men and 20° in women is usually called high, but healthy and painful knees overlap a lot, so the athlete's own angle is the reference. Their limit: the knee may come in up to ${limitFor(a).toFixed(0)}° on the way down and up (their Q angle plus 5° for the tracker), and no more than ${DEEP_LIMIT}% of the leg's length inside the hip-to-ankle line at the bottom.</span>`;
+}
+
+// ---------- tracking the standing leg ----------
+async function getLandmarker() {
+  if (landmarker) return landmarker;
+  say("Loading the movement tracker. The first time takes a little while (it downloads about 30 MB); after that it is quick.", { pct: 0 });
+  const { FilesetResolver, PoseLandmarker } = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs");
+  const files = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+  const opts = (delegate) => ({ baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task", delegate },
+    runningMode: "IMAGE", numPoses: 2, minPoseDetectionConfidence: 0.25, minPosePresenceConfidence: 0.25, minTrackingConfidence: 0.25 });
+  try { landmarker = await PoseLandmarker.createFromOptions(files, opts("GPU")); } catch (e) { landmarker = await PoseLandmarker.createFromOptions(files, opts("CPU")); }
+  return landmarker;
+}
+// MediaPipe: hips 23/24, knees 25/26, ankles 27/28, toes 31/32 (the athlete's left, then right)
+const LEG = { L: { hip: 23, knee: 25, ankle: 27, toe: 31, other: 24 }, R: { hip: 24, knee: 26, ankle: 28, toe: 32, other: 23 } };
+$("t-go").onclick = () => { if (cur.track && !confirm("Check the knee again?")) return; track(); };
+async function track() {
+  if (tracking || !cur || !cur.q || nextQ() < QPTS.length) return;
+  if (!vid.currentSrc) { say("Open the video again to check the knee.", { err: true }); return; }
+  tracking = true; $("t-go").disabled = true; vid.pause();
+  try {
+    const lm = await getLandmarker(), W = vid.videoWidth, H = vid.videoHeight, me = cur, t0 = cur.q.t, t1 = Math.min(vid.duration - 0.05, t0 + MAXS);
+    const off = document.createElement("canvas"); off.width = W; off.height = H; const g = off.getContext("2d");
+    const n = Math.round((t1 - t0) * FPS), frames = []; let side = null, prev = null;
+    for (let i = 0; i <= n; i++) {
+      if (cur !== me) throw new Error("Stopped: you left this check while it tracked.");
+      await seekTo(Math.min(t0 + i / FPS, vid.duration - 0.001)); g.drawImage(vid, 0, 0, W, H);
+      const res = lm.detect(off), bodies = (res.landmarks || []).map((p) => p.map((q) => [q.x * W, q.y * H]));
+      // the athlete: at the start, the body whose knee is nearest the knee cap the coach marked (which also picks the leg); after
+      // that, the body nearest the last one found
+      let best = null, bd = Infinity;
+      for (const b of bodies) {
+        if (!side) { for (const s of ["L", "R"]) { const d = Math.hypot(b[LEG[s].knee][0] - cur.q.pts.pat[0] * W, b[LEG[s].knee][1] - cur.q.pts.pat[1] * H); if (d < bd) { bd = d; best = b; side = s; } } }
+        else { const d = Math.hypot(b[23][0] - prev[23][0], b[23][1] - prev[23][1]) + Math.hypot(b[24][0] - prev[24][0], b[24][1] - prev[24][1]); if (d < bd) { bd = d; best = b; } }
+      }
+      if (!prev && best && bd > 0.25 * H) best = null;
+      if (best) prev = best; frames.push(best);
+      say(`Tracking the leg… ${Math.round(100 * i / n)}%`, { pct: Math.round(100 * i / n) });
+    }
+    if (!frames[0]) throw new Error("The tracker could not find the athlete on the Q angle frame. Check the whole body is in the picture and the knee cap point is on the athlete.");
+    // fill gaps, then smooth each point: a median of five frames (drops single-frame misreads), then a mean of three
+    for (let i = 1; i < frames.length; i++) if (!frames[i]) frames[i] = frames[i - 1];
+    const L = LEG[side], keys = ["hip", "knee", "ankle", "toe", "other"];
+    const raw = frames.map((b) => Object.fromEntries(keys.map((k) => [k, b[L[k]]])));
+    const sm = (arr, fn, r) => arr.map((_, i) => Object.fromEntries(keys.map((k) => { const nb = arr.slice(Math.max(0, i - r), i + r + 1).map((q) => q[k]); return [k, [fn(nb.map((q) => q[0])), fn(nb.map((q) => q[1]))]]; })));
+    const med = (v) => [...v].sort((x, y) => x - y)[Math.floor(v.length / 2)], mean = (v) => v.reduce((x, y) => x + y, 0) / v.length;
+    const P = sm(sm(raw, med, 2), mean, 1);
+    cur.track = { t0: +t0.toFixed(3), fps: FPS, w: W, h: H, side, pts: P.map((p) => Object.fromEntries(keys.map((k) => [k, [+(p[k][0] / W).toFixed(4), +(p[k][1] / H).toFixed(4)]]))) };
+    analyse(); await thumbAt(cur.result.worst);
+    await seekTo(t0); draw(); result(); markUI(); changed(); vid.play().catch(() => {});
+    say(cur.result.safe ? "Checked. Press Play to watch the rep with the knee marked." : "Checked. Press Play to watch the rep: the knee turns red where it goes in past the limit.");
+  } catch (e) { say("The check did not work: " + (e.message || String(e)) + " Press Check the knee to try again.", { err: true }); console.error(e); }
+  finally { tracking = false; $("t-go").disabled = false; }
+}
+// per frame: how far the hip has dropped, the knee's angle in from the hip-to-ankle line, and its distance inside that line
+function analyse() {
+  const tr = cur.track, px = (p) => [p[0] * tr.w, p[1] * tr.h], A = tr.pts.map((p) => Object.fromEntries(Object.entries(p).map(([k, v]) => [k, px(v)])));
+  // how far the hip has dropped is measured from the athlete's highest point in the clip, with the leg's length there (Nathan, 18 Oct:
+  // athletes often start already on one leg, so the first frame is not always standing tall)
+  const top = A.reduce((b, p, i) => (p.hip[1] < A[b].hip[1] ? i : b), 0), p0 = A[top], leg = Math.hypot(p0.hip[0] - p0.ankle[0], p0.hip[1] - p0.ankle[1]) || 1, qLim = limitFor(cur.q.angle);
+  const F = A.map((p) => {
+    const d = [p.ankle[0] - p.hip[0], p.ankle[1] - p.hip[1]], Ld = Math.hypot(...d) || 1;
+    const side = (q) => (d[0] * (q[1] - p.hip[1]) - d[1] * (q[0] - p.hip[0])) / Ld, inSign = Math.sign(side(p.other)) || 1;
+    const inside = side(p.knee) * inSign / leg * 100;
+    const u = [p.hip[0] - p.knee[0], p.hip[1] - p.knee[1]], w = [p.ankle[0] - p.knee[0], p.ankle[1] - p.knee[1]];
+    const ang = (180 - Math.acos(Math.max(-1, Math.min(1, (u[0] * w[0] + u[1] * w[1]) / (Math.hypot(...u) * Math.hypot(...w) || 1)))) * 180 / Math.PI) * Math.sign(inside || 1);
+    const drop = (p.hip[1] - p0.hip[1]) / leg, zone = drop >= MID[0] && drop <= MID[1] ? "mid" : drop > MID[1] ? "deep" : null;
+    const lim = zone === "mid" ? qLim : DEEP_LIMIT, val = zone === "mid" ? ang : inside;
+    return { inside, ang, drop, zone, lim, val, over: zone ? val - lim : -99 };
+  });
+  let worst = null, run = 0, from = null, hit = null;
+  for (let i = 0; i < F.length; i++) {
+    if (!F[i].zone) { run = 0; continue; }
+    if (worst == null || F[i].over > F[worst].over) worst = i;
+    if (F[i].over > 0) { run++; if (run === 1) from = i; if (run >= HOLD && hit == null) hit = from; } else run = 0;
+  }
+  const judged = F.filter((f) => f.zone).length, w = worst ?? 0;
+  cur.result = { qLim, deepLim: DEEP_LIMIT, safe: hit == null, from: hit, worst: w, judged, zone: F[w].zone, val: +F[w].val.toFixed(1), lim: F[w].lim, over: +F[w].over.toFixed(1),
+    series: F.map((f) => +f.inside.toFixed(1)), ang: F.map((f) => +f.ang.toFixed(1)), zones: F.map((f) => f.zone), lims: F.map((f) => f.zone === "mid" ? +(qLim / 3).toFixed(1) : f.zone === "deep" ? DEEP_LIMIT : null), bad: F.map((f) => f.over > 0) };
+}
+// a small picture of the worst moment, kept with the check (the video itself stays on the device)
+async function thumbAt(i) {
+  try { const tr = cur.track; await seekTo(tr.t0 + i / tr.fps); const c = document.createElement("canvas"), s = 160 / Math.max(tr.w, tr.h); c.width = Math.round(tr.w * s); c.height = Math.round(tr.h * s);
+    c.getContext("2d").drawImage(vid, 0, 0, c.width, c.height); cur.thumb = c.toDataURL("image/jpeg", 0.7); } catch (e) { /* the picture is optional */ }
+}
+
+// ---------- drawing: the Q angle on its frame, the standing leg through the rep ----------
+function draw() {
+  const r = $("vstage").getBoundingClientRect(); if (!r.width) return; vcv.width = Math.round(r.width * devicePixelRatio); vcv.height = Math.round(r.height * devicePixelRatio);
+  const g = vcv.getContext("2d"), k = devicePixelRatio, X = (p) => p[0] * vcv.width, Y = (p) => p[1] * vcv.height; g.clearRect(0, 0, vcv.width, vcv.height);
+  if (!cur || !vid.currentSrc) return;
+  const dot = (p, col, lab) => { g.fillStyle = col; g.strokeStyle = "#fff"; g.lineWidth = 2 * k; g.beginPath(); g.arc(X(p), Y(p), 7 * k, 0, 7); g.fill(); g.stroke();
+    if (lab) { g.fillStyle = "#fff"; g.font = `800 ${10 * k}px -apple-system,Helvetica,Arial`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(lab, X(p), Y(p)); } };
+  const line = (a, b, col, w = 3, dash) => { g.strokeStyle = col; g.lineWidth = w * k; g.setLineDash(dash ? dash.map((d) => d * k) : []); g.beginPath(); g.moveTo(X(a), Y(a)); g.lineTo(X(b), Y(b)); g.stroke(); g.setLineDash([]); };
+  const tr = cur.track, i = tr ? Math.round((vid.currentTime - tr.t0) * tr.fps) : -1;
+  if (tr && i >= 1 && i < tr.pts.length) {
+    const p = tr.pts[i], res = cur.result, bad = res && res.bad[i];
+    line(p.hip, p.knee, "#E0555A"); line(p.knee, p.ankle, "#E0555A"); line(p.ankle, p.toe, "#E0555A");
+    line(p.hip, p.ankle, "rgba(255,255,255,.75)", 2, [5, 4]);   // the line from the hip to the ankle: the knee should sit on it or outside it
+    dot(p.hip, "#E0555A"); dot(p.ankle, "#E0555A"); dot(p.toe, "#E0555A"); dot(p.knee, bad ? "#F0797D" : "#5CC48A");
+    if (res && res.zones[i]) { const txt = res.zones[i] === "mid" ? (res.ang[i] > 0 ? `Knee in ${res.ang[i].toFixed(0)}° (limit ${res.qLim.toFixed(0)}°)` : "Knee out over the foot") : (res.series[i] > 0 ? `Knee ${res.series[i].toFixed(0)}% inside (limit ${res.deepLim}%)` : "Knee out over the foot");
+      g.font = `800 ${13 * k}px -apple-system,Helvetica,Arial`; const tw = g.measureText(txt).width; g.fillStyle = "rgba(0,0,0,.6)"; g.fillRect(8 * k, 8 * k, tw + 14 * k, 26 * k); g.fillStyle = bad ? "#F0797D" : "#5CC48A"; g.textAlign = "left"; g.textBaseline = "middle"; g.fillText(txt, 15 * k, 21 * k); }
+    return;
+  }
+  const q = cur.q; if (!q || !onQFrame()) return;
+  const P = q.pts;
+  if (P.asis && P.pat) { const ext = [P.pat[0] + (P.pat[0] - P.asis[0]) * 0.6, P.pat[1] + (P.pat[1] - P.asis[1]) * 0.6]; line(P.asis, P.pat, "#E0555A"); line(P.pat, ext, "rgba(255,255,255,.7)", 2, [5, 4]); }
+  if (P.pat && P.tt) line(P.pat, P.tt, "#F2B24C");
+  QPTS.forEach(([key], j) => { if (P[key]) dot(P[key], j === 2 ? "#F2B24C" : "#E0555A", String(j + 1)); });
+}
+
+// ---------- the result ----------
+function result() {
+  const res = cur && cur.result; $("r-empty").classList.toggle("hidden", !!res); $("r-box").classList.toggle("hidden", !res);
+  if (!res) return; chart();
+  const tr = cur.track, sec = (i) => (tr.t0 + i / tr.fps).toFixed(1) + " s", box = $("verdict"); box.innerHTML = "";
+  const d = document.createElement("div");
+  if (!res.judged) {
+    d.className = "verdict min"; d.innerHTML = "<h3>The squat was not found</h3><p>The tracker did not see the hip drop on the standing leg, so there was nothing to judge. Check that the rep comes after the Q angle frame and the whole body is in the picture, then mark the Q angle again.</p>";
+    box.appendChild(d); return;
+  }
+  const near = res.over > -4, q = cur.q.angle.toFixed(0);
+  const what = (zone, val) => zone === "mid" ? `the knee comes in ${Math.max(0, val).toFixed(0)}° from the line from the hip to the ankle` : `the knee sits ${Math.max(0, val).toFixed(0)}% of the leg's length inside the line from the hip to the ankle`;
+  const lim = (zone) => zone === "mid" ? `this athlete's limit of ${res.qLim.toFixed(0)}° (Q angle ${q}° plus 5°)` : `the limit of ${res.deepLim}% at the bottom`;
+  if (res.safe) {
+    d.className = "verdict" + (near ? " min" : "");
+    d.innerHTML = `<div class="when">Through the rep${near ? " · close to the limit" : ""}</div><h3>Safe to progress</h3><p>The knee stays out over the foot. At the closest, ${sec(res.worst)}: ${what(res.zone, res.val)}, ${res.over > 0 ? `only for a moment (under 0.2 s) past ${lim(res.zone)}` : `within ${lim(res.zone)}`}.${near ? " It comes close to the limit, so keep watching the knee as the load or the range goes up." : ""}</p><p class="cue"><b>Cue:</b> Knee out over the second toe, big toe pressing down.</p>`;
+  } else {
+    d.className = "verdict bad";
+    d.innerHTML = `<div class="when">From ${sec(res.from)}</div><h3>Not yet safe to progress: the knee goes in (valgus)</h3><p>The knee moves in past ${lim(res.zone)}: at ${sec(res.worst)} ${what(res.zone, res.val)}. Pistol Rule No.2: never allow a valgus knee. Stay on the scale where the knee holds, and build from there.</p><p class="cue"><b>Cue:</b> Knee out over the second toe, big toe pressing down.</p>
+      <details><summary>Possible reasons and interventions</summary><p><b>Possible reasons:</b> weak hip abductors and external rotators; poor foot position (the arch collapsing, no big toe pressure); ankle mobility; going deeper than the athlete can control on one leg; the air squat not yet mastered.</p><p><b>Interventions:</b> mobility, then stability, then strength. Back to the gymnastics air squat (feet together) with mastery; big toe pressure for arch rise; banded crab walks and isometric adductor holds; an earlier pistol scale (to a box, holding a support) where the knee stays out.</p></details>`;
+  }
+  const row = document.createElement("div"); row.className = "row noprint";
+  const b = document.createElement("button"); b.type = "button"; b.className = "btn ghost small"; b.textContent = "Show me";
+  b.onclick = async () => { if (!vid.currentSrc) { say("Open the same video to see this moment."); return; } vid.pause(); await seekTo(tr.t0 + res.worst / tr.fps); draw(); $("vstage").scrollIntoView({ behavior: "smooth", block: "start" }); };
+  row.appendChild(b); d.appendChild(row); box.appendChild(d);
+  const n = document.createElement("p"); n.className = "note"; n.style.margin = "10px 0 0";
+  n.textContent = "Measured from the front, from the tracked hip, knee and ankle of the standing leg (the leg you marked). Film straight on, at knee height; a camera off to the side makes the knee look further in or out. This line is a starting point: watch the rep, then decide.";
+  box.appendChild(n);
+}
+function chart() {
+  const c = $("chart"), res = cur.result, tr = cur.track, r = c.getBoundingClientRect(); if (!r.width) return;
+  const k = devicePixelRatio, g = c.getContext("2d"); c.width = Math.round(r.width * k); c.height = Math.round(r.height * k);
+  const S = res.series, N = Math.max(1, S.length - 1), L = 44 * k, R = 10 * k, T = 10 * k, B = 24 * k, lo = -10, hi = 30;
+  const X = (i) => L + (c.width - L - R) * i / N, Y = (v) => T + (c.height - T - B) * (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo));
+  g.clearRect(0, 0, c.width, c.height); g.font = `${11 * k}px -apple-system,Helvetica,Arial`;
+  g.fillStyle = "rgba(255,255,255,.06)"; S.forEach((_, i) => { if (res.zones[i]) g.fillRect(X(i) - (c.width - L - R) / N / 2, T, (c.width - L - R) / N + 1, c.height - T - B); });
+  g.strokeStyle = "#342F31"; g.lineWidth = k; g.fillStyle = "#B7B1B3"; g.textAlign = "right"; g.textBaseline = "middle";
+  for (const v of [-10, 0, 10, 20, 30]) { g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(c.width - R, Y(v)); g.stroke(); g.fillText(v + "%", L - 6 * k, Y(v)); }
+  g.textAlign = "left"; g.fillText("knee inside the hip-to-ankle line ↑", L + 6 * k, T + 8 * k); g.fillText("outside ↓", L + 6 * k, c.height - B - 8 * k);
+  // the limit through the rep: the Q angle limit on the way down and up (drawn at about a third of it, as % of the leg: 29° in
+  // came to about 10% on 09.14.19), 15% at the bottom
+  g.strokeStyle = "#F0797D"; g.setLineDash([6 * k, 4 * k]); g.lineWidth = 1.6 * k; g.beginPath(); let pen = false;
+  res.lims.forEach((v, i) => { if (v == null) { pen = false; return; } pen ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v)); pen = true; }); g.stroke(); g.setLineDash([]);
+  g.textAlign = "center"; g.textBaseline = "top"; g.fillStyle = "#B7B1B3"; const secs = N / tr.fps; for (let s = 0; s <= secs + 0.001; s += 1) g.fillText(s + " s", X(s * tr.fps), c.height - B + 6 * k);
+  g.lineWidth = 2.4 * k; for (let i = 1; i < S.length; i++) { g.strokeStyle = res.bad[i] ? "#F0797D" : "#5CC48A"; g.beginPath(); g.moveTo(X(i - 1), Y(S[i - 1])); g.lineTo(X(i), Y(S[i])); g.stroke(); }
+  if (vid.currentSrc) { const i = (vid.currentTime - tr.t0) * tr.fps; if (i >= 0 && i <= N) { g.strokeStyle = "#fff"; g.lineWidth = 2 * k; g.beginPath(); g.moveTo(X(i), T); g.lineTo(X(i), c.height - B); g.stroke(); } }
+}
+$("chart").addEventListener("click", (e) => { if (!cur || !cur.track || !vid.currentSrc) return; const c = $("chart"), r = c.getBoundingClientRect(), N = cur.track.pts.length - 1;
+  const f = Math.max(0, Math.min(1, (e.clientX - r.left - 44) / (r.width - 54))); vid.pause(); vid.currentTime = cur.track.t0 + f * N / cur.track.fps; });
+vid.addEventListener("timeupdate", () => { if (cur && cur.result) chart(); });
+window.addEventListener("resize", () => { if (cur && cur.result) chart(); });
+
+boot();
+</script>
+</body>
+</html>
