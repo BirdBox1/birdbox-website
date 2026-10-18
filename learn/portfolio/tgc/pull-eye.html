@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pull-up and beat swing coaches eye — BirdBox Learn</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
+          --line:#342F31; --accent:#E0555A; --bad:#F0797D; --good:#5CC48A; --amber:#F2B24C; }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .bar{display:flex;align-items:center;gap:14px;padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top));
+    border-bottom:1px solid var(--line);background:#0d0b0b}
+  .bar img{height:34px;width:auto;display:block}
+  .bar .name{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .bar .nav{margin-left:auto;display:flex;gap:8px}
+  .btn{display:inline-block;font:inherit;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:12px 20px;background:var(--accent);color:#fff;border:1px solid var(--accent);cursor:pointer;text-decoration:none;text-align:center}
+  .btn:hover{background:transparent;color:var(--accent)}
+  .btn.ghost{background:none;color:var(--ink);border-color:#6A6466}
+  .btn.small{font-size:11px;padding:7px 12px}
+  .wrap{max-width:900px;margin:0 auto;padding:36px 20px 64px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
+  .kicker a{color:inherit;text-decoration:none}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.05;font-weight:800;text-transform:uppercase;margin:0 0 10px}
+  h2{font-size:15px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 12px}
+  .lede{color:var(--muted);font-size:16px;line-height:1.6;margin:0 0 24px;max-width:70ch}
+  .sub{color:var(--muted);font-size:14.5px;line-height:1.55;margin:0 0 14px}
+  .hidden{display:none!important}
+  .panel{background:var(--panel);border:1px solid var(--line);padding:22px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);padding:22px;max-width:440px}
+  .card label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+  .card input{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:6px}
+  .msg{font-size:14px;line-height:1.5;margin:12px 0 0;min-height:1em}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  .item{border-top:1px solid var(--line);padding:16px 0}
+  .item:first-child{border-top:none;padding-top:0}
+  .item .rule{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .item h3{font-size:16px;line-height:1.4;margin:4px 0 10px}
+  .scale10{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;max-width:520px}
+  .scale10 button{font:inherit;font-weight:800;font-size:14px;padding:8px 0;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .scale10 button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .ends{display:flex;justify-content:space-between;max-width:520px;font-size:12px;color:var(--muted);margin:4px 0 10px}
+  label.f{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+  textarea,select,input[type=date]{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);line-height:1.5}
+  textarea{min-height:70px;resize:vertical}
+  input[type=date]{max-width:240px}
+  .bars .b{display:grid;grid-template-columns:minmax(120px,210px) 1fr 44px;gap:10px;align-items:center;margin:8px 0;font-size:14px}
+  .bars .t{height:14px;background:var(--panel2);position:relative}
+  .bars .t i{display:block;height:100%}
+  .bars .t s{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;opacity:.7}
+  .bars .low{color:var(--amber);font-weight:700}
+  .key{font-size:13px;color:var(--muted);margin-top:8px}
+  .hist{font-size:14px;color:var(--muted);line-height:1.6}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .state{font-size:13px;color:var(--muted)}
+  .state b{color:var(--ink)}
+  .howto{border-left:3px solid var(--accent);background:var(--panel2);padding:10px 14px;margin:12px 0 10px;font-size:14px;line-height:1.5}
+  .howto ol{display:flex;flex-wrap:wrap;gap:6px;list-style:none;counter-reset:pt;margin:10px 0 0;padding:0}
+  .howto li{counter-increment:pt;font-size:12px;font-weight:700;padding:5px 9px;border:1px solid var(--line);color:var(--muted)}
+  .howto li::before{content:counter(pt) " · "}
+  .howto li.now{background:var(--accent);border-color:var(--accent);color:#fff}
+  .howto li.done{color:var(--ink)}
+  .howto li.done::after{content:" ✓"}
+  @media print{
+    body{background:#fff;color:#000} .bar,.noprint{display:none!important}
+    .panel{border:1px solid #ccc;background:none} textarea,select,input{border:1px solid #ccc;background:#fff;color:#000}
+    .scale10 button{background:#fff;color:#000} .scale10 button.on{background:#85151A;color:#fff}
+  }
+  .obs{border:1px solid var(--line);background:var(--panel2);padding:14px 16px;margin:0 0 10px;cursor:pointer}
+  .obs:hover{border-color:var(--accent)}
+  .obs{display:flex;gap:12px;align-items:center}
+  .obs .txt{flex:1;min-width:0}
+  .obs b{display:block;font-size:16px}
+  .obs .del{flex:none;font:inherit;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:none;color:var(--muted);border:1px solid #6A6466;padding:6px 10px;cursor:pointer}
+  .obs .del:hover{color:var(--bad);border-color:var(--bad)}
+  .obs span{font-size:13px;color:var(--muted)}
+  .fault{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:10px;align-items:start;border-top:1px solid var(--line);padding:12px 0}
+  .fault:first-child{border-top:none}
+  .fault .t b{display:block;font-size:15px}
+  .fault .t small{display:block;color:var(--muted);font-size:13px;line-height:1.45;margin-top:2px}
+  .fault input[type=number]{width:100%;font:inherit;font-size:15px;padding:8px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .fault textarea{grid-column:1 / -1;min-height:44px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0}
+  .tags label{display:flex;gap:6px;align-items:center;font-size:14px;border:1px solid var(--line);padding:6px 10px;cursor:pointer;background:var(--paper)}
+  .tags input{accent-color:var(--accent)}
+  .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+  input[type=text]{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .vsrc{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+  .vsrc input[type=text]{flex:1;min-width:200px;font-size:14px;padding:9px 10px}
+  .vsrc .note{font-size:12px;color:var(--muted);width:100%}
+  .vwork{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;align-items:start}
+  .vwork>*{min-width:0}
+  .vwork.has{gap:18px}
+  @media(min-width:900px){.vwork.has{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}.vwork.has.wide{grid-template-columns:minmax(0,1fr)}}
+  .vwork.wide .vplayer video{max-height:56vh}
+  .vwork.wide .vplayer iframe{max-height:56vh;max-width:calc(56vh * 16 / 9);margin:0 auto}
+  .vplayer iframe.portrait{aspect-ratio:9/16;width:auto;height:min(70vh,640px);max-width:100%;margin:0 auto}
+  .vplayer{position:sticky;top:0;z-index:6;background:var(--panel);padding:6px 0 8px}
+  .vplayer .screen{background:#000;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+  .vplayer video{display:block;width:100%;max-height:70vh;object-fit:contain;background:#000}
+  .vplayer iframe{display:block;width:100%;aspect-ratio:16/9;border:0;background:#000}
+  .vplayer .empty{color:var(--muted);font-size:14px;padding:22px 16px;text-align:center;line-height:1.6}
+  @media(max-width:899px){.vplayer video{max-height:34vh}.vplayer iframe{max-height:34vh}}
+  .stage{position:relative;background:#000;margin-top:12px;max-width:100%}
+  .stage video,.stage img{display:block;width:100%;height:100%;object-fit:contain}
+  .stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+  .vctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+  .vctl input[type=range]{flex:1;min-width:140px;accent-color:var(--accent)}
+  .obs{display:flex;gap:14px;align-items:center}
+  .obs img,.obs .ph{width:64px;height:64px;object-fit:cover;background:var(--paper);flex:none}
+  .fault{display:block;border-top:1px solid var(--line);padding:10px 0}
+  .fault label{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;cursor:pointer}
+  .fault label input{accent-color:var(--accent);transform:translateY(2px)}
+  .fault label small{flex-basis:100%;margin-left:24px;color:var(--muted);font-size:13px}
+  .fault .fix{margin:8px 0 0 24px;padding:10px 12px;border-left:3px solid var(--accent);background:var(--panel2);font-size:14px;line-height:1.55;color:var(--ink)}
+  .fault .fix span{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:2px}
+  .fault .fix p{margin:0 0 8px} .fault .fix p:last-child{margin:0}
+  .fault label em{font-style:normal;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);min-width:130px}
+  .measure{display:grid;gap:8px}
+  .measure .m{display:grid;grid-template-columns:minmax(120px,190px) minmax(110px,170px) 1fr;gap:10px;align-items:baseline;border-top:1px solid var(--line);padding:8px 0}
+  .measure .m:first-child{border-top:none}
+  .measure .m b{font-size:14px} .measure .m strong{font-size:16px;color:var(--accent)} .measure .m span{font-size:13px;color:var(--muted);line-height:1.45}
+  @media(max-width:640px){.measure .m{grid-template-columns:1fr 1fr}.measure .m span{grid-column:1/-1}}
+  select{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .seg.phases{display:flex;gap:4px;flex-wrap:wrap;margin-top:14px}
+  .seg.phases button{font:inherit;font-size:12px;font-weight:800;padding:8px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .seg.phases button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  table.mt{width:100%;border-collapse:collapse;font-size:14px}
+  table.mt th,table.mt td{border-top:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+  table.mt thead th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-top:none}
+  table.mt tbody th b{display:block;font-size:14px} table.mt tbody th span{display:block;font-size:12px;color:var(--muted);font-weight:400;line-height:1.4;max-width:260px}
+  table.mt td{font-weight:800;color:var(--accent);white-space:nowrap}
+  .note{font-size:13px;color:var(--muted);line-height:1.5}
+  .prog{height:8px;background:var(--panel2);margin:10px 0}
+  .prog > i{display:block;height:100%;width:0;background:var(--accent);transition:width .1s}
+  .vwrap{display:flex;gap:18px;align-items:flex-start;margin-top:12px}
+  .vleft{flex:0 1 auto;min-width:0}
+  .vleft .stage{margin-top:0}
+  .vside{flex:1 1 260px;min-width:240px;position:sticky;top:8px}
+  .vside .vctl{margin-top:0} .vside input[type=range]{width:100%;margin:10px 0;accent-color:var(--accent)}
+  .vside #v-use{width:100%}
+  .vside .howto{margin-top:12px} .vside .row{margin-top:6px}
+  @media(max-width:760px){.vwrap{flex-direction:column}.vside{position:static;width:100%}}
+  .consent{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.45;color:var(--muted);margin:10px 0 4px;cursor:pointer}
+  .consent input{margin-top:2px;accent-color:var(--accent);width:18px;height:18px;flex:none}
+  .obs .pick{flex:none;font-size:12px;font-weight:700;color:var(--muted);display:flex;gap:6px;align-items:center;cursor:pointer}
+  .obs .pick input{accent-color:var(--accent);width:16px;height:16px}
+  .obs .keepme{font:inherit;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:none;border:1px dashed #6A6466;padding:6px 9px;color:var(--muted)}
+  .ch{font-size:20px;margin:0 0 12px}
+  .sizes{display:inline-flex;gap:4px;align-items:center;font-size:12px;font-weight:700;color:var(--muted);margin-left:6px}
+  .sizes button{font:inherit;font-size:12px;font-weight:800;padding:6px 9px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .sizes button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  #c-scrub{width:100%;margin:12px 0;accent-color:var(--accent)}
+  .cmp-grid{display:grid;gap:14px}
+  .cmp-cell .stage{margin:0;max-height:70vh;aspect-ratio:9/16}
+  .cmp-cell .stage canvas{pointer-events:none}
+  .cmp-cell h3{font-size:15px;margin:8px 0 6px}
+  .cmp-cell .cchart{display:block;width:100%;height:120px;margin-top:8px;background:var(--paper);border:1px solid var(--line)}
+  .cmp-cell .chips{display:flex;flex-wrap:wrap;gap:4px}
+  .cmp-cell .chip{font-size:11px;font-weight:800;padding:4px 7px;border:1px solid var(--line);color:var(--bad)}
+  .cmp-cell .chip.ok{color:var(--good)}
+  .mv{margin:12px 0 0} .mv > span{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .mv .seg{display:flex;gap:4px;flex-wrap:wrap} .mv .seg button{font:inherit;font-size:12px;font-weight:800;padding:8px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .mv .seg button.on{background:var(--accent);border-color:var(--accent);color:#fff} .mv .note{margin:6px 0 0}
+  .tstat{margin:10px 0 0;padding:10px 14px;border-left:3px solid var(--accent);background:var(--panel2);font-size:14px;line-height:1.5}
+  .tstat.err{border-left-color:var(--bad);color:var(--bad)} .tstat .prog{margin:8px 0 2px}
+  .stage canvas.ov{pointer-events:none;cursor:grab}
+  .stage canvas.ov.edit{pointer-events:auto}
+  #chartbox{margin:0 0 14px}
+  #chart{display:block;width:100%;height:220px;background:var(--paper);border:1px solid var(--line);cursor:pointer}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0 0;font-size:12px;font-weight:700}
+  .legend .hd{display:inline-flex;align-items:center;gap:5px;cursor:pointer;color:var(--muted)} .legend .hd input{accent-color:var(--accent)}
+  .legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px}
+  .goodref{display:flex;gap:14px;align-items:flex-start}
+  .goodref canvas{flex:none;width:200px;height:120px;background:var(--paper);border:1px solid var(--line)}
+  @media(max-width:560px){.goodref{flex-direction:column}}
+  .brk{border:1px solid var(--line);border-left:3px solid var(--bad);background:var(--panel2);padding:12px 14px;margin:0 0 10px}
+  .brk .when{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--amber)}
+  .brk h3{font-size:16px;margin:3px 0 6px} .brk h3 small{font-size:12px;font-weight:700;color:var(--muted);margin-left:6px}
+  .brk p{margin:0 0 8px;font-size:14px;line-height:1.5} .brk p.cue b{color:var(--accent)}
+  .brk details{font-size:14px;line-height:1.5;margin:0 0 8px} .brk summary{cursor:pointer;font-weight:700}
+  .brk details p{margin:6px 0 0} .brk .row{gap:8px}
+  .brk.ok{border-left-color:var(--good)} .brk.min{border-left-color:var(--amber)}
+  .brkh{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin:0 0 8px}
+  .rep{margin-top:12px;padding:12px 14px;border-left:3px solid var(--accent);background:var(--panel2)}
+  .rep b{display:block;font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+  .rep p{margin:4px 0;font-size:14px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="bar">
+  <a href="/learn/"><img src="/brand/birdBox.png" alt="BirdBox"></a>
+  <span class="name">My TGC portfolio</span>
+  <div class="nav"><a class="btn ghost small" href="index.html">My TGC portfolio</a> <a class="btn ghost small" href="/learn/" id="b-course">← Back to my course</a></div>
+</div>
+
+<main class="wrap">
+  <p id="loading" class="lede">Loading…</p>
+
+  <section id="login" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My TGC portfolio</h1>
+    <p class="lede">Log in with the email address you bought your course with, and your observations open here.</p>
+    <form class="card" id="login-form">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="email" required>
+      <label for="l-pass">Password</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn" type="submit">Log in</button>
+      <button class="btn ghost" id="l-link" type="button" style="margin-top:10px">Email me a login link</button>
+      <div id="l-msg" class="msg"></div>
+    </form>
+  </section>
+
+  <section id="soon" class="hidden">
+    <p class="kicker">The Gymnastics Course</p>
+    <h1>Coming soon</h1>
+    <p class="lede">The TGC portfolio is still being built. It will open here once it is ready.</p>
+    <a class="btn" href="/learn/">← My courses</a>
+  </section>
+
+  <section id="eye" class="hidden">
+    <p class="kicker"><a href="index.html">← My portfolio</a> · The Gymnastics Course · Lesson 10 · Strict Pull-Ups and Beat Swings</p>
+    <h1>Pull-up and beat swing coaches eye</h1>
+    <p class="lede">Film an athlete from the side on the bar, mark the links of the body from the toes up to the knuckles on the start hang, and the tracker follows the movement. In a strict pull-up, see whether the hang in hollow holds the whole way up and down; in the beat swing, whether the hollow and arch shapes hold, and the swing starts from the midline. Keep reps to compare them side by side.</p>
+
+    <div id="v-list">
+      <div class="row noprint" style="margin-bottom:14px"><button class="btn" id="b-new" type="button">+ New observation</button>
+        <button class="btn ghost" id="b-compare" type="button" disabled>Compare</button><span class="state" id="cmp-note">Tick two or three reps to compare them.</span></div>
+      <div id="obs-list"></div>
+    </div>
+
+    <div id="v-compare" class="hidden">
+      <div class="row noprint" style="margin-bottom:14px"><button class="btn ghost small" id="c-back" type="button">← My observations</button></div>
+      <h2 class="ch">Compare reps</h2>
+      <div class="row noprint">
+        <button class="btn ghost small" id="c-prev" type="button">◀ Frame</button>
+        <button class="btn small" id="c-play" type="button">Play</button>
+        <button class="btn ghost small" id="c-next" type="button">Frame ▶</button>
+        <span class="sizes">Speed <button type="button" data-sp="0.25">¼</button><button type="button" data-sp="0.5">½</button><button type="button" data-sp="1">1×</button></span>
+        <span class="sizes">Line up at <button type="button" data-al="start">Start of rep</button><button type="button" data-al="top">The top</button></span>
+      </div>
+      <input type="range" id="c-scrub" min="0" max="1000" value="0" step="1" aria-label="Move through the reps">
+      <div class="legend" id="c-legend" style="margin:0 0 10px"></div>
+      <div class="cmp-grid" id="cmp-grid"></div>
+    </div>
+
+    <div id="v-edit" class="hidden">
+      <div class="row noprint" style="margin-bottom:14px"><button class="btn ghost small" id="b-back" type="button">← My observations</button></div>
+
+      <div class="panel">
+        <h2>1. The athlete</h2>
+        <div class="g2">
+          <div><label class="f" for="o-who">Athlete</label><input type="text" id="o-who" placeholder="Name or initials"></div>
+          <div><label class="f" for="o-move">Movement</label><select id="o-move"></select></div>
+        </div>
+        <p class="note noprint" id="k-row" style="margin:12px 0 0">Reps are kept in your portfolio once tracked (a short clip of just the rep), so you can play them again with the points and compare them. Only film and track athletes who agreed to be filmed, for your own learning. Kept reps are private to you; BirdBox staff only look at them if they need to, for example to help with your portfolio. Delete an observation to remove its rep.</p>
+      </div>
+
+      <div class="panel">
+        <h2>2. Mark the links</h2>
+        <p class="sub">Film from the side, with the whole body and the bar in the frame and the camera still. Open the video, pause on the start position (hanging in hollow) and press <b>Use this frame as the start</b>. Click the points on the video, in order, from the toes up. As soon as the points are in, the tracker follows the athlete and plays the movement back with the points moving on the athlete (if the head is hidden, press <b>Head hidden? Skip it</b>). A strict pull-up is one rep: it finds the halfway point, the top and the end. A beat swing is tracked for up to 10 seconds: it finds the hollow at the front and the arch at the back. If a point drifts, pause and drag it.</p>
+        <div class="row noprint"><label class="btn ghost small" for="v-file" style="cursor:pointer">Open a video</label><input type="file" id="v-file" accept="video/*" class="hidden"></div>
+        <div class="vwrap">
+          <div class="vleft">
+            <div id="vbox" class="hidden"><div class="stage" id="vstage"><video id="vid" playsinline muted preload="auto"></video><canvas id="vcv" class="ov"></canvas></div></div>
+            <div id="sbox" class="hidden"><div class="stage" id="sstage"><img id="still" alt="The frame being checked"><canvas id="cv"></canvas></div></div>
+          </div>
+          <div class="vside">
+            <div id="vctlbox" class="hidden noprint">
+              <div class="vctl">
+                <button class="btn ghost small" id="v-back" type="button">◀ 1 frame</button>
+                <button class="btn small" id="v-play" type="button">Play</button>
+                <button class="btn ghost small" id="v-fwd" type="button">1 frame ▶</button>
+              </div>
+              <input type="range" id="v-seek" min="0" max="1000" value="0">
+              <button class="btn small" id="v-use" type="button">Use this frame</button>
+            </div>
+            <div class="mv noprint" id="mv"><span>Movement</span><div class="seg"><button type="button" data-mv="0">Strict pull-up</button><button type="button" data-mv="1">Beat swing</button></div><p class="note" id="mv-note"></p></div>
+            <div class="tstat hidden" id="v-state"><span></span><div class="prog"><i></i></div></div>
+            <div class="seg phases" id="phases"></div>
+            <p class="sub" id="f-empty" style="margin:10px 0 0"></p>
+            <div id="mui" class="hidden noprint">
+              <div class="howto"><span id="m-how"></span><ol id="m-order"></ol></div>
+              <p class="state" id="m-state"></p>
+              <div class="row">
+                <button class="btn ghost small" id="m-undo" type="button">Undo last point</button>
+                <button class="btn ghost small" id="m-redo" type="button">Mark the links again</button>
+                <button class="btn ghost small hidden" id="m-skip" type="button">Head hidden? Skip it</button>
+                <button class="btn small hidden" id="m-track" type="button">Track the movement</button>
+              </div>
+            </div>
+        <div id="tbox" class="hidden noprint">
+          <div class="howto"><b>Tracking the movement.</b> When the last point goes in, the tracker follows the athlete from the start (a pull-up to the end of the rep, back in the hang; a beat swing for up to 10 seconds) and plays it back with the points moving on the athlete. To track a different stretch, play the video to where it should end, pause, press <b>Set the end here</b>, then <b>Track again</b>.</div>
+          <div class="row"><button class="btn ghost small" id="t-end" type="button">Set the end here</button><button class="btn small" id="t-go" type="button">Track the movement</button><span class="state" id="t-state"></span></div>
+          <div class="prog hidden" id="t-prog"><i></i></div>
+        </div>
+        <div id="kbox" class="hidden noprint">
+          <div class="howto"><b>Keep this rep.</b> The rep is kept by itself after tracking. If that did not work, press Keep this rep to try again (it plays through once while it saves).</div>
+          <div class="row"><button class="btn small" id="k-go" type="button">Keep this rep</button><span class="state" id="k-state"></span></div>
+        </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="p-measure">
+        <h2>3. What the links show</h2>
+        <p class="sub">The chart shows each link through the movement, and Where it breaks shows where a shape moves into a poor position, and what to cue or fix.</p>
+        <div id="chartbox" class="hidden"><canvas id="chart"></canvas><div class="legend" id="legend"></div><div class="howto goodref" style="margin:10px 0 0"><canvas id="goodref" aria-label="What the lines look like for a good rep"></canvas><div id="goodref-text"></div></div>
+        <p class="note hidden" id="head-note" style="margin:8px 0 0"><b>The head strip:</b> where the face points, from the ear to the nose: above the "level" line is looking up, below it is the chin coming down. A good strict pull-up keeps the head neutral, looking forward, a little below level the whole way; a rise well above level is the head lifting to the sky; a drop far below is the chin coming down to the chest. If an upright of the rig hides the head, check it on the video.</p>
+        <p class="note" style="margin:6px 0 0">The angles through the movement, from the tracked points. The white lines are the positions below. With the video open, click the chart to go to that moment.</p></div>
+        <div id="breaks"></div>
+        <div id="measure" class="measure"></div>
+      </div>
+
+      <div class="panel">
+        <h2>4. The faults I see</h2>
+        <p class="sub">Work up the chain from the hands to the feet. Tick what you see; the possible reasons and interventions open underneath.</p>
+        <div id="f-list"></div>
+      </div>
+
+      <div class="panel">
+        <h2>5. How I will coach it</h2>
+        <label class="f" for="o-cue">My cue</label>
+        <input type="text" id="o-cue" placeholder="e.g. Stay on the phone; heels back towards the wall, hip bone up towards the sky">
+        <label class="f" for="o-fix">Drills or fixes</label>
+        <textarea id="o-fix" placeholder="e.g. Eccentric ball ups, banded lat press downs, 3 sets of 25"></textarea>
+        <label class="f" for="o-next">Ready for</label>
+        <select id="o-next"></select>
+        <label class="f" for="o-notes">Notes</label>
+        <textarea id="o-notes" placeholder="Anything else I noticed"></textarea>
+      </div>
+
+      <div class="row noprint">
+        <button class="btn" id="b-save" type="button">Save</button>
+        <button class="btn ghost" id="b-pdf" type="button">Download PDF</button>
+        <button class="btn ghost" id="b-del" type="button">Delete this observation</button>
+        <span class="state" id="state"></span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
+const $ = (id) => document.getElementById(id);
+const show = (id) => ["loading", "login", "soon", "eye"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+
+// While the TGC portfolio is built and tested, only these logins can open it; everyone else sees
+// "coming soon". Keep this list the same in every page in learn/portfolio/tgc/.
+// To launch: set TGC_LIVE to true in all of them, and add tgc1 to PORTFOLIOS in /learn/index.html.
+const TGC_LIVE = false, TGC_TESTERS = ["nathan@birdboxcoaching.com"];
+const canOpen = (s) => TGC_LIVE || TGC_TESTERS.includes(String((s && s.user && s.user.email) || "").toLowerCase());
+
+const TOOL = "tgc-pull", BUCKET = "portfolio-videos";
+// Lesson 10 · Strict Pull-Ups and Beat Swings (built 16 Oct 2026 from the Lesson 9 hang and toes to bar coaches eye)
+// marked in this order (Nathan, 16 Oct): from the toes up the chain, the head after the shoulder, then the elbow and the knuckles on the bar ("wr" is the hand on the bar)
+const LINKS = [["toes", "Toes"], ["ankle", "Ankle"], ["knee", "Knee"], ["hip", "Hip"], ["rib", "Rib cage (front)"], ["tsp", "Thoracic / scapulae (back)"], ["sh", "Shoulder"], ["ear", "Head / ear"], ["el", "Elbow"], ["wr", "Knuckles on the bar"]];
+const CHAIN = [["toes", "ankle"], ["ankle", "knee"], ["knee", "hip"], ["hip", "rib"], ["rib", "tsp"], ["tsp", "sh"], ["sh", "el"], ["el", "wr"], ["sh", "ear"]];
+const MOVES = ["Strict pull-up", "Beat swing"];
+const isPull = () => cur && cur.move === MOVES[0], isBeat = () => cur && true;
+const NEXT = ["Keep building the strict pull-up (toe spot pull-ups, slow reps)", "Strict pull-ups with mastery: ready for the beat swing prerequisite", "Keep building the beat swing", "Ready to start kipping"];
+// Faults for each movement: what you see, possible reasons, and interventions. Drafted by Claude from the Lesson 10 text
+// (16 Oct 2026, Nathan to check): the strict pull-up keeps the hang in hollow the whole way, pressing down, elbows forward then
+// down and back, concentric and eccentric the same; the beat swing starts from the midline, hollow and arch as on the floor.
+const FAULTS_ALL = [
+  ["grip", "Knuckles / grip", "Poor grip", "Not a pronated grip a cubit distance apart, or the grip is not set: the top knuckles are not to the sky.",
+    "Grip strength, or the grip is not set before the movement starts.",
+    "Hanging in hollow holding lacrosse balls; wrist flexion farmer's carries; set the grip before every rep."],
+  ["hollow", "Hips", "Hips flex and pike: the hollow is lost", "The hips flex and pike instead of staying open in a posterior pelvic tilt.",
+    "Tight hip flexors; not yet strong enough to keep the hips open in the hollow; a counteraction to pressing the bar away, dictated by the elbow position in the pull. All a change from a lack of strength in the lats and arms in the pull.",
+    "Hang in hollow holds with the hips open; hip flexor length (eccentric plate split squats, from Lesson 9); toe spot pull-ups to own the shape; lat and arm strength (eccentric ball up, banded lat press downs)."],
+  ["kick", "Knees", "Knee flexion", "The knees bend during the pull-up.",
+    "Loss of tension or awareness; weakness; a compensation for a lack of strength.",
+    "Toe spot pull-ups or ring rows at a level where the legs stay locked out; coach full-body tension; build the pulling strength."],
+  ["shoulder", "Shoulder / back", "Poor shoulder movement: the back angle and shape change", "The shoulder does not move well through the pull, so the back angle and the shape change: the athlete leans back.",
+    "Lat weakness.",
+    "Lat strength: the eccentric ball up, banded lat press downs, toe spot pull-ups; cue pressing the bar down."],
+  ["elbow", "Elbow", "Elbows flaring out wide, out of unison or not smooth", "The elbows go out wide instead of pointing forward, or the two arms do not move together or smoothly. (A side view cannot show this: check from the front.)",
+    "Upper trap dominance and poor scapular position; strength differences between the arms.",
+    "Cue elbows forward, then down and back; ring rows with the elbows in; slow reps for smoothness; toe spot pull-ups."],
+  ["range", "Elbow / head", "Not full range", "The elbows are not locked out at the bottom, or the chin does not clear the bar at the top.",
+    "Strength at the end of the range; chasing reps; low standards.",
+    "Full range every rep; slow lowering from the top; toe spot pull-ups through the full range."],
+  ["tempo", "Whole body", "Not one fluid motion: segmented breaks", "The pull-up is not one smooth movement: it stalls, or breaks into segments in different directions, up or down.",
+    "Not yet strong through part of the range, so the athlete compensates with a kick, a lean or the head; a mindset of getting the rep at any cost.",
+    "Slow controlled reps (one slow rep rather than reps to failure); holds at the bottom, middle and top; controlled lowering; toe spot pull-ups through the full range."],
+  ["head", "Head / ear", "Head lifting up, or the chin dropping to the chest", "The head lifts up to the sky, or the chin comes down too low to the chest, instead of a neutral head looking forward.",
+    "The chin too low to the chest with the scapulae elevating: lower trapezius weakness and upper trapezius tension. The head moving up to the sky: the hollow is lost and with it mastery; a lack of strength, and a mindset fixed on achieving the pull-up at any cost.",
+    "Head neutral, eyes forward; lower trapezius strength (from the L-sit unit); coach mastery over the rep at any cost."],
+  ["scap", "Scapulae", "Scapulae rise or move unevenly", "The scapulae rise or move one side at a time: the distance between the shoulder and the scapula is not kept, and the rest of the movement breaks down from there. (Check on the video.)",
+    "The scapulae move in relation to the shoulder; the scapular stabilisers need to be stronger.",
+    "Scapular stability: active hangs and scapular pull-ups, both sides together; lower trapezius strength (from the L-sit unit); ring rows."],
+  ["ankle", "Toes / ankle", "Toes not pointed", "The feet relax instead of pointing the toes away.",
+    "Loss of tension or awareness.",
+    "Coach the standard every rep: toes pointed away, legs together and tight."],
+  ["rib", "Rib cage", "Rib cage flares open", "The rib cage flares open and the body arches, instead of the rib cage kept down with the abs contracted.",
+    "A lack of abdominal hollow strength.",
+    "Hollow holds and the eccentric sit-up (Lesson 5); ribs down in the hang in hollow; midline drills such as dead bugs and hollow rocks."],
+  ["headfwd", "Head / ear", "Forward / downward position of the head", "The head pushes down and forward, the ear coming in front of the arm, while the hollow and the shoulders are good. (Not pushing away: that is the ear going behind the arm.)",
+    "Over-driving the hollow with the head; awareness of the line of sight.",
+    "Cue lifting the chin slightly, eyes forward, the ear hidden by the arm; hang in hollow holds with the head neutral."],
+  ["pushaway", "Shoulder", "Pushing away from the bar", "The swing starts by pushing the bar away instead of the contraction down into hollow: the 'on the phone' position is lost and the shoulders become unstable.",
+    "Starting the movement from the arms, not the midline; a passive shoulder; trying to swing big.",
+    "Start from the midline: contract down into hollow; partner tactile spot to keep the swing small; the hang in hollow, neutral and arch holds."],
+  ["hollowb", "Hips / midline", "Hollow not reached", "In the hollow, at the back of the swing, the athlete does not snap into a tight hollow: a pike at the hips or a soft shape.",
+    "Midline strength; slow, soft contractions (tension = power = efficiency).",
+    "Hollow holds and rocks; fast, snappy contractions into hollow; the beat swing prerequisite (hollow, neutral and arch, 3 seconds each, 3 sets unbroken)."],
+  ["archover", "Hips / back", "Over-extended arch: chest to the sky", "In the arch, at the front of the swing, the athlete over-arches: the chest goes towards the sky, the arch pikes, and the shoulder angle changes, pushing the bar away.",
+    "Not replicating the floor arch; over pulling in the arch; lumbar hyperextension instead of length and tension.",
+    "Arch holds on the floor for length and tension (Lesson 6); arch hang holds; small, controlled beats."],
+  ["tension", "Knees / legs / feet", "Loss of shape and tension", "The knees bend, the legs come apart or the feet move: the swing rocks and twists.",
+    "Awareness and standards; the tension is lost under speed.",
+    "Legs together, toes pointed, knees locked; slow controlled beats first; fix the foot position, or a rock and twist follows."],
+  ["rhythm", "Whole body", "No rhythm", "The beats are not even, like a metronome: the swings change in time or size.",
+    "Not controlling the swing from the midline; adding power before the shapes and the timing are owned.",
+    "Slow controlled beats on a count; partner tactile spot; build strength in the shapes before speed."],
+  ["armpit", "Shoulder", "Armpit turning to the floor", "In the arch the armpit turns out and down towards the floor: an over pull that stresses the front of the shoulder. (Check on the video.)",
+    "Shoulder range and control; over pulling in the arch.",
+    "The PVC pipe drills from the warm-up unit, keeping the armpits forward; keep the arch small."],
+];
+// strict pull-up: Nathan's breakdown (17 Oct) up the chain, plus grip, full range and tempo from the lesson
+const LISTS = { [MOVES[0]]: ["ankle", "kick", "hollow", "rib", "scap", "shoulder", "elbow", "head", "grip", "range", "tempo"], [MOVES[1]]: ["grip", "pushaway", "hollowb", "archover", "tension", "rhythm", "armpit", "headfwd"] };
+// the list for the movement chosen (section 4)
+const FAULTS_FOR = (m) => (LISTS[m] || LISTS[MOVES[0]]).map((k) => FAULTS_ALL.find((f) => f[0] === k));
+let FAULTS = FAULTS_FOR(MOVES[0]);
+const CUE = { grip: "Knuckles to the sky, thumb around the bar.", hollow: "Hips open: squeeze the glutes and stay in your hollow.", kick: "Lock the knees: legs long and together.",
+  shoulder: "Press the bar down to your hips and keep your back angle.", elbow: "Elbows forward, together and smooth.", range: "Lock out at the bottom, chin over the bar at the top.",
+  tempo: "One smooth movement, up and down.", head: "Head neutral, eyes forward.", scap: "Shoulders away from the ears, both sides together.",
+  ankle: "Point the toes away.", rib: "Ribs down, abs tight.",
+  pushaway: "Start from the midline: snap down into hollow.", hollowb: "Snap into a tight hollow.", archover: "Long arch: chest down, reach long.",
+  tension: "Legs together, toes pointed, knees locked.", headfwd: "Lift the chin slightly: eyes forward, the ear hidden by the arm.", rhythm: "Like a metronome: the same beat every time.", armpit: "Armpits forward." };
+const FAULT = Object.fromEntries(FAULTS_ALL.map((f) => [f[0], f]));
+let session = null, doc = null, cur = null, timer = null, fi = 0, blobs = {}, markIdx = 0, drag = null;
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const { error } = await db.auth.signInWithPassword({ email: $("l-email").value.trim(), password: $("l-pass").value });
+  if (error) { $("l-msg").className = "msg err"; $("l-msg").textContent = "That email and password did not match. Try again, or use the login link."; return; }
+  boot();
+});
+$("l-link").addEventListener("click", async () => {
+  const email = $("l-email").value.trim().toLowerCase();
+  if (!email.includes("@")) { $("l-msg").className = "msg err"; $("l-msg").textContent = "Type your email first."; return; }
+  await fetch("/.netlify/functions/learn-access", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, next: location.pathname + location.search }) }).catch(() => {});
+  $("l-msg").className = "msg ok"; $("l-msg").textContent = "If that email has a course, a login link is on its way. Tap it and you come straight back here.";
+});
+// The lesson opens this page in a new tab, so "back" saves, closes it, and the lesson is still underneath.
+$("b-course").onclick = async (e) => {
+  e.preventDefault();
+  if (cur) await save();
+  window.close(); setTimeout(() => { location.href = "/learn/"; }, 300);
+};
+async function unlock() {
+  try {
+    const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", "_unlocked").maybeSingle();
+    const list = (data && data.data && data.data.tools) || [];
+    if (!list.includes(TOOL)) await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: "_unlocked", data: { tools: [...list, TOOL] } }, { onConflict: "user_id,tool" });
+  } catch (e) { /* never block the task */ }
+}
+function changed() { $("state").textContent = "Unsaved changes"; clearTimeout(timer); timer = setTimeout(save, 1500); }
+// save the observations; a newly chosen frame goes to the learner's private folder first
+async function save() {
+  clearTimeout(timer);
+  try {
+    for (const [i, blob] of Object.entries(blobs)) {
+      const path = session.user.id + "/" + TOOL + "/" + cur.id + "-" + i + ".jpg";
+      const { error } = await db.storage.from(BUCKET).upload(path, blob, { contentType: "image/jpeg", upsert: true });
+      if (error) throw error;
+      cur.frames[i].still = path; delete blobs[i];
+    }
+    if (cur) cur.updated = new Date().toISOString();
+    const row = { user_id: session.user.id, tool: TOOL, data: doc, updated_at: new Date().toISOString() };
+    const { error } = await db.from("learn_portfolio").upsert(row, { onConflict: "user_id,tool" });
+    if (error) throw error;
+    $("state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return true;
+  } catch (e) { $("state").textContent = "Not saved — " + (e.message || e); return false; }
+}
+$("b-save").onclick = async () => { if (await save()) $("state").textContent = "Saved ✓"; };
+$("b-pdf").onclick = async () => { await save(); window.print(); };
+async function boot() {
+  ({ data: { session } } = await db.auth.getSession());
+  if (!session) { show("login"); return; }
+  if (!canOpen(session)) { show("soon"); return; }
+  if (new URLSearchParams(location.search).get("tool")) unlock();
+  const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", TOOL).maybeSingle();
+  doc = (data && data.data) || {}; doc.obs = (doc.obs || []).map(upgrade);
+  list(); show("eye");
+}
+
+// ---------- the list of observations ----------
+const esc = (t) => String(t || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const when = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+async function signed(paths) {
+  if (!paths.length) return {};
+  const { data } = await db.storage.from(BUCKET).createSignedUrls(paths, 3600);
+  return Object.fromEntries((data || []).filter((d) => d.signedUrl).map((d) => [d.path, d.signedUrl]));
+}
+async function list() {
+  $("v-list").classList.remove("hidden"); $("v-edit").classList.add("hidden"); $("v-compare").classList.add("hidden"); cur = null;
+  const box = $("obs-list"); box.innerHTML = "";
+  const obs = [...doc.obs].sort((a, b) => (b.created || "").localeCompare(a.created || ""));
+  if (!obs.length) { box.innerHTML = '<p class="sub">No observations yet. Press <b>New observation</b>, open a video of an athlete on the bar, and mark the links.</p>'; return; }
+  const thumb = (o) => ((o.frames || []).find((f) => f && f.still) || {}).still;
+  Object.assign(urls, await signed(obs.map(thumb).filter(Boolean)).catch(() => ({})));
+  for (const o of obs) {
+    const d = document.createElement("div"); d.className = "obs";
+    const n = Object.values(o.faults || {}).filter(Boolean).length;
+    d.innerHTML = `${thumb(o) && urls[thumb(o)] ? `<img src="${urls[thumb(o)]}" alt="">` : '<span class="ph"></span>'}<div class="txt"><b>${esc(o.who) || "Athlete"} · ${esc(o.move || "")}</b><span>${when(o.created)} · ${n ? n + (n === 1 ? " fault" : " faults") : "no faults ticked"}${o.next ? " · ready for: " + esc(o.next) : ""}</span></div>`;
+    if (canCompare(o)) { const lb = document.createElement("label"); lb.className = "pick noprint"; lb.innerHTML = `<input type="checkbox"${picked.includes(o.id) ? " checked" : ""}> Compare`;
+      lb.onclick = (e) => e.stopPropagation();
+      lb.querySelector("input").onchange = (e) => { const on = e.target.checked; if (on) { if (picked.length >= 3) { e.target.checked = false; $("cmp-note").textContent = "Compare up to three at a time."; return; } picked.push(o.id); } else picked = picked.filter((x) => x !== o.id); pickNote(); };
+      d.appendChild(lb); }
+    else if (true && o.track) {
+      // tracked but not kept: say why it cannot be ticked, and open it to keep it
+      const k = document.createElement("button"); k.type = "button"; k.className = "pick keepme noprint"; k.textContent = "Keep the rep to compare";
+      k.onclick = (e) => { e.stopPropagation(); edit(o).then(() => say("To compare this rep, press Open a video and choose the same video: the rep is kept by itself.")); };
+      d.appendChild(k); }
+    const x = document.createElement("button"); x.type = "button"; x.className = "del noprint"; x.textContent = "Delete";
+    x.onclick = (e) => { e.stopPropagation(); del(o); };
+    d.appendChild(x); d.onclick = () => edit(o); box.appendChild(d);
+  }
+  picked = picked.filter((id) => doc.obs.some((o) => o.id === id && canCompare(o))); pickNote();
+}
+$("b-new").onclick = () => {
+  const o = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), created: new Date().toISOString(), who: "", move: MOVES[0], frames: [], faults: {} };
+  doc.obs.push(o); edit(o);
+};
+$("b-back").onclick = async () => { await save(); list(); };
+async function del(o) {
+  if (!o || !confirm(`Delete the observation of ${o.who || "this athlete"} (${o.move || ""}) and its saved frames? This cannot be undone.`)) return;
+  const paths = [...(o.frames || []).map((f) => f && f.still), o.clip && o.clip.path].filter(Boolean);
+  if (paths.length) await db.storage.from(BUCKET).remove(paths).catch(() => {});
+  doc.obs = doc.obs.filter((x) => x !== o); if (cur === o) { cur = null; blobs = {}; }
+  await save(); list();
+}
+$("b-del").onclick = () => del(cur);
+
+// ---------- one observation ----------
+async function edit(o) {
+  cur = upgrade(o); blobs = {}; fi = 0;
+  $("v-list").classList.add("hidden"); $("v-edit").classList.remove("hidden");
+  $("vbox").classList.add("hidden"); vid.removeAttribute("src"); vid.load(); $("v-file").value = "";
+  $("o-who").value = o.who || ""; $("o-who").oninput = () => { o.who = $("o-who").value; changed(); };
+  $("o-move").innerHTML = MOVES.map((m) => `<option>${m}</option>`).join(""); $("o-move").value = MOVES.includes(o.move) ? o.move : MOVES[0]; $("o-move").onchange = () => setMove($("o-move").value);
+  $("o-next").innerHTML = '<option value="">Choose…</option>' + NEXT.map((m) => `<option>${m}</option>`).join(""); $("o-next").value = o.next || ""; $("o-next").onchange = () => { o.next = $("o-next").value; changed(); };
+  for (const [id, k] of [["o-cue", "cue"], ["o-fix", "fix"], ["o-notes", "notes"]]) { const el = $(id); el.value = o[k] || ""; el.oninput = () => { o[k] = el.value; changed(); }; }
+  faults(); tEnd = null; say(""); ovDraw();
+  mvState();
+  await showFrame(); window.scrollTo(0, 0);
+  if (o.clip) openClip(o);
+  else if (o.track) say("This rep's video was not kept, so it cannot play here. Press Open a video and choose the same video: it plays, and the rep is kept by itself.");
+}
+// the movement can be changed in section 1 or beside the video; tracking starts once the points are in
+function setMove(m) {
+  const o = cur; if (!o) return; o.move = m; $("o-move").value = m; fi = 0;
+  if (o.track) { clearTrack(); say(""); }
+  mvState(); faults(); showFrame(); measure(); changed();
+  if (true && !o.track && nextIdx(o.frames && o.frames[0]) >= LINKS.length) track();
+}
+function mvState() {
+  if (!cur) return; const t2b = true;
+  document.querySelectorAll("[data-mv]").forEach((b) => b.classList.toggle("on", MOVES[+b.dataset.mv] === cur.move));
+  $("mv-note").textContent = isPull() ? "Tracked: the points follow one rep once they are in; it finds the top and the end of the rep." : "Tracked: the points follow the swing for up to 10 seconds once they are in; it finds the hollow and the arch.";
+}
+document.querySelectorAll("[data-mv]").forEach((b) => (b.onclick = () => setMove(MOVES[+b.dataset.mv])));
+function faults() {
+  const o = cur, box = $("f-list"); box.innerHTML = "";
+  for (const [k, link, t, what, why, fix] of FAULTS_FOR(o.move)) {
+    const d = document.createElement("div"); d.className = "fault";
+    const l = document.createElement("label"), c = document.createElement("input"); c.type = "checkbox"; c.checked = !!o.faults[k];
+    l.append(c, " ", Object.assign(document.createElement("em"), { textContent: link }), Object.assign(document.createElement("b"), { textContent: t }), Object.assign(document.createElement("small"), { textContent: what }));
+    const more = document.createElement("div"); more.className = "fix"; more.classList.toggle("hidden", !c.checked);
+    const h1 = document.createElement("span"); h1.textContent = "Possible reasons"; const p1 = document.createElement("p"); p1.textContent = why;
+    const h2 = document.createElement("span"); h2.textContent = "Interventions"; const p2 = document.createElement("p"); p2.textContent = fix;
+    more.append(h1, p1, h2, p2);
+    c.onchange = () => { o.faults[k] = c.checked; more.classList.toggle("hidden", !c.checked); changed(); };
+    d.append(l, more); box.appendChild(d);
+  }
+}
+// ---------- frames: four positions through each movement ----------
+const PHASES = { "Strict pull-up": ["Start: hang in hollow", "Halfway up", "Top: chin over the bar", "Back in the hang"], "Beat swing": ["Start: hang in hollow", "Hollow: body behind the bar", "Arch: body in front of the bar", "End"] };
+const phasesOf = (o) => PHASES[o.move] || PHASES[MOVES[0]];
+const F = () => { cur.frames = cur.frames || []; return (cur.frames[fi] = cur.frames[fi] || { pts: {} }); };
+// older single-frame saves become the first frame
+function upgrade(o) { if (!o.frames) { o.frames = []; if (o.still || (o.pts && Object.keys(o.pts).length)) o.frames[0] = { still: o.still, w: o.w, h: o.h, t: o.t, pts: o.pts || {} }; } delete o.still; delete o.pts; delete o.w; delete o.h; delete o.t; return o; }
+const urls = {};   // still path → signed url, this visit
+function renderPhases() {
+  const ph = phasesOf(cur), box = $("phases"); box.innerHTML = "";
+  box.classList.toggle("hidden", ph.length < 2);
+  ph.forEach((name, i) => {
+    const b = document.createElement("button"); b.type = "button"; const f = cur.frames && cur.frames[i], n = f ? Object.keys(f.pts || {}).length : 0;
+    b.textContent = `${i + 1} · ${name}${n === LINKS.length ? " ✓" : ""}`; b.classList.toggle("on", i === fi);
+    b.onclick = () => { if (tracking) return; fi = i; showFrame(); }; box.appendChild(b);
+  });
+  $("v-use").textContent = fi === 0 ? "Use this frame as the start" : `Use this frame for ${fi + 1} · ${ph[fi].split(":")[0]}`;
+  $("v-use").classList.toggle("hidden", fi > 0 && !cur.track);
+}
+async function showFrame() {
+  renderPhases();
+  const f = cur.frames && cur.frames[fi];
+  markIdx = nextIdx(f);
+  if (f && f.t != null && live()) {
+    // the points go on the video itself, paused on this frame
+    $("sbox").classList.add("hidden"); $("mui").classList.remove("hidden"); $("f-empty").classList.add("hidden");
+    vid.pause(); if (Math.abs(vid.currentTime - f.t) > 0.02) await seekTo(f.t);
+    ovDraw(); markState(); measure(); return;
+  }
+  if (f && (f.local || f.still)) {
+    let u = f.local; if (!u && f.still) { if (!urls[f.still]) Object.assign(urls, await signed([f.still]).catch(() => ({}))); u = urls[f.still]; }
+    if (u) { await setStill(u, f.w, f.h); measure(); return; }
+  }
+  $("sbox").classList.add("hidden"); $("mui").classList.add("hidden");
+  const ph = phasesOf(cur);
+  $("f-empty").textContent = fi > 0 ? "Mark the start and track the movement: this position is found for you." : "Open the video, pause on the start position (hanging in hollow), and press Use this frame as the start.";
+  $("f-empty").classList.remove("hidden"); measure();
+}
+
+// ---------- the video: play the movement, and pick frames from it ----------
+const vid = $("vid");
+let vidIsClip = false;   // the video open is this observation's kept rep
+$("v-file").onchange = () => { const f = $("v-file").files[0]; if (!f) return; vidIsClip = false; vid.src = URL.createObjectURL(f); vid.load(); };
+const live = () => !!vid.currentSrc && vid.readyState > 0;
+vid.addEventListener("loadedmetadata", async () => { $("vbox").classList.remove("hidden"); $("vctlbox").classList.remove("hidden"); fitStage($("vstage"), vid.videoWidth, vid.videoHeight, 0.8);
+  // an observation already started: back to its frame on the video, to mark or check it there
+  if (cur) await showFrame(); else vid.currentTime = 0;
+  if (cur && true && cur.track && !cur.clip && !vidIsClip && !tracking) {
+    say("Keeping this rep: it plays through once while it saves…"); playAfterLoad = true; await keepRep(); if (!cur.clip) playAfterLoad = false; else say("Kept. Play the rep loops the one rep with the points on it.");
+    if (cur.clip) return; }
+  if (playAfterLoad && cur && cur.track) { playAfterLoad = false; vid.currentTime = cur.track.t0; vid.play().catch(() => {}); } });
+let playAfterLoad = false;   // after keeping the rep, play it from the kept clip
+$("v-back").onclick = () => { vid.pause(); vid.currentTime = Math.max(0, vid.currentTime - 1 / 30); };
+$("v-fwd").onclick = () => { vid.pause(); vid.currentTime = Math.min(vid.duration || 0, vid.currentTime + 1 / 30); };
+$("v-play").onclick = () => {
+  if (!vid.paused) { vid.pause(); return; }
+  if (cur && cur.track && (vid.currentTime >= repEnd() - 0.05 || vid.currentTime < cur.track.t0)) vid.currentTime = cur.track.t0;
+  vid.play();
+};
+const playLabel = () => ($("v-play").textContent = !vid.paused ? "Pause" : cur && cur.track ? "Play the rep" : "Play");
+vid.addEventListener("play", playLabel); vid.addEventListener("pause", playLabel);
+vid.addEventListener("timeupdate", () => { $("v-seek").value = Math.round(vid.currentTime / (vid.duration || 1) * 1000); });
+$("v-seek").oninput = () => { vid.pause(); vid.currentTime = $("v-seek").value / 1000 * (vid.duration || 0); };
+// a picture of the video as it is now, up to 1280 px on the long side
+async function grab() {
+  const k = Math.min(1, 1280 / Math.max(vid.videoWidth, vid.videoHeight)), w = Math.round(vid.videoWidth * k), h = Math.round(vid.videoHeight * k);
+  const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(vid, 0, 0, w, h);
+  const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.85));
+  return { blob, local: URL.createObjectURL(blob), w, h, t: +vid.currentTime.toFixed(2) };
+}
+async function setFrame(i, ti) {
+  const g = await grab(); blobs[i] = g.blob;
+  const f = (cur.frames[i] = { ...(cur.frames[i] || {}), local: g.local, w: g.w, h: g.h, t: g.t, pts: {} });
+  if (ti != null) { f.ti = ti; f.pts = ptsAt(ti); }
+  return f;
+}
+$("v-use").onclick = async () => {
+  vid.pause(); cur.frames = cur.frames || [];
+  if (fi === 0) {
+    // a new start: the tracking (and the positions found from it) start again
+    if (cur.track && !confirm("Use this frame as the new start? The tracking and the positions found from it will be cleared, and you mark the start again.")) return;
+    clearTrack(); const had = cur.frames[0] && cur.frames[0].pts; await setFrame(0); if (had) cur.frames[0].pts = had;
+    // a start from a different video: the kept rep no longer matches, so it goes
+    if (cur.clip && !vidIsClip) { db.storage.from(BUCKET).remove([cur.clip.path]).catch(() => {}); delete cur.clip; }
+  } else {
+    if (!cur.track) return;
+    await setFrame(fi, nearT(vid.currentTime));
+  }
+  await showFrame(); measure(); changed();
+  $("vstage").scrollIntoView({ behavior: "smooth", block: "start" });
+};
+// the stage keeps the picture's own shape, so points line up exactly
+function fitStage(el, w, h, vh = 0.7) { el.style.aspectRatio = w + " / " + h; el.style.width = `min(100%, calc(${vh * 100}vh * ${w / h}))`; }
+async function setStill(url, w, h) {
+  const img = $("still"); await new Promise((r) => { img.onload = r; img.onerror = r; img.src = url; });
+  w = w || img.naturalWidth; h = h || img.naturalHeight;
+  fitStage($("sstage"), w, h, 0.8); $("sbox").classList.remove("hidden"); $("mui").classList.remove("hidden"); $("f-empty").classList.add("hidden");
+  requestAnimationFrame(() => { sizeCanvas(); draw(); markState(); });
+}
+
+// ---------- marking the links ----------
+const cv = $("cv");
+function sizeCanvas() { const r = $("sstage").getBoundingClientRect(); cv.width = Math.round(r.width * devicePixelRatio); cv.height = Math.round(r.height * devicePixelRatio); }
+window.addEventListener("resize", () => { if (!$("sbox").classList.contains("hidden")) { sizeCanvas(); draw(); } });
+// the next point to add; the head can be skipped when the upright hides it
+const nextIdx = (f) => { const P = (f && f.pts) || {}, i = LINKS.findIndex(([k]) => !P[k] && !(k === "ear" && f && f.noHead)); return i < 0 ? LINKS.length : i; };
+function markState() {
+  if (!cur) return;
+  const P = F().pts; markIdx = nextIdx(F());
+  $("m-state").innerHTML = markIdx < LINKS.length ? `Click (or tap) the <b>${LINKS[markIdx][1].toLowerCase()}</b>: point ${markIdx + 1} of ${LINKS.length}.` : "All points added. Drag any point to move it.";
+  $("m-how").innerHTML = fi > 0 && cur.track ? "<b>Found by the tracker.</b> Check each point sits on its link. Drag any point that is off; the tracking around this moment moves with it."
+    : cur.track ? "<b>The start.</b> Drag any point to move it; the tracking around the start moves with it. To mark the start again, press Mark the links again."
+    : "<b>Click on the picture to add the points in order, starting with the toes</b> and working up the body: the shoulder, then the head, the elbow and the knuckles on the bar. Made a mistake? Drag a point to move it, or press Undo.";
+  $("m-order").classList.toggle("hidden", !!cur.track);
+  $("m-order").innerHTML = LINKS.map(([k, name], i) => `<li class="${P[k] || (k === "ear" && F().noHead) ? "done" : i === markIdx ? "now" : ""}">${name}${k === "ear" && F().noHead ? " (skipped)" : ""}</li>`).join("");
+  $("m-undo").disabled = !Object.keys(P).length || !!cur.track;
+  $("m-redo").classList.toggle("hidden", fi > 0);
+  $("m-undo").classList.toggle("hidden", !!cur.track);
+  $("m-skip").classList.toggle("hidden", !(fi === 0 && LINKS[markIdx] && LINKS[markIdx][0] === "ear"));
+  $("m-track").classList.toggle("hidden", !(fi === 0 && markIdx >= LINKS.length && true));
+  $("m-track").textContent = cur.track ? "Track again" : "Track the movement";
+  $("tbox").classList.toggle("hidden", !(fi === 0 && markIdx >= LINKS.length && true));
+  tState();
+}
+const at = (e, el = cv) => { const r = el.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
+// while marking, a click always adds the next point (the head sits close to the shoulder); press and drag moves a point
+let press = null;
+let mEl = cv;   // the canvas being marked: the video's when it is open, otherwise the still's
+function mDown(e, el) {
+  if (!cur) return; mEl = el; const q = at(e, el), r = el.getBoundingClientRect(), P = F().pts;
+  const hit = LINKS.map(([k]) => k).find((k) => P[k] && Math.hypot((P[k][0] - q[0]) * r.width, (P[k][1] - q[1]) * r.height) < 16);
+  const marking = markIdx < LINKS.length && !(fi > 0 && cur.track);
+  if (hit && !marking) drag = hit; else press = { q, hit, x: e.clientX, y: e.clientY };
+  el.setPointerCapture(e.pointerId); e.preventDefault();
+}
+function mMove(e) {
+  if (press && press.hit && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 5) { drag = press.hit; press = null; }
+  if (!drag) return; F().pts[drag] = at(e, mEl).map((v) => Math.max(0, Math.min(1, v))); draw(); measure(); }
+cv.addEventListener("pointerdown", (e) => mDown(e, cv)); cv.addEventListener("pointermove", mMove);
+const endDrag = () => {
+  if (press) { const P = F().pts; if (markIdx < LINKS.length && !(fi > 0 && cur.track)) { P[LINKS[markIdx][0]] = press.q; markState(); draw(); measure(); renderPhases(); changed();
+      autoTrack(); } press = null; return; }
+  if (drag) { const f = F(); if (cur.track && f.ti != null) { editTrack(f.ti, drag, f.pts[drag]); measure(); } markState(); renderPhases(); changed(); } drag = null; };
+cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
+$("m-undo").onclick = () => { if (cur.track) return; const P = F().pts, last = [...LINKS].reverse().find(([k]) => P[k]); if (!last) return; delete P[last[0]]; markState(); draw(); measure(); renderPhases(); changed(); };
+$("m-redo").onclick = () => { const f = F(); if (Object.keys(f.pts).length && !confirm(cur.track ? "Clear the points and the tracking, and mark the start again?" : "Clear the points on this frame and mark the links again?")) return; if (cur.track) { clearTrack(); fi = 0; showFrame(); } f.pts = {}; delete f.noHead; markIdx = 0; markState(); draw(); measure(); renderPhases(); changed(); };
+function draw() { if (live() && $("sbox").classList.contains("hidden")) ovDraw(); else paint(cv, F().pts, markIdx < LINKS.length); }
+let hl = null;   // the links of the finding being shown
+function paint(cv, P, prompt) {
+  const g = cv.getContext("2d"), k = devicePixelRatio, W = cv.width, H = cv.height, X = (p) => p[0] * W, Y = (p) => p[1] * H;
+  g.clearRect(0, 0, W, H); g.lineCap = "round"; g.lineJoin = "round";
+  // the pencil line from the hands to the feet
+  const foot = P.toes || P.ankle;
+  if (P.wr && foot) { g.setLineDash([7 * k, 6 * k]); g.strokeStyle = "rgba(255,255,255,.85)"; g.lineWidth = 2 * k; g.beginPath(); g.moveTo(X(P.wr), Y(P.wr)); g.lineTo(X(foot), Y(foot)); g.stroke(); g.setLineDash([]); }
+  for (const [col, w] of [["rgba(0,0,0,.6)", 7], ["#E0555A", 3.5]]) { g.strokeStyle = col; g.lineWidth = w * k; for (const [a, b] of CHAIN) if (P[a] && P[b]) { g.beginPath(); g.moveTo(X(P[a]), Y(P[a])); g.lineTo(X(P[b]), Y(P[b])); g.stroke(); } }
+  if (hl) for (const key of hl) { const p = P[key]; if (!p) continue; g.fillStyle = "rgba(242,178,76,.45)"; g.beginPath(); g.arc(X(p), Y(p), 18 * k, 0, 7); g.fill(); }
+  LINKS.forEach(([key], i) => { const p = P[key]; if (!p) return; g.fillStyle = "#fff"; g.strokeStyle = "#E0555A"; g.lineWidth = 2.5 * k; g.beginPath(); g.arc(X(p), Y(p), 7 * k, 0, 7); g.fill(); g.stroke();
+    g.fillStyle = "#111"; g.font = `800 ${9 * k}px -apple-system,Helvetica,Arial`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(i + 1), X(p), Y(p) + 0.5 * k); });
+  if (prompt) {
+    const txt = `${markIdx + 1} of ${LINKS.length}: click the ${LINKS[markIdx][1].toLowerCase()}`; g.font = `700 ${15 * k}px -apple-system,Helvetica,Arial`; g.textAlign = "left"; g.textBaseline = "alphabetic";
+    const w = g.measureText(txt).width + 20 * k; g.fillStyle = "rgba(0,0,0,.75)"; g.fillRect(8 * k, 8 * k, w, 30 * k); g.fillStyle = "#fff"; g.fillText(txt, 18 * k, 29 * k);
+  }
+}
+
+// ---------- tracking: the coach marks the start, the tracker follows the movement ----------
+// Google's MediaPipe Pose runs in the browser on the learner's own video (same as the head path review).
+// Each marked point follows the body part the tracker finds for it, keeping the coach's exact placement; the rib cage
+// and T-spine ride on the trunk; the knuckles stay on the bar; the elbow is worked out from the coach's arm lengths
+// (the tracker is least reliable with the arms overhead, so its own elbow and wrist are not used).
+const FPS = 15, MAXS = 15;
+const MP = { sh: [11, 12], el: [13, 14], wr: [15, 16], hip: [23, 24], knee: [25, 26], ankle: [27, 28], toes: [31, 32], ear: [7, 8], nose: [0, 0] };
+// each link: [the body part it rides on, from, to]; null = stays where it was marked
+let landmarker = null, tsClock = 0, tEnd = null, vdrag = null;
+async function getLandmarker() {
+  if (landmarker) return landmarker;
+  say("Loading the movement tracker. The first time takes a little while (it downloads about 30 MB); after that it is quick.", { pct: 0 });
+  const { FilesetResolver, PoseLandmarker } = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs");
+  const files = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+  // the graphics card is quickest; some browsers cannot use it, so fall back to the processor
+  const opts = (delegate) => ({ baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task", delegate },
+    runningMode: "IMAGE", numPoses: 3, minPoseDetectionConfidence: 0.25, minPosePresenceConfidence: 0.25, minTrackingConfidence: 0.25 });
+  try { landmarker = await PoseLandmarker.createFromOptions(files, opts("GPU")); } catch (e) { landmarker = await PoseLandmarker.createFromOptions(files, opts("CPU")); }
+  return landmarker;
+}
+// (gives up after 3 s, so a video that goes away, for example when the coach leaves, never leaves the page waiting)
+const seekTo = (t) => new Promise((res) => { let to; const done = () => { clearTimeout(to); vid.removeEventListener("seeked", done); res(); }; vid.addEventListener("seeked", done); to = setTimeout(done, 3000); vid.currentTime = t; });
+function say(msg, { err = false, pct = null } = {}) {
+  $("t-state").textContent = msg || "";
+  const b = $("v-state"); b.classList.toggle("hidden", !msg); b.classList.toggle("err", err);
+  b.firstElementChild.textContent = msg || ""; b.querySelector(".prog").classList.toggle("hidden", pct == null);
+  if (pct != null) b.querySelector(".prog i").style.width = pct + "%";
+}
+const startT = () => (cur.frames && cur.frames[0] && cur.frames[0].t) || 0;
+function tState() {
+  playLabel(); kState();
+  if (!cur || $("tbox").classList.contains("hidden")) return;
+  const has = !!vid.currentSrc && vid.readyState > 0;
+  $("t-end").disabled = $("t-go").disabled = !has;
+  const end = tEnd != null ? tEnd : Math.min(vid.duration || 0, startT() + 10);
+  if (tracking) return;
+  $("t-state").textContent = !has ? "Open the video again to track the movement." : cur.track ? `Tracked ${((cur.track.pts.length - 1) / cur.track.fps).toFixed(1)} s${cur.track.edited ? ", " + cur.track.edited + " points corrected by you" : ""}.` : tEnd != null ? `Ready to track from ${startT().toFixed(1)} s to ${end.toFixed(1)} s.` : "Add the last point and the tracking starts by itself.";
+  $("t-go").textContent = cur.track || tEnd != null ? "Track again" : "Track the movement";
+}
+$("t-end").onclick = () => { vid.pause(); if (vid.currentTime <= startT() + 0.3) { say("The end must be after the start. Play on to the end of the rep first.", { err: true }); return; } tEnd = Math.min(vid.currentTime, startT() + MAXS); tState(); };
+// the body parts the tracker found, as points in the picture (both sides averaged: side on, the legs and arms sit together)
+function body(lm) { const o = {}; for (const [k, [a, b]] of Object.entries(MP)) o[k] = [(lm[a].x + lm[b].x) / 2, (lm[a].y + lm[b].y) / 2];
+  // the elbow facing the camera, not the average of both (side on, the far elbow is hidden and guessed, which pulled the
+  // averaged elbow onto the trunk)
+  o.elA = [lm[13].x, lm[13].y]; o.elB = [lm[14].x, lm[14].y]; o.vis = [lm[13].visibility || 0, lm[14].visibility || 0];
+  return o; }
+$("t-go").onclick = () => { if (cur.track && !confirm("Track the movement again? Any points you corrected will be lost.")) return; track(); };
+let tracking = false;
+const autoTrack = () => { if (fi === 0 && !cur.track && markIdx >= LINKS.length && true) track(); };
+$("m-skip").onclick = () => { const f = F(); f.noHead = true; markState(); draw(); measure(); renderPhases(); changed(); autoTrack(); };
+$("m-track").onclick = () => $("t-go").onclick();
+async function track() {
+  if (tracking || !cur) return;
+  if (nextIdx(cur.frames && cur.frames[0]) < LINKS.length) { say("Add all " + LINKS.length + " points on the start first.", { err: true }); return; }
+  if (!vid.currentSrc || !vid.readyState) { say("Open the video again to track the movement.", { err: true }); return; }
+  tracking = true; $("tbox").classList.remove("hidden");
+  $("vstage").scrollIntoView({ behavior: "smooth", block: "start" });
+  const btn = $("t-go"); btn.disabled = true; vid.pause();
+  try {
+    const lm = await getLandmarker(), W = vid.videoWidth, H = vid.videoHeight, P0 = cur.frames[0].pts;
+    const t0 = startT(), t1 = Math.max(t0 + 0.5, tEnd != null ? tEnd : Math.min(vid.duration - 0.05, t0 + (true ? 10 : 10)));
+    const off = document.createElement("canvas"); off.width = W; off.height = H; const octx = off.getContext("2d");
+    const n = Math.round((t1 - t0) * FPS), found = [], me = cur;
+    $("t-prog").classList.remove("hidden"); say("Tracking the movement… 0%", { pct: 0 });
+    let prev = null, miss = 0;
+    for (let i = 0; i <= n; i++) {
+      if (cur !== me) throw new Error("Stopped: you left this observation while it tracked.");
+      await seekTo(Math.min(t0 + i / FPS, vid.duration - 0.001)); octx.drawImage(vid, 0, 0, W, H);
+      // each frame is read on its own (following from frame to frame made the tracker hold on to a misread);
+      // hanging from the bar, the shoulders are always above the hips, so any body that is not is a misread
+      const res = lm.detect(off), cands = (res.landmarks || []).map(body).filter((c) => c.sh[1] < c.hip[1] - 0.04);
+      // the athlete: until found, the body nearest the coach's points; after that, the body nearest the last one found.
+      // A body that jumps further than 7% of the picture in a fifteenth of a second is a misread; after a miss the
+      // allowance grows with the time since, so the tracker finds the athlete again (an upright can hide the body).
+      const ref = prev ? { sh: prev.sh, hip: prev.hip, knee: prev.knee, ankle: prev.ankle } : { sh: P0.sh, hip: P0.hip, knee: P0.knee, ankle: P0.ankle };
+      let best = null, bd = prev ? Math.min(0.2, 0.07 * (1 + miss)) : 0.1;
+      for (const c of cands) { const ks = Object.keys(ref).filter((k) => ref[k] && c[k]), d = ks.reduce((s, k) => s + Math.hypot((c[k][0] - ref[k][0]) * W / H, c[k][1] - ref[k][1]), 0) / (ks.length || 1); if (d < bd) { bd = d; best = c; } }
+      if (best) { prev = best; miss = 0; } else miss++; found.push(best);
+      $("t-prog").firstElementChild.style.width = Math.round(100 * i / n) + "%"; say(`Tracking the movement… ${Math.round(100 * i / n)}%`, { pct: Math.round(100 * i / n) });
+    }
+    const first = found.findIndex(Boolean);
+    if (first < 0 || first > FPS) throw new Error("The tracker could not find the athlete at the start. Check the whole body is in the frame and the points are on the athlete.");
+    for (let i = 0; i < first; i++) found[i] = found[first];
+    // fill short gaps
+    for (let i = 0; i < found.length; i++) if (!found[i]) { let a = i - 1; while (a >= 0 && !found[a]) a--; let b = i + 1; while (b < found.length && !found[b]) b++;
+      const A = found[a], B = b < found.length ? found[b] : null, f = B ? (i - a) / (b - a) : 0; found[i] = {}; for (const k of Object.keys(A)) found[i][k] = B ? [A[k][0] + f * (B[k][0] - A[k][0]), A[k][1] + f * (B[k][1] - A[k][1])] : A[k]; }
+    // smooth each body part over time: a median of five frames (drops single-frame misreads), then a mean of three
+    // the elbow facing the camera: the side the tracker sees best over the whole rep (one side, so it never swaps mid-rep)
+    { const va = found.reduce((a, f) => a + (f.vis ? f.vis[0] : 0), 0), vb = found.reduce((a, f) => a + (f.vis ? f.vis[1] : 0), 0);
+      for (const f of found) { f.elNear = va >= vb ? f.elA : f.elB; delete f.elA; delete f.elB; delete f.vis; } }
+    const keys = Object.keys(found[0]), sm = (arr, fn, r) => arr.map((_, i) => { const o = {}; for (const k of keys) { const nb = arr.slice(Math.max(0, i - r), i + r + 1).map((q) => q[k]); o[k] = [fn(nb.map((q) => q[0])), fn(nb.map((q) => q[1]))]; } return o; });
+    const med = (v) => [...v].sort((x, y) => x - y)[Math.floor(v.length / 2)], mean = (v) => v.reduce((x, y) => x + y, 0) / v.length;
+    const bodyT = sm(sm(found, med, 2), mean, 1);
+    { // the elbow a little smoother (it moves most and is read least well)
+      const e = bodyT.map((b) => b.elNear), es = e.map((_, i) => { const nb = e.slice(Math.max(0, i - 3), i + 4); return [nb.reduce((a, q) => a + q[0], 0) / nb.length, nb.reduce((a, q) => a + q[1], 0) / nb.length]; });
+      bodyT.forEach((b, i) => (b.elNear = es[i])); }
+    // each point keeps the coach's placement at the start: the tracked body part plus the same offset
+    const px = (p) => [p[0] * W, p[1] * H], np = (q) => [q[0] / W, q[1] / H], b0 = bodyT[0], offs = {};
+    for (const k of ["sh", "ear"]) if (P0[k]) offs[k] = [P0[k][0] - b0[k][0], P0[k][1] - b0[k][1]];
+    // the hip, knee and ankle turn with the tracked trunk, thigh and shank; the toes ride on the shank too, as the
+    // tracker cannot read the feet reliably (tested 16 Oct on Nathan's good and poor reps), so they keep the angle the coach marked (the body folds and turns upside down at the top)
+    const segTie = (A, B, Q) => { const a = px(A), b = px(B), q = px(Q), d = [b[0] - a[0], b[1] - a[1]], L = d[0] * d[0] + d[1] * d[1] || 1; return [((q[0] - a[0]) * d[0] + (q[1] - a[1]) * d[1]) / L, ((q[0] - a[0]) * d[1] - (q[1] - a[1]) * d[0]) / L]; };
+    const segAt = (A, B, [u, v]) => { const a = px(A), b = px(B), d = [b[0] - a[0], b[1] - a[1]]; return np([a[0] + u * d[0] + v * d[1], a[1] + u * d[1] - v * d[0]]); };
+    const SEG = { hip: ["sh", "hip"], knee: ["hip", "knee"], ankle: ["knee", "ankle"], toes: ["knee", "ankle"] }, segT = {};
+    for (const [k, [a, b]] of Object.entries(SEG)) segT[k] = segTie(b0[a], b0[b], P0[k]);
+    // the rib cage and T-spine ride on the trunk (hip to shoulder), so they turn with it
+    const tie = {}, H0 = px(P0.hip), S0 = px(P0.sh), d0 = [S0[0] - H0[0], S0[1] - H0[1]], L0 = d0[0] * d0[0] + d0[1] * d0[1] || 1;
+    for (const k of ["rib", "tsp"]) { const Q = px(P0[k]); tie[k] = [((Q[0] - H0[0]) * d0[0] + (Q[1] - H0[1]) * d0[1]) / L0, ((Q[0] - H0[0]) * d0[1] - (Q[1] - H0[1]) * d0[0]) / L0]; }
+    // the elbow: on the line from the knuckles (on the bar) to the shoulder
+    const Wr = px(P0.wr), El0 = px(P0.el);
+    // the arm as the coach marked it: the elbow against the line from the knuckles to the shoulder
+    const D0 = Math.hypot(S0[0] - Wr[0], S0[1] - Wr[1]) || 1, ad = [S0[0] - Wr[0], S0[1] - Wr[1]], aL2 = D0 * D0;
+    const elTie = [((El0[0] - Wr[0]) * ad[0] + (El0[1] - Wr[1]) * ad[1]) / aL2, ((El0[0] - Wr[0]) * ad[1] - (El0[1] - Wr[1]) * ad[0]) / aL2];
+    const pullMove = isPull(), ua = Math.hypot(S0[0] - El0[0], S0[1] - El0[1]), fa = Math.hypot(El0[0] - Wr[0], El0[1] - Wr[1]);
+    const fwT = P0.rib && P0.tsp ? Math.sign(P0.rib[0] - P0.tsp[0]) || 1 : 1;
+    const pts = bodyT.map((fb, i) => {
+      if (i === 0) return LINKS.map(([k]) => P0[k]);
+      const o = {}; for (const k of Object.keys(offs)) o[k] = [fb[k][0] + offs[k][0], fb[k][1] + offs[k][1]];
+      for (const [k, [a, b]] of Object.entries(SEG)) o[k] = segAt(fb[a], fb[b], segT[k]);
+      const Hh = px(o.hip), Ss = px(o.sh), d = [Ss[0] - Hh[0], Ss[1] - Hh[1]];
+      for (const k of ["rib", "tsp"]) { const [u, v] = tie[k]; o[k] = np([Hh[0] + u * d[0] + v * d[1], Hh[1] + u * d[1] - v * d[0]]); }
+      o.wr = P0.wr;
+      // The elbow rides on the line from the knuckles to the shoulder, keeping the arm shape the coach marked.
+      // (Nathan, 16 Oct: point 9 drifted. First it snapped onto a straight line; then, worked out from the arm lengths, it
+      // kinked out at the top, because the shoulder comes closer to the bar as the lats compress while the arms stay straight.)
+      const dd = [Ss[0] - Wr[0], Ss[1] - Wr[1]], [u, v] = elTie;
+      if (pullMove) {
+        // a pull-up: the elbow really bends, so it is worked out from the knuckles, the shoulder and the coach's upper arm and
+        // forearm lengths (small changes near straight stay on the line marked)
+        const D = Math.hypot(...dd) || 1;
+        // once bent, the tracker's elbow on the side facing the camera (Nathan, 18 Oct: "it looks bad to the learner if the point
+        // doesn't follow the joint"); near straight, the marked arm line
+        // (blended in as the arm bends, from 95% to 80% of the straight arm, so the point does not jump)
+        const line = [Wr[0] + u * dd[0] + v * dd[1], Wr[1] + u * dd[1] - v * dd[0]], trk = fb.elNear ? px(fb.elNear) : elbowFront(Wr, Ss, ua, fa, fwT);
+        const bw = Math.max(0, Math.min(1, (0.95 - D / D0) / 0.15));
+        o.el = np([line[0] + (trk[0] - line[0]) * bw, line[1] + (trk[1] - line[1]) * bw]);
+      } else o.el = np([Wr[0] + u * dd[0] + v * dd[1], Wr[1] + u * dd[1] - v * dd[0]]);
+      return LINKS.map(([k]) => o[k]); });
+    // Lost legs (Nathan, 17 Oct: the knee and ankle collapsed together at the top of a good rep, and leaving those frames out
+    // broke the lines): seen side on, the thigh and shin cannot change length, so where either is more than a quarter off
+    // its length at the start, the knee, ankle and toes are filled in from the good frames either side.
+    { const J = (k) => LINKS.findIndex(([q]) => q === k), ji = J("hip"), jk = J("knee"), ja = J("ankle"), jt = J("toes");
+      const len = (fr, a, b) => (fr[a] && fr[b] ? Math.hypot((fr[a][0] - fr[b][0]) * W, (fr[a][1] - fr[b][1]) * H) : null);
+      const th0 = len(pts[0], ji, jk), sn0 = len(pts[0], jk, ja), off = (v, v0) => v != null && v0 && (v / v0 < 0.75 || v / v0 > 1.25);
+      const ok = pts.map((fr) => !(off(len(fr, ji, jk), th0) || off(len(fr, jk, ja), sn0)));
+      for (let i = 1; i < pts.length; i++) if (!ok[i]) { let a = i - 1; while (a > 0 && !ok[a]) a--; let b = i + 1; while (b < pts.length && !ok[b]) b++;
+        for (const j of [jk, ja, jt]) { const A = pts[a][j], B = b < pts.length ? pts[b][j] : null; if (!A) continue; const f = B ? (i - a) / (b - a) : 0;
+          pts[i][j] = B ? [A[0] + f * (B[0] - A[0]), A[1] + f * (B[1] - A[1])] : [...A]; } } }
+    // where the face points (the tracker's own ear and nose, kept beside the coach's points): the head turns around the ear,
+    // so a head lifting to the sky shows in the ear-to-nose direction, not in the ear point (Nathan, 17 Oct)
+    const face = bodyT.map((fb) => [+fb.ear[0].toFixed(4), +fb.ear[1].toFixed(4), +fb.nose[0].toFixed(4), +fb.nose[1].toFixed(4)]);
+    cur.track = { elbowV2: pullMove, face, t0: +t0.toFixed(3), fps: FPS, w: W, h: H, edited: 0, pts: pts.map((fr) => fr.map((p) => (p ? [+p[0].toFixed(4), +p[1].toFixed(4)] : null))) };
+    if (true && tEnd == null) trimRep();
+    await findPhases();
+    // play the rep back with the points on it
+    await seekTo(t0); ovDraw(); measure(); renderPhases(); markState(); draw(); changed(); tState();
+    $("vstage").scrollIntoView({ behavior: "smooth", block: "start" });
+    let kept = false;
+    if (!cur.clip) { say("Tracked. Keeping the rep: it plays through once while it saves…"); playAfterLoad = true; await keepRep(); if (cur !== me) return; kept = !!cur.clip; if (!kept) playAfterLoad = false; }
+    if (!kept) vid.play().catch(() => {}); playLabel();
+    say(cur.clip ? "Tracked and kept. Play the rep loops the one rep with the points on it. Pause and drag any point that drifts." : "Tracked. Play the rep loops the one rep with the points on it. Pause and drag any point that drifts.");
+  } catch (e) { say("The tracking did not work: " + (e.message || String(e)) + " Press Track again to try again.", { err: true }); console.error(e); }
+  finally { btn.disabled = false; $("t-prog").classList.add("hidden"); tracking = false; }
+}
+function clearTrack() { if (!cur) return; delete cur.track; if (cur.frames) cur.frames.length = Math.min(cur.frames.length, 1); for (const i of Object.keys(blobs)) if (+i > 0) delete blobs[i]; ovDraw(); }
+const ptsAt = (i) => { const fr = cur.track.pts[Math.max(0, Math.min(cur.track.pts.length - 1, i))]; const o = {}; LINKS.forEach(([k], j) => { if (fr[j]) o[k] = [...fr[j]]; }); return o; };
+const tframe = (i) => ({ pts: ptsAt(i), w: cur.track.w, h: cur.track.h });
+// the angles through the movement, smoothed over about half a second (seven frames): the tracker wobbles a few degrees from
+// frame to frame, which read as knee movement on Nathan's good demo (16 Oct); a real bend, like the poor rep's 121°, still shows
+// The elbow in a pull-up, from the knuckles and the shoulder (pixels) and the upper arm and forearm lengths: of the two possible
+// elbows, the one in front of the body, as the elbows point forward in a strict pull-up. (Nathan, 18 Oct: on "ama good" point 9
+// swung back behind the head as he pulled up, because the side was taken from the nearly straight start arm, a coin toss.)
+function elbowFront(Wr, Ss, ua, fa, fw) {
+  // In a strict pull-up the forearms hang close to vertical below the hands (elbows down and back), so once the arm is bent
+  // the elbow is the forearm's length straight below the knuckles. (18 Oct: worked out from the two arm lengths, the elbow
+  // flipped beside or above the head near the top, as hand-marked lengths and the tracked shoulder are a little out; the
+  // tracker's own elbow sat on the trunk in Nathan's videos.)
+  // ...but never further from the shoulder than the upper arm (18 Oct: at the top a full forearm below the bar put the elbow
+  // down by the hip): the elbow comes up the vertical line until it is one upper arm from the shoulder
+  const dx = Wr[0] - Ss[0], under = ua * ua - dx * dx;
+  let t = fa;
+  if (under > 0) { const lo = Ss[1] - Wr[1] + Math.sqrt(under); if (lo < t) t = Math.max(0, lo); }
+  else t = Math.max(0, Math.min(fa, Ss[1] - Wr[1]));
+  return [Wr[0], Wr[1] + t];
+}
+// pull-ups tracked before this: the elbow is worked out again from the saved shoulder and knuckles when the rep is opened
+function fixPullElbows() {
+  const tr = cur.track; if (!isPull() || !tr || tr.elbowV2) return;
+  const J = (k) => LINKS.findIndex(([q]) => q === k), js = J("sh"), je = J("el"), jw = J("wr"), P0 = tr.pts[0];
+  if (!P0[js] || !P0[je] || !P0[jw]) return;
+  const px = (p) => [p[0] * tr.w, p[1] * tr.h], S0 = px(P0[js]), E0 = px(P0[je]), W0 = px(P0[jw]);
+  const ua = Math.hypot(S0[0] - E0[0], S0[1] - E0[1]), fa = Math.hypot(E0[0] - W0[0], E0[1] - W0[1]), D0 = Math.hypot(S0[0] - W0[0], S0[1] - W0[1]);
+  const fw = P0[J("rib")] && P0[J("tsp")] ? Math.sign(P0[J("rib")][0] - P0[J("tsp")][0]) || 1 : 1;
+  for (let i = 1; i < tr.pts.length; i++) { const fr = tr.pts[i]; if (!fr[js] || !fr[jw]) continue; const Ss = px(fr[js]), Wr = px(fr[jw]);
+    const dd = [Ss[0] - Wr[0], Ss[1] - Wr[1]], ad = [S0[0] - W0[0], S0[1] - W0[1]], L2 = D0 * D0 || 1;
+    const u = ((E0[0] - W0[0]) * ad[0] + (E0[1] - W0[1]) * ad[1]) / L2, v = ((E0[0] - W0[0]) * ad[1] - (E0[1] - W0[1]) * ad[0]) / L2;
+    const q = Math.hypot(...dd) >= D0 * 0.9 ? [Wr[0] + u * dd[0] + v * dd[1], Wr[1] + u * dd[1] - v * dd[0]] : elbowFront(Wr, Ss, ua, fa, fw); fr[je] = [+(q[0] / tr.w).toFixed(4), +(q[1] / tr.h).toFixed(4)]; }
+  tr.elbowV2 = true;
+  for (const f of cur.frames || []) if (f && f.ti != null) f.pts = ptsAt(f.ti);
+}
+function series() {
+  fixPullElbows();
+  const S = cur.track.pts.map((_, i) => geo(tframe(i))), R = 3; headMove(S);
+  // A tracking error, not a movement: seen side on, the thigh and shin cannot suddenly shrink or grow, so when the tracked
+  // length is more than a quarter off its length at the start, that frame's knee, hip and toe readings are left out
+  // (Nathan, 17 Oct: on his good pull-up the knee and ankle collapsed together at the top and read as a 118° knee bend)
+  { const tr = cur.track, len = (p, a, b) => (p[a] && p[b] ? Math.hypot((p[a][0] - p[b][0]) * tr.w, (p[a][1] - p[b][1]) * tr.h) : null), P0 = ptsAt(0);
+    const th0 = len(P0, "hip", "knee"), sh0 = len(P0, "knee", "ankle");
+    S.forEach((g, i) => { const p = ptsAt(i), th = len(p, "hip", "knee"), sn = len(p, "knee", "ankle");
+      const bad = (v, v0) => v != null && v0 && (v / v0 < 0.75 || v / v0 > 1.25);
+      if (bad(th, th0) || bad(sn, sh0)) g.legLost = true; });
+    // (reps tracked before the legs were filled in at tracking: the angles are bridged across the lost frames)
+    for (const k of ["knee", "toes", "hip"]) for (let i = 1; i < S.length; i++) if (S[i].legLost) {
+      let a = i - 1; while (a > 0 && S[a].legLost) a--; let b = i + 1; while (b < S.length && S[b].legLost) b++;
+      const A = S[a][k], B = b < S.length ? S[b][k] : null; if (A == null) continue; S[i][k] = B == null ? A : A + (B - A) * (i - a) / (b - a); } }
+  return S.map((g, i) => { const o = { ...g };
+    for (const k of ["hip", "sh", "el", "knee", "toes", "hmv", "face"]) { const v = S.slice(Math.max(0, i - R), i + R + 1).map((q) => q[k]).filter((x) => x != null); if (g[k] != null && v.length) o[k] = v.reduce((a, b) => a + b, 0) / v.length; }
+    return o; });
+}
+// (Nathan, 16 Oct: the head is expected to stay still in space, like a chicken's head as you turn the chicken, so it is
+// measured against where it started, not against the joints): the ear's distance from its start, as % of the arm's length
+function headMove(S) {
+  const tr = cur.track, P0 = ptsAt(0); if (!P0.ear || !P0.sh || !P0.wr) return;
+  const arm = Math.hypot((P0.sh[0] - P0.wr[0]) * tr.w, (P0.sh[1] - P0.wr[1]) * tr.h) || 1;
+  // in a pull-up and a beat swing the head travels with the body, so the strip shows the head against the trunk:
+  // the change in the hip to shoulder to ear angle from the start, in degrees (flat is the head kept in line)
+  // (17 Oct, Nathan: 'huge head lift and look to the sky' was missed by the head-to-trunk angle, as the trunk leans back with
+  // the head. Now: how far the ear goes behind the line from the shoulder to the knuckles, as % of the arm's length; good rep at
+  // most 11%, poor 23%, very bad 30%)
+  const fw = P0.rib && P0.tsp ? Math.sign(P0.rib[0] - P0.tsp[0]) || 1 : 1;
+  // (17 Oct: the ear against the arms misread a slight shrug on Nathan's good/ok rep as a head lift. Where the face points
+  // separates them: the ear-to-nose direction, degrees above level. Good reps at most -7 and -6, poor 42, very bad 75;
+  // lowest: good -27, good/ok -32, poor -54 (a chin tuck), very bad -23)
+  if (tr.face && tr.face.length === S.length) { S.forEach((g, i) => { const q = tr.face[i]; g.face = Math.atan2(-(q[3] - q[1]) * tr.h, (q[2] - q[0]) * tr.w * fw) * 180 / Math.PI; g.hmv = g.face; }); return; }
+  S.forEach((g, i) => { const p = ptsAt(i); if (!p.ear || !p.sh || !p.wr) { g.hmv = null; return; }
+    const A = [p.sh[0] * tr.w, p.sh[1] * tr.h], B = [p.wr[0] * tr.w, p.wr[1] * tr.h], Q = [p.ear[0] * tr.w, p.ear[1] * tr.h], d = [B[0] - A[0], B[1] - A[1]], L = Math.hypot(...d) || 1;
+    const cr = (d[0] * (Q[1] - A[1]) - d[1] * (Q[0] - A[0])) / L, front = Math.sign(cr) === Math.sign(-d[1] * fw || 1);
+    g.hmv = front ? 0 : Math.abs(cr) / arm * 100; });
+}
+const nearT = (t) => Math.max(0, Math.min(cur.track.pts.length - 1, Math.round((t - cur.track.t0) * cur.track.fps)));
+async function findPhases() {
+  const tr = cur.track, last = tr.pts.length - 1, P = (i) => ptsAt(i);
+  let ph;
+  if (isPull()) {
+    // top: the shoulders at their highest; halfway: half of that rise on the way up; then back in the hang at the end
+    let top = 0; for (let i = 0; i <= last; i++) if (P(i).sh && P(i).sh[1] < P(top).sh[1]) top = i;
+    const y0 = P(0).sh[1], yt = P(top).sh[1]; let half = Math.max(1, Math.round(top / 2)); for (let i = 1; i <= top; i++) if (y0 - P(i).sh[1] >= (y0 - yt) / 2) { half = i; break; }
+    ph = [0, Math.max(1, half), Math.max(2, top), last];
+  } else {
+    // beat swing: the feet at their furthest forward (the hollow) and then their furthest back (the arch)
+    // (with no clear swing found, the furthest forward and then the furthest back)
+    const { fronts, backs, x } = swings(); const amax = (lo, hi, dir) => { let b = lo; for (let i = lo; i <= hi; i++) if (dir * x[i] > dir * x[b]) b = i; return b; };
+    const front = fronts[0] != null ? fronts[0] : amax(1, last, 1), back = backs.find((b) => b > front) ?? amax(Math.min(last, front + 1), last, -1);
+    ph = [0, Math.max(1, front), Math.max(2, back), last];
+  }
+  tr.ph = ph;
+  for (let i = 1; i < tr.ph.length; i++) { await seekTo(tr.t0 + tr.ph[i] / tr.fps); await setFrame(i, tr.ph[i]); }
+  cur.frames[0].ti = 0;
+}
+// the beat swing: the feet forward and back through each swing (smoothed), and the turning points
+function swings() {
+  const tr = cur.track, N = tr.pts.length, P0 = ptsAt(0), fw = P0.rib && P0.tsp ? Math.sign(P0.rib[0] - P0.tsp[0]) || 1 : 1;
+  const raw = tr.pts.map((_, i) => { const p = ptsAt(i); const f = p.toes || p.ankle; return f && p.wr ? (f[0] - p.wr[0]) * tr.w * fw : null; });
+  const x = raw.map((_, i) => { const v = raw.slice(Math.max(0, i - 2), i + 3).filter((q) => q != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0; });
+  const span = Math.max(...x) - Math.min(...x) || 1, fronts = [], backs = [], W = 4;
+  for (let i = W; i < N - W; i++) { const win = x.slice(i - W, i + W + 1);
+    if (x[i] === Math.max(...win) && x[i] - Math.min(...win) > span * 0.15 && (!fronts.length || i - fronts[fronts.length - 1] > W)) fronts.push(i);
+    if (x[i] === Math.min(...win) && Math.max(...win) - x[i] > span * 0.15 && (!backs.length || i - backs[backs.length - 1] > W)) backs.push(i); }
+  return { x, fronts, backs, span };
+}// a dragged point corrects the tracking around that moment: fully at the frame, fading out over half a second
+function editTrack(ti, key, to) {
+  const tr = cur.track, j = LINKS.findIndex(([k]) => k === key), R = Math.round(tr.fps / 2), at = tr.pts[ti][j]; if (!at || !to) return;
+  const dx = to[0] - at[0], dy = to[1] - at[1];
+  for (let i = Math.max(0, ti - R); i <= Math.min(tr.pts.length - 1, ti + R); i++) { const w = 1 - Math.abs(i - ti) / (R + 1), p = tr.pts[i][j]; if (p) tr.pts[i][j] = [+(p[0] + dx * w).toFixed(4), +(p[1] + dy * w).toFixed(4)]; }
+  tr.edited = (tr.edited || 0) + 1;
+  for (const f of cur.frames) if (f && f.ti != null && f !== F()) f.pts = ptsAt(f.ti);
+}
+// the tracked points over the video as it plays; pause and drag a point to correct it
+const vcv = $("vcv");
+function ovDraw() {
+  const r = $("vstage").getBoundingClientRect(); vcv.width = Math.round(r.width * devicePixelRatio); vcv.height = Math.round(r.height * devicePixelRatio);
+  const f0 = cur && cur.frames && cur.frames[fi], marking = cur && !cur.track && f0 && f0.t != null && live();
+  const on = cur && cur.track && vid.currentSrc;
+  vcv.classList.toggle("edit", !!((on || marking) && vid.paused));
+  if (marking) { const here = Math.abs(vid.currentTime - f0.t) < 0.05; if (here) paint(vcv, f0.pts, markIdx < LINKS.length && vid.paused); else vcv.getContext("2d").clearRect(0, 0, vcv.width, vcv.height); chartDraw(); return; }
+  if (!on) { vcv.getContext("2d").clearRect(0, 0, vcv.width, vcv.height); chartDraw(); return; }
+  const t = vid.currentTime, tr = cur.track, i = nearT(t), inside = t >= tr.t0 - 0.05 && t <= tr.t0 + (tr.pts.length - 1) / tr.fps + 0.05;
+  if (inside) paint(vcv, ptsAt(i), false); else vcv.getContext("2d").clearRect(0, 0, vcv.width, vcv.height);
+  chartDraw();
+}
+// once tracked, Play loops the one rep with the points on it (Nathan: the points went when the video ran on into the next rep)
+let playEnd = null;
+const repEnd = () => cur.track.t0 + (cur.track.pts.length - 1) / cur.track.fps;
+(function loop() { if (!vid.paused) { if (cur && cur.track && !recording && (vid.currentTime >= repEnd() || vid.currentTime < cur.track.t0 - 0.05)) vid.currentTime = cur.track.t0; ovDraw(); } requestAnimationFrame(loop); })();
+vid.addEventListener("play", () => { hl = null; });
+function trimRep() {
+  // a strict pull-up: the first real rep. A top only counts once the shoulders have risen a real distance (40% of the arm's
+  // length: Nathan's poor rep had a small rise before the real one); the rep ends when the shoulders are back down and the
+  // elbows straight again (up to a second later). The beat swing keeps every swing in the stretch tracked.
+  if (!isPull()) return;
+  const tr = cur.track, last = tr.pts.length - 1, e0 = geo(tframe(0)).el || 170, y0 = ptsAt(0).sh[1], P0 = ptsAt(0);
+  const arm = Math.hypot((P0.sh[0] - P0.wr[0]) * tr.w, (P0.sh[1] - P0.wr[1]) * tr.h) / tr.h;
+  let from = 0;
+  for (let tries = 0; tries < 4; tries++) {
+    const bent = tr.pts.findIndex((_, i) => i >= from && (geo(tframe(i)).el || 180) < e0 - 40); if (bent < 0) return;
+    let top = bent, i = bent; for (; i <= last; i++) { const y = ptsAt(i).sh[1]; if (y < ptsAt(top).sh[1]) top = i; else if (y > ptsAt(top).sh[1] + 0.04) break; }
+    const rise = y0 - ptsAt(top).sh[1];
+    if (rise < arm * 0.4) { from = Math.max(i, top + 1); continue; }   // not a real rep: look for the next one
+    for (let j = top + 1; j <= last; j++) if (ptsAt(j).sh[1] >= y0 - rise * 0.1) {
+      let end = j; for (let q = j; q <= Math.min(last, j + tr.fps); q++) { end = q; if ((geo(tframe(q)).el || 0) >= e0 - 15) break; }
+      tr.pts = tr.pts.slice(0, Math.min(last, end + 3) + 1); if (tr.face) tr.face = tr.face.slice(0, tr.pts.length); return; }
+    return;
+  }
+}
+for (const e of ["seeked", "pause", "play", "loadedmetadata"]) vid.addEventListener(e, () => { ovDraw(); tState(); });
+window.addEventListener("resize", ovDraw);
+const vat = (e) => { const r = vcv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
+vcv.addEventListener("pointerdown", async (e) => {
+  if (!cur || !vid.paused) return;
+  if (!cur.track) {   // marking the start on the video: it must be on the start frame
+    const f0 = cur.frames && cur.frames[fi]; if (!f0 || f0.t == null) return;
+    if (Math.abs(vid.currentTime - f0.t) >= 0.05) { await seekTo(f0.t); ovDraw(); say("Back on the start frame: click the point again."); return; }
+    mDown(e, vcv); return;
+  } const q = vat(e), r = vcv.getBoundingClientRect(), P = ptsAt(nearT(vid.currentTime));
+  const hit = LINKS.map(([k]) => k).find((k) => P[k] && Math.hypot((P[k][0] - q[0]) * r.width, (P[k][1] - q[1]) * r.height) < 18);
+  if (!hit) return; vdrag = { k: hit, ti: nearT(vid.currentTime), base: JSON.parse(JSON.stringify(cur.track.pts)) }; vcv.setPointerCapture(e.pointerId); e.preventDefault();
+});
+vcv.addEventListener("pointermove", (e) => { if (!cur.track) { mMove(e); return; } if (!vdrag) return; const q = vat(e).map((v) => Math.max(0, Math.min(1, v)));
+  cur.track.pts = JSON.parse(JSON.stringify(vdrag.base)); const ed = cur.track.edited || 0; editTrack(vdrag.ti, vdrag.k, q); cur.track.edited = ed; ovDraw(); });
+const vend = () => { if (!cur.track || press || drag) { if (press || drag) endDrag(); return; } if (!vdrag) return; vdrag = null; cur.track.edited = (cur.track.edited || 0) + 1; for (const f of cur.frames) if (f && f.ti != null) f.pts = ptsAt(f.ti); showFrame(); measure(); tState(); changed(); };
+vcv.addEventListener("pointerup", vend); vcv.addEventListener("pointercancel", vend);
+
+// ---------- the chart: each angle through the movement ----------
+const SERIES = [["hip", "Hip", "#E0555A"], ["sh", "Shoulder", "#F2B24C"], ["el", "Elbow", "#5CC48A"], ["knee", "Knee", "#6AA9F0"], ["toes", "Toes pointed", "#C78BEA"]];
+// the head (hip to shoulder to ear): optional, dashed, as the tracker reads the head least well (Nathan, 16 Oct: 'yes add head to see')
+let showHead = false;
+const HEAD = ["hmv", "Head movement", "#9A9496"];
+const legendHtml = () => SERIES.map(([, n, c]) => `<span><i style="background:${c}"></i>${n}</span>`).join("") + `<label class="hd"><input type="checkbox" class="hd-on"${showHead ? " checked" : ""}> Show the head (strip below) <i style="background:repeating-linear-gradient(90deg,${HEAD[2]} 0 4px,transparent 4px 7px)"></i></label>`;
+function legends() { for (const id of ["legend", "c-legend"]) { $(id).innerHTML = legendHtml(); $(id).querySelector(".hd-on").onchange = (e) => { showHead = e.target.checked; legends(); sizeCharts(); chartDraw(); cmp.forEach(cDraw); }; } }
+function sizeCharts() { $("chart").style.height = showHead ? "300px" : ""; document.querySelectorAll(".cchart").forEach((c) => (c.style.height = showHead ? "170px" : "")); $("head-note").classList.toggle("hidden", !showHead); }
+legends();
+function goodRef() {
+  const c = $("goodref"); if (!c) return; const r = c.getBoundingClientRect(); if (!r.width) return;
+  const k = devicePixelRatio, g = c.getContext("2d"); c.width = Math.round(r.width * k); c.height = Math.round(r.height * k);
+  const L = 6 * k, T = 8 * k, B = 16 * k, W = c.width - 2 * L, H = c.height - T - B, X = (f) => L + W * f, Y = (v) => T + H * (1 - v / 240);
+  const dip = (f, a, b) => a - (a - b) * Math.pow(Math.sin(Math.PI * Math.min(1, Math.max(0, (f - 0.08) / 0.84))), 1.6);
+  const wave = (f, mid, amp) => mid + amp * Math.sin(2 * Math.PI * 2 * f);
+  g.clearRect(0, 0, c.width, c.height); g.strokeStyle = "#342F31"; g.lineWidth = k; for (const v of [0, 90, 180]) { g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(L + W, Y(v)); g.stroke(); }
+  // a good strict pull-up: the hip, knee and toe lines flat (the hang in hollow held); the elbow and shoulder lines dip and come back
+  // a good beat swing: the hip line swings above and below straight (arch and hollow) with an even beat; elbows and knees flat
+  const lines = isPull() ? [["#C78BEA", () => 160], ["#6AA9F0", () => 177], ["#E0555A", () => 172], ["#5CC48A", (f) => dip(f, 176, 60)], ["#F2B24C", (f) => dip(f, 170, 40)]]
+    : [["#C78BEA", () => 160], ["#6AA9F0", () => 177], ["#5CC48A", () => 179], ["#F2B24C", (f) => wave(f, 168, -10)], ["#E0555A", (f) => wave(f, 188, 22)]];
+  for (const [col, fn] of lines) { g.strokeStyle = col; g.lineWidth = 2.4 * k; g.beginPath(); for (let i = 0; i <= 80; i++) { const f = i / 80; i ? g.lineTo(X(f), Y(fn(f))) : g.moveTo(X(f), Y(fn(f))); } g.stroke(); }
+  g.fillStyle = "#B7B1B3"; g.font = `700 ${10 * k}px -apple-system,Helvetica,Arial`; g.textAlign = "center"; g.fillText(isPull() ? "a good pull-up: hips, knees, toes flat" : "a good beat swing: an even beat", X(0.5), c.height - 4 * k);
+  $("goodref-text").innerHTML = isPull()
+    ? '<b>Points of performance:</b> start in the hang in hollow (as for strict toes to bar): toes pointed, knees locked out, hips open in a posterior pelvic tilt, rib cage down with the abs contracted, elbows pointing forward and not flaring out, the distance between the shoulder and the scapula kept, head neutral and looking forward.<br><br><b>What a good strict pull-up looks like here</b> (left): the <b style="color:#E0555A">hip</b>, <b style="color:#6AA9F0">knee</b> and <b style="color:#C78BEA">toe</b> lines stay flat the whole way up and down, as the hang in hollow is held; the <b style="color:#5CC48A">elbow</b> and <b style="color:#F2B24C">shoulder</b> lines do the work., a dip as the athlete presses down to the top and the same shape back. One smooth, fluid movement up and the same shape back down is mastery; speed itself is not the point. A dip or a jump in the hip, knee or toe line is where the shape breaks: look on the video.'
+    : '<b>The hollow, at the back of the swing</b> (Nathan): knuckles over the bar, elbows locked out, the ear hidden by the line of the arm, the shoulders engaged but not pushing the bar away (the shoulder moves only from lat engagement), thoracic compression engaging the scapulae, rib cage down, hips open, knees locked out, ankles and toes pointed.<br><br><b>The arch, at the front of the swing</b> (Nathan): knuckles over the bar, elbows locked out, the arm hiding the ear, the shoulders open with the armpits forward, thoracic extension, the rib cage open but still tight (not flaring upwards), hips open in full extension, knees locked out, ankles fully open and toes pointed.<br><br><b>What a good beat swing looks like here</b> (left): the <b style="color:#E0555A">hip</b> line swings above 180° (the arch, at the back) and below it (the hollow, at the front), with an even beat, each swing the same time and size, like a metronome; the <b style="color:#F2B24C">shoulder</b> line moves a little with it; the <b style="color:#5CC48A">elbow</b>, <b style="color:#6AA9F0">knee</b> and <b style="color:#C78BEA">toe</b> lines stay flat. A hip line that goes very high is an over-extended arch; one that dips well below 150° is a pike instead of a hollow.';
+}
+
+function chartDraw() {
+  const box = $("chartbox"), on = cur && cur.track; box.classList.toggle("hidden", !on); if (!on) return; goodRef();
+  plotChart($("chart"), cur.track, series(), vid.currentSrc ? vid.currentTime : null);
+}
+// the angle lines for one rep onto a canvas, with a white playhead at time t (the main chart, and each rep in Compare)
+function plotChart(c, tr, S, t, small = false) {
+  const r = c.getBoundingClientRect(), k = devicePixelRatio; if (!r.width) return; c.width = Math.round(r.width * k); c.height = Math.round(r.height * k);
+  const g = c.getContext("2d"), N = Math.max(1, S.length - 1), fs = small ? 9 : 11;
+  const bh = showHead ? (small ? 40 : 64) * k : 0, gp = showHead ? 10 * k : 0;
+  const L = (small ? 28 : 40) * k, Rt = 10 * k, T = 10 * k, B = 24 * k + bh + gp, X = (i) => L + (c.width - L - Rt) * i / N, Y = (v) => T + (c.height - T - B) * (1 - v / 240);
+  g.clearRect(0, 0, c.width, c.height); g.font = `${fs * k}px -apple-system,Helvetica,Arial`; g.fillStyle = "#B7B1B3"; g.strokeStyle = "#342F31"; g.lineWidth = k;
+  for (const v of small ? [0, 90, 180] : [0, 45, 90, 135, 180, 225]) { g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(c.width - Rt, Y(v)); g.stroke(); g.textAlign = "right"; g.textBaseline = "middle"; g.fillText(v + "°", L - 6 * k, Y(v)); }
+  const bot = c.height - 24 * k;   // the bottom of the plot (above the seconds)
+  g.textAlign = "center"; g.textBaseline = "top"; const secs = N / tr.fps; for (let s = 0; s <= secs + 0.001; s += secs > 8 ? 2 : 1) g.fillText(s + " s", X(s * tr.fps), bot + 6 * k);
+  g.strokeStyle = "rgba(255,255,255,.6)"; for (const i of tr.ph || []) { g.beginPath(); g.moveTo(X(i), T); g.lineTo(X(i), bot); g.stroke(); }
+  if (showHead) {
+    // the head strip: where the face points, 60° down at the bottom to 80° up at the top, level marked
+    // (older saves without the face: the ear behind the arms, 0 to 40%)
+    const faceMode = S.some((q) => q.face != null), lo = faceMode ? -60 : 0, hi = faceMode ? 80 : 40;
+    const top0 = bot - bh, HY = (v) => bot - bh * Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
+    if (faceMode) { g.strokeStyle = "rgba(255,255,255,.25)"; g.setLineDash([2 * k, 3 * k]); g.beginPath(); g.moveTo(L, HY(0)); g.lineTo(c.width - Rt, HY(0)); g.stroke(); g.setLineDash([]); }
+    g.strokeStyle = "#342F31"; g.lineWidth = k; g.strokeRect(L, top0, c.width - L - Rt, bh);
+    g.fillStyle = "#B7B1B3"; g.textAlign = "right"; g.textBaseline = "middle";
+    if (faceMode) { g.fillText("down", L - 4 * k, bot - 4 * k); g.fillText("level", L - 4 * k, HY(0)); if (!small) g.fillText("up", L - 4 * k, top0 + 6 * k); }
+    else { g.fillText("in line", L - 4 * k, bot - 4 * k); if (!small) g.fillText("40%", L - 4 * k, top0 + 6 * k); }
+    g.textAlign = "left"; g.textBaseline = "top"; g.fillText(small ? "head" : faceMode ? "Where the face points" : "Head behind the arms (looking up)", L + 6 * k, top0 + 4 * k);
+    g.strokeStyle = HEAD[2]; g.lineWidth = (small ? 1.6 : 2.2) * k; g.setLineDash([5 * k, 4 * k]); g.beginPath(); let pen = false;
+    S.forEach((s, i) => { const v = s.hmv; if (v == null) { pen = false; return; } pen ? g.lineTo(X(i), HY(v)) : g.moveTo(X(i), HY(v)); pen = true; }); g.stroke(); g.setLineDash([]);
+  }
+  for (const [key, , col] of SERIES) { g.strokeStyle = col; g.lineWidth = (small ? 1.8 : 2.2) * k; g.beginPath(); let pen = false; S.forEach((s, i) => { const v = s[key]; if (v == null) { pen = false; return; } pen ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v)); pen = true; }); g.stroke(); }
+  if (t != null) { const i = (t - tr.t0) * tr.fps; if (i >= 0 && i <= N) { g.strokeStyle = "#fff"; g.lineWidth = 2 * k; g.beginPath(); g.moveTo(X(i), T); g.lineTo(X(i), bot); g.stroke(); } }
+}
+$("chart").addEventListener("click", (e) => { if (!cur || !cur.track || !vid.currentSrc) return; const c = $("chart"), r = c.getBoundingClientRect(), L = 40, Rt = 10, N = cur.track.pts.length - 1;
+  const f = Math.max(0, Math.min(1, (e.clientX - r.left - L) / (r.width - L - Rt))); vid.pause(); vid.currentTime = cur.track.t0 + f * N / cur.track.fps; });
+
+// ---------- keep the rep: a short clip of just this rep, kept privately, so it can be opened again and compared ----------
+// (same as the head path review: recorded in the browser, up to 720 px, the rep and a little either side)
+function kState() {
+  const on = !!(cur && true && cur.track && live());
+  $("kbox").classList.toggle("hidden", !on); if (!on) return;
+  const kept = !!cur.clip;
+  $("k-go").classList.toggle("hidden", kept);
+  if (kept) $("k-state").textContent = "Kept to compare ✓ Tick it in My observations to compare it with other reps.";
+  else if (!$("k-state").dataset.busy) $("k-state").textContent = "";
+}
+async function recordClip(t0, t1) {
+  if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return null;
+  const type = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"].find((m) => MediaRecorder.isTypeSupported(m));
+  if (!type) return null;
+  const sc = Math.min(1, 720 / Math.max(vid.videoWidth, vid.videoHeight)), w = Math.round(vid.videoWidth * sc / 2) * 2, h = Math.round(vid.videoHeight * sc / 2) * 2;
+  const c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d");
+  vid.pause(); await seekTo(t0); g.drawImage(vid, 0, 0, w, h);
+  const rec = new MediaRecorder(c.captureStream(30), { mimeType: type, videoBitsPerSecond: 2500000 });
+  const chunks = []; rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  const stopped = new Promise((r) => (rec.onstop = r));
+  recording = true; rec.start(200);
+  const wall0 = performance.now(), me = cur, src = vid.currentSrc; let lag = null, gone = false;
+  await vid.play().catch(() => {});
+  // stops if the coach leaves this observation or opens another video while it saves, or if it runs far too long
+  await new Promise((res) => { const step = () => { if (cur !== me || vid.currentSrc !== src || performance.now() - wall0 > (t1 - t0) * 3000 + 5000) { gone = true; res(); return; }
+    g.drawImage(vid, 0, 0, w, h);
+    if (lag == null && vid.currentTime > t0 + 0.001) lag = (performance.now() - wall0) / 1000 - (vid.currentTime - t0);
+    if (vid.currentTime >= t1 || vid.ended) res(); else requestAnimationFrame(step); }; requestAnimationFrame(step); });
+  if (gone) { try { rec.stop(); } catch (e) {} recording = false; return null; }
+  vid.pause(); g.drawImage(vid, 0, 0, w, h); await new Promise((r) => setTimeout(r, 300));
+  rec.stop(); await stopped; recording = false;
+  const mime = type.split(";")[0];
+  return { blob: new Blob(chunks, { type: mime }), mime, lag: Math.max(0, lag || 0), w, h, dur: (performance.now() - wall0) / 1000 };
+}
+let recording = false;
+$("k-go").onclick = () => keepRep();
+async function keepRep() {
+  if (!cur || !cur.track || cur.clip) return;
+  const btn = $("k-go"), st = $("k-state"); btn.disabled = true; st.dataset.busy = "1";
+  try {
+    const t0 = Math.max(0, cur.track.t0 - 0.3), t1 = Math.min(vid.duration || 0, repEnd() + 0.3);
+    st.textContent = "Saving the rep (it plays through once)…";
+    const me = cur, clip = await recordClip(t0, t1);
+    if (cur !== me) return;   // left while it saved: try again by opening the rep and its video
+    if (!clip || clip.blob.size < 1000) throw new Error("This browser could not save the rep. Try Chrome or Safari.");
+    const ext = clip.mime.includes("webm") ? "webm" : "mp4", path = session.user.id + "/" + TOOL + "/" + cur.id + "-rep." + ext;
+    st.textContent = "Uploading the rep…";
+    const up = await db.storage.from(BUCKET).upload(path, clip.blob, { contentType: clip.mime, upsert: true });
+    if (up.error) throw up.error;
+    // from now on the kept clip is this observation's video: move the times onto the clip
+    const shift = clip.lag - t0;
+    cur.track.t0 = +(cur.track.t0 + shift).toFixed(3);
+    for (const f of cur.frames) if (f && f.t != null) f.t = +(f.t + shift).toFixed(3);
+    cur.clip = { path, mime: clip.mime, w: clip.w, h: clip.h, dur: +clip.dur.toFixed(2), kept: new Date().toISOString() };
+    tEnd = null; await save();
+    vidIsClip = true; vid.src = URL.createObjectURL(clip.blob); vid.load();
+    st.textContent = "";
+  } catch (e) { st.textContent = "Not kept: " + (e.message || e); }
+  finally { btn.disabled = false; delete st.dataset.busy; kState(); }
+}
+// an observation with a kept rep opens with that rep as its video
+async function openClip(o) {
+  if (!o.clip) return;
+  say("Loading the kept rep…");
+  try { const u = (await signed([o.clip.path]))[o.clip.path]; if (!u || cur !== o) return;
+    const b = await (await fetch(u)).blob(); if (cur !== o) return; vidIsClip = true; vid.src = URL.createObjectURL(b); vid.load(); say(""); }
+  catch (e) { say("Could not load the kept rep: " + (e.message || e), { err: true }); }
+}
+
+// ---------- compare: two or three kept reps side by side, in step, with the points on them ----------
+let picked = [], cmp = [], cAlign = "start", cSpeed = 0.5, cTau = 0, cPlaying = false, cWall = 0, cTau0 = 0;
+const canCompare = (o) => o.track && o.clip;
+function pickNote() { $("b-compare").disabled = picked.length < 2; $("cmp-note").textContent = picked.length < 2 ? "Tick two or three reps to compare them." : picked.length + " ticked."; }
+// the findings for any observation (the same checks as on its own page)
+function findingsOf(o) {
+  const keep = cur; cur = o;
+  try { const f0 = o.frames && o.frames[0]; const st = f0 && nextIdx(f0) >= LINKS.length ? staticFaults(geo(f0)).map((x) => ({ ...x, when: "Start" })) : [];
+    return [...st, ...(o.track ? moveBreaks() : [])]; } finally { cur = keep; }
+}
+const ptsOf = (o, i) => { const tr = o.track, fr = tr.pts[Math.max(0, Math.min(tr.pts.length - 1, i))], out = {}; LINKS.forEach(([k], j) => { if (fr[j]) out[k] = fr[j]; }); return out; };
+const repSpan = (o) => [o.track.t0, o.track.t0 + (o.track.pts.length - 1) / o.track.fps];
+const cMin = () => Math.min(...cmp.map((c) => repSpan(c.o)[0] - c.a)), cMax = () => Math.max(...cmp.map((c) => repSpan(c.o)[1] - c.a));
+function setAlign(al) {
+  cAlign = al; document.querySelectorAll("[data-al]").forEach((b) => b.classList.toggle("on", b.dataset.al === al));
+  cmp.forEach((c) => { const tr = c.o.track; c.a = al === "top" && tr.ph ? tr.t0 + tr.ph[2] / tr.fps : tr.t0; });
+  cSeek(Math.max(cMin(), 0));
+}
+function setSpeed(sp) { cSpeed = sp; document.querySelectorAll("[data-sp]").forEach((b) => b.classList.toggle("on", +b.dataset.sp === sp)); cmp.forEach((c) => (c.v.playbackRate = sp)); if (cPlaying) { cTau0 = cTau; cWall = performance.now(); } }
+document.querySelectorAll("[data-al]").forEach((b) => (b.onclick = () => setAlign(b.dataset.al)));
+document.querySelectorAll("[data-sp]").forEach((b) => (b.onclick = () => setSpeed(+b.dataset.sp)));
+function cDraw(c) {
+  const r = c.st.getBoundingClientRect(); c.c.width = Math.round(r.width * devicePixelRatio); c.c.height = Math.round(r.height * devicePixelRatio);
+  const tr = c.o.track, i = Math.round((c.v.currentTime - tr.t0) * tr.fps);
+  if (i >= -1 && i <= tr.pts.length) paint(c.c, ptsOf(c.o, i), false); else c.c.getContext("2d").clearRect(0, 0, c.c.width, c.c.height);
+  if (c.ch) plotChart(c.ch, tr, c.S, c.v.currentTime, true);
+}
+function cSeek(tau) {
+  cTau = Math.max(cMin(), Math.min(cMax(), tau));
+  cmp.forEach((c) => { const [a, b] = repSpan(c.o); c.v.pause(); c.v.currentTime = Math.max(a, Math.min(b, c.a + cTau)); });
+  $("c-scrub").value = Math.round(1000 * (cTau - cMin()) / ((cMax() - cMin()) || 1));
+}
+function cStop() { cPlaying = false; cmp.forEach((c) => c.v.pause()); $("c-play").textContent = "Play"; }
+function cLoop() {
+  if (!cPlaying) return;
+  cTau = cTau0 + (performance.now() - cWall) / 1000 * cSpeed;
+  if (cTau >= cMax()) { cTau0 = cMin(); cWall = performance.now(); cTau = cTau0; }   // loop the reps
+  for (const c of cmp) {
+    const [a, b] = repSpan(c.o), target = c.a + cTau;
+    if (target < a || target > b) { if (!c.v.paused) c.v.pause(); const hold = target < a ? a : b; if (Math.abs(c.v.currentTime - hold) > 0.05 && !c.v.seeking) c.v.currentTime = hold; }
+    else if (c.v.paused) { if (!c.v.seeking) { c.v.currentTime = target; c.v.play().catch(() => {}); } }
+    else if (!c.v.seeking && Math.abs(c.v.currentTime - target) > 0.25) c.v.currentTime = target;
+    cDraw(c);
+  }
+  $("c-scrub").value = Math.round(1000 * (cTau - cMin()) / ((cMax() - cMin()) || 1));
+  requestAnimationFrame(cLoop);
+}
+$("c-play").onclick = () => { if (cPlaying) return cStop(); cPlaying = true; cTau0 = cTau; cWall = performance.now(); $("c-play").textContent = "Pause"; cmp.forEach((c) => (c.v.playbackRate = cSpeed)); requestAnimationFrame(cLoop); };
+$("c-scrub").oninput = () => { cStop(); cSeek(cMin() + (cMax() - cMin()) * $("c-scrub").value / 1000); };
+$("c-prev").onclick = () => { cStop(); cSeek(cTau - 1 / FPS); };
+$("c-next").onclick = () => { cStop(); cSeek(cTau + 1 / FPS); };
+$("c-back").onclick = () => { cStop(); cmp.forEach((c) => { if (c.v.src.startsWith("blob:")) URL.revokeObjectURL(c.v.src); c.v.removeAttribute("src"); }); cmp = []; $("v-compare").classList.add("hidden"); list(); };
+$("b-compare").onclick = async () => {
+  const os = picked.map((id) => doc.obs.find((o) => o.id === id)).filter((o) => o && canCompare(o));
+  if (os.length < 2) return;
+  $("v-list").classList.add("hidden"); $("v-compare").classList.remove("hidden"); window.scrollTo(0, 0);
+  const grid = $("cmp-grid"); grid.style.gridTemplateColumns = "repeat(" + os.length + ", minmax(0,1fr))";
+  grid.innerHTML = os.map((o, k) => {
+    const fs = findingsOf(o);
+    const chips = fs.length ? fs.map((x) => `<span class="chip"${x.minimal ? ' style="color:var(--amber)"' : ""}>${esc(FAULT[x.key][2])}${x.minimal ? " (minimal)" : ""}${x.i ? " · " + (x.i / o.track.fps).toFixed(1) + " s" : ""}</span>`).join("") : '<span class="chip ok">No poor positions found</span>';
+    return `<div class="cmp-cell"><div class="stage"><video playsinline muted preload="auto"></video><canvas></canvas></div><canvas class="cchart"></canvas>
+      <h3>${esc(o.who) || "Athlete"} <span class="note">· ${when(o.created)}</span> <button class="btn ghost small" type="button" data-flip="${k}" style="padding:3px 8px;margin-left:6px">⇄ Flip</button></h3><div class="chips">${chips}</div></div>`; }).join("");
+  $("c-play").disabled = true; $("c-play").textContent = "Loading…";
+  const us = await signed(os.map((o) => o.clip.path));
+  const srcs = await Promise.all(os.map(async (o) => { try { return URL.createObjectURL(await (await fetch(us[o.clip.path])).blob()); } catch (e) { return us[o.clip.path] || ""; } }));
+  cmp = os.map((o, k) => { const cell = grid.children[k], st = cell.querySelector(".stage"), v = cell.querySelector("video"), c = st.querySelector("canvas"); v.src = srcs[k]; fitStage(st, o.clip.w, o.clip.h, 0.6);
+    const keep = cur; cur = o; let S; try { S = series(); } finally { cur = keep; }
+    return { o, v, c, st, a: o.track.t0, ch: cell.querySelector(".cchart"), S }; });
+  sizeCharts();
+  await Promise.all(cmp.map((c) => new Promise((res) => { if (c.v.readyState >= 1) res(); else { c.v.onloadedmetadata = res; c.v.onerror = res; } })));
+  cmp.forEach((c) => (c.v.onseeked = () => cDraw(c)));
+  // face every athlete the same way as the first (the rib cage is the front of the body)
+  const dirOf = (o) => { const p = ptsOf(o, 0); return p.rib && p.tsp ? Math.sign(p.rib[0] - p.tsp[0]) || 1 : 1; }, d0 = dirOf(cmp[0].o);
+  cmp.forEach((c) => { c.flip = dirOf(c.o) !== d0; c.st.style.transform = c.flip ? "scaleX(-1)" : ""; });
+  grid.querySelectorAll("[data-flip]").forEach((b) => (b.onclick = () => { const c = cmp[+b.dataset.flip]; c.flip = !c.flip; c.st.style.transform = c.flip ? "scaleX(-1)" : ""; }));
+  $("c-play").disabled = false; $("c-play").textContent = "Play";
+  setSpeed(cSpeed); setAlign(cAlign);
+};
+
+// ---------- what the links show (geometry of the points as marked, side on) ----------
+function geo(f) {
+  const P = (f && f.pts) || {}, w = f && f.w || 16, h = f && f.h || 9, px = (k) => P[k] && [P[k][0] * w, P[k][1] * h];
+  const ang = (a, b, c) => { const A = px(a), B = px(b), C = px(c); if (!A || !B || !C) return null; const u = [A[0] - B[0], A[1] - B[1]], v = [C[0] - B[0], C[1] - B[1]]; return Math.acos(Math.max(-1, Math.min(1, (u[0] * v[0] + u[1] * v[1]) / (Math.hypot(...u) * Math.hypot(...v) || 1)))) * 180 / Math.PI; };
+  // which way the athlete faces: the rib cage is the front of the body, the T-spine the back
+  const fwd = P.rib && P.tsp ? Math.sign(px("rib")[0] - px("tsp")[0]) || 1 : 1;
+  // how far a point sits off the line from a to b, and whether it is on the front of the body
+  const off = (a, b, k) => { const A = px(a), B = px(b), Q = px(k); if (!A || !B || !Q) return null; const d = [B[0] - A[0], B[1] - A[1]], L = Math.hypot(...d) || 1;
+    const cr = (d[0] * (Q[1] - A[1]) - d[1] * (Q[0] - A[0])) / L, ref = -d[1] * fwd; return { pct: Math.abs(cr) / L * 100, front: Math.sign(cr) === Math.sign(ref || 1) }; };
+  const g = { hip: ang("knee", "hip", "rib"), sh: ang("el", "sh", "hip"), el: ang("sh", "el", "wr"), knee: ang("hip", "knee", "ankle"), ear: off("sh", "wr", "ear"), toes: ang("knee", "ankle", "toes"), head: ang("hip", "sh", "ear") };
+  // signed hip: past 180° when the hip extends (the arch of the beat swing), below when it flexes (a pike)
+  { const H = px("hip"), K = px("knee"), Rb = px("rib"); if (H && K && Rb && g.hip != null && ((K[0] - H[0]) * (Rb[1] - H[1]) - (K[1] - H[1]) * (Rb[0] - H[0])) * fwd > 0) g.hip = 360 - g.hip; }
+  if (P.wr && P.sh) { const dx = (px("sh")[0] - px("wr")[0]) * fwd, arm = Math.hypot(px("sh")[0] - px("wr")[0], px("sh")[1] - px("wr")[1]) || 1; g.shBar = { pct: Math.abs(dx) / arm * 100, front: dx > 0 }; }
+  const ft = P.toes ? "toes" : "ankle";
+  if (P.wr && P[ft]) { const feet = (px(ft)[0] - px("wr")[0]) * fwd, len = Math.hypot(px(ft)[0] - px("wr")[0], px(ft)[1] - px("wr")[1]) || 1; g.feet = { pct: Math.abs(feet) / len * 100, front: feet > 0 }; g.line = off("wr", ft, "hip"); }
+  return g;
+}
+const deg = (v) => (v == null ? "–" : v.toFixed(0) + "°");
+const where = (o, near, word) => (!o ? "–" : o.pct < near ? word : (o.front ? "In front" : "Behind"));
+// ---------- what is out of position: the start hang, and where the movement breaks ----------
+// Only what the points can show is checked; grip, scapulae and rib cage (and, once tracked, the elbows and toes) are left
+// to the coach's eye. Thresholds (Claude, 16 Oct, from the good and poor reps): Nathan to check.
+function staticFaults(g) {
+  const pull = isPull(), out = [], map = { elbow: "range", shoulder: pull ? "shoulder" : "pushaway", hips: pull ? "hollow" : "hollowb", knees: pull ? "kick" : "tension", ankle: pull ? "ankle" : "tension", head: "head" };
+  // (an arch at the start is the rib cage flaring open, in Nathan's pull-up breakdown)
+  const add = (key, links, text) => out.push({ key: pull && key === "hips" && /arching/.test(text) ? "rib" : map[key] || key, links, text });
+  if (g.el != null && g.el < 165) add("elbow", ["sh", "el", "wr"], `Elbows at ${g.el.toFixed(0)}°: bent (180° is locked out).`);
+  // (Nathan, 16 Oct: 16% behind the hands on his good demo is in the perfect range for a good toes to bar)
+  // (beat swing: where the shoulders sit against the hands depends on where the swing starts, so pushing away is judged by the
+  // ear showing behind the arm instead; Nathan, 18 Oct, a start hang read "32% behind the hands: pressing away")
+  if (!isPull() && g.ear && !g.ear.front && g.ear.pct >= 5) add("shoulder", ["ear", "sh", "wr"], `The ear shows behind the line of the arm (${g.ear.pct.toFixed(0)}% of the arm's length): pushing the bar away.`);
+  if (isPull() && g.shBar && !g.shBar.front && g.shBar.pct >= 30) add("shoulder", ["sh", "wr"], `Shoulders ${g.shBar.pct.toFixed(0)}% of the arm's length behind the hands: pressing away from the bar.`);
+  // the ear against the whole arm, shoulder to knuckles (Nathan, 16 Oct: against the short upper arm, an ear in line read as 'through the arms')
+  if (g.ear && g.ear.pct >= 10 && (isPull() || g.ear.front)) add("head", ["ear", "sh", "wr"], g.ear.front ? "Head pushed through the arms." : "Head back, behind the arms: looking up at the bar.");
+  if (g.line && g.line.front && g.line.pct >= 4) add("hips", ["hip", "rib"], "Hips pushed in front of the line from the hands to the feet: arching, an anterior pelvic tilt.");
+  // (start hang: a pull-up below 150; a beat swing below 148, Michi good started at 156, Michi bad at 140)
+  else if (g.hip != null && g.hip < (isPull() ? 150 : 148)) add("hips", ["hip", "knee", "rib"], `Hip angle ${g.hip.toFixed(0)}°: piking at the hip.`);
+  // (a pull-up start below 155 only: Nathan's good/ok rep started at 164, locked out within the error of hand-placed points)
+  if (g.knee != null && g.knee < (isPull() ? 155 : 165)) add("knees", ["hip", "knee", "ankle"], `Knees at ${g.knee.toFixed(0)}°: bent (180° is locked out).`);
+  if (g.toes != null && g.toes < 150) add("ankle", ["knee", "ankle", "toes"], `Toes at ${g.toes.toFixed(0)}°: not pointed away.`);
+  return out;
+}
+function moveBreaks() {
+  // Thresholds below are starting points from the Lesson 10 text (Claude, 16 Oct 2026): to be set from Nathan's good and poor
+  // reps of each movement, as the toes to bar ones were.
+  const tr = cur.track, S = series(), N = S.length, fps = tr.fps, [, half, top] = tr.ph, out = [], pull = isPull();
+  const where = (i) => (i <= 1 ? "at the start" : pull ? (i <= half ? "on the way up" : i <= top + 2 ? "at the top" : "on the way down") : "in the swing");
+  const sec = (i) => (tr.t0 + i / fps).toFixed(1) + " s";
+  const first = (test, from = 0) => { for (let i = from; i + 2 < N; i++) if (test(i) && test(i + 1) && test(i + 2)) return i; return -1; };
+  const worst = (val, from, dir) => { let b = from; for (let i = from; i < N; i++) { const v = val(i); if (v != null && (val(b) == null || (dir < 0 ? v < val(b) : v > val(b)))) b = i; } return b; };
+  const add = (key, links, i, w, text, minimal = false) => out.push({ key, links, i, w, when: `From ${sec(i)} · ${where(i)}`, text, minimal });
+  const at = (w) => `at ${sec(w)}, ${where(w)}`;
+  const P0 = ptsAt(0), arm = Math.hypot((P0.sh[0] - P0.wr[0]) * tr.w, (P0.sh[1] - P0.wr[1]) * tr.h) || 1, fw = P0.rib && P0.tsp ? Math.sign(P0.rib[0] - P0.tsp[0]) || 1 : 1;
+  const h0 = S[0].hip, back = (k) => (S[k].shBar ? (S[k].shBar.front ? -S[k].shBar.pct : S[k].shBar.pct) : null), b0 = back(0);
+  const hipF = (k) => { const p = ptsAt(k); return p.hip ? (p.hip[0] - P0.wr[0]) * tr.w * fw / arm * 100 : null; };
+  const tilt = (k) => { const p = ptsAt(k); return p.hip && p.sh ? Math.atan2(-(p.sh[0] - p.hip[0]) * tr.w * fw, (p.hip[1] - p.sh[1]) * tr.h) * 180 / Math.PI : null; };
+  const kneeCheck = (key, lim = 150) => { const i = first((k) => S[k].knee != null && S[k].knee < lim);
+    if (i >= 0) { const w = worst((k) => S[k].knee, i, -1), m = S[w].knee >= lim - 15; add(key, ["hip", "knee", "ankle"], i, w, `${m ? "A slight knee bend" : "The knees bend"}, down to ${S[w].knee.toFixed(0)}° ${at(w)}. The legs stay locked out, together, toes pointed.`, m); } };
+  if (pull) {
+    // the hang in hollow held the whole way: the hip angle stays near where it started (a pike below, an arch above)
+    // (17 Oct, Nathan's four pull-ups: the good rep closes the hip about 32° at the top as the legs come forward in the hollow,
+    // which is fine; the poor and very bad reps open the hip into an arch, 32° and 59°. So an arch counts from 15°, a pike from 40°)
+    if (h0 != null) { const i = first((k) => S[k].hip != null && (S[k].hip - h0 >= 15 || h0 - S[k].hip >= 40));
+      if (i >= 0) { const w = worst((k) => (S[k].hip == null ? null : S[k].hip - h0 >= 0 ? S[k].hip - h0 : (h0 - S[k].hip) * 15 / 40), i, 1), d = S[w].hip - h0, m = d > 0 ? false : -d < 55;
+        if (d < 0) add("hollow", ["hip", "rib", "knee"], i, w, `The hips flex and pike, ${(-d).toFixed(0)}° from the start ${at(w)}: the hollow is lost. The hips stay open the whole way up and down.`, m);
+        else add("rib", ["hip", "rib", "tsp"], i, w, `The body arches, the hip opening ${d.toFixed(0)}° from the start ${at(w)}: the rib cage flares open and the hollow is lost. The rib cage stays down, abs contracted, the whole way up and down.`, m); } }
+    kneeCheck("kick", 135);
+    if (S[0].face != null) {
+      const up = first((k) => S[k].face != null && S[k].face >= 10), dn = first((k) => S[k].face != null && S[k].face <= -45);
+      if (up >= 0) { const w = worst((k) => S[k].face, up, 1); add("head", ["ear", "sh"], up, w, `The head lifts and looks to the sky: the face points ${S[w].face.toFixed(0)}° above level ${at(w)}. The head stays neutral, looking forward.`, S[w].face < 25); }
+      // the chin coming down: far below level, or 20 degrees or more below where the face started (Nathan, 18 Oct, "easier better":
+      // "a downward forward head position, even though it's small". His saved reps: the face dropped 27 degrees from its start
+      // there, 13 on "ama good"; at most it pointed -33 and -31, so only the drop from the start separates them)
+      const f0 = S[0].face, dn2 = f0 == null ? -1 : first((k) => S[k].face != null && f0 - S[k].face >= 20), d0 = dn >= 0 ? dn : dn2;
+      if (d0 >= 0) { const w = worst((k) => S[k].face, d0, -1), drop = f0 - S[w].face, far = S[w].face <= -45;
+        add("head", ["ear", "sh"], d0, w, `The chin comes down towards the chest: the face points ${(-S[w].face).toFixed(0)}° below level ${at(w)}, ${drop.toFixed(0)}° lower than at the start. With the shoulders rising too, that is lower trapezius weakness and upper trapezius tension.`, !far && drop < 30); }
+    } else { const i = first((k) => S[k].hmv != null && S[k].hmv >= 18);
+      if (i >= 0) { const w = worst((k) => S[k].hmv, i, 1); add("head", ["ear", "sh", "wr"], i, w, `The head lifts and looks to the sky: the ear goes ${S[w].hmv.toFixed(0)}% of the arm's length behind the arms ${at(w)}. The head stays neutral, looking forward.`, S[w].hmv < 25); } }
+    // pressing down, not pulling up: the body stays under the bar, no lean back or swing
+    const t0v = tilt(0), tw = worst(tilt, 0, 1), tip = t0v != null && tilt(tw) != null ? tilt(tw) - t0v : 0, sw = worst(hipF, 0, 1), swing = hipF(sw) != null && hipF(0) != null ? hipF(sw) - hipF(0) : 0;
+    // (the shoulders moving relative to the hands is part of every pull-up, so only the trunk tipping back and the hips swinging count)
+    // Leaning back: the rib cage opens and the trunk tips back (Nathan, 17 Oct, on his "ama bad" rep: "broken rib cage (open),
+    // therefore leaning back"; with his start points the trunk tipped back 21 degrees there and 4 on his good rep; with mine,
+    // 34 and 52 on the poor and very bad reps). From 15 degrees, clear from 20. An arch at the hip goes on the same card above.
+    if (tip >= 15) { const ex = out.find((x) => x.key === "rib"), txt = `The rib cage opens and the athlete leans back: the trunk tips back ${tip.toFixed(0)}° from the start ${at(tw)}.`;
+      if (ex) { ex.text += " " + txt; ex.minimal = false; }
+      else add("rib", ["rib", "sh", "hip"], tw, tw, txt + " The rib cage stays down, abs contracted, and the bar is pressed down.", tip < 20); }
+    // the hips swinging forward: the back angle and the shape change
+    if (swing >= 30) add("shoulder", ["sh", "hip", "wr"], sw, sw, `The hips swing ${swing.toFixed(0)}% of the arm's length forward ${at(sw)}: the back angle and the shape change instead of pressing the bar down.`, swing < 45);
+    // full range: the chin over the bar at the top, and the elbows locked out back in the hang
+    const pt = ptsAt(top); if (pt.ear && pt.wr && (pt.ear[1] - pt.wr[1]) * tr.h > 0.1 * arm) add("range", ["ear", "wr"], top, top, `At the top the head stays below the bar ${at(top)}: the chin does not clear it.`, true);
+    const eEnd = S[N - 1].el; if (eEnd != null && eEnd < Math.min(160, (S[0].el || 180) - 15)) add("range", ["sh", "el", "wr"], N - 1, N - 1, `Back in the hang the elbows are at ${eEnd.toFixed(0)}°: not locked out at the bottom.`, eEnd >= 150);
+    // concentric and eccentric the same: the lowering much quicker than the pull
+    // smoothness: one fluid motion, not segmented breaks in different directions (Nathan, 17 Oct: 'fast or slow isn't an issue,
+    // it's more about the smoothness'). The shoulders' path: how jerky it is (mean third difference, as % of the rise) and whether
+    // it stalls and reverses on the way up. His four reps: good 0.21 with no stall; poor 0.57 and very bad 0.53, both with a stall.
+    { const arm2 = arm / tr.h, y = S.map((_, k) => -(ptsAt(k).sh ? ptsAt(k).sh[1] : ptsAt(0).sh[1]) / arm2 * 100);
+      const ys = y.map((_, k) => { const v = y.slice(Math.max(0, k - 2), k + 3); return v.reduce((a, b) => a + b, 0) / v.length; });
+      const rise = Math.max(...ys) - ys[0]; let jerk = 0; for (let k = 3; k < N; k++) jerk += Math.abs(ys[k] - 3 * ys[k - 1] + 3 * ys[k - 2] - ys[k - 3]); jerk = jerk / Math.max(1, N - 3) / (rise || 1) * 100;
+      // a stall: from when the elbows start to bend (not the hang before), the shoulders drop back 4% of the arm's length or more before the top
+      const e0 = S[0].el || 175; let go = 0; for (let k = top; k >= 0; k--) if (S[k].el != null && S[k].el >= e0 - 8) { go = k; break; }
+      let stall = -1, hi = ys[go]; for (let k = go + 1; k <= top; k++) { if (ys[k] > hi) hi = ys[k]; else if (hi - ys[k] >= 4 && stall < 0) stall = k; }
+      if (jerk >= 0.4 || stall >= 0) add("tempo", ["sh", "hip", "el"], stall >= 0 ? stall : go, stall >= 0 ? stall : top,
+        `${stall >= 0 ? `The pull stalls and drops back ${at(stall)} before going on. ` : ""}${jerk >= 0.4 ? "The path of the shoulders is jerky: the rep breaks into segments instead of one fluid motion. " : ""}A strict pull-up is one smooth movement, up and back down.`, jerk < 0.5 && stall < 0); }
+  } else {
+    // the swing starts from the midline, not by pushing the bar away: the shoulders stay close to under the bar
+    // (18 Oct, Nathan's Michi reps: the shoulders travel about 21% of the arm's length on the textbook swing and 23% on the bad
+    // one, as the body swings under the bar, so this cannot tell pushing away from a good swing: left to the coach's eye)
+    if (false) { const i = first((k) => back(k) != null && back(k) - b0 >= 20);
+      if (i >= 0) { const w = worst(back, i, 1), d = back(w) - b0; add("pushaway", ["sh", "wr"], i, w, `The shoulders travel back from under the bar, up to ${d.toFixed(0)}% of the arm's length ${at(w)}: pushing the bar away instead of starting from the midline.`, d < 30); } }
+    // pushing the bar away: the ear shows behind the line of the arm (Nathan, 18 Oct: "pushing away from the bar is too much if
+    // we see the ear behind the arm"; on the textbook swing the arm hides the ear the whole way). Michi good: the ear never behind the
+    // arm (0%); Michi bad: up to 9%. Flags from 5% (clear from 12%).
+    { const i = first((k) => S[k].ear && !S[k].ear.front && S[k].ear.pct >= 5);
+      if (i >= 0) { const w = worst((k) => (S[k].ear && !S[k].ear.front ? S[k].ear.pct : null), i, 1);
+        add("pushaway", ["ear", "sh", "wr"], i, w, `The ear shows behind the line of the arm ${at(w)} (${S[w].ear.pct.toFixed(0)}% of the arm's length): pushing the bar away instead of starting from the midline. In a good swing the arm hides the ear.`, S[w].ear.pct < 12); } }
+    const { fronts, backs, x, span } = swings();
+    // the hollow at the front of each swing, the arch at the back
+    const fr = fronts.filter((i) => S[i] && S[i].hip != null), bk = backs.filter((i) => S[i] && S[i].hip != null);
+    // (Michi good: the hip at the front of each swing 132 to 139, a tight hollow; Michi bad: 104 to 111, a pike)
+    const pike = fr.filter((i) => S[i].hip < 122), open = fr.filter((i) => S[i].hip > 185);
+    if (pike.length) { const w = pike.reduce((a, b) => (S[b].hip < S[a].hip ? b : a)); add("hollowb", ["hip", "rib", "knee"], pike[0], w, `In the hollow, at the back of the swing, the hips pike to ${S[w].hip.toFixed(0)}° ${at(w)}, instead of a tight hollow.`, S[w].hip >= 112); }
+    else if (open.length) { const w = open[0]; add("hollowb", ["hip", "rib", "knee"], w, w, `In the hollow, at the back of the swing, the body is still open (hip ${S[w].hip.toFixed(0)}°) ${at(w)}: the hollow is not reached.`, S[w].hip < 195); }
+    // (the textbook swing reached 198 at the back; past 210 is an over-extended arch)
+    // the head pushed down and forward: in the arch the head should be neutral, eyes forward. Where the face points at the
+    // arch of each swing (18 Oct, Nathan's saved swings): Michi good -4 degrees, Sarah 2 -11, Michi bad -21, Sarah 1 -25.
+    // Flags from 18 degrees below level on average (clear from 30); not pushing away (that is the ear behind the arm).
+    { const fa = bk.map((i) => S[i] && S[i].face).filter((v) => v != null);
+      if (fa.length) { const m = fa.reduce((a, b) => a + b, 0) / fa.length;
+        if (m <= -18) { const w = bk.reduce((a, b) => (S[b].face != null && (S[a].face == null || S[b].face < S[a].face) ? b : a), bk[0]);
+          add("headfwd", ["ear", "sh"], w, w, `In the arch the head stays pushed down and forward: the face points ${(-m).toFixed(0)}° below level on average, where it should be neutral, eyes forward.`, m > -30); } } }
+    // ...and in the hollow: the ear coming through, in front of the line of the arm (Sarah 2, 18 Oct: "through the arms" in the
+    // hollow). The ear in front of the arm at the hollow of each swing, on average: Michi bad 3%, Michi good 8%, Sarah 1 11%,
+    // Sarah 2 13%. Flags from 11% (a thin margin over the textbook rep: to be checked on more reps).
+    if (!out.some((x) => x.key === "headfwd")) { const ea = fr.map((i) => (S[i] && S[i].ear ? (S[i].ear.front ? S[i].ear.pct : -S[i].ear.pct) : null)).filter((v) => v != null);
+      if (ea.length) { const m = ea.reduce((a, b) => a + b, 0) / ea.length;
+        if (m >= 11) add("headfwd", ["ear", "sh", "wr"], fr[0], fr[0], `In the hollow the head pushes down and forward: the ear comes ${m.toFixed(0)}% of the arm's length in front of the arm on average, where the arm should hide it. (A small reading here can come from build, such as broad shoulders or big lats: check it on the video.)`, true); } }
+    const over = bk.filter((i) => S[i].hip > 210);
+    if (over.length) { const w = over.reduce((a, b) => (S[b].hip > S[a].hip ? b : a)); add("archover", ["hip", "rib", "sh"], over[0], w, `In the arch, at the front of the swing, the hip opens to ${S[w].hip.toFixed(0)}° ${at(w)}: an over-extended arch, chest towards the sky.`, S[w].hip < 215); }
+    kneeCheck("tension");
+    // rhythm: each swing the same time and the same size, like a metronome
+    if (fronts.length >= 3) { const per = fronts.slice(1).map((f, k) => f - fronts[k]), mean = per.reduce((a, b) => a + b, 0) / per.length, sd = Math.sqrt(per.reduce((a, b) => a + (b - mean) ** 2, 0) / per.length), cv = sd / (mean || 1);
+      const size = fronts.map((f) => x[f]), sz = (Math.max(...size) - Math.min(...size)) / (span || 1);
+      if (cv > 0.2 || sz > 0.35) add("rhythm", ["hip", "toes"], fronts[0], fronts[0], `${cv > 0.2 ? `The swings take from ${(Math.min(...per) / fps).toFixed(1)} s to ${(Math.max(...per) / fps).toFixed(1)} s. ` : ""}${sz > 0.35 ? "The swings change in size. " : ""}A beat swing keeps an even beat, like a metronome.`, cv <= 0.3 && sz <= 0.5); }
+    else if (fronts.length < 2) out.push({ key: "rhythm", links: ["toes"], i: 0, w: 0, when: "Through the swing", text: "Fewer than two full swings were tracked, so the rhythm could not be checked: track a longer stretch (Set the end here, then Track again).", minimal: true });
+  }
+  return out.sort((a, b) => a.i - b.i);
+}
+
+function breaks() {
+  const box = $("breaks"); box.innerHTML = ""; if (!cur) return;
+  const T2B = true, f0 = cur.frames && cur.frames[0];
+  if (!f0 || nextIdx(f0) < LINKS.length) return;
+  const start = staticFaults(geo(f0)).map((x) => ({ ...x, when: T2B ? "At the start · hang in hollow" : "The hang in hollow", i: 0 }));
+  if (T2B && !cur.track) { box.innerHTML = '<p class="note">Tracking the movement shows where it breaks.</p>'; return; }
+  const list = T2B ? [...start, ...moveBreaks()] : start;
+  const h = document.createElement("p"); h.className = "brkh";
+  h.textContent = T2B ? "Where it breaks" : "What is out of position"; box.appendChild(h);
+  if (!list.length) { const d = document.createElement("div"); d.className = "brk ok"; d.innerHTML = `<h3>${T2B ? "No poor positions found through the rep" : "The links are in a good hang in hollow"}</h3>`; box.appendChild(d); }
+  for (const x of list) {
+    const [key, link, name, , why, fix] = FAULT[x.key], d = document.createElement("div"); d.className = "brk" + (x.minimal ? " min" : "");
+    d.innerHTML = `<div class="when"></div><h3></h3><p class="what"></p><p class="cue"><b>Cue:</b> <span></span></p><details><summary>Possible reasons and interventions</summary><p><b>Possible reasons:</b> <span class="why"></span></p><p><b>Interventions:</b> <span class="fix"></span></p></details><div class="row noprint"></div>`;
+    d.querySelector(".when").textContent = x.when + (x.minimal ? " · minimal" : ""); d.querySelector("h3").textContent = name; d.querySelector("h3").insertAdjacentHTML("beforeend", `<small>${esc(link)}</small>`);
+    d.querySelector(".what").textContent = x.text; d.querySelector(".cue span").textContent = CUE[key]; d.querySelector(".why").textContent = why; d.querySelector(".fix").textContent = fix;
+    const row = d.querySelector(".row");
+    if (T2B && cur.track && vid.currentSrc) { const b = document.createElement("button"); b.type = "button"; b.className = "btn ghost small"; b.textContent = "Show me";
+      b.onclick = async () => { vid.pause(); hl = x.links; await seekTo(cur.track.t0 + (x.w ?? x.i) / cur.track.fps); ovDraw(); $("vstage").scrollIntoView({ behavior: "smooth", block: "start" }); }; row.appendChild(b); }
+    const t = document.createElement("button"); t.type = "button"; t.className = "btn ghost small";
+    const set = () => (t.textContent = cur.faults[key] ? "In my faults ✓" : "Add to my faults"); set();
+    t.onclick = () => { cur.faults[key] = !cur.faults[key]; set(); faults(); changed(); }; row.appendChild(t);
+    box.appendChild(d);
+  }
+  const n = document.createElement("p"); n.className = "note";
+  n.textContent = T2B ? "The points cannot show the grip, the scapulae (shrugging), the rib cage, the elbows going out wide or the armpit turning to the floor, and the tracker reads the toes least well and cannot tell a small knee bend from its own error (check the knees on the video), and the head too if an upright of the rig hides it: check those on the video (turn on Show the head to see where the face points). These lines are a starting point, still being set from real reps: watch it, then decide." : "The points cannot show the grip, the scapulae or the rib cage: check those on the picture. A finding is your starting point: look at the picture, then decide.";
+  box.appendChild(n);
+}
+function measure() {
+  const box = $("measure"); box.innerHTML = ""; if (!cur) return; chartDraw(); breaks();
+  const ph = phasesOf(cur), G = ph.map((_, i) => geo(cur.frames && cur.frames[i])), any = G.some((g) => g.hip != null || g.sh != null || g.el != null);
+  if (!any) { box.innerHTML = '<p class="sub" style="margin:0">Mark the links to see the angles.</p>'; return; }
+  const ROWS = [["Hip angle", (g) => deg(g.hip), "Knee to hip to rib cage. 180° is straight; smaller is more pike at the hip."],
+    ["Shoulder angle", (g) => deg(g.sh), "Hip to shoulder to elbow: the trunk and the arms. Pushing away on the bar makes it smaller."],
+    ["Elbow angle", (g) => deg(g.el), "180° is locked out."], ["Knee angle", (g) => deg(g.knee), "180° is locked out."],
+    ["Toes pointed", (g) => (g.toes == null ? "–" : deg(g.toes) + (g.toes >= 150 ? " · pointed" : g.toes >= 125 ? " · partly" : " · not pointed")), "Knee to ankle to toes. The nearer 180°, the more the toes point away. After tracking, the toes keep the angle you marked; drag them if they change."],
+    ["Shoulders and the bar", (g) => (!g.shBar ? "–" : g.shBar.pct < 8 ? "Under the bar" : (g.shBar.front ? "In front " : "Behind ") + g.shBar.pct.toFixed(0) + "%"), "Shoulder against a vertical line from the hands, as a share of the arm's length."],
+    ["Feet and the bar", (g) => where(g.feet, 4, "Under the bar"), "Toes against a vertical line from the knuckles."],
+    ["Hips and the pencil line", (g) => where(g.line, 2, "On the line"), "Hip against the dashed line from the knuckles to the toes."],
+    ["Head and the arms", (g) => (!g.ear ? "–" : g.ear.pct < 6 ? "In line" : g.ear.front ? "Through the arms" : "Behind the arms"), "Ear against the line of the arm, shoulder to knuckles: \"stay on the phone\" keeps the arms in line with the ears."]];
+  const t = document.createElement("table"); t.className = "mt";
+  t.innerHTML = `<thead><tr><th></th>${ph.map((p, i) => `<th>${ph.length > 1 ? (i + 1) + " · " + p.split(":")[0] : "This frame"}</th>`).join("")}</tr></thead>`;
+  const tb = document.createElement("tbody");
+  for (const [name, fn, help] of ROWS) { const tr = document.createElement("tr"); tr.innerHTML = `<th><b>${name}</b><span>${help}</span></th>${G.map((g) => `<td>${fn(g)}</td>`).join("")}`; tb.appendChild(tr); }
+  t.appendChild(tb); box.appendChild(t);
+  // through the rep (or the hold): every tracked frame when the movement has been tracked, otherwise the marked frames
+  const tr = cur.track, S = tr ? series() : null, T2B = ph.length > 1;
+  const at = (g) => (g && g.shBar ? (g.shBar.front ? -g.shBar.pct : g.shBar.pct) : null), lines = [];
+  const shWord = (g) => (g.shBar.pct < 8 ? "under the bar" : g.shBar.pct.toFixed(0) + "% " + (g.shBar.front ? "in front of" : "behind") + " the hands");
+  const hd = (e) => (e.pct < 6 ? "in line with the arms" : e.front ? "through the arms" : "behind the arms");
+  // the low point through the movement; with tracked frames, the 10th percentile, so a single misread frame does not count
+  const lo = (arr, k) => { const v = arr.map((g) => g && g[k]).filter((x) => x != null).sort((x, y) => x - y); return v.length ? (S && arr.length > 10 ? v[Math.floor(v.length * 0.1)] : v[0]) : null; };
+  if (false) {
+    const ser = S || G, ti = S ? (tr.ph ? tr.ph[2] : 0) : 2, s = ser[0], top = ser[ti] || {}, up = ser.slice(0, ti + 1);
+    if (s.sh != null && top.sh != null) { const d = top.sh - s.sh; lines.push(`Shoulder angle from the start to the top: ${d >= 0 ? "opens" : "closes"} by ${Math.abs(d).toFixed(0)}°. Some closing is the lats compressing to bring the legs up; pushing the bar away closes it too, so check where the shoulders go.`); }
+    const sp = at(s), back = ser.map(at).filter((v) => v != null);
+    if (sp != null && back.length) { const most = Math.max(...back), moved = most - sp;
+      lines.push(`Shoulders and the bar: ${shWord(s)} at the start${top.shBar ? ", " + shWord(top) + " at the top" : ""}. ${moved < 20 ? "They stay close to under the bar through the rep: active shoulders, \"on the phone\"." : `They travel back up to ${moved.toFixed(0)}% of the arm's length away from the bar: the athlete is pushing the bar away or leaning back.`}`); }
+    // the swing: how far the hips travel in front of the hands (strict toes to bar keeps them close under the bar)
+    if (S) { const P0 = ptsAt(0), arm = Math.hypot((P0.sh[0] - P0.wr[0]) * tr.w, (P0.sh[1] - P0.wr[1]) * tr.h) || 1, fw = P0.rib && P0.tsp ? Math.sign(P0.rib[0] - P0.tsp[0]) || 1 : 1;
+      const hx = tr.pts.map((_, i) => { const p = ptsAt(i); return p.hip ? (p.hip[0] - P0.wr[0]) * tr.w * fw / arm * 100 : null; }).filter((v) => v != null), sw = Math.max(...hx);
+      lines.push(`Hip swing: the hips go up to ${Math.abs(sw).toFixed(0)}% of the arm's length ${sw >= 0 ? "in front of" : "behind"} the hands. ${sw < 30 ? "They stay close under the bar: no swing." : "They swing forward: a kick or a kip, not strict. Coach the hang in hollow first and slow the legs down."}`); }
+    const el = lo(ser, "el"); if (el != null) lines.push(`Elbows: ${el >= 165 ? "close to locked out through the rep." : `down to about ${el.toFixed(0)}°. The tracker reads the arms least well overhead, so check the elbows on the video and drag the elbow on a position if it is off.`}`);
+    const kn = lo(up.slice(1), "knee"); if (kn != null) lines.push(`Knees on the way up: ${kn.toFixed(0)}° ${kn >= 165 ? "(legs kept straight)." : kn >= 150 ? "(a slight bend; check the knees on the video: strict toes to bar keeps the legs straight)." : "(the knees bend: strict toes to bar keeps the legs straight)."}`);
+    if (S) lines.push("Toes: the tracker cannot read the feet reliably, so the toes keep the angle you marked at the start. Check them on the video; if they change, drag the toes on that position.");
+    else { const to = lo(up, "toes"); if (to != null) lines.push(`Toes on the way up: ${to.toFixed(0)}° at the least ${to >= 150 ? "(kept pointed)." : to >= 125 ? "(partly pointed: keep the toes pointed away)." : "(not pointed: keep the toes pointed away)."}`); }
+    if (top.hip != null) lines.push(`Hip at the top: ${top.hip.toFixed(0)}°, the compression that brings the toes to the bar.`);
+    if (s.ear && top.ear) lines.push(`Head: ${hd(s.ear)} at the start, ${hd(top.ear)} at the top.`);
+    if (S) { const upT = tr.ph[2] / tr.fps, dn = (tr.pts.length - 1 - tr.ph[2]) / tr.fps;
+      lines.push(`Tempo: ${upT.toFixed(1)} s up to the bar and ${dn.toFixed(1)} s back down to the hang. ${upT < 2.5 ? "A fast pull: check for a kick or swing; strict toes to bar is slow and controlled." : "Slow and controlled."}`); }
+  } else if (false) {
+    const s = S[0], end = S[S.length - 1], hips = S.map((g) => g.hip).filter((v) => v != null);
+    if (hips.length) { const r = Math.max(...hips) - Math.min(...hips); lines.push(`Hip angle through the hold: ${Math.min(...hips).toFixed(0)}° to ${Math.max(...hips).toFixed(0)}° ${r < 10 ? "(the hollow shape holds)." : "(the shape changes through the hold: check for the hips piking or tipping into an anterior tilt)."}`); }
+    const sp = at(s), back = S.map(at).filter((v) => v != null); if (sp != null && back.length) { const moved = Math.max(...back) - sp; lines.push(`Shoulders and the bar: ${shWord(s)} at the start. ${moved < 10 ? "They stay put through the hold." : `They drift back up to ${moved.toFixed(0)}% of the arm's length: pressing away from the bar as the hold goes on.`}`); }
+    const el = lo(S, "el"); if (el != null) lines.push(`Elbows: ${el >= 165 ? "close to locked out through the hold." : `down to about ${el.toFixed(0)}°; the tracker reads the arms least well overhead, so check the elbows on the video.`}`);
+    const kn = lo(S, "knee"); if (kn != null) lines.push(`Knees: ${kn.toFixed(0)}° at the least ${kn >= 165 ? "(locked out)." : kn >= 150 ? "(a slight bend; check the video)." : "(the knees bend)."}`);
+    lines.push("Toes: the tracker cannot read the feet reliably, so check the toes stay pointed on the video.");
+    if (s.ear && end.ear) lines.push(`Head: ${hd(s.ear)} at the start, ${hd(end.ear)} at the end.`);
+    lines.push(`Hold tracked: ${((tr.pts.length - 1) / tr.fps).toFixed(1)} s.`);
+  }
+  if (lines.length) { const d = document.createElement("div"); d.className = "rep"; d.innerHTML = `<b>${T2B ? "Through the rep" : "Through the hold"}${S ? "" : " (from the marked frames)"}</b>`; for (const l of lines) { const p = document.createElement("p"); p.textContent = l; d.appendChild(p); } box.appendChild(d); }
+  if (!tr && Object.keys((cur.frames && cur.frames[0] && cur.frames[0].pts) || {}).length === LINKS.length) { const p = document.createElement("p"); p.className = "note"; p.style.margin = "8px 0 0"; p.textContent = "Track the movement to see how each link changes through the " + (T2B ? "rep." : "hold."); box.appendChild(p); }
+  const p = document.createElement("p"); p.className = "note"; p.style.margin = "8px 0 0"; p.textContent = "Measured from the points, in the picture as filmed. Film straight from the side for the truest angles."; box.appendChild(p);
+}
+boot();
+</script>
+</body>
+</html>
