@@ -366,7 +366,7 @@ const MOVES = ["Strict pull-up", "Beat swing"];
 const isPull = () => cur && cur.move === MOVES[0], isBeat = () => cur && true;
 const NEXT = ["Keep building the strict pull-up (toe spot pull-ups, slow reps)", "Strict pull-ups with mastery: ready for the beat swing prerequisite", "Keep building the beat swing", "Ready to start kipping"];
 // Faults for each movement: what you see, possible reasons, and interventions. Drafted by Claude from the Lesson 10 text
-// (16 Oct 2026, Nathan to check): the strict pull-up keeps the hang in hollow the whole way, pressing down, elbows forward then
+// (16 Oct 2026, Nathan to check): the strict pull-up keeps the hang in hollow the whole way through lat compression (Nathan: never press the bar down), elbows forward then
 // down and back, concentric and eccentric the same; the beat swing starts from the midline, hollow and arch as on the floor.
 const FAULTS_ALL = [
   ["grip", "Knuckles / grip", "Poor grip", "Not a pronated grip a cubit distance apart, or the grip is not set: the top knuckles are not to the sky.",
@@ -377,13 +377,13 @@ const FAULTS_ALL = [
     "Hang in hollow holds with the hips open; hip flexor length (eccentric plate split squats, from Lesson 9); toe spot pull-ups to own the shape; lat and arm strength (eccentric ball up, banded lat press downs)."],
   ["kick", "Knees", "Knee flexion", "The knees bend during the pull-up.",
     "Loss of tension or awareness; weakness; a compensation for a lack of strength.",
-    "Toe spot pull-ups or ring rows at a level where the legs stay locked out; coach full-body tension; build the pulling strength."],
+    "Lock out the knees by squeezing the quads; develop straight-leg lockout strength and awareness (not toe spot pull-ups or ring rows, which make it worse)."],
   ["shoulder", "Shoulder / back", "Poor shoulder movement: the back angle and shape change", "The shoulder does not move well through the pull, so the back angle and the shape change: the athlete leans back.",
     "Lat weakness.",
-    "Lat strength: the eccentric ball up, banded lat press downs, toe spot pull-ups; cue pressing the bar down."],
+    "Lat compression and the hollow only (never pressing the bar down): lat strength through the eccentric ball up; hang in hollow holds keeping the lats engaged."],
   ["elbow", "Elbow", "Elbows flaring out wide, out of unison or not smooth", "The elbows go out wide instead of pointing forward, or the two arms do not move together or smoothly. (A side view cannot show this: check from the front.)",
     "Upper trap dominance and poor scapular position; strength differences between the arms.",
-    "Cue elbows forward, then down and back; ring rows with the elbows in; slow reps for smoothness; toe spot pull-ups."],
+    "Shoulder stability, external rotation drills and shoulder extension range: if the shoulder is limited the arms cannot move any further and the elbows flare. Cue elbows forward, then down and back."],
   ["range", "Elbow / head", "Not full range", "The elbows are not locked out at the bottom, or the chin does not clear the bar at the top.",
     "Strength at the end of the range; chasing reps; low standards.",
     "Full range every rep; slow lowering from the top; toe spot pull-ups through the full range."],
@@ -395,7 +395,7 @@ const FAULTS_ALL = [
     "Head neutral, eyes forward; lower trapezius strength (from the L-sit unit); coach mastery over the rep at any cost."],
   ["scap", "Scapulae", "Scapulae rise or move unevenly", "The scapulae rise or move one side at a time: the distance between the shoulder and the scapula is not kept, and the rest of the movement breaks down from there. (Check on the video.)",
     "The scapulae move in relation to the shoulder; the scapular stabilisers need to be stronger.",
-    "Scapular stability: active hangs and scapular pull-ups, both sides together; lower trapezius strength (from the L-sit unit); ring rows."],
+    "Scapular stability: active hangs and scapular pull-ups, both sides together; lower trapezius strength (from the L-sit unit)."],
   ["ankle", "Toes / ankle", "Toes not pointed", "The feet relax instead of pointing the toes away.",
     "Loss of tension or awareness.",
     "Coach the standard every rep: toes pointed away, legs together and tight."],
@@ -430,7 +430,7 @@ const LISTS = { [MOVES[0]]: ["ankle", "kick", "hollow", "rib", "scap", "shoulder
 const FAULTS_FOR = (m) => (LISTS[m] || LISTS[MOVES[0]]).map((k) => FAULTS_ALL.find((f) => f[0] === k));
 let FAULTS = FAULTS_FOR(MOVES[0]);
 const CUE = { grip: "Knuckles to the sky, thumb around the bar.", hollow: "Hips open: squeeze the glutes and stay in your hollow.", kick: "Lock the knees: legs long and together.",
-  shoulder: "Press the bar down to your hips and keep your back angle.", elbow: "Elbows forward, together and smooth.", range: "Lock out at the bottom, chin over the bar at the top.",
+  shoulder: "Lats on, stay hollow, keep your back angle.", elbow: "Elbows forward, together and smooth.", range: "Lock out at the bottom, chin over the bar at the top.",
   tempo: "One smooth movement, up and down.", head: "Head neutral, eyes forward.", scap: "Shoulders away from the ears, both sides together.",
   ankle: "Point the toes away.", rib: "Ribs down, abs tight.",
   pushaway: "Start from the midline: snap down into hollow.", hollowb: "Snap into a tight hollow.", archover: "Long arch: chest down, reach long.",
@@ -1102,7 +1102,7 @@ function goodRef() {
   for (const [col, fn] of lines) { g.strokeStyle = col; g.lineWidth = 2.4 * k; g.beginPath(); for (let i = 0; i <= 80; i++) { const f = i / 80; i ? g.lineTo(X(f), Y(fn(f))) : g.moveTo(X(f), Y(fn(f))); } g.stroke(); }
   g.fillStyle = "#B7B1B3"; g.font = `700 ${10 * k}px -apple-system,Helvetica,Arial`; g.textAlign = "center"; g.fillText(isPull() ? "a good pull-up: hips, knees, toes flat" : "a good beat swing: an even beat", X(0.5), c.height - 4 * k);
   $("goodref-text").innerHTML = isPull()
-    ? '<b>Points of performance:</b> start in the hang in hollow (as for strict toes to bar): toes pointed, knees locked out, hips open in a posterior pelvic tilt, rib cage down with the abs contracted, elbows pointing forward and not flaring out, the distance between the shoulder and the scapula kept, head neutral and looking forward.<br><br><b>What a good strict pull-up looks like here</b> (left): the <b style="color:#E0555A">hip</b>, <b style="color:#6AA9F0">knee</b> and <b style="color:#C78BEA">toe</b> lines stay flat the whole way up and down, as the hang in hollow is held; the <b style="color:#5CC48A">elbow</b> and <b style="color:#F2B24C">shoulder</b> lines do the work., a dip as the athlete presses down to the top and the same shape back. One smooth, fluid movement up and the same shape back down is mastery; speed itself is not the point. A dip or a jump in the hip, knee or toe line is where the shape breaks: look on the video.'
+    ? '<b>Points of performance:</b> start in the hang in hollow (as for strict toes to bar): toes pointed, knees locked out, hips open in a posterior pelvic tilt, rib cage down with the abs contracted, elbows pointing forward and not flaring out, the distance between the shoulder and the scapula kept, head neutral and looking forward.<br><br><b>What a good strict pull-up looks like here</b> (left): the <b style="color:#E0555A">hip</b>, <b style="color:#6AA9F0">knee</b> and <b style="color:#C78BEA">toe</b> lines stay flat the whole way up and down, as the hang in hollow is held; the <b style="color:#5CC48A">elbow</b> and <b style="color:#F2B24C">shoulder</b> lines do the work., a dip as the athlete pulls to the top through lat compression and the hollow, and the same shape back. One smooth, fluid movement up and the same shape back down is mastery; speed itself is not the point. A dip or a jump in the hip, knee or toe line is where the shape breaks: look on the video.'
     : '<b>The hollow, at the back of the swing</b> (Nathan): knuckles over the bar, elbows locked out, the ear hidden by the line of the arm, the shoulders engaged but not pushing the bar away (the shoulder moves only from lat engagement), thoracic compression engaging the scapulae, rib cage down, hips open, knees locked out, ankles and toes pointed.<br><br><b>The arch, at the front of the swing</b> (Nathan): knuckles over the bar, elbows locked out, the arm hiding the ear, the shoulders open with the armpits forward, thoracic extension, the rib cage open but still tight (not flaring upwards), hips open in full extension, knees locked out, ankles fully open and toes pointed.<br><br><b>What a good beat swing looks like here</b> (left): the <b style="color:#E0555A">hip</b> line swings above 180° (the arch, at the back) and below it (the hollow, at the front), with an even beat, each swing the same time and size, like a metronome; the <b style="color:#F2B24C">shoulder</b> line moves a little with it; the <b style="color:#5CC48A">elbow</b>, <b style="color:#6AA9F0">knee</b> and <b style="color:#C78BEA">toe</b> lines stay flat. A hip line that goes very high is an over-extended arch; one that dips well below 150° is a pike instead of a hollow.';
 }
 
@@ -1367,7 +1367,7 @@ function moveBreaks() {
         add("head", ["ear", "sh"], d0, w, `The chin comes down towards the chest: the face points ${(-S[w].face).toFixed(0)}° below level ${at(w)}, ${drop.toFixed(0)}° lower than at the start. With the shoulders rising too, that is lower trapezius weakness and upper trapezius tension.`, !far && drop < 30); }
     } else { const i = first((k) => S[k].hmv != null && S[k].hmv >= 18);
       if (i >= 0) { const w = worst((k) => S[k].hmv, i, 1); add("head", ["ear", "sh", "wr"], i, w, `The head lifts and looks to the sky: the ear goes ${S[w].hmv.toFixed(0)}% of the arm's length behind the arms ${at(w)}. The head stays neutral, looking forward.`, S[w].hmv < 25); } }
-    // pressing down, not pulling up: the body stays under the bar, no lean back or swing
+    // the body stays under the bar through lat compression and the hollow, no lean back or swing
     const t0v = tilt(0), tw = worst(tilt, 0, 1), tip = t0v != null && tilt(tw) != null ? tilt(tw) - t0v : 0, sw = worst(hipF, 0, 1), swing = hipF(sw) != null && hipF(0) != null ? hipF(sw) - hipF(0) : 0;
     // (the shoulders moving relative to the hands is part of every pull-up, so only the trunk tipping back and the hips swinging count)
     // Leaning back: the rib cage opens and the trunk tips back (Nathan, 17 Oct, on his "ama bad" rep: "broken rib cage (open),
@@ -1375,9 +1375,9 @@ function moveBreaks() {
     // 34 and 52 on the poor and very bad reps). From 15 degrees, clear from 20. An arch at the hip goes on the same card above.
     if (tip >= 15) { const ex = out.find((x) => x.key === "rib"), txt = `The rib cage opens and the athlete leans back: the trunk tips back ${tip.toFixed(0)}° from the start ${at(tw)}.`;
       if (ex) { ex.text += " " + txt; ex.minimal = false; }
-      else add("rib", ["rib", "sh", "hip"], tw, tw, txt + " The rib cage stays down, abs contracted, and the bar is pressed down.", tip < 20); }
+      else add("rib", ["rib", "sh", "hip"], tw, tw, txt + " The rib cage stays down, abs contracted, through lat compression and the hollow.", tip < 20); }
     // the hips swinging forward: the back angle and the shape change
-    if (swing >= 30) add("shoulder", ["sh", "hip", "wr"], sw, sw, `The hips swing ${swing.toFixed(0)}% of the arm's length forward ${at(sw)}: the back angle and the shape change instead of pressing the bar down.`, swing < 45);
+    if (swing >= 30) add("shoulder", ["sh", "hip", "wr"], sw, sw, `The hips swing ${swing.toFixed(0)}% of the arm's length forward ${at(sw)}: the back angle and the shape change instead of staying in the hollow through lat compression.`, swing < 45);
     // full range: the chin over the bar at the top, and the elbows locked out back in the hang
     const pt = ptsAt(top); if (pt.ear && pt.wr && (pt.ear[1] - pt.wr[1]) * tr.h > 0.1 * arm) add("range", ["ear", "wr"], top, top, `At the top the head stays below the bar ${at(top)}: the chin does not clear it.`, true);
     const eEnd = S[N - 1].el; if (eEnd != null && eEnd < Math.min(160, (S[0].el || 180) - 15)) add("range", ["sh", "el", "wr"], N - 1, N - 1, `Back in the hang the elbows are at ${eEnd.toFixed(0)}°: not locked out at the bottom.`, eEnd >= 150);
