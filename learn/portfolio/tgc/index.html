@@ -128,8 +128,11 @@ const TASKS = {
   "tgc-pull-rp": { page: "reflect.html?t=tgc-pull-rp", title: "Reflection — coaching strict pull-ups and beat swings",
     text: "A reflective practice cycle on how you coach pulling and dynamic movement on the bar: think, plan and coach, then reflect.",
     count: (row) => { const a = (row && row.data && row.data.a) || {}; if (!Object.values(a).some((v) => String(v || "").trim())) return null; return row.data.coached ? "Step 3 · after coaching" : "In progress"; } },
+  "tgc-kip-rp": { page: "reflect.html?t=tgc-kip-rp", title: "Reflection — coaching kipping toes to bar and kipping pull-ups",
+    text: "A reflective practice cycle on how you coach kipping on the bar: think, plan and coach, then reflect.",
+    count: (row) => { const a = (row && row.data && row.data.a) || {}; if (!Object.values(a).some((v) => String(v || "").trim())) return null; return row.data.coached ? "Step 3 · after coaching" : "In progress"; } },
   "tgc-kip": { page: "kip-eye.html", title: "Kipping coaches eye",
-    text: "Film kipping toes to bar from the side, mark the links on the start, and see which reps are virtuous, bend and kick, or push away.",
+    text: "Film kipping toes to bar or kipping pull-ups from the side, mark the links on the start, and see which reps are virtuous, bend and kick, or push away, and where the swing and the pull break.",
     count: (row) => { const n = ((row && row.data && row.data.obs) || []).length; return n ? n + (n === 1 ? " observation" : " observations") : null; } },
   "tgc-pull": { page: "pull-eye.html", title: "Pull-up and beat swing coaches eye",
     text: "Film a strict pull-up or a beat swing from the side, mark the links on the start hang, and see where the hollow and arch shapes break.",
@@ -164,11 +167,11 @@ const UNITS = [
   { n: 8, name: "L-sits, V-sits & Gymnastics Conditioning", tools: ["tgc-lsit-wod", "tgc-lsit-rp"] },
   { n: 9, name: "Hanging in Hollow & Strict Toes To Bar", tools: ["tgc-hang", "tgc-hang-rp"] },
   { n: 10, name: "Strict Pull-Ups and Beat Swings", tools: ["tgc-pull", "tgc-pull-rp"] },
-  { n: 11, name: "Kipping Toes To Bar and Pull-Ups", tools: ["tgc-kip"] },
+  { n: 11, name: "Kipping Toes To Bar and Pull-Ups", tools: ["tgc-kip", "tgc-kip-rp"] },
   { n: 12, name: "Butterfly Pull-Ups and Bar Muscle-Ups", tools: ["tgc-headpath"] },
 ];
 // The lesson buttons link here with ?tool=<short name>; send them on to the task.
-const SHORT = { start: "tgc-start", headpath: "tgc-headpath", movement: "tgc-movement", methodology: "tgc-methodology", warmupeye: "tgc-warmup-eye", warmupplan: "tgc-warmup-plan", pelvis: "tgc-pelvis", hollow: "tgc-hollow", arch: "tgc-arch", archrp: "tgc-arch-rp", rocksrp: "tgc-rocks-rp", lsitwod: "tgc-lsit-wod", lsitrp: "tgc-lsit-rp", hang: "tgc-hang", hangrp: "tgc-hang-rp", pull: "tgc-pull", pullrp: "tgc-pull-rp", kip: "tgc-kip" };
+const SHORT = { start: "tgc-start", headpath: "tgc-headpath", movement: "tgc-movement", methodology: "tgc-methodology", warmupeye: "tgc-warmup-eye", warmupplan: "tgc-warmup-plan", pelvis: "tgc-pelvis", hollow: "tgc-hollow", arch: "tgc-arch", archrp: "tgc-arch-rp", rocksrp: "tgc-rocks-rp", lsitwod: "tgc-lsit-wod", lsitrp: "tgc-lsit-rp", hang: "tgc-hang", hangrp: "tgc-hang-rp", pull: "tgc-pull", pullrp: "tgc-pull-rp", kip: "tgc-kip", kiprp: "tgc-kip-rp" };
 const withParam = (page, kv) => page + (page.includes("?") ? "&" : "?") + kv;
 
 let session = null;
