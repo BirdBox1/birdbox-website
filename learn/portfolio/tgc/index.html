@@ -128,6 +128,12 @@ const TASKS = {
   "tgc-pull-rp": { page: "reflect.html?t=tgc-pull-rp", title: "Reflection — coaching strict pull-ups and beat swings",
     text: "A reflective practice cycle on how you coach pulling and dynamic movement on the bar: think, plan and coach, then reflect.",
     count: (row) => { const a = (row && row.data && row.data.a) || {}; if (!Object.values(a).some((v) => String(v || "").trim())) return null; return row.data.coached ? "Step 3 · after coaching" : "In progress"; } },
+  "tgc-push-rp": { page: "reflect.html?t=tgc-push-rp", title: "Reflection — coaching push-ups and low rings",
+    text: "A reflective practice cycle on how you coach pressing and shoulder stability: think, plan and coach, then reflect.",
+    count: (row) => { const a = (row && row.data && row.data.a) || {}; if (!Object.values(a).some((v) => String(v || "").trim())) return null; return row.data.coached ? "Step 3 · after coaching" : "In progress"; } },
+  "tgc-push": { page: "push-eye.html", title: "Push-up coaches eye",
+    text: "Film push-ups from the side, mark the links on the top of the push-up, and see every rep against the virtuous push-up with mastery.",
+    count: (row) => { const n = ((row && row.data && row.data.obs) || []).length; return n ? n + (n === 1 ? " observation" : " observations") : null; } },
   "tgc-pistol-rp": { page: "reflect.html?t=tgc-pistol-rp", title: "Reflection — coaching pistols",
     text: "A reflective practice cycle on how you coach and progress pistols: think, plan and coach, then reflect.",
     count: (row) => { const a = (row && row.data && row.data.a) || {}; if (!Object.values(a).some((v) => String(v || "").trim())) return null; return row.data.coached ? "Step 3 · after coaching" : "In progress"; } },
@@ -179,9 +185,10 @@ const UNITS = [
   { n: 11, name: "Kipping Toes To Bar and Pull-Ups", tools: ["tgc-kip", "tgc-kip-rp"] },
   { n: 12, name: "Butterfly Pull-Ups and Bar Muscle-Ups", tools: ["tgc-headpath", "tgc-bmu-rp"] },
   { n: 13, name: "Pistols", tools: ["tgc-valgus", "tgc-pistol-rp"] },
+  { n: 14, name: "Push-Ups and Low Rings", tools: ["tgc-push", "tgc-push-rp"] },
 ];
 // The lesson buttons link here with ?tool=<short name>; send them on to the task.
-const SHORT = { start: "tgc-start", headpath: "tgc-headpath", movement: "tgc-movement", methodology: "tgc-methodology", warmupeye: "tgc-warmup-eye", warmupplan: "tgc-warmup-plan", pelvis: "tgc-pelvis", hollow: "tgc-hollow", arch: "tgc-arch", archrp: "tgc-arch-rp", rocksrp: "tgc-rocks-rp", lsitwod: "tgc-lsit-wod", lsitrp: "tgc-lsit-rp", hang: "tgc-hang", hangrp: "tgc-hang-rp", pull: "tgc-pull", pullrp: "tgc-pull-rp", kip: "tgc-kip", kiprp: "tgc-kip-rp", bmurp: "tgc-bmu-rp", valgus: "tgc-valgus", pistolrp: "tgc-pistol-rp" };
+const SHORT = { start: "tgc-start", headpath: "tgc-headpath", movement: "tgc-movement", methodology: "tgc-methodology", warmupeye: "tgc-warmup-eye", warmupplan: "tgc-warmup-plan", pelvis: "tgc-pelvis", hollow: "tgc-hollow", arch: "tgc-arch", archrp: "tgc-arch-rp", rocksrp: "tgc-rocks-rp", lsitwod: "tgc-lsit-wod", lsitrp: "tgc-lsit-rp", hang: "tgc-hang", hangrp: "tgc-hang-rp", pull: "tgc-pull", pullrp: "tgc-pull-rp", kip: "tgc-kip", kiprp: "tgc-kip-rp", bmurp: "tgc-bmu-rp", valgus: "tgc-valgus", pistolrp: "tgc-pistol-rp", push: "tgc-push", pushrp: "tgc-push-rp" };
 const withParam = (page, kv) => page + (page.includes("?") ? "&" : "?") + kv;
 
 let session = null;
