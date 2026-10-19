@@ -52,6 +52,7 @@ export default async (request) => {
       case "cancel_preview":        return await cancelPreview(body);
       case "cancel":                return await cancel(body, me);
       case "refund_registration":   return await refundRegistration(body, me);
+      case "partial_refund":        return await partialRefund(body, me);
       default:
         return json({ error: `Unknown action "${body.action}".` }, 400);
     }
@@ -667,7 +668,7 @@ async function refundRegistration({ courseId, registrationId, reason }, me) {
     // Re-check at the moment of refunding, so two admins cannot double-refund.
     const { data: pay } = await supabase
       .from("payments")
-      .select("id, amount_cents, status, charged_at, stripe_payment_intent_id, refunded_at")
+      .select("id, amount_cents, status, charged_at, stripe_payment_intent_id, refunded_at, refunded_cents")
       .eq("id", row.id)
       .single();
     if (!pay || pay.refunded_at || pay.status === "refunded") continue;
@@ -681,10 +682,10 @@ async function refundRegistration({ courseId, registrationId, reason }, me) {
       await supabase.from("payments").update({
         status: "refunded",
         refunded_at: new Date().toISOString(),
-        refunded_cents: pay.amount_cents,
+        refunded_cents: (pay.refunded_cents || 0) + refund.amount,
         stripe_refund_id: refund.id,
       }).eq("id", pay.id);
-      refunded += pay.amount_cents;
+      refunded += refund.amount;
     } catch (err) {
       console.error("Refund failed for", reg.email, err.message);
       problems.push(`${reg.first_name || reg.email}: ${err.message}`);
@@ -767,6 +768,101 @@ ${OFFICE}`,
     refundedCents: refunded,
     problems,
   });
+}
+
+// ---------------------------------------------------------------
+// part of the money back, place kept
+// ---------------------------------------------------------------
+// A discount given after they paid (they booked before an offer, say).
+// Refunds part of what their card paid, keeps their place, takes it off
+// what they are recorded as having paid, notes it on their card, and
+// emails them. Website card payments only; anything else is done by
+// hand in Stripe.
+
+async function partialRefund({ courseId, registrationId, percent, amount, reason }, me) {
+  const { data: course } = await supabase
+    .from("courses").select("id, brand, title").eq("id", courseId).maybeSingle();
+  if (!course) return json({ error: "Course not found" }, 404);
+  const { data: reg } = await supabase
+    .from("registrations")
+    .select("id, first_name, last_name, email, status, currency, amount_paid_cents")
+    .eq("id", registrationId).eq("course_id", courseId).maybeSingle();
+  if (!reg) return json({ error: "Participant not found on this course" }, 404);
+
+  const { data: pays } = await supabase
+    .from("payments")
+    .select("id, sequence, amount_cents, status, charged_at, stripe_payment_intent_id, refunded_at, refunded_cents")
+    .eq("registration_id", reg.id)
+    .order("sequence", { ascending: false });
+  const takenRows = (pays || []).filter((p) => p.charged_at && p.stripe_payment_intent_id && !p.refunded_at && p.status !== "refunded");
+  const left = (p) => (p.amount_cents || 0) - (p.refunded_cents || 0);
+  const paid = takenRows.reduce((n, p) => n + left(p), 0);
+  if (!paid) return json({ error: "There is no card payment on the website to refund from. Do it by hand in Stripe." }, 400);
+
+  const pct = Number(percent);
+  const want = pct > 0 ? Math.round(paid * pct / 100) : Math.round(Number(amount) * 100);
+  if (!(want > 0)) return json({ error: "Enter a percentage or an amount." }, 400);
+  if (want >= paid) return json({ error: "That is all of it. Use Refund & cancel for a full refund." }, 400);
+
+  let toGo = want;
+  let done = 0;
+  const problems = [];
+  for (const p of takenRows) {
+    if (toGo <= 0) break;
+    const amt = Math.min(toGo, left(p));
+    if (amt <= 0) continue;
+    try {
+      const refund = await stripe.refunds.create({
+        payment_intent: p.stripe_payment_intent_id,
+        amount: amt,
+        reason: "requested_by_customer",
+        metadata: { registration_id: reg.id, kind: "partial_refund" },
+      });
+      await supabase.from("payments").update({
+        refunded_cents: (p.refunded_cents || 0) + refund.amount,
+        stripe_refund_id: refund.id,
+      }).eq("id", p.id);
+      done += refund.amount;
+      toGo -= refund.amount;
+    } catch (err) {
+      console.error("Partial refund failed", reg.email, err.message);
+      problems.push(err.message);
+      break;
+    }
+  }
+  if (!done) return json({ error: "Stripe did not refund it: " + (problems[0] || "unknown error") }, 502);
+
+  const currency = reg.currency || "EUR";
+  const label = pct > 0 ? `${pct}% (${formatMoney(done, currency)})` : formatMoney(done, currency);
+  await supabase.from("registrations")
+    .update({ amount_paid_cents: Math.max(0, (reg.amount_paid_cents || 0) - done) })
+    .eq("id", reg.id);
+  await supabase.from("participant_notes").insert({
+    course_id: course.id, registration_id: reg.id, staff_id: me.id,
+    body: `Refunded ${label} to their card${reason ? " — " + reason : ""}. Place kept.`,
+  });
+
+  let emailed = false;
+  if (reg.email) {
+    emailed = await send({
+      to: reg.email,
+      subject: `A refund on your place on ${course.title}`,
+      text:
+`Hello ${reg.first_name || "there"},
+
+${reason ? reason + "\n\n" : ""}We have refunded ${formatMoney(done, currency)} to the card you paid with for ${course.title}. It usually appears within five to ten working days.
+
+Your place is unchanged — nothing else to do.
+
+Any questions, just reply to this email.
+
+BirdBox Coaching
+${OFFICE}`,
+      brand: course.brand,
+    });
+  }
+
+  return json({ refundedCents: done, currency, emailed, problems });
 }
 
 // ---------------------------------------------------------------

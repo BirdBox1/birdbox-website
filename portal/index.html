@@ -4079,6 +4079,7 @@ async function openCourse(course) {
 
   const notesByReg = await loadNotes(course.id);
   await loadOffers(regs);
+  const kindByReg = await loadPlaceKinds(course.id);
 
   let paid = 0, owing = 0, chasing = 0;
 
@@ -4129,6 +4130,10 @@ async function openCourse(course) {
       const s = document.createElement("span");
       s.className = "pill " + cls; s.textContent = text; flags.append(s);
     };
+
+    // Free places, so a host's unclaimed spots are easy to see.
+    const kind = kindByReg[r.id];
+    if (kind && kind !== "paid") addPill(PLACE_LABEL[kind], "code");
 
     const status = r.payment_status || "";
     addPill(
@@ -4215,7 +4220,8 @@ async function openCourse(course) {
 
   const counts = $("counts");
   counts.textContent =
-    `${regs.length} of ${course.capacity} places · ${paid} paid in full` +
+    `${regs.length} of ${course.capacity} places · ${placeSplit(regs, kindByReg, course)}` +
+    ` · ${paid} paid in full` +
     (owing ? ` · ${owing} awaiting balance` : "");
   if (chasing) {
     const s = document.createElement("span");
@@ -10386,6 +10392,7 @@ function buildActions(box, course, reg, status) {
     add("Archive", "ghost small", (b) => setRegStatus(reg, "archived", b));
     add("Cancelled", "ghost small", (b) => setRegStatus(reg, "cancelled", b));
     add("No show", "ghost small", (b) => setRegStatus(reg, "no_show", b));
+    if (reg.stripe_session_id) add("Partial refund", "ghost small", (b) => partialRefund(course, reg, b));
     add("Refund & cancel", "ghost small danger", (b) => refundAndCancel(course, reg, b));
   }
   // Only where the course actually includes an online course, so the
@@ -10415,6 +10422,35 @@ function buildActions(box, course, reg, status) {
   }
 
   add("Delete", "ghost small", (b) => deleteParticipant(reg, b));
+}
+
+/* ---------- paid places and free ones ---------- */
+
+const PLACE_LABEL = { host: "host place", prepaid: "prepaid place", comp: "comp place" };
+
+// Paid, host comp, prepaid or other comp for each person, worked out in
+// the database (coaches cannot read the discount codes themselves).
+async function loadPlaceKinds(courseId) {
+  const { data, error } = await db.rpc("course_place_kinds", { cid: courseId });
+  if (error) { console.error("Could not load place kinds:", error.message); return {}; }
+  const out = {};
+  for (const row of data || []) out[row.registration_id] = row.kind;
+  return out;
+}
+
+// "3 paid · 1 of 2 host places used · 1 comp"
+function placeSplit(regs, kindByReg, course) {
+  const n = { paid: 0, host: 0, prepaid: 0, comp: 0 };
+  for (const r of regs) {
+    if ((r.status || "active") !== "active") continue;
+    n[kindByReg[r.id] || "paid"]++;
+  }
+  const hostAllowed = course.host_spots == null ? 2 : course.host_spots;
+  const parts = [`${n.paid} paid`];
+  if (hostAllowed || n.host) parts.push(`${n.host} of ${hostAllowed} host place${hostAllowed === 1 ? "" : "s"} used`);
+  if (course.prepaid_spots || n.prepaid) parts.push(`${n.prepaid}${course.prepaid_spots ? " of " + course.prepaid_spots : ""} prepaid`);
+  if (n.comp) parts.push(`${n.comp} comp`);
+  return parts.join(" · ");
 }
 
 /* ---------- the online course at the seminar rate ---------- */
@@ -11159,6 +11195,42 @@ async function refundAndCancel(course, reg, btn) {
         "\n\nCheck Stripe and refund by hand if needed."
       );
     }
+    openCourse(currentCourse);
+  } catch (err) {
+    window.alert("That did not work: " + err.message);
+    btn.disabled = false;
+    btn.textContent = prev;
+  }
+}
+
+// Part of their money back, place kept: a discount given after they
+// paid. "40%" or "76" — a percentage of what they paid, or an amount.
+async function partialRefund(course, reg, btn) {
+  const who = `${reg.first_name} ${reg.last_name}`;
+  const paid = money(reg.amount_paid_cents, reg.currency);
+  const raw = window.prompt(`How much should ${who} get back? They paid ${paid}.\n\nType a percentage (e.g. 40%) or an amount (e.g. 76).`);
+  if (raw == null) return;
+  const t = raw.trim();
+  const isPct = t.endsWith("%");
+  const n = parseFloat(t.replace(/[%,\s]/g, ""));
+  if (!(n > 0)) { window.alert("Type a percentage like 40% or an amount like 76."); return; }
+  const back = isPct ? Math.round((reg.amount_paid_cents || 0) * n / 100) : Math.round(n * 100);
+  const reason = window.prompt("A line for their email (optional):", "") || "";
+  if (!window.confirm(
+    `Refund ${money(back, reg.currency)}${isPct ? ` (${n}%)` : ""} to ${who}'s card? Their place is kept.\n\n` +
+    "This sends real money back and cannot be undone. They will be emailed."
+  )) return;
+
+  btn.disabled = true;
+  const prev = btn.textContent;
+  btn.textContent = "Refunding\u2026";
+  try {
+    const r = await callAdmin({
+      action: "partial_refund", courseId: course.id, registrationId: reg.id,
+      percent: isPct ? n : undefined, amount: isPct ? undefined : n, reason: reason.trim(),
+    });
+    window.alert(`Refunded ${money(r.refundedCents, r.currency)}.${r.emailed ? " They have been emailed." : ""}` +
+      (r.problems && r.problems.length ? "\n\nProblem: " + r.problems.join("; ") : ""));
     openCourse(currentCourse);
   } catch (err) {
     window.alert("That did not work: " + err.message);
