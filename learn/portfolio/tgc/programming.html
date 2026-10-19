@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My gym's programming — BirdBox Learn</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
+          --line:#342F31; --accent:#E0555A; --bad:#F0797D; --good:#5CC48A; --amber:#F2B24C;
+          --g:#E0555A; --w:#F2C94C; --m:#5CC48A; --t:#6AA9F0; }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .bar{display:flex;align-items:center;gap:14px;padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top));border-bottom:1px solid var(--line);background:#0d0b0b}
+  .bar img{height:34px;width:auto;display:block}
+  .bar .name{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .bar .nav{margin-left:auto;display:flex;gap:8px}
+  .btn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:12px 20px;background:var(--accent);color:#fff;border:1px solid var(--accent);cursor:pointer;text-decoration:none}
+  .btn:hover{background:transparent;color:var(--accent)} .btn:disabled{opacity:.45;cursor:default}
+  .btn.ghost{background:none;color:var(--ink);border-color:#6A6466} .btn.small{font-size:11px;padding:7px 12px}
+  .link{background:none;border:none;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;padding:4px 6px;text-decoration:underline}
+  .link:hover{color:var(--ink)}
+  .wrap{max-width:960px;margin:0 auto;padding:36px 20px 64px}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px} .kicker a{color:inherit;text-decoration:none}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.05;font-weight:800;text-transform:uppercase;margin:0 0 10px}
+  h2{font-size:18px;margin:0 0 4px;display:flex;align-items:center;gap:10px}
+  h2 .n{display:inline-flex;width:28px;height:28px;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:14px;border-radius:50%;flex:none}
+  .lede{color:var(--muted);font-size:16px;line-height:1.6;margin:0 0 28px;max-width:70ch}
+  .sub{color:var(--muted);font-size:14.5px;line-height:1.55;margin:4px 0 16px}
+  .hidden{display:none!important}
+  .panel{background:var(--panel);border:1px solid var(--line);padding:24px;margin-bottom:20px}
+  .card{background:var(--panel);border:1px solid var(--line);padding:22px;max-width:440px}
+  .card label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+  .card input{width:100%;font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin-bottom:6px}
+  .msg{font-size:14px;line-height:1.5;margin:12px 0 0;min-height:1em} .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  label.f{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:16px 0 6px}
+  textarea,input[type=text],input[type=number],select{font:inherit;font-size:15px;padding:10px 11px;background:var(--paper);color:var(--ink);border:1px solid var(--line);line-height:1.4}
+  textarea{width:100%;min-height:70px;resize:vertical} input[type=text]{width:100%}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .state{font-size:13px;color:var(--muted)}
+  .note{font-size:13px;color:var(--muted);line-height:1.5}
+  /* the reader */
+  .drop{border:2px dashed #5A5456;background:var(--panel2);padding:22px;text-align:center;cursor:pointer;transition:border-color .15s}
+  .drop:hover,.drop.over{border-color:var(--accent)}
+  .drop b{display:block;font-size:16px;margin-bottom:4px} .drop span{font-size:13px;color:var(--muted)}
+  .thumbs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
+  .thumbs div{position:relative;width:78px;height:78px;border:1px solid var(--line);background:#000}
+  .thumbs img{width:100%;height:100%;object-fit:cover}
+  .thumbs button{position:absolute;top:2px;right:2px;width:22px;height:22px;border:none;background:rgba(0,0,0,.75);color:#fff;cursor:pointer;font-size:12px}
+  .or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin:16px 0}
+  .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+  .status{margin:12px 0 0;padding:10px 14px;border-left:3px solid var(--accent);background:var(--panel2);font-size:14px;line-height:1.5}
+  .status.err{border-left-color:var(--bad);color:var(--bad)} .status.ok{border-left-color:var(--good)}
+  /* the week */
+  .days{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:18px}
+  .day{background:var(--panel2);border:1px solid var(--line);padding:14px}
+  .day h3{font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center}
+  .day h3 select{font-size:12px;padding:4px 6px}
+  .it{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--line);cursor:pointer}
+  .it:first-of-type{border-top:none}
+  .it .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
+  .it .t{flex:1;min-width:0} .it .t b{display:block;font-size:14px;font-weight:700} .it .t small{display:block;font-size:12px;color:var(--muted);line-height:1.4}
+  .it .int{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;flex:none;margin-top:2px}
+  .int.high{background:#5A2326;color:#FFB3B6} .int.moderate{background:#5A4520;color:#FFD592} .int.low{background:#204A33;color:#A6E8C2}
+  .edit{border-top:1px solid var(--line);padding:10px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .edit label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+  .edit input,.edit select{width:100%;font-size:14px;padding:7px 8px}
+  .edit .wide{grid-column:1/-1} .edit .acts{grid-column:1/-1;display:flex;justify-content:space-between}
+  .addit{margin-top:8px}
+  /* the summaries */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--line);padding:14px 16px}
+  .stat.g{border-top-color:var(--g)} .stat.w{border-top-color:var(--w)} .stat.m{border-top-color:var(--m)} .stat.a{border-top-color:var(--t)}
+  .stat span{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .stat strong{display:block;font-size:26px;margin:4px 0 2px}
+  .stat small{font-size:12.5px;color:var(--muted);line-height:1.45}
+  table.sum{width:100%;border-collapse:collapse;font-size:14px;margin-top:16px}
+  table.sum th,table.sum td{border-top:1px solid var(--line);padding:9px 8px;text-align:left}
+  table.sum thead th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-top:none}
+  table.sum tr.grp th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding-top:16px}
+  table.sum td.warn{color:var(--amber);font-weight:800}
+  .bar2{height:8px;background:var(--panel2);min-width:60px;position:relative} .bar2 i{position:absolute;left:0;top:0;bottom:0}
+  .wk{display:grid;grid-template-columns:100px repeat(7,minmax(0,1fr));gap:3px;margin-top:18px;font-size:12px}
+  .wk .h{font-size:11px;font-weight:800;color:var(--muted);text-align:center;padding:4px 0;letter-spacing:.06em;text-transform:uppercase}
+  .wk .r{font-weight:700;padding:7px 0;font-size:12.5px}
+  .wk .c{min-height:28px;background:var(--panel2);display:flex;align-items:center;justify-content:center}
+  .wk .c.low{background:#2E7D52} .wk .c.moderate{background:#B07A1E} .wk .c.high{background:#B5383D}
+  .wk .c i{font-style:normal;font-size:10px;font-weight:800;background:#fff;color:#14100F;padding:1px 4px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
+  .legend span::before{content:"";display:inline-block;width:12px;height:12px;margin-right:5px;vertical-align:-2px}
+  .legend .low::before{background:#2E7D52} .legend .moderate::before{background:#B07A1E} .legend .high::before{background:#B5383D} .legend .a::before{background:#fff}
+  /* accessory */
+  .pills{display:flex;gap:6px;margin:0 0 16px}
+  .pills button{font:inherit;font-size:13px;font-weight:800;padding:9px 16px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .pills button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .sess{background:var(--panel2);border:1px solid var(--line);padding:16px;margin-bottom:12px}
+  .sess .top{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  .sess .top b{font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin-right:6px}
+  .sess .top select{font-size:14px;padding:7px 8px}
+  .sess .load{font-size:13px;color:var(--muted);margin-top:10px} .sess .load b{color:var(--ink)} .sess .load .bad{color:var(--bad)} .sess .load .warn{color:var(--amber)}
+  .flag{border:1px solid var(--line);border-left:3px solid var(--amber);background:var(--panel2);padding:10px 14px;margin:8px 0 0;font-size:14px;line-height:1.5}
+  .flag.bad{border-left-color:var(--bad)} .flag.ok{border-left-color:var(--good)} .flag b{display:block;margin-bottom:2px}
+  @media(max-width:640px){.wk{grid-template-columns:70px repeat(7,minmax(0,1fr));font-size:10px}.panel{padding:18px}}
+  @media print{ body{background:#fff;color:#000} .bar,.noprint{display:none!important} .panel,.day,.sess,.stat{border:1px solid #ccc;background:none} }
+</style>
+</head>
+<body>
+<div class="bar">
+  <a href="/learn/"><img src="/brand/birdBox.png" alt="BirdBox"></a>
+  <span class="name">My TGC portfolio</span>
+  <div class="nav"><a class="btn ghost small" href="index.html">My TGC portfolio</a> <a class="btn ghost small" href="/learn/" id="b-course">← Back to my course</a></div>
+</div>
+
+<main class="wrap">
+  <p id="loading" class="lede">Loading…</p>
+
+  <section id="login" class="hidden">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My TGC portfolio</h1>
+    <p class="lede">Log in with the email address you bought your course with, and your programming review opens here.</p>
+    <form class="card" id="login-form">
+      <label for="l-email">Email</label>
+      <input id="l-email" type="email" autocomplete="email" required>
+      <label for="l-pass">Password</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <button class="btn" type="submit">Log in</button>
+      <button class="btn ghost" id="l-link" type="button" style="margin-top:10px">Email me a login link</button>
+      <div id="l-msg" class="msg"></div>
+    </form>
+  </section>
+
+  <section id="soon" class="hidden">
+    <p class="kicker">The Gymnastics Course</p>
+    <h1>Coming soon</h1>
+    <p class="lede">The TGC portfolio is still being built. It will open here once it is ready.</p>
+    <a class="btn" href="/learn/">← My courses</a>
+  </section>
+
+  <section id="eye" class="hidden">
+    <p class="kicker"><a href="index.html">← My portfolio</a> · The Gymnastics Course · Lesson 17 · Programming</p>
+    <h1>My gym's programming</h1>
+    <p class="lede">Read a week of your gym's programming to see its volume, intensity and frequency, then build one to three gymnastics accessory sessions on top of it, and see the whole week together.</p>
+
+    <div class="panel">
+      <h2><span class="n">1</span>My gym's week</h2>
+      <p class="sub">Add screenshots of the week (from your gym's app, a spreadsheet or a photo of the whiteboard), or paste it in. The week is read and filled in for you: then check it, and fix anything that is not right.</p>
+      <div class="noprint" id="reader-week"></div>
+      <div class="days" id="days"></div>
+    </div>
+
+    <div class="panel">
+      <h2><span class="n">2</span>What the week shows</h2>
+      <p class="sub"><b>Volume</b> is how much (reps, load, distance), <b>frequency</b> how many days a pattern is trained, and <b>intensity</b> how hard (the % of a maximum, or how the workout is run).</p>
+      <div class="cards" id="gymcards"></div>
+      <div id="gymtable"></div>
+      <div class="wk" id="grid"></div>
+      <div class="legend"><span class="low">Low</span><span class="moderate">Moderate</span><span class="high">High</span><span class="a">A = my accessory session</span></div>
+      <label class="f" for="p-see">What I notice about my gym's week</label>
+      <textarea id="p-see" placeholder="e.g. Pulling three days a week, all at high intensity for time; no inversion; squats every day."></textarea>
+    </div>
+
+    <div class="panel">
+      <h2><span class="n">3</span>My accessory sessions</h2>
+      <p class="sub">Gymnastics accessory coaching on top of the gym's week (programming rule 1: a supplement that does not take away the day's main element). Choose how many, put each on a day, and add the drills by hand or from a screenshot. For holds put the seconds held; for slow lowerings the seconds of lowering.</p>
+      <div class="pills noprint" id="nsess"></div>
+      <div id="sessbox"></div>
+    </div>
+
+    <div class="panel">
+      <h2><span class="n">4</span>The whole week</h2>
+      <p class="sub">The gym's week and my accessory sessions together. Each accessory session is checked against the unit: about <b>120 seconds of isometric</b> work as a training target, and no more than <b>125 seconds of purposeful eccentric loading</b> in a session.</p>
+      <div class="cards" id="allcards"></div>
+      <div id="alltable"></div>
+      <div id="flags"></div>
+      <label class="f" for="p-why">Why I built my accessory sessions this way</label>
+      <textarea id="p-why" placeholder="e.g. The gym pulls hard three days a week, so my sessions build the hang in hollow and slow eccentrics on the days with no pulling, and add the inversion the week is missing."></textarea>
+    </div>
+
+    <div class="panel">
+      <h2><span class="n">5</span>After coaching it</h2>
+      <textarea id="p-after" style="min-height:90px" placeholder="After a few weeks: what changed for your athletes, and what you will change next."></textarea>
+      <div id="freelink" class="hidden"></div>
+    </div>
+
+    <div class="row noprint">
+      <button class="btn" id="b-save" type="button">Save</button>
+      <button class="btn ghost" id="b-pdf" type="button">Download PDF</button>
+      <span class="state" id="state"></span>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
+const $ = (id) => document.getElementById(id);
+const show = (id) => ["loading", "login", "soon", "eye"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+
+// While the TGC portfolio is built and tested, only these logins can open it; everyone else sees
+// "coming soon". Keep this list the same in every page in learn/portfolio/tgc/.
+// To launch: set TGC_LIVE to true in all of them, and add tgc1 to PORTFOLIOS in /learn/index.html.
+const TGC_LIVE = false, TGC_TESTERS = ["nathan@birdboxcoaching.com"];
+const canOpen = (s) => TGC_LIVE || TGC_TESTERS.includes(String((s && s.user && s.user.email) || "").toLowerCase());
+
+const TOOL = "tgc-programming";
+// Lesson 17 · Programming (Nathan, 19 Oct 2026): "a dual tool: review my gym's programming to understand volume, intensity, frequency
+// of movements; the second to help build an accessory training programme around this gym's week, with 1-2-3 sessions of gymnastics
+// accessory coaching, tracking the overall time under tension, eccentric loading, volume, intensity and frequency"; "tracking all
+// movements for the week's programming, not just gymnastics, then adding the accessory sessions on top, manually or with screenshots";
+// "visually pleasing and clean, easy to use; copy and paste a week or import a screenshot and the system reads this and populates it".
+// The week is read by netlify/functions/programming-read.mjs (the AI model, a few reads a day per learner).
+// From the lesson: 120 s isometric target, no more than 125 s of purposeful eccentric loading in a session, the four programming rules,
+// one workout a day / 6 hours between concurrent sessions.
+// The two-week free programme in the BirdBox programming app: set FREE_URL once it is live.
+const FREE_URL = "";
+const ISO_TARGET = 120, ECC_LIMIT = 125, GAP = 6;
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const MOD = [["gymnastics", "Gymnastics", "g"], ["weightlifting", "Weightlifting", "w"], ["monostructural", "Metabolic conditioning", "m"]];
+const PAT = {
+  gymnastics: [["pull", "Pull"], ["push", "Push"], ["midline", "Midline"], ["legs", "Legs"], ["inversion", "Inversion"], ["jump", "Jump"]],
+  weightlifting: [["squat", "Squat"], ["hinge", "Hinge"], ["press", "Press"], ["olympic", "Olympic lifts"], ["carry", "Carry"]],
+  monostructural: [["run", "Run"], ["row", "Row"], ["bike", "Bike"], ["ski", "Ski"], ["jump", "Jump rope"], ["other", "Other"]],
+};
+const INT = [["low", "Low"], ["moderate", "Moderate"], ["high", "High"]];
+const WHERE = [["before", "In class, before the main element"], ["after", "In class, after the main element"], ["own", "Its own session"]];
+const patName = (m, p) => ((PAT[m] || []).find((x) => x[0] === p) || [, p || "Other"])[1];
+const modOf = (m) => MOD.find((x) => x[0] === m) || MOD[0];
+let session = null, doc = null, timer = null, open = null;
+
+$("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const { error } = await db.auth.signInWithPassword({ email: $("l-email").value.trim(), password: $("l-pass").value });
+  if (error) { $("l-msg").className = "msg err"; $("l-msg").textContent = "That email and password did not match. Try again, or use the login link."; return; }
+  boot();
+});
+$("l-link").addEventListener("click", async () => {
+  const email = $("l-email").value.trim().toLowerCase();
+  if (!email.includes("@")) { $("l-msg").className = "msg err"; $("l-msg").textContent = "Type your email first."; return; }
+  await fetch("/.netlify/functions/learn-access", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, next: location.pathname + location.search }) }).catch(() => {});
+  $("l-msg").className = "msg ok"; $("l-msg").textContent = "If that email has a course, a login link is on its way. Tap it and you come straight back here.";
+});
+// The lesson opens this page in a new tab, so "back" saves, closes it, and the lesson is still underneath.
+$("b-course").onclick = async (e) => { e.preventDefault(); if (doc) await save(); window.close(); setTimeout(() => { location.href = "/learn/"; }, 300); };
+async function unlock() {
+  try {
+    const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", "_unlocked").maybeSingle();
+    const list = (data && data.data && data.data.tools) || [];
+    if (!list.includes(TOOL)) await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: "_unlocked", data: { tools: [...list, TOOL] } }, { onConflict: "user_id,tool" });
+  } catch (e) { /* never block the task */ }
+}
+function changed() { $("state").textContent = "Unsaved changes"; clearTimeout(timer); timer = setTimeout(save, 1500); summarise(); }
+async function save() {
+  clearTimeout(timer);
+  const { error } = await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: TOOL, data: doc, updated_at: new Date().toISOString() }, { onConflict: "user_id,tool" });
+  if (error) { $("state").textContent = "Not saved — " + error.message; return false; }
+  $("state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return true;
+}
+$("b-save").onclick = async () => { if (await save()) $("state").textContent = "Saved ✓"; };
+$("b-pdf").onclick = async () => { await save(); window.print(); };
+async function boot() {
+  ({ data: { session } } = await db.auth.getSession());
+  if (!session) { show("login"); return; }
+  if (!canOpen(session)) { show("soon"); return; }
+  if (new URLSearchParams(location.search).get("tool")) unlock();
+  const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", TOOL).maybeSingle();
+  doc = (data && data.data) || {};
+  render(); show("eye");
+}
+const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const num = (v) => (v == null || v === "" || isNaN(+v) ? null : +v);
+
+function render() {
+  doc.week = doc.week && doc.week.length === 7 ? doc.week : WEEKDAYS.map(() => ({ items: [] }));
+  doc.n = doc.n || 2;
+  doc.sess = doc.sess && doc.sess.length === 3 ? doc.sess : [1, 3, 5].map((d) => ({ day: d, where: "before", gap: null, items: [] }));
+  for (const [id, key] of [["p-see", "see"], ["p-why", "why"], ["p-after", "after"]]) { const el = $(id); el.value = doc[key] || ""; el.oninput = () => { doc[key] = el.value; changed(); }; }
+  if (FREE_URL) { const f = $("freelink"); f.classList.remove("hidden"); f.innerHTML = `<p class="sub" style="margin:16px 0 8px">Want a starting point? Try two weeks of BirdBox gymnastics programming free in our programming app.</p><a class="btn ghost small" href="${FREE_URL}" target="_blank" rel="noopener">Two weeks free</a>`; }
+  reader($("reader-week"), "week");
+  renderWeek(); renderSess(); summarise();
+}
+
+// ---------- the reader: screenshots and/or pasted text, read by the AI model ----------
+function reader(box, mode, sessIndex) {
+  const files = [];
+  box.innerHTML = `<div class="drop" tabindex="0"><b>${mode === "week" ? "Add screenshots of the week" : "Add a screenshot of this session"}</b><span>Drop them here or click to choose · up to 7 images</span></div>
+    <input type="file" accept="image/*" multiple class="hidden"><div class="thumbs"></div>
+    <div class="or">or paste it</div>
+    <textarea placeholder="${mode === "week" ? "Paste the week here: Monday ... Tuesday ..." : "Paste the session here"}" style="min-height:${mode === "week" ? 110 : 70}px"></textarea>
+    <div class="row" style="margin-top:12px"><button class="btn" type="button">${mode === "week" ? "Read my week" : "Read this session"}</button><button class="link" type="button">${mode === "week" ? "or add it by hand" : ""}</button></div>
+    <div class="status hidden"></div>`;
+  const drop = box.querySelector(".drop"), inp = box.querySelector("input"), th = box.querySelector(".thumbs"), ta = box.querySelector("textarea"), go = box.querySelector(".btn"), st = box.querySelector(".status"), hand = box.querySelector(".link");
+  const say = (t, cls = "") => { st.className = "status " + cls; st.textContent = t; st.classList.toggle("hidden", !t); };
+  const addFiles = (list) => { for (const f of list) if (f.type.startsWith("image/") && files.length < 7) files.push(f); thumbs(); };
+  const thumbs = () => { th.innerHTML = ""; files.forEach((f, i) => { const d = document.createElement("div"), im = document.createElement("img"), x = document.createElement("button"); im.src = URL.createObjectURL(f); x.type = "button"; x.textContent = "✕"; x.onclick = () => { files.splice(i, 1); thumbs(); }; d.append(im, x); th.appendChild(d); }); };
+  drop.onclick = () => inp.click(); drop.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") inp.click(); };
+  inp.onchange = () => { addFiles(inp.files); inp.value = ""; };
+  drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); }; drop.ondragleave = () => drop.classList.remove("over");
+  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); addFiles(e.dataTransfer.files); };
+  ta.addEventListener("paste", (e) => { const imgs = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith("image/")); if (imgs.length) { e.preventDefault(); addFiles(imgs); } });
+  if (hand.textContent) hand.onclick = () => { box.querySelector(".drop").scrollIntoView({ block: "start" }); $("days").scrollIntoView({ behavior: "smooth", block: "start" }); };
+  else hand.remove();
+  go.onclick = async () => {
+    if (!files.length && !ta.value.trim()) { say("Add a screenshot or paste the programming first.", "err"); return; }
+    go.disabled = true; say(files.length ? `Reading ${files.length} screenshot${files.length > 1 ? "s" : ""}… this takes about half a minute.` : "Reading…");
+    try {
+      const images = []; for (const f of files) images.push(await shrink(f));
+      const { data: { session: s } } = await db.auth.getSession();
+      const res = await fetch("/.netlify/functions/programming-read", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + (s && s.access_token) },
+        body: JSON.stringify({ text: ta.value, images, mode }) });
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(out.error || "The reader could not read that.");
+      const n = fill(out.days || [], mode, sessIndex);
+      say(`Read ${n} movement${n === 1 ? "" : "s"}. Check each day below and fix anything that is not right.${out.notes ? " Note: " + out.notes : ""}`, "ok");
+      files.length = 0; thumbs(); ta.value = "";
+    } catch (e) { say((e instanceof TypeError ? "The reader could not be reached. Check your connection and try again." : e.message) + " You can still add it by hand.", "err"); }
+    finally { go.disabled = false; }
+  };
+}
+// screenshots are made smaller before they are sent (at most 1600 px across), so a week of them goes quickly
+async function shrink(file) {
+  const bmp = await createImageBitmap(file), k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height)), c = document.createElement("canvas");
+  c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k); c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  return { media_type: "image/jpeg", data: c.toDataURL("image/jpeg", 0.82).split(",")[1] };
+}
+const clean = (x) => ({ name: String(x.name || "Movement"), part: x.part || "workout", modality: PAT[x.modality] ? x.modality : "gymnastics", pattern: x.pattern || "other",
+  reps: num(x.reps), load_kg: num(x.load_kg), metres: num(x.metres), calories: num(x.calories), seconds: num(x.seconds), hold_seconds: num(x.hold_seconds), eccentric_seconds: num(x.eccentric_seconds),
+  intensity: ["low", "moderate", "high"].includes(x.intensity) ? x.intensity : "moderate", scheme: x.scheme || "", estimated: !!x.estimated });
+function fill(days, mode, si) {
+  let n = 0;
+  if (mode === "accessory") { const S = doc.sess[si]; for (const d of days) for (const x of d.items || []) { S.items.push(clean(x)); n++; } renderSess(); changed(); return n; }
+  days.forEach((d, k) => { let i = WEEKDAYS.findIndex((w) => String(d.day || "").toLowerCase().startsWith(w.slice(0, 3).toLowerCase()));
+    if (i < 0) { const m = String(d.day || "").match(/(\d+)/); i = m ? Math.min(6, +m[1] - 1) : Math.min(6, k); }
+    for (const x of d.items || []) { doc.week[i].items.push(clean(x)); n++; } });
+  renderWeek(); changed(); return n;
+}
+
+// ---------- 1. the week, day by day ----------
+const line = (x) => [x.reps != null ? `${x.reps} reps` : null, x.load_kg ? `@ ${x.load_kg} kg` : null, x.metres ? `${x.metres} m` : null, x.calories ? `${x.calories} cal` : null, x.seconds ? `${x.seconds} s` : null,
+  x.hold_seconds ? `${x.hold_seconds} s held` : null, x.eccentric_seconds ? `${x.eccentric_seconds} s lowering` : null, x.scheme ? x.scheme : null, x.estimated ? "estimated" : null].filter(Boolean).join(" · ");
+function itemsEl(list, key) {
+  const box = document.createElement("div");
+  list.forEach((x, i) => {
+    const id = key + ":" + i, it = document.createElement("div"); it.className = "it";
+    it.innerHTML = `<span class="dot" style="background:var(--${modOf(x.modality)[2]})"></span><div class="t"><b>${esc(x.name)}</b><small>${esc(patName(x.modality, x.pattern))}${line(x) ? " · " + esc(line(x)) : ""}</small></div><span class="int ${x.intensity}">${x.intensity}</span>`;
+    it.onclick = () => { open = open === id ? null : id; renderWeek(); renderSess(); };
+    box.appendChild(it);
+    if (open === id) box.appendChild(editEl(list, i));
+  });
+  return box;
+}
+function editEl(list, i) {
+  const x = list[i], e = document.createElement("div"); e.className = "edit";
+  const f = (label, el, wide) => { const l = document.createElement("label"); if (wide) l.className = "wide"; l.append(label, el); e.appendChild(l); return el; };
+  const tx = (k) => { const el = document.createElement("input"); el.type = "text"; el.value = x[k] || ""; el.oninput = () => { x[k] = el.value; changed(); }; return el; };
+  const nb = (k) => { const el = document.createElement("input"); el.type = "number"; el.min = 0; el.value = x[k] ?? ""; el.oninput = () => { x[k] = num(el.value); changed(); }; return el; };
+  const sel = (opts, k, after) => { const el = document.createElement("select"); el.innerHTML = opts.map(([v, t]) => `<option value="${v}">${t}</option>`).join(""); el.value = x[k]; el.onchange = () => { x[k] = el.value; if (after) after(); changed(); }; return el; };
+  f("Movement", tx("name"), true);
+  f("Type", sel(MOD.map(([v, t]) => [v, t]), "modality", () => { x.pattern = PAT[x.modality][0][0]; renderWeek(); renderSess(); }));
+  f("Pattern", sel(PAT[x.modality] || PAT.gymnastics, "pattern"));
+  f("Reps", nb("reps")); f("Load (kg)", nb("load_kg"));
+  if (x.modality === "monostructural") { f("Metres", nb("metres")); f("Calories", nb("calories")); }
+  f("Held (s)", nb("hold_seconds")); f("Lowering (s)", nb("eccentric_seconds"));
+  f("Intensity", sel(INT, "intensity")); f("Scheme", tx("scheme"));
+  const acts = document.createElement("div"); acts.className = "acts";
+  const del = document.createElement("button"); del.type = "button"; del.className = "link"; del.textContent = "Delete"; del.onclick = () => { list.splice(i, 1); open = null; renderWeek(); renderSess(); changed(); };
+  const ok = document.createElement("button"); ok.type = "button"; ok.className = "btn small"; ok.textContent = "Done"; ok.onclick = () => { open = null; renderWeek(); renderSess(); };
+  acts.append(del, ok); e.appendChild(acts);
+  return e;
+}
+function renderWeek() {
+  const box = $("days"); box.innerHTML = "";
+  doc.week.forEach((D, i) => {
+    const d = document.createElement("div"); d.className = "day";
+    d.innerHTML = `<h3><span>${WEEKDAYS[i]}</span><span class="note">${D.items.length ? D.items.length + " movement" + (D.items.length > 1 ? "s" : "") : "rest"}</span></h3>`;
+    d.appendChild(itemsEl(D.items, "w" + i));
+    const add = document.createElement("button"); add.type = "button"; add.className = "link addit noprint"; add.textContent = "+ Add a movement";
+    add.onclick = () => { D.items.push(clean({ name: "", modality: "gymnastics", pattern: "pull", intensity: "moderate" })); open = "w" + i + ":" + (D.items.length - 1); renderWeek(); changed(); };
+    d.appendChild(add); box.appendChild(d);
+  });
+}
+
+// ---------- 3. the accessory sessions ----------
+function renderSess() {
+  $("nsess").innerHTML = "";
+  [1, 2, 3].forEach((n) => { const b = document.createElement("button"); b.type = "button"; b.textContent = n + (n === 1 ? " session" : " sessions") + " a week"; b.classList.toggle("on", doc.n === n); b.onclick = () => { doc.n = n; renderSess(); changed(); }; $("nsess").appendChild(b); });
+  const box = $("sessbox"); box.innerHTML = "";
+  for (let s = 0; s < doc.n; s++) {
+    const S = doc.sess[s], el = document.createElement("div"); el.className = "sess";
+    const top = document.createElement("div"); top.className = "top"; top.innerHTML = `<b>Session ${s + 1}</b>`;
+    const dy = document.createElement("select"); dy.innerHTML = WEEKDAYS.map((d, i) => `<option value="${i}">${d}</option>`).join(""); dy.value = S.day; dy.onchange = () => { S.day = +dy.value; changed(); };
+    const wh = document.createElement("select"); wh.innerHTML = WHERE.map(([k, t]) => `<option value="${k}">${t}</option>`).join(""); wh.value = S.where; wh.onchange = () => { S.where = wh.value; renderSess(); changed(); };
+    top.append(dy, wh);
+    if (S.where === "own") { const g = document.createElement("input"); g.type = "number"; g.min = 0; g.max = 24; g.step = 0.5; g.style.width = "80px"; g.value = S.gap ?? ""; g.placeholder = "hours"; g.oninput = () => { S.gap = num(g.value); changed(); };
+      const l = document.createElement("span"); l.className = "note"; l.textContent = "hours from the class"; top.append(g, l); }
+    el.appendChild(top);
+    el.appendChild(itemsEl(S.items, "s" + s));
+    const row = document.createElement("div"); row.className = "row noprint"; row.style.marginTop = "8px";
+    const add = document.createElement("button"); add.type = "button"; add.className = "link"; add.textContent = "+ Add a drill";
+    add.onclick = () => { S.items.push(clean({ name: "", modality: "gymnastics", pattern: "pull", intensity: "low", part: "accessory" })); open = "s" + s + ":" + (S.items.length - 1); renderSess(); changed(); };
+    const rd = document.createElement("button"); rd.type = "button"; rd.className = "link"; rd.textContent = "Read it from a screenshot";
+    const rbox = document.createElement("div"); rbox.className = "hidden"; rbox.style.marginTop = "10px";
+    rd.onclick = () => { rbox.classList.toggle("hidden"); if (!rbox.innerHTML) reader(rbox, "accessory", s); };
+    row.append(add, rd); el.append(row, rbox);
+    const ld = document.createElement("p"); ld.className = "load"; ld.id = "sload-" + s; el.appendChild(ld);
+    box.appendChild(el);
+  }
+  summarise();
+}
+const sessLoad = (S) => S.items.reduce((o, x) => { o.iso += x.hold_seconds || 0; o.ecc += x.eccentric_seconds || 0; o.reps += x.reps || 0; return o; }, { iso: 0, ecc: 0, reps: 0 });
+
+// ---------- 2 and 4: the summaries ----------
+function tally(lists) {
+  // lists: [{ day, items }]
+  const T = { mod: {}, pat: {}, tut: 0, ecc: 0 };
+  for (const [m] of MOD) T.mod[m] = { reps: 0, kg: 0, metres: 0, cal: 0, secs: 0, days: new Set(), high: new Set() };
+  for (const { day, items } of lists) for (const x of items) {
+    const M = T.mod[x.modality] || T.mod.gymnastics, key = x.modality + ":" + x.pattern;
+    const P = (T.pat[key] = T.pat[key] || { m: x.modality, p: x.pattern, reps: 0, kg: 0, metres: 0, cal: 0, held: 0, ecc: 0, days: new Set(), high: new Set(), cells: {} });
+    const r = x.reps || 0; M.reps += r; P.reps += r; M.kg += r * (x.load_kg || 0); P.kg += r * (x.load_kg || 0);
+    M.metres += x.metres || 0; P.metres += x.metres || 0; M.cal += x.calories || 0; P.cal += x.calories || 0; M.secs += x.seconds || 0;
+    P.held += x.hold_seconds || 0; P.ecc += x.eccentric_seconds || 0; T.tut += (x.hold_seconds || 0) + (x.eccentric_seconds || 0); T.ecc += x.eccentric_seconds || 0;
+    M.days.add(day); P.days.add(day); if (x.intensity === "high") { M.high.add(day); P.high.add(day); }
+    const rank = { low: 1, moderate: 2, high: 3 }[x.intensity] || 2; P.cells[day] = Math.max(P.cells[day] || 0, rank);
+  }
+  return T;
+}
+const k = (v) => (v >= 10000 ? Math.round(v / 1000) + "k" : Math.round(v).toLocaleString("en-GB"));
+function cards(T, extra = "") {
+  const g = T.mod.gymnastics, w = T.mod.weightlifting, m = T.mod.monostructural;
+  return `<div class="stat g"><span>Gymnastics</span><strong>${k(g.reps)} reps</strong><small>${g.days.size} day${g.days.size === 1 ? "" : "s"} · ${g.high.size} at high intensity</small></div>
+    <div class="stat w"><span>Weightlifting</span><strong>${k(w.reps)} reps</strong><small>${w.kg ? k(w.kg) + " kg lifted · " : ""}${w.days.size} day${w.days.size === 1 ? "" : "s"} · ${w.high.size} high</small></div>
+    <div class="stat m"><span>Metabolic conditioning</span><strong>${m.metres ? k(m.metres) + " m" : m.cal ? k(m.cal) + " cal" : m.secs ? Math.round(m.secs / 60) + " min" : "0"}</strong><small>${[m.metres && m.cal ? k(m.cal) + " cal" : null, m.secs && (m.metres || m.cal) ? Math.round(m.secs / 60) + " min" : null, m.days.size + " day" + (m.days.size === 1 ? "" : "s"), m.high.size + " high"].filter(Boolean).join(" · ")}</small></div>${extra}`;
+}
+function table(T, acc) {
+  const rows = MOD.map(([m, mt]) => { const ps = Object.values(T.pat).filter((P) => P.m === m); if (!ps.length) return "";
+    return `<tr class="grp"><th colspan="6" style="color:var(--${modOf(m)[2]})">${mt}</th></tr>` + ps.sort((a, b) => b.reps + b.metres - a.reps - a.metres).map((P) => {
+      const vol = [P.reps ? k(P.reps) + " reps" : null, P.kg ? k(P.kg) + " kg" : null, P.metres ? k(P.metres) + " m" : null, P.cal ? k(P.cal) + " cal" : null, P.held ? P.held + " s held" : null, P.ecc ? P.ecc + " s lowering" : null].filter(Boolean).join(" · ") || "–";
+      const a = acc && acc.pat[m + ":" + P.p];
+      return `<tr><td>${esc(patName(m, P.p))}</td><td>${vol}</td><td class="${P.days.size >= 5 ? "warn" : ""}">${P.days.size}</td><td class="${P.high.size >= 3 ? "warn" : ""}">${P.high.size}</td>${acc ? `<td>${a ? [a.reps ? a.reps + " reps" : null, a.held ? a.held + " s held" : null, a.ecc ? a.ecc + " s lowering" : null].filter(Boolean).join(" · ") || "–" : "–"}</td>` : ""}</tr>`; }).join("");
+  }).join("");
+  return rows ? `<table class="sum"><thead><tr><th>Pattern</th><th>Volume</th><th>Days</th><th>High-intensity days</th>${acc ? "<th>Of which accessory</th>" : ""}</tr></thead><tbody>${rows}</tbody></table>` : `<p class="note" style="margin-top:14px">Nothing in the week yet: read it in at the top, or add it by hand.</p>`;
+}
+function summarise() {
+  if (!doc) return;
+  const gymLists = doc.week.map((D, i) => ({ day: i, items: D.items })), active = doc.sess.slice(0, doc.n);
+  const accLists = active.map((S) => ({ day: S.day, items: S.items }));
+  const G = tally(gymLists), A = tally(accLists), ALL = tally([...gymLists, ...accLists]);
+  // 2. the gym's week
+  $("gymcards").innerHTML = cards(G);
+  $("gymtable").innerHTML = table(G);
+  const pats = Object.values(G.pat).filter((P) => P.m === "gymnastics" || P.m === "weightlifting").map((P) => [P.m, P.p]);
+  for (const S of active) for (const x of S.items) if (!pats.some(([m, p]) => m === x.modality && p === x.pattern)) pats.push([x.modality, x.pattern]);
+  const grid = $("grid"); grid.innerHTML = pats.length ? '<span></span>' + WEEKDAYS.map((d) => `<span class="h">${d.slice(0, 3)}</span>`).join("") : "";
+  for (const [m, p] of pats) { grid.insertAdjacentHTML("beforeend", `<span class="r" style="color:var(--${modOf(m)[2]})">${esc(patName(m, p))}</span>`);
+    WEEKDAYS.forEach((_, i) => { const r = (G.pat[m + ":" + p] || { cells: {} }).cells[i], a = active.some((S) => S.day === i && S.items.some((x) => x.modality === m && x.pattern === p));
+      grid.insertAdjacentHTML("beforeend", `<span class="c ${r === 3 ? "high" : r === 2 ? "moderate" : r === 1 ? "low" : ""}">${a ? "<i>A</i>" : ""}</span>`); }); }
+  // 3. each session's load
+  active.forEach((S, s) => { const el = $("sload-" + s); if (!el) return; const l = sessLoad(S);
+    el.innerHTML = `This session: <b class="${l.iso > ISO_TARGET * 1.25 ? "bad" : l.iso > ISO_TARGET ? "warn" : ""}">${l.iso} s held</b> (target about ${ISO_TARGET} s) · <b class="${l.ecc > ECC_LIMIT ? "bad" : ""}">${l.ecc} s lowering</b> (no more than ${ECC_LIMIT} s) · <b>${l.reps}</b> reps · <b>${l.iso + l.ecc} s</b> time under tension`; });
+  // 4. the whole week
+  $("allcards").innerHTML = cards(ALL, `<div class="stat a"><span>Time under tension</span><strong>${ALL.tut} s</strong><small>${A.tut} s from my accessory sessions · ${ALL.ecc} s of it eccentric</small></div>`);
+  $("alltable").innerHTML = table(ALL, A);
+  const F = [], add = (cls, head, text) => F.push(`<div class="flag ${cls}"><b>${esc(head)}</b>${esc(text)}</div>`);
+  active.forEach((S, s) => { const l = sessLoad(S), dn = WEEKDAYS[S.day];
+    if (l.ecc > ECC_LIMIT) add("bad", `Session ${s + 1} (${dn}): ${l.ecc} s of eccentric loading`, `Past the ${ECC_LIMIT} s limit for purposeful eccentric loading in one session: the risk of rhabdomyolysis. Cut the sets, the reps or the seconds of each lowering.`);
+    if (l.iso > ISO_TARGET * 1.25) add("bad", `Session ${s + 1} (${dn}): ${l.iso} s held`, `Well past the ${ISO_TARGET} s isometric training target. Long holds raise blood pressure: know your athletes, and treat high blood pressure as a red flag.`);
+    else if (l.iso > ISO_TARGET) add("", `Session ${s + 1} (${dn}): ${l.iso} s held`, `A little past the ${ISO_TARGET} s isometric training target: check the shape holds with mastery through all of it.`);
+    if (S.where === "after") add("", `Session ${s + 1} (${dn}) comes after the main element`, "Programming rule 4: train gymnastics first, before the central nervous system fatigue of the main element. If it must come after, keep it to position work.");
+    if (S.where === "own" && (S.gap == null || S.gap < GAP)) add(S.gap == null ? "" : "bad", `Session ${s + 1} (${dn}) is its own session`, S.gap == null ? `How many hours is it from the class? Leave at least ${GAP} hours between concurrent training sessions.` : `${S.gap} hours from the class: leave at least ${GAP} hours between concurrent sessions, or put it in the class (a CrossFit® programme is one workout a day).`);
+    const hit = new Set(); for (const x of S.items) { const P = G.pat[x.modality + ":" + x.pattern]; if (P && P.high.has(S.day) && (x.reps || x.eccentric_seconds || (x.hold_seconds || 0) > 30)) hit.add(patName(x.modality, x.pattern).toLowerCase()); }
+    for (const p of hit) add("", `Session ${s + 1} (${dn}): ${p} work on a high-intensity ${p} day`, "The gym's workout already loads this pattern hard today. Move the loading to another day, or keep today's work to position and perfection.");
+  });
+  if (doc.n > 1) { const ds = active.map((S) => S.day); if (new Set(ds).size < ds.length) add("", "Two accessory sessions on the same day", "Spread them through the week: frequent exposure is most effective (programming rule 2)."); }
+  const gymOn = doc.week.some((D) => D.items.length);
+  if (gymOn) for (const [p, t] of PAT.gymnastics.filter(([q]) => ["pull", "push", "midline", "inversion"].includes(q))) if (!ALL.pat["gymnastics:" + p])   // (legs: the squats and lunges cover them) add("", `No ${t.toLowerCase()} work in the week`, "A gap your accessory sessions could fill? Frequent exposure is most effective.");
+  if (!active.some((S) => S.items.some((x) => x.name))) add("", "No accessory drills yet", "Add the drills for each session in section 3, by hand or from a screenshot.");
+  if (!F.length && (gymOn || active.some((S) => S.items.length))) add("ok", "Within the limits and the rules", `Each session stays within the ${ECC_LIMIT} s eccentric limit and near the ${ISO_TARGET} s isometric target, and fits around the gym's week. Now coach it, and judge it by your athletes' shapes, not the numbers.`);
+  $("flags").innerHTML = F.join("");
+}
+boot();
+</script>
+</body>
+</html>
