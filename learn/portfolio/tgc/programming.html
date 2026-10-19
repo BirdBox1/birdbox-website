@@ -104,6 +104,9 @@
   .sess .top b{font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin-right:6px}
   .sess .top select{font-size:14px;padding:7px 8px}
   .sess .load{font-size:13px;color:var(--muted);margin-top:10px} .sess .load b{color:var(--ink)} .sess .load .bad{color:var(--bad)} .sess .load .warn{color:var(--amber)}
+  .plan{display:flex;gap:14px;align-items:center;border:1px solid var(--line);background:var(--panel2);padding:16px 18px;margin:0 0 10px;cursor:pointer}
+  .plan:hover{border-color:var(--accent)} .plan .txt{flex:1;min-width:0} .plan b{display:block;font-size:16px} .plan span{font-size:13px;color:var(--muted)}
+  .plan .acts{display:flex;gap:6px;flex:none}
   .flag{border:1px solid var(--line);border-left:3px solid var(--amber);background:var(--panel2);padding:10px 14px;margin:8px 0 0;font-size:14px;line-height:1.5}
   .flag.bad{border-left-color:var(--bad)} .flag.ok{border-left-color:var(--good)} .flag b{display:block;margin-bottom:2px}
   @media(max-width:640px){.wk{grid-template-columns:70px repeat(7,minmax(0,1fr));font-size:10px}.panel{padding:18px}}
@@ -147,6 +150,18 @@
     <h1>My gym's programming</h1>
     <p class="lede">Read a week of your gym's programming to see its volume, intensity and frequency, then build one to three gymnastics accessory sessions on top of it, and see the whole week together.</p>
 
+    <div id="v-list">
+      <div class="row noprint" style="margin-bottom:16px"><button class="btn" id="b-new" type="button">+ New week</button></div>
+      <div id="plan-list"></div>
+    </div>
+
+    <div id="v-edit" class="hidden">
+    <div class="row noprint" style="margin-bottom:14px"><button class="btn ghost small" id="b-back" type="button">← My weeks</button></div>
+    <div class="panel">
+      <label class="f" for="p-title" style="margin-top:0">Name this week</label>
+      <input type="text" id="p-title" placeholder="e.g. Our classes, week of 20 October">
+    </div>
+
     <div class="panel">
       <h2><span class="n">1</span>My gym's week</h2>
       <p class="sub">Add screenshots of the week (from your gym's app, a spreadsheet or a photo of the whiteboard), or paste it in. The week is read and filled in for you: then check it, and fix anything that is not right.</p>
@@ -169,6 +184,7 @@
       <h2><span class="n">3</span>My accessory sessions</h2>
       <p class="sub">Gymnastics accessory coaching on top of the gym's week (programming rule 1: a supplement that does not take away the day's main element). Choose how many, put each on a day, and add the drills by hand or from a screenshot. For holds put the seconds held; for slow lowerings the seconds of lowering.</p>
       <div class="pills noprint" id="nsess"></div>
+      <div class="pills noprint" id="same"></div>
       <div id="sessbox"></div>
     </div>
 
@@ -192,6 +208,7 @@
       <button class="btn" id="b-save" type="button">Save</button>
       <button class="btn ghost" id="b-pdf" type="button">Download PDF</button>
       <span class="state" id="state"></span>
+    </div>
     </div>
   </section>
 </main>
@@ -247,7 +264,7 @@ const GROUPS = { pull: "Pull", midline: "Midline", push: "Push", muscleup: "Musc
 const groupsOf = (m, p) => { const e = (PAT[m] || []).find((x) => x[0] === p); const g = e && e[2] ? e[2] : p; return g === "muscleup" ? ["pull", "push"] : [g]; };
 const patName = (m, p) => ((PAT[m] || []).find((x) => x[0] === p) || [, p || "Other"])[1];
 const modOf = (m) => MOD.find((x) => x[0] === m) || MOD[0];
-let session = null, doc = null, timer = null, open = null;
+let session = null, doc = null, cur = null, timer = null, open = null;
 
 $("login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -271,7 +288,7 @@ async function unlock() {
     if (!list.includes(TOOL)) await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: "_unlocked", data: { tools: [...list, TOOL] } }, { onConflict: "user_id,tool" });
   } catch (e) { /* never block the task */ }
 }
-function changed() { $("state").textContent = "Unsaved changes"; clearTimeout(timer); timer = setTimeout(save, 1500); summarise(); }
+function changed() { $("state").textContent = "Unsaved changes"; clearTimeout(timer); timer = setTimeout(save, 1500); if (cur) summarise(); }
 async function save() {
   clearTimeout(timer);
   const { error } = await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: TOOL, data: doc, updated_at: new Date().toISOString() }, { onConflict: "user_id,tool" });
@@ -288,16 +305,42 @@ async function boot() {
   if (new URLSearchParams(location.search).get("tool")) unlock();
   const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", TOOL).maybeSingle();
   doc = (data && data.data) || {};
-  render(); show("eye");
+  // (the first version kept one week in the row itself: it becomes the first in the list)
+  if (!doc.plans) { const old = doc.week ? { ...doc } : null; doc = { plans: [] }; if (old) doc.plans.push({ id: "p" + Date.now().toString(36), created: new Date().toISOString(), title: "My first week", ...old }); }
+  list(); show("eye");
 }
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const num = (v) => (v == null || v === "" || isNaN(+v) ? null : +v);
 
+// ---------- the list of weeks (Nathan, 19 Oct: "what if they want to do another week or build another example?") ----------
+const when = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+function list() {
+  cur = null; $("v-list").classList.remove("hidden"); $("v-edit").classList.add("hidden");
+  const box = $("plan-list"); box.innerHTML = "";
+  if (!doc.plans.length) { box.innerHTML = '<p class="sub">No weeks yet. Press <b>New week</b>, then add screenshots of your gym\'s week or paste it in.</p>'; return; }
+  for (const P of [...doc.plans].sort((a, b) => (b.created || "").localeCompare(a.created || ""))) {
+    const moves = (P.week || []).reduce((a, D) => a + D.items.length, 0), n = P.n || 0, d = document.createElement("div"); d.className = "plan";
+    d.innerHTML = `<div class="txt"><b>${esc(P.title || "Untitled week")}</b><span>${when(P.created)} · ${moves} movement${moves === 1 ? "" : "s"} · ${n} accessory session${n === 1 ? "" : "s"}${P.same && n > 1 ? " (the same)" : ""}</span></div>`;
+    const acts = document.createElement("div"); acts.className = "acts noprint";
+    const cp = document.createElement("button"); cp.type = "button"; cp.className = "btn ghost small"; cp.textContent = "Use as a starting point";
+    cp.onclick = (e) => { e.stopPropagation(); const c = JSON.parse(JSON.stringify(P)); c.id = "p" + Date.now().toString(36); c.created = new Date().toISOString(); c.title = (P.title || "Week") + " (copy)"; delete c.after; doc.plans.push(c); edit(c); changed(); };
+    const del = document.createElement("button"); del.type = "button"; del.className = "btn ghost small"; del.textContent = "Delete";
+    del.onclick = async (e) => { e.stopPropagation(); if (!confirm(`Delete "${P.title || "this week"}"? This cannot be undone.`)) return; doc.plans = doc.plans.filter((x) => x !== P); await save(); list(); };
+    acts.append(cp, del); d.appendChild(acts); d.onclick = () => edit(P); box.appendChild(d);
+  }
+}
+$("b-new").onclick = () => { const P = { id: "p" + Date.now().toString(36), created: new Date().toISOString(), title: "" }; doc.plans.push(P); edit(P); changed(); };
+$("b-back").onclick = async () => { await save(); list(); window.scrollTo(0, 0); };
+function edit(P) {
+  cur = P; open = null; $("v-list").classList.add("hidden"); $("v-edit").classList.remove("hidden");
+  const t = $("p-title"); t.value = P.title || ""; t.oninput = () => { P.title = t.value; changed(); };
+  render(); window.scrollTo(0, 0);
+}
 function render() {
-  doc.week = doc.week && doc.week.length === 7 ? doc.week : WEEKDAYS.map(() => ({ items: [] }));
-  doc.n = doc.n || 2;
-  doc.sess = doc.sess && doc.sess.length === 3 ? doc.sess : [1, 3, 5].map((d) => ({ day: d, where: "before", gap: null, items: [] }));
-  for (const [id, key] of [["p-see", "see"], ["p-why", "why"], ["p-after", "after"]]) { const el = $(id); el.value = doc[key] || ""; el.oninput = () => { doc[key] = el.value; changed(); }; }
+  cur.week = cur.week && cur.week.length === 7 ? cur.week : WEEKDAYS.map(() => ({ items: [] }));
+  cur.n = cur.n || 2;
+  cur.sess = cur.sess && cur.sess.length === 3 ? cur.sess : [1, 3, 5].map((d) => ({ day: d, where: "before", gap: null, items: [] }));
+  for (const [id, key] of [["p-see", "see"], ["p-why", "why"], ["p-after", "after"]]) { const el = $(id); el.value = cur[key] || ""; el.oninput = () => { cur[key] = el.value; changed(); }; }
   if (FREE_URL) { const f = $("freelink"); f.classList.remove("hidden"); f.innerHTML = `<p class="sub" style="margin:16px 0 8px">Want a starting point? Try two weeks of BirdBox gymnastics programming free in our programming app.</p><a class="btn ghost small" href="${FREE_URL}" target="_blank" rel="noopener">Two weeks free</a>`; }
   reader($("reader-week"), "week");
   renderWeek(); renderSess(); summarise();
@@ -366,10 +409,10 @@ function tot(x) {
 }
 function fill(days, mode, si) {
   let n = 0;
-  if (mode === "accessory") { const S = doc.sess[si]; for (const d of days) for (const x of d.items || []) { S.items.push(clean(x)); n++; } renderSess(); changed(); return n; }
+  if (mode === "accessory") { const S = cur.sess[si]; for (const d of days) for (const x of d.items || []) { S.items.push(clean(x)); n++; } renderSess(); changed(); return n; }
   days.forEach((d, k) => { let i = WEEKDAYS.findIndex((w) => String(d.day || "").toLowerCase().startsWith(w.slice(0, 3).toLowerCase()));
     if (i < 0) { const m = String(d.day || "").match(/(\d+)/); i = m ? Math.min(6, +m[1] - 1) : Math.min(6, k); }
-    for (const x of d.items || []) { doc.week[i].items.push(clean(x)); n++; } });
+    for (const x of d.items || []) { cur.week[i].items.push(clean(x)); n++; } });
   renderWeek(); changed(); return n;
 }
 
@@ -470,7 +513,7 @@ function editEl(list, i) {
 }
 function renderWeek() {
   const box = $("days"); box.innerHTML = "";
-  doc.week.forEach((D, i) => {
+  cur.week.forEach((D, i) => {
     const d = document.createElement("div"); d.className = "day";
     d.innerHTML = `<h3><span>${WEEKDAYS[i]}</span><span class="note">${D.items.length ? D.items.length + " movement" + (D.items.length > 1 ? "s" : "") : "rest"}</span></h3>`;
     d.appendChild(itemsEl(D.items, "w" + i));
@@ -484,10 +527,15 @@ function renderWeek() {
 // ---------- 3. the accessory sessions ----------
 function renderSess() {
   $("nsess").innerHTML = "";
-  [1, 2, 3].forEach((n) => { const b = document.createElement("button"); b.type = "button"; b.textContent = n + (n === 1 ? " session" : " sessions") + " a week"; b.classList.toggle("on", doc.n === n); b.onclick = () => { doc.n = n; renderSess(); changed(); }; $("nsess").appendChild(b); });
+  [1, 2, 3].forEach((n) => { const b = document.createElement("button"); b.type = "button"; b.textContent = n + (n === 1 ? " session" : " sessions") + " a week"; b.classList.toggle("on", cur.n === n); b.onclick = () => { cur.n = n; renderSess(); changed(); }; $("nsess").appendChild(b); });
+  // the same session each time, or a different one each time (Nathan, 19 Oct: "we should be able to have session 1-2-3 the
+  // same, or all different")
+  $("same").innerHTML = ""; $("same").classList.toggle("hidden", cur.n < 2);
+  [[true, "The same session each time"], [false, "Different sessions"]].forEach(([v, t]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.classList.toggle("on", !!cur.same === v);
+    b.onclick = () => { cur.same = v; open = null; renderSess(); changed(); }; $("same").appendChild(b); });
   const box = $("sessbox"); box.innerHTML = "";
-  for (let s = 0; s < doc.n; s++) {
-    const S = doc.sess[s], el = document.createElement("div"); el.className = "sess";
+  for (let s = 0; s < cur.n; s++) {
+    const S = cur.sess[s], el = document.createElement("div"); el.className = "sess";
     const top = document.createElement("div"); top.className = "top"; top.innerHTML = `<b>Session ${s + 1}</b>`;
     const dy = document.createElement("select"); dy.innerHTML = WEEKDAYS.map((d, i) => `<option value="${i}">${d}</option>`).join(""); dy.value = S.day; dy.onchange = () => { S.day = +dy.value; changed(); };
     const wh = document.createElement("select"); wh.innerHTML = WHERE.map(([k, t]) => `<option value="${k}">${t}</option>`).join(""); wh.value = S.where; wh.onchange = () => { S.where = wh.value; renderSess(); changed(); };
@@ -495,6 +543,8 @@ function renderSess() {
     if (S.where === "own") { const g = document.createElement("input"); g.type = "number"; g.min = 0; g.max = 24; g.step = 0.5; g.style.width = "80px"; g.value = S.gap ?? ""; g.placeholder = "hours"; g.oninput = () => { S.gap = num(g.value); changed(); };
       const l = document.createElement("span"); l.className = "note"; l.textContent = "hours from the class"; top.append(g, l); }
     el.appendChild(top);
+    if (cur.same && s > 0) { const p = document.createElement("p"); p.className = "note"; p.style.margin = "4px 0 0"; p.textContent = "The same drills as session 1."; el.appendChild(p);
+      const ld = document.createElement("p"); ld.className = "load"; ld.id = "sload-" + s; el.appendChild(ld); box.appendChild(el); continue; }
     el.appendChild(itemsEl(S.items, "s" + s));
     const row = document.createElement("div"); row.className = "row noprint"; row.style.marginTop = "8px";
     const add = document.createElement("button"); add.type = "button"; add.className = "link"; add.textContent = "+ Add a drill";
@@ -544,8 +594,8 @@ function table(T, acc) {
   return rows ? `<table class="sum"><thead><tr><th>Pattern</th><th>Volume</th><th>Days</th><th>High-intensity days</th>${acc ? "<th>Of which accessory</th>" : ""}</tr></thead><tbody>${rows}</tbody></table>` : `<p class="note" style="margin-top:14px">Nothing in the week yet: read it in at the top, or add it by hand.</p>`;
 }
 function summarise() {
-  if (!doc) return;
-  const gymLists = doc.week.map((D, i) => ({ day: i, items: D.items })), active = doc.sess.slice(0, doc.n);
+  if (!cur) return;
+  const gymLists = cur.week.map((D, i) => ({ day: i, items: D.items })), active = cur.sess.slice(0, cur.n).map((S, s) => (cur.same && s > 0 ? { ...S, items: cur.sess[0].items } : S));
   const accLists = active.map((S) => ({ day: S.day, items: S.items }));
   const G = tally(gymLists), A = tally(accLists), ALL = tally([...gymLists, ...accLists]);
   // 2. the gym's week
@@ -572,11 +622,11 @@ function summarise() {
     if (S.where === "own" && (S.gap == null || S.gap < GAP)) add(S.gap == null ? "" : "bad", `Session ${s + 1} (${dn}) is its own session`, S.gap == null ? `How many hours is it from the class? Leave at least ${GAP} hours between concurrent training sessions.` : `${S.gap} hours from the class: leave at least ${GAP} hours between concurrent sessions, or put it in the class (a CrossFit® programme is one workout a day).`);
     // (by group: a strict pull-up accessory on a day of high-intensity kipping pull-ups is still pulling)
     const hit = new Set(); for (const x of S.items) { { const t = tot(x); if (!(t.reps || t.ecc || t.held > 30)) continue; }
-      for (const g of groupsOf(x.modality, x.pattern)) if (doc.week[S.day].items.some((y) => y.intensity === "high" && y.modality === x.modality && groupsOf(y.modality, y.pattern).includes(g))) hit.add(x.modality === "gymnastics" ? (GROUPS[g] || g).toLowerCase() : patName(x.modality, x.pattern).toLowerCase()); }
+      for (const g of groupsOf(x.modality, x.pattern)) if (cur.week[S.day].items.some((y) => y.intensity === "high" && y.modality === x.modality && groupsOf(y.modality, y.pattern).includes(g))) hit.add(x.modality === "gymnastics" ? (GROUPS[g] || g).toLowerCase() : patName(x.modality, x.pattern).toLowerCase()); }
     for (const p of hit) add("", `Session ${s + 1} (${dn}): ${p} work on a high-intensity ${p} day`, "The gym's workout already loads this pattern hard today. Move the loading to another day, or keep today's work to position and perfection.");
   });
-  if (doc.n > 1) { const ds = active.map((S) => S.day); if (new Set(ds).size < ds.length) add("", "Two accessory sessions on the same day", "Spread them through the week: frequent exposure is most effective (programming rule 2)."); }
-  const gymOn = doc.week.some((D) => D.items.length);
+  if (cur.n > 1) { const ds = active.map((S) => S.day); if (new Set(ds).size < ds.length) add("", "Two accessory sessions on the same day", "Spread them through the week: frequent exposure is most effective (programming rule 2)."); }
+  const gymOn = cur.week.some((D) => D.items.length);
   const have = new Set(); for (const P of Object.values(ALL.pat)) if (P.m === "gymnastics") groupsOf("gymnastics", P.p).forEach((g) => have.add(g));
   // (legs are left out: the squats and lunges cover them)
   if (gymOn) for (const [p, t] of [["pull", "Pull"], ["push", "Push"], ["midline", "Midline"], ["inversion", "Inversion"]]) if (!have.has(p)) add("", `No ${t.toLowerCase()} work in the week`, "A gap your accessory sessions could fill? Frequent exposure is most effective.");

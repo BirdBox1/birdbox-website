@@ -130,7 +130,7 @@ const TASKS = {
     count: (row) => { const a = (row && row.data && row.data.a) || {}; if (!Object.values(a).some((v) => String(v || "").trim())) return null; return row.data.coached ? "Step 3 · after coaching" : "In progress"; } },
   "tgc-programming": { page: "programming.html", title: "My gym's programming and accessory sessions",
     text: "Review a week of your gym's programming for volume, intensity and frequency, then build one to three gymnastics accessory sessions around it.",
-    count: (row) => { const d = (row && row.data) || {}; const n = (d.days || []).reduce((a, x) => a + ((x && x.items) || []).length, 0); if (!n) return null; return (d.after || "").trim() ? "Coached and reviewed" : n + " movements reviewed"; } },
+    count: (row) => { const d = (row && row.data) || {}; const n = d.plans ? d.plans.length : (d.week || d.days ? 1 : 0); return n ? n + (n === 1 ? " week" : " weeks") : null; } },
   "tgc-push-rp": { page: "reflect.html?t=tgc-push-rp", title: "Reflection — coaching push-ups and low rings",
     text: "A reflective practice cycle on how you coach pressing and shoulder stability: think, plan and coach, then reflect.",
     count: (row) => { const a = (row && row.data && row.data.a) || {}; if (!Object.values(a).some((v) => String(v || "").trim())) return null; return row.data.coached ? "Step 3 · after coaching" : "In progress"; } },
