@@ -174,6 +174,7 @@
       <p class="sub"><b>Volume</b> is how much (reps, load, distance), <b>frequency</b> how many days a pattern is trained, and <b>intensity</b> how hard (the % of a maximum, or how the workout is run).</p>
       <div class="cards" id="gymcards"></div>
       <div id="gymtable"></div>
+      <div id="gymjoints"></div>
       <div class="wk" id="grid"></div>
       <div class="legend"><span class="low">Low</span><span class="moderate">Moderate</span><span class="high">High</span><span class="a">A = my accessory session</span></div>
       <label class="f" for="p-see">What I notice about my gym's week</label>
@@ -193,6 +194,7 @@
       <p class="sub">The gym's week and my accessory sessions together. Each accessory session is checked against the unit: about <b>120 seconds of isometric</b> work as a training target, and no more than <b>125 seconds of purposeful eccentric loading</b> in a session.</p>
       <div class="cards" id="allcards"></div>
       <div id="alltable"></div>
+      <div id="alljoints"></div>
       <div id="flags"></div>
       <label class="f" for="p-why">Why I built my accessory sessions this way</label>
       <textarea id="p-why" placeholder="e.g. The gym pulls hard three days a week, so my sessions build the hang in hollow and slow eccentrics on the days with no pulling, and add the inversion the week is missing."></textarea>
@@ -258,6 +260,30 @@ const PAT = {
   monostructural: [["run", "Run"], ["row", "Row"], ["bike", "Bike"], ["ski", "Ski"], ["jump", "Jump rope"], ["other", "Other"]],
 };
 const INT = [["low", "Low"], ["moderate", "Moderate"], ["high", "High"]];
+// joint volume (Nathan, 19 Oct: "we talk about joint volume on the course, how much flexion and extension happens at each joint,
+// and a coach / programmer should know this"): the joints each movement takes through flexion and extension. Each rep adds one to
+// each of its joints; holds and lowerings add their seconds; cyclical work (run, row, bike, ski, jump rope) counts as days, not reps.
+// Drafted by Claude from the course movements (Nathan to check).
+const JOINTS = [["shoulder", "Shoulder"], ["elbow", "Elbow"], ["wrist", "Wrist / grip"], ["spine", "Spine"], ["hip", "Hip"], ["knee", "Knee"], ["ankle", "Ankle"]];
+const JMAP = {
+  "gymnastics:hang": ["shoulder", "elbow", "wrist", "spine"], "gymnastics:strictpu": ["shoulder", "elbow", "wrist"], "gymnastics:beat": ["shoulder", "spine", "hip"],
+  "gymnastics:kippu": ["shoulder", "elbow", "wrist", "spine", "hip"], "gymnastics:c2b": ["shoulder", "elbow", "wrist", "spine", "hip"], "gymnastics:rope": ["shoulder", "elbow", "wrist", "hip"],
+  "gymnastics:ringrow": ["shoulder", "elbow", "wrist"], "gymnastics:pull": ["shoulder", "elbow", "wrist"],
+  "gymnastics:hollow": ["spine", "hip", "shoulder"], "gymnastics:lsit": ["hip", "shoulder", "elbow", "wrist", "spine"], "gymnastics:t2bstrict": ["hip", "spine", "shoulder", "wrist"],
+  "gymnastics:t2bkip": ["hip", "spine", "shoulder", "wrist"], "gymnastics:situp": ["hip", "spine"], "gymnastics:midline": ["hip", "spine"],
+  "gymnastics:pushup": ["shoulder", "elbow", "wrist", "spine"], "gymnastics:lowrings": ["shoulder", "elbow", "wrist"], "gymnastics:dip": ["shoulder", "elbow", "wrist"],
+  "gymnastics:burpee": ["shoulder", "elbow", "wrist", "hip", "knee", "ankle"], "gymnastics:push": ["shoulder", "elbow", "wrist"],
+  "gymnastics:bmu": ["shoulder", "elbow", "wrist", "spine", "hip"], "gymnastics:rmu": ["shoulder", "elbow", "wrist", "spine", "hip"],
+  "gymnastics:hand": ["shoulder", "wrist", "elbow", "spine"], "gymnastics:hspu": ["shoulder", "elbow", "wrist"], "gymnastics:wallwalk": ["shoulder", "wrist", "elbow", "hip", "spine"],
+  "gymnastics:inversion": ["shoulder", "elbow", "wrist"], "gymnastics:pistol": ["hip", "knee", "ankle"], "gymnastics:squatbw": ["hip", "knee", "ankle"], "gymnastics:legs": ["hip", "knee", "ankle"],
+  "gymnastics:jump": ["hip", "knee", "ankle"],
+  "weightlifting:squat": ["hip", "knee", "ankle", "spine"], "weightlifting:hinge": ["hip", "spine", "knee", "wrist"], "weightlifting:press": ["shoulder", "elbow", "wrist"],
+  "weightlifting:olympic": ["hip", "knee", "ankle", "shoulder", "elbow", "wrist", "spine"], "weightlifting:carry": ["wrist", "spine"],
+  "monostructural:run": ["hip", "knee", "ankle"], "monostructural:row": ["hip", "knee", "ankle", "spine", "shoulder", "elbow"], "monostructural:bike": ["hip", "knee", "ankle"],
+  "monostructural:ski": ["shoulder", "elbow", "spine", "hip"], "monostructural:jump": ["ankle", "knee"],
+};
+// a thruster or a wall ball is a squat and a press
+const jointsOf = (x) => { const j = [...(JMAP[x.modality + ":" + x.pattern] || [])]; if (/thruster|wall ?ball|push press|squat clean/i.test(x.name || "")) for (const a of ["shoulder", "elbow", "wrist"]) if (!j.includes(a)) j.push(a); return j; };
 const WHERE = [["before", "In class, before the main element"], ["after", "In class, after the main element"], ["own", "Its own session"]];
 const GROUPS = { pull: "Pull", midline: "Midline", push: "Push", muscleup: "Muscle-ups", inversion: "Inversion", legs: "Legs", jump: "Jump" };
 // the groups a movement trains (a muscle-up is both a pull and a push)
@@ -577,17 +603,32 @@ function tally(lists) {
   }
   return T;
 }
+function jointTally(lists) {
+  const J = Object.fromEntries(JOINTS.map(([j]) => [j, { reps: 0, held: 0, ecc: 0, days: new Set(), high: new Set(), cyc: new Set() }]));
+  for (const { day, items } of lists) for (const x of items) { const t = tot(x), cyc = x.modality === "monostructural";
+    for (const j of jointsOf(x)) { const o = J[j]; if (!o) continue;
+      if (cyc) { o.cyc.add(day); continue; }
+      o.reps += t.reps; o.held += t.held; o.ecc += t.ecc; o.days.add(day); if (x.intensity === "high") o.high.add(day); } }
+  return J;
+}
+function jointTable(J, A) {
+  const max = Math.max(1, ...JOINTS.map(([j]) => J[j].reps));
+  return `<h3 style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin:24px 0 0">Joint volume</h3><p class="note" style="margin:4px 0 0">How much flexion and extension each joint takes through the week: the reps that move it, the seconds it is held and lowered, the days it is trained and how many of those are hard. Cyclical work (running, rowing, the bike) is counted in days.</p>
+    <table class="sum"><thead><tr><th>Joint</th><th>Flexion–extension reps</th><th></th><th>Held (s)</th><th>Lowering (s)</th><th>Days</th><th>High-intensity days</th><th>+ cyclical days</th></tr></thead><tbody>${
+    JOINTS.map(([j, t]) => { const o = J[j], a = A && A[j]; const days = o.days.size;
+      return `<tr><td>${t}</td><td>${k(o.reps)}${a && a.reps ? ` <span class="note">(${k(a.reps)} accessory)</span>` : ""}</td><td style="width:90px"><div class="bar2"><i style="width:${Math.round(100 * o.reps / max)}%;background:var(--accent)"></i></div></td><td>${o.held || "–"}</td><td>${o.ecc || "–"}</td><td class="${days >= 5 ? "warn" : ""}">${days}</td><td class="${o.high.size >= 3 ? "warn" : ""}">${o.high.size}</td><td>${[...o.cyc].filter((d) => !o.days.has(d)).length || "–"}</td></tr>`; }).join("")}</tbody></table>`;
+}
 const k = (v) => (v >= 10000 ? Math.round(v / 1000) + "k" : Math.round(v).toLocaleString("en-GB"));
 function cards(T, extra = "") {
   const g = T.mod.gymnastics, w = T.mod.weightlifting, m = T.mod.monostructural;
   return `<div class="stat g"><span>Gymnastics</span><strong>${k(g.reps)} reps</strong><small>${g.days.size} day${g.days.size === 1 ? "" : "s"} · ${g.high.size} at high intensity</small></div>
-    <div class="stat w"><span>Weightlifting</span><strong>${k(w.reps)} reps</strong><small>${w.kg ? k(w.kg) + " kg lifted · " : ""}${w.days.size} day${w.days.size === 1 ? "" : "s"} · ${w.high.size} high</small></div>
+    <div class="stat w"><span>Weightlifting</span><strong>${k(w.reps)} reps</strong><small>${w.days.size} day${w.days.size === 1 ? "" : "s"} · ${w.high.size} high</small></div>
     <div class="stat m"><span>Metabolic conditioning</span><strong>${m.metres ? k(m.metres) + " m" : m.cal ? k(m.cal) + " cal" : m.secs ? Math.round(m.secs / 60) + " min" : "0"}</strong><small>${[m.metres && m.cal ? k(m.cal) + " cal" : null, m.secs && (m.metres || m.cal) ? Math.round(m.secs / 60) + " min" : null, m.days.size + " day" + (m.days.size === 1 ? "" : "s"), m.high.size + " high"].filter(Boolean).join(" · ")}</small></div>${extra}`;
 }
 function table(T, acc) {
   const rows = MOD.map(([m, mt]) => { const ps = Object.values(T.pat).filter((P) => P.m === m); if (!ps.length) return "";
     return `<tr class="grp"><th colspan="6" style="color:var(--${modOf(m)[2]})">${mt}</th></tr>` + ps.sort((a, b) => b.reps + b.metres - a.reps - a.metres).map((P) => {
-      const vol = [P.reps ? k(P.reps) + " reps" : null, P.kg ? k(P.kg) + " kg" : null, P.metres ? k(P.metres) + " m" : null, P.cal ? k(P.cal) + " cal" : null, P.held ? P.held + " s held" : null, P.ecc ? P.ecc + " s lowering" : null].filter(Boolean).join(" · ") || "–";
+      const vol = [P.reps ? k(P.reps) + " reps" : null, P.metres ? k(P.metres) + " m" : null, P.cal ? k(P.cal) + " cal" : null, P.held ? P.held + " s held" : null, P.ecc ? P.ecc + " s lowering" : null].filter(Boolean).join(" · ") || "–";
       const a = acc && acc.pat[m + ":" + P.p];
       return `<tr><td>${esc(patName(m, P.p))}</td><td>${vol}</td><td class="${P.days.size >= 5 ? "warn" : ""}">${P.days.size}</td><td class="${P.high.size >= 3 ? "warn" : ""}">${P.high.size}</td>${acc ? `<td>${a ? [a.reps ? a.reps + " reps" : null, a.held ? a.held + " s held" : null, a.ecc ? a.ecc + " s lowering" : null].filter(Boolean).join(" · ") || "–" : "–"}</td>` : ""}</tr>`; }).join("");
   }).join("");
@@ -601,6 +642,7 @@ function summarise() {
   // 2. the gym's week
   $("gymcards").innerHTML = cards(G);
   $("gymtable").innerHTML = table(G);
+  $("gymjoints").innerHTML = doc && cur.week.some((D) => D.items.length) ? jointTable(jointTally(gymLists)) : "";
   const pats = Object.values(G.pat).filter((P) => P.m === "gymnastics" || P.m === "weightlifting").map((P) => [P.m, P.p]);
   for (const S of active) for (const x of S.items) if (!pats.some(([m, p]) => m === x.modality && p === x.pattern)) pats.push([x.modality, x.pattern]);
   const grid = $("grid"); grid.innerHTML = pats.length ? '<span></span>' + WEEKDAYS.map((d) => `<span class="h">${d.slice(0, 3)}</span>`).join("") : "";
@@ -613,6 +655,7 @@ function summarise() {
   // 4. the whole week
   $("allcards").innerHTML = cards(ALL, `<div class="stat a"><span>Time under tension</span><strong>${ALL.tut} s</strong><small>${A.tut} s from my accessory sessions · ${ALL.ecc} s of it eccentric</small></div>`);
   $("alltable").innerHTML = table(ALL, A);
+  $("alljoints").innerHTML = cur.week.some((D) => D.items.length) || accLists.some((l) => l.items.length) ? jointTable(jointTally([...gymLists, ...accLists]), jointTally(accLists)) : "";
   const F = [], add = (cls, head, text) => F.push(`<div class="flag ${cls}"><b>${esc(head)}</b>${esc(text)}</div>`);
   active.forEach((S, s) => { const l = sessLoad(S), dn = WEEKDAYS[S.day];
     if (l.ecc > ECC_LIMIT) add("bad", `Session ${s + 1} (${dn}): ${l.ecc} s of eccentric loading`, `Past the ${ECC_LIMIT} s limit for purposeful eccentric loading in one session: the risk of rhabdomyolysis. Cut the sets, the reps or the seconds of each lowering.`);
