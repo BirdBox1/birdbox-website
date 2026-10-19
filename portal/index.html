@@ -661,6 +661,12 @@
     }
   }
 
+
+  /* The host gym, at the top of a course for everyone on it. */
+  .hostcard { border: 1px solid var(--rule); border-radius: 6px; padding: .8rem 1rem; margin: 0 0 1.2rem; max-width: 40rem; }
+  .hostcard .hc-row { display: flex; gap: .8rem; padding: .15rem 0; }
+  .hostcard .hc-k { flex: none; width: 4.5rem; opacity: .65; font-size: .85rem; padding-top: .1rem; }
+  .hostcard .hc-acts { margin-top: .6rem; }
 </style>
   <link rel="stylesheet" href="/portal/ui-fixes.css">
 
@@ -1315,6 +1321,12 @@
     <a class="back" id="back">← All courses</a>
     <h2 id="course-title"></h2>
     <p class="sub" id="course-meta"></p>
+    <div class="hostcard hidden" id="hostcard">
+      <div class="hc-row"><span class="hc-k">Gym</span><span id="hc-gym"></span></div>
+      <div class="hc-row"><span class="hc-k">Where</span><span id="hc-where"></span></div>
+      <div class="hc-row"><span class="hc-k">Host</span><span id="hc-host"></span></div>
+      <div class="hc-acts"><button class="btn small" id="hc-email" type="button">Email the host</button></div>
+    </div>
     <p class="counts" id="counts"></p>
     <div class="pm-bar hidden" id="pm-bar">
       <button class="btn small" id="pm-add" type="button">Add participant</button>
@@ -2113,6 +2125,26 @@
 </div>
 
 <!-- ============ EXTRA EMAIL ============ -->
+<div class="overlay hidden" id="hnwrap">
+  <div class="dialog" style="max-width:40rem" role="dialog" aria-modal="true" aria-labelledby="hn-h">
+    <h3 id="hn-h">Email the host</h3>
+    <p class="sub" id="hn-sub" style="margin-bottom:1rem"></p>
+    <div class="field">
+      <label for="hn-subject">Subject</label>
+      <input id="hn-subject" type="text">
+    </div>
+    <div class="field">
+      <label for="hn-body">Message</label>
+      <textarea id="hn-body" style="min-height:14rem"></textarea>
+    </div>
+    <p class="msg" id="hn-msg"></p>
+    <div class="row">
+      <button class="btn ghost" id="hn-close" type="button">Cancel</button>
+      <button class="btn go" id="hn-send" type="button">Send</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay hidden" id="adwrap">
   <div class="dialog" style="max-width:40rem" role="dialog" aria-modal="true" aria-labelledby="ad-h">
     <h3 id="ad-h">Send an email</h3>
@@ -3988,6 +4020,7 @@ async function openCourse(course) {
       : course.status === "draft" ? "Draft — not on sale" : null,
   ].filter(Boolean).join(" · ");
 
+  showHostCard(course);
   $("counts").textContent = "";
   $("admin-msg").textContent = "";
   $("adminpanel").classList.add("hidden");
@@ -5986,6 +6019,108 @@ async function showHostBar(course) {
   state.textContent = alreadySent
     ? `Sent ${fmtWhen(data[0].sent_at)} to ${course.host_email}. Sending again creates new codes.`
     : `Goes to ${course.host_email}, with the media team copied in.`;
+}
+
+/* ---------- the host gym, for everyone on the course ---------- */
+
+// Coaches arriving at a gym need its name, where it is, and who to
+// ask for. The course list does not carry these, so they are read here.
+async function showHostCard(course) {
+  const card = $("hostcard");
+  card.classList.add("hidden");
+  const { data: c } = await db.from("courses")
+    .select("id, venue_name, address, city, country, host_name, host_email")
+    .eq("id", course.id).maybeSingle();
+  if (!c || currentCourse?.id !== course.id) return;
+  if (!c.venue_name && !c.host_name && !c.host_email && !c.address) return;
+
+  $("hc-gym").textContent = c.venue_name || "—";
+
+  const where = [c.address, c.city, countryName(c.country)].filter(Boolean).join(", ");
+  const w = $("hc-where");
+  w.innerHTML = "";
+  if (where) {
+    const a = document.createElement("a");
+    a.href = "https://www.google.com/maps/search/?api=1&query=" +
+      encodeURIComponent([c.venue_name, where].filter(Boolean).join(", "));
+    a.target = "_blank"; a.rel = "noopener";
+    a.textContent = where;
+    w.append(a);
+  } else w.textContent = "—";
+
+  const h = $("hc-host");
+  h.innerHTML = "";
+  h.append(document.createTextNode(c.host_name || "—"));
+  if (c.host_email) {
+    const e = document.createElement("span");
+    e.className = "whenline";
+    e.textContent = " · " + c.host_email;
+    h.append(e);
+  }
+
+  // The lead coach is the gym's one point of contact (the same rule
+  // the server keeps), so the button is theirs and the admin's.
+  const btn = $("hc-email");
+  btn.classList.toggle("hidden", !(c.host_email && amLeadOn(course.id)));
+  btn.onclick = () => openHostNote(course, c);
+
+  card.classList.remove("hidden");
+}
+
+let hnCourse = null;
+
+function openHostNote(course, c) {
+  hnCourse = course;
+  $("hn-sub").textContent = `To ${c.host_name ? c.host_name + " — " : ""}${c.host_email}` +
+    `${c.venue_name ? " (" + c.venue_name + ")" : ""}. From you, with info@ copied.`;
+  $("hn-subject").value = "";
+  $("hn-body").value = "";
+  $("hn-msg").textContent = "";
+  $("hn-msg").className = "msg";
+  $("hnwrap").classList.remove("hidden");
+  $("hn-subject").focus();
+}
+
+function wireHostNote() {
+  const close = () => { $("hnwrap").classList.add("hidden"); hnCourse = null; };
+  $("hn-close").onclick = close;
+  $("hnwrap").addEventListener("click", (e) => { if (e.target === $("hnwrap")) close(); });
+
+  $("hn-send").onclick = async () => {
+    if (!hnCourse) return;
+    const subject = $("hn-subject").value.trim();
+    const body = $("hn-body").value.trim();
+    const msg = $("hn-msg");
+    if (!subject) { msg.className = "msg err"; msg.textContent = "Add a subject."; return; }
+    if (!body) { msg.className = "msg err"; msg.textContent = "There is nothing to send."; return; }
+
+    $("hn-send").disabled = true;
+    msg.className = "msg"; msg.textContent = "Sending…";
+    try {
+      const { data: row, error } = await db.from("course_emails").insert({
+        course_id: hnCourse.id, kind: "host_note", subject, body, status: "draft",
+      }).select("id").single();
+      if (error) throw new Error(error.message);
+
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error("Your session has expired — sign in again.");
+      const res = await fetch("/.netlify/functions/course-email-send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+        body: JSON.stringify({ emailId: row.id }),
+      });
+      const out = await res.json();
+      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+
+      msg.className = "msg ok";
+      msg.textContent = `Sent to ${out.sentTo}, as ${out.sentAs}.`;
+      setTimeout(close, 1500);
+    } catch (err) {
+      msg.className = "msg err";
+      msg.textContent = err.message;
+    }
+    $("hn-send").disabled = false;
+  };
 }
 
 /* ---------- finding a participant ---------- */
@@ -11939,6 +12074,7 @@ wireInvoicesView();
 wireReports();
 wireArchive();
 wireAdhoc();
+wireHostNote();
 wireProfile();
 wireTeam();
 wireChat();
