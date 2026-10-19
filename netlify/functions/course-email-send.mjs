@@ -100,7 +100,9 @@ export default async (req) => {
       return json({ error: "There is nothing to send." }, 409);
     }
 
-    const toHost = email.kind === "host";
+    // "host" is the admin's discount-code email; "host_note" anything
+    // the lead coach writes to the gym from the course page.
+    const toHost = email.kind === "host" || email.kind === "host_note";
 
     // The same rule either way: the lead coach, or an admin.
     if (!(await isLeadOrAdmin(staff, email.course_id))) {
