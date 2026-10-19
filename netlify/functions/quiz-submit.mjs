@@ -192,12 +192,13 @@ const EMAIL_EN = {
 
 // The translated result videos, by language: YouTube ids from Nico's
 // ASSESSMENTS PROFILES VIDEOS sheet. A language or stage missing here gets
-// the English video. German Builder and Refiner are still to come: the sheet
-// had the Explorer and Leader videos in their rows.
+// the English video.
 const VIDEOS = {
-  de: { explorer: "bwZUnunDvqc", leader: "-5PaJIivTf8" },
+  de: { explorer: "bwZUnunDvqc", builder: "nXK8fjbzuo8", refiner: "qUH-JydiZRY", leader: "-5PaJIivTf8" },
   it: { explorer: "78FyDb5kGSg", builder: "gQBxMh57pIc", refiner: "y2Cg0dET4bo", leader: "gqh8irdx6O4" },
   es: { explorer: "WvPkz8mfLW8", builder: "tf0UkJEOSu0", refiner: "tpuRRcHUPns", leader: "4C_i2Rqe_Wk" },
+  fr: { explorer: "np3p37pbhi4", builder: "OUZGoLQJ0DE", refiner: "ksIEPgBABWc", leader: "7aWSY0kydDA" },
+  pt: { explorer: "xPHjS-sGTfg", builder: "c-P2F5436b0", refiner: "5GXkSK70SsQ", leader: "fazCDlgpTqw" },
 };
 
 async function stagesFor(lang) {
