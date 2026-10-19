@@ -6027,13 +6027,18 @@ async function showHostBar(course) {
 
 // Coaches arriving at a gym need its name, where it is, and who to
 // ask for. The course list does not carry these, so they are read here.
+// Only the latest course opened may fill the box, so a slow answer for
+// a course already left cannot overwrite the one now on screen.
+let hostCardFor = null;
+
 async function showHostCard(course) {
   const card = $("hostcard");
   card.classList.add("hidden");
+  hostCardFor = course.id;
   const { data: c } = await db.from("courses")
     .select("id, venue_name, address, city, country, host_name, host_email")
     .eq("id", course.id).maybeSingle();
-  if (!c || currentCourse?.id !== course.id) return;
+  if (!c || hostCardFor !== course.id) return;
   if (!c.venue_name && !c.host_name && !c.host_email && !c.address) return;
 
   $("hc-gym").textContent = c.venue_name || "—";
