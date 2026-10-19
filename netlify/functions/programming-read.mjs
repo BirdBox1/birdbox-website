@@ -74,20 +74,25 @@ Return ONLY JSON, no other text, in exactly this shape:
 Each ITEM is one movement on that day:
 {"name":"Back squat","part":"warm-up|skill|strength|workout|accessory|cool-down","modality":"gymnastics|weightlifting|monostructural",
  "pattern":"pull|push|midline|legs|inversion|squat|hinge|press|olympic|carry|run|row|bike|ski|jump|other",
- "reps":45,"load_kg":60,"metres":null,"calories":null,"seconds":null,"hold_seconds":null,"eccentric_seconds":null,
+ "sets":5,"reps_per_set":5,"hold_seconds_each":null,"eccentric_seconds_each":null,"load_kg":60,"metres":null,"calories":null,"seconds":null,
  "format":"for time|AMRAP|EMOM|intervals|sets|skill","intensity":"high|moderate|low","scheme":"21-15-9","estimated":false}
 
 Rules:
 - One item per movement per day. Leave out warm-up mobility stretches, but keep warm-up movements with reps (e.g. 10 push-ups).
 - "day": use the weekday if it is shown; otherwise "Day 1", "Day 2" ... in order.${mode === "accessory" ? ' If no day is shown for an accessory session, use "Session 1", "Session 2" ...' : ""}
-- reps: the TOTAL reps of that movement for the day. 21-15-9 = 45. 5 rounds of 10 = 50. 5x5 = 25. EMOM 12 alternating 2 movements: each gets 6 minutes x its reps.
+- sets and reps_per_set: for strength or accessory work as written (5x5 = sets 5, reps_per_set 5; 3x20s hold = sets 3, reps_per_set null, hold_seconds_each 20).
+  For a workout, sets 1 and reps_per_set the TOTAL reps of that movement: 21-15-9 = 45; 5 rounds of 10 = 50; EMOM 12 alternating 2 movements: each gets 6 minutes x its reps.
   AMRAP or a time cap: estimate the rounds a competent athlete completes and set "estimated":true.
-- For cardio use metres, calories or seconds instead of reps (reps null). For a hold (L-sit, handstand hold, hollow hold, plank) put the total seconds in hold_seconds.
-- eccentric_seconds: only when a tempo or a negative is written (e.g. "3 s lowering" x 10 reps = 30). Otherwise null.
+- For cardio use metres, calories or seconds instead of reps (reps_per_set null). For a hold (L-sit, handstand hold, hollow hold, plank, chin over bar hold) put the seconds of EACH hold in hold_seconds_each.
+- eccentric_seconds_each: the seconds of lowering in EACH rep, only when a tempo or a negative is written (e.g. "3 s lowering" = 3). Otherwise null.
 - load_kg: the prescribed load in kg if given (convert lb to kg, round to whole kg). Use the women's/men's first number if two are given. null if none.
-- modality: pull-ups, toes to bar, push-ups, dips, handstand work, muscle-ups, rope climbs, sit-ups, pistols, air squats, lunges, burpees, box jumps = gymnastics (burpee: pattern "push"; box jump: pattern "jump"; air squat, lunge, pistol: "legs").
+- modality: pull-ups, toes to bar, push-ups, dips, handstand work, muscle-ups, rope climbs, sit-ups, pistols, air squats, lunges, burpees, box jumps = gymnastics.
   Barbell, dumbbell, kettlebell, wall ball (pattern "squat") = weightlifting. Run, row, bike, ski, swim, double unders (pattern "jump") = monostructural.
-- pattern for gymnastics: pull (pull-ups, rows, rope climbs, muscle-ups), push (push-ups, dips, burpees), midline (toes to bar, sit-ups, GHD, L-sit, hollow), legs, inversion (handstand push-ups, handstand walks, wall walks).
+- pattern for gymnastics, the most specific that fits: hang (hang in hollow), strictpu (strict pull-up, chin-up, chin over bar hold), beat (beat swing), kippu (kipping pull-up), c2b (chest to bar or butterfly pull-up), rope (rope climb), ringrow (ring row),
+  hollow (hollow or arch holds and rocks), lsit (L-sit, V-sit, tuck sit), t2bstrict (strict toes to bar, knees to elbows), t2bkip (kipping toes to bar), situp (sit-up, GHD sit-up), midline (any other midline work, e.g. V-ups, planks),
+  pushup (push-up), lowrings (ring support, ring push-up, ring pass outs), dip (bar or ring dip), burpee (burpee and its variations), bmu (bar muscle-up), rmu (ring muscle-up),
+  hand (handstand hold or walk), hspu (handstand push-up, strict or kipping), wallwalk (wall walk), pistol, squatbw (air squat, lunge, step-up), jump (box jump, broad jump);
+  if none fits use the group: pull, push, midline, inversion or legs.
   Weightlifting: squat, hinge (deadlift, kettlebell swing, good morning), press (press, push press, jerk, bench), olympic (snatch, clean), carry.
 - intensity: for time, AMRAP, chipper, sprint = high; EMOM, intervals, steady = moderate; skill, technique, light or tempo work = low.
   Strength sets: 80%+ of a max, "heavy" or a 1-3 rep max = high; 60-80% = moderate; under 60% or "light" = low.

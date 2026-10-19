@@ -66,7 +66,13 @@
   .edit label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;flex-direction:column;gap:4px}
   .edit input,.edit select{width:100%;font-size:14px;padding:7px 8px}
   .edit .wide{grid-column:1/-1} .edit .acts{grid-column:1/-1;display:flex;justify-content:space-between}
+  .edit .nums{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;align-items:end}
+  .edit .tutbox{grid-column:1/-1;background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--t);padding:8px 12px}
+  .edit .tutbox span{display:block;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .edit .tutbox b{font-size:20px;margin-right:8px} .edit .tutbox small{font-size:12px;color:var(--muted)}
   .addit{margin-top:8px}
+  .quick{width:100%;margin-top:10px;font-size:14px;padding:9px 10px}
+  .quick::placeholder{color:#8E888A}
   /* the summaries */
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
   .stat{background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--line);padding:14px 16px}
@@ -218,12 +224,27 @@ const ISO_TARGET = 120, ECC_LIMIT = 125, GAP = 6;
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const MOD = [["gymnastics", "Gymnastics", "g"], ["weightlifting", "Weightlifting", "w"], ["monostructural", "Metabolic conditioning", "m"]];
 const PAT = {
-  gymnastics: [["pull", "Pull"], ["push", "Push"], ["midline", "Midline"], ["legs", "Legs"], ["inversion", "Inversion"], ["jump", "Jump"]],
+  // the gymnastics of the course, by group (Nathan, 19 Oct: "this needs more, think of all the movements we have covered,
+  // e.g. toes to bar doesn't fit in here"); the plain group keys stay as "other" for anything else
+  gymnastics: [
+    ["hang", "Hang in hollow", "pull"], ["strictpu", "Strict pull-up", "pull"], ["beat", "Beat swing", "pull"], ["kippu", "Kipping pull-up", "pull"],
+    ["c2b", "Chest to bar / butterfly pull-up", "pull"], ["rope", "Rope climb", "pull"], ["ringrow", "Ring row", "pull"], ["pull", "Other pulling", "pull"],
+    ["hollow", "Hollow and arch (holds, rocks)", "midline"], ["lsit", "L-sit / V-sit", "midline"], ["t2bstrict", "Strict toes to bar", "midline"], ["t2bkip", "Kipping toes to bar", "midline"],
+    ["situp", "Sit-up / GHD sit-up", "midline"], ["midline", "Other midline", "midline"],
+    ["pushup", "Push-up", "push"], ["lowrings", "Low rings (support, ring push-up)", "push"], ["dip", "Dip (bar or ring)", "push"], ["burpee", "Burpee", "push"], ["push", "Other pushing", "push"],
+    ["bmu", "Bar muscle-up", "muscleup"], ["rmu", "Ring muscle-up", "muscleup"],
+    ["hand", "Handstand hold / walk", "inversion"], ["hspu", "Handstand push-up", "inversion"], ["wallwalk", "Wall walk", "inversion"], ["inversion", "Other inversion", "inversion"],
+    ["pistol", "Pistol", "legs"], ["squatbw", "Air squat / lunge", "legs"], ["legs", "Other legs", "legs"],
+    ["jump", "Box jump / broad jump", "jump"],
+  ],
   weightlifting: [["squat", "Squat"], ["hinge", "Hinge"], ["press", "Press"], ["olympic", "Olympic lifts"], ["carry", "Carry"]],
   monostructural: [["run", "Run"], ["row", "Row"], ["bike", "Bike"], ["ski", "Ski"], ["jump", "Jump rope"], ["other", "Other"]],
 };
 const INT = [["low", "Low"], ["moderate", "Moderate"], ["high", "High"]];
 const WHERE = [["before", "In class, before the main element"], ["after", "In class, after the main element"], ["own", "Its own session"]];
+const GROUPS = { pull: "Pull", midline: "Midline", push: "Push", muscleup: "Muscle-ups", inversion: "Inversion", legs: "Legs", jump: "Jump" };
+// the groups a movement trains (a muscle-up is both a pull and a push)
+const groupsOf = (m, p) => { const e = (PAT[m] || []).find((x) => x[0] === p); const g = e && e[2] ? e[2] : p; return g === "muscleup" ? ["pull", "push"] : [g]; };
 const patName = (m, p) => ((PAT[m] || []).find((x) => x[0] === p) || [, p || "Other"])[1];
 const modOf = (m) => MOD.find((x) => x[0] === m) || MOD[0];
 let session = null, doc = null, timer = null, open = null;
@@ -325,9 +346,24 @@ async function shrink(file) {
   c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k); c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
   return { media_type: "image/jpeg", data: c.toDataURL("image/jpeg", 0.82).split(",")[1] };
 }
-const clean = (x) => ({ name: String(x.name || "Movement"), part: x.part || "workout", modality: PAT[x.modality] ? x.modality : "gymnastics", pattern: x.pattern || "other",
-  reps: num(x.reps), load_kg: num(x.load_kg), metres: num(x.metres), calories: num(x.calories), seconds: num(x.seconds), hold_seconds: num(x.hold_seconds), eccentric_seconds: num(x.eccentric_seconds),
-  intensity: ["low", "moderate", "high"].includes(x.intensity) ? x.intensity : "moderate", scheme: x.scheme || "", estimated: !!x.estimated });
+// each movement: sets, reps per set, seconds held each, seconds of lowering each rep (Nathan, 19 Oct: "there should be boxes for sets,
+// time under tension, reps, eccentric loading time"); the totals are worked out. (Older saves and reader answers that give only
+// totals become one set.)
+function clean(x) {
+  const o = { name: String(x.name || "Movement"), part: x.part || "workout", modality: PAT[x.modality] ? x.modality : "gymnastics", pattern: x.pattern || "other",
+    sets: num(x.sets), reps: num(x.reps_per_set ?? x.reps), hold_s: num(x.hold_s ?? x.hold_seconds_each), ecc_s: num(x.ecc_s ?? x.eccentric_seconds_each),
+    load_kg: num(x.load_kg), metres: num(x.metres), calories: num(x.calories), seconds: num(x.seconds),
+    intensity: ["low", "moderate", "high"].includes(x.intensity) ? x.intensity : "moderate", scheme: x.scheme || "", estimated: !!x.estimated };
+  if (o.hold_s == null && num(x.hold_seconds)) { o.hold_s = num(x.hold_seconds) / Math.max(1, (o.sets || 1) * (o.reps || 1)); }
+  if (o.ecc_s == null && num(x.eccentric_seconds)) { o.ecc_s = +(num(x.eccentric_seconds) / Math.max(1, (o.sets || 1) * (o.reps || 1))).toFixed(1); }
+  return o;
+}
+// the totals for a movement: reps, seconds held, seconds of lowering, time under tension
+function tot(x) {
+  const S = x.sets || 1, per = x.reps || (x.hold_s || x.ecc_s ? 1 : 0);
+  const held = S * (x.reps || 1) * (x.hold_s || 0), ecc = S * (x.reps || 1) * (x.ecc_s || 0);
+  return { reps: x.reps ? S * x.reps : 0, held: Math.round(held), ecc: Math.round(ecc), tut: Math.round(held + ecc), per };
+}
 function fill(days, mode, si) {
   let n = 0;
   if (mode === "accessory") { const S = doc.sess[si]; for (const d of days) for (const x of d.items || []) { S.items.push(clean(x)); n++; } renderSess(); changed(); return n; }
@@ -337,9 +373,63 @@ function fill(days, mode, si) {
   renderWeek(); changed(); return n;
 }
 
+// ---------- quick entry: one line per drill, read in the browser ----------
+// (Nathan, 19 Oct: "I should be able to write something like 3x20s chin over bar hold, 4x8 seconds eccentric wall facing handstand
+// push up, 3x 25 v-ups")
+const SKILLS = [
+  [/chest[ -]?to[ -]?bar|\bc2b\b|butterfly/, "gymnastics", "c2b"], [/bar muscle|\bbmu\b/, "gymnastics", "bmu"], [/ring muscle|\brmu\b|muscle[ -]?up/, "gymnastics", "rmu"],
+  [/beat swing|\bbeats?\b/, "gymnastics", "beat"], [/kip.*(pull|chin)|kipping pull/, "gymnastics", "kippu"], [/hang.*hollow|hollow hang|dead hang|active hang/, "gymnastics", "hang"],
+  [/chin[ -]?over[ -]?(the )?bar|strict pull|pull[ -]?ups?|chin[ -]?ups?|flexed arm hang/, "gymnastics", "strictpu"], [/rope/, "gymnastics", "rope"], [/ring rows?/, "gymnastics", "ringrow"],
+  [/kip.*(toes|t2b)|kipping (toes|t2b)/, "gymnastics", "t2bkip"], [/toes[ -]?to[ -]?bar|\bt2b\b|\bttb\b|knees[ -]?to[ -]?elbows?|\bk2e\b/, "gymnastics", "t2bstrict"],
+  [/l[ -]?sit|v[ -]?sit|tuck sit/, "gymnastics", "lsit"], [/hollow|arch (hold|rock)|superman/, "gymnastics", "hollow"], [/ghd|sit[ -]?ups?|abmat/, "gymnastics", "situp"],
+  [/v[ -]?ups?|tuck[ -]?ups?|crunch|plank|dead ?bug/, "gymnastics", "midline"],
+  [/handstand push|hspu|pike push/, "gymnastics", "hspu"], [/wall walk/, "gymnastics", "wallwalk"], [/handstand|hand ?walk|freestanding/, "gymnastics", "hand"],
+  [/dips?\b/, "gymnastics", "dip"], [/ring (push|support)|support hold|low ring|ring pass/, "gymnastics", "lowrings"], [/push[ -]?ups?|press[ -]?ups?/, "gymnastics", "pushup"], [/burpee/, "gymnastics", "burpee"],
+  [/pistol/, "gymnastics", "pistol"], [/air squat|lunge|step[ -]?up|cossack/, "gymnastics", "squatbw"], [/box jump|broad jump|jump squat/, "gymnastics", "jump"],
+  [/snatch|clean/, "weightlifting", "olympic"], [/jerk|push press|strict press|shoulder press|bench|overhead press/, "weightlifting", "press"],
+  [/deadlift|\bdl\b|kettlebell swing|kb swing|good morning|rdl/, "weightlifting", "hinge"], [/squat|thruster|wall ?ball/, "weightlifting", "squat"], [/carry|farmer/, "weightlifting", "carry"],
+  [/\brun\b|running/, "monostructural", "run"], [/\brow\b|rowing|rower/, "monostructural", "row"], [/bike|echo|assault/, "monostructural", "bike"], [/\bski\b/, "monostructural", "ski"], [/double[ -]?under|single[ -]?under|skip/, "monostructural", "jump"],
+];
+function quickParse(line, intensity) {
+  let t = " " + line.toLowerCase().replace(/×/g, "x") + " ";
+  let sets = 1, reps = null, secs = null, kg = null, metres = null, cal = null;
+  // 3x20s, 3 x 20 s, 4x8 seconds, 3x 25, 5x3 @ 100kg
+  // a rep scheme: 21-15-9 = 45; 5-5-5-5-5 = 25
+  let m = t.match(/\b(\d+(?:\s*-\s*\d+)+)\b/);
+  if (m && !/\d+\s*x/.test(t)) { reps = m[1].split("-").reduce((a, v) => a + +v, 0); t = t.replace(m[0], " "); m = null; }
+  else m = t.match(/(\d+)\s*x\s*(\d+)\s*(s|sec|secs|seconds?)\b/);
+  if (m) { sets = +m[1]; secs = +m[2]; t = t.replace(m[0], " "); }
+  else if ((m = t.match(/(\d+)\s*x\s*(\d+)/))) { sets = +m[1]; reps = +m[2]; t = t.replace(m[0], " "); }
+  else if ((m = t.match(/(\d+)\s*(reps?|rounds?)\b/))) { reps = +m[1]; t = t.replace(m[0], " "); }
+  // a tempo or a hold given separately: "@ 5s lowering", "5 second hold", "hold 20s"
+  if ((m = t.match(/@?\s*(\d+)\s*(s|sec|secs|seconds?)\b/))) { secs = +m[1]; t = t.replace(m[0], " "); }
+  if ((m = t.match(/@?\s*(\d+(?:\.\d+)?)\s*(kg|kgs|lb|lbs)\b/))) { kg = Math.round(+m[1] * (/lb/.test(m[2]) ? 0.4536 : 1)); t = t.replace(m[0], " "); }
+  if ((m = t.match(/(\d+)\s*(m|metres|meters)\b/))) { metres = +m[1]; t = t.replace(m[0], " "); }
+  if ((m = t.match(/(\d+)\s*(cal|cals|calories)\b/))) { cal = +m[1]; t = t.replace(m[0], " "); }
+  if (!m && (m = t.match(/^\s*(\d+)\s+/)) && reps == null && secs == null) { reps = +m[1]; t = t.replace(m[0], " "); }
+  const ecc = /eccentric|lowering|negative|tempo/.test(t), hold = /hold|held|isometric|\biso\b|hang|support|sit\b|l[ -]?sit|plank|hollow/.test(t);
+  const sk = SKILLS.find(([re]) => re.test(t)) || [null, "gymnastics", "midline"];
+  const name = t.replace(/@|\b(of|with|seconds?|secs?)\b/g, " ").replace(/\s+/g, " ").trim();
+  const x = { name: name ? name[0].toUpperCase() + name.slice(1) : "Drill", modality: sk[1], pattern: sk[2], intensity, scheme: line.trim() };
+  x.sets = sets; x.reps = reps;
+  if (secs != null && ecc) x.ecc_s = secs;
+  else if (secs != null && (hold || reps == null)) x.hold_s = secs;
+  if (kg) x.load_kg = kg; if (metres) x.metres = metres; if (cal) x.calories = cal;
+  return clean(x);
+}
+function quickEl(list, intensity, ph, after) {
+  const q = document.createElement("textarea"); q.className = "quick noprint"; q.rows = 1; q.placeholder = ph;
+  const go = () => { const lines = q.value.split(/\n+/).map((l) => l.trim()).filter(Boolean); if (!lines.length) return;
+    for (const l of lines) list.push(quickParse(l, intensity)); q.value = ""; after(); changed(); };
+  q.onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); go(); } };
+  q.addEventListener("paste", () => setTimeout(() => { if (q.value.includes("\n")) go(); }, 0));
+  return q;
+}
+
 // ---------- 1. the week, day by day ----------
-const line = (x) => [x.reps != null ? `${x.reps} reps` : null, x.load_kg ? `@ ${x.load_kg} kg` : null, x.metres ? `${x.metres} m` : null, x.calories ? `${x.calories} cal` : null, x.seconds ? `${x.seconds} s` : null,
-  x.hold_seconds ? `${x.hold_seconds} s held` : null, x.eccentric_seconds ? `${x.eccentric_seconds} s lowering` : null, x.scheme ? x.scheme : null, x.estimated ? "estimated" : null].filter(Boolean).join(" · ");
+const line = (x) => { const t = tot(x), sx = x.sets && x.sets > 1 ? x.sets + " x " : "";
+  return [x.reps != null ? `${sx}${x.reps} reps${sx ? " (" + t.reps + ")" : ""}` : x.hold_s ? `${sx}${x.hold_s} s hold` : x.sets > 1 ? `${x.sets} sets` : null, x.load_kg ? `@ ${x.load_kg} kg` : null, x.metres ? `${x.metres} m` : null, x.calories ? `${x.calories} cal` : null, x.seconds ? `${x.seconds} s` : null,
+    x.ecc_s ? `${x.ecc_s} s lowering` : null, t.tut ? `${t.tut} s under tension` : null, x.scheme && !/^\s*\d/.test(x.scheme) ? x.scheme : x.scheme && x.scheme.length > 14 ? null : x.scheme, x.estimated ? "estimated" : null].filter(Boolean).join(" · "); };
 function itemsEl(list, key) {
   const box = document.createElement("div");
   list.forEach((x, i) => {
@@ -359,11 +449,19 @@ function editEl(list, i) {
   const sel = (opts, k, after) => { const el = document.createElement("select"); el.innerHTML = opts.map(([v, t]) => `<option value="${v}">${t}</option>`).join(""); el.value = x[k]; el.onchange = () => { x[k] = el.value; if (after) after(); changed(); }; return el; };
   f("Movement", tx("name"), true);
   f("Type", sel(MOD.map(([v, t]) => [v, t]), "modality", () => { x.pattern = PAT[x.modality][0][0]; renderWeek(); renderSess(); }));
-  f("Pattern", sel(PAT[x.modality] || PAT.gymnastics, "pattern"));
-  f("Reps", nb("reps")); f("Load (kg)", nb("load_kg"));
-  if (x.modality === "monostructural") { f("Metres", nb("metres")); f("Calories", nb("calories")); }
-  f("Held (s)", nb("hold_seconds")); f("Lowering (s)", nb("eccentric_seconds"));
-  f("Intensity", sel(INT, "intensity")); f("Scheme", tx("scheme"));
+  { const el = sel([], "pattern"), list = PAT[x.modality] || PAT.gymnastics;
+    if (list[0][2]) { el.innerHTML = Object.entries(GROUPS).map(([g, gt]) => { const o = list.filter((q) => q[2] === g); return o.length ? `<optgroup label="${gt}">${o.map(([v, t]) => `<option value="${v}">${t}</option>`).join("")}</optgroup>` : ""; }).join(""); }
+    else el.innerHTML = list.map(([v, t]) => `<option value="${v}">${t}</option>`).join("");
+    el.value = x.pattern; f(x.modality === "gymnastics" ? "Skill" : "Pattern", el); }
+  // the numbers: sets, reps per set, hold and lowering seconds, load; time under tension worked out
+  const nums = document.createElement("div"); nums.className = "nums wide"; e.appendChild(nums);
+  const n = (label, k) => { const l = document.createElement("label"), el = nb(k); el.addEventListener("input", upd); l.append(label, el); nums.appendChild(l); return el; };
+  const tutBox = document.createElement("div"); tutBox.className = "tutbox";
+  function upd() { const t = tot(x); tutBox.innerHTML = `<span>Time under tension</span><b>${t.tut} s</b><small>${t.held ? t.held + " s held" : ""}${t.held && t.ecc ? " · " : ""}${t.ecc ? t.ecc + " s lowering" : ""}${!t.held && !t.ecc ? "add a hold or a lowering time" : ""}${t.reps ? " · " + t.reps + " reps" : ""}</small>`; }
+  n("Sets", "sets"); n("Reps per set", "reps"); n("Hold (s each)", "hold_s"); n("Lowering (s per rep)", "ecc_s"); n("Load (kg)", "load_kg");
+  if (x.modality === "monostructural") { n("Metres", "metres"); n("Calories", "calories"); }
+  nums.appendChild(tutBox); upd();
+  f("Intensity", sel(INT, "intensity")); f("Scheme as written", tx("scheme"));
   const acts = document.createElement("div"); acts.className = "acts";
   const del = document.createElement("button"); del.type = "button"; del.className = "link"; del.textContent = "Delete"; del.onclick = () => { list.splice(i, 1); open = null; renderWeek(); renderSess(); changed(); };
   const ok = document.createElement("button"); ok.type = "button"; ok.className = "btn small"; ok.textContent = "Done"; ok.onclick = () => { open = null; renderWeek(); renderSess(); };
@@ -377,7 +475,8 @@ function renderWeek() {
     d.innerHTML = `<h3><span>${WEEKDAYS[i]}</span><span class="note">${D.items.length ? D.items.length + " movement" + (D.items.length > 1 ? "s" : "") : "rest"}</span></h3>`;
     d.appendChild(itemsEl(D.items, "w" + i));
     const add = document.createElement("button"); add.type = "button"; add.className = "link addit noprint"; add.textContent = "+ Add a movement";
-    add.onclick = () => { D.items.push(clean({ name: "", modality: "gymnastics", pattern: "pull", intensity: "moderate" })); open = "w" + i + ":" + (D.items.length - 1); renderWeek(); changed(); };
+    add.onclick = () => { D.items.push(clean({ name: "", modality: "gymnastics", pattern: "kippu", intensity: "moderate" })); open = "w" + i + ":" + (D.items.length - 1); renderWeek(); changed(); };
+    d.appendChild(quickEl(D.items, "moderate", "Type a movement and press Enter, e.g. 21-15-9 pull-ups", renderWeek));
     d.appendChild(add); box.appendChild(d);
   });
 }
@@ -399,17 +498,18 @@ function renderSess() {
     el.appendChild(itemsEl(S.items, "s" + s));
     const row = document.createElement("div"); row.className = "row noprint"; row.style.marginTop = "8px";
     const add = document.createElement("button"); add.type = "button"; add.className = "link"; add.textContent = "+ Add a drill";
-    add.onclick = () => { S.items.push(clean({ name: "", modality: "gymnastics", pattern: "pull", intensity: "low", part: "accessory" })); open = "s" + s + ":" + (S.items.length - 1); renderSess(); changed(); };
+    add.onclick = () => { S.items.push(clean({ name: "", modality: "gymnastics", pattern: "hang", intensity: "low", part: "accessory" })); open = "s" + s + ":" + (S.items.length - 1); renderSess(); changed(); };
     const rd = document.createElement("button"); rd.type = "button"; rd.className = "link"; rd.textContent = "Read it from a screenshot";
     const rbox = document.createElement("div"); rbox.className = "hidden"; rbox.style.marginTop = "10px";
     rd.onclick = () => { rbox.classList.toggle("hidden"); if (!rbox.innerHTML) reader(rbox, "accessory", s); };
+    el.appendChild(quickEl(S.items, "low", "Type a drill and press Enter, e.g. 3x20s chin over bar hold, 4x8 seconds eccentric handstand push-up, 3x25 v-ups", renderSess));
     row.append(add, rd); el.append(row, rbox);
     const ld = document.createElement("p"); ld.className = "load"; ld.id = "sload-" + s; el.appendChild(ld);
     box.appendChild(el);
   }
   summarise();
 }
-const sessLoad = (S) => S.items.reduce((o, x) => { o.iso += x.hold_seconds || 0; o.ecc += x.eccentric_seconds || 0; o.reps += x.reps || 0; return o; }, { iso: 0, ecc: 0, reps: 0 });
+const sessLoad = (S) => S.items.reduce((o, x) => { const t = tot(x); o.iso += t.held; o.ecc += t.ecc; o.reps += t.reps; return o; }, { iso: 0, ecc: 0, reps: 0 });
 
 // ---------- 2 and 4: the summaries ----------
 function tally(lists) {
@@ -419,9 +519,9 @@ function tally(lists) {
   for (const { day, items } of lists) for (const x of items) {
     const M = T.mod[x.modality] || T.mod.gymnastics, key = x.modality + ":" + x.pattern;
     const P = (T.pat[key] = T.pat[key] || { m: x.modality, p: x.pattern, reps: 0, kg: 0, metres: 0, cal: 0, held: 0, ecc: 0, days: new Set(), high: new Set(), cells: {} });
-    const r = x.reps || 0; M.reps += r; P.reps += r; M.kg += r * (x.load_kg || 0); P.kg += r * (x.load_kg || 0);
+    const t = tot(x), r = t.reps; M.reps += r; P.reps += r; M.kg += r * (x.load_kg || 0); P.kg += r * (x.load_kg || 0);
     M.metres += x.metres || 0; P.metres += x.metres || 0; M.cal += x.calories || 0; P.cal += x.calories || 0; M.secs += x.seconds || 0;
-    P.held += x.hold_seconds || 0; P.ecc += x.eccentric_seconds || 0; T.tut += (x.hold_seconds || 0) + (x.eccentric_seconds || 0); T.ecc += x.eccentric_seconds || 0;
+    P.held += t.held; P.ecc += t.ecc; T.tut += t.tut; T.ecc += t.ecc;
     M.days.add(day); P.days.add(day); if (x.intensity === "high") { M.high.add(day); P.high.add(day); }
     const rank = { low: 1, moderate: 2, high: 3 }[x.intensity] || 2; P.cells[day] = Math.max(P.cells[day] || 0, rank);
   }
@@ -470,12 +570,16 @@ function summarise() {
     else if (l.iso > ISO_TARGET) add("", `Session ${s + 1} (${dn}): ${l.iso} s held`, `A little past the ${ISO_TARGET} s isometric training target: check the shape holds with mastery through all of it.`);
     if (S.where === "after") add("", `Session ${s + 1} (${dn}) comes after the main element`, "Programming rule 4: train gymnastics first, before the central nervous system fatigue of the main element. If it must come after, keep it to position work.");
     if (S.where === "own" && (S.gap == null || S.gap < GAP)) add(S.gap == null ? "" : "bad", `Session ${s + 1} (${dn}) is its own session`, S.gap == null ? `How many hours is it from the class? Leave at least ${GAP} hours between concurrent training sessions.` : `${S.gap} hours from the class: leave at least ${GAP} hours between concurrent sessions, or put it in the class (a CrossFit® programme is one workout a day).`);
-    const hit = new Set(); for (const x of S.items) { const P = G.pat[x.modality + ":" + x.pattern]; if (P && P.high.has(S.day) && (x.reps || x.eccentric_seconds || (x.hold_seconds || 0) > 30)) hit.add(patName(x.modality, x.pattern).toLowerCase()); }
+    // (by group: a strict pull-up accessory on a day of high-intensity kipping pull-ups is still pulling)
+    const hit = new Set(); for (const x of S.items) { { const t = tot(x); if (!(t.reps || t.ecc || t.held > 30)) continue; }
+      for (const g of groupsOf(x.modality, x.pattern)) if (doc.week[S.day].items.some((y) => y.intensity === "high" && y.modality === x.modality && groupsOf(y.modality, y.pattern).includes(g))) hit.add(x.modality === "gymnastics" ? (GROUPS[g] || g).toLowerCase() : patName(x.modality, x.pattern).toLowerCase()); }
     for (const p of hit) add("", `Session ${s + 1} (${dn}): ${p} work on a high-intensity ${p} day`, "The gym's workout already loads this pattern hard today. Move the loading to another day, or keep today's work to position and perfection.");
   });
   if (doc.n > 1) { const ds = active.map((S) => S.day); if (new Set(ds).size < ds.length) add("", "Two accessory sessions on the same day", "Spread them through the week: frequent exposure is most effective (programming rule 2)."); }
   const gymOn = doc.week.some((D) => D.items.length);
-  if (gymOn) for (const [p, t] of PAT.gymnastics.filter(([q]) => ["pull", "push", "midline", "inversion"].includes(q))) if (!ALL.pat["gymnastics:" + p])   // (legs: the squats and lunges cover them) add("", `No ${t.toLowerCase()} work in the week`, "A gap your accessory sessions could fill? Frequent exposure is most effective.");
+  const have = new Set(); for (const P of Object.values(ALL.pat)) if (P.m === "gymnastics") groupsOf("gymnastics", P.p).forEach((g) => have.add(g));
+  // (legs are left out: the squats and lunges cover them)
+  if (gymOn) for (const [p, t] of [["pull", "Pull"], ["push", "Push"], ["midline", "Midline"], ["inversion", "Inversion"]]) if (!have.has(p)) add("", `No ${t.toLowerCase()} work in the week`, "A gap your accessory sessions could fill? Frequent exposure is most effective.");
   if (!active.some((S) => S.items.some((x) => x.name))) add("", "No accessory drills yet", "Add the drills for each session in section 3, by hand or from a screenshot.");
   if (!F.length && (gymOn || active.some((S) => S.items.length))) add("ok", "Within the limits and the rules", `Each session stays within the ${ECC_LIMIT} s eccentric limit and near the ${ISO_TARGET} s isometric target, and fits around the gym's week. Now coach it, and judge it by your athletes' shapes, not the numbers.`);
   $("flags").innerHTML = F.join("");
