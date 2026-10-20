@@ -269,10 +269,10 @@ export function directoryInvite() {
     text:
 `GET LISTED IN THE TRAINER DIRECTORY
 
-This course now shows on your profile in the BirdBox Trainer Directory, where athletes and gyms look for coaches. Add your photo, gym and location and your listing goes live straight away:
+You can now be listed in the BirdBox Trainer Directory, where athletes and gyms look for coaches. Create your free listing and this course is added to it automatically, verified by us. Add your photo, gym and location and it goes live straight away:
 ${link}`,
     html: `<p style="margin:26px 0 8px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;color:#16181b">Get listed in the Trainer Directory</p>
-<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#16181b">This course now shows on your profile in the BirdBox Trainer Directory, where athletes and gyms look for coaches. Add your photo, gym and location and your listing goes live straight away.</p>
+<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#16181b">You can now be listed in the BirdBox Trainer Directory, where athletes and gyms look for coaches. Create your free listing and this course is added to it automatically, verified by us. Add your photo, gym and location and it goes live straight away.</p>
 <p style="margin:0 0 16px"><a href="${link}" style="display:inline-block;background:#4FA8DE;color:#0C1116;text-decoration:none;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:13px;padding:12px 22px">Create my listing</a></p>`,
   };
 }
