@@ -262,6 +262,23 @@ export function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
+// Added to in-person certificate emails: the certificate can be downloaded
+// again from BirdBox Learn (My courses -> My live courses), logging in with
+// the email the course was booked under.
+export function certificateSavedNote() {
+  const link = `${SITE_URL}/learn/`;
+  return {
+    text:
+`YOUR CERTIFICATE IS SAVED IN BIRDBOX LEARN
+
+You can download it again any time from your BirdBox Learn account. Log in with this email address under Student Login:
+${link}`,
+    html: `<p style="margin:26px 0 8px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;color:#16181b">Your certificate is saved in BirdBox Learn</p>
+<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#16181b">You can download it again any time from your BirdBox Learn account. Log in with this email address under Student Login.</p>
+<p style="margin:0 0 16px"><a href="${link}" style="display:inline-block;background:#ffffff;color:#16181b;text-decoration:none;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:13px;padding:11px 20px;border:2px solid #16181b">Open my certificates</a></p>`,
+  };
+}
+
 // The few lines added to every certificate email, in person and online.
 export function directoryInvite() {
   const link = `${SITE_URL}/learn/directory/`;

@@ -23,7 +23,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import { directoryInvite } from "../lib/directory.mjs";
+import { directoryInvite, certificateSavedNote } from "../lib/directory.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -793,7 +793,12 @@ function emailHtml(text, brand, extraHtml = "") {
 async function sendEmail({ to, subject, text, filename, pdf, brand, workshop = false }) {
   // Workshops do not qualify anyone for the Trainer Directory, so their
   // certificates go out without the invitation.
-  const invite = workshop ? { text: "", html: "" } : directoryInvite();
+  const saved = certificateSavedNote();
+  const dir = workshop ? { text: "", html: "" } : directoryInvite();
+  const invite = {
+    text: [saved.text, dir.text].filter(Boolean).join("\n\n"),
+    html: saved.html + dir.html,
+  };
   const key = process.env.RESEND_API_KEY;
   if (!key) { console.warn("No Resend key; certificate not sent to", to); return false; }
 
