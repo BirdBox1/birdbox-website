@@ -199,6 +199,7 @@ const VIDEOS = {
   es: { explorer: "WvPkz8mfLW8", builder: "tf0UkJEOSu0", refiner: "tpuRRcHUPns", leader: "4C_i2Rqe_Wk" },
   fr: { explorer: "np3p37pbhi4", builder: "OUZGoLQJ0DE", refiner: "ksIEPgBABWc", leader: "7aWSY0kydDA" },
   pt: { explorer: "xPHjS-sGTfg", builder: "c-P2F5436b0", refiner: "5GXkSK70SsQ", leader: "fazCDlgpTqw" },
+  pl: { explorer: "gxDvb23IrcE", builder: "9JZXF3lpfRE", refiner: "ANIGg2KSQQ4", leader: "gLrjy3-JfJA" },
 };
 
 async function stagesFor(lang) {
