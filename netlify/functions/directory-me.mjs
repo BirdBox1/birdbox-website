@@ -240,7 +240,8 @@ function parseCourse(c) {
   if (!m || +m[1] < 2010 || +m[2] < 1 || +m[2] > 12) return { error: "Add the month and year for each course you ticked." };
   const course_month = `${m[1]}-${m[2]}-01`;
   if (new Date(course_month) > new Date()) return { error: "One of those dates is in the future." };
-  return { row: { ...def, course_month, location: clean(c.location, 120), note: clean(c.note, 300) } };
+  // Online courses have no place.
+  return { row: { ...def, course_month, location: def.kind === "online" ? null : clean(c.location, 120), note: clean(c.note, 300) } };
 }
 
 // Adds courses for the office to check. A course already on the listing

@@ -328,7 +328,7 @@ function drawAdd() {
     <label><input type="checkbox"><span>${esc(o.label)}<small>${esc(o.sub)}</small></span></label>
     <div class="more">
       <div class="field"><label>Month and year</label><input type="month" min="2010-01" class="a-month"></div>
-      <div class="field"><label>Where (gym and city)</label><input maxlength="120" class="a-where" placeholder="e.g. CrossFit Dublin, Ireland"></div>
+      ${o.kind === "online" ? "" : `<div class="field"><label>Where (gym and city)</label><input maxlength="120" class="a-where" placeholder="e.g. CrossFit Dublin, Ireland"></div>`}
     </div></div>`).join("");
   $("add-list").querySelectorAll(".opt input[type=checkbox]").forEach((cb) => {
     cb.onchange = () => cb.closest(".opt").classList.toggle("on", cb.checked);
@@ -345,7 +345,8 @@ function tickedCourses() {
     const month = el.querySelector(".a-month").value;
     const label = COURSE_OPTIONS.find((o) => o.code === el.dataset.code).label;
     if (!month) return { error: "Add the month and year for " + label + "." };
-    out.push({ code: el.dataset.code, month, location: el.querySelector(".a-where").value, note: $("a-note").value });
+    const where = el.querySelector(".a-where");
+    out.push({ code: el.dataset.code, month, location: where ? where.value : "", note: $("a-note").value });
   }
   return { courses: out };
 }
