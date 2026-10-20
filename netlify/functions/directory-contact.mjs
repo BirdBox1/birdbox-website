@@ -41,8 +41,7 @@ const EMAIL_RE = /^[^@\s,"'()]+@[^@\s,"'()]+\.[^@\s,"'()]+$/;
 const LOOKING_FOR = {
   personal: "Coaching for myself",
   online: "Online coaching",
-  gym: "Coaching or education for my gym or team",
-  seminar: "A seminar or workshop",
+  join: "Joining a gym",
   other: "Something else",
 };
 const LINK_RE = /(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|io|co|ai|app|info|biz|me|ly|gg|link|site|online|store|shop)\b|[^@\s]+@[^@\s]+\.[a-z]{2,})/i;

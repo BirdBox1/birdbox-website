@@ -144,8 +144,7 @@ export default async (req) => {
 };
 
 const LOOKING_LABEL = {
-  personal: "Coaching for myself", online: "Online coaching", gym: "Coaching or education for my gym or team",
-  seminar: "A seminar or workshop", other: "Something else",
+  personal: "Coaching for myself", online: "Online coaching", join: "Joining a gym", other: "Something else",
 };
 
 async function everything() {
