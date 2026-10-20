@@ -37,6 +37,7 @@
   .cp-head { border: 1px solid var(--line); background: var(--panel); padding: 28px 30px; }
   .cp-name { font-size: clamp(28px, 4vw, 44px); line-height: 1.05; font-weight: 800; text-transform: uppercase; letter-spacing: -.015em; margin: 0 0 8px; }
   .cp-headline { font-size: 17px; color: var(--accentText); margin: 0 0 14px; font-weight: 600; }
+  .cp-quals { font-size: 14px; color: var(--soft); margin: -6px 0 14px; letter-spacing: .02em; }
   .cp-facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
   .cp-fact { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #ADA6A8; border: 1px solid var(--line); padding: 7px 12px; }
   .cp-bio { font-size: 16px; line-height: 1.7; color: var(--soft); margin: 0; white-space: pre-line; max-width: 70ch; }
@@ -168,6 +169,7 @@ async function load() {
         <p class="td-label">BirdBox coach</p>
         <h1 class="cp-name">${esc(c.name)}</h1>
         ${c.headline ? `<p class="cp-headline">${esc(c.headline)}</p>` : ""}
+        ${c.qualifications ? `<p class="cp-quals">${esc(c.qualifications)}</p>` : ""}
         <div class="cp-facts">${facts.map((f) => `<span class="cp-fact">${esc(f)}</span>`).join("")}</div>
         <div class="td-badges" style="margin-bottom:${c.bio ? "20px" : "0"}">${badges(c.courses)}</div>
         ${c.bio ? `<p class="cp-bio">${esc(c.bio)}</p>` : ""}

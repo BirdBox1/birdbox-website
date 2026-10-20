@@ -95,7 +95,7 @@ async function view(profile, user) {
   const verified = quals.filter((q) => q.verified);
   return {
     profile: {
-      full_name: profile.full_name, headline: profile.headline, bio: profile.bio,
+      full_name: profile.full_name, headline: profile.headline, qualifications: profile.qualifications, bio: profile.bio,
       gym_name: profile.gym_name, city: profile.city, country: profile.country,
       latitude: profile.latitude, longitude: profile.longitude, location_approx: profile.location_approx,
       coaches_online: profile.coaches_online, instagram: profile.instagram, website: profile.website,
@@ -156,6 +156,7 @@ async function save(profile, user, email, b) {
   const fields = {
     full_name,
     headline: clean(b.headline, 90),
+    qualifications: clean(b.qualifications, 160),
     bio,
     gym_name: clean(b.gym_name, 90),
     city: clean(b.city, 80),

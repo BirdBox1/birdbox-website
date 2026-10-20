@@ -46,7 +46,7 @@ export const PROFILE_FIELDS =
   "id, user_id, email, other_emails, slug, full_name, headline, bio, gym_name, city, country, " +
   "latitude, longitude, coaches_online, instagram, website, public_email, photo_path, visible, " +
   "source, submitted_at, approved_at, rejected_at, review_note, hidden_at, seen_at, created_at, updated_at, " +
-  "phone, facebook, twitter, linkedin, cb_key, location_approx";
+  "phone, facebook, twitter, linkedin, cb_key, location_approx, qualifications";
 
 export function photoUrl(path) {
   if (!path) return null;
@@ -189,6 +189,7 @@ export function publicProfile(p, quals) {
     slug: p.slug,
     name: p.full_name,
     headline: p.headline || null,
+    qualifications: p.qualifications || null,
     bio: p.bio || null,
     gym: p.gym_name || null,
     city: p.city || null,

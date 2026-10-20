@@ -151,9 +151,10 @@
           </div>
         </div>
         <div class="row2">
-          <div class="field"><label for="f-name">Full name</label><input id="f-name" maxlength="80" autocomplete="name" required></div>
+          <div class="field"><label for="f-name">Full name</label><input id="f-name" maxlength="80" autocomplete="name" required><small>Just your name. Put letters and certifications under Qualifications.</small></div>
           <div class="field"><label for="f-headline">Headline</label><input id="f-headline" maxlength="90" placeholder="e.g. Head coach and gymnastics specialist"></div>
         </div>
+        <div class="field"><label for="f-quals">Qualifications</label><input id="f-quals" maxlength="160" placeholder="e.g. BSc, MSc, CSCS, CrossFit Level 2"><small>Degrees and certifications from outside BirdBox. Your BirdBox courses are listed separately, with a tick.</small></div>
         <div class="field"><label for="f-bio">About your coaching</label><textarea id="f-bio" maxlength="2000" placeholder="Who you coach, what you specialise in, how people can work with you."></textarea><small><span id="bio-n">0</span> / 2000</small></div>
       </div>
 
@@ -368,6 +369,7 @@ function fill() {
   const p = data.profile;
   $("f-name").value = p ? p.full_name || "" : data.suggested_name || "";
   $("f-headline").value = p?.headline || "";
+  $("f-quals").value = p?.qualifications || "";
   $("f-bio").value = p?.bio || ""; $("bio-n").textContent = $("f-bio").value.length;
   $("f-gym").value = p?.gym_name || "";
   $("f-online").checked = !!p?.coaches_online;
@@ -477,7 +479,7 @@ $("p-form").onsubmit = async (e) => {
   try {
     data = await call({
       action: "save",
-      full_name: $("f-name").value, headline: $("f-headline").value, bio: $("f-bio").value,
+      full_name: $("f-name").value, headline: $("f-headline").value, qualifications: $("f-quals").value, bio: $("f-bio").value,
       gym_name: $("f-gym").value, coaches_online: $("f-online").checked,
       city: loc?.city || null, country: loc?.country || null, latitude: loc?.latitude ?? null, longitude: loc?.longitude ?? null,
       instagram: $("f-ig").value, website: $("f-web").value, public_email: $("f-email").value,

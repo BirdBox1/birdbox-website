@@ -294,7 +294,7 @@ function matches(c) {
   if (state.q) {
     // Course names count too, including the old name for TCC, so a search
     // for "coaching development" finds the coaches who did it under that name.
-    const hay = [c.name, c.gym, c.city, c.country, c.headline,
+    const hay = [c.name, c.gym, c.city, c.country, c.headline, c.qualifications,
       ...c.courses.flatMap((x) => [x.title, x.tagline, BRANDS[x.brand]?.short])].filter(Boolean).join(" ").toLowerCase();
     if (!state.q.split(/\s+/).every((w) => hay.includes(w))) return false;
   }
