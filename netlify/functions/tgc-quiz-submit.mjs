@@ -208,6 +208,8 @@ const VIDEOS = {
   de: { eye: "nr2YmkVsJnA", methodology: "lgaQxQRSHNw", dynamic: "rih8XUWxgU0", periodisation: "HXFrK9FGoDo" },
   it: { eye: "lYrG33iIm4g", methodology: "zNKTSPx-Cxg", dynamic: "u0uLDtWrHlQ", periodisation: "Q_lXMwJVVeA" },
   es: { eye: "DPdywy9p3go", methodology: "PSmDNsK-Il4", dynamic: "5VmFI3Q2GqU", periodisation: "5u_sPReTrpA" },
+  fr: { eye: "1rZLg7Re2H4", methodology: "6gw1KXFaaK8", dynamic: "R5TbCvcbXuk", periodisation: "ulfomEi7ckk" },
+  pt: { eye: "ndiCIVxuIis", methodology: "8LOSO69Mtfw", dynamic: "Qp5vcOS2xlE", periodisation: "gRNfdmLgRLg" },
 };
 
 async function packFor(lang) {
