@@ -12,7 +12,9 @@ import { db, json, PROFILE_FIELDS, qualificationsFor, statusOf, publicProfile } 
 const CACHE = "public, max-age=60, s-maxage=300";
 // Netlify's own CDN keeps the list for 5 minutes and serves the old copy
 // while it fetches a new one, so visitors never wait for the database.
-const CDN_CACHE = "public, s-maxage=300, stale-while-revalidate=86400";
+// "durable" shares one copy across all of Netlify's servers, so only the
+// first visitor anywhere waits for it to be built.
+const CDN_CACHE = "public, durable, s-maxage=300, stale-while-revalidate=86400";
 
 export default async (req) => {
   if (req.method !== "GET") return json({ error: "Use GET" }, 405);

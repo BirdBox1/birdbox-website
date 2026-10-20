@@ -90,38 +90,40 @@ export async function qualificationsFor(profiles, { withPending = false } = {}) 
     byEmail.get(e).push(p.id);
   }
 
+  // For a handful of profiles, ask for just their rows. For the whole
+  // directory, read both tables in full and in parallel: two big reads are
+  // much quicker than a dozen filtered ones, and the tables are small.
   const emails = [...byEmail.keys()];
-  for (let i = 0; i < emails.length; i += 200) {
-    const { data, error } = await db.from("directory_qualifications")
-      .select("email, brand, level, kind, focus, awarded_on, place, course_title")
-      .in("email", emails.slice(i, i + 200));
-    if (error) throw new Error("Could not read qualifications: " + error.message);
-    for (const q of data || []) {
-      for (const id of byEmail.get(q.email) || []) {
-        out.get(id).push({
-          brand: q.brand, level: q.level, kind: q.kind, focus: q.focus || null,
-          course_title: q.course_title || null,
-          date: q.awarded_on, place: q.place, verified: "certificate",
-        });
-      }
-    }
-  }
-
   const ids = profiles.map((p) => p.id);
-  for (let i = 0; i < ids.length; i += 200) {
-    let query = db.from("directory_courses")
-      .select("id, profile_id, brand, level, kind, course_month, location, note, verified_at")
-      .in("profile_id", ids.slice(i, i + 200));
-    if (!withPending) query = query.not("verified_at", "is", null);
-    const { data, error } = await query;
-    if (error) throw new Error("Could not read past courses: " + error.message);
-    for (const c of data || []) {
-      out.get(c.profile_id).push({
-        id: c.id, brand: c.brand, level: c.level, kind: c.kind, focus: null,
-        date: c.course_month, place: c.location, note: c.note,
-        verified: c.verified_at ? "office" : null,
+  const many = profiles.length > 50;
+  const quals = () => db.from("directory_qualifications").select("email, brand, level, kind, focus, awarded_on, place, course_title");
+  const past = () => {
+    let q = db.from("directory_courses").select("id, profile_id, brand, level, kind, course_month, location, note, verified_at");
+    if (!withPending) q = q.not("verified_at", "is", null);
+    return q;
+  };
+  const [qualRows, pastRows] = await Promise.all([
+    many ? readAll(quals) : chunked(emails, (part) => quals().in("email", part)),
+    many ? readAll(past) : chunked(ids, (part) => past().in("profile_id", part)),
+  ]);
+
+  for (const q of qualRows) {
+    for (const id of byEmail.get(q.email) || []) {
+      out.get(id).push({
+        brand: q.brand, level: q.level, kind: q.kind, focus: q.focus || null,
+        course_title: q.course_title || null,
+        date: q.awarded_on, place: q.place, verified: "certificate",
       });
     }
+  }
+  for (const c of pastRows) {
+    const list = out.get(c.profile_id);
+    if (!list) continue;
+    list.push({
+      id: c.id, brand: c.brand, level: c.level, kind: c.kind, focus: null,
+      date: c.course_month, place: c.location, note: c.note,
+      verified: c.verified_at ? "office" : null,
+    });
   }
 
   for (const [id, all] of out) {
@@ -142,6 +144,28 @@ export async function qualificationsFor(profiles, { withPending = false } = {}) 
     out.set(id, unique);
   }
   return out;
+}
+
+// Every row of a query, a page at a time (the database hands back at most
+// 1,000 rows per request).
+async function readAll(make) {
+  const rows = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await make().range(from, from + 999);
+    if (error) throw new Error("Could not read the directory: " + error.message);
+    rows.push(...(data || []));
+    if (!data || data.length < 1000) return rows;
+  }
+}
+
+async function chunked(values, make) {
+  const rows = [];
+  for (let i = 0; i < values.length; i += 200) {
+    const { data, error } = await make(values.slice(i, i + 200));
+    if (error) throw new Error("Could not read the directory: " + error.message);
+    rows.push(...(data || []));
+  }
+  return rows;
 }
 
 export function hasCertificate(quals) {
