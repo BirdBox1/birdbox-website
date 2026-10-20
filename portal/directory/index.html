@@ -165,13 +165,21 @@ let fresh = new Set();
 
 const needsCheck = (c) => c.status === "pending" || c.waiting > 0;
 
-async function call(body) {
+async function call(body, retried = false) {
   const { data: { session } } = await db.auth.getSession();
   const r = await fetch("/.netlify/functions/directory-admin", {
     method: body ? "POST" : "GET",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
     body: body ? JSON.stringify(body) : undefined,
   });
+  // The login can go stale (for example after logging in somewhere else on
+  // this site in another tab). Renew it once and try again before asking.
+  if (r.status === 401 && !retried) {
+    const { error } = await db.auth.refreshSession();
+    if (!error) return call(body, true);
+    gate('Your login has expired. <a href="/portal/">Sign in to the portal</a>, then come back to this page.');
+    throw new Error("Please sign in again.");
+  }
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(d.error || "That did not work.");
   if (d.requests) requests = d.requests;
