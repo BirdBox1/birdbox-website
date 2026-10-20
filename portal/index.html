@@ -2639,17 +2639,22 @@ const COUNTRY_CURRENCY = {
 };
 
 // Filled from vat_rates so the dropdown can show which countries
-// carry VAT, and at what rate.
+// carry VAT on a seminar, and at what rate. A country flagged
+// seminars_exempt (Ireland) has no seminar VAT, so it is left out of
+// vatByCode and listed in vatExempt instead.
 let vatByCode = {};
+const vatExempt = new Set();
 
 async function loadVatRates() {
-  if (Object.keys(vatByCode).length) return;
-  const { data, error } = await db.from("vat_rates").select("code, rate, label");
+  if (Object.keys(vatByCode).length || vatExempt.size) return;
+  const { data, error } = await db.from("vat_rates").select("code, rate, label, seminars_exempt");
   if (error) { console.error("Could not load VAT rates:", error.message); return; }
   for (const r of data || []) {
+    const code = String(r.code || "").toUpperCase();
+    if (r.seminars_exempt) { vatExempt.add(code); continue; }
     const raw = Number(r.rate);
     if (!Number.isFinite(raw) || raw <= 0) continue;
-    vatByCode[String(r.code || "").toUpperCase()] = raw <= 1 ? raw * 100 : raw;
+    vatByCode[code] = raw <= 1 ? raw * 100 : raw;
   }
 }
 
@@ -2666,7 +2671,8 @@ function buildCountryOptions() {
     const o = document.createElement("option");
     o.value = r.code;
     const vat = vatByCode[r.code];
-    o.textContent = vat ? `${r.name} — VAT ${Number(vat.toFixed(2))}%` : r.name;
+    o.textContent = vatExempt.has(r.code) ? `${r.name} — VAT exempt`
+      : vat ? `${r.name} — VAT ${Number(vat.toFixed(2))}%` : r.name;
     sel.append(o);
   }
   if (current) sel.value = current;

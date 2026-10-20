@@ -11,7 +11,8 @@
 //   void             cancel an invoice that has not been paid
 //
 // VAT is always the rate for the country the seminar runs in (the
-// admission-to-events rule), taken from vat_rates — the same table the
+// admission-to-events rule), taken from vat_rates (none for a country
+// flagged seminars_exempt, i.e. Ireland) — the same table the
 // website checkout uses, so an invoice can never disagree with it.
 //
 // Marking an invoice paid is NOT done here. Stripe tells the webhook
@@ -118,10 +119,10 @@ async function createAndSend(b, me) {
   if (vatCountry) {
     const { data: vr } = await supabase
       .from("vat_rates")
-      .select("rate, stripe_tax_rate_id")
+      .select("rate, stripe_tax_rate_id, seminars_exempt")
       .eq("code", vatCountry)
       .maybeSingle();
-    if (vr && Number(vr.rate) > 0) {
+    if (vr && Number(vr.rate) > 0 && !vr.seminars_exempt) {
       const raw = Number(vr.rate);
       vatRate = raw <= 1 ? raw * 100 : raw;
       taxRateId = vr.stripe_tax_rate_id || null;
@@ -552,8 +553,8 @@ async function createPlan(b, me) {
   let vatRate = 0;
   if (vatCountry) {
     const { data: vr } = await supabase
-      .from("vat_rates").select("rate, stripe_tax_rate_id").eq("code", vatCountry).maybeSingle();
-    if (vr && Number(vr.rate) > 0) {
+      .from("vat_rates").select("rate, stripe_tax_rate_id, seminars_exempt").eq("code", vatCountry).maybeSingle();
+    if (vr && Number(vr.rate) > 0 && !vr.seminars_exempt) {
       vatRate = Number(vr.rate) <= 1 ? Number(vr.rate) * 100 : Number(vr.rate);
       if (!vr.stripe_tax_rate_id || !vr.stripe_tax_rate_id.startsWith("txr_")) {
         return json({ error: `The VAT rate for ${vatCountry} has no Stripe tax rate set up.` }, 400);
@@ -871,8 +872,8 @@ async function adoptInvoice(b, me) {
 
   let vatRate = 0;
   const { data: vr } = await supabase
-    .from("vat_rates").select("rate").eq("code", String(course.country || "").toUpperCase()).maybeSingle();
-  if (vr && Number(vr.rate) > 0) vatRate = Number(vr.rate) <= 1 ? Number(vr.rate) * 100 : Number(vr.rate);
+    .from("vat_rates").select("rate, seminars_exempt").eq("code", String(course.country || "").toUpperCase()).maybeSingle();
+  if (vr && Number(vr.rate) > 0 && !vr.seminars_exempt) vatRate = Number(vr.rate) <= 1 ? Number(vr.rate) * 100 : Number(vr.rate);
 
   const total = inv.amount_paid;
   const vat = typeof inv.tax === "number" ? inv.tax : (taxTotal(inv) || 0);
