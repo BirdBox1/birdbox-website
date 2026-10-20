@@ -111,12 +111,10 @@
   .leaflet-control-attribution { background: rgba(20,16,15,.8) !important; color: #756F71 !important; font-size: 10px; }
   .leaflet-control-attribution a { color: #8A8385 !important; }
   .leaflet-bar a { background: var(--panel) !important; color: var(--ink) !important; border-color: var(--line) !important; }
-  .td-pin {
-    width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--tcc); background: var(--panel2) center/cover;
-    color: #fff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 10px rgba(0,0,0,.6);
-  }
-  .td-pin.is-hot { border-color: #fff; transform: scale(1.18); }
+  .td-pin { width: 16px; height: 16px; border-radius: 50%; background: var(--tcc); border: 2px solid #0C1116; box-shadow: 0 1px 6px rgba(0,0,0,.6); }
+  .td-pin.is-hot { background: #fff; transform: scale(1.4); }
+  .td-pop { display: flex; gap: 10px; align-items: center; min-width: 190px; }
+  .td-pop img { width: 44px; height: 44px; object-fit: cover; flex: none; }
   .marker-cluster { background: color-mix(in srgb, var(--tcc) 30%, transparent); border-radius: 50%; }
   .marker-cluster div {
     width: 32px; height: 32px; margin: 4px; border-radius: 50%; background: var(--tcc); color: #0C1116;
@@ -379,17 +377,17 @@ function setupMap() {
   map.on("blur", () => map.scrollWheelZoom.disable());
 }
 
+const PIN = window.L ? L.divIcon({ html: '<div class="td-pin"></div>', className: "", iconSize: [16, 16], iconAnchor: [8, 8] }) : null;
 function drawPins(list, fit) {
   if (!map) return;
   cluster.clearLayers(); pins.clear();
   const pts = [];
   for (const c of list) {
     if (c.lat == null || c.lng == null) continue;
-    const html = c.photo
-      ? `<div class="td-pin" style="background-image:url('${esc(c.photo)}')"></div>`
-      : `<div class="td-pin">${esc(initials(c.name))}</div>`;
-    const m = L.marker([c.lat, c.lng], { icon: L.divIcon({ html, className: "", iconSize: [34, 34], iconAnchor: [17, 17] }), title: c.name });
-    m.bindPopup(`<a href="${coachUrl(c.slug)}">${esc(c.name)}</a><span>${esc([c.gym, place(c)].filter(Boolean).join(" · "))}</span>`);
+    // A plain dot: hundreds of photo pins meant hundreds of photos to
+    // download before the map settled. The photo shows in the popup.
+    const m = L.marker([c.lat, c.lng], { icon: PIN, title: c.name });
+    m.bindPopup(() => `<div class="td-pop">${c.photo ? `<img src="${esc(c.photo)}" alt="">` : ""}<div><a href="${coachUrl(c.slug)}">${esc(c.name)}</a><span>${esc([c.gym, place(c)].filter(Boolean).join(" · "))}</span></div></div>`);
     m.on("click", () => {
       const el = document.querySelector(`.td-card[data-slug="${CSS.escape(c.slug)}"]`);
       if (el && window.innerWidth > 960) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -417,7 +415,12 @@ async function load() {
     const r = await fetch("/.netlify/functions/directory-public");
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || "Could not load");
+    // A fresh random order on every visit, so nobody is always at the top.
     coaches = d.coaches || [];
+    for (let i = coaches.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [coaches[i], coaches[j]] = [coaches[j], coaches[i]];
+    }
   } catch (e) {
     $("count").textContent = "";
     $("list").innerHTML = `<div class="td-empty"><strong>The directory did not load.</strong>Refresh the page, or try again in a minute.</div>`;

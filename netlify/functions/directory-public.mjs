@@ -10,6 +10,9 @@
 import { db, json, PROFILE_FIELDS, qualificationsFor, statusOf, publicProfile } from "../lib/directory.mjs";
 
 const CACHE = "public, max-age=60, s-maxage=300";
+// Netlify's own CDN keeps the list for 5 minutes and serves the old copy
+// while it fetches a new one, so visitors never wait for the database.
+const CDN_CACHE = "public, s-maxage=300, stale-while-revalidate=86400";
 
 export default async (req) => {
   if (req.method !== "GET") return json({ error: "Use GET" }, 405);
@@ -30,10 +33,16 @@ export default async (req) => {
 
     if (slug) {
       if (!live.length) return json({ error: "Not found" }, 404, "public, max-age=60");
-      return json({ coach: live[0] }, 200, CACHE);
+      const res = json({ coach: live[0] }, 200, CACHE);
+      res.headers.set("Netlify-CDN-Cache-Control", CDN_CACHE);
+      return res;
     }
-    live.sort((a, b) => a.name.localeCompare(b.name));
-    return json({ coaches: live }, 200, CACHE);
+    // The list page does not show bios or links, so they are left out
+    // here; a coach's own page asks for them with ?slug=.
+    const slim = live.map(({ bio, instagram, website, facebook, twitter, linkedin, ...c }) => c);
+    const res = json({ coaches: slim }, 200, CACHE);
+    res.headers.set("Netlify-CDN-Cache-Control", CDN_CACHE);
+    return res;
   } catch (err) {
     console.error("directory-public:", err.message || err);
     return json({ error: "The directory could not be loaded." }, 500);
