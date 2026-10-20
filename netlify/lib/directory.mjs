@@ -94,7 +94,9 @@ export async function qualificationsFor(profiles, { withPending = false } = {}) 
   // directory, read both tables in full and in parallel: two big reads are
   // much quicker than a dozen filtered ones, and the tables are small.
   const emails = [...byEmail.keys()];
-  const ids = profiles.map((p) => p.id);
+  // A coach with no listing yet is looked up with a stand-in id, which has
+  // no past courses and is not a real id to search for.
+  const ids = profiles.map((p) => p.id).filter((id) => /^[0-9a-f-]{36}$/.test(id));
   const many = profiles.length > 50;
   const quals = () => db.from("directory_qualifications").select("email, brand, level, kind, focus, awarded_on, place, course_title");
   const past = () => {
