@@ -480,17 +480,14 @@ async function boot() {
 
   const box = $("courses");
   box.innerHTML = "";
-  // The TEC portfolio box shows for learners enrolled in The Endurance Course,
-  // and for staff while the course is still in development.
-  let tecStaff = !!isAdmin;
-  if (!tecStaff) {
-    try { const { data: st } = await db.from("learn_all_access").select("email").eq("email", session.user.email).maybeSingle(); tecStaff = !!st; } catch (e) {}
-  }
+  // The TEC portfolio box shows only to people who can see The Endurance
+  // Course. While it is in preview the database hides it from everyone
+  // else (admins included), so it is simply not in their list.
   // The portfolio boxes below the courses are a fallback: each course card now has its own
   // portfolio button, so a box only shows when no card carries that portfolio.
   const cardPf = new Set(list.map((c) => portfolioFor(c) && String(c.brand || "").toLowerCase()).filter(Boolean));
   $("tcc-pf").classList.toggle("hidden", cardPf.has("tcc"));
-  $("tec-pf").classList.toggle("hidden", cardPf.has("tec") || !(tecStaff || list.some((c) => String(c.brand || "").toLowerCase() === "tec")));
+  $("tec-pf").classList.toggle("hidden", cardPf.has("tec") || !list.some((c) => String(c.brand || "").toLowerCase() === "tec"));
 
   renderFamilies(list);
   showDirectory(session);

@@ -1534,6 +1534,14 @@ async function pfUnlock(t) {
 async function boot() {
   ({ data: { session } } = await db.auth.getSession());
   if (!session) { show("login"); return; }
+  // The Endurance Course is not released yet: only the people it is
+  // opened to can see it (the database decides). Everyone else stops here.
+  const { data: tecOk } = await db.from("learn_courses").select("id").eq("brand", "tec").limit(1);
+  if (!tecOk || !tecOk.length) {
+    document.body.innerHTML = '<div style="max-width:520px;margin:80px auto;padding:0 20px;font-family:-apple-system,Helvetica,Arial,sans-serif;color:#F2EFEF;line-height:1.6"><h1 style="font-size:24px">Not available yet</h1><p style="color:#B7B1B3">The Endurance Course is coming soon. <a style="color:#5CC48A" href="/learn/">Back to My courses</a></p></div>';
+    document.body.style.background = "#14100F";
+    return;
+  }
   if (tool && !new URLSearchParams(location.search).get("h")) pfUnlock(tool === "traits" ? "traits" : tool);
   if (tool === "spider" || tool === "traits") return openSpider();
   if (tool === "concern") return openConcern();
