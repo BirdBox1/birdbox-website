@@ -92,13 +92,12 @@
         <label for="l-email">Email</label>
         <input id="l-email" type="email" autocomplete="email" required>
       </div>
-      <div class="field hidden" id="pw-field">
+      <div class="field">
         <label for="l-pass">Password</label>
         <input id="l-pass" type="password" autocomplete="current-password">
-        <small>The password you set in BirdBox Learn, if you have one.</small>
       </div>
-      <button class="td-btn" id="l-go" type="submit">Email me a login link</button>
-      <button class="linkish" id="l-mode" type="button">I have a password</button>
+      <button class="td-btn" id="l-go" type="submit">Log in</button>
+      <button class="td-btn td-btn--ghost" id="l-link" type="button" style="width:100%;margin-top:10px">First time, or forgot your password? Email me a login link</button>
       <div id="l-msg" class="msg"></div>
     </form>
   </section>
@@ -230,33 +229,32 @@ let photoPath = null;     // what will be saved
 let loc = null;           // { city, country, latitude, longitude }
 
 // ---------- login ----------
-let pwMode = false;
-$("l-mode").onclick = () => {
-  pwMode = !pwMode;
-  $("pw-field").classList.toggle("hidden", !pwMode);
-  $("l-go").textContent = pwMode ? "Log in" : "Email me a login link";
-  $("l-mode").textContent = pwMode ? "Email me a link instead" : "I have a password";
-};
+// Same as the BirdBox Learn login: a password, or a one-tap link by email
+// for anyone who has not set one yet (or has forgotten it).
 $("login-form").onsubmit = async (e) => {
   e.preventDefault();
   const email = $("l-email").value.trim().toLowerCase();
+  const password = $("l-pass").value;
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return say("l-msg", "Type your email.", "err");
+  if (!password) return say("l-msg", "Type your password, or use the login link button below.", "err");
   $("l-go").disabled = true;
-  if (pwMode) {
-    const { error } = await db.auth.signInWithPassword({ email, password: $("l-pass").value });
-    $("l-go").disabled = false;
-    if (error) return say("l-msg", "That email and password did not match. Try a login link instead.", "err");
-    return;
-  }
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  $("l-go").disabled = false;
+  if (error) return say("l-msg", "That email and password did not match. Try again, or use the login link button.", "err");
+};
+$("l-link").onclick = async () => {
+  const email = $("l-email").value.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return say("l-msg", "Type your email first.", "err");
+  $("l-link").disabled = true;
   say("l-msg", "Sending…");
   let ok = false;
   try {
     const r = await fetch("/.netlify/functions/learn-access", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, next: "/learn/directory/" }) });
     ok = r.ok;
   } catch (err) {}
-  $("l-go").disabled = false;
+  $("l-link").disabled = false;
   if (!ok) return say("l-msg", "Something went wrong. Try again, or write to info@birdboxcoaching.com.", "err");
-  say("l-msg", "A login link is on its way to " + email + ". Check your inbox (and junk folder) and tap the link. Nothing after 5 minutes? Write to info@birdboxcoaching.com.", "ok");
+  say("l-msg", "A login link is on its way to " + email + ". Check your inbox (and junk folder) and tap the link. Once you are in, you can set a password in My courses.", "ok");
 };
 $("logout").onclick = async () => { await db.auth.signOut(); location.reload(); };
 
