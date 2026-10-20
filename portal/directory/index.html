@@ -517,8 +517,9 @@ $("i-go").onclick = async () => {
       say(`Importing… ${Math.min(i + 12, importRows.length)} of ${importRows.length}`);
       const d = await call({ action: "import", rows: importRows.slice(i, i + 12) });
       added += d.added; skipped += d.skipped; problems.push(...d.problems);
-      all = d.coaches;
     }
+    say("Loading the directory…");
+    all = (await call()).coaches;
     $("import").classList.add("hidden"); setTab("live");
     say(`Imported ${added}. Skipped ${skipped}${problems.length ? ": " + problems.slice(0, 20).join("; ") : ""}.`, added ? "ok" : "err");
     if (added) await placeOnMap();
@@ -534,10 +535,10 @@ async function placeOnMap() {
   while (left > 0) {
     say(`Putting coaches on the map… ${left} to go`);
     const d = await call({ action: "geocode_missing" });
-    all = d.coaches;
     if (!d.placed) break;
     left = d.left;
   }
+  all = (await call()).coaches;
   render();
   say("Done.", "ok");
 }

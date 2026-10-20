@@ -90,7 +90,10 @@ export default async (req) => {
           if (res.error) { skipped++; if (problems.length < 20) problems.push(`${r.email || r.full_name || "?"}: ${res.error}`); }
           else added++;
         }
-        return json({ added, skipped, problems, ...(await everything()) });
+        // Counts only: reloading 1,000 listings after every batch is what
+        // made the first import run past the time limit. The page loads
+        // the list once, at the end.
+        return json({ added, skipped, problems });
       }
       case "delete": {
         const p = await one(b.id);
@@ -104,7 +107,7 @@ export default async (req) => {
         break;
       }
       case "geocode_missing":
-        return json({ ...(await geocodeMissing()), ...(await everything()) });
+        return json(await geocodeMissing());
       case "release_request": {
         const { data: r } = await db.from("directory_contact_requests")
           .select("id, profile_id, name, email, phone, looking_for, message, status").eq("id", String(b.request_id || "")).maybeSingle();
