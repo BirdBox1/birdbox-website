@@ -266,7 +266,7 @@ async function sendEmail({ to, course, cert, pdf, again }) {
   if (!key || !to) { console.warn("Certificate not emailed to", to); return false; }
 
   const title = titleFor(course);
-  const invite = directoryInvite();
+  const invite = directoryInvite(course.brand);
   const first = String(cert.name).split(" ")[0];
   const text =
 `Hi ${first},

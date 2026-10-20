@@ -262,11 +262,23 @@ export function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
+// Email buttons in each course's own colour: TGC burgundy, TCC blue, TEC
+// green, TWC yellow. "on" is the text colour that reads on that fill.
+const BUTTON = {
+  tgc: { bg: "#85151A", on: "#FFFFFF" },
+  tcc: { bg: "#298DE9", on: "#FFFFFF" },
+  tec: { bg: "#10502C", on: "#FFFFFF" },
+  twc: { bg: "#F1A509", on: "#16181B" },
+  birdbox: { bg: "#16181B", on: "#FFFFFF" },
+};
+const buttonFor = (brand) => BUTTON[String(brand || "").toLowerCase()] || BUTTON.birdbox;
+
 // Added to in-person certificate emails: the certificate can be downloaded
 // again from BirdBox Learn (My courses -> My live courses), logging in with
 // the email the course was booked under.
-export function certificateSavedNote() {
+export function certificateSavedNote(brand) {
   const link = `${SITE_URL}/learn/`;
+  const b = buttonFor(brand);
   return {
     text:
 `YOUR CERTIFICATE IS SAVED IN BIRDBOX LEARN
@@ -275,13 +287,14 @@ You can download it again any time from your BirdBox Learn account. Log in with 
 ${link}`,
     html: `<p style="margin:26px 0 8px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;color:#16181b">Your certificate is saved in BirdBox Learn</p>
 <p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#16181b">You can download it again any time from your BirdBox Learn account. Log in with this email address under Student Login.</p>
-<p style="margin:0 0 16px"><a href="${link}" style="display:inline-block;background:#ffffff;color:#16181b;text-decoration:none;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:13px;padding:11px 20px;border:2px solid #16181b">Open my certificates</a></p>`,
+<p style="margin:0 0 16px"><a href="${link}" style="display:inline-block;background:#ffffff;color:${b.bg === "#F1A509" ? "#16181B" : b.bg};text-decoration:none;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:13px;padding:11px 20px;border:2px solid ${b.bg}">Open my certificates</a></p>`,
   };
 }
 
 // The few lines added to every certificate email, in person and online.
-export function directoryInvite() {
+export function directoryInvite(brand) {
   const link = `${SITE_URL}/learn/directory/`;
+  const b = buttonFor(brand);
   return {
     text:
 `GET LISTED IN THE TRAINER DIRECTORY
@@ -290,6 +303,6 @@ You can now be listed in the BirdBox Trainer Directory, where athletes and gyms 
 ${link}`,
     html: `<p style="margin:26px 0 8px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;color:#16181b">Get listed in the Trainer Directory</p>
 <p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#16181b">You can now be listed in the BirdBox Trainer Directory, where athletes and gyms look for coaches. Create your free listing and this course is added to it automatically, verified by us. Add your photo, gym and location and it goes live straight away.</p>
-<p style="margin:0 0 16px"><a href="${link}" style="display:inline-block;background:#4FA8DE;color:#0C1116;text-decoration:none;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:13px;padding:12px 22px">Create my listing</a></p>`,
+<p style="margin:0 0 16px"><a href="${link}" style="display:inline-block;background:${b.bg};color:${b.on};text-decoration:none;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:13px;padding:12px 22px;border:2px solid ${b.bg}">Create my listing</a></p>`,
   };
 }

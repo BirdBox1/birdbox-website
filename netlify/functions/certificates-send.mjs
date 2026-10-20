@@ -793,8 +793,8 @@ function emailHtml(text, brand, extraHtml = "") {
 async function sendEmail({ to, subject, text, filename, pdf, brand, workshop = false }) {
   // Workshops do not qualify anyone for the Trainer Directory, so their
   // certificates go out without the invitation.
-  const saved = certificateSavedNote();
-  const dir = workshop ? { text: "", html: "" } : directoryInvite();
+  const saved = certificateSavedNote(brand);
+  const dir = workshop ? { text: "", html: "" } : directoryInvite(brand);
   const invite = {
     text: [saved.text, dir.text].filter(Boolean).join("\n\n"),
     html: saved.html + dir.html,
