@@ -246,6 +246,7 @@ async function onCheckoutCompleted(session) {
     due_date: today(),
     charged_at: new Date().toISOString(),
     status: "paid",
+    paid_cents: full.amount_total,
     stripe_payment_intent_id: intentId,
   });
 
@@ -529,30 +530,89 @@ async function onInvoicePaid(invoice) {
     return;
   }
 
-  await supabase
+  await recordInstalmentPaid(invoice);
+}
+
+// A deposit balance or monthly payment from a website booking has been
+// taken. Marks its row in payments as paid and adds the money to what
+// the registration has paid, so the course total on the portal is the
+// money actually received.
+//
+// Also called by the portal's "Check plan payments against Stripe",
+// which puts right the ones taken before this was fixed. Until then
+// the status written here was not one the database accepted, so the
+// whole update failed quietly: nothing was marked paid and the course
+// total only ever counted the first payment.
+//
+// paid_cents is set once, in the same update that claims the row, so
+// a webhook retry and the portal check can never count it twice.
+export async function recordInstalmentPaid(invoice) {
+  const { data: row } = await supabase
+    .from("payments")
+    .select("id, registration_id, paid_cents")
+    .eq("stripe_invoice_id", invoice.id)
+    .maybeSingle();
+  if (!row) return { recorded: false, reason: "no payment row" };
+  if (row.paid_cents != null) return { recorded: false, reason: "already recorded" };
+
+  const amount = invoice.amount_paid ?? invoice.total ?? 0;
+  const paidAt = invoice.status_transitions?.paid_at
+    ? new Date(invoice.status_transitions.paid_at * 1000).toISOString()
+    : new Date().toISOString();
+  const intentId = await invoiceIntent(invoice);
+
+  const { data: claimed, error } = await supabase
     .from("payments")
     .update({
       status: "paid",
-      charged_at: new Date().toISOString(),
+      charged_at: paidAt,
+      paid_cents: amount,
+      // The refund paths only refund rows that carry this.
+      ...(intentId ? { stripe_payment_intent_id: intentId } : {}),
       last_error: null,
     })
-    .eq("stripe_invoice_id", invoice.id);
+    .eq("id", row.id)
+    .is("paid_cents", null)
+    .select("id");
+  if (error) throw new Error("payments: " + error.message);
+  if (!claimed || !claimed.length) return { recorded: false, reason: "already recorded" };
+
+  const registrationId = row.registration_id;
+  const { data: reg } = await supabase
+    .from("registrations").select("amount_paid_cents").eq("id", registrationId).single();
+  const patch = { amount_paid_cents: ((reg && reg.amount_paid_cents) || 0) + amount };
 
   // Paid in full only once nothing is left to collect — a monthly plan
-  // has several payments, a deposit booking just the one balance.
+  // has several payments, a deposit booking just the one balance. The
+  // first payment is always taken at checkout; older ones are still
+  // labelled pending, so they are left out of the question.
   const { data: open } = await supabase
     .from("payments")
     .select("id")
     .eq("registration_id", registrationId)
+    .gt("sequence", 1)
     .in("status", ["pending", "failed"]);
-  if (!open || !open.length) {
-    await supabase
-      .from("registrations")
-      .update({ payment_status: "paid_in_full" })
-      .eq("id", registrationId);
-  }
+  if (!open || !open.length) patch.payment_status = "paid_in_full";
+
+  const { error: regErr } = await supabase.from("registrations").update(patch).eq("id", registrationId);
+  if (regErr) throw new Error("registrations: " + regErr.message);
 
   await clearOverdue({ registrationId });
+  return { recorded: true, amount };
+}
+
+// Newer Stripe API versions moved the payment intent off the invoice.
+async function invoiceIntent(invoice) {
+  const direct = invoice.payment_intent;
+  if (direct) return typeof direct === "string" ? direct : direct.id;
+  try {
+    const list = await stripe.invoicePayments.list({ invoice: invoice.id, limit: 5 });
+    for (const p of list.data || []) {
+      const pi = p.payment && p.payment.payment_intent;
+      if (pi) return typeof pi === "string" ? pi : pi.id;
+    }
+  } catch (_) { /* older API without invoice payments */ }
+  return null;
 }
 
 // ---------------------------------------------------------------

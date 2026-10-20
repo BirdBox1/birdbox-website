@@ -10,7 +10,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
-import { sendConfirmation } from "./stripe-webhook.mjs";
+import { sendConfirmation, recordInstalmentPaid } from "./stripe-webhook.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -53,6 +53,7 @@ export default async (request) => {
       case "cancel":                return await cancel(body, me);
       case "refund_registration":   return await refundRegistration(body, me);
       case "partial_refund":        return await partialRefund(body, me);
+      case "reconcile_payments":    return await reconcilePayments(body);
       default:
         return json({ error: `Unknown action "${body.action}".` }, 400);
     }
@@ -474,11 +475,8 @@ async function cancel({ courseId, reason }, me) {
 
     // ---- stop what was still to come ----------------------
     if (person.cancelIds.length) {
-      const { error } = await supabase
-        .from("payments")
-        .update({ status: "cancelled" })
-        .in("id", person.cancelIds);
-      if (error) problems.push(`${person.name}: could not stop the balance — ${error.message}`);
+      const stop = await stopScheduled(person.cancelIds);
+      problems.push(...stop.problems.map((p) => `${person.name}: ${p}`));
     }
 
     await supabase
@@ -694,11 +692,8 @@ async function refundRegistration({ courseId, registrationId, reason }, me) {
 
   // Stop anything still scheduled so nothing further is taken.
   if (toCancel.length) {
-    const { error } = await supabase
-      .from("payments")
-      .update({ status: "cancelled" })
-      .in("id", toCancel.map((p) => p.id));
-    if (error) problems.push(`could not stop the balance — ${error.message}`);
+    const stop = await stopScheduled(toCancel.map((p) => p.id));
+    problems.push(...stop.problems);
   }
 
   // Paid through a portal invoice or payment plan rather than the
@@ -869,6 +864,91 @@ ${OFFICE}`,
 
 // The Stripe payment behind an invoice. Where it lives depends on the
 // Stripe API version, so each place is tried in turn.
+// Balances and monthly payments from website bookings whose money may
+// have arrived without being recorded. Until the webhook was fixed,
+// none of them were — so this asks Stripe about each one that is due
+// and records the ones it has been paid. Safe to run again: a payment
+// is only ever counted once (see recordInstalmentPaid).
+//
+// Works in small batches so it fits inside a function's time limit;
+// the portal keeps calling with the returned cursor until it is done.
+async function reconcilePayments(b) {
+  const BATCH = 15;
+  let q = supabase
+    .from("payments")
+    .select("id, stripe_invoice_id")
+    .gt("sequence", 1)
+    .not("stripe_invoice_id", "is", null)
+    .is("paid_cents", null)
+    .in("status", ["pending", "failed", "paid"])
+    .lte("due_date", new Date().toISOString().slice(0, 10))
+    .order("id")
+    .limit(BATCH);
+  if (b.after) q = q.gt("id", b.after);
+  const { data: rows, error } = await q;
+  if (error) return json({ error: error.message }, 500);
+
+  const out = { checked: 0, recorded: 0, recorded_cents: 0, unpaid: 0, problems: [] };
+  for (const row of rows || []) {
+    out.checked++;
+    try {
+      const inv = await stripe.invoices.retrieve(row.stripe_invoice_id);
+      if (inv.status === "paid") {
+        const r = await recordInstalmentPaid(inv);
+        if (r.recorded) { out.recorded++; out.recorded_cents += r.amount; }
+      } else {
+        out.unpaid++;
+      }
+    } catch (err) {
+      out.problems.push(`${row.stripe_invoice_id}: ${err.message}`);
+    }
+  }
+
+  const done = (rows || []).length < BATCH;
+  return json({ ...out, done, next: done ? null : rows[rows.length - 1].id });
+}
+
+// Stops balances and monthly payments that have not been taken yet.
+// Each one is a Stripe invoice set to charge itself on its date, so
+// marking the row cancelled is not enough on its own — the invoice is
+// deleted (still a draft) or voided (already finalised) first, and the
+// row is only marked cancelled once Stripe has let go of it. One that
+// Stripe has already charged is recorded as paid instead, and flagged,
+// because that money will need refunding by hand.
+async function stopScheduled(paymentIds) {
+  const problems = [];
+  const { data: rows, error } = await supabase
+    .from("payments")
+    .select("id, sequence, stripe_invoice_id")
+    .in("id", paymentIds);
+  if (error) return { problems: [`could not stop the balance — ${error.message}`] };
+
+  const stopped = [];
+  for (const row of rows || []) {
+    if (!row.stripe_invoice_id) { stopped.push(row.id); continue; }
+    try {
+      const inv = await stripe.invoices.retrieve(row.stripe_invoice_id);
+      if (inv.status === "paid") {
+        await recordInstalmentPaid(inv);
+        problems.push(`payment ${row.sequence} had already been taken by Stripe — refund it by hand in Stripe`);
+        continue;
+      }
+      if (inv.status === "draft") await stripe.invoices.del(inv.id);
+      else if (inv.status === "open") await stripe.invoices.voidInvoice(inv.id);
+      stopped.push(row.id);
+    } catch (err) {
+      problems.push(`payment ${row.sequence} could not be stopped in Stripe — ${err.message}`);
+    }
+  }
+
+  if (stopped.length) {
+    const { error: upErr } = await supabase
+      .from("payments").update({ status: "cancelled" }).in("id", stopped);
+    if (upErr) problems.push(`could not mark the balance stopped — ${upErr.message}`);
+  }
+  return { problems };
+}
+
 async function invoicePaymentIntent(invoiceId) {
   const inv = await stripe.invoices.retrieve(invoiceId);
   const direct = inv.payment_intent;

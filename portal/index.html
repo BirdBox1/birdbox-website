@@ -264,6 +264,8 @@
   .course .seats--full   { color: #fff; background: var(--good); border-color: var(--good); }
   .course .card-online { flex-basis: 100%; text-align: right; font-size: 0.68rem; font-weight: 600; color: var(--muted); margin-top: 0.05rem; font-variant-numeric: tabular-nums; }
   .course .card-income { flex-basis: 100%; text-align: right; font-size: 0.72rem; font-weight: 700; color: var(--good); margin-top: 0.15rem; font-variant-numeric: tabular-nums; }
+  .course .card-expected { flex-basis: 100%; text-align: right; font-size: 0.68rem; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .course .card-failed { flex-basis: 100%; text-align: right; font-size: 0.68rem; font-weight: 700; color: var(--bad); font-variant-numeric: tabular-nums; }
 
   /* Sits with the tabs rather than above the list, so it reads as
      part of choosing what you are looking at. */
@@ -694,6 +696,7 @@
     <button id="yearbtn" class="hidden" type="button">Scheduling planner</button>
     <button id="compbtn" class="hidden" type="button">Their courses</button>
     <button id="mktbtn" class="hidden" type="button">Where to go</button>
+    <button id="reconcilebtn" class="hidden" type="button">Check plan payments</button>
 
     <button id="profilebtn" class="hidden" type="button">My profile</button>
     <span class="who" id="who"></span>
@@ -3296,6 +3299,8 @@ async function start() {
     $("compbtn").onclick = () => { location.href = "/portal/competitors/"; };
       $("mktbtn").classList.toggle("hidden", !admin);
     $("mktbtn").onclick = () => { location.href = "/portal/markets/"; };
+    $("reconcilebtn").classList.toggle("hidden", !admin);
+    $("reconcilebtn").onclick = reconcilePlanPayments;
 
   refreshUnreadFlag();
   listenForMessages();
@@ -3407,6 +3412,69 @@ for (const id of ["tab-live", "tab-past", "tab-done"]) {
   });
 }
 
+// Money per course for the admin's course cards:
+//   received — money in so far. Everything people have paid, plus the
+//              share of a paid group invoice for places not yet named
+//              (those people have no registration yet, so their money
+//              was missing from the total).
+//   owed     — still to come and on schedule: website balances and
+//              monthly payments, and the rest of portal payment plans.
+//   failed   — Stripe gave up on it. Kept apart, as it may never come.
+// All including VAT, the same as the received figure. Website balances
+// are stored before VAT (Stripe adds it), so the venue's rate is put
+// back on here, the way the checkout does it.
+async function courseMoney(rows, income, namedOn) {
+  const ids = rows.map((c) => c.id);
+  const byId = Object.fromEntries(rows.map((c) => [c.id, c]));
+  const out = {};
+  for (const id of ids) out[id] = { received: income[id] || 0, owed: 0, failed: 0 };
+
+  const [pays, invs, vats] = await Promise.all([
+    db.from("payments")
+      .select("amount_cents, status, registrations!inner ( course_id, status, payment_status )")
+      .gt("sequence", 1)
+      .in("status", ["pending", "failed"])
+      .in("registrations.course_id", ids),
+    db.from("invoices")
+      .select("id, course_id, kind, status, plan_state, places, total_cents, paid_cents")
+      .in("course_id", ids)
+      .in("status", ["paid", "sent"]),
+    db.from("vat_rates").select("code, rate, seminars_exempt, stripe_tax_rate_id"),
+  ]);
+
+  const vatOf = {};
+  for (const v of vats.data || []) {
+    const raw = Number(v.rate);
+    if (!v.stripe_tax_rate_id || v.seminars_exempt || !(raw > 0)) continue;
+    vatOf[String(v.code).toUpperCase()] = raw <= 1 ? raw : raw / 100;
+  }
+
+  for (const p of pays.data || []) {
+    const r = p.registrations;
+    if (!r || (r.status || "active") !== "active" || r.payment_status === "refunded") continue;
+    const rate = vatOf[String(byId[r.course_id]?.country || "").toUpperCase()] || 0;
+    const gross = Math.round((p.amount_cents || 0) * (1 + rate));
+    out[r.course_id][p.status === "failed" ? "failed" : "owed"] += gross;
+  }
+
+  for (const inv of invs.data || []) {
+    const m = out[inv.course_id];
+    if (!m) continue;
+    const isPlan = inv.kind === "plan";
+    // A plan nobody has agreed to yet is not money anyone has committed.
+    if (isPlan && !["active", "failed", "completed"].includes(inv.plan_state)) continue;
+    const paid = isPlan ? (inv.paid_cents || 0) : (inv.status === "paid" ? inv.total_cents || 0 : 0);
+    const places = inv.places || 0;
+    const unnamed = Math.max(0, places - (namedOn[inv.id] || 0));
+    if (places && unnamed) m.received += Math.round(paid * unnamed / places);
+    if (isPlan) {
+      const left = Math.max(0, (inv.total_cents || 0) - paid);
+      m[inv.plan_state === "failed" ? "failed" : "owed"] += left;
+    }
+  }
+  return out;
+}
+
 async function loadCourses() {
   show("courses");
   const list = $("courses-list");
@@ -3494,16 +3562,24 @@ async function loadCourses() {
   // A cancelled registration is not a person in the room. Refunded
   // and failed were already excluded; cancelled was not, and these
   // numbers decide whether a course looks viable.
-  const booked = {}, income = {};
+  const booked = {}, income = {}, namedOn = {};
   const { data: regs } = await db.from("registrations")
-    .select("course_id, payment_status, status, amount_paid_cents")
+    .select("course_id, payment_status, status, amount_paid_cents, invoice_id")
     .in("course_id", rows.map((c) => c.id));
   for (const r of regs || []) {
+    if (r.invoice_id) namedOn[r.invoice_id] = (namedOn[r.invoice_id] || 0) + 1;
     if (r.payment_status === "refunded" || r.payment_status === "failed") continue;
     if ((r.status || "active") !== "active") continue;
     booked[r.course_id] = (booked[r.course_id] || 0) + 1;
     income[r.course_id] = (income[r.course_id] || 0) + (r.amount_paid_cents || 0);
   }
+
+  // Admins only: the money still to come on each course, so the card
+  // can show what it will have taken once every plan has finished, not
+  // just what is in so far. See courseMoney().
+  const money2 = isAdmin()
+    ? await courseMoney(rows, income, namedOn)
+    : {};
 
   // Online course sales that came from a course's follow-up email (the
   // 50% seminar offer), by course and currency. Admins only — the same
@@ -3746,9 +3822,27 @@ async function loadCourses() {
     if (isAdmin()) {
       const incEl = document.createElement("span");
       incEl.className = "card-income";
-      incEl.textContent = money(income[c.id] || 0, c.currency);
-      incEl.title = "Income received (excludes refunds)";
+      const m = money2[c.id] || { received: income[c.id] || 0, owed: 0, failed: 0 };
+      incEl.textContent = money(m.received, c.currency) + " received";
+      incEl.title = "Money in so far, including VAT, after refunds";
       el.querySelector(".topright").append(incEl);
+
+      // What it comes to once every payment plan and balance has been
+      // paid. Only shown when something is still to come.
+      if (m.owed) {
+        const expEl = document.createElement("span");
+        expEl.className = "card-expected";
+        expEl.textContent = money(m.received + m.owed, c.currency) + " expected";
+        expEl.title = `Once every payment plan and balance is paid: ${money(m.owed, c.currency)} still to come, including VAT`;
+        el.querySelector(".topright").append(expEl);
+      }
+      if (m.failed) {
+        const failEl = document.createElement("span");
+        failEl.className = "card-failed";
+        failEl.textContent = money(m.failed, c.currency) + " failed";
+        failEl.title = "Payments Stripe could not take after every retry. Not counted in expected — they need chasing.";
+        el.querySelector(".topright").append(failEl);
+      }
 
       // Online course sold from this course's follow-up email.
       const on = online[c.id];
@@ -4723,6 +4817,41 @@ function flash(el, text, isError = false) {
 }
 
 /* ---------------- admin actions ---------------- */
+
+// Asks Stripe about every website balance and monthly payment that is
+// due, and records the ones that have been paid. For a while these
+// were never recorded, so course totals only counted first payments.
+// Safe to press again — nothing is ever counted twice.
+async function reconcilePlanPayments() {
+  if (!window.confirm("Check every due balance and monthly payment against Stripe, and record the ones that have been paid?\n\nNothing is charged or refunded. Safe to run more than once.")) return;
+  const btn = $("reconcilebtn");
+  btn.disabled = true;
+  const total = { checked: 0, recorded: 0, recorded_cents: 0, unpaid: 0, problems: [] };
+  let after = null;
+  try {
+    for (let i = 0; i < 100; i++) {
+      btn.textContent = `Checking… ${total.checked}`;
+      const r = await callAdmin({ action: "reconcile_payments", after });
+      total.checked += r.checked; total.recorded += r.recorded;
+      total.recorded_cents += r.recorded_cents; total.unpaid += r.unpaid;
+      total.problems.push(...(r.problems || []));
+      if (r.done) break;
+      after = r.next;
+    }
+    window.alert(
+      `Checked ${total.checked} payment${total.checked === 1 ? "" : "s"} with Stripe.\n\n` +
+      `${total.recorded} had been paid and are now recorded.\n` +
+      `${total.unpaid} ${total.unpaid === 1 ? "is" : "are"} not paid in Stripe.` +
+      (total.problems.length ? `\n\nCould not check:\n${total.problems.slice(0, 10).join("\n")}` : "")
+    );
+    loadCourses();
+  } catch (err) {
+    window.alert("Stopped: " + err.message + "\n\nWhat was recorded so far is kept. Press it again to carry on.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Check plan payments";
+  }
+}
 
 async function callAdmin(payload) {
   const { data: { session } } = await db.auth.getSession();
