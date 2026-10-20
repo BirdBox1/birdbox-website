@@ -163,7 +163,8 @@
 
       <div class="box">
         <h2>Where you coach</h2>
-        <p class="hint">Search for your gym or town so you appear on the map.</p>
+        <p class="hint">Search for your gym or town so you appear on the map. Coaching online? Put where you are based.</p>
+        <div class="none hidden" id="approx-note" style="border-color:#F1A509">We placed your pin roughly, from the details we had. Search for your gym or town below and save, so people near you can find you.</div>
         <div class="field"><label for="f-gym">Gym or business name</label><input id="f-gym" maxlength="90"></div>
         <div class="field" style="margin-bottom:6px"><label for="f-place">Town or address</label>
           <input id="f-place" autocomplete="off" placeholder="Start typing, then pick from the list">
@@ -345,6 +346,7 @@ function fill() {
   photoPath = p?.photo_path || null;
   loc = p && (p.city || p.latitude != null) ? { city: p.city, country: p.country, latitude: p.latitude, longitude: p.longitude } : null;
   $("f-place").value = loc ? [loc.city, loc.country].filter(Boolean).join(", ") : "";
+  $("approx-note").classList.toggle("hidden", !(p && (p.location_approx || p.latitude == null)));
   $("view").classList.toggle("hidden", !(p && data.status === "live"));
   if (data.url) $("view").href = data.url;
   $("delete").classList.toggle("hidden", !p);
@@ -425,7 +427,7 @@ $("f-bio").oninput = () => { $("bio-n").textContent = $("f-bio").value.length; }
 // ---------- save ----------
 $("p-form").onsubmit = async (e) => {
   e.preventDefault();
-  if ($("f-place").value.trim() && !loc) return say("s-msg", "Pick your town from the list so you show on the map.", "err");
+  if (!loc || loc.latitude == null) return say("s-msg", "Search for your gym or town and pick it from the list, so you show on the map.", "err");
   $("save").disabled = true; say("s-msg", "Saving…");
   const oldPhoto = data.profile?.photo_path;
   try {

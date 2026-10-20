@@ -96,7 +96,7 @@ async function view(profile, user) {
     profile: {
       full_name: profile.full_name, headline: profile.headline, bio: profile.bio,
       gym_name: profile.gym_name, city: profile.city, country: profile.country,
-      latitude: profile.latitude, longitude: profile.longitude,
+      latitude: profile.latitude, longitude: profile.longitude, location_approx: profile.location_approx,
       coaches_online: profile.coaches_online, instagram: profile.instagram, website: profile.website,
       public_email: profile.public_email, phone: profile.phone,
       facebook: profile.facebook, twitter: profile.twitter, linkedin: profile.linkedin,
@@ -161,6 +161,10 @@ async function save(profile, user, email, b) {
     country: clean(b.country, 60),
     latitude: hasPoint ? lat : null,
     longitude: hasPoint ? lng : null,
+    // A pin the coach chose themselves replaces one we worked out for
+    // them; saving other changes leaves a rough pin marked as rough.
+    location_approx: !!(profile && profile.location_approx &&
+      Number(profile.latitude) === lat && Number(profile.longitude) === lng),
     coaches_online: !!b.coaches_online,
     instagram: cleanInstagram(b.instagram),
     website: cleanUrl(b.website),
@@ -173,7 +177,9 @@ async function save(profile, user, email, b) {
     visible: b.visible !== false,
     updated_at: new Date().toISOString(),
   };
-  if (!fields.city && !fields.coaches_online) return { error: "Add where you coach, or tick that you coach online." };
+  // Every coach has a pin on the map, online coaches included (theirs is
+  // where they are based).
+  if (!hasPoint) return { error: "Search for your gym or town and pick it from the list, so you show on the map." };
 
   let saved;
   if (profile) {
