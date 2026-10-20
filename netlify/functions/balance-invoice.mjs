@@ -16,7 +16,8 @@
 //
 // The amount typed is what they owe in total, VAT included. VAT is the
 // rate for the country the seminar runs in (admission to an event),
-// from vat_rates, the same as the website checkout.
+// from vat_rates, the same as the website checkout — none where the
+// country is flagged seminars_exempt (Ireland).
 //
 // Admin only.
 //
@@ -86,10 +87,11 @@ async function send(b) {
     return json({ error: "A balance invoice for this person is already out and unpaid. Void it in Stripe first if it is wrong." }, 409);
   }
 
-  // VAT for the venue's country, inside the amount they owe.
+  // VAT for the venue's country, inside the amount they owe. None for a
+  // country whose seminars are VAT exempt (Ireland).
   const { data: vr } = await supabase.from("vat_rates")
-    .select("rate, stripe_tax_rate_id").eq("code", String(course.country || "").toUpperCase()).maybeSingle();
-  const rate = vr ? (Number(vr.rate) <= 1 ? Number(vr.rate) * 100 : Number(vr.rate)) : 0;
+    .select("rate, stripe_tax_rate_id, seminars_exempt").eq("code", String(course.country || "").toUpperCase()).maybeSingle();
+  const rate = vr && !vr.seminars_exempt ? (Number(vr.rate) <= 1 ? Number(vr.rate) * 100 : Number(vr.rate)) : 0;
   const taxRateId = rate > 0 && vr.stripe_tax_rate_id && vr.stripe_tax_rate_id.startsWith("txr_") ? vr.stripe_tax_rate_id : null;
   if (rate > 0 && !taxRateId) return json({ error: `The VAT rate for ${course.country} has no Stripe tax rate set up.` }, 400);
   const net = taxRateId ? netFor(gross, rate) : gross;

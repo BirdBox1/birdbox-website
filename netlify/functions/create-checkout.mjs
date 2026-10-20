@@ -12,7 +12,8 @@
 // and attach that fixed Stripe tax rate to the line item. We do NOT
 // use automatic_tax, which would tax the buyer's country instead, and
 // which cannot be combined with tax_rates anyway.
-// Courses in countries with no vat_rates row are charged no tax.
+// Courses in countries with no vat_rates row are charged no tax, nor
+// are courses in a country flagged seminars_exempt (Ireland).
 //
 // INVOICES: every purchase also creates a real numbered invoice with
 // a PDF, not just a Stripe receipt. A receipt has no invoice number
@@ -433,17 +434,20 @@ export default async (req) => {
 // Place of supply for admission to a physical event is the venue's
 // country. Returns null when we have no rate for it, which means no
 // tax is charged — the current behaviour everywhere outside EU/UK.
+// A country flagged seminars_exempt (Ireland: live seminars there are
+// VAT exempt) also returns null; its rate still applies to online
+// courses, which read vat_rates separately.
 async function vatForCourse(course) {
   const code = (course.country || "").trim().toUpperCase();
   if (!code) return null;
 
   const { data, error } = await supabase
     .from("vat_rates")
-    .select("country, code, rate, stripe_tax_rate_id, label")
+    .select("country, code, rate, stripe_tax_rate_id, label, seminars_exempt")
     .eq("code", code)
     .maybeSingle();
 
-  if (error || !data || !data.stripe_tax_rate_id) return null;
+  if (error || !data || !data.stripe_tax_rate_id || data.seminars_exempt) return null;
 
   // rate may be stored as 19 or as 0.19 — treat anything at or below
   // 1 as a fraction so both spellings give 19%.
