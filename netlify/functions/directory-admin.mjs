@@ -18,7 +18,7 @@
 
 import {
   db, json, SITE_URL, BRANDS, PROFILE_FIELDS, qualificationsFor, statusOf, uniqueSlug,
-  userFrom, sendMail, esc, photoUrl,
+  userFrom, sendMail, esc, photoUrl, RELEASED,
 } from "../lib/directory.mjs";
 import { emailCoach } from "./directory-contact.mjs";
 
@@ -245,7 +245,7 @@ async function addOne(r, source, by) {
   const seen = new Set();
   for (const code of codes) {
     const m = code.match(/^(tcc|tgc|tec|twc|birdbox)-?(\d|workshop|w)?(-?online)?$/);
-    if (!m || !BRANDS[m[1]] || seen.has(code)) continue;
+    if (!m || !BRANDS[m[1]] || !RELEASED.has(m[1]) || seen.has(code)) continue;
     seen.add(code);
     const workshop = m[2] === "workshop" || m[2] === "w";
     courseRows.push({

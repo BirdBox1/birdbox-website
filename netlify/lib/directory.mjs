@@ -37,6 +37,11 @@ export const BRANDS = {
   birdbox: { name: "BirdBox Coaching", short: "BirdBox" },
 };
 
+// Courses that are on sale and can appear on a listing. The Weightlifting
+// Course is not released yet, so it is never shown, whatever the data
+// says; add "twc" here on the day it launches.
+export const RELEASED = new Set(["tcc", "tgc", "tec", "birdbox"]);
+
 export const PROFILE_FIELDS =
   "id, user_id, email, other_emails, slug, full_name, headline, bio, gym_name, city, country, " +
   "latitude, longitude, coaches_online, instagram, website, public_email, photo_path, visible, " +
@@ -119,7 +124,8 @@ export async function qualificationsFor(profiles, { withPending = false } = {}) 
     }
   }
 
-  for (const [id, list] of out) {
+  for (const [id, all] of out) {
+    const list = all.filter((q) => RELEASED.has(q.brand));
     // One line per course: the same course can arrive twice (a
     // certificate and an old Academy completion, or a claim the office
     // has since matched to a certificate).

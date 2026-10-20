@@ -201,8 +201,9 @@ async function save(profile, user, email, b) {
 const KINDS = ["seminar", "online", "workshop"];
 
 async function addCourse(profile, b) {
+  // Only courses that existed before our records began (August 2026).
   const brand = String(b.brand || "").toLowerCase();
-  if (!BRANDS[brand]) return { error: "Pick the course." };
+  if (!["tcc", "tgc"].includes(brand)) return { error: "Pick the course." };
   const kind = KINDS.includes(b.kind) ? b.kind : "seminar";
   const level = kind === "workshop" ? null : (String(b.level || "").match(/\d/) || [null])[0];
   if (kind !== "workshop" && !level) return { error: "Pick the level." };

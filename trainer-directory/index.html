@@ -249,13 +249,14 @@ let map = null, cluster = null;
 const pins = new Map();
 
 // ---------- filters ----------
-// One filter per course family that has coaches in it, so The
-// Weightlifting Course, The Endurance Course and the short online courses
-// appear on their own once people have completed them.
-const FILTER_ORDER = ["tcc", "tgc", "tec", "twc", "birdbox"];
+// A filter for each released course. The Endurance Course is ready for its
+// January launch (until then it finds nobody, and says why). Short online
+// courses get one once someone has completed one. The Weightlifting Course
+// is added here when it is released.
+const FILTER_ORDER = ["tcc", "tgc", "tec", "birdbox"];
 function drawChips() {
   const present = new Set(coaches.flatMap((c) => c.courses.map((x) => x.brand)));
-  $("chips").innerHTML = FILTER_ORDER.filter((k) => present.has(k) || k === "tcc" || k === "tgc").map((k) => {
+  $("chips").innerHTML = FILTER_ORDER.filter((k) => k !== "birdbox" || present.has(k)).map((k) => {
     const b = BRANDS[k];
     const label = k === "birdbox" ? "Short courses" : b.short;
     const tip = b.name + (b.tagline ? " — " + b.tagline : "");
@@ -345,6 +346,8 @@ function render(fit) {
 
   if (!total) {
     $("list").innerHTML = `<div class="td-empty"><strong>Our new directory is filling up.</strong>We have just moved the directory onto our own site and coaches are being added now. Check back soon, or <a href="/learn/directory/">add yourself</a> if you have done a BirdBox course.</div>`;
+  } else if (!list.length && state.brand === "tec" && !coaches.some((c) => c.courses.some((x) => x.brand === "tec"))) {
+    $("list").innerHTML = `<div class="td-empty"><strong>The Endurance Course launches in January.</strong>The first Endurance coaches will appear here as soon as they complete it. <a href="/tec/">Find out more</a>.</div>`;
   } else if (!list.length) {
     $("list").innerHTML = `<div class="td-empty"><strong>No coaches match that yet.</strong>Try a wider search, another country, or coaches who work online.</div>`;
   } else {
