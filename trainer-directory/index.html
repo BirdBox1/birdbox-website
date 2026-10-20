@@ -252,7 +252,11 @@ const pins = new Map();
 // ready for their launches (until then they find nobody, and say why).
 // Short online courses get one once someone has completed one. Several can
 // be selected: a coach must have done every one selected.
-const FILTER_ORDER = ["tcc", "tgc", "tec", "twc", "birdbox"];
+// "tcc2" and "tgc2" mean Level 2 of that course.
+const FILTER_ORDER = ["tcc", "tcc2", "tgc", "tgc2", "tec", "twc", "birdbox"];
+const brandOf = (k) => k.replace(/\d$/, "");
+const levelOf = (k) => (k.match(/\d$/) || [null])[0];
+const hasCourse = (c, k) => c.courses.some((x) => x.brand === brandOf(k) && (!levelOf(k) || String(x.level) === levelOf(k)));
 const COMING = {
   tec: { text: "The Endurance Course launches in January.", page: "/tec/" },
   twc: { text: "The Weightlifting Course is coming soon.", page: "/twc/" },
@@ -260,10 +264,10 @@ const COMING = {
 function drawChips() {
   const present = new Set(coaches.flatMap((c) => c.courses.map((x) => x.brand)));
   $("chips").innerHTML = FILTER_ORDER.filter((k) => k !== "birdbox" || present.has(k)).map((k) => {
-    const b = BRANDS[k];
-    const label = k === "birdbox" ? "Short courses" : b.short;
+    const b = BRANDS[brandOf(k)];
+    const label = k === "birdbox" ? "Short courses" : b.short + (levelOf(k) ? " L" + levelOf(k) : "");
     const tip = b.name + (b.tagline ? " — " + b.tagline : "");
-    return `<button type="button" class="td-chip" data-brand="${k}" aria-pressed="false" title="${esc(tip)}" style="--c:var(--b-${k})">${label}</button>`;
+    return `<button type="button" class="td-chip" data-brand="${k}" aria-pressed="false" title="${esc(tip + (levelOf(k) ? " — Level " + levelOf(k) : ""))}" style="--c:var(--b-${brandOf(k)})">${label}</button>`;
   }).join("");
 }
 
@@ -295,7 +299,7 @@ $("clear").addEventListener("click", () => {
 function matches(c) {
   if (state.country && c.country !== state.country) return false;
   if (state.online && !c.online) return false;
-  for (const k of state.brands) if (!c.courses.some((x) => x.brand === k)) return false;
+  for (const k of state.brands) if (!hasCourse(c, k)) return false;
   if (state.q) {
     // Course names count too, including the old name for TCC, so a search
     // for "coaching development" finds the coaches who did it under that name.
