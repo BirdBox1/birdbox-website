@@ -242,17 +242,21 @@ import { BRANDS, esc, coachUrl, initials, badges, place, avatar, distanceKm } fr
 const $ = (id) => document.getElementById(id);
 // Coaches shown at first, and added each time "Show more" is pressed.
 const PAGE = 12;
-const state = { q: "", country: "", brand: "", online: false, near: null, shown: PAGE };
+const state = { q: "", country: "", brands: new Set(), online: false, near: null, shown: PAGE };
 let coaches = [];
 let map = null, cluster = null;
 const pins = new Map();
 
 // ---------- filters ----------
-// A filter for each released course. The Endurance Course is ready for its
-// January launch (until then it finds nobody, and says why). Short online
-// courses get one once someone has completed one. The Weightlifting Course
-// is added here when it is released.
-const FILTER_ORDER = ["tcc", "tgc", "tec", "birdbox"];
+// A filter for each course. The Endurance and Weightlifting Courses are
+// ready for their launches (until then they find nobody, and say why).
+// Short online courses get one once someone has completed one. Several can
+// be selected: a coach must have done every one selected.
+const FILTER_ORDER = ["tcc", "tgc", "tec", "twc", "birdbox"];
+const COMING = {
+  tec: { text: "The Endurance Course launches in January.", page: "/tec/" },
+  twc: { text: "The Weightlifting Course is coming soon.", page: "/twc/" },
+};
 function drawChips() {
   const present = new Set(coaches.flatMap((c) => c.courses.map((x) => x.brand)));
   $("chips").innerHTML = FILTER_ORDER.filter((k) => k !== "birdbox" || present.has(k)).map((k) => {
@@ -265,7 +269,8 @@ function drawChips() {
 
 $("chips").addEventListener("click", (e) => {
   const b = e.target.closest("[data-brand]"); if (!b) return;
-  state.brand = state.brand === b.dataset.brand ? "" : b.dataset.brand;
+  const k = b.dataset.brand;
+  state.brands.has(k) ? state.brands.delete(k) : state.brands.add(k);
   update();
 });
 let typing;
@@ -282,7 +287,7 @@ $("near").addEventListener("click", () => {
     { timeout: 10000, maximumAge: 600000 });
 });
 $("clear").addEventListener("click", () => {
-  Object.assign(state, { q: "", country: "", brand: "", online: false, near: null });
+  Object.assign(state, { q: "", country: "", brands: new Set(), online: false, near: null });
   $("q").value = ""; $("country").value = "";
   update(true);
 });
@@ -290,7 +295,7 @@ $("clear").addEventListener("click", () => {
 function matches(c) {
   if (state.country && c.country !== state.country) return false;
   if (state.online && !c.online) return false;
-  if (state.brand && !c.courses.some((x) => x.brand === state.brand)) return false;
+  for (const k of state.brands) if (!c.courses.some((x) => x.brand === k)) return false;
   if (state.q) {
     // Course names count too, including the old name for TCC, so a search
     // for "coaching development" finds the coaches who did it under that name.
@@ -303,10 +308,10 @@ function matches(c) {
 
 function update(fit = false) {
   state.shown = PAGE;
-  document.querySelectorAll("#chips .td-chip").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.brand === state.brand)));
+  document.querySelectorAll("#chips .td-chip").forEach((b) => b.setAttribute("aria-pressed", String(state.brands.has(b.dataset.brand))));
   $("online").setAttribute("aria-pressed", String(state.online));
   $("near").setAttribute("aria-pressed", String(!!state.near));
-  $("clear").classList.toggle("hidden", !(state.q || state.country || state.brand || state.online || state.near));
+  $("clear").classList.toggle("hidden", !(state.q || state.country || state.brands.size || state.online || state.near));
   render(fit);
 }
 
@@ -345,8 +350,9 @@ function render(fit) {
 
   if (!total) {
     $("list").innerHTML = `<div class="td-empty"><strong>Our new directory is filling up.</strong>We have just moved the directory onto our own site and coaches are being added now. Check back soon, or <a href="/learn/directory/">add yourself</a> if you have done a BirdBox course.</div>`;
-  } else if (!list.length && state.brand === "tec" && !coaches.some((c) => c.courses.some((x) => x.brand === "tec"))) {
-    $("list").innerHTML = `<div class="td-empty"><strong>The Endurance Course launches in January.</strong>The first Endurance coaches will appear here as soon as they complete it. <a href="/tec/">Find out more</a>.</div>`;
+  } else if (!list.length && [...state.brands].some((k) => COMING[k] && !coaches.some((c) => c.courses.some((x) => x.brand === k)))) {
+    const k = [...state.brands].find((k) => COMING[k] && !coaches.some((c) => c.courses.some((x) => x.brand === k)));
+    $("list").innerHTML = `<div class="td-empty"><strong>${COMING[k].text}</strong>The first coaches will appear here as soon as they complete it. <a href="${COMING[k].page}">Find out more</a>.</div>`;
   } else if (!list.length) {
     $("list").innerHTML = `<div class="td-empty"><strong>No coaches match that yet.</strong>Try a wider search, another country, or coaches who work online.</div>`;
   } else {
