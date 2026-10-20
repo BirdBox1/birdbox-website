@@ -224,7 +224,6 @@ const COURSES = {
   "tgc1": { brand: "tgc", level: "1", kind: "seminar" },
   "tgc1-online": { brand: "tgc", level: "1", kind: "online" },
   "tgc2": { brand: "tgc", level: "2", kind: "seminar" },
-  "tgc-workshop": { brand: "tgc", level: null, kind: "workshop" },
 };
 
 function parseCourse(c) {
@@ -232,8 +231,8 @@ function parseCourse(c) {
   let def = COURSES[String(c.code || "")];
   if (!def) {
     const brand = String(c.brand || "").toLowerCase();
-    const kind = ["seminar", "online", "workshop"].includes(c.kind) ? c.kind : "seminar";
-    const level = kind === "workshop" ? null : (String(c.level || "").match(/\d/) || [null])[0];
+    const kind = ["seminar", "online"].includes(c.kind) ? c.kind : "seminar";
+    const level = (String(c.level || "").match(/\d/) || [null])[0];
     def = Object.values(COURSES).find((d) => d.brand === brand && d.kind === kind && d.level === level);
   }
   if (!def) return { error: "One of those courses is not one we can check." };
@@ -246,8 +245,7 @@ function parseCourse(c) {
 }
 
 // Adds courses for the office to check. A course already on the listing
-// (checked or waiting) is not added twice; workshops can repeat, since
-// people do more than one.
+// (checked or waiting) is not added twice.
 async function addCourses(profile, list) {
   const rows = [];
   for (const c of list.slice(0, 12)) {
@@ -258,8 +256,8 @@ async function addCourses(profile, list) {
   if (!rows.length) return { added: 0 };
 
   const quals = (await qualificationsFor([profile], { withPending: true })).get(profile.id);
-  const have = new Set(quals.filter((q) => q.kind !== "workshop").map((q) => `${q.brand}|${q.level || ""}|${q.kind}`));
-  const fresh = rows.filter((r) => r.kind === "workshop" || !have.has(`${r.brand}|${r.level || ""}|${r.kind}`));
+  const have = new Set(quals.map((q) => `${q.brand}|${q.level || ""}|${q.kind}`));
+  const fresh = rows.filter((r) => !have.has(`${r.brand}|${r.level || ""}|${r.kind}`));
   if (!fresh.length) return { added: 0 };
 
   const waiting = quals.filter((q) => !q.verified).length;

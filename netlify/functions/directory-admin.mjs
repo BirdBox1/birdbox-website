@@ -245,6 +245,7 @@ async function addOne(r, source, by) {
   for (const code of codes) {
     const m = code.match(/^(tcc|tgc|tec|twc|birdbox)-?(\d|workshop|w)?(-?online)?$/);
     if (!m || !BRANDS[m[1]] || !RELEASED.has(m[1]) || seen.has(code)) continue;
+    if (m[2] === "workshop" || m[2] === "w") continue;   // workshops are not listed
     seen.add(code);
     const workshop = m[2] === "workshop" || m[2] === "w";
     courseRows.push({

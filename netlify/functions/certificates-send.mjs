@@ -177,6 +177,7 @@ Worth saving somewhere you will find it. If you lose it again, just ask.
     filename: `BirdBox certificate - ${name}.pdf`,
     pdf,
     brand: course.brand,
+    workshop: course.type === "workshop",
   });
 
   if (!ok) {
@@ -418,6 +419,7 @@ export default async (request) => {
           filename: `BirdBox certificate - ${name}.pdf`,
           pdf,
           brand: course.brand,
+          workshop: course.type === "workshop",
         });
 
         // Recorded whether or not the email landed, so a reference is
@@ -788,8 +790,10 @@ function emailHtml(text, brand, extraHtml = "") {
 
 // Every certificate email ends by inviting them into the Trainer
 // Directory, where this course now shows on their profile.
-async function sendEmail({ to, subject, text, filename, pdf, brand }) {
-  const invite = directoryInvite();
+async function sendEmail({ to, subject, text, filename, pdf, brand, workshop = false }) {
+  // Workshops do not qualify anyone for the Trainer Directory, so their
+  // certificates go out without the invitation.
+  const invite = workshop ? { text: "", html: "" } : directoryInvite();
   const key = process.env.RESEND_API_KEY;
   if (!key) { console.warn("No Resend key; certificate not sent to", to); return false; }
 
@@ -802,7 +806,7 @@ async function sendEmail({ to, subject, text, filename, pdf, brand }) {
         to: [to],
         reply_to: OFFICE,
         subject,
-        text: text + "\n\n" + invite.text,
+        text: invite.text ? text + "\n\n" + invite.text : text,
         html: emailHtml(text, brand, invite.html),
         attachments: [{ filename, content: pdf }],
       }),

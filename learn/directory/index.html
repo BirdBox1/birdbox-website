@@ -316,7 +316,8 @@ function drawCourses() {
 
 // The tick-list of courses a coach can ask us to check. Anything already
 // on their listing (certificate, checked or waiting) is left out, so the
-// same course cannot be sent twice. Workshops can repeat.
+// same course cannot be sent twice. Workshops are not listed: they are
+// not education courses.
 const COURSE_OPTIONS = [
   { code: "tcc1", brand: "tcc", level: "1", kind: "seminar", label: "The Coaches Course — Level 1", sub: "In person · formerly BirdBox Coaching Development" },
   { code: "tcc1-online", brand: "tcc", level: "1", kind: "online", label: "The Coaches Course — Level 1 Online", sub: "Online · formerly BirdBox Coaching Development" },
@@ -324,11 +325,10 @@ const COURSE_OPTIONS = [
   { code: "tgc1", brand: "tgc", level: "1", kind: "seminar", label: "The Gymnastics Course — Level 1", sub: "In person" },
   { code: "tgc1-online", brand: "tgc", level: "1", kind: "online", label: "The Gymnastics Course — Level 1 Online", sub: "Online" },
   { code: "tgc2", brand: "tgc", level: "2", kind: "seminar", label: "The Gymnastics Course — Level 2", sub: "In person" },
-  { code: "tgc-workshop", brand: "tgc", level: null, kind: "workshop", label: "TGC Workshop", sub: "One-day workshop" },
 ];
 function drawAdd() {
-  const have = new Set((data.courses || []).filter((c) => c.kind !== "workshop").map((c) => `${c.brand}|${c.level || ""}|${c.kind}`));
-  const opts = COURSE_OPTIONS.filter((o) => o.kind === "workshop" || !have.has(`${o.brand}|${o.level || ""}|${o.kind}`));
+  const have = new Set((data.courses || []).map((c) => `${c.brand}|${c.level || ""}|${c.kind}`));
+  const opts = COURSE_OPTIONS.filter((o) => !have.has(`${o.brand}|${o.level || ""}|${o.kind}`));
   $("add-list").innerHTML = opts.map((o) => `<div class="opt" data-code="${o.code}" style="--b:var(--b-${o.brand})">
     <label><input type="checkbox"><span>${esc(o.label)}<small>${esc(o.sub)}</small></span></label>
     <div class="more">

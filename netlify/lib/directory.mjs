@@ -129,7 +129,9 @@ export async function qualificationsFor(profiles, { withPending = false } = {}) 
   }
 
   for (const [id, all] of out) {
-    const list = all.filter((q) => RELEASED.has(q.brand));
+    // Workshops are one-day sessions, not education courses: they never
+    // show on a listing or count towards going live.
+    const list = all.filter((q) => RELEASED.has(q.brand) && q.kind !== "workshop");
     // One line per course: the same course can arrive twice (a
     // certificate and an old Academy completion, or a claim the office
     // has since matched to a certificate).
