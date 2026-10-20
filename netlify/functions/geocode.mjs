@@ -14,6 +14,10 @@ export default async (req) => {
   const url = new URL(req.url);
   const q = (url.searchParams.get("q") || "").trim();
 
+  // The trainer directory asks for English names, so one country is not
+  // listed twice as "Spain" and "España". The planner keeps local names.
+  const lang = /^[a-z]{2}$/.test(url.searchParams.get("lang") || "") ? url.searchParams.get("lang") : "";
+
   if (q.length < 4) {
     return json({ error: "Type a longer address." }, 400);
   }
@@ -21,7 +25,8 @@ export default async (req) => {
   try {
     const target =
       "https://nominatim.openstreetmap.org/search" +
-      "?format=jsonv2&limit=3&addressdetails=1&q=" + encodeURIComponent(q);
+      "?format=jsonv2&limit=3&addressdetails=1&q=" + encodeURIComponent(q) +
+      (lang ? "&accept-language=" + lang : "");
 
     const res = await fetch(target, {
       headers: {

@@ -1,7 +1,8 @@
 /* ============================================================
    portal/hosts-link.js
-   Adds "Online courses" and "Host requests" to the portal menu, next to Discount codes,
-   and puts a red count on it when new requests have come in.
+   Adds "Online courses", "Host requests" and "Trainer directory" to the
+   portal menu, next to Discount codes, and puts a red count on the last
+   two when new requests or new directory listings have come in.
 
    It copies whatever the Discount codes link is doing, so it shows
    for admins only and disappears on sign-out — no changes needed
@@ -15,6 +16,7 @@
   var SUPABASE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
 
   var link = null;
+  var dirLink = null;
   var db = null;
 
   function addLink() {
@@ -39,32 +41,40 @@
     link.className = codes.className;
     codes.insertAdjacentElement("afterend", link);
 
+    dirLink = document.createElement("a");
+    dirLink.id = "directorylink";
+    dirLink.href = "/portal/directory/";
+    dirLink.textContent = "Trainer directory";
+    dirLink.className = codes.className;
+    link.insertAdjacentElement("afterend", dirLink);
+
     // Mirror the Discount codes link, which the portal already shows
     // to admins only and hides again on sign-out.
     new MutationObserver(function () {
       link.className = codes.className;
-      if (link.className.indexOf("hidden") > -1) clearFlag();
+      dirLink.className = codes.className;
+      if (link.className.indexOf("hidden") > -1) { clearFlag(link); clearFlag(dirLink); }
     }).observe(codes, { attributes: true, attributeFilter: ["class"] });
 
     return true;
   }
 
-  function clearFlag() {
-    if (!link) return;
-    var old = link.querySelector(".unread-flag");
+  function clearFlag(el) {
+    if (!el) return;
+    var old = el.querySelector(".unread-flag");
     if (old) old.remove();
   }
 
-  function setFlag(count) {
-    if (!link) return;
-    clearFlag();
+  function setFlag(el, count) {
+    if (!el) return;
+    clearFlag(el);
     if (!count) return;
     // Same badge the rest of the portal uses, so the Menu button's own
     // red dot picks it up without anything else being told about it.
     var flag = document.createElement("span");
     flag.className = "unread-flag";
     flag.textContent = count > 9 ? "9+" : String(count);
-    link.append(flag);
+    el.append(flag);
   }
 
   async function client() {
@@ -79,7 +89,7 @@
     try {
       var sb = await client();
       var session = (await sb.auth.getSession()).data.session;
-      if (!session) return clearFlag();
+      if (!session) { clearFlag(link); clearFlag(dirLink); return; }
 
       var res = await sb
         .from("host_requests")
@@ -87,7 +97,19 @@
         .is("seen_at", null);
 
       if (res.error) return;          // not an admin, or nothing to show
-      setFlag(res.count || 0);
+      setFlag(link, res.count || 0);
+
+      // New listings, a coach asking for an older course to be checked, or
+      // a contact request the screening held back.
+      var dir = await sb
+        .from("directory_profiles")
+        .select("id", { count: "exact", head: true })
+        .is("seen_at", null);
+      var held = await sb
+        .from("directory_contact_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "held");
+      if (!dir.error) setFlag(dirLink, (dir.count || 0) + (held.error ? 0 : held.count || 0));
     } catch (err) {
       console.error("Host request count:", err && err.message);
     }

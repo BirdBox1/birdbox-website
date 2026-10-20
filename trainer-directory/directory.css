@@ -1,0 +1,82 @@
+/* Shared by the three trainer directory pages: the directory itself,
+   a coach's own page (/trainer-directory/coach/<slug>) and the coach's
+   edit page (/learn/directory/). Same dark look as the course pages. */
+:root {
+  --paper: #14100F;
+  --panel: #1C1719;
+  --panel2: #241E20;
+  --ink: #F2EFEF;
+  --soft: #C9C4C5;
+  --muted: #8A8385;
+  --line: #342F31;
+  --tcc: #4FA8DE;
+  --accentText: #6FB9E8;
+  --good: #5CC48A;
+  --bad: #F0797D;
+  --b-tcc: #298DE9;  --t-tcc: #6FB9E8;
+  --b-tgc: #85151A;  --t-tgc: #E0555A;
+  --b-tec: #10502C;  --t-tec: #5CC48A;
+  --b-twc: #F1A509;  --t-twc: #F1A509;
+  --b-birdbox: #6A6466; --t-birdbox: #B7B1B3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--paper); }
+body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+img { display: block; }
+a { color: var(--accentText); }
+.hidden { display: none !important; }
+.bb-wrap { max-width: 1320px; margin: 0 auto; padding: 0 24px; }
+@media (max-width: 620px) { .bb-wrap { padding: 0 16px; } }
+
+.bb-topbar {
+  display: flex; justify-content: center; flex-wrap: wrap; gap: 28px;
+  padding: 16px 24px; border-bottom: 1px solid var(--line);
+  font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; position: relative; z-index: 3;
+}
+.bb-topbar a { color: #ADA6A8; text-decoration: none; }
+.bb-topbar a:hover { color: #ffffff; }
+.bb-backbar { padding: 14px 24px 0; max-width: 1320px; margin: 0 auto; width: 100%; }
+@media (max-width: 620px) { .bb-backbar { padding: 14px 16px 0; } }
+.bb-back {
+  display: inline-flex; align-items: center; gap: 9px; padding: 8px 16px; border: 1px solid var(--line);
+  color: #ADA6A8; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none;
+}
+.bb-back:hover { color: #ffffff; border-color: var(--tcc); }
+
+.td-label { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accentText); margin: 0 0 8px; }
+.td-h2 { font-size: clamp(20px, 2.6vw, 30px); font-weight: 800; letter-spacing: -0.01em; margin: 0 0 12px; }
+.td-lede { font-size: 16px; line-height: 1.6; color: var(--soft); margin: 0 0 22px; max-width: 70ch; }
+
+.td-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 13px 24px;
+  background: var(--tcc); color: #0C1116; border: 1px solid var(--tcc); cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none;
+  transition: background .2s ease, color .2s ease;
+}
+.td-btn:hover { background: transparent; color: var(--accentText); }
+.td-btn--ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.td-btn--ghost:hover { border-color: var(--tcc); color: #fff; }
+.td-btn--small { padding: 8px 14px; font-size: 11px; }
+.td-btn[disabled] { opacity: .6; cursor: wait; }
+
+/* Course badges, one colour per course family. */
+.td-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.td-badge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px 4px 4px;
+  border: 1px solid var(--line); background: var(--panel2);
+  font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--t, var(--soft)); white-space: nowrap;
+}
+.td-badge::before { content: ""; width: 8px; height: 16px; background: var(--b, var(--muted)); }
+
+.td-avatar {
+  width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--panel2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 34px; font-weight: 800; color: #ADA6A8; letter-spacing: 0.02em;
+}
+
+.bb-footer {
+  text-align: center; padding: 32px 24px 50px; font-size: 13px; color: #756F71;
+  border-top: 1px solid var(--line); margin-top: 40px; line-height: 1.7;
+}
+.bb-footer a { color: #8A8385; text-decoration: none; }
+.bb-footer__staff { display: block; margin-top: 10px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trainer directory — BirdBox Coaching</title>
+<style>
+  :root {
+    --ink: #16181b; --paper: #f4f3f0; --card: #ffffff; --shell: #0d0e10; --rule: #e0ddd7;
+    --muted: #6c7178; --accent: #2f7fd0; --good: #1f8a54; --warn: #b4610f; --bad: #b3261e;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .hidden { display: none !important; }
+
+  .bar { background: var(--shell); color: #fff; padding: 0.7rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .bar .left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+  .mark { width: 34px; height: 34px; border-radius: 4px; background: #fff; display: grid; place-items: center; flex: none; }
+  .mark img { width: 26px; height: 26px; object-fit: contain; display: block; }
+  .bar .brandname { font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9; white-space: nowrap; }
+  .bar a.linkbtn { font: inherit; font-size: 0.8rem; background: none; color: #cfd4d9; border: 1px solid #33373c; padding: 0.3rem 0.7rem; border-radius: 3px; text-decoration: none; white-space: nowrap; }
+
+  .wrap { max-width: 76rem; margin: 0 auto; padding: 1.25rem 1.25rem 4rem; }
+  h1 { font-size: 1.4rem; letter-spacing: -0.02em; margin: 0 0 0.2rem; font-weight: 600; }
+  .sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.25rem; }
+  .sub a { color: var(--accent); }
+  .msg { font-size: 0.9rem; margin: 0.6rem 0; min-height: 1.2em; }
+  .msg.err { color: var(--bad); } .msg.ok { color: var(--good); }
+
+  .top { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+  .tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .tabs button, .btn {
+    font: inherit; font-size: 0.85rem; background: var(--card); color: var(--muted);
+    border: 1px solid var(--rule); padding: 0.4rem 0.9rem; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  }
+  .tabs button.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .tabs b { font-weight: 600; margin-left: 0.25rem; }
+  .btn { border-radius: 4px; color: var(--ink); }
+  .btn:hover { border-color: #b9b5ad; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.good { background: var(--good); border-color: var(--good); color: #fff; }
+  .btn.bad { color: var(--bad); }
+  .btn.small { font-size: 0.78rem; padding: 0.25rem 0.6rem; }
+  .btn[disabled] { opacity: 0.6; cursor: wait; }
+  input.search { font: inherit; font-size: 0.9rem; border: 1px solid var(--rule); border-radius: 4px; padding: 0.4rem 0.7rem; min-width: 14rem; margin-left: auto; }
+
+  .list { display: flex; flex-direction: column; gap: 0.6rem; }
+  .coach { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 0.9rem 1rem; display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 1rem; align-items: start; }
+  .coach.attn { border-color: #e9c48a; box-shadow: inset 4px 0 0 #e7a33a; }
+  .ph { width: 64px; height: 64px; border-radius: 4px; object-fit: cover; background: #ebe8e2; display: grid; place-items: center; font-weight: 700; color: var(--muted); }
+  .name { font-weight: 650; font-size: 1.02rem; }
+  .name a { color: inherit; text-decoration: none; }
+  .name a:hover { color: var(--accent); }
+  .meta { color: var(--muted); font-size: 0.84rem; }
+  .pill { display: inline-block; font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid var(--rule); border-radius: 999px; padding: 0.08rem 0.5rem; color: var(--muted); white-space: nowrap; margin-left: 0.35rem; vertical-align: 2px; }
+  .pill.live { color: var(--good); border-color: #bfe0cc; }
+  .pill.pending { color: var(--warn); border-color: #ecd2ad; }
+  .pill.rejected, .pill.hidden { color: var(--bad); border-color: #ecc4c0; }
+  .pill.new { background: var(--bad); color: #fff; border-color: var(--bad); }
+  .courses { margin: 0.5rem 0 0; padding: 0; list-style: none; font-size: 0.86rem; }
+  .courses li { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; padding: 0.15rem 0; }
+  .courses .ok { color: var(--good); font-weight: 600; }
+  .courses .wait { color: var(--warn); font-weight: 600; }
+  .courses .note { color: var(--muted); }
+  .acts { display: flex; flex-direction: column; gap: 0.35rem; align-items: stretch; min-width: 9rem; }
+  .bio { font-size: 0.85rem; color: #3b3f44; margin-top: 0.35rem; max-width: 60ch; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .empty { padding: 2.5rem 1rem; text-align: center; color: var(--muted); background: var(--card); border: 1px solid var(--rule); border-radius: 6px; }
+  @media (max-width: 46rem) {
+    .wrap { padding: 1rem 0.75rem 3rem; }
+    .coach { grid-template-columns: 48px minmax(0, 1fr); }
+    .ph { width: 48px; height: 48px; }
+    .acts { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
+    input.search { margin-left: 0; width: 100%; }
+  }
+
+  .panel { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 1rem 1.1rem; margin-bottom: 1rem; }
+  .panel h2 { font-size: 1rem; margin: 0 0 0.3rem; }
+  .panel p { font-size: 0.88rem; color: var(--muted); margin: 0 0 0.8rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.6rem; }
+  .grid label { font-size: 0.75rem; color: var(--muted); display: block; }
+  .grid input, textarea.csv { width: 100%; font: inherit; font-size: 0.9rem; border: 1px solid var(--rule); border-radius: 4px; padding: 0.4rem 0.55rem; }
+  textarea.csv { min-height: 8rem; font-family: ui-monospace, Menlo, monospace; font-size: 0.8rem; }
+  .preview { font-size: 0.85rem; margin: 0.6rem 0; }
+  .preview table { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
+  .preview td, .preview th { border-bottom: 1px solid var(--rule); padding: 0.25rem 0.4rem; text-align: left; }
+
+  .gate { max-width: 26rem; margin: 4rem auto; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 1.5rem; text-align: center; }
+  .gate a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="left">
+    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+    <span class="brandname">Trainer directory</span>
+  </span>
+  <span class="right"><a class="linkbtn" href="/portal/">Back to portal</a></span>
+</div>
+
+<section id="view-gate" class="gate hidden"><p id="gate-text">Checking your access…</p></section>
+
+<section id="view-main" class="wrap hidden">
+  <h1>Trainer directory</h1>
+  <p class="sub">Coaches with a certificate from us go live on their own. Anyone without one waits here until you approve them. <a href="/trainer-directory/" target="_blank">Open the public directory ↗</a></p>
+
+  <div class="top">
+    <div class="tabs" id="tabs">
+      <button type="button" data-tab="check" class="on">To check<b id="n-check"></b></button>
+      <button type="button" data-tab="live">Live<b id="n-live"></b></button>
+      <button type="button" data-tab="off">Not showing<b id="n-off"></b></button>
+      <button type="button" data-tab="all">Everyone<b id="n-all"></b></button>
+      <button type="button" data-tab="msgs">Held messages<b id="n-msgs"></b></button>
+    </div>
+    <button type="button" class="btn small" id="open-add">+ Add a coach</button>
+    <button type="button" class="btn small" id="open-import">Import from Community Box</button>
+    <input class="search" id="q" type="search" placeholder="Search name, email, place">
+  </div>
+
+  <div class="panel hidden" id="add">
+    <h2>Add a coach</h2>
+    <p>For someone you know has done a course. They go live straight away, and take over the listing when they log in with this email.</p>
+    <div class="grid">
+      <div><label>Email *</label><input id="a-email" type="email"></div>
+      <div><label>Full name *</label><input id="a-name"></div>
+      <div><label>Gym</label><input id="a-gym"></div>
+      <div><label>City</label><input id="a-city"></div>
+      <div><label>Country</label><input id="a-country"></div>
+      <div><label>Instagram</label><input id="a-ig"></div>
+      <div><label>Courses (e.g. tgc1, tgc2, tcc1-online, tgc-workshop)</label><input id="a-courses"></div>
+    </div>
+    <p style="margin:0.6rem 0 0">City and country are placed on the map when the coach next saves, or add exact coordinates later.</p>
+    <div style="margin-top:0.8rem;display:flex;gap:0.5rem"><button class="btn primary" id="a-go" type="button">Add coach</button><button class="btn" type="button" data-close="add">Cancel</button></div>
+  </div>
+
+  <div class="panel hidden" id="import">
+    <h2>Import from Community Box</h2>
+    <p>Choose the community-box-coaches.json file saved from the Community Box dashboard, or a CSV (or paste it below). Columns are matched by name: email, name (or first and last name), gym, city, country, instagram, website, bio, courses. Everyone imported goes live, and anyone already here is skipped.</p>
+    <input type="file" id="i-file" accept=".csv,text/csv,.json,application/json">
+    <textarea class="csv" id="i-text" placeholder="…or paste the CSV here" style="margin-top:0.6rem"></textarea>
+    <div class="preview" id="i-preview"></div>
+    <div style="display:flex;gap:0.5rem"><button class="btn primary" id="i-go" type="button" disabled>Import</button><button class="btn" type="button" data-close="import">Cancel</button></div>
+  </div>
+
+  <div class="msg" id="msg"></div>
+  <div class="list" id="list"><div class="empty">Loading…</div></div>
+</section>
+
+<script type="module" src="/portal/menu.js"></script>
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
+const $ = (id) => document.getElementById(id);
+const esc = (s) => (s == null ? "" : String(s).replace(/[<>&"]/g, (m) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[m])));
+const show = (w) => { $("view-gate").classList.toggle("hidden", w !== "gate"); $("view-main").classList.toggle("hidden", w !== "main"); };
+const gate = (html) => { $("gate-text").innerHTML = html; show("gate"); };
+const say = (t, k = "") => { $("msg").className = "msg " + k; $("msg").textContent = t; };
+
+let all = [];
+let requests = [];
+let tab = "check";
+let fresh = new Set();
+
+const needsCheck = (c) => c.status === "pending" || c.waiting > 0;
+
+async function call(body) {
+  const { data: { session } } = await db.auth.getSession();
+  const r = await fetch("/.netlify/functions/directory-admin", {
+    method: body ? "POST" : "GET",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || "That did not work.");
+  if (d.requests) requests = d.requests;
+  return d;
+}
+
+async function start() {
+  show("gate");
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) return gate('You are not signed in. <a href="/portal/">Sign in to the portal</a>, then come back to this page.');
+  const { data: staff } = await db.from("staff").select("role, active").eq("id", session.user.id).maybeSingle();
+  if (!staff || !staff.active || staff.role !== "admin") return gate('The trainer directory is admin only. <a href="/portal/">Back to the portal</a>.');
+  show("main");
+  try {
+    const d = await call();
+    all = d.coaches;
+    fresh = new Set(all.filter((c) => !c.seen_at).map((c) => c.id));
+    if (!all.some(needsCheck)) setTab("all"); else render();
+    if (fresh.size) call({ action: "seen" }).catch(() => {});
+  } catch (e) { say(e.message, "err"); }
+}
+
+function visible() {
+  const q = $("q").value.trim().toLowerCase();
+  let list = all;
+  if (tab === "check") list = list.filter(needsCheck);
+  if (tab === "live") list = list.filter((c) => c.status === "live");
+  if (tab === "off") list = list.filter((c) => c.status !== "live" && c.status !== "pending");
+  if (q) list = list.filter((c) => [c.full_name, c.email, ...(c.other_emails || []), c.city, c.country, c.gym_name, c.phone].join(" ").toLowerCase().includes(q));
+  return list;
+}
+
+function render() {
+  $("n-msgs").textContent = " " + requests.filter((r) => r.status === "held").length;
+  if (tab === "msgs") return renderMessages();
+  $("n-check").textContent = " " + all.filter(needsCheck).length;
+  $("n-live").textContent = " " + all.filter((c) => c.status === "live").length;
+  $("n-off").textContent = " " + all.filter((c) => c.status !== "live" && c.status !== "pending").length;
+  $("n-all").textContent = " " + all.length;
+  const list = visible();
+  $("list").innerHTML = list.length ? list.map(row).join("") :
+    `<div class="empty">${tab === "check" ? "Nothing waiting to be checked." : "Nobody here yet."}</div>`;
+}
+
+const STATUS_LABEL = { live: "Live", pending: "Waiting", rejected: "Not approved", hidden: "Taken down", off: "Hidden by coach" };
+const SOURCE_LABEL = { self: "", community_box: "From Community Box", admin: "Added by office" };
+
+function row(c) {
+  const when = new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const where = [c.gym_name, [c.city, c.country].filter(Boolean).join(", "), c.coaches_online ? "online" : ""].filter(Boolean).join(" · ");
+  const courses = (c.courses || []).map((q) => {
+    const bits = [q.date ? String(q.date).slice(0, 7) : "", q.place].filter(Boolean).join(", ");
+    const tag = q.verified === "certificate" ? '<span class="ok">✓ certificate</span>'
+      : q.verified ? '<span class="ok">✓ checked</span>'
+      : `<span class="wait">to check</span> <button class="btn small" data-act="verify_course" data-course="${esc(q.id)}">Verify</button> <button class="btn small bad" data-act="drop_course" data-course="${esc(q.id)}">Remove</button>`;
+    return `<li><span>${esc(q.title)}${bits ? ` <span class="note">(${esc(bits)})</span>` : ""}${q.note ? ` <span class="note">— “${esc(q.note)}”</span>` : ""}</span>${tag}</li>`;
+  }).join("") || '<li class="note">No courses yet.</li>';
+
+  const acts = [];
+  if (c.status === "pending" || c.status === "rejected") acts.push(`<button class="btn good small" data-act="approve" data-id="${c.id}">Approve${c.waiting ? " + verify all" : ""}</button>`);
+  if (c.status === "pending") acts.push(`<button class="btn small bad" data-act="reject" data-id="${c.id}">Not approved…</button>`);
+  if (c.status === "live") acts.push(`<a class="btn small" href="/trainer-directory/coach/${encodeURIComponent(c.slug)}" target="_blank">View ↗</a>`);
+  acts.push(c.hidden_at ? `<button class="btn small" data-act="unhide" data-id="${c.id}">Put back up</button>` : `<button class="btn small" data-act="hide" data-id="${c.id}">Take down</button>`);
+  acts.push(`<button class="btn small" data-act="link_emails" data-id="${c.id}">Other emails…</button>`);
+  acts.push(`<button class="btn small bad" data-act="delete" data-id="${c.id}">Delete</button>`);
+
+  const initials = (c.full_name || "?").split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  return `<div class="coach${needsCheck(c) ? " attn" : ""}">
+    ${c.photo ? `<img class="ph" src="${esc(c.photo)}" alt="">` : `<div class="ph">${esc(initials)}</div>`}
+    <div>
+      <div class="name">${c.status === "live" ? `<a href="/trainer-directory/coach/${encodeURIComponent(c.slug)}" target="_blank">${esc(c.full_name)}</a>` : esc(c.full_name)}
+        <span class="pill ${c.status}">${STATUS_LABEL[c.status] || c.status}</span>${fresh.has(c.id) ? '<span class="pill new">New</span>' : ""}</div>
+      <div class="meta"><a href="mailto:${esc(c.email)}" style="color:inherit">${esc(c.email)}</a>${(c.other_emails || []).length ? " + " + esc(c.other_emails.join(", ")) : ""}${c.phone ? " · " + esc(c.phone) : ""} · joined ${when}${SOURCE_LABEL[c.source] ? " · " + SOURCE_LABEL[c.source] : ""}</div>
+      ${where ? `<div class="meta">${esc(where)}</div>` : ""}
+      ${c.review_note && c.rejected_at ? `<div class="meta" style="color:var(--bad)">Told them: ${esc(c.review_note)}</div>` : ""}
+      ${c.bio ? `<div class="bio">${esc(c.bio)}</div>` : ""}
+      <ul class="courses">${courses}</ul>
+    </div>
+    <div class="acts">${acts.join("")}</div>
+  </div>`;
+}
+
+$("list").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const act = b.dataset.act;
+  const c = all.find((x) => x.id === b.dataset.id);
+  const body = { action: act, id: b.dataset.id, course_id: b.dataset.course };
+  if (act === "reject") {
+    const note = prompt(`Why can ${c.full_name} not be listed yet? This goes in the email to them (optional).`, "We could not find you on our course records.");
+    if (note === null) return;
+    body.note = note;
+  }
+  if (act === "link_emails") {
+    const v = prompt(`Other emails ${c.full_name} booked courses under, separated by commas. Their certificates under these addresses then show on the listing.`, (c.other_emails || []).join(", "));
+    if (v === null) return;
+    body.emails = v;
+  }
+  if (act === "delete" && !confirm(`Delete ${c.full_name}'s listing completely? Their certificates are not affected.`)) return;
+  if (act === "hide" && !confirm(`Take ${c.full_name}'s listing down? They will see that it was taken down.`)) return;
+  b.disabled = true;
+  try {
+    all = (await call(body)).coaches;
+    say({ approve: "Approved. They have been emailed.", reject: "Done. They have been emailed.", verify_course: "Course verified.", delete: "Deleted." }[act] || "Saved.", "ok");
+    render();
+  } catch (err) { say(err.message, "err"); b.disabled = false; }
+});
+
+// Contact requests the screening held back, newest first, then the last
+// 30 days of everything else so you can see what is getting through.
+const REQ_STATUS = { held: "Held", sent: "Sent to coach", released: "Sent after check", spam: "Blocked" };
+function renderMessages() {
+  const q = $("q").value.trim().toLowerCase();
+  let list = [...requests].sort((a, b) => (a.status === "held" ? 0 : 1) - (b.status === "held" ? 0 : 1) || b.created_at.localeCompare(a.created_at));
+  if (q) list = list.filter((r) => [r.name, r.email, r.coach, r.message].join(" ").toLowerCase().includes(q));
+  $("list").innerHTML = list.length ? list.map((r) => {
+    const when = new Date(r.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    const acts = r.status === "held"
+      ? `<button class="btn good small" data-req="release_request" data-id="${r.id}">Send to coach</button>
+         <button class="btn small bad" data-req="spam_request" data-id="${r.id}">Block sender</button>
+         <button class="btn small" data-req="delete_request" data-id="${r.id}">Delete</button>`
+      : r.status === "spam" ? "" : `<button class="btn small bad" data-req="spam_request" data-id="${r.id}">Block sender</button>`;
+    return `<div class="coach${r.status === "held" ? " attn" : ""}" style="grid-template-columns:minmax(0,1fr) auto">
+      <div>
+        <div class="name">${esc(r.name)} → ${r.slug ? `<a href="/trainer-directory/coach/${encodeURIComponent(r.slug)}" target="_blank">${esc(r.coach)}</a>` : esc(r.coach)}
+          <span class="pill ${r.status === "held" ? "pending" : r.status === "spam" ? "rejected" : "live"}">${REQ_STATUS[r.status] || r.status}</span></div>
+        <div class="meta">${esc(r.email)}${r.phone ? " · " + esc(r.phone) : ""} · ${when}${r.looking_for_label ? " · " + esc(r.looking_for_label) : ""}</div>
+        ${r.hold_reason ? `<div class="meta" style="color:var(--warn)">Held because: ${esc(r.hold_reason)}</div>` : ""}
+        <div class="bio" style="-webkit-line-clamp:6;white-space:pre-line">${esc(r.message)}</div>
+      </div>
+      <div class="acts">${acts}</div>
+    </div>`;
+  }).join("") : `<div class="empty">No messages in the last 30 days.</div>`;
+}
+
+$("list").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-req]"); if (!b) return;
+  const act = b.dataset.req;
+  if (act === "spam_request" && !confirm("Block this sender? Anything else they send through the directory will be held.")) return;
+  if (act === "delete_request" && !confirm("Delete this message?")) return;
+  b.disabled = true;
+  try {
+    const d = await call({ action: act, request_id: b.dataset.id });
+    all = d.coaches;
+    say({ release_request: "Sent to the coach.", spam_request: "Sender blocked.", delete_request: "Deleted." }[act], "ok");
+    render();
+  } catch (err) { say(err.message, "err"); b.disabled = false; }
+});
+
+function setTab(t) {
+  tab = t;
+  document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("on", x.dataset.tab === t));
+  render();
+}
+document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
+$("q").addEventListener("input", render);
+
+// ---------- add one ----------
+$("open-add").onclick = () => { $("add").classList.toggle("hidden"); $("import").classList.add("hidden"); };
+$("open-import").onclick = () => { $("import").classList.toggle("hidden"); $("add").classList.add("hidden"); };
+document.querySelectorAll("[data-close]").forEach((b) => b.onclick = () => $(b.dataset.close).classList.add("hidden"));
+$("a-go").onclick = async () => {
+  $("a-go").disabled = true;
+  try {
+    all = (await call({ action: "add", coach: {
+      email: $("a-email").value, full_name: $("a-name").value, gym_name: $("a-gym").value, city: $("a-city").value,
+      country: $("a-country").value, instagram: $("a-ig").value, courses: $("a-courses").value,
+    } })).coaches;
+    ["a-email", "a-name", "a-gym", "a-city", "a-country", "a-ig", "a-courses"].forEach((id) => $(id).value = "");
+    $("add").classList.add("hidden");
+    setTab("live");
+    await placeOnMap();
+    say("Coach added and live.", "ok");
+  } catch (err) { say(err.message, "err"); }
+  $("a-go").disabled = false;
+};
+
+// ---------- import ----------
+function parseCsv(text) {
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') q = false;
+      else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ",") { row.push(cell); cell = ""; }
+    else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && text[i + 1] === "\n") i++;
+      row.push(cell); cell = ""; if (row.some((x) => x.trim())) rows.push(row); row = [];
+    } else cell += ch;
+  }
+  row.push(cell); if (row.some((x) => x.trim())) rows.push(row);
+  return rows;
+}
+const ALIASES = {
+  email: ["email", "emailaddress", "e-mail", "mail"],
+  full_name: ["name", "fullname", "coachname", "displayname"],
+  first: ["firstname", "first", "givenname"],
+  last: ["lastname", "last", "surname", "familyname"],
+  gym_name: ["gym", "gymname", "box", "boxname", "business", "company", "affiliate"],
+  city: ["city", "town", "location"],
+  country: ["country"],
+  instagram: ["instagram", "insta", "ig"],
+  website: ["website", "url", "web", "site"],
+  bio: ["bio", "about", "description", "summary"],
+  headline: ["headline", "title", "role"],
+  coaches_online: ["online", "coachesonline", "remote"],
+  courses: ["courses", "qualifications", "certifications", "certs"],
+  latitude: ["latitude", "lat"],
+  longitude: ["longitude", "lng", "lon", "long"],
+};
+let importRows = [];
+// The file saved from the Community Box dashboard (a JSON list, one entry
+// per profile). People who appear more than once under the same email
+// are merged: the newest profile wins, gaps are filled from the others,
+// and their courses are combined.
+const CB_COURSES = {
+  "the gymnastics course: level 1": "tgc1",
+  "the gymnastics course: level 2": "tgc2",
+  "the gymnastics course: online course": "tgc1-online",
+  "birdbox coaching: live seminar": "tcc1",
+  "birdbird coaching: online course": "tcc1-online",
+  "birdbox coaching: online course": "tcc1-online",
+  "birdbox weightlifting": "twc1",
+};
+// Community Box stored addresses in each coach's own language. One name
+// per country, in English, so the country filter does not list Germany
+// three times.
+const COUNTRY_EN = {
+  "deutschland": "Germany", "duitsland": "Germany", "italia": "Italy", "españa": "Spain", "espanya": "Spain",
+  "nederland": "Netherlands", "brasil": "Brazil", "méxico": "Mexico", "polska": "Poland", "schweiz": "Switzerland",
+  "suisse": "Switzerland", "svizzera": "Switzerland", "belgique": "Belgium", "belgië": "Belgium", "česko": "Czechia",
+  "österreich": "Austria", "ελλάδα": "Greece", "danmark": "Denmark", "magyarország": "Hungary", "sverige": "Sweden",
+  "suecia": "Sweden", "norge": "Norway", "suomi": "Finland", "srbija": "Serbia", "россия": "Russia", "ประเทศไทย": "Thailand",
+  "panamá": "Panama", "perú": "Peru", "república dominicana": "Dominican Republic", "türkiye": "Turkey",
+  "emirati arabi uniti": "United Arab Emirates", "arábia saudita": "Saudi Arabia", "estados unidos": "United States",
+  "アメリカ合衆国": "United States", "nova zelanda": "New Zealand", "australie": "Australia", "francia": "France",
+  "maurice": "Mauritius", "ישראל": "Israel", "българия": "Bulgaria", "кувейт": "Kuwait", "澳門": "Macau",
+  "people's republic of china": "China", "pr": "Puerto Rico", "central singapore community development council": "Singapore",
+  "caribisch nederland": "Caribbean Netherlands", "la réunion": "Réunion", "polynésie française": "French Polynesia",
+  "the bahamas": "Bahamas",
+};
+function countryEn(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  if (/^中华人民共和国/.test(s)) return "China";
+  if (/^대한민국/.test(s)) return "South Korea";
+  if (/^Singapore\b/i.test(s)) return "Singapore";
+  if (/^\d{4,}/.test(s)) return /pointe-à-pitre/i.test(s) ? "Guadeloupe" : "";
+  return COUNTRY_EN[s.toLowerCase()] || s;
+}
+
+function fromCommunityBox(list) {
+  const groups = new Map();
+  for (const r of list) {
+    const email = String(r.email || r.owner_email || "").trim().toLowerCase();
+    if (!groups.has(email)) groups.set(email, []);
+    groups.get(email).push(r);
+  }
+  const rows = [];
+  for (const [email, all] of groups) {
+    all.sort((a, b) => String(b.modified || b.added || "").localeCompare(String(a.modified || a.added || "")));
+    const pick = (k) => { for (const r of all) { const v = r[k]; if (v && String(v).trim()) return v; } return ""; };
+    const loc = all.map((r) => r.location).find((l) => l && l.lat != null) || all.map((r) => r.location).find(Boolean);
+    const parts = loc && loc.address ? loc.address.split(",").map((x) => x.trim()).filter(Boolean) : [];
+    const courses = new Set();
+    for (const r of all) for (const tag of String(r.courses || "").split(",")) {
+      const code = CB_COURSES[tag.trim().toLowerCase()];
+      if (code) courses.add(code);
+    }
+    const base = all[0];
+    rows.push({
+      email,
+      other_emails: [...new Set(all.map((r) => String(r.owner_email || "").toLowerCase()).filter((e) => e && e !== email))],
+      full_name: [base.first, base.last].map((x) => String(x || "").trim()).filter(Boolean).join(" ") || [pick("first"), pick("last")].join(" ").trim(),
+      gym_name: pick("business"), bio: pick("bio"), phone: pick("phone"),
+      instagram: pick("instagram"), website: pick("website"), facebook: pick("facebook"), twitter: pick("twitter"), linkedin: pick("linkedin"),
+      city: parts.length > 1 ? parts[0] : "", country: parts.length ? countryEn(parts[parts.length - 1]) : "",
+      latitude: loc && loc.lat != null ? loc.lat : "", longitude: loc && loc.lng != null ? loc.lng : "",
+      photo_url: (all.find((r) => r.photo) || {}).photo || "",
+      courses: [...courses].join(","), cb_key: base.cb_key,
+      merged: all.length,
+    });
+  }
+  return rows;
+}
+
+function readImport(text) {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("[")) {
+    let list = [];
+    try { list = JSON.parse(trimmed); } catch (e) { $("i-preview").innerHTML = "That file could not be read."; $("i-go").disabled = true; return; }
+    importRows = fromCommunityBox(list);
+    const ok = importRows.filter((r) => /@/.test(r.email) && r.full_name).length;
+    const n = (f) => importRows.filter(f).length;
+    $("i-preview").innerHTML =
+      `<p><strong>Community Box file:</strong> ${list.length} profiles, <strong>${importRows.length}</strong> coaches once duplicates are merged (${n((r) => r.merged > 1)} had more than one). ` +
+      `${ok} have a name and email · ${n((r) => r.photo_url)} photos · ${n((r) => r.latitude !== "")} on the map · ${n((r) => r.courses)} with courses · ${n((r) => r.phone)} phone numbers.</p>` +
+      `<table><tr><th>Name</th><th>Email</th><th>Gym</th><th>Place</th><th>Courses</th></tr>` +
+      importRows.slice(0, 5).map((r) => `<tr><td>${esc(r.full_name)}</td><td>${esc(r.email)}</td><td>${esc(r.gym_name)}</td><td>${esc([r.city, r.country].filter(Boolean).join(", "))}</td><td>${esc(r.courses)}</td></tr>`).join("") +
+      `</table><p>…and ${Math.max(0, importRows.length - 5)} more. Nobody is emailed.</p>`;
+    $("i-go").disabled = !ok;
+    return;
+  }
+  const rows = parseCsv(text.replace(/^﻿/, ""));
+  importRows = [];
+  if (rows.length < 2) { $("i-preview").innerHTML = text.trim() ? "Could not find a header row and data." : ""; $("i-go").disabled = true; return; }
+  const head = rows[0].map((h) => h.toLowerCase().replace(/[^a-z-]/g, ""));
+  const col = {}; const unused = [];
+  head.forEach((h, i) => {
+    const key = Object.keys(ALIASES).find((k) => ALIASES[k].includes(h));
+    if (key && col[key] == null) col[key] = i; else unused.push(rows[0][i]);
+  });
+  for (const r of rows.slice(1)) {
+    const o = {};
+    for (const [k, i] of Object.entries(col)) o[k] = (r[i] || "").trim();
+    if (!o.full_name) o.full_name = [o.first, o.last].filter(Boolean).join(" ");
+    delete o.first; delete o.last;
+    importRows.push(o);
+  }
+  const ok = importRows.filter((r) => /@/.test(r.email || "") && r.full_name).length;
+  $("i-preview").innerHTML =
+    `<p><strong>${importRows.length}</strong> rows, <strong>${ok}</strong> with a name and email. Matched columns: ${Object.keys(col).map(esc).join(", ") || "none"}.` +
+    (unused.length ? ` Ignored: ${unused.map(esc).join(", ")}.` : "") + `</p>` +
+    `<table><tr><th>Name</th><th>Email</th><th>Gym</th><th>Place</th><th>Courses</th></tr>` +
+    importRows.slice(0, 5).map((r) => `<tr><td>${esc(r.full_name)}</td><td>${esc(r.email)}</td><td>${esc(r.gym_name)}</td><td>${esc([r.city, r.country].filter(Boolean).join(", "))}</td><td>${esc(r.courses)}</td></tr>`).join("") +
+    `</table>${importRows.length > 5 ? `<p>…and ${importRows.length - 5} more.</p>` : ""}`;
+  $("i-go").disabled = !ok;
+}
+$("i-file").onchange = async () => { const f = $("i-file").files[0]; if (f) { $("i-text").value = await f.text(); readImport($("i-text").value); } };
+$("i-text").oninput = () => readImport($("i-text").value);
+$("i-go").onclick = async () => {
+  if (!confirm(`Import ${importRows.length} coaches? Everyone with a name and email goes live.`)) return;
+  $("i-go").disabled = true;
+  // In batches: a function has 26 seconds, and each coach takes a few
+  // database calls.
+  let added = 0, skipped = 0; const problems = [];
+  try {
+    // Small batches: each coach's photo is copied across as well.
+    for (let i = 0; i < importRows.length; i += 12) {
+      say(`Importing… ${Math.min(i + 12, importRows.length)} of ${importRows.length}`);
+      const d = await call({ action: "import", rows: importRows.slice(i, i + 12) });
+      added += d.added; skipped += d.skipped; problems.push(...d.problems);
+      all = d.coaches;
+    }
+    $("import").classList.add("hidden"); setTab("live");
+    say(`Imported ${added}. Skipped ${skipped}${problems.length ? ": " + problems.slice(0, 20).join("; ") : ""}.`, added ? "ok" : "err");
+    if (added) await placeOnMap();
+  } catch (err) { say(err.message, "err"); }
+  $("i-go").disabled = false;
+};
+
+// Coaches added by hand or imported have a city but no map position.
+// The lookup service allows about one a second, so this works through
+// them a handful per call until none are left.
+async function placeOnMap() {
+  let left = all.filter((c) => c.latitude == null && (c.city || c.country)).length;
+  while (left > 0) {
+    say(`Putting coaches on the map… ${left} to go`);
+    const d = await call({ action: "geocode_missing" });
+    all = d.coaches;
+    if (!d.placed) break;
+    left = d.left;
+  }
+  render();
+  say("Done.", "ok");
+}
+
+start();
+</script>
+</body>
+</html>

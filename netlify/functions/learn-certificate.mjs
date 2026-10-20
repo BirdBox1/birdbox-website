@@ -19,6 +19,7 @@
 // except the paragraph.
 
 import { createClient } from "@supabase/supabase-js";
+import { directoryInvite } from "../lib/directory.mjs";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 
@@ -265,6 +266,7 @@ async function sendEmail({ to, course, cert, pdf, again }) {
   if (!key || !to) { console.warn("Certificate not emailed to", to); return false; }
 
   const title = titleFor(course);
+  const invite = directoryInvite();
   const first = String(cert.name).split(" ")[0];
   const text =
 `Hi ${first},
@@ -278,6 +280,8 @@ ${SITE_URL}/learn/
 
 Thank you for learning with us.
 
+${invite.text}
+
 BirdBox Coaching`;
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -287,6 +291,7 @@ BirdBox Coaching`;
 <p>Your certificate is attached. Your reference is <strong>${esc(cert.reference)}</strong>${course.ceus ? `, and the course is worth ${Number(course.ceus)} CEUs` : ""}.</p>
 <p>You can download it again any time from <a href="${SITE_URL}/learn/">My courses</a>.</p>
 <p>Thank you for learning with us.</p>
+${invite.html}
 <p>BirdBox Coaching</p>
 </div>`;
 

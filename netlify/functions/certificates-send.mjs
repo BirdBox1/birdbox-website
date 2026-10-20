@@ -23,6 +23,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
+import { directoryInvite } from "../lib/directory.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -72,7 +73,7 @@ const LAYOUTS = {
   },
 };
 
-function layoutFor(course) {
+export function layoutFor(course) {
   return course.type === "workshop" ? LAYOUTS.workshop : LAYOUTS.seminar;
 }
 
@@ -531,7 +532,7 @@ async function fetchSiteFile(path) {
   return null;
 }
 
-async function loadArtwork(course) {
+export async function loadArtwork(course) {
   const base = templateBase(course);
   for (const ext of [".jpg", ".jpeg", ".png"]) {
     const bytes = await fetchSiteFile(base + ext);
@@ -544,7 +545,7 @@ async function loadArtwork(course) {
 // certificates/name-font.ttf. Missing or unreadable, the certificate
 // still generates in Helvetica Bold rather than failing — a plainer
 // certificate is better than none.
-async function loadNameFont() {
+export async function loadNameFont() {
   const bytes = await fetchSiteFile("/certificates/name-font.ttf");
   if (!bytes) console.warn("Name font not found; falling back to Helvetica Bold.");
   return bytes;
@@ -600,7 +601,7 @@ async function nextReference(course) {
   throw new Error("Could not allocate a certificate reference");
 }
 
-async function buildPdf({ artwork, layout, nameFont, name, awardedText, reference, focus }) {
+export async function buildPdf({ artwork, layout, nameFont, name, awardedText, reference, focus }) {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   const page = doc.addPage([PAGE.width, PAGE.height]);
@@ -755,7 +756,7 @@ function bodyToHtml(text) {
   return out.join("");
 }
 
-function emailHtml(text, brand) {
+function emailHtml(text, brand, extraHtml = "") {
   const mark = brandMark(brand);
 
   return `<!DOCTYPE html>
@@ -774,7 +775,7 @@ function emailHtml(text, brand) {
                height="46" style="height:46px;width:auto;display:block;border:0;outline:none;
                text-decoration:none;-ms-interpolation-mode:bicubic">
         </td></tr>
-        <tr><td style="padding:28px;font-family:Helvetica,Arial,sans-serif">${bodyToHtml(text)}</td></tr>
+        <tr><td style="padding:28px;font-family:Helvetica,Arial,sans-serif">${bodyToHtml(text)}${extraHtml}</td></tr>
         <tr><td style="padding:18px 28px;border-top:1px solid #e0ddd7;
                        font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6c7178">
           BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland
@@ -785,7 +786,10 @@ function emailHtml(text, brand) {
 </body></html>`;
 }
 
+// Every certificate email ends by inviting them into the Trainer
+// Directory, where this course now shows on their profile.
 async function sendEmail({ to, subject, text, filename, pdf, brand }) {
+  const invite = directoryInvite();
   const key = process.env.RESEND_API_KEY;
   if (!key) { console.warn("No Resend key; certificate not sent to", to); return false; }
 
@@ -798,8 +802,8 @@ async function sendEmail({ to, subject, text, filename, pdf, brand }) {
         to: [to],
         reply_to: OFFICE,
         subject,
-        text,
-        html: emailHtml(text, brand),
+        text: text + "\n\n" + invite.text,
+        html: emailHtml(text, brand, invite.html),
         attachments: [{ filename, content: pdf }],
       }),
     });
@@ -814,7 +818,7 @@ async function sendEmail({ to, subject, text, filename, pdf, brand }) {
   }
 }
 
-function safeZone(tz) {
+export function safeZone(tz) {
   try {
     new Intl.DateTimeFormat("en-GB", { timeZone: tz || "UTC" });
     return tz || "UTC";

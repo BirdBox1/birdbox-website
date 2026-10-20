@@ -18,3 +18,14 @@
 # browser only ever sees birdboxcoaching.com. HTML files are caught first
 # by netlify/functions/learn-file.mjs, which serves them as real pages.
 /learn/c/*    https://yvdmazpxtpuvidlcifnq.supabase.co/storage/v1/object/public/learn/:splat    200
+
+# Trainer directory: each coach has their own address,
+# /trainer-directory/coach/<slug>, all served by one page that reads the
+# slug from the path. Their details come from directory-public.
+/trainer-directory/coach/*    /trainer-directory/coach/index.html    200
+
+# A coach's listing is edited inside BirdBox Learn, with the same login
+# as their online courses. These catch the obvious guesses.
+/trainer-directory/join    /learn/directory/    301
+/trainer-directory/me      /learn/directory/    301
+/trainer-directory/me/     /learn/directory/    301
