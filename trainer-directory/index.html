@@ -240,7 +240,8 @@
 import { BRANDS, esc, coachUrl, initials, badges, place, avatar, distanceKm } from "/trainer-directory/directory.js";
 
 const $ = (id) => document.getElementById(id);
-const PAGE = 30;
+// Coaches shown at first, and added each time "Show more" is pressed.
+const PAGE = 12;
 const state = { q: "", country: "", brand: "", online: false, near: null, shown: PAGE };
 let coaches = [];
 let map = null, cluster = null;
