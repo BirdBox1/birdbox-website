@@ -53,6 +53,15 @@
   .tag { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
   .tag.ok { color: var(--good); } .tag.wait { color: #F1A509; }
   .course button { font: inherit; font-size: 12px; background: none; border: 1px solid var(--line); color: var(--muted); padding: 4px 8px; cursor: pointer; margin-left: 8px; }
+  .add { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 6px; }
+  .add h3 { font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin: 0 0 6px; }
+  .opt { border: 1px solid var(--line); background: var(--paper); margin-bottom: 8px; border-left: 4px solid var(--b, var(--line)); }
+  .opt > label { display: flex; gap: 12px; align-items: center; padding: 12px 14px; cursor: pointer; font-size: 15px; }
+  .opt > label input { width: 20px; height: 20px; accent-color: var(--tcc); flex: none; }
+  .opt > label small { display: block; font-size: 12px; color: var(--muted); }
+  .opt .more { display: none; grid-template-columns: 1fr 1.6fr; gap: 0 12px; padding: 0 14px 4px 46px; }
+  .opt.on .more { display: grid; }
+  @media (max-width: 720px) { .opt .more { grid-template-columns: 1fr; padding-left: 14px; } }
   .none { font-size: 14px; color: var(--soft); line-height: 1.6; border: 1px dashed var(--line); padding: 14px 16px; margin-bottom: 14px; }
 
   .photo { display: flex; gap: 18px; align-items: center; margin-bottom: 18px; }
@@ -116,27 +125,15 @@
       <div class="courses" id="courses"></div>
       <div class="none hidden" id="no-courses"></div>
 
-      <details id="add-wrap">
-        <summary class="td-btn td-btn--ghost td-btn--small" style="list-style:none;display:inline-flex">+ Add a course from before 2026</summary>
-        <form id="add-form" style="margin-top:16px">
-          <p class="hint" style="font-size:14px;color:var(--muted);line-height:1.55;margin:0 0 14px">Our records start in August 2026. For anything earlier, or a course booked under a different email, tell us what you did and our team will check it. It shows on your listing once checked.</p>
-          <div class="row4">
-            <div class="field"><label for="a-brand">Course</label>
-              <select id="a-brand"><option value="tcc">The Coaches Course (formerly BirdBox Coaching Development)</option><option value="tgc">The Gymnastics Course</option></select></div>
-            <div class="field"><label for="a-kind">Type</label>
-              <select id="a-kind"><option value="seminar">In person</option><option value="online">Online</option><option value="workshop">Workshop</option></select></div>
-            <div class="field" id="a-level-f"><label for="a-level">Level</label>
-              <select id="a-level"><option>1</option><option>2</option></select></div>
-            <div class="field"><label for="a-month">Month and year</label><input id="a-month" type="month" min="2010-01" required></div>
-          </div>
-          <div class="row2">
-            <div class="field"><label for="a-where">Where (gym and city)</label><input id="a-where" maxlength="120" placeholder="e.g. CrossFit Dublin, Ireland"></div>
-            <div class="field"><label for="a-note">Anything that helps us find you</label><input id="a-note" maxlength="300" placeholder="e.g. booked under my maiden name"></div>
-          </div>
-          <button class="td-btn td-btn--small" type="submit" id="a-go">Send for checking</button>
-          <div id="a-msg" class="msg"></div>
-        </form>
-      </details>
+      <div class="add" id="add">
+        <h3>Done other BirdBox courses?</h3>
+        <p class="hint" style="margin:0 0 12px">Tick every course you have completed that is not listed above, with roughly when and where. Our team checks each one before it shows on your listing.</p>
+        <div id="add-list"></div>
+        <div class="field" style="margin-top:6px"><label for="a-note">Anything that helps us find you (optional)</label><input id="a-note" maxlength="300" placeholder="e.g. booked under my maiden name, or a different email"></div>
+        <div id="add-send-wrap"><button class="td-btn td-btn--small" type="button" id="a-go">Send for checking</button></div>
+        <p class="hint hidden" id="add-with-save" style="margin:4px 0 0">These are sent for checking when you save your listing below.</p>
+        <div id="a-msg" class="msg"></div>
+      </div>
     </div>
 
     <form id="p-form">
@@ -306,11 +303,51 @@ function drawCourses() {
   $("no-courses").classList.toggle("hidden", !none);
   if (none) {
     $("no-courses").innerHTML = `We do not have a BirdBox certificate under <strong>${esc(session.user.email)}</strong>. ` +
-      (hasProfile ? "Add the course you did below and our team will check it." : "Save your details below first, then add the course you did and our team will check it.") +
+      "Tick the courses you have done below and our team will check them." +
       ` If you booked with another email, log out and use that one.`;
   }
-  $("add-wrap").classList.toggle("hidden", !hasProfile);
-  if (hasProfile && none) $("add-wrap").open = true;
+  drawAdd();
+}
+
+// The tick-list of courses a coach can ask us to check. Anything already
+// on their listing (certificate, checked or waiting) is left out, so the
+// same course cannot be sent twice. Workshops can repeat.
+const COURSE_OPTIONS = [
+  { code: "tcc1", brand: "tcc", level: "1", kind: "seminar", label: "The Coaches Course — Level 1", sub: "In person · formerly BirdBox Coaching Development" },
+  { code: "tcc1-online", brand: "tcc", level: "1", kind: "online", label: "The Coaches Course — Level 1 Online", sub: "Online · formerly BirdBox Coaching Development" },
+  { code: "tcc2", brand: "tcc", level: "2", kind: "seminar", label: "The Coaches Course — Level 2", sub: "In person · formerly BirdBox Coaching Development" },
+  { code: "tgc1", brand: "tgc", level: "1", kind: "seminar", label: "The Gymnastics Course — Level 1", sub: "In person" },
+  { code: "tgc1-online", brand: "tgc", level: "1", kind: "online", label: "The Gymnastics Course — Level 1 Online", sub: "Online" },
+  { code: "tgc2", brand: "tgc", level: "2", kind: "seminar", label: "The Gymnastics Course — Level 2", sub: "In person" },
+  { code: "tgc-workshop", brand: "tgc", level: null, kind: "workshop", label: "TGC Workshop", sub: "One-day workshop" },
+];
+function drawAdd() {
+  const have = new Set((data.courses || []).filter((c) => c.kind !== "workshop").map((c) => `${c.brand}|${c.level || ""}|${c.kind}`));
+  const opts = COURSE_OPTIONS.filter((o) => o.kind === "workshop" || !have.has(`${o.brand}|${o.level || ""}|${o.kind}`));
+  $("add-list").innerHTML = opts.map((o) => `<div class="opt" data-code="${o.code}" style="--b:var(--b-${o.brand})">
+    <label><input type="checkbox"><span>${esc(o.label)}<small>${esc(o.sub)}</small></span></label>
+    <div class="more">
+      <div class="field"><label>Month and year</label><input type="month" min="2010-01" class="a-month"></div>
+      <div class="field"><label>Where (gym and city)</label><input maxlength="120" class="a-where" placeholder="e.g. CrossFit Dublin, Ireland"></div>
+    </div></div>`).join("");
+  $("add-list").querySelectorAll(".opt input[type=checkbox]").forEach((cb) => {
+    cb.onchange = () => cb.closest(".opt").classList.toggle("on", cb.checked);
+  });
+  const hasProfile = !!data.profile;
+  $("add-send-wrap").classList.toggle("hidden", !hasProfile);
+  $("add-with-save").classList.toggle("hidden", hasProfile);
+  $("add").classList.toggle("hidden", !opts.length);
+}
+// The ticked courses, or an error naming what is missing.
+function tickedCourses() {
+  const out = [];
+  for (const el of $("add-list").querySelectorAll(".opt.on")) {
+    const month = el.querySelector(".a-month").value;
+    const label = COURSE_OPTIONS.find((o) => o.code === el.dataset.code).label;
+    if (!month) return { error: "Add the month and year for " + label + "." };
+    out.push({ code: el.dataset.code, month, location: el.querySelector(".a-where").value, note: $("a-note").value });
+  }
+  return { courses: out };
 }
 
 function drawPhoto() {
@@ -431,6 +468,9 @@ $("f-bio").oninput = () => { $("bio-n").textContent = $("f-bio").value.length; }
 $("p-form").onsubmit = async (e) => {
   e.preventDefault();
   if (!loc || loc.latitude == null) return say("s-msg", "Search for your gym or town and pick it from the list, so you show on the map.", "err");
+  // Before a listing exists, ticked courses go in with it in one save.
+  const ticked = data.profile ? { courses: [] } : tickedCourses();
+  if (ticked.error) return say("s-msg", ticked.error, "err");
   $("save").disabled = true; say("s-msg", "Saving…");
   const oldPhoto = data.profile?.photo_path;
   try {
@@ -442,6 +482,7 @@ $("p-form").onsubmit = async (e) => {
       instagram: $("f-ig").value, website: $("f-web").value, public_email: $("f-email").value,
       phone: $("f-phone").value, facebook: $("f-fb").value, twitter: $("f-tw").value, linkedin: $("f-li").value,
       photo_path: photoPath, visible: $("f-visible").checked,
+      courses: ticked.courses,
     });
     if (oldPhoto && oldPhoto !== photoPath) db.storage.from("directory").remove([oldPhoto]).catch(() => {});
     fill();
@@ -450,17 +491,17 @@ $("p-form").onsubmit = async (e) => {
   $("save").disabled = false;
 };
 
-// ---------- older courses ----------
-$("a-kind").onchange = () => $("a-level-f").classList.toggle("hidden", $("a-kind").value === "workshop");
-$("add-form").onsubmit = async (e) => {
-  e.preventDefault();
+// ---------- more courses, once the listing exists ----------
+$("a-go").onclick = async () => {
+  const t = tickedCourses();
+  if (t.error) return say("a-msg", t.error, "err");
+  if (!t.courses.length) return say("a-msg", "Tick the courses you have done first.", "err");
   $("a-go").disabled = true; say("a-msg", "Sending…");
   try {
-    data = await call({ action: "add_course", brand: $("a-brand").value, kind: $("a-kind").value, level: $("a-level").value,
-      month: $("a-month").value, location: $("a-where").value, note: $("a-note").value });
-    $("a-month").value = ""; $("a-where").value = ""; $("a-note").value = "";
+    data = await call({ action: "add_course", courses: t.courses });
+    $("a-note").value = "";
     drawStatus(); drawCourses();
-    say("a-msg", "Sent. We will check it and email you.", "ok");
+    say("a-msg", "Sent. We will check " + (t.courses.length === 1 ? "it" : "them") + " and email you.", "ok");
   } catch (err) { say("a-msg", err.message, "err"); }
   $("a-go").disabled = false;
 };

@@ -40,8 +40,9 @@ export default async (req) => {
       profile = res.profile;
     } else if (action === "add_course") {
       if (!profile) return json({ error: "Save your profile first." }, 400);
-      const res = await addCourse(profile, body);
+      const res = await addCourses(profile, Array.isArray(body.courses) ? body.courses : [body]);
       if (res.error) return json(res, 400);
+      await tellOffice(profile, res.added);
     } else if (action === "remove_course") {
       if (!profile) return json({ error: "No listing yet." }, 400);
       await db.from("directory_courses").delete()
@@ -200,64 +201,99 @@ async function save(profile, user, email, b) {
     saved = data;
   }
 
-  await tellOfficeIfWaiting(saved);
+  // Courses ticked on the same form go in with the listing, so the office
+  // gets one email about everything rather than one per step.
+  let added = 0;
+  if (Array.isArray(b.courses) && b.courses.length) {
+    const res = await addCourses(saved, b.courses);
+    if (res.error) return { error: res.error + " Your details were saved." , profile: saved };
+    added = res.added;
+  }
+  await tellOffice(saved, added);
   return { profile: saved };
 }
 
-const KINDS = ["seminar", "online", "workshop"];
+// The courses a coach can ask us to check. Level 2 is in person only (the
+// TCC Level 2 online course comes with the seminar). The Endurance and
+// Weightlifting Courses are added here once they have graduates.
+const COURSES = {
+  "tcc1": { brand: "tcc", level: "1", kind: "seminar" },
+  "tcc1-online": { brand: "tcc", level: "1", kind: "online" },
+  "tcc2": { brand: "tcc", level: "2", kind: "seminar" },
+  "tgc1": { brand: "tgc", level: "1", kind: "seminar" },
+  "tgc1-online": { brand: "tgc", level: "1", kind: "online" },
+  "tgc2": { brand: "tgc", level: "2", kind: "seminar" },
+  "tgc-workshop": { brand: "tgc", level: null, kind: "workshop" },
+};
 
-async function addCourse(profile, b) {
-  // Only courses that existed before our records began (August 2026).
-  const brand = String(b.brand || "").toLowerCase();
-  if (!["tcc", "tgc"].includes(brand)) return { error: "Pick the course." };
-  const kind = KINDS.includes(b.kind) ? b.kind : "seminar";
-  const level = kind === "workshop" ? null : (String(b.level || "").match(/\d/) || [null])[0];
-  if (kind !== "workshop" && !level) return { error: "Pick the level." };
-  const m = String(b.month || "").match(/^(\d{4})-(\d{2})$/);
-  if (!m || +m[1] < 2010 || +m[2] < 1 || +m[2] > 12) return { error: "Add the month and year you did it." };
+function parseCourse(c) {
+  // Accepts { code } from the tick-list, or the older { brand, kind, level }.
+  let def = COURSES[String(c.code || "")];
+  if (!def) {
+    const brand = String(c.brand || "").toLowerCase();
+    const kind = ["seminar", "online", "workshop"].includes(c.kind) ? c.kind : "seminar";
+    const level = kind === "workshop" ? null : (String(c.level || "").match(/\d/) || [null])[0];
+    def = Object.values(COURSES).find((d) => d.brand === brand && d.kind === kind && d.level === level);
+  }
+  if (!def) return { error: "One of those courses is not one we can check." };
+  const m = String(c.month || "").match(/^(\d{4})-(\d{2})$/);
+  if (!m || +m[1] < 2010 || +m[2] < 1 || +m[2] > 12) return { error: "Add the month and year for each course you ticked." };
   const course_month = `${m[1]}-${m[2]}-01`;
-  if (new Date(course_month) > new Date()) return { error: "That date is in the future." };
+  if (new Date(course_month) > new Date()) return { error: "One of those dates is in the future." };
+  return { row: { ...def, course_month, location: clean(c.location, 120), note: clean(c.note, 300) } };
+}
 
-  const { count } = await db.from("directory_courses").select("id", { count: "exact", head: true })
-    .eq("profile_id", profile.id).is("verified_at", null);
-  if ((count || 0) >= MAX_PENDING_COURSES) return { error: "That is a lot waiting already. We will check those first." };
+// Adds courses for the office to check. A course already on the listing
+// (checked or waiting) is not added twice; workshops can repeat, since
+// people do more than one.
+async function addCourses(profile, list) {
+  const rows = [];
+  for (const c of list.slice(0, 12)) {
+    const r = parseCourse(c);
+    if (r.error) return r;
+    rows.push(r.row);
+  }
+  if (!rows.length) return { added: 0 };
 
-  const { error } = await db.from("directory_courses").insert({
-    profile_id: profile.id, brand, kind, level, course_month,
-    location: clean(b.location, 120), note: clean(b.note, 300),
-  });
+  const quals = (await qualificationsFor([profile], { withPending: true })).get(profile.id);
+  const have = new Set(quals.filter((q) => q.kind !== "workshop").map((q) => `${q.brand}|${q.level || ""}|${q.kind}`));
+  const fresh = rows.filter((r) => r.kind === "workshop" || !have.has(`${r.brand}|${r.level || ""}|${r.kind}`));
+  if (!fresh.length) return { added: 0 };
+
+  const waiting = quals.filter((q) => !q.verified).length;
+  if (waiting + fresh.length > MAX_PENDING_COURSES) return { error: "That is a lot waiting already. We will check those first." };
+
+  const { error } = await db.from("directory_courses").insert(fresh.map((r) => ({ ...r, profile_id: profile.id })));
   if (error) throw error;
-
   await db.from("directory_profiles").update({ seen_at: null }).eq("id", profile.id);
-  await tellOfficeIfWaiting(profile, true);
-  return {};
+  return { added: fresh.length };
 }
 
 // One email to the office when something needs checking: a new coach
-// with no certificate from us, or a past course added to any listing.
-async function tellOfficeIfWaiting(profile, newCourse = false) {
+// with no certificate from us, or courses added to any listing.
+async function tellOffice(profile, newCourses = 0) {
   const quals = (await qualificationsFor([profile], { withPending: true })).get(profile.id);
   const status = statusOf(profile, quals.filter((q) => q.verified));
   const firstSubmit = status === "pending" && !profile.submitted_at;
-  if (!firstSubmit && !newCourse) return;
+  if (!firstSubmit && !newCourses) return;
   if (firstSubmit) {
     await db.from("directory_profiles").update({ submitted_at: new Date().toISOString(), seen_at: null }).eq("id", profile.id);
   }
 
   const waiting = quals.filter((q) => !q.verified);
-  const lines = waiting.map((q) => `- ${q.title}${q.date ? ", " + String(q.date).slice(0, 7) : ""}${q.place ? ", " + q.place : ""}${q.note ? " (" + q.note + ")" : ""}`);
+  const lines = waiting.map((q) => `- ${q.title}${q.kind === "seminar" ? " (in person)" : ""}${q.date ? ", " + String(q.date).slice(0, 7) : ""}${q.place ? ", " + q.place : ""}${q.note ? " (" + q.note + ")" : ""}`);
   const link = `${SITE_URL}/portal/directory/`;
   const what = firstSubmit
     ? `${profile.full_name} has asked to join the Trainer Directory. We have no certificate on file for them, so they will not show until you approve them.`
-    : `${profile.full_name} has added a course from before our records began. It will not show on their listing until you verify it.`;
+    : `${profile.full_name} has added ${newCourses === 1 ? "a course" : newCourses + " courses"} for us to check. ${newCourses === 1 ? "It does" : "They do"} not show on their listing until you verify ${newCourses === 1 ? "it" : "them"}.`;
 
   await sendMail({
     to: OFFICE,
     subject: `Trainer Directory: ${profile.full_name} needs checking`,
-    text: `${what}\n\nCourses they say they did:\n${lines.join("\n") || "- none added yet"}\n\nCheck them here:\n${link}`,
+    text: `${what}\n\nCourses waiting to be checked:\n${lines.join("\n") || "- none added yet"}\n\nCheck them here:\n${link}`,
     html: `<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#16181b;max-width:560px">
 <p>${esc(what)}</p>
-<p><strong>Courses they say they did:</strong></p>
+<p><strong>Courses waiting to be checked:</strong></p>
 <ul>${waiting.map((q, i) => `<li>${esc(lines[i].slice(2))}</li>`).join("") || "<li>None added yet</li>"}</ul>
 <p><a href="${link}">Open the directory queue</a></p>
 </div>`,
