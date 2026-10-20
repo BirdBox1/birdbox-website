@@ -209,7 +209,7 @@ async function addOne(r, source, by) {
     email, other_emails: others, full_name, slug: await uniqueSlug(full_name), source,
     approved_at: new Date().toISOString(), approved_by: by,
     headline: t(r.headline, 90), bio: r.bio ? String(r.bio).replace(/\r/g, "").trim().slice(0, 2000) : null,
-    gym_name: t(r.gym_name || r.gym, 90), city: t(r.city, 80), country: t(r.country, 60),
+    gym_name: notContact(t(r.gym_name || r.gym, 90)), city: t(r.city, 80), country: t(r.country, 60),
     latitude: hasPoint ? lat : null, longitude: hasPoint ? lng : null,
     coaches_online: /^(1|y|yes|true)$/i.test(String(r.coaches_online || r.online || "")),
     instagram: instagramHandle(r.instagram), website: linkUrl(r.website),
@@ -254,6 +254,14 @@ async function addOne(r, source, by) {
   }
   if (courseRows.length) await db.from("directory_courses").insert(courseRows);
   return { id: p.id };
+}
+
+// Some people typed their email or phone into the business name on the
+// old directory. Contact details are never shown publicly, so those go.
+function notContact(v) {
+  if (!v) return null;
+  if (/[^@\s]+@[^@\s]+\.[^@\s]+/.test(v) || /^[+\d\s().-]{7,}$/.test(v) || v === "n/a" || v === "-") return null;
+  return v;
 }
 
 // People typed all sorts into these fields on the old directory: full
