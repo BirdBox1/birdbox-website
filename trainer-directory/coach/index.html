@@ -34,6 +34,10 @@
   .cp-msg.err { color: var(--bad); } .cp-msg.ok { color: var(--good); }
   @media (max-width: 520px) { .cp-form .two { grid-template-columns: 1fr; } .cp-form { padding: 18px 16px; } }
   .cp-main { min-width: 0; }
+  .cp-mine { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 22px;
+    padding: 14px 18px; border: 1px solid var(--tcc); background: rgba(79,168,222,.08); color: var(--ink); text-decoration: none; font-size: 14px; }
+  .cp-mine b { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--accentText); }
+  .cp-mine:hover { background: rgba(79,168,222,.16); }
   .cp-head { border: 1px solid var(--line); background: var(--panel); padding: 28px 30px; }
   .cp-name { font-size: clamp(28px, 4vw, 44px); line-height: 1.05; font-weight: 800; text-transform: uppercase; letter-spacing: -.015em; margin: 0 0 8px; }
   .cp-headline { font-size: 17px; color: var(--accentText); margin: 0 0 14px; font-weight: 600; }
@@ -205,6 +209,26 @@ async function load() {
     </div>
   </div>`;
   wireContact(c.slug);
+  showEditIfMine(c.slug);
+}
+
+// A coach looking at their own page gets a button straight to editing it.
+// Only checked when someone is logged in; visitors never call this.
+async function showEditIfMine(coachSlug) {
+  try {
+    const key = Object.keys(localStorage).find((k) => /^sb-.*-auth-token$/.test(k));
+    const token = key && JSON.parse(localStorage.getItem(key))?.access_token;
+    if (!token) return;
+    const r = await fetch("/.netlify/functions/directory-me", { headers: { Authorization: "Bearer " + token } });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.profile?.slug !== coachSlug) return;
+    const bar = document.createElement("a");
+    bar.className = "cp-mine";
+    bar.href = "/learn/directory/";
+    bar.innerHTML = "<span>This is your listing. Visitors see it exactly like this.</span><b>Edit my listing &rarr;</b>";
+    root.prepend(bar);
+  } catch (e) {}
 }
 
 function wireContact(coachSlug) {
