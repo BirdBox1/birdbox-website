@@ -2475,6 +2475,42 @@ async function insertNoteReliably(row, onRetry) {
   return { data: null, error: lastError };
 }
 
+/* Course emails: the draft row is saved with a client-made id, so a
+   retry after a lost reply cannot leave two drafts — the same idea as
+   insertNoteReliably. */
+async function insertEmailDraftReliably(row, onRetry) {
+  const id = newNoteId();
+  if (id) row = { ...row, id };
+  const waits = [0, 1500, 3000, 6000];
+  let lastError = null;
+  for (let i = 0; i < waits.length; i++) {
+    if (waits[i]) {
+      if (onRetry) onRetry(i);
+      await new Promise(r => setTimeout(r, waits[i]));
+    }
+    if (id && i > 0) {
+      const { data: existing } = await db.from("course_emails").select("id").eq("id", id).maybeSingle();
+      if (existing) return existing;
+    }
+    const { data, error } = await db.from("course_emails").insert(row).select("id").single();
+    if (!error) return data;
+    if (id && error.code === "23505") continue;
+    if (!isNetworkError(error)) throw new Error(error.message);
+    lastError = error;
+  }
+  throw new Error("No connection — nothing was sent. Try again when you have signal, or from a laptop.");
+}
+
+// After a send whose reply was lost: watch the row for up to ~40s.
+async function waitForEmailStatus(emailId) {
+  for (let i = 0; i < 8; i++) {
+    await new Promise(r => setTimeout(r, 5000));
+    const { data } = await db.from("course_emails").select("status").eq("id", emailId).maybeSingle();
+    if (data && (data.status === "sent" || data.status === "failed")) return data.status;
+  }
+  return null;
+}
+
 function showReauth() {
   if (document.getElementById("reauth")) return;
   const box = document.createElement("div");
@@ -5661,7 +5697,10 @@ function wirePrecourse() {
     msg.className = "msg"; msg.textContent = "Sending…";
 
     try {
-      const { data: row, error } = await db.from("course_emails").insert({
+      // Phone signal drops at gyms, and Safari reports it as "TypeError:
+      // Load failed". Saving the draft is safe to try again — it is made
+      // with its own id, so a save that landed is just read back.
+      const row = await insertEmailDraftReliably({
         course_id: pcCourse.id,
         registration_id: null,
         kind: "precourse",
@@ -5669,23 +5708,42 @@ function wirePrecourse() {
         body,
         personal_note: $("pc-note").value.trim() || null,
         status: "draft",
-      }).select("id").single();
-
-      if (error) throw new Error(error.message);
+      }, (n) => { msg.textContent = `Connection dropped — retrying (${n})…`; });
 
       const { data: { session } } = await db.auth.getSession();
       if (!session) throw new Error("Your session has expired — sign in again.");
 
-      const res = await fetch("/.netlify/functions/course-email-send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + session.access_token,
-        },
-        body: JSON.stringify({ emailId: row.id }),
-      });
-      const out = await res.json();
-      if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+      // The send is NOT retried: if the reply is lost it may still be
+      // going out, and a second send would email everyone twice. Ask
+      // the database instead whether it finished.
+      let out;
+      try {
+        const res = await fetch("/.netlify/functions/course-email-send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + session.access_token,
+          },
+          body: JSON.stringify({ emailId: row.id }),
+        });
+        out = await res.json();
+        if (!res.ok || out.error) throw new Error(out.error || "That did not work.");
+      } catch (err) {
+        if (!isNetworkError(err)) throw err;
+        msg.textContent = "Connection dropped — checking whether it went…";
+        const status = await waitForEmailStatus(row.id);
+        if (status === "sent") {
+          msg.className = "msg ok";
+          msg.textContent = "Sent. The connection dropped, but the email went out to everyone.";
+          setTimeout(() => { $("pcwrap").classList.add("hidden"); openCourse(currentCourse); }, 2200);
+          return;
+        }
+        throw new Error(
+          "The connection dropped while sending, so it is not certain whether it went out. " +
+          "Do not press Send again yet. Close this, wait a minute, and check the emails on the course page " +
+          "— or try from a laptop or better signal if it is not listed as sent."
+        );
+      }
 
       msg.className = "msg ok";
       msg.textContent = `Sent to ${out.sent}` +
