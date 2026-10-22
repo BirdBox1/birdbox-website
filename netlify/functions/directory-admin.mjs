@@ -58,9 +58,21 @@ export default async (req) => {
         await tellCoach(p, "rejected", note);
         break;
       }
-      case "verify_course":
-        await db.from("directory_courses").update({ verified_at: now, verified_by: user.id }).eq("id", String(b.course_id || ""));
+      case "verify_course": {
+        const courseId = String(b.course_id || "");
+        const { data: row } = await db.from("directory_courses").select("profile_id").eq("id", courseId).maybeSingle();
+        const p = row ? await one(row.profile_id) : null;
+        // Was this coach waiting for us? (No certificate, not yet approved.)
+        const before = p ? statusOf(p, (await qualificationsFor([p])).get(p.id)) : null;
+        await db.from("directory_courses").update({ verified_at: now, verified_by: user.id }).eq("id", courseId);
+        // Verifying a course is vouching for the coach: someone who was
+        // waiting goes live with it and is told, with no separate Approve.
+        if (p && (before === "pending" || before === "rejected")) {
+          await db.from("directory_profiles").update({ approved_at: now, approved_by: user.id, rejected_at: null, review_note: null }).eq("id", p.id);
+          await tellCoach(p, "approved");
+        }
         break;
+      }
       case "drop_course":
         await db.from("directory_courses").delete().eq("id", String(b.course_id || ""));
         break;
