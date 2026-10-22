@@ -18,7 +18,7 @@
 
 import {
   db, json, SITE_URL, BRANDS, PROFILE_FIELDS, qualificationsFor, statusOf, uniqueSlug,
-  userFrom, sendMail, esc, photoUrl, RELEASED,
+  userFrom, sendMail, esc, photoUrl, RELEASED, readAll,
 } from "../lib/directory.mjs";
 import { emailCoach } from "./directory-contact.mjs";
 
@@ -179,10 +179,9 @@ async function listRequests() {
 }
 
 async function listAll() {
-  const { data, error } = await db.from("directory_profiles").select(PROFILE_FIELDS)
-    .order("created_at", { ascending: false }).limit(5000);
-  if (error) throw error;
-  const profiles = data || [];
+  // In pages: over 1,000 coaches, at most 1,000 rows per request.
+  const profiles = await readAll(() => db.from("directory_profiles").select(PROFILE_FIELDS)
+    .order("created_at", { ascending: false }).order("id"));
   const quals = await qualificationsFor(profiles, { withPending: true });
   return profiles.map((p) => {
     const q = quals.get(p.id);
