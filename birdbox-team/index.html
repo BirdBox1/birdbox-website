@@ -213,6 +213,16 @@
   }
 
 
+
+  .bb-join {
+    position: relative; border-top: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(20,16,15,0.66) 0%, rgba(20,16,15,0.8) 55%, rgba(20,16,15,0.95) 100%),
+      url('/tgc/staff-pathway/img/whiteboard.jpg') center 40% / cover no-repeat;
+  }
+  .bb-join .bb-section { border-top: none; padding-top: 72px; padding-bottom: 64px; }
+  .bb-join .bb-section__title { font-size: clamp(26px, 4vw, 40px); }
+  .bb-join .bb-section__desc { color: #D9D4D5; }
+  .bb-join .bb-path { background: rgba(28,23,25,0.88); backdrop-filter: blur(2px); }
   .bb-paths { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 28px; }
   .bb-path {
     display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
@@ -624,6 +634,7 @@
     </div>
   </section>
 
+  <div class="bb-join">
   <section class="bb-section" id="join">
     <div class="bb-section__label">Work With Us</div>
     <h2 class="bb-section__title">Interested in Joining the Team?</h2>
@@ -653,6 +664,7 @@
     </div>
     <p class="bb-paths__note">Questions about joining the team? Write to <a href="mailto:info@birdboxcoaching.com?subject=Joining%20the%20BirdBox%20Team">info@birdboxcoaching.com</a>.</p>
   </section>
+  </div>
 
   <footer class="bb-footer">
     &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
