@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TGC Staff Pathway | Apply</title>
+<meta name="description" content="A year of mentorship with BirdBox staff for coaches who want to develop towards TGC staff: seminars, mentorship or programming. Applications are free.">
+<meta name="robots" content="noindex">
+<style>
+  :root {
+    --paper: #14100F; --panel: #1C1719; --field: #171214;
+    --ink: #F2EFEF; --soft: #C9C4C5; --muted: #8A8385; --line: #342F31;
+    --accent: #D8393D; --accentText: #F0797D; --bad: #F0797D;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--ink);
+    -webkit-font-smoothing: antialiased; line-height: 1.6;
+    background-image: radial-gradient(120% 60% at 50% 0%, rgba(216,57,61,0.16) 0%, rgba(20,16,15,0) 60%);
+    background-repeat: no-repeat;
+  }
+  a { color: var(--accentText); }
+  .bb-topbar { display: flex; justify-content: center; flex-wrap: wrap; gap: 28px; padding: 16px 24px; border-bottom: 1px solid var(--line); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .bb-topbar a { color: #ADA6A8; text-decoration: none; }
+  .bb-topbar a:hover { color: #fff; }
+  .bb-backbar { padding: 14px 24px 0; max-width: 1100px; margin: 0 auto; }
+  .bb-back { display: inline-flex; gap: 9px; padding: 8px 16px; border: 1px solid var(--line); color: #ADA6A8; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; }
+  .bb-back:hover { color: #fff; border-color: var(--accent); }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+  .hero { text-align: center; padding: 40px 0 28px; }
+  .hero img { height: 120px; width: auto; margin: 0 auto 24px; display: block; }
+  .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accentText); margin: 0 0 12px; }
+  h1 { font-size: clamp(28px, 5vw, 44px); font-weight: 800; text-transform: uppercase; letter-spacing: -0.01em; margin: 0 0 14px; line-height: 1.1; }
+  .lede { font-size: 17px; color: var(--soft); margin: 0 auto; max-width: 600px; }
+  h2 { font-size: 15px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; margin: 44px 0 14px; }
+  p { color: var(--soft); }
+
+  .steps { list-style: none; padding: 0; margin: 0; counter-reset: s; display: grid; gap: 10px; }
+  .steps li { counter-increment: s; border: 1px solid var(--line); background: var(--panel); padding: 14px 16px 14px 56px; position: relative; color: var(--soft); }
+  .steps li::before { content: counter(s); position: absolute; left: 16px; top: 13px; width: 26px; height: 26px; border: 1px solid var(--accent); color: var(--accentText); font-weight: 800; font-size: 13px; display: grid; place-items: center; }
+  .steps b { color: var(--ink); display: block; }
+  ul.ticks { padding-left: 1.2em; color: var(--soft); margin: 0; }
+  ul.ticks li { margin: 4px 0; }
+  .price { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .price div { border: 1px solid var(--line); background: var(--panel); padding: 16px; }
+  .price strong { display: block; font-size: 26px; font-weight: 800; color: var(--ink); }
+  .price span { font-size: 13px; color: var(--muted); }
+  .small { font-size: 13px; color: var(--muted); }
+
+  form { margin: 8px 0 60px; }
+  fieldset { border: 1px solid var(--line); background: var(--panel); padding: 20px; margin: 0 0 16px; min-width: 0; }
+  legend { font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 0 8px; }
+  .hint { font-size: 14px; color: var(--muted); margin: 0 0 14px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .full { grid-column: 1 / -1; }
+  label.f { display: block; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+  input[type=text], input[type=email], input[type=url], input[type=tel], input[type=number], select, textarea {
+    width: 100%; border: 1px solid var(--line); background: var(--field); color: var(--ink);
+    padding: 10px 12px; font-size: 15px; font-family: inherit; border-radius: 0;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  textarea { min-height: 260px; resize: vertical; line-height: 1.55; }
+  .checks { display: flex; flex-wrap: wrap; gap: 8px; }
+  .checks label { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); padding: 7px 11px; font-size: 14px; color: var(--soft); cursor: pointer; background: var(--field); }
+  .checks input { accent-color: var(--accent); margin: 0; }
+  .radios { display: grid; gap: 8px; }
+  .radios label { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); padding: 10px 12px; color: var(--soft); cursor: pointer; background: var(--field); font-size: 15px; }
+  .radios input { accent-color: var(--accent); margin-top: 5px; }
+  .moves { display: grid; gap: 8px; }
+  .move { display: grid; grid-template-columns: 210px 1fr; gap: 10px; align-items: center; }
+  .move > span { font-size: 14px; color: var(--ink); }
+  .move .either { display: grid; gap: 6px; min-width: 0; }
+  .group { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accentText); margin: 14px 0 2px; }
+  .group:first-child { margin-top: 0; }
+  .file { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--soft); min-width: 0; }
+  .file .pick { display: inline-flex; align-items: center; border: 1px solid var(--line); background: var(--field); color: var(--ink); padding: 8px 12px; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; }
+  .file .pick:hover, .file .pick:focus-within { border-color: var(--accent); }
+  .file .pick input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .file .got { color: var(--accentText); overflow-wrap: anywhere; }
+  .file .bar { flex: 1 1 120px; height: 4px; background: var(--line); min-width: 80px; }
+  .file .bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+  .file button.x { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; font-size: 13px; padding: 0; }
+  .file .err { color: var(--bad); flex-basis: 100%; }
+  .docs { display: grid; gap: 14px; }
+  .langs { display: grid; gap: 8px; }
+  .lang { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .lang select { flex: 1 1 200px; width: auto; }
+  .lang input { flex: 1 1 200px; width: auto; }
+  .lang .x, .add { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; font-size: 13px; padding: 0; }
+  .add { color: var(--accentText); margin-top: 10px; text-decoration: none; font-weight: 700; }
+  .add:hover { text-decoration: underline; }
+  .doc .f { display: block; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .count { font-size: 13px; color: var(--muted); text-align: right; margin-top: 6px; }
+  .count.ok { color: var(--accentText); }
+  .agree { display: flex; gap: 10px; align-items: flex-start; color: var(--soft); font-size: 15px; margin: 10px 0; cursor: pointer; }
+  .agree input { accent-color: var(--accent); margin-top: 6px; flex: none; }
+  .hp { position: absolute; left: -9999px; height: 0; overflow: hidden; }
+  .submit { width: 100%; border: 1px solid var(--accent); background: var(--accent); color: #fff; font-size: 14px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 15px 20px; cursor: pointer; font-family: inherit; }
+  .submit:disabled { opacity: 0.55; cursor: wait; }
+  .note { min-height: 22px; margin: 12px 0 0; font-size: 15px; }
+  .note.err { color: var(--bad); }
+  .done { border: 1px solid var(--accent); background: var(--panel); padding: 28px; text-align: center; margin: 8px 0 60px; }
+  .done h2 { margin-top: 0; }
+  .hidden { display: none !important; }
+
+  .bb-footer { text-align: center; padding: 30px 24px 46px; font-size: 13px; color: #756F71; border-top: 1px solid var(--line); line-height: 1.7; }
+  .bb-footer a { color: #8A8385; text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 0 16px; }
+    .grid, .price { grid-template-columns: 1fr; }
+    .move { grid-template-columns: 1fr; gap: 4px; }
+    fieldset { padding: 16px 14px; }
+    .bb-topbar { gap: 16px; }
+  }
+</style>
+</head>
+<body>
+<nav class="bb-topbar">
+  <a href="/">Home</a>
+  <a href="/merch">Merch Store</a>
+  <a href="/blog">Blog</a>
+  <a href="/trainer-directory">Trainer Directory</a>
+  <a href="/about">About</a>
+</nav>
+<div class="bb-backbar"><a class="bb-back" href="/tgc">&larr; The Gymnastics Course</a></div>
+
+<main class="wrap">
+  <header class="hero">
+    <img src="/brand/tgc-mark.png" alt="The Gymnastics Course">
+    <p class="eyebrow">Applications open</p>
+    <h1>TGC Staff Pathway</h1>
+    <p class="lede">A year of mentorship with BirdBox staff for coaches who want to develop towards working with TGC: on our seminars, in our mentorship or on our programming.</p>
+  </header>
+
+  <h2>Who it is for</h2>
+  <p>Coaches anywhere in the world who have completed TGC, can perform the movements we teach to a high standard, and want to develop as a coach, not only as an athlete. The first intake has five places.</p>
+  <p>Where we bring in new staff depends on where our courses are growing. If we are not taking on staff in your region yet, the mentorship year still develops you, and you are part of the group we recruit from when we are.</p>
+
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li><b>Apply (free)</b>Send a video of your coaching, a video of each TGC movement, a written piece and a reference.</li>
+    <li><b>Assessment</b>Nathan reviews every application himself, and may invite you to a call. If you are not accepted this time, you get feedback and a plan of courses and study to strengthen your next application. You can apply again after six months.</li>
+    <li><b>The mentorship year</b>Twelve months of one-to-one and group mentorship, video review of your coaching and guided study for your tracks.</li>
+    <li><b>Intern, assist, lead</b>As you progress, you may be brought in as an intern on a TGC course. You shadow an assistant coach and learn that role directly. Your travel and accommodation are covered. From there, the people we bring in as staff come from this group.</li>
+  </ol>
+
+  <h2>Each month</h2>
+  <ul class="ticks">
+    <li>A one-to-one call with your BirdBox mentor</li>
+    <li>A group call with your intake, at a time that works across time zones</li>
+    <li>Video review of your coaching</li>
+    <li>Set study for your tracks, with guidance, followed up in your calls</li>
+  </ul>
+
+  <h2>The investment</h2>
+  <div class="price">
+    <div><strong id="p-monthly">€417 a month</strong><span id="p-months">for 12 months</span></div>
+    <div><strong id="p-full">€4,500</strong><span>paid in full (a discount on €5,000)</span></div>
+  </div>
+  <p class="small">The pathway is a 12-month commitment: once you start, the full year is completed. It is an opportunity to develop and be seen by our team. It is not an offer of work. You only pay if you are accepted.</p>
+
+  <h2 id="apply">Apply</h2>
+  <p class="small">Allow about an hour, plus time to film. Your answers are saved on this device as you go, so you can come back to finish.</p>
+
+  <form id="form" novalidate>
+    <fieldset>
+      <legend>About you</legend>
+      <div class="grid">
+        <div class="full"><label class="f" for="full_name">Full name *</label><input id="full_name" name="full_name" type="text" autocomplete="name" required></div>
+        <div><label class="f" for="email">Email *</label><input id="email" name="email" type="email" autocomplete="email" required></div>
+        <div><label class="f" for="phone">Phone / WhatsApp</label><input id="phone" name="phone" type="tel" autocomplete="tel"></div>
+        <div><label class="f" for="city">City</label><input id="city" name="city" type="text" autocomplete="address-level2"></div>
+        <div><label class="f" for="country">Country *</label><input id="country" name="country" type="text" autocomplete="country-name" required></div>
+        <div class="full"><label class="f" for="region">Where you are based *</label><select id="region" name="region" required><option value="">Choose…</option></select></div>
+        <div class="full"><label class="f" for="lang-0">Languages you can coach in *</label><div class="langs" id="languages"></div>
+          <button type="button" class="add" id="add-lang">+ Add another language</button></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Your coaching</legend>
+      <div class="grid">
+        <div><label class="f" for="gym">Where you coach</label><input id="gym" name="gym" type="text" placeholder="Gym, city"></div>
+        <div><label class="f" for="years_coaching">Years coaching</label><input id="years_coaching" name="years_coaching" type="number" min="0" max="60" inputmode="numeric"></div>
+        <div class="full"><label class="f">BirdBox courses you have completed *</label>
+          <p class="hint" style="margin:0 0 8px">Tick all that apply. At least one TGC course is needed.</p>
+          <div class="checks" id="courses"></div></div>
+        <div><label class="f" for="course_when">Your most recent: when and where</label><input id="course_when" name="course_when" type="text" placeholder="e.g. TGC Level 2, March 2025, Madrid"></div>
+        <div class="full"><label class="f" for="other_quals">Other qualifications and experience</label><textarea id="other_quals" name="other_quals" style="min-height:90px" placeholder="Certifications, sports background, teams or athletes you coach"></textarea></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Your tracks</legend>
+      <p class="hint">Tick every track you want to develop towards. Your mentorship year is built around them.</p>
+      <div class="radios" id="track"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Coaching video</legend>
+      <p class="hint">10 to 20 minutes of you coaching a gymnastics skill to an athlete or a group: how you explain it, what you see and how you correct it. Unedited is best. Upload it to YouTube (unlisted), Vimeo, Google Drive or Dropbox and paste the link. Make sure anyone with the link can watch it.</p>
+      <label class="f" for="coaching_video">Link *</label>
+      <input id="coaching_video" name="coaching_video" type="url" placeholder="https://" required>
+    </fieldset>
+
+    <fieldset>
+      <legend>Movement mastery</legend>
+      <p class="hint">A clear video of you performing each movement: several good reps, filmed side-on, with the whole body in view. Upload each video from your phone or computer (up to 300MB), or paste a link. One video per movement.</p>
+      <div class="moves" id="moves"><p class="small">Loading the movements…</p></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>CV and coaching philosophy</legend>
+      <p class="hint">Upload each as a PDF or Word document (up to 10MB). Your coaching philosophy is how you think about coaching: what you believe, how you teach and what you prioritise with athletes.</p>
+      <div class="docs">
+        <div class="doc"><span class="f">CV *</span><div class="file" data-slot="cv" data-kind="doc"></div></div>
+        <div class="doc"><span class="f">Coaching philosophy *</span><div class="file" data-slot="philosophy" data-kind="doc"></div></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Written piece</legend>
+      <p class="hint">Why do you want to coach with TGC, and what would you bring to our team? Tell us about your coaching: the athletes you work with, a coaching problem you solved, and what you most want to develop. 300 to 600 words.</p>
+      <textarea id="why" name="why" required></textarea>
+      <div class="count" id="count">0 words</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Reference</legend>
+      <p class="hint">Someone who has seen you coach: a gym owner, head coach or coach you work with. We may contact them.</p>
+      <div class="grid">
+        <div><label class="f" for="ref_name">Name *</label><input id="ref_name" name="ref_name" type="text" required></div>
+        <div><label class="f" for="ref_email">Email *</label><input id="ref_email" name="ref_email" type="email" required></div>
+        <div><label class="f" for="ref_role">Role and gym</label><input id="ref_role" name="ref_role" type="text"></div>
+        <div><label class="f" for="ref_relation">How they know your coaching</label><input id="ref_relation" name="ref_relation" type="text"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Confirm</legend>
+      <label class="agree"><input type="checkbox" id="agree_terms"> <span>I understand that if I am accepted, the Staff Pathway is a 12-month commitment of €5,000 (monthly, or in full at a discount), that it is a development opportunity and not an offer of work, and that I will sign a mentorship agreement before starting.</span></label>
+      <label class="agree"><input type="checkbox" id="agree_privacy"> <span>I agree that BirdBox Coaching may keep my application and contact my reference to assess it, as described in the <a href="/privacy/" target="_blank">privacy policy</a>.</span></label>
+      <div class="hp" aria-hidden="true"><label>Company <input id="company" name="company" type="text" tabindex="-1" autocomplete="off"></label></div>
+    </fieldset>
+
+    <button class="submit" id="submit" type="submit">Send my application</button>
+    <p class="note" id="note" role="status"></p>
+  </form>
+
+  <section class="done hidden" id="done">
+    <h2>Application sent</h2>
+    <p>Thank you. We have emailed you a copy. Nathan reviews every application himself, and you will hear from us with feedback whatever the outcome.</p>
+    <p class="small">Please keep your video links working until you hear from us.</p>
+  </section>
+</main>
+
+<footer class="bb-footer">
+  &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
+</footer>
+
+<script>
+(function () {
+  const BRAND = "tgc";
+  const KEY = "pathway-draft-" + BRAND;
+  // When they first opened the form, kept with the draft: someone finishing
+  // a saved draft can send it in seconds without looking like a bot.
+  let opened = Number(store0().started) || Date.now();
+  function store0() { try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; } }
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[<>&"]/g, (m) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[m]));
+  const form = $("form");
+  let movements = [];
+  let languages = [];
+
+  // One dropdown per language; "Other" opens a box to type it.
+  function addLang(value) {
+    const box = $("languages"), n = box.children.length;
+    const known = !value || languages.includes(value);
+    const row = document.createElement("div");
+    row.className = "lang";
+    row.innerHTML = `<select id="lang-${n}" aria-label="Language ${n + 1}"><option value="">Choose a language…</option>${
+      languages.map((l) => `<option${l === value ? " selected" : ""}>${esc(l)}</option>`).join("")}<option value="other"${known ? "" : " selected"}>Other</option></select>
+      <input type="text" placeholder="Type the language" aria-label="Other language" class="${known ? "hidden" : ""}" value="${known ? "" : esc(value)}">
+      ${n ? '<button type="button" class="x" data-drop-lang>Remove</button>' : ""}`;
+    box.appendChild(row);
+  }
+  // Uploaded files by slot ("mv-0"…, "cv", "philosophy"): { path, name }.
+  let files = {};
+  const uploading = {};
+
+  const store = {
+    get() { try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; } },
+    set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} },
+    clear() { try { localStorage.removeItem(KEY); } catch (e) {} },
+  };
+
+  function words() { return $("why").value.trim().split(/\s+/).filter(Boolean).length; }
+  function updateCount() {
+    const n = words();
+    $("count").textContent = n + (n === 1 ? " word" : " words") + (n < 150 ? " (at least 150)" : "");
+    $("count").className = "count" + (n >= 300 && n <= 600 ? " ok" : "");
+  }
+
+  function collect() {
+    const v = {};
+    form.querySelectorAll("input, select, textarea").forEach((el) => {
+      if (!el.id || el.id === "company") return;
+      if (el.type === "checkbox" || el.type === "radio") return;
+      v[el.id] = el.value;
+    });
+    v.languages = [...form.querySelectorAll('#languages .lang')].map((row) => {
+      const sel = row.querySelector("select").value;
+      return (sel === "other" ? row.querySelector("input").value : sel).trim();
+    }).filter(Boolean);
+    v.courses = [...form.querySelectorAll('#courses input:checked')].map((i) => i.value);
+    v.tracks = [...form.querySelectorAll('#track input:checked')].map((i) => i.value);
+    v.files = files;
+    v.movement_videos = movements.map((m, i) => ({ url: ($("mv-" + i) || {}).value || "", path: (files["mv-" + i] || {}).path || "" }));
+    v.cv_path = (files.cv || {}).path || "";
+    v.philosophy_path = (files.philosophy || {}).path || "";
+    v.agree_terms = $("agree_terms").checked;
+    v.agree_privacy = $("agree_privacy").checked;
+    v.started = opened;
+    return v;
+  }
+
+  function restore() {
+    const v = store.get();
+    Object.keys(v).forEach((k) => { const el = $(k); if (el && typeof v[k] === "string" && el.type !== "checkbox") el.value = v[k]; });
+    (v.courses || []).forEach((c) => { const i = form.querySelector(`#courses input[value="${CSS.escape(c)}"]`); if (i) i.checked = true; });
+    if (Array.isArray(v.languages) && v.languages.length) { $("languages").innerHTML = ""; v.languages.forEach(addLang); }
+    (v.tracks || []).forEach((t) => { const i = form.querySelector(`#track input[value="${CSS.escape(t)}"]`); if (i) i.checked = true; });
+    (v.movement_videos || []).forEach((m, i) => { const el = $("mv-" + i); if (el && m && typeof m.url === "string") el.value = m.url; });
+    files = v.files && typeof v.files === "object" ? v.files : {};
+    document.querySelectorAll(".file[data-slot]").forEach(drawFile);
+    updateCount();
+  }
+
+  function build(cfg) {
+    movements = cfg.movements;
+    $("region").insertAdjacentHTML("beforeend", Object.entries(cfg.regions).map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join(""));
+    $("courses").innerHTML = Object.entries(cfg.courses).map(([k, c]) => `<label><input type="checkbox" value="${k}"> ${esc(c.label)}</label>`).join("");
+    languages = cfg.languages;
+    addLang("");
+    $("track").innerHTML = Object.entries(cfg.tracks).map(([k, l]) => `<label><input type="checkbox" value="${k}"> <span>${esc(l)}</span></label>`).join("");
+    $("moves").innerHTML = movements.map((m, i) =>
+      (i === 0 || movements[i - 1].group !== m.group ? `<p class="group">${esc(m.group)}</p>` : "") +
+      `<div class="move"><span>${esc(m.name)} *</span><div class="either">
+        <div class="file" data-slot="mv-${i}" data-kind="video" data-name="${esc(m.group + " " + m.name.toLowerCase())}"></div>
+        <input id="mv-${i}" type="url" placeholder="or paste a link: https://" aria-label="${esc(m.group + " " + m.name)} video link"></div></div>`).join("");
+    document.querySelectorAll(".file[data-slot]").forEach(drawFile);
+    const p = cfg.price, eur = (n) => "€" + n.toLocaleString("en-IE");
+    $("p-monthly").textContent = eur(p.monthly) + " a month";
+    $("p-months").textContent = "for " + p.months + " months";
+    $("p-full").textContent = eur(p.inFull);
+    restore();
+  }
+
+
+  function drawFile(el) {
+    const slot = el.dataset.slot, f = files[slot], u = uploading[slot];
+    const what = el.dataset.kind === "video" ? "video" : "document";
+    const accept = el.dataset.kind === "video" ? "video/*" : ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    if (u) {
+      el.innerHTML = `<span>Uploading ${esc(u.name)}</span><span class="bar"><i style="width:${u.pct}%"></i></span><span>${u.pct}%</span>`;
+    } else if (f) {
+      el.innerHTML = `<span class="got">✓ ${esc(f.name)}</span><button type="button" class="x" data-remove="${slot}">Remove</button>`;
+    } else {
+      el.innerHTML = `<label class="pick">Upload ${what}<input type="file" accept="${accept}" data-upload="${slot}"></label>${el.dataset.error ? `<span class="err">${esc(el.dataset.error)}</span>` : ""}`;
+    }
+    const link = $(slot);
+    if (link && link.type === "url") link.classList.toggle("hidden", !!(f || u));
+  }
+
+  const TYPES = { mp4: "video/mp4", mov: "video/quicktime", m4v: "video/x-m4v", webm: "video/webm", "3gp": "video/3gpp",
+    pdf: "application/pdf", doc: "application/msword", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" };
+
+  async function upload(slot, file) {
+    const el = document.querySelector(`.file[data-slot="${slot}"]`);
+    const kind = el.dataset.kind;
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    const type = file.type || TYPES[ext] || "";
+    el.dataset.error = "";
+    uploading[slot] = { name: file.name, pct: 0 };
+    drawFile(el);
+    try {
+      const r = await fetch("/.netlify/functions/pathway-upload", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, type, size: file.size }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.url) throw new Error(d.error || "The upload could not start. Try again.");
+      const body = new FormData();
+      body.append("cacheControl", "3600");
+      body.append("", file.slice(0, file.size, type), file.name);
+      await new Promise((resolve, reject) => {
+        const x = new XMLHttpRequest();
+        x.open("PUT", d.url);
+        x.setRequestHeader("x-upsert", "false");
+        x.upload.onprogress = (e) => { if (e.lengthComputable) { uploading[slot].pct = Math.floor(e.loaded / e.total * 100); drawFile(el); } };
+        x.onload = () => (x.status >= 200 && x.status < 300 ? resolve() : reject(new Error("The upload did not finish. Try again.")));
+        x.onerror = () => reject(new Error("The upload stopped. Check your connection and try again."));
+        x.send(body);
+      });
+      files[slot] = { path: d.path, name: file.name };
+    } catch (err) {
+      el.dataset.error = err.message;
+    }
+    delete uploading[slot];
+    drawFile(el);
+    store.set(collect());
+  }
+
+  form.addEventListener("change", (e) => {
+    const slot = e.target.dataset && e.target.dataset.upload;
+    if (slot && e.target.files && e.target.files[0]) upload(slot, e.target.files[0]);
+  });
+  $("add-lang").addEventListener("click", () => { addLang(""); const s = $("languages").lastElementChild.querySelector("select"); s.focus(); });
+  $("languages").addEventListener("change", (e) => {
+    if (e.target.tagName !== "SELECT") return;
+    const other = e.target.parentElement.querySelector("input");
+    other.classList.toggle("hidden", e.target.value !== "other");
+    if (e.target.value === "other") other.focus();
+  });
+  $("languages").addEventListener("click", (e) => {
+    if (!e.target.hasAttribute("data-drop-lang")) return;
+    e.target.parentElement.remove();
+    store.set(collect());
+  });
+
+  form.addEventListener("click", (e) => {
+    const slot = e.target.dataset && e.target.dataset.remove;
+    if (!slot) return;
+    delete files[slot];
+    drawFile(document.querySelector(`.file[data-slot="${slot}"]`));
+    store.set(collect());
+  });
+
+  fetch("/.netlify/functions/pathway-apply?brand=" + BRAND)
+    .then((r) => r.json())
+    .then((cfg) => { if (cfg.movements) build(cfg); else throw new Error(); })
+    .catch(() => { $("moves").innerHTML = '<p class="small">The form did not load. Refresh the page, or write to info@birdboxcoaching.com.</p>'; });
+
+  form.addEventListener("input", () => { updateCount(); store.set(collect()); });
+  form.addEventListener("change", () => store.set(collect()));
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const note = $("note"), btn = $("submit");
+    if (Object.keys(uploading).length) {
+      $("note").className = "note err"; $("note").textContent = "Wait for your uploads to finish, then send.";
+      return;
+    }
+    const v = collect();
+    delete v.files;
+    note.className = "note"; note.textContent = "";
+    btn.disabled = true; btn.textContent = "Sending…";
+    try {
+      const r = await fetch("/.netlify/functions/pathway-apply", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...v, brand: BRAND, company: $("company").value, t: Date.now() - opened }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.ok) throw new Error(d.error || "That did not send. Try again, or write to info@birdboxcoaching.com.");
+      store.clear();
+      form.classList.add("hidden");
+      $("done").classList.remove("hidden");
+      $("done").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      note.className = "note err"; note.textContent = err.message;
+      btn.disabled = false; btn.textContent = "Send my application";
+    }
+  });
+})();
+</script>
+</body>
+</html>

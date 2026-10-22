@@ -100,7 +100,7 @@
   }
   .tcc-sub { font-size: 15px; color: var(--muted); margin: 0 0 30px; }
   .tcc-steps {
-    display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;
+    display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px;
     border: 1px solid var(--line); background: var(--panel); padding: 22px 18px;
   }
   .tcc-step { display: flex; flex-direction: column; align-items: center; gap: 7px; position: relative; }
@@ -119,6 +119,10 @@
   .tcc-step__kind { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
   .tcc-step:first-child .tcc-step__kind { color: var(--tcc); }
   .tcc-step__what { font-size: 12px; color: var(--muted); line-height: 1.35; }
+  a.tcc-step { color: inherit; text-decoration: none; }
+  a.tcc-step .tcc-step__what { color: var(--ink); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+  a.tcc-step:hover .tcc-step__dot, a.tcc-step:focus-visible .tcc-step__dot { border-color: var(--tcc); color: var(--tcc); }
+  a.tcc-step:hover .tcc-step__what { text-decoration-color: currentColor; }
 
   /* ---------- offering rows ---------- */
   .tcc-rows { display: flex; flex-direction: column; gap: 14px; padding: 34px 0 8px; }
@@ -284,7 +288,7 @@
     .tcc-row { grid-template-columns: 240px 1fr; }
     .tcc-row__side { grid-column: 1 / -1; border-left: none; border-top: 1px solid var(--line); }
     .tcc-bottom { grid-template-columns: 1fr; }
-    .tcc-steps { grid-template-columns: repeat(3, 1fr); row-gap: 22px; }
+    .tcc-steps { grid-template-columns: repeat(4, 1fr); row-gap: 22px; }
     .tcc-step::after { display: none; }
   }
   @media (max-width: 720px) {
@@ -362,6 +366,11 @@
           <span class="tcc-step__kind">Belong</span>
           <span class="tcc-step__what">BirdBox Coach</span>
         </div>
+        <a class="tcc-step" href="/tgc/staff-pathway/">
+          <span class="tcc-step__dot">8</span>
+          <span class="tcc-step__kind">Lead</span>
+          <span class="tcc-step__what">Staff Pathway</span>
+        </a>
     </div>
   </section>
 
@@ -560,6 +569,32 @@
             <li>Event invites</li>
           </ul>
           <a class="tcc-btn" href="/trainer-directory">Apply to Join &rarr;</a>
+        </div>
+      </article>
+      <article class="tcc-row">
+        <div class="tcc-row__media">
+          <span class="tcc-row__photo" style="background-image: url('ng6624.jpeg');"></span>
+          <img class="tcc-row__badge tcc-row__badge--mark" src="../brand/tgc-mark.png" alt="">
+        </div>
+        <div class="tcc-row__body">
+          <p class="tcc-row__kind"><span class="tcc-row__num">08</span>Lead</p>
+          <p class="tcc-row__eyebrow">Staff Pathway</p>
+          <h3 class="tcc-row__name">Develop as BirdBox Staff</h3>
+          <p class="tcc-row__blurb">A year of mentorship with BirdBox staff for coaches who want to work with TGC: on our seminars, in our mentorship or on our programming.</p>
+          <div class="tcc-facts">
+            <span class="tcc-fact">12-Month Mentorship</span>
+            <span class="tcc-fact">Intern &middot; Assist &middot; Lead</span>
+            <span class="tcc-fact">By Application</span>
+          </div>
+        </div>
+        <div class="tcc-row__side">
+          <p class="tcc-side__title">Each Month</p>
+          <ul class="tcc-list">
+            <li>One-to-one mentorship</li>
+            <li>Video review of your coaching</li>
+            <li>Guided study for your tracks</li>
+          </ul>
+          <a class="tcc-btn" href="/tgc/staff-pathway/">Apply Now &rarr;</a>
         </div>
       </article>
   </section>
