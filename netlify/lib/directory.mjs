@@ -150,9 +150,11 @@ export async function qualificationsFor(profiles, { withPending = false } = {}) 
   return out;
 }
 
-// Every row of a query, a page at a time (the database hands back at most
-// 1,000 rows per request).
-async function readAll(make) {
+// Every row of a query, a page at a time. The database hands back at most
+// 1,000 rows per request, so anything that can grow past that (the coach
+// list is over 1,000) must be read through this. Pass a function that
+// builds the query; give it a stable order so pages do not overlap.
+export async function readAll(make) {
   const rows = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await make().range(from, from + 999);

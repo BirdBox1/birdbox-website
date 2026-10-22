@@ -7,7 +7,7 @@
 // courses we can vouch for (a certificate, or verified by the office).
 // See netlify/lib/directory.mjs for who counts as live.
 
-import { db, json, PROFILE_FIELDS, qualificationsFor, statusOf, publicProfile } from "../lib/directory.mjs";
+import { db, json, PROFILE_FIELDS, qualificationsFor, statusOf, publicProfile, readAll } from "../lib/directory.mjs";
 
 const CACHE = "public, max-age=60, s-maxage=300";
 // Netlify's own CDN keeps the list for 5 minutes and serves the old copy
@@ -21,13 +21,14 @@ export default async (req) => {
   const slug = (new URL(req.url).searchParams.get("slug") || "").trim().toLowerCase();
 
   try {
-    let query = db.from("directory_profiles").select(PROFILE_FIELDS)
-      .eq("visible", true).is("hidden_at", null);
-    if (slug) query = query.eq("slug", slug);
-    const { data, error } = await query.limit(5000);
-    if (error) throw error;
-
-    const profiles = data || [];
+    // In pages: there are more than 1,000 coaches, and the database
+    // returns at most 1,000 rows per request.
+    const profiles = await readAll(() => {
+      let query = db.from("directory_profiles").select(PROFILE_FIELDS)
+        .eq("visible", true).is("hidden_at", null).order("id");
+      if (slug) query = query.eq("slug", slug);
+      return query;
+    });
     const quals = await qualificationsFor(profiles);
     const live = profiles
       .filter((p) => statusOf(p, quals.get(p.id)) === "live")
