@@ -83,6 +83,19 @@
     margin-top: 0.35rem; border-top: 1px solid #33373c;
     font-size: 0.78rem; color: #9aa1a9;
   }
+  .menu-panel { max-height: calc(100vh - 5rem); overflow-y: auto; }
+  .menu-panel .mgroup { display: flex; flex-direction: column; }
+  .menu-panel .mgroup + .mgroup { margin-top: 0.2rem; }
+  .menu-panel .mhead {
+    padding: 0.7rem 0.65rem 0.25rem; font-size: 0.66rem; font-weight: 650;
+    letter-spacing: 0.14em; text-transform: uppercase; color: #6f767e;
+  }
+  /* A heading with nothing showing under it (a coach under Business) goes too. */
+  .menu-panel .mgroup:not(:has(> a:not(.hidden), > button:not(.hidden))) { display: none; }
+  .menu-panel .mfoot { margin-top: 0.35rem; border-top: 1px solid #33373c; }
+  .menu-panel .mfoot .who { margin-top: 0; border-top: 0; display: block; }
+  .menu-panel .mfoot-row { display: flex; gap: 0.2rem; }
+  .menu-panel .mfoot-row button { width: auto; flex: 1 1 0; justify-content: center; color: #9aa1a9; }
   @media (max-width: 46rem) {
     .menu-panel { right: 0.9rem; left: 0.9rem; min-width: 0; }
   }
@@ -683,24 +696,44 @@
   <span class="right">
         <button id="menubtn" class="menubtn hidden" type="button">Menu</button>
     <div class="menu-panel hidden" id="menupanel">
-    <a class="linkbtn hidden" id="bloglink" href="/portal/blog/">Blog</a>
-    <a class="linkbtn hidden" id="feedbacklink" href="/portal/feedback/">Feedback</a>
-    <a class="linkbtn hidden" id="docslink" href="/portal/documents/">My documents</a>
-        <a class="linkbtn" id="agreementslink" href="/portal/agreements/">Agreements</a>
-        <a class="linkbtn hidden" id="availlink" href="/portal/availability/">My availability</a>
-    <a class="linkbtn hidden" id="reflectlink" href="/portal/reflections/">Reflections</a>
-    <a class="linkbtn hidden" id="codeslink" href="/portal/codes/">Discount codes</a>
-    <button id="messagesbtn" class="hidden" type="button">Messages</button>
-          <button id="broadcastbtn" class="hidden" type="button">Message the team</button>
-          <button id="plannerbtn" class="hidden" type="button">Seminar planner</button>
-    <button id="yearbtn" class="hidden" type="button">Scheduling planner</button>
-    <button id="compbtn" class="hidden" type="button">Their courses</button>
-    <button id="mktbtn" class="hidden" type="button">Where to go</button>
-    <button id="reconcilebtn" class="hidden" type="button">Check plan payments</button>
-
-    <button id="profilebtn" class="hidden" type="button">My profile</button>
-    <span class="who" id="who"></span>
-    <button id="signout" class="hidden" type="button">Sign out</button>
+    <!-- Grouped under small headings. Every item keeps its id, so the
+         counts and the admin/coach show-hide elsewhere are untouched; a
+         heading hides itself when nothing under it is showing. -->
+    <div class="mgroup" id="mg-top">
+      <button id="messagesbtn" class="hidden" type="button">Messages</button>
+      <a class="linkbtn hidden" id="bloglink" href="/portal/blog/">Blog</a>
+    </div>
+    <div class="mgroup" id="mg-courses">
+      <span class="mhead">Courses</span>
+      <button id="plannerbtn" class="hidden" type="button">Seminar planner</button>
+      <button id="yearbtn" class="hidden" type="button">Scheduling planner</button>
+      <a class="linkbtn hidden" id="feedbacklink" href="/portal/feedback/">Feedback</a>
+    </div>
+    <div class="mgroup" id="mg-people">
+      <span class="mhead">People</span>
+      <button id="broadcastbtn" class="hidden" type="button">Message the team</button>
+    </div>
+    <div class="mgroup" id="mg-business">
+      <span class="mhead">Business</span>
+      <button id="reconcilebtn" class="hidden" type="button">Check plan payments</button>
+      <a class="linkbtn hidden" id="codeslink" href="/portal/codes/">Discount codes</a>
+      <button id="mktbtn" class="hidden" type="button">Where to go</button>
+      <button id="compbtn" class="hidden" type="button">Their courses</button>
+    </div>
+    <div class="mgroup" id="mg-me">
+      <span class="mhead">Me</span>
+      <a class="linkbtn hidden" id="availlink" href="/portal/availability/">My availability</a>
+      <a class="linkbtn hidden" id="docslink" href="/portal/documents/">My documents</a>
+      <a class="linkbtn" id="agreementslink" href="/portal/agreements/">Agreements</a>
+      <a class="linkbtn hidden" id="reflectlink" href="/portal/reflections/">Reflections</a>
+    </div>
+    <div class="mfoot">
+      <span class="who" id="who"></span>
+      <div class="mfoot-row">
+        <button id="profilebtn" class="hidden" type="button">My profile</button>
+        <button id="signout" class="hidden" type="button">Sign out</button>
+      </div>
+    </div>
         </div>
   </span>
 </div>
