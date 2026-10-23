@@ -121,7 +121,9 @@ async function coach(slug, origin) {
   return {
     title: `${k.name} | BirdBox Trainer Directory`,
     description: [k.headline, where].filter(Boolean).join(" · ") || "A BirdBox-trained coach.",
-    image: k.photo || `${SITE}/share/coach.jpg`,
+    // Always our own picture: a coach's profile photo is whatever they
+    // uploaded, and a shared link should look like BirdBox, not like them.
+    image: `${SITE}/share/coach.jpg`,
   };
 }
 
