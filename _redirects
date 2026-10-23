@@ -29,3 +29,7 @@
 /trainer-directory/join    /learn/directory/    301
 /trainer-directory/me      /learn/directory/    301
 /trainer-directory/me/     /learn/directory/    301
+
+# The merch store became the Shop (gift cards first, then apparel).
+/merch     /shop/    301
+/merch/*   /shop/    301

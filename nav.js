@@ -56,8 +56,7 @@
 
   // ---- Navigation -------------------------------------------------------
   var LINKS = [
-    { href: "/merch", text: "Merch Store" },
-    { href: "/gift/", text: "Gift Cards" },
+    { href: "/shop/", text: "Shop" },
     { href: "/blog", text: "Blog" },
     { href: "/trainer-directory", text: "Trainer Directory" },
     { href: "/birdbox-team/", text: "Meet the Team" },
@@ -78,6 +77,8 @@
   function isCurrent(href, here) {
     var target = tidy(href);
     if (target === here) return true;
+    // Gift cards are sold from the Shop, so it stays lit on /gift/ too.
+    if (target === "/shop" && (here === "/gift" || here.indexOf("/gift/") === 0)) return true;
     // A section link stays lit on pages beneath it, so /birdbox-team/
     // is marked current while reading a page inside that folder.
     return target !== "/" && here.indexOf(target + "/") === 0;
