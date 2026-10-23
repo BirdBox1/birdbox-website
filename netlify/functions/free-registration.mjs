@@ -16,7 +16,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { priceWithDiscount } from "./validate-discount.mjs";
 import { sendConfirmation } from "./stripe-webhook.mjs";
-import { redeemCard } from "../lib/gift-cards.mjs";
+import { redeemCard, seminarVat } from "../lib/gift-cards.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -113,9 +113,11 @@ export default async (req) => {
     const gift = priced.gift || null;
     const giftKey = gift ? "free:" + crypto.randomUUID() : null;
     if (gift) {
+      const vat = await seminarVat(course);
       const left = await redeemCard({
         cardId: gift.id, cents: gift.covered, session: giftKey,
         usedFor: "seminar " + course.slug,
+        vatCountry: vat.country, vatPercent: vat.percent,
       });
       if (left === null) {
         return json({ error: "That gift card could not be used. Please try again, or email " + OFFICE + "." }, 409);
