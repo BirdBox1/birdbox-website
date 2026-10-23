@@ -142,14 +142,13 @@ export default async (req) => {
 
 function tellApplicant(a) {
   const first = a.full_name.split(" ")[0];
-  const course = BRAND_NAME[a.brand];
   return sendMail({
     to: a.email,
     subject: `We have your ${a.brand.toUpperCase()} Staff Pathway application`,
     text:
 `Hi ${first},
 
-Thank you for applying to the ${course} Staff Pathway. Your application is in.
+Thank you for applying to the ${a.brand.toUpperCase()} Staff Pathway. Your application is in.
 
 Nathan reviews every application himself: your coaching video, your movement videos, your written piece and your reference. We may contact your reference, and we may invite you to a short call.
 
@@ -160,7 +159,7 @@ Please keep your video links working until you hear from us.
 BirdBox Coaching`,
     html: `<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#16181b;max-width:560px">
 <p>Hi ${esc(first)},</p>
-<p>Thank you for applying to the ${esc(course)} Staff Pathway. Your application is in.</p>
+<p>Thank you for applying to the ${a.brand.toUpperCase()} Staff Pathway. Your application is in.</p>
 <p>Nathan reviews every application himself: your coaching video, your movement videos, your written piece and your reference. We may contact your reference, and we may invite you to a short call.</p>
 <p>Whatever the outcome, you will hear from us with feedback. If you are not accepted this time, the feedback comes with the courses and study that will strengthen your next application.</p>
 <p>Please keep your video links working until you hear from us.</p>
