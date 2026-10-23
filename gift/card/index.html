@@ -35,7 +35,7 @@
 <style>
   :root {
     --paper: #f4f2ee; --ink: #16181b; --muted: #6b6f75; --card: #f3efe8; --gold: #c9a24a;
-    --tgc: #85151A; --tcc: #298DE9; --tec: #10502C; --twc: #F1A509;
+    --tgc: #85151A; --tcc: #298DE9;
     --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
     --hand: Caveat, "Bradley Hand", "Segoe Script", cursive;
     --sans: -apple-system, "Helvetica Neue", Arial, sans-serif;
@@ -81,21 +81,24 @@
   .gc .brand { font-size: 2.6cqw; letter-spacing: .2em; text-transform: uppercase; color: #9aa1a9; line-height: 1.4; }
   .gc .amt { font-family: var(--display); font-weight: 800; font-size: 15cqw; line-height: .85; color: var(--gold); white-space: nowrap; }
   .gc .amt.long { font-size: 12cqw; }
-  .gc .bars { position: absolute; right: 0; top: 0; bottom: 0; width: 5cqw; display: grid; grid-template-rows: repeat(4, 1fr); }
+  .gc .bars { position: absolute; right: 0; top: 0; bottom: 0; width: 5cqw; display: grid; grid-template-rows: repeat(2, 1fr); }
   .gc .bars i:nth-child(1) { background: var(--tgc); } .gc .bars i:nth-child(2) { background: var(--tcc); }
-  .gc .bars i:nth-child(3) { background: var(--tec); } .gc .bars i:nth-child(4) { background: var(--twc); }
   .front .who { position: absolute; bottom: 11cqw; left: 6cqw; right: 6cqw; text-align: center; }
   .front .who .n { font-family: var(--hand); font-size: 11cqw; line-height: 1.05; }
   .front .who .f { font-size: 3.8cqw; color: var(--muted); margin-top: 1.5cqw; }
 
-  .msg { padding: 10% 9%; display: flex; flex-direction: column; justify-content: space-between; }
-  .msg .hi { font-family: var(--hand); font-size: 10cqw; line-height: 1.15; }
-  .msg .body { font-family: var(--hand); font-size: 8cqw; line-height: 1.25; margin-top: 4cqw; white-space: pre-line; overflow-wrap: anywhere; }
-  .msg .body.m { font-size: 6.4cqw; } .msg .body.l { font-size: 5.2cqw; }
-  .msg .sig { font-family: var(--hand); font-size: 8cqw; margin-top: 5cqw; }
-  .msg .course-cap { font-size: 3.2cqw; color: var(--muted); margin: 0 0 2cqw; text-align: center; }
-  .msg .course-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2cqw; background: var(--ink); padding: 3.5cqw; border-radius: 2cqw; }
-  .msg .course-row img { width: 100%; height: 9cqw; object-fit: contain; }
+  .msg { padding: 7% 8% 7%; display: flex; flex-direction: column; gap: 4cqw; }
+  .msg .ph { height: 32cqw; border-radius: 2cqw; background: url(/brand/tgc-bg.jpg) 30% center / cover; flex: none; }
+  .msg .hi { font-family: var(--hand); font-size: 9cqw; line-height: 1.1; }
+  .msg .body { font-family: var(--hand); font-size: 7cqw; line-height: 1.2; margin-top: 2cqw; white-space: pre-line; overflow-wrap: anywhere; }
+  .msg .body.m { font-size: 5.6cqw; } .msg .body.l { font-size: 4.6cqw; }
+  .msg .sig { font-family: var(--hand); font-size: 7cqw; margin-top: 3cqw; }
+  /* The dark-on-light course logos, straight on the paper. multiply hides
+     the white box some of them have. */
+  .msg .courses { margin-top: auto; }
+  .msg .course-cap { font-size: 3.2cqw; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; color: var(--muted); margin: 0 0 3cqw; text-align: center; }
+  .msg .course-row { display: grid; grid-template-columns: 1fr 1fr; gap: 3cqw 6cqw; border-top: .3cqw solid #e3dfd8; padding-top: 4cqw; }
+  .msg .course-row img { width: 100%; height: 15cqw; object-fit: contain; mix-blend-mode: multiply; }
 
   .use { padding: 9% 8%; display: flex; flex-direction: column; gap: 5cqw; }
   .use .k { font-size: 3.6cqw; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
@@ -111,7 +114,7 @@
   .back { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 12%; gap: 3cqw; text-align: center; }
   .back img { width: 16cqw; }
   .back .site { font-size: 3.6cqw; color: var(--muted); letter-spacing: .04em; }
-  .back .bars { display: grid; grid-template-columns: repeat(4, 6cqw); gap: 1.4cqw; }
+  .back .bars { display: grid; grid-template-columns: repeat(2, 9cqw); gap: 1.4cqw; }
   .back .bars i { height: 1.4cqw; display: block; }
 
   /* ---------- the print sheet ---------- */
@@ -166,7 +169,7 @@
     var amt = money(d.amount_cents, d.currency);
     gc.appendChild(top);
     gc.appendChild(el("div", "amt" + (amt.length > 6 ? " long" : ""), amt));
-    var bars = el("div", "bars"); for (var i = 0; i < 4; i++) bars.appendChild(el("i"));
+    var bars = el("div", "bars"); for (var i = 0; i < 2; i++) bars.appendChild(el("i"));
     gc.appendChild(bars);
     p.appendChild(gc);
     var who = el("div", "who");
@@ -178,16 +181,21 @@
 
   function panelMessage(d) {
     var p = el("div", "panel msg");
+    var ph = el("div", "ph"); ph.setAttribute("role", "img"); ph.setAttribute("aria-label", "A BirdBox seminar");
+    p.appendChild(ph);
     var top = el("div");
     top.appendChild(el("div", "hi", (d.recipient_name || "Hello") + ","));
     var text = d.message || "A little something to put towards your next course.";
     top.appendChild(el("div", "body" + (text.length > 220 ? " l" : text.length > 110 ? " m" : ""), text));
     if (d.from_name) top.appendChild(el("div", "sig", d.from_name + " x"));
     p.appendChild(top);
-    var foot = el("div");
-    foot.appendChild(el("p", "course-cap", "Spend it on any of our courses, in person or online"));
+    var foot = el("div", "courses");
+    foot.appendChild(el("p", "course-cap", "In person or online"));
     var row = el("div", "course-row");
-    ["tgc", "tcc", "tec", "twc"].forEach(function (b) { row.appendChild(img("/brand/" + b + "-mark.png", b.toUpperCase())); });
+    // Released courses only. Add TEC and TWC (and their colours on
+    // the card and the back) when they go on sale.
+    [["tgc", "The Gymnastics Course"], ["tcc", "The Coaches Course"]]
+      .forEach(function (b) { row.appendChild(img("/brand/" + b[0] + ".png", b[1])); });
     foot.appendChild(row);
     p.appendChild(foot);
     return p;
@@ -223,7 +231,7 @@
     var p = el("div", "panel back");
     p.appendChild(img("/brand/birdbox-mark.png", "BirdBox"));
     var bars = el("div", "bars");
-    ["--tgc", "--tcc", "--tec", "--twc"].forEach(function (v) { var i = el("i"); i.style.background = "var(" + v + ")"; bars.appendChild(i); });
+    ["--tgc", "--tcc"].forEach(function (v) { var i = el("i"); i.style.background = "var(" + v + ")"; bars.appendChild(i); });
     p.appendChild(bars);
     p.appendChild(el("div", "site", "birdboxcoaching.com"));
     return p;
