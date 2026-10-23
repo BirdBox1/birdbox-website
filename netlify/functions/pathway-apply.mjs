@@ -67,6 +67,8 @@ export default async (req) => {
     other_quals: text(b.other_quals, 1500) || null,
     education: text(b.education, 1500) || null,
     competition: text(b.competition, 1500) || null,
+    own_education: ["no", "yes"].includes(b.own_education) ? b.own_education : null,
+    own_education_detail: b.own_education === "yes" ? (text(b.own_education_detail, 1500) || null) : null,
     coaching_video: link(b.coaching_video),
     why: String(b.why || "").replace(/\r/g, "").trim().slice(0, 6000),
     reference: {
@@ -91,6 +93,8 @@ export default async (req) => {
   if (!a.languages.length) return json({ error: "Tick the languages you can coach in." }, 400);
   if (!a.tracks.length) return json({ error: "Tick at least one track you want to develop towards." }, 400);
   if (brand === "tec" && !a.education) return json({ error: "Tell us about your education." }, 400);
+  if (brand === "tec" && !a.own_education) return json({ error: "Tell us whether you run your own coach education, courses or seminars." }, 400);
+  if (a.own_education === "yes" && !a.own_education_detail) return json({ error: "Tell us what coach education, courses or seminars you run." }, 400);
   const needs = PATHWAYS[brand].needsCourse;
   if (needs && !a.courses.some((c) => COURSES[c].brand === needs)) return json({ error: `Tick the ${BRAND_NAME[needs]} courses you have completed.` }, 400);
   if (PATHWAYS[brand].coachingVideo && !a.coaching_video) return json({ error: "Add a link to your coaching video. It must start with https://." }, 400);

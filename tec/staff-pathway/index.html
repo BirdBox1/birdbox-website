@@ -235,6 +235,13 @@
         <div><label class="f" for="course_when">Your most recent: when and where</label><input id="course_when" name="course_when" type="text" placeholder="e.g. TCC Level 1, March 2025, Madrid"></div>
         <div class="full"><label class="f" for="education">Education *</label><textarea id="education" name="education" style="min-height:90px" placeholder="Degrees and where you studied, e.g. BSc Sport and Exercise Science, MSc Exercise Physiology"></textarea></div>
         <div class="full"><label class="f" for="other_quals">Coaching qualifications</label><textarea id="other_quals" name="other_quals" style="min-height:90px" placeholder="Endurance, strength and conditioning and other coaching certifications"></textarea></div>
+        <div class="full"><label class="f" for="own_education">Do you run your own coach education, courses or seminars? *</label>
+          <select id="own_education" name="own_education" required>
+            <option value="">Choose…</option>
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
+          <textarea id="own_education_detail" name="own_education_detail" class="hidden" style="min-height:80px;margin-top:8px" placeholder="Tell us what you run: the course or seminar, who it is for, and how often"></textarea></div>
         <div class="full"><label class="f" for="competition">Your competition experience</label><textarea id="competition" name="competition" style="min-height:90px" placeholder="Races and events you have competed in, and your best results"></textarea></div>
       </div>
     </fieldset>
@@ -297,5 +304,14 @@
 </footer>
 
 <script src="/staff-pathway/form.js"></script>
+<script>
+  // "Yes" opens a box to say what they run.
+  (function () {
+    var sel = document.getElementById("own_education"), box = document.getElementById("own_education_detail");
+    function sync() { box.classList.toggle("hidden", sel.value !== "yes"); }
+    sel.addEventListener("change", sync);
+    window.addEventListener("load", function () { setTimeout(sync, 600); });
+  })();
+</script>
 </body>
 </html>
