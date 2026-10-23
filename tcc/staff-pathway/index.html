@@ -23,6 +23,7 @@
   .bb-topbar { display: flex; justify-content: center; flex-wrap: wrap; gap: 28px; padding: 16px 24px; border-bottom: 1px solid var(--line); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; }
   .bb-topbar a { color: #ADA6A8; text-decoration: none; }
   .bb-topbar a:hover { color: #fff; }
+  .bb-topbar a.is-active { color: #fff; }
   .bb-backbar { padding: 14px 24px 0; max-width: 1100px; margin: 0 auto; }
   .bb-back { display: inline-flex; gap: 9px; padding: 8px 16px; border: 1px solid var(--line); color: #ADA6A8; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; }
   .bb-back:hover { color: #fff; border-color: var(--accent); }
@@ -152,13 +153,8 @@
 </style>
 </head>
 <body data-brand="tcc">
-<nav class="bb-topbar">
-  <a href="/">Home</a>
-  <a href="/merch">Merch Store</a>
-  <a href="/blog">Blog</a>
-  <a href="/trainer-directory">Trainer Directory</a>
-  <a href="/about">About</a>
-</nav>
+<!-- Links are filled in by /nav.js so every page shares one nav. -->
+<nav class="bb-topbar"></nav>
 <div class="bb-backbar"><a class="bb-back" href="/tcc">&larr; The Coaches Course</a></div>
 
 <main>
@@ -326,5 +322,6 @@
 </footer>
 
 <script src="/staff-pathway/form.js"></script>
+<script src="/nav.js"></script>
 </body>
 </html>
