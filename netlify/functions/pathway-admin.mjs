@@ -20,7 +20,7 @@
 // under that email, so the "completed TGC" claim can be checked at a glance.
 
 import { db, json, OFFICE, userFrom, sendMail, esc } from "../lib/directory.mjs";
-import { BUCKET, REAPPLY_MONTHS, reapplyFrom } from "../lib/pathway.mjs";
+import { PATHWAYS, BUCKET, REAPPLY_MONTHS, reapplyFrom } from "../lib/pathway.mjs";
 import { NATHAN_SIGNATURE_HTML, NATHAN_SIGNATURE_TEXT } from "../lib/signature.mjs";
 
 const URL_RE = /^https:\/\/[^\s<>"]+\.[^\s<>"]+$/i;
@@ -33,7 +33,7 @@ export default async (req) => {
   if (!staff || !staff.active || staff.role !== "admin") return json({ error: "Admins only." }, 403);
 
   try {
-    if (req.method === "GET") return json({ applications: await everything() });
+    if (req.method === "GET") return json({ applications: await everything(), pathways: pathwaysForAdmin() });
     if (req.method !== "POST") return json({ error: "Use GET or POST" }, 405);
 
     const b = await req.json().catch(() => ({}));
@@ -121,11 +121,12 @@ function tellDecision(a, outcome, message, video) {
   const short = a.brand.toUpperCase();
   const accepted = outcome === "accepted";
   const again = accepted ? "" : reapplyFrom(new Date()).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-  const subject = accepted
-    ? `Your place on the ${short} Staff Pathway`
-    : `Your ${short} Staff Pathway application: our feedback`;
+  const tec = a.brand === "tec";
+  const subject = tec
+    ? (accepted ? "Joining the TEC founding team" : "Your TEC founding staff application")
+    : (accepted ? `Your place on the ${short} Staff Pathway` : `Your ${short} Staff Pathway application: our feedback`);
   const close = accepted
-    ? "We will be in touch with your agreement and payment options next."
+    ? (tec ? "We will be in touch to arrange the next step." : "We will be in touch with your agreement and payment options next.")
     : `You are welcome to apply again from ${again} (${REAPPLY_MONTHS} months from now).`;
   return sendMail({
     to: a.email,
@@ -142,3 +143,8 @@ ${NATHAN_SIGNATURE_HTML}
   });
 }
 
+// What the review page needs to know about each course: its name, and
+// for TEC the regional targets. Admin only, so the targets stay private.
+function pathwaysForAdmin() {
+  return Object.fromEntries(Object.entries(PATHWAYS).map(([k, p]) => [k, { short: p.short, title: p.title, targets: p.targets || null }]));
+}

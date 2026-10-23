@@ -29,6 +29,7 @@ const STATIC = [
   { path: "/tgc/online-level-1/", priority: "0.8", freq: "monthly" },
   { path: "/trainer-directory/", priority: "0.5", freq: "monthly" },
   { path: "/tgc/staff-pathway/", priority: "0.5", freq: "monthly" },
+  { path: "/tec/staff-pathway/", priority: "0.5", freq: "monthly" },
   { path: "/about",             priority: "0.4", freq: "yearly"  },
 ];
 
