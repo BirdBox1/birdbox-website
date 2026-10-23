@@ -778,6 +778,9 @@ export async function onOnlineSaleCompleted(session) {
       cents: Number(meta.gift_cents || 0),
       session: full.id,
       usedFor: "online " + (meta.label || meta.lw_course_id),
+      // Online courses are taxed where the buyer is.
+      vatCountry: meta.country,
+      vatPercent: meta.vat_percent,
     });
   }
   if (row.learnworlds_status === "enrolled") return;

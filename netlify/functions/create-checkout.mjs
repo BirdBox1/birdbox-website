@@ -367,6 +367,9 @@ export default async (req) => {
         // (VAT included, in the course currency) off the card.
         gift_card_id: gift ? gift.id : "",
         gift_cents: gift ? String(gift.covered) : "",
+        // The VAT inside what the card paid, for the gift card VAT report.
+        gift_vat_country: gift ? (course.country || "").trim().toUpperCase() : "",
+        gift_vat_percent: gift ? String(vat ? vat.percent : 0) : "",
         prerequisite: prerequisite || "",
 
         // The webhook reads this to decide whether to enrol anyone in

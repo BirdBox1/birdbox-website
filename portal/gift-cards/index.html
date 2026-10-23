@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gift cards — BirdBox Coaching</title>
+<!--
+  Gift card report, for the VAT returns. Admins only (the gift_cards and
+  gift_card_redemptions tables have an is_admin() read policy).
+
+  A gift card is a multi-purpose voucher: no VAT when it is sold, VAT due
+  when it is spent. So for any period this shows
+    - cards sold     money received, no VAT on it
+    - cards used     what each card paid (VAT included), the country whose
+                     VAT applies, the rate and the VAT inside the amount.
+                     That VAT is NOT in Stripe's figures, because Stripe only
+                     saw the part paid by card.
+    - outstanding    what is still on live cards, today
+    - expired        what was left on cards when they ran out
+  Each table downloads as a CSV for the accountant.
+
+  The VAT country, rate and amount are stored on each redemption when it
+  happens (redeem_gift_card in the database; netlify/lib/gift-cards.mjs).
+-->
+<style>
+  :root {
+    --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+    --rule:#e0ddd7; --muted:#6c7178; --accent:#2f7fd0;
+    --good:#1f8a54; --warn:#b4610f; --bad:#b3261e;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+
+  .bar{background:var(--shell);color:#fff;padding:0.7rem 1.25rem;
+    display:flex;align-items:center;justify-content:space-between;gap:1rem}
+  .bar .left{display:flex;align-items:center;gap:0.75rem}
+  .mark{width:34px;height:34px;border-radius:4px;background:#fff;
+    display:grid;place-items:center;flex:none}
+  .mark img{width:26px;height:26px;object-fit:contain}
+  .brandname{font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;color:#9aa1a9}
+  .bar a{color:#cfd4d9;font-size:0.85rem;text-decoration:none}
+  .bar a:hover{color:#fff}
+
+  .wrap{max-width:68rem;margin:0 auto;padding:1.5rem 1.25rem 4rem}
+  h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0 0 0.2rem;font-weight:600}
+  .sub{color:var(--muted);font-size:0.9rem;margin:0 0 1.5rem;max-width:62ch}
+  h2{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;
+    color:var(--muted);margin:0;font-weight:600}
+
+  .panel{background:var(--card);border:1px solid var(--rule);
+    border-radius:6px;padding:1.25rem;margin-bottom:1.25rem}
+  .phead{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0.9rem}
+
+  .period{display:flex;gap:0.75rem;flex-wrap:wrap;align-items:flex-end}
+  .period label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:0.3rem}
+  select,input{font:inherit;padding:0.5rem 0.6rem;border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink)}
+  select:focus-visible,input:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+  .btn{font:inherit;font-weight:600;background:var(--ink);color:#fff;
+    border:0;border-radius:4px;padding:0.5rem 0.9rem;cursor:pointer;font-size:0.85rem}
+  .btn:hover{background:#000}
+  .btn.ghost{background:none;color:var(--ink);border:1px solid var(--rule);font-weight:500}
+
+  .tiles{display:grid;gap:0.9rem;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));margin-bottom:1.25rem}
+  .tile{background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:1rem 1.1rem}
+  .tile .k{font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .tile .v{font-size:1.35rem;font-weight:650;margin-top:0.3rem;font-variant-numeric:tabular-nums;line-height:1.3}
+  .tile .n{font-size:0.82rem;color:var(--muted);margin-top:0.2rem}
+
+  .tablewrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:0.86rem;font-variant-numeric:tabular-nums}
+  th{text-align:left;font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);
+    font-weight:600;padding:0.5rem 0.6rem;border-bottom:1px solid var(--rule);white-space:nowrap}
+  td{padding:0.55rem 0.6rem;border-bottom:1px solid var(--rule);vertical-align:top}
+  td.num,th.num{text-align:right;white-space:nowrap}
+  td.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.82rem;white-space:nowrap}
+  tr.total td{font-weight:700;border-bottom:0}
+  .muted{color:var(--muted)}
+  .note{font-size:0.82rem;color:var(--muted);margin:0.8rem 0 0;max-width:70ch}
+
+  .empty{background:var(--card);border:1px dashed var(--rule);border-radius:6px;
+    padding:2rem 1.25rem;text-align:center;color:var(--muted);font-size:0.9rem}
+  .none{color:var(--muted);font-size:0.88rem;padding:0.6rem 0}
+  .hidden{display:none !important}
+</style>
+  <script type="module" src="/portal/menu.js"></script>
+</head>
+<body>
+
+<div class="bar">
+  <span class="left">
+    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+    <span class="brandname">Gift cards</span>
+  </span>
+  <a href="/portal/">← Back to portal</a>
+</div>
+
+<div class="wrap">
+  <div id="gate" class="empty">Checking your access…</div>
+
+  <div id="app" class="hidden">
+    <h1>Gift cards</h1>
+    <p class="sub">For the VAT return. No VAT is charged when a card is sold; it is due when the card is spent,
+      on what the card paid. That VAT is not in Stripe's figures, so it is listed here.</p>
+
+    <div class="panel">
+      <div class="period">
+        <div>
+          <label for="p-period">VAT period</label>
+          <select id="p-period"></select>
+        </div>
+        <div>
+          <label for="p-from">From</label>
+          <input id="p-from" type="date">
+        </div>
+        <div>
+          <label for="p-to">To</label>
+          <input id="p-to" type="date">
+        </div>
+        <button class="btn" id="p-go" type="button">Show</button>
+      </div>
+    </div>
+
+    <div class="tiles" id="tiles"></div>
+
+    <div class="panel">
+      <div class="phead"><h2>Cards used in this period · VAT due</h2><button class="btn ghost" id="dl-used" type="button">Download CSV</button></div>
+      <div class="tablewrap" id="used"></div>
+      <p class="note">"Paid by card" includes VAT. The VAT is worked out from the rate for that country on the day:
+        the venue's country for a seminar, the buyer's country for an online course. 0% means no VAT applied
+        (Irish seminars, or a country we do not charge VAT in).</p>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><h2>VAT due by country</h2></div>
+      <div class="tablewrap" id="bycountry"></div>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><h2>Cards sold in this period · no VAT</h2><button class="btn ghost" id="dl-sold" type="button">Download CSV</button></div>
+      <div class="tablewrap" id="sold"></div>
+    </div>
+
+    <div class="panel">
+      <div class="phead"><h2>Still on cards today</h2><button class="btn ghost" id="dl-open" type="button">Download CSV</button></div>
+      <div class="tablewrap" id="open"></div>
+      <p class="note">Money received for cards that has not been spent yet. Cards that expired with money left on
+        them are listed separately underneath.</p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient(
+  "https://yvdmazpxtpuvidlcifnq.supabase.co",
+  "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+);
+const $ = (id) => document.getElementById(id);
+const SYMBOL = { EUR: "€", GBP: "£", USD: "US$", AUD: "A$", CAD: "C$" };
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+const money = (c, cur) => (SYMBOL[cur] || (cur || "") + " ") +
+  (c / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const plain = (c) => (c / 100).toFixed(2);
+const day = (iso) => iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "";
+const isoDay = (d) => d.toISOString().slice(0, 10);
+
+let data = { used: [], sold: [], open: [], expired: [] };
+
+start();
+
+async function start() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) {
+    $("gate").innerHTML = 'You are not signed in. <a href="/portal/">Sign in to the portal</a> first, then come back.';
+    return;
+  }
+  const { data: staff } = await db.from("staff").select("id, role, active").eq("id", session.user.id).maybeSingle();
+  if (!staff || !staff.active) { $("gate").textContent = "This account is not an active staff member."; return; }
+  if (staff.role !== "admin") { $("gate").textContent = "Only admins can see the gift card report."; return; }
+
+  $("gate").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  periods();
+  await load();
+}
+
+// Irish VAT3 periods run two months at a time: Jan–Feb, Mar–Apr, ...
+function periods() {
+  const sel = $("p-period");
+  const now = new Date();
+  let y = now.getUTCFullYear(), m = now.getUTCMonth() - (now.getUTCMonth() % 2);
+  for (let i = 0; i < 12; i++) {
+    const from = new Date(Date.UTC(y, m, 1));
+    const to = new Date(Date.UTC(y, m + 2, 0));
+    const o = document.createElement("option");
+    o.value = isoDay(from) + "|" + isoDay(to);
+    o.textContent = MONTHS[m] + "–" + MONTHS[m + 1] + " " + y + (i === 0 ? " (current)" : "");
+    sel.append(o);
+    m -= 2; if (m < 0) { m += 12; y -= 1; }
+  }
+  const all = document.createElement("option");
+  all.value = "2026-01-01|" + isoDay(now);
+  all.textContent = "Since the start";
+  sel.append(all);
+  const pick = () => { const [f, t] = sel.value.split("|"); $("p-from").value = f; $("p-to").value = t; };
+  sel.addEventListener("change", () => { pick(); load(); });
+  pick();
+  $("p-go").addEventListener("click", load);
+}
+
+async function load() {
+  const from = $("p-from").value, to = $("p-to").value;
+  if (!from || !to) return;
+  const start = from + "T00:00:00Z";
+  const end = isoDay(new Date(Date.parse(to + "T00:00:00Z") + 86400000)) + "T00:00:00Z";
+
+  const [u, s, o] = await Promise.all([
+    db.from("gift_card_redemptions")
+      .select("created_at, cents, currency, vat_country, vat_percent, vat_cents, used_for, gift_cards(code, currency)")
+      .gte("created_at", start).lt("created_at", end).order("created_at"),
+    db.from("gift_cards")
+      .select("created_at, code, amount_cents, balance_cents, currency, buyer_name, buyer_email, recipient_name, expires_at, status")
+      .gte("created_at", start).lt("created_at", end).order("created_at"),
+    db.from("gift_cards")
+      .select("created_at, code, amount_cents, balance_cents, currency, buyer_name, recipient_name, expires_at, status")
+      .gt("balance_cents", 0).eq("status", "active").order("expires_at"),
+  ]);
+  const err = u.error || s.error || o.error;
+  if (err) { $("tiles").innerHTML = ""; $("used").innerHTML = '<p class="none">Could not load: ' + esc(err.message) + "</p>"; return; }
+
+  const now = Date.now();
+  data.used = (u.data || []).map((r) => ({ ...r, currency: r.currency || r.gift_cards?.currency, code: r.gift_cards?.code }));
+  data.sold = s.data || [];
+  data.open = (o.data || []).filter((c) => Date.parse(c.expires_at) > now);
+  data.expired = (o.data || []).filter((c) => Date.parse(c.expires_at) <= now);
+  render();
+}
+
+function sumBy(rows, key, val) {
+  const out = {};
+  for (const r of rows) out[r[key]] = (out[r[key]] || 0) + r[val];
+  return out;
+}
+const lines = (obj) => Object.keys(obj).length
+  ? Object.entries(obj).map(([cur, c]) => money(c, cur)).join("<br>")
+  : "—";
+
+function render() {
+  const vatByCur = sumBy(data.used, "currency", "vat_cents");
+  $("tiles").innerHTML = [
+    tile("Cards sold", lines(sumBy(data.sold, "currency", "amount_cents")), data.sold.length + " card" + (data.sold.length === 1 ? "" : "s") + " · no VAT"),
+    tile("Spent with cards", lines(sumBy(data.used, "currency", "cents")), data.used.length + " use" + (data.used.length === 1 ? "" : "s") + " · VAT included"),
+    tile("VAT inside that", lines(vatByCur), "Due on this period's returns"),
+    tile("Still on cards today", lines(sumBy(data.open, "currency", "balance_cents")), data.open.length + " live card" + (data.open.length === 1 ? "" : "s")),
+  ].join("");
+
+  // used
+  $("used").innerHTML = data.used.length ? table(
+    ["Date", "Card", "Used for", "Country", "Paid by card", "VAT rate", "VAT included", "Net"],
+    data.used.map((r) => [day(r.created_at), mono(r.code), esc(r.used_for), esc(r.vat_country || "—"),
+      num(money(r.cents, r.currency)), num(pct(r.vat_percent)), num(money(r.vat_cents || 0, r.currency)),
+      num(money(r.cents - (r.vat_cents || 0), r.currency))])
+  ) : '<p class="none">No cards were used in this period.</p>';
+
+  // by country
+  const groups = {};
+  for (const r of data.used) {
+    const k = (r.vat_country || "—") + "|" + Number(r.vat_percent || 0) + "|" + r.currency;
+    const g = groups[k] || (groups[k] = { country: r.vat_country || "—", rate: Number(r.vat_percent || 0), currency: r.currency, gross: 0, vat: 0, n: 0 });
+    g.gross += r.cents; g.vat += r.vat_cents || 0; g.n += 1;
+  }
+  const gl = Object.values(groups).sort((a, b) => a.country.localeCompare(b.country));
+  $("bycountry").innerHTML = gl.length ? table(
+    ["Country", "VAT rate", "Uses", "Paid by card", "VAT included", "Net"],
+    gl.map((g) => [esc(g.country), num(pct(g.rate)), num(g.n), num(money(g.gross, g.currency)), num(money(g.vat, g.currency)), num(money(g.gross - g.vat, g.currency))])
+  ) : '<p class="none">Nothing to show.</p>';
+
+  // sold
+  $("sold").innerHTML = data.sold.length ? table(
+    ["Date", "Card", "Bought by", "For", "Amount", "Left on it", "Expires"],
+    data.sold.map((c) => [day(c.created_at), mono(c.code), esc(c.buyer_name || c.buyer_email || ""), esc(c.recipient_name || ""),
+      num(money(c.amount_cents, c.currency)), num(money(c.balance_cents, c.currency)), day(c.expires_at)])
+  ) : '<p class="none">No cards were sold in this period.</p>';
+
+  // outstanding + expired
+  let html = data.open.length ? table(
+    ["Sold", "Card", "Bought by", "For", "Amount", "Left on it", "Expires"],
+    data.open.map((c) => [day(c.created_at), mono(c.code), esc(c.buyer_name || ""), esc(c.recipient_name || ""),
+      num(money(c.amount_cents, c.currency)), num(money(c.balance_cents, c.currency)), day(c.expires_at)])
+  ) : '<p class="none">Nothing is waiting to be spent.</p>';
+  if (data.expired.length) {
+    html += '<h2 style="margin:1.4rem 0 0.6rem">Expired with money left on them</h2>' + table(
+      ["Sold", "Card", "Bought by", "Amount", "Left unspent", "Expired"],
+      data.expired.map((c) => [day(c.created_at), mono(c.code), esc(c.buyer_name || ""),
+        num(money(c.amount_cents, c.currency)), num(money(c.balance_cents, c.currency)), day(c.expires_at)])
+    );
+  }
+  $("open").innerHTML = html;
+}
+
+const tile = (k, v, n) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`;
+const pct = (p) => (Number(p) || 0).toLocaleString("en-GB", { maximumFractionDigits: 2 }) + "%";
+const num = (v) => ({ num: true, v });
+const mono = (v) => ({ mono: true, v: esc(v || "") });
+function table(head, rows) {
+  const th = head.map((h, i) => `<th${rows[0] && rows[0][i] && rows[0][i].num ? ' class="num"' : ""}>${h}</th>`).join("");
+  const tr = rows.map((r) => "<tr>" + r.map((c) =>
+    c && c.num ? `<td class="num">${c.v}</td>` : c && c.mono ? `<td class="mono">${c.v}</td>` : `<td>${c}</td>`
+  ).join("") + "</tr>").join("");
+  return `<table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
+}
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+// ---- CSV downloads ----------------------------------------------
+function csv(name, head, rows) {
+  const cell = (v) => { const t = String(v == null ? "" : v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+  const text = [head, ...rows].map((r) => r.map(cell).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + text], { type: "text/csv" }));
+  a.download = name + "-" + $("p-from").value + "-to-" + $("p-to").value + ".csv";
+  document.body.append(a); a.click(); a.remove();
+}
+$("dl-used").addEventListener("click", () => csv("gift-cards-used",
+  ["Date", "Card", "Used for", "VAT country", "Currency", "Paid by card (incl VAT)", "VAT rate %", "VAT included", "Net"],
+  data.used.map((r) => [r.created_at.slice(0, 10), r.code, r.used_for, r.vat_country || "", r.currency,
+    plain(r.cents), Number(r.vat_percent || 0), plain(r.vat_cents || 0), plain(r.cents - (r.vat_cents || 0))])));
+$("dl-sold").addEventListener("click", () => csv("gift-cards-sold",
+  ["Date", "Card", "Bought by", "Buyer email", "For", "Currency", "Amount", "Left on it", "Expires"],
+  data.sold.map((c) => [c.created_at.slice(0, 10), c.code, c.buyer_name || "", c.buyer_email || "", c.recipient_name || "",
+    c.currency, plain(c.amount_cents), plain(c.balance_cents), c.expires_at.slice(0, 10)])));
+$("dl-open").addEventListener("click", () => csv("gift-cards-outstanding",
+  ["Sold", "Card", "Bought by", "Currency", "Amount", "Left on it", "Expires", "Expired"],
+  [...data.open, ...data.expired].map((c) => [c.created_at.slice(0, 10), c.code, c.buyer_name || "", c.currency,
+    plain(c.amount_cents), plain(c.balance_cents), c.expires_at.slice(0, 10), Date.parse(c.expires_at) <= Date.now() ? "yes" : "no"])));
+</script>
+
+</body>
+</html>

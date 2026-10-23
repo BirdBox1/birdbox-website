@@ -272,6 +272,8 @@ async function onCheckoutCompleted(session) {
       session: full.id,
       usedFor: "seminar " + (meta.course_slug || meta.course_id),
       registrationId: registration.id,
+      vatCountry: meta.gift_vat_country,
+      vatPercent: meta.gift_vat_percent,
     });
   } else if (discountCode) {
     const { error: bumpError } = await supabase.rpc(

@@ -123,7 +123,17 @@ export function applyCard(card, netCents, vatPercent = 0) {
 // VAT on a seminar: the venue's country, unless it has no rate or
 // is exempt (Ireland). Mirrors vatForCourse in create-checkout.
 export async function seminarVatPercent(course) {
-  const code = String(course.country || "").trim().toUpperCase();
+  return (await seminarVat(course)).percent;
+}
+
+// { country, percent } for a seminar: the venue's country, and its rate
+// (0 where none is charged, e.g. Ireland's exempt seminars).
+export async function seminarVat(course) {
+  const country = String(course.country || "").trim().toUpperCase() || null;
+  return { country, percent: await venueRate(country) };
+}
+
+async function venueRate(code) {
   if (!code) return 0;
   const { data } = await db.from("vat_rates").select("rate, stripe_tax_rate_id, seminars_exempt").eq("code", code).maybeSingle();
   if (!data || !data.stripe_tax_rate_id || data.seminars_exempt) return 0;
@@ -137,11 +147,17 @@ export async function seminarVatPercent(course) {
 // call for the same session, so a redelivered webhook is harmless.
 // If the card cannot cover it after all (spent twice at the same
 // moment), the sale stands and the office is told.
-export async function redeemCard({ cardId, cents, session, usedFor, registrationId }) {
+//
+// vatCountry and vatPercent are the VAT inside what the card paid (the
+// venue's country for a seminar, the buyer's for an online course; 0
+// where none is charged). They are stored on the redemption, which is
+// what the VAT report in the portal (/portal/gift-cards/) reads.
+export async function redeemCard({ cardId, cents, session, usedFor, registrationId, vatCountry, vatPercent }) {
   if (!cardId || !(cents > 0)) return null;
   const { data, error } = await db.rpc("redeem_gift_card", {
     p_card: cardId, p_cents: cents, p_session: session || null,
     p_used_for: usedFor, p_registration: registrationId || null,
+    p_vat_country: vatCountry || null, p_vat_percent: Number(vatPercent) || 0,
   });
   if (error || data === null) {
     console.error("Gift card could not be redeemed", { cardId, cents, session, error });

@@ -35,6 +35,7 @@ const LINKS = [
   { href: "/portal/broadcast/",   label: "Message the team", admin: true },
   { group: "Business" },
   { href: "/portal/codes/",       label: "Discount codes", admin: true },
+  { href: "/portal/gift-cards/",  label: "Gift cards", admin: true },
   { href: "/portal/markets/",     label: "Where to go", admin: true },
   { href: "/portal/competitors/", label: "Their courses", admin: true },
   { group: "Me" },
