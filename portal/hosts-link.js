@@ -32,7 +32,11 @@
     learn.href = "/portal/learn/";
     learn.textContent = "Online courses";
     learn.className = codes.className;
-    codes.insertAdjacentElement("beforebegin", learn);
+    // Each goes into its group in the menu (Courses or People); the
+    // fallback is next to Discount codes, where they always sat.
+    var courses = document.getElementById("mg-courses");
+    var people = document.getElementById("mg-people");
+    if (courses) courses.appendChild(learn); else codes.insertAdjacentElement("beforebegin", learn);
     new MutationObserver(function () { learn.className = codes.className; })
       .observe(codes, { attributes: true, attributeFilter: ["class"] });
 
@@ -41,7 +45,8 @@
     link.href = "/portal/hosts/";
     link.textContent = "Host requests";
     link.className = codes.className;
-    codes.insertAdjacentElement("afterend", link);
+    var peopleHead = people && people.querySelector(".mhead");
+    if (peopleHead) peopleHead.insertAdjacentElement("afterend", link); else codes.insertAdjacentElement("afterend", link);
 
     dirLink = document.createElement("a");
     dirLink.id = "directorylink";
@@ -56,6 +61,9 @@
     pathLink.textContent = "Staff Pathway";
     pathLink.className = codes.className;
     dirLink.insertAdjacentElement("afterend", pathLink);
+    // In the People group they read Staff Pathway, Trainer directory,
+    // Host requests, then Message the team.
+    if (peopleHead) peopleHead.after(pathLink, dirLink, link);
 
     // Mirror the Discount codes link, which the portal already shows
     // to admins only and hides again on sign-out.

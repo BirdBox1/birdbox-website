@@ -13,28 +13,35 @@ const db = createClient(
 );
 
 // admin: only shown to an admin. The rest everybody gets.
+// { group } starts a small heading, the same groups as the menu on
+// /portal/ itself; a heading with nothing left under it is removed.
 // Messages is a view inside the portal rather than a page of its own,
 // so it is reached with ?view= and the portal opens straight onto it.
 const LINKS = [
   { href: "#train",               label: "Programming portal \u2197", train: true },
-  { href: "/portal/",             label: "All courses" },
-  { href: "/portal/blog/",        label: "Blog" },
-  { href: "/portal/feedback/",    label: "Feedback" },
-  { href: "/portal/documents/",   label: "My documents" },
-  { href: "/portal/agreements/",  label: "Agreements" },
-  { href: "/portal/availability/",label: "My availability" },
-  { href: "/portal/reflections/", label: "Reflections" },
-  { href: "/portal/workshops/",   label: "Workshops" },
-  { href: "/portal/learn/",       label: "Online courses", admin: true },
-  { href: "/portal/codes/",       label: "Discount codes", admin: true },
-  { href: "/portal/directory/",   label: "Trainer directory", admin: true },
-  { href: "/portal/staff-pathway/", label: "Staff Pathway", admin: true },
   { href: "/portal/?view=messages", label: "Messages" },
-  { href: "/portal/broadcast/",   label: "Message the team", admin: true },
+  { href: "/portal/blog/",        label: "Blog" },
+  { href: "/portal/",             label: "All courses" },
+  { group: "Courses" },
   { href: "/portal/planner/",     label: "Seminar planner", admin: true },
   { href: "/portal/year/",        label: "Scheduling planner" },
-  { href: "/portal/competitors/", label: "Their courses", admin: true },
+  { href: "/portal/workshops/",   label: "Workshops" },
+  { href: "/portal/feedback/",    label: "Feedback" },
+  { href: "/portal/learn/",       label: "Online courses", admin: true },
+  { group: "People" },
+  { href: "/portal/staff-pathway/", label: "Staff Pathway", admin: true },
+  { href: "/portal/directory/",   label: "Trainer directory", admin: true },
+  { href: "/portal/hosts/",       label: "Host requests", admin: true },
+  { href: "/portal/broadcast/",   label: "Message the team", admin: true },
+  { group: "Business" },
+  { href: "/portal/codes/",       label: "Discount codes", admin: true },
   { href: "/portal/markets/",     label: "Where to go", admin: true },
+  { href: "/portal/competitors/", label: "Their courses", admin: true },
+  { group: "Me" },
+  { href: "/portal/availability/",label: "My availability" },
+  { href: "/portal/documents/",   label: "My documents" },
+  { href: "/portal/agreements/",  label: "Agreements" },
+  { href: "/portal/reflections/", label: "Reflections" },
   { href: "/portal/change-password/", label: "Change password" },
 ];
 
@@ -65,6 +72,10 @@ const CSS = `
 .bbm-who {
   padding: 0.6rem 0.65rem 0.4rem; margin-top: 0.35rem;
   border-top: 1px solid #33373c; font-size: 0.78rem; color: #9aa1a9;
+}
+.bbm-head {
+  padding: 0.7rem 0.65rem 0.25rem; font-size: 0.66rem; font-weight: 650;
+  letter-spacing: 0.14em; text-transform: uppercase; color: #6f767e;
 }
 .bbm-hidden { display: none !important; }
 
@@ -115,6 +126,13 @@ function build() {
   const here = location.pathname.replace(/\/+$/, "") || "/portal";
 
   for (const l of LINKS) {
+    if (l.group) {
+      const h = document.createElement("div");
+      h.className = "bbm-head";
+      h.textContent = l.group;
+      panel.appendChild(h);
+      continue;
+    }
     const a = document.createElement("a");
     a.href = l.href;
     a.textContent = l.label;
@@ -170,6 +188,11 @@ function build() {
     who.textContent = staff.full_name;
     if (staff.role !== "admin") {
       panel.querySelectorAll('[data-admin="1"]').forEach((a) => a.remove());
+      // Headings left with nothing under them (Business, for a coach).
+      panel.querySelectorAll(".bbm-head").forEach((h) => {
+        const next = h.nextElementSibling;
+        if (!next || next.tagName !== "A") h.remove();
+      });
     }
   });
 }
