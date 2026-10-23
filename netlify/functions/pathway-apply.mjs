@@ -97,7 +97,7 @@ export default async (req) => {
   if (asks && !a.own_education) return json({ error: "Tell us whether you run your own coach education, courses or seminars." }, 400);
   if (a.own_education === "yes" && !a.own_education_detail) return json({ error: "Tell us what coach education, courses or seminars you run." }, 400);
   const needs = PATHWAYS[brand].needsCourse;
-  if (needs && !a.courses.some((c) => COURSES[c].brand === needs)) return json({ error: `Tick the ${BRAND_NAME[needs]} courses you have completed.` }, 400);
+  if (needs && !a.courses.some((c) => COURSES[c].brand === needs)) return json({ error: `Tick the ${PATHWAYS[needs].short} courses you have completed.` }, 400);
   if (PATHWAYS[brand].coachingVideo && !a.coaching_video) return json({ error: "Add a link to your coaching video. It must start with https://." }, 400);
   const missing = a.movement_videos.filter((m) => !m.url && !m.path).map((m) => `${m.movement} (${m.group.toLowerCase()})`);
   if (missing.length) return json({ error: `Add a video for: ${missing.join(", ")}. Upload it, or paste a link starting with https://.` }, 400);
