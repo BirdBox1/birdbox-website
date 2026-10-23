@@ -42,23 +42,27 @@
   /* The card itself, updating as they choose. The same design as the
      Shop (/shop/) and the printable card (/gift/card/): black, silver
      logo, gold amount, "BirdBox Coaching", the four course colours down
-     the edge. It sits on a light panel so it doesn't vanish into the page. */
-  .stage { background: #F3EFE8; border: 1px solid #e3dfd8; padding: 34px 28px 22px; display: grid; justify-items: center; gap: 18px; }
+     the edge. A gold glow behind it lifts it off the dark page. */
+  .stage { position: relative; padding: 34px 6% 18px; display: grid; justify-items: center; gap: 22px; }
+  .stage::before { content: ""; position: absolute; left: 10%; right: 10%; top: 8%; height: 70%; border-radius: 50%;
+    background: #c9a24a; filter: blur(50px); opacity: .42; pointer-events: none; }
   .card {
     aspect-ratio: 85.6 / 54; width: 100%; max-width: 440px; border-radius: 16px; padding: 6% 7%; position: relative; overflow: hidden;
-    background: #16181b; border: 1px solid #2c3036; color: #fff;
-    transform: rotate(-4deg); box-shadow: 0 30px 50px -24px rgba(0,0,0,0.55);
+    background: #16181b; border: 1px solid rgba(201,162,74,.55); color: #fff;
+    transform: rotate(-4deg); box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 40px 60px -30px rgba(0,0,0,.9);
     display: flex; flex-direction: column; justify-content: space-between;
   }
+  .card::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,0) 38%); }
   .card .top { display: flex; justify-content: space-between; align-items: flex-start; padding-right: 6%; }
-  .card .logo { height: 64px; width: auto; }
+  .card .logo { width: 22%; height: auto; }
   .card .label { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #9aa1a9; }
   .card .amt { font-size: clamp(44px, 7vw, 68px); font-weight: 800; letter-spacing: -0.02em; line-height: .9; color: #c9a24a; }
   .card .name { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #9aa1a9; margin-top: 10px; }
   .card .bars { position: absolute; right: 0; top: 0; bottom: 0; width: 6%; display: grid; grid-template-rows: repeat(4, 1fr); }
   .card .bars i:nth-child(1) { background: #85151A; } .card .bars i:nth-child(2) { background: #298DE9; }
   .card .bars i:nth-child(3) { background: #10502C; } .card .bars i:nth-child(4) { background: #F1A509; }
-  .stage .for { font-family: Caveat, "Bradley Hand", "Segoe Script", cursive; font-size: 30px; line-height: 1.1; color: #16181b; min-height: 1.1em; text-align: center; }
+  .stage .for { position: relative; font-family: Caveat, "Bradley Hand", "Segoe Script", cursive; font-size: 30px; line-height: 1.1; color: var(--ink); min-height: 1.1em; text-align: center; }
   .uses { list-style: none; padding: 0; margin: 24px 0 0; display: grid; gap: 10px; color: #C9C3C5; font-size: 15px; }
   .uses li { padding-left: 26px; position: relative; }
   .uses li::before { content: "✓"; position: absolute; left: 0; color: var(--accentText); font-weight: 800; }
