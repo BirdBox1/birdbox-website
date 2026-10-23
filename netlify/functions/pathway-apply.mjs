@@ -65,6 +65,8 @@ export default async (req) => {
     courses: [...new Set(Array.isArray(b.courses) ? b.courses : [])].filter((c) => COURSES[c]),
     course_when: text(b.course_when, 60) || null,
     other_quals: text(b.other_quals, 1500) || null,
+    education: text(b.education, 1500) || null,
+    competition: text(b.competition, 1500) || null,
     coaching_video: link(b.coaching_video),
     why: String(b.why || "").replace(/\r/g, "").trim().slice(0, 6000),
     reference: {
@@ -88,6 +90,7 @@ export default async (req) => {
   if (!a.region) return json({ error: "Choose the region you would work in." }, 400);
   if (!a.languages.length) return json({ error: "Tick the languages you can coach in." }, 400);
   if (!a.tracks.length) return json({ error: "Tick at least one track you want to develop towards." }, 400);
+  if (brand === "tec" && !a.education) return json({ error: "Tell us about your education." }, 400);
   const needs = PATHWAYS[brand].needsCourse;
   if (needs && !a.courses.some((c) => COURSES[c].brand === needs)) return json({ error: `Tick the ${BRAND_NAME[needs]} courses you have completed.` }, 400);
   if (!a.coaching_video) return json({ error: "Add a link to your coaching video. It must start with https://." }, 400);
