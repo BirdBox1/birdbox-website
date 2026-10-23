@@ -170,7 +170,7 @@ function tellApplicant(a) {
     `Please keep your video links working until you hear from us.`,
   ] : [
     `Thank you for applying to the ${title}. Your application is in.`,
-    `Nathan reviews every application himself: your coaching video, your movement videos, your written piece and your reference. We may contact your reference, and we may invite you to a short call.`,
+    `Nathan reviews every application himself: your coaching video${(MOVEMENTS[a.brand] || []).length ? ", your movement videos" : ""}, your CV and coaching philosophy, your written piece and your reference. We may contact your reference, and we may invite you to a short call.`,
     `Whatever the outcome, you will hear from us with feedback. If you are not accepted this time, the feedback comes with the courses and study that will strengthen your next application.`,
     `Please keep your video links working until you hear from us.`,
   ];
