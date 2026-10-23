@@ -33,6 +33,7 @@
   }
   .bb-topbar a { color: #ADA6A8; text-decoration: none; }
   .bb-topbar a:hover { color: #ffffff; }
+  .bb-topbar a.is-active { color: #ffffff; }
 
   .bb-backbar { padding: 12px 24px 0; max-width: 1320px; margin: 0 auto; width: 100%; }
   .bb-back {
@@ -372,18 +373,14 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="/favicon-birdbox.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-birdbox-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon-birdbox.png">
 </head>
 <body>
 
-<nav class="bb-topbar">
-  <a href="/shop/">Shop</a>
-  <a href="/blog">Blog</a>
-  <a href="/trainer-directory">Trainer Directory</a>
-  <a href="/about">About</a>
-</nav>
+<!-- Links are filled in by /nav.js so every page shares one nav. -->
+<nav class="bb-topbar"></nav>
 
 <div class="bb-backbar">
   <a class="bb-back" href="/">&larr; All Pathways</a>
@@ -607,5 +604,6 @@
   })();
 </script>
 
+<script src="/nav.js"></script>
 </body>
 </html>
