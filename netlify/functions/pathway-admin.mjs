@@ -33,7 +33,10 @@ export default async (req) => {
   if (!staff || !staff.active || staff.role !== "admin") return json({ error: "Admins only." }, 403);
 
   try {
-    if (req.method === "GET") return json({ applications: await everything(), pathways: pathwaysForAdmin() });
+    if (req.method === "GET") {
+      await sweepLeftovers().catch((e) => console.warn("pathway sweep:", e.message || e));
+      return json({ applications: await everything(), pathways: pathwaysForAdmin() });
+    }
     if (req.method !== "POST") return json({ error: "Use GET or POST" }, 405);
 
     const b = await req.json().catch(() => ({}));
@@ -66,9 +69,18 @@ export default async (req) => {
         }).eq("id", id);
         break;
       }
-      case "delete":
+      case "delete": {
+        // The application's uploaded videos and documents go with it.
+        const { data: ups } = await db.from("staff_pathway_uploads").select("path").eq("application_id", id);
+        const paths = (ups || []).map((u) => u.path);
+        if (paths.length) {
+          const { error: rmErr } = await db.storage.from(BUCKET).remove(paths);
+          if (rmErr) throw rmErr;
+          await db.from("staff_pathway_uploads").delete().in("path", paths);
+        }
         await table().delete().eq("id", id);
         break;
+      }
       case "seen":
         await table().update({ seen_at: now }).is("seen_at", null);
         break;
@@ -105,8 +117,18 @@ async function everything() {
 
   // Earlier applications from the same person, so a reapplication shows
   // what we told them last time.
+  // The same person under a different email: a matching name or phone
+  // on another application.
+  const norm = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const digits = (v) => String(v || "").replace(/\D/g, "").slice(-9);
+  const lookalikes = (a) => apps.filter((o) => o.id !== a.id && o.email !== a.email && (
+    (norm(o.full_name) && norm(o.full_name) === norm(a.full_name)) ||
+    (digits(a.phone).length >= 7 && digits(o.phone) === digits(a.phone))
+  )).map((o) => ({ full_name: o.full_name, email: o.email, brand: o.brand, status: o.status, created_at: o.created_at }));
+
   return apps.map((a) => ({
     ...a,
+    lookalikes: lookalikes(a),
     cv_url: view.get(a.cv_path) || null,
     philosophy_url: view.get(a.philosophy_path) || null,
     movement_videos: (a.movement_videos || []).map((m) => ({ ...m, view: m.path ? view.get(m.path) || null : m.url, uploaded: !!m.path })),
@@ -147,4 +169,19 @@ ${NATHAN_SIGNATURE_HTML}
 // for TEC the regional targets. Admin only, so the targets stay private.
 function pathwaysForAdmin() {
   return Object.fromEntries(Object.entries(PATHWAYS).map(([k, p]) => [k, { short: p.short, title: p.title, targets: p.targets || null }]));
+}
+
+// Files nobody's application uses any more: uploads from forms that
+// were started but never sent, and files left behind by an application
+// deleted before deletes removed them. Two days gives anyone still
+// filling in the form time to send it.
+async function sweepLeftovers() {
+  const cutoff = new Date(Date.now() - 2 * 86400e3).toISOString();
+  const { data: old } = await db.from("staff_pathway_uploads").select("path")
+    .is("application_id", null).lt("created_at", cutoff).limit(200);
+  const paths = (old || []).map((u) => u.path);
+  if (!paths.length) return;
+  const { error } = await db.storage.from(BUCKET).remove(paths);
+  if (error) throw error;
+  await db.from("staff_pathway_uploads").delete().in("path", paths);
 }

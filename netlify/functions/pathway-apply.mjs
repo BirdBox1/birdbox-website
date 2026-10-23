@@ -115,6 +115,9 @@ export default async (req) => {
     if (last && OPEN.includes(last.status)) {
       return json({ error: `We already have your application and are reviewing it. Questions? Write to ${OFFICE}.` }, 409);
     }
+    if (last && last.status === "accepted") {
+      return json({ error: `You already have a place with us, so there is no need to apply again. Questions? Write to ${OFFICE}.` }, 409);
+    }
     if (last && last.status === "declined" && last.decided_at && reapplyFrom(last.decided_at) > new Date()) {
       const when = reapplyFrom(last.decided_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
       return json({ error: `You can apply again from ${when}. Use the time to work through the feedback we sent you.` }, 409);
