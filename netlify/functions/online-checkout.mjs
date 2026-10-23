@@ -303,16 +303,20 @@ async function checkout(req, body) {
   const back = typeof body.return_path === "string" && body.return_path.startsWith("/") && !body.return_path.startsWith("//")
     ? body.return_path : "/";
 
-  // A gift card pays towards the price with VAT. Pay in full only:
-  // on a monthly plan it would only ever reach the first payment.
+  // A gift card pays towards the price with VAT. Paying in full, it
+  // comes off as a one-off coupon (below). On a monthly plan it comes
+  // off the price first and the rest is split into the payments, so the
+  // buyer gets the whole value of the card.
   let gift = null;
   if (body.code) {
-    if (option !== "full") return json({ error: "A gift card can be used with Pay in full" }, 400);
     gift = await giftFor(body.code, currency, price, vatRow);
     if (gift.error) return json({ error: gift.error }, 409);
+    if (option === "plan" && gift.free) return json({ error: "Your gift card covers the whole course. Choose Pay in full." }, 400);
   }
 
-  const each = Math.round(price / months);
+  const planBase = gift && option === "plan" ? gift.remainingNet : price;
+  const each = Math.round(planBase / months);
+  if (option === "plan" && each < 100) return json({ error: "What is left after your gift card is too small to split into monthly payments. Choose Pay in full." }, 400);
   const name = product.label;
 
   const metadata = {
@@ -375,6 +379,7 @@ async function checkout(req, body) {
     };
     session.custom_text.submit = {
       message:
+        (gift ? `Your gift card ${gift.card.code} has been taken off the price. ` : "") +
         `You are paying the first of ${months} monthly payments today. The other ` +
         `${months - 1} are taken from this card on the same day each month, then the plan ends by itself.`,
     };
@@ -387,24 +392,28 @@ async function checkout(req, body) {
     session.payment_intent_data = { description: name };
   }
 
-  // The card's share comes off as a one-off Stripe coupon for the
-  // net amount, so Stripe adds VAT only on what is left. A card that
-  // covers the lot leaves nothing to pay, and Stripe still collects
-  // the address and the terms before sending them on.
-  if (gift) {
-    const coupon = await stripe.coupons.create({
-      amount_off: gift.discountNet,
-      currency: currency.toLowerCase(),
-      duration: "once",
-      max_redemptions: 1,
-      name: `Gift card ${gift.card.code}`.slice(0, 40),
-      metadata: { gift_card_id: gift.card.id },
-    });
-    session.discounts = [{ coupon: coupon.id }];
+  // Paying in full, the card's share comes off as a one-off Stripe
+  // coupon for the net amount, so Stripe adds VAT only on what is left.
+  // A card that covers the lot leaves nothing to pay, and Stripe still
+  // collects the address and the terms before sending them on.
+  if (gift && option === "full") {
+    session.discounts = [{ coupon: await giftCoupon(gift, currency) }];
   }
 
   const created = await stripe.checkout.sessions.create(session);
   return json({ url: created.url });
+}
+
+async function giftCoupon(gift, currency) {
+  const coupon = await stripe.coupons.create({
+    amount_off: gift.discountNet,
+    currency: currency.toLowerCase(),
+    duration: "once",
+    max_redemptions: 1,
+    name: `Gift card ${gift.card.code}`.slice(0, 40),
+    metadata: { gift_card_id: gift.card.id },
+  });
+  return coupon.id;
 }
 
 async function giftFor(code, currency, price, vatRow) {
@@ -416,14 +425,22 @@ async function giftFor(code, currency, price, vatRow) {
 }
 
 // POST { check_gift: true, code, brand, level, currency, country }
-// What a gift card would pay, for the buy box to show before checkout.
+//   or { check_gift: true, code, offer: TOKEN, currency, country }
+// What a gift card would pay, for the buy box (or the seminar offer
+// page, at the seminar rate) to show before checkout.
 async function checkGift(body) {
-  const brand = String(body.brand || "").toLowerCase();
-  const level = digits(body.level);
   const currency = String(body.currency || "").toUpperCase();
   const country = String(body.country || "").toUpperCase();
-  const { prices } = await loadOffer(brand, level);
-  const price = prices[currency];
+  let price;
+  if (body.offer) {
+    const o = await findOffer(body.offer);
+    if (!o || o.redeemed_at) return json({ ok: false, error: "This offer link is not valid any more." });
+    const { prices } = await loadOffer(o.brand, o.level);
+    price = prices[currency] ? discounted(prices[currency], o.discount_percent) : null;
+  } else {
+    const { prices } = await loadOffer(String(body.brand || "").toLowerCase(), digits(body.level));
+    price = prices[currency];
+  }
   if (!price) return json({ error: `This course is not on sale in ${currency}` }, 400);
   const vatRow = (await vatList()).find((v) => v.code === country) || null;
   const gift = await giftFor(body.code, currency, price, vatRow);
@@ -548,7 +565,6 @@ async function seminarCheckout(req, body) {
   if (!prices[currency]) return json({ error: `This course is not on sale in ${currency}` }, 400);
 
   const price = discounted(prices[currency], o.discount_percent);
-  const each = option === "plan" ? Math.round(price / months) : 0;
   // Buying as a business: the name goes on the invoice, and a VAT
   // number the EU confirms takes the VAT off (outside Ireland).
   const isBusiness = !!body.business;
@@ -573,6 +589,17 @@ async function seminarCheckout(req, body) {
   const origin = new URL(req.url).origin;
   const name = `${product.label} — seminar rate (${o.discount_percent}% off)`;
 
+  // A gift card on top of the seminar rate: it is money already paid,
+  // not a discount. Same rules as the ordinary buy box.
+  let gift = null;
+  if (body.code) {
+    gift = await giftFor(body.code, currency, price, vatRow);
+    if (gift.error) return json({ error: gift.error }, 409);
+    if (option === "plan" && gift.free) return json({ error: "Your gift card covers the whole course. Choose Pay in full." }, 400);
+  }
+  const each = option === "plan" ? Math.round((gift ? gift.remainingNet : price) / months) : 0;
+  if (option === "plan" && each < 100) return json({ error: "What is left after your gift card is too small to split into monthly payments. Choose Pay in full." }, 400);
+
   const metadata = {
     kind: KIND,
     brand: o.brand,
@@ -592,6 +619,9 @@ async function seminarCheckout(req, body) {
     enrol_email: reg.email,
     enrol_first: reg.first_name || "",
     enrol_last: reg.last_name || "",
+    gift_card_id: gift ? gift.card.id : "",
+    gift_cents: gift ? String(gift.covered) : "",
+    gift_code: gift ? gift.card.code : "",
   };
 
   // Their billing details on a Stripe customer, so the invoice carries
@@ -678,6 +708,7 @@ async function seminarCheckout(req, body) {
     };
     session.custom_text.submit = {
       message:
+        (gift ? `Your gift card ${gift.card.code} has been taken off the price. ` : "") +
         `You are paying the first of ${months} monthly payments today and get access straight away. ` +
         `The other ${months - 1} are taken from this card on the same day each month, then the plan ends by itself.`,
     };
@@ -688,6 +719,7 @@ async function seminarCheckout(req, body) {
       invoice_data: { description: name, metadata: { kind: KIND, label: name } },
     };
     session.payment_intent_data = { description: name };
+    if (gift) session.discounts = [{ coupon: await giftCoupon(gift, currency) }];
   }
 
   const created = await stripe.checkout.sessions.create(session);

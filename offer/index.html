@@ -57,6 +57,13 @@
   .opt span { color: var(--muted); font-size: 0.92rem; }
   .months { display: none; }
   .months.show { display: block; }
+  .giftbox { margin: 0 0 1.4rem; }
+  .giftlink { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--accentText); cursor: pointer; }
+  .giftline { display: flex; gap: 8px; }
+  .giftline button { font: inherit; font-weight: 700; background: var(--panel); color: var(--ink); border: 1px solid #3a3f45; border-radius: 5px; padding: 0 16px; cursor: pointer; }
+  .giftmsg { font-size: 0.9rem; margin: 0.5rem 0 0; color: var(--muted); min-height: 0; }
+  .giftmsg.err { color: var(--err); }
+  .giftmsg.ok { color: #7fd99a; }
   .go { display: block; width: 100%; background: var(--accent); color: #fff; border: 0; font: inherit; font-weight: 700; font-size: 1.05rem; padding: 1rem; border-radius: 6px; cursor: pointer; }
   .go:disabled { opacity: 0.6; cursor: default; }
   .msg { margin: 0.9rem 0 0; min-height: 1.4em; color: var(--muted); }
@@ -165,6 +172,18 @@
       </div>
     </div>
 
+    <div class="giftbox" id="giftbox">
+      <button class="giftlink" type="button" id="gift-open">Have a gift card?</button>
+      <div class="hidden" id="gift-row">
+        <label for="gift-code">Gift card code</label>
+        <div class="giftline">
+          <input id="gift-code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="GIFT-XXXX-XXXX">
+          <button type="button" id="gift-apply">Apply</button>
+        </div>
+      </div>
+      <p class="giftmsg" id="gift-msg"></p>
+    </div>
+
     <button class="go" type="button" id="go">Continue to payment</button>
     <p class="msg" id="msg"></p>
     <p class="small">No account or password needed now — as soon as you have paid, we email you a link straight into the course. Questions? Just reply to our email.</p>
@@ -179,7 +198,7 @@
   var token = qs.get("t") || "";
   var preview = qs.get("preview") || "";
   var data = null;
-  var state = { option: "full", currency: null, country: "", language: null, months: null, curPicked: false, business: false };
+  var state = { option: "full", currency: null, country: "", language: null, months: null, curPicked: false, business: false, gift: null, giftCode: "" };
   var EU = "AT BE BG HR CY CZ DK EE FI FR DE GR HU IT LV LT LU MT NL PL PT RO SK SI ES SE".split(" ");
   // Reverse charge: a business with a VAT number in an EU country
   // other than Ireland. The server checks the number itself.
@@ -244,10 +263,21 @@
     document.querySelectorAll(".biz").forEach(function (el) { el.classList.toggle("hidden", !state.business); });
     $("bname-label").textContent = state.business ? "Your name" : "Name for the invoice";
 
-    $("full-h").textContent = "Pay in full — " + money(p.offer, cur);
+    // A gift card comes off first: Pay in full shows what is left, and
+    // the monthly payments split what is left. A card that covers it all
+    // leaves Pay in full only.
+    var g = state.gift;
+    var base = g ? g.remaining_net_cents : p.offer;
+    if (g && g.free) state.option = "full";
+    $("opt-plan").classList.toggle("hidden", !!(g && g.free));
+    $("full-h").textContent = "Pay in full — " + money(base, cur);
+    $("full-s").textContent = g
+      ? "Gift card " + g.code + " pays " + money(g.covered_cents, cur) + (rate ? " including VAT" : "") +
+        (g.balance_after_cents > 0 ? ". " + money(g.balance_after_cents, cur) + " stays on the card." : ".")
+      : "One card payment. Access straight away.";
 
     var m = state.months;
-    var each = Math.round(p.offer / m);
+    var each = Math.round(base / m);
     $("plan-s").textContent = m + " monthly payments of " + money(each, cur) +
       ", the first today. Access straight away.";
 
@@ -255,7 +285,7 @@
     var keep = String(m);
     months.innerHTML = "";
     data.months.forEach(function (n) {
-      var e = Math.round(p.offer / n);
+      var e = Math.round(base / n);
       opt(months, n, n + " months — " + money(e, cur) + " a month", String(n) === keep);
     });
 
@@ -308,9 +338,13 @@
       state.country = csel.value;
       var c = currencyFor(state.country);
       if (!state.curPicked && data.prices[c]) { state.currency = c; cursel.value = c; }
+      recheckGift();
       render();
     };
-    cursel.onchange = function () { state.currency = cursel.value; state.curPicked = true; render(); };
+    cursel.onchange = function () { state.currency = cursel.value; state.curPicked = true; recheckGift(); render(); };
+    $("gift-open").onclick = function () { $("gift-open").classList.add("hidden"); $("gift-row").classList.remove("hidden"); $("gift-code").focus(); };
+    $("gift-apply").onclick = function () { state.giftCode = $("gift-code").value.trim(); checkGift(); };
+    $("gift-code").onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); $("gift-apply").onclick(); } };
     $("months").onchange = function (e) { state.months = parseInt(e.target.value, 10); render(); };
     $("opt-full").onclick = function () { state.option = "full"; render(); };
     $("opt-plan").onclick = function () { state.option = "plan"; render(); };
@@ -323,6 +357,29 @@
     $("loading").classList.add("hidden");
     $("offer").classList.remove("hidden");
   }
+
+  // The card pays towards the price with VAT, so the server works out
+  // its share for the chosen country and currency.
+  function giftMsg(text, cls) { var m = $("gift-msg"); m.textContent = text; m.className = "giftmsg" + (cls ? " " + cls : ""); }
+  function checkGift() {
+    if (!state.giftCode) return;
+    if (!state.country) { giftMsg("Choose your country first, so we can work out the VAT.", "err"); return; }
+    if (preview) { giftMsg("This is a preview, so gift cards cannot be checked here.", "err"); return; }
+    giftMsg("Checking…");
+    fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ check_gift: true, code: state.giftCode, offer: token, currency: state.currency, country: state.country }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.ok) { state.gift = d; giftMsg("Gift card " + d.code + " applied.", "ok"); }
+        else { state.gift = null; giftMsg((d && d.error) || "That gift card code isn't recognised.", "err"); }
+        render();
+      })
+      .catch(function () { giftMsg("Could not check that code. Try again.", "err"); });
+  }
+  function recheckGift() { if (state.gift) { state.gift = null; checkGift(); } }
 
   function pay() {
     var msg = $("msg");
@@ -350,6 +407,7 @@
         name: bill.name, line1: bill.line1, line2: bill.line2, city: bill.city, postcode: bill.postcode,
         business: state.business || undefined, business_name: biz || undefined,
         vat_number: state.business ? $("vatno").value.trim() : undefined,
+        code: state.gift ? state.gift.code : undefined,
       }),
     })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
