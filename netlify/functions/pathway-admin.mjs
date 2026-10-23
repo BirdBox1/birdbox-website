@@ -21,6 +21,7 @@
 
 import { db, json, OFFICE, userFrom, sendMail, esc } from "../lib/directory.mjs";
 import { BUCKET, REAPPLY_MONTHS, reapplyFrom } from "../lib/pathway.mjs";
+import { NATHAN_SIGNATURE_HTML, NATHAN_SIGNATURE_TEXT } from "../lib/signature.mjs";
 
 const URL_RE = /^https:\/\/[^\s<>"]+\.[^\s<>"]+$/i;
 const BRAND_NAME = { tgc: "The Gymnastics Course", tcc: "The Coaches Course", tec: "The Endurance Course", twc: "The Weightlifting Course" };
@@ -117,7 +118,6 @@ async function everything() {
 
 function tellDecision(a, outcome, message, video) {
   const first = a.full_name.split(" ")[0];
-  const course = BRAND_NAME[a.brand] || "BirdBox";
   const short = a.brand.toUpperCase();
   const accepted = outcome === "accepted";
   const again = accepted ? "" : reapplyFrom(new Date()).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
@@ -131,13 +131,13 @@ function tellDecision(a, outcome, message, video) {
     to: a.email,
     replyTo: OFFICE,
     subject,
-    text: `Hi ${first},\n\n${message}${video ? `\n\nYour feedback video: ${video}` : ""}\n\n${close}\n\nNathan Bird\n${course}`,
+    text: `Hi ${first},\n\n${message}${video ? `\n\nYour feedback video: ${video}` : ""}\n\n${close}${NATHAN_SIGNATURE_TEXT}`,
     html: `<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#16181b;max-width:560px">
 <p>Hi ${esc(first)},</p>
 <div style="white-space:pre-line">${esc(message)}</div>
 ${video ? `<p style="margin:18px 0"><a href="${esc(video)}" style="display:inline-block;background:#85151A;color:#fff;text-decoration:none;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:13px;padding:11px 20px">Watch your feedback</a></p>` : ""}
 <p>${esc(close)}</p>
-<p>Nathan Bird<br>${esc(course)}</p>
+${NATHAN_SIGNATURE_HTML}
 </div>`,
   });
 }
