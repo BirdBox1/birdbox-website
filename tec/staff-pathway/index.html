@@ -62,6 +62,10 @@
   .hero__in, .banner__in, .band__in { text-shadow: 0 1px 14px rgba(0,0,0,0.55); }
   .band h2 { font-size: clamp(30px, 5vw, 48px); letter-spacing: 0.02em; margin: 0 0 10px; }
   .band__in { padding: 64px 24px 56px; }
+  .teamshot { margin: 56px 0 0; border-block: 1px solid var(--line); background: var(--panel); }
+  .teamshot__in { max-width: 1100px; margin: 0 auto; padding: 44px 24px 28px; }
+  .teamshot__in p:last-child { color: #D9D4D5; max-width: 620px; margin: 0; }
+  .teamshot img { display: block; width: 100%; height: auto; max-width: 1340px; margin: 0 auto; }
   .month { display: grid; grid-template-columns: 280px 1fr; gap: 28px; align-items: center; margin-top: 44px; }
   .month img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; border: 1px solid var(--line); }
   .month h2 { margin-top: 0; }
@@ -138,7 +142,7 @@
     .wrap { padding: 0 16px; }
     .grid, .price, .steps, .month { grid-template-columns: 1fr; }
     .month img { aspect-ratio: 16 / 10; }
-    .hero__in, .banner__in, .band__in { padding-left: 16px; padding-right: 16px; }
+    .hero__in, .banner__in, .band__in, .teamshot__in { padding-left: 16px; padding-right: 16px; }
     .hero__mark { height: 64px; }
     .move { grid-template-columns: 1fr; gap: 4px; }
     fieldset { padding: 16px 14px; }
@@ -162,7 +166,7 @@
       <img class="hero__mark" src="/brand/tec-mark.png" alt="The Endurance Course">
       <p class="eyebrow">Founding staff · applications open</p>
       <h1>TEC Founding Staff</h1>
-      <p class="lede">The Endurance Course launches in 2027. We are looking for experienced endurance coaches to join the founding team: shaping the final course and how it rolls out, then coaching it in their region.</p>
+      <p class="lede">The Endurance Course launches in 2027. We are looking for experienced endurance coaches who are interested in joining our seminar staff team from the start.</p>
       <div class="hero__cta"><a class="cta" href="#apply">Start your application</a><span>Free to apply · Europe, United States, Asia and Australia</span></div>
     </div>
   </header>
@@ -170,35 +174,33 @@
   <div class="wrap">
     <h2>Who we are looking for</h2>
     <p>Experienced endurance coaches: running, cycling, triathlon, rowing, HYROX and hybrid. You coach athletes week in, week out, you can explain what you see, and you want to help build something new rather than join something finished.</p>
-    <p>We are building the team in Europe, the United States, Asia and Australia. You do not need to have done a BirdBox course, though any you have done count in your favour.</p>
+    <p>We also want to know about your education. A background in physiology, sport science or strength and conditioning, and your own competition experience, are a real plus.</p>
+    <p>We are building the team in Europe, the United States, Asia and Australia.</p>
 
     <h2>How it works</h2>
     <ol class="steps steps--text">
-      <li><div><b>Apply (free)</b>Send a video of your coaching, your CV, your coaching philosophy, a written piece and a reference.</div></li>
+      <li><div><b>Apply (free)</b>Send your CV, your coaching philosophy, your education and experience, a written piece and a reference.</div></li>
       <li><div><b>Review and call</b>Nathan reviews every application himself and invites the coaches he would like to know more about to a call.</div></li>
-      <li><div><b>Join the founding team</b>Help finalise the course material and plan how TEC rolls out, before launch. What you see of TEC before launch stays confidential.</div></li>
+      <li><div><b>Talk it through</b>With the coaches who are a good fit, we talk through how they would work with us as TEC launches. What you see of TEC before launch stays confidential.</div></li>
       <li><div><b>Coach TEC</b>As TEC launches in your region, coach it with us. Places are by selection, and applying is not a guarantee of a role.</div></li>
     </ol>
   </div>
 
-  <section class="banner" style="background-image: url('img/team.jpg');">
-    <div class="banner__in">
+  <section class="teamshot">
+    <div class="teamshot__in">
       <p class="banner__big">Build it with us.</p>
-      <p>A small founding team, chosen for experience and the quality of their coaching, across four regions.</p>
+      <p>A small team, chosen for experience and the quality of their coaching, across four regions. This is the BirdBox team you would be joining.</p>
     </div>
+    <img src="img/team.jpg" alt="The BirdBox Coaching team" loading="lazy">
   </section>
 
   <div class="wrap">
     <div class="month">
       <img src="img/side.jpg" alt="" loading="lazy">
       <div>
-        <h2>What the founding team does</h2>
-        <ul class="ticks">
-          <li>Reviews and shapes the final TEC course material</li>
-          <li>Helps plan where and how TEC launches</li>
-          <li>Coaches TEC courses in their region as it rolls out</li>
-          <li>Works alongside the BirdBox team across TGC and TCC</li>
-        </ul>
+        <h2>Is this you?</h2>
+        <p>We are building the seminar staff team for The Endurance Course. If you are interested and feel you are a good fit, we want to hear from you.</p>
+        <p>How you would work with us, and where, is something we talk through with each coach.</p>
       </div>
     </div>
   </div>
@@ -207,7 +209,7 @@
     <div class="band__in">
       <p class="eyebrow">Your application</p>
       <h2>Apply</h2>
-      <p>Allow about 30 minutes, plus time to film. Your answers are saved on this device as you go, so you can come back to finish.</p>
+      <p>Allow about 30 minutes. Your answers are saved on this device as you go, so you can come back to finish.</p>
     </div>
   </section>
 
@@ -233,10 +235,19 @@
         <div><label class="f" for="gym">Where you coach</label><input id="gym" name="gym" type="text" placeholder="Gym, city"></div>
         <div><label class="f" for="years_coaching">Years coaching</label><input id="years_coaching" name="years_coaching" type="number" min="0" max="60" inputmode="numeric"></div>
         <div class="full"><label class="f">BirdBox courses you have completed</label>
-          <p class="hint" style="margin:0 0 8px">Optional. Tick any you have done.</p>
+          <p class="hint" style="margin:0 0 8px">Tick any you have done.</p>
           <div class="checks" id="courses"></div></div>
         <div><label class="f" for="course_when">Your most recent: when and where</label><input id="course_when" name="course_when" type="text" placeholder="e.g. TCC Level 1, March 2025, Madrid"></div>
-        <div class="full"><label class="f" for="other_quals">Other qualifications and experience</label><textarea id="other_quals" name="other_quals" style="min-height:90px" placeholder="Endurance qualifications, your own racing, teams or athletes you coach"></textarea></div>
+        <div class="full"><label class="f" for="education">Education *</label><textarea id="education" name="education" style="min-height:90px" placeholder="Degrees and where you studied, e.g. BSc Sport and Exercise Science, MSc Exercise Physiology"></textarea></div>
+        <div class="full"><label class="f" for="other_quals">Coaching qualifications</label><textarea id="other_quals" name="other_quals" style="min-height:90px" placeholder="Endurance, strength and conditioning and other coaching certifications"></textarea></div>
+        <div class="full"><label class="f" for="own_education">Do you run your own coach education, courses or seminars? *</label>
+          <select id="own_education" name="own_education" required>
+            <option value="">Choose…</option>
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
+          <textarea id="own_education_detail" name="own_education_detail" class="hidden" style="min-height:80px;margin-top:8px" placeholder="Tell us what you run: the course or seminar, who it is for, and how often"></textarea></div>
+        <div class="full"><label class="f" for="competition">Your competition experience</label><textarea id="competition" name="competition" style="min-height:90px" placeholder="Races and events you have competed in, and your best results"></textarea></div>
       </div>
     </fieldset>
 
@@ -246,12 +257,6 @@
       <div class="radios" id="track"></div>
     </fieldset>
 
-    <fieldset>
-      <legend>Coaching video</legend>
-      <p class="hint">10 to 20 minutes of you coaching endurance athletes: technique, pacing or a session. Show how you explain it, what you see and how you correct it. Unedited is best. Upload it to YouTube (unlisted), Vimeo, Google Drive or Dropbox and paste the link. Make sure anyone with the link can watch it.</p>
-      <label class="f" for="coaching_video">Link *</label>
-      <input id="coaching_video" name="coaching_video" type="url" placeholder="https://" required>
-    </fieldset>
 
         <fieldset>
       <legend>CV and coaching philosophy</legend>
@@ -294,7 +299,7 @@
   <section class="done hidden" id="done">
     <h2>Application sent</h2>
     <p>Thank you. We have emailed you a copy. Nathan reviews every application himself, and you will hear from us whatever the outcome.</p>
-    <p class="small">Please keep your video link working until you hear from us.</p>
+    
   </section>
   </div>
 </main>
@@ -304,5 +309,14 @@
 </footer>
 
 <script src="/staff-pathway/form.js"></script>
+<script>
+  // "Yes" opens a box to say what they run.
+  (function () {
+    var sel = document.getElementById("own_education"), box = document.getElementById("own_education_detail");
+    function sync() { box.classList.toggle("hidden", sel.value !== "yes"); }
+    sel.addEventListener("change", sync);
+    window.addEventListener("load", function () { setTimeout(sync, 600); });
+  })();
+</script>
 </body>
 </html>

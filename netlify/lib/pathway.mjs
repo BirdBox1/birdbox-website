@@ -13,10 +13,11 @@
 // The courses taking applications, and how each one works.
 //   paid:        shows the fee and the 12-month commitment
 //   needsCourse: applicants must tick one of this course's levels
+//   coachingVideo: a link to a video of them coaching is required
 //   targets:     how many new staff we want per region (admin only,
 //                never sent to the public form)
 export const PATHWAYS = {
-  tgc: { short: "TGC", name: "The Gymnastics Course", title: "TGC Staff Pathway", paid: true, needsCourse: "tgc" },
+  tgc: { short: "TGC", name: "The Gymnastics Course", title: "TGC Staff Pathway", paid: true, needsCourse: "tgc", coachingVideo: true },
   tec: {
     short: "TEC", name: "The Endurance Course", title: "TEC Founding Staff", paid: false, needsCourse: null,
     targets: [
