@@ -92,6 +92,18 @@ async function createAndSend(b, me) {
   const places = parseInt(b.places, 10);
   if (!Number.isFinite(places) || places < 1) return json({ error: "Number of places must be at least 1." }, 400);
 
+  // People already known when the invoice goes out: they are put on the
+  // course automatically the moment it is paid, instead of the payer
+  // being emailed the form to name them.
+  const named = (Array.isArray(b.named_people) ? b.named_people : []).map((p) => ({
+    first_name: clean(p.first_name), last_name: clean(p.last_name), email: clean(p.email),
+  }));
+  if (named.length > places) return json({ error: "More names than places on the invoice." }, 400);
+  for (const p of named) {
+    if (!p.first_name || !p.last_name) return json({ error: "Every named person needs a first and last name." }, 400);
+    if (!p.email || !p.email.includes("@")) return json({ error: `The email for ${p.first_name} ${p.last_name} does not look right.` }, 400);
+  }
+
   const dueDays = b.days_until_due == null || b.days_until_due === "" ? DAYS_TO_PAY : parseInt(b.days_until_due, 10);
   if (!Number.isFinite(dueDays) || dueDays < 1 || dueDays > 30) return json({ error: "Days to pay must be between 1 and 30." }, 400);
 
@@ -207,6 +219,7 @@ async function createAndSend(b, me) {
       total_cents: total,
       status: "draft",
       created_by: me.id,
+      ...(named.length ? { prefill_names: named } : {}),
       ...(b.split_role ? { split_role: b.split_role, split_host_id: b.split_host_id || null } : {}),
     })
     .select("id")

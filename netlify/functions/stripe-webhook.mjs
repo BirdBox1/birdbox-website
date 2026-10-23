@@ -28,6 +28,7 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { grantOnlineCourse, learnStartLink } from "./learnworlds.mjs";
+import { addPlace } from "./invoice-admin.mjs";
 import { isOnlineInvoice, onOnlineInvoicePaid, onOnlineInvoiceOverdue } from "./online-invoice.mjs";
 import { isOnlineSale, onOnlineSaleCompleted, onlinePlanMeta, onOnlinePlanFailed } from "./online-checkout.mjs";
 import { isGiftSale, onGiftSaleCompleted, redeemCard } from "../lib/gift-cards.mjs";
@@ -1113,7 +1114,7 @@ async function onGroupInvoicePaid(invoice) {
       last_error: null,
     })
     .eq("id", id)
-    .select("id, course_id, kind, plan_state, paid_cents, total_cents, currency, unit_price_cents, vat_rate, discount_code, discount_percent, discount_amount_cents, payer_name, business_name, payer_email, places, names_token, names_emailed_at, split_role, split_host_id, courses ( title, brand )")
+    .select("id, course_id, kind, plan_state, paid_cents, total_cents, currency, unit_price_cents, vat_rate, discount_code, discount_percent, discount_amount_cents, payer_name, business_name, payer_email, places, names_token, names_emailed_at, split_role, split_host_id, prefill_names, courses ( title, brand )")
     .maybeSingle();
 
   if (error) throw new Error("invoices: " + error.message);
@@ -1128,6 +1129,29 @@ async function onGroupInvoicePaid(invoice) {
   if (row.split_role) {
     await onSplitInvoicePaid(row, invoice);
     return;
+  }
+
+  // The people were named when the invoice was sent: register them now,
+  // each with their confirmation, rather than asking the payer for names
+  // already given. Any places left unnamed still get the form below.
+  if (Array.isArray(row.prefill_names) && row.prefill_names.length && !row.names_emailed_at) {
+    const added = [], problems = [];
+    for (const p of row.prefill_names) {
+      const r = await addPlace({ invoiceId: row.id, first: p.first_name, last: p.last_name, email: p.email });
+      if (r.error) problems.push(`${p.first_name} ${p.last_name}: ${r.error}`);
+      else added.push(`${p.first_name} ${p.last_name}`);
+    }
+    const course = (row.courses && row.courses.title) || "a course";
+    await alert(
+      problems.length ? "Invoice paid — NOT everyone registered" : "Invoice paid — registered",
+      `${row.business_name || row.payer_name} paid invoice ${invoice.number || invoice.id} for ${course}.\n\n` +
+      (added.length ? `Registered and sent their confirmation: ${added.join(", ")}.\n` : "") +
+      (problems.length ? `Could not register (add them by hand on the course):\n${problems.join("\n")}\n` : "")
+    );
+    if (added.length + problems.length >= row.places) {
+      await supabase.from("invoices").update({ names_emailed_at: new Date().toISOString() }).eq("id", id);
+      return;
+    }
   }
 
   // One place: the payer is the participant. Register them straight
