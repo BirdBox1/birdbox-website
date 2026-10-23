@@ -76,6 +76,23 @@
   .empty { padding: 2.5rem 1rem; text-align: center; color: var(--muted); background: var(--card); border: 1px solid var(--rule); border-radius: 6px; }
   .gate { max-width: 26rem; margin: 4rem auto; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 1.5rem; text-align: center; }
 
+
+  .player { position: fixed; inset: 0; z-index: 300; background: rgba(8,9,10,0.82); display: flex; align-items: center; justify-content: center; padding: 1.25rem; }
+  .pl-box { width: min(72rem, 100%); max-height: 100%; display: flex; flex-direction: column; gap: 0.6rem; }
+  .pl-top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; color: #fff; }
+  .pl-top b { font-weight: 600; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pl-acts { display: flex; gap: 0.8rem; align-items: center; flex: none; }
+  .pl-acts a { color: #cfd4d9; font-size: 0.85rem; }
+  #pl-close { font: inherit; font-size: 1.1rem; background: none; border: 1px solid #55595e; color: #fff; border-radius: 4px; width: 2.2rem; height: 2.2rem; cursor: pointer; }
+  .pl-stage { background: #000; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; min-height: 12rem; }
+  .pl-stage video { display: block; width: 100%; max-height: calc(100vh - 9rem); background: #000; }
+  .pl-stage iframe { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: calc(100vh - 9rem); border: 0; }
+  .pl-stage iframe.doc { aspect-ratio: auto; height: calc(100vh - 9rem); background: #fff; }
+  .pl-stage .pl-msg { color: #cfd4d9; padding: 2.5rem 1.5rem; text-align: center; font-size: 0.95rem; }
+  .pl-stage .pl-msg a { color: #fff; }
+  .pl-nav { display: flex; justify-content: space-between; align-items: center; color: #9aa1a9; font-size: 0.85rem; }
+  .pl-nav .btn[disabled] { opacity: 0.35; cursor: default; }
+  @media (max-width: 46rem) { .player { padding: 0.5rem; } }
   @media (max-width: 46rem) {
     .wrap { padding: 1rem 0.75rem 3rem; }
     .body { grid-template-columns: 1fr; }
@@ -114,6 +131,21 @@
   <div class="list" id="list"><div class="empty">Loading…</div></div>
 </section>
 
+<div class="player hidden" id="player" role="dialog" aria-modal="true" aria-labelledby="pl-title">
+  <div class="pl-box">
+    <div class="pl-top">
+      <b id="pl-title"></b>
+      <span class="pl-acts"><a id="pl-out" href="#" target="_blank" rel="noopener">Open in new tab ↗</a><button type="button" id="pl-close" aria-label="Close">✕</button></span>
+    </div>
+    <div class="pl-stage" id="pl-stage"></div>
+    <div class="pl-nav">
+      <button type="button" class="btn small" id="pl-prev">← Previous</button>
+      <span id="pl-count"></span>
+      <button type="button" class="btn small" id="pl-next">Next →</button>
+    </div>
+  </div>
+</div>
+
 <script type="module" src="/portal/menu.js"></script>
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
@@ -126,6 +158,9 @@ const gate = (html) => { $("gate-text").innerHTML = html; show("gate"); };
 const say = (t, k = "") => { $("msg").className = "msg " + k; $("msg").textContent = t; };
 const day = (d) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 const link = (u, label) => u ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(label || "Watch ↗")}</a>` : '<span class="meta">none</span>';
+// A video or document that opens in the player on this page. The link
+// still works as a plain new-tab link if the player cannot show it.
+const play = (u, label, title) => u ? `<a href="${esc(u)}" target="_blank" rel="noopener" data-play data-title="${esc(title || label)}">${esc(label)}</a>` : '<span class="meta">none</span>';
 
 const STATUS = { new: "To review", reviewing: "Reviewing", interview: "Interview", accepted: "Accepted", declined: "Not this time", withdrawn: "Withdrawn" };
 const OPEN = ["new", "reviewing", "interview"];
@@ -228,13 +263,13 @@ function row(a) {
     : '<span class="meta">None under this email</span>';
   const r = a.reference || {};
   const moveList = (group) => (a.movement_videos || []).filter((m) => (m.group || "Strict") === group)
-    .map((m) => `<li>${link(m.view || m.url, m.movement + " ↗")}${m.uploaded ? ' <span class="meta">uploaded</span>' : ""}</li>`).join("");
+    .map((m) => `<li>${play(m.view || m.url, "▶ " + m.movement, `${group}: ${m.movement}`)}${m.uploaded ? ' <span class="meta">uploaded</span>' : ""}</li>`).join("");
   const moves = ["Strict", "Dynamic"].map((g) => { const l = moveList(g); return l ? `<li class="grp">${g}</li>${l}` : ""; }).join("");
   const earlier = a.earlier.map((o) => `<div class="told"><b>${day(o.created_at)}: ${STATUS[o.status]}</b>${o.decision_message ? "\n" + esc(o.decision_message) : ""}</div>`).join("");
 
   const decided = a.status === "accepted" || a.status === "declined";
   const side = decided
-    ? `<h3>What we told them (${day(a.decided_at)})</h3><div class="told">${esc(a.decision_message)}</div>${a.decision_video ? `<div>${link(a.decision_video, "Feedback video ↗")}</div>` : ""}`
+    ? `<h3>What we told them (${day(a.decided_at)})</h3><div class="told">${esc(a.decision_message)}</div>${a.decision_video ? `<div>${play(a.decision_video, "▶ Feedback video", "Our feedback video")}</div>` : ""}`
     : `<h3>Stage</h3>
        <div class="row">
          ${["reviewing", "interview"].map((s) => `<button class="btn small${a.status === s ? " primary" : ""}" data-act="status" data-status="${s}" data-id="${a.id}">${STATUS[s]}</button>`).join("")}
@@ -266,12 +301,12 @@ function row(a) {
         </dl>
         <h3>Documents</h3>
         <dl>
-          <dt>CV</dt><dd>${link(a.cv_url, "Open CV ↗")}</dd>
-          <dt>Coaching philosophy</dt><dd>${link(a.philosophy_url, "Open coaching philosophy ↗")}</dd>
+          <dt>CV</dt><dd>${play(a.cv_url, "Open CV", `CV: ${a.full_name}`)}</dd>
+          <dt>Coaching philosophy</dt><dd>${play(a.philosophy_url, "Open coaching philosophy", `Coaching philosophy: ${a.full_name}`)}</dd>
         </dl>
         ${a.other_quals ? `<h3>Other qualifications</h3><div class="written" style="max-height:10rem">${esc(a.other_quals)}</div>` : ""}
         <h3>Coaching video</h3>
-        <div>${link(a.coaching_video, "Watch coaching video ↗")}</div>
+        <div>${play(a.coaching_video, "▶ Watch coaching video", "Coaching video")}</div>
         <h3>Movement mastery</h3>
         <ul class="moves">${moves}</ul>
         <h3>Written piece (${words} words)</h3>
@@ -297,6 +332,11 @@ function row(a) {
 }
 
 $("list").addEventListener("click", async (e) => {
+  const pl = e.target.closest("a[data-play]");
+  if (pl && !(e.metaKey || e.ctrlKey || e.shiftKey)) {
+    if (openPlayer(pl)) e.preventDefault();
+    return;
+  }
   const t = e.target.closest("[data-toggle]");
   if (t && !e.target.closest("a")) {
     const id = t.dataset.toggle;
@@ -333,6 +373,105 @@ $("tabs").addEventListener("click", (e) => {
   render();
 });
 $("q").addEventListener("input", render);
+
+/* ---------------- the player ----------------
+   Videos and documents open on top of the review page. Uploads play
+   straight from our storage; YouTube, Vimeo, Google Drive and Dropbox
+   links play in their own player here. Anything else opens in a new
+   tab as before. Previous / Next (or the arrow keys) step through the
+   videos of the application that is open. */
+let plItems = [], plAt = 0;
+
+function embedFor(u) {
+  let url;
+  try { url = new URL(u); } catch (e) { return null; }
+  const h = url.hostname.replace(/^(www|m)\./, "");
+  const ext = (url.pathname.split(".").pop() || "").toLowerCase();
+  const isVideo = ["mp4", "mov", "m4v", "webm", "3gp"].includes(ext);
+  if (h === "dropbox.com") {
+    url.searchParams.delete("dl"); url.searchParams.set("raw", "1");
+    return { kind: ext === "pdf" ? "doc" : "video", src: url.toString() };
+  }
+  if (isVideo) return { kind: "video", src: u };
+  if (ext === "pdf") return { kind: "doc", src: u };
+  if (h === "youtu.be" || h.endsWith("youtube.com")) {
+    let id = h === "youtu.be" ? url.pathname.slice(1) : url.searchParams.get("v");
+    if (!id) { const m = url.pathname.match(/\/(shorts|live|embed)\/([^/?]+)/); if (m) id = m[2]; }
+    if (!id) return null;
+    const t = String(url.searchParams.get("t") || url.searchParams.get("start") || "");
+    const tm = t.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/);
+    const start = tm ? (+(tm[1] || 0)) * 3600 + (+(tm[2] || 0)) * 60 + (+(tm[3] || 0)) : 0;
+    return { kind: "frame", src: `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&rel=0${start ? "&start=" + start : ""}` };
+  }
+  if (h === "player.vimeo.com") return { kind: "frame", src: u };
+  if (h === "vimeo.com") {
+    const m = url.pathname.match(/^\/(\d+)(?:\/([0-9a-f]+))?/);
+    if (!m) return null;
+    return { kind: "frame", src: `https://player.vimeo.com/video/${m[1]}?autoplay=1${m[2] ? "&h=" + m[2] : ""}` };
+  }
+  if (h === "drive.google.com") {
+    const m = url.pathname.match(/\/file\/d\/([^/]+)/);
+    const id = m ? m[1] : url.searchParams.get("id");
+    if (!id) return null;
+    return { kind: "frame", src: `https://drive.google.com/file/d/${encodeURIComponent(id)}/preview` };
+  }
+  return null;
+}
+
+function openPlayer(a) {
+  if (!embedFor(a.href)) return false;
+  const box = a.closest(".app") || document;
+  // Step through videos only: documents open on their own.
+  const doc = embedFor(a.href).kind === "doc";
+  plItems = doc ? [a] : [...box.querySelectorAll("a[data-play]")].filter((x) => { const e = embedFor(x.href); return e && e.kind !== "doc"; });
+  plAt = Math.max(0, plItems.indexOf(a));
+  showItem();
+  $("player").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+  $("pl-close").focus();
+  return true;
+}
+
+function showItem() {
+  const a = plItems[plAt], e = embedFor(a.href);
+  $("pl-title").textContent = a.dataset.title || a.textContent;
+  $("pl-out").href = a.href;
+  const stage = $("pl-stage");
+  if (e.kind === "video") {
+    stage.innerHTML = `<video controls autoplay playsinline preload="metadata"></video>`;
+    const v = stage.querySelector("video");
+    v.src = e.src;
+    v.onerror = () => {
+      stage.innerHTML = `<div class="pl-msg">This video will not play inside the portal (some phone formats only play in Safari).<br><a href="${esc(a.href)}" target="_blank" rel="noopener">Open it in a new tab ↗</a></div>`;
+    };
+  } else {
+    stage.innerHTML = `<iframe class="${e.kind === "doc" ? "doc" : ""}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+    stage.querySelector("iframe").src = e.src;
+  }
+  const many = plItems.length > 1;
+  $("pl-prev").classList.toggle("hidden", !many);
+  $("pl-next").classList.toggle("hidden", !many);
+  $("pl-prev").disabled = plAt === 0;
+  $("pl-next").disabled = plAt === plItems.length - 1;
+  $("pl-count").textContent = many ? `${plAt + 1} of ${plItems.length}` : "";
+}
+
+function closePlayer() {
+  $("player").classList.add("hidden");
+  $("pl-stage").innerHTML = "";   // stops the video
+  document.body.style.overflow = "";
+}
+
+$("pl-close").addEventListener("click", closePlayer);
+$("player").addEventListener("click", (e) => { if (e.target.id === "player") closePlayer(); });
+$("pl-prev").addEventListener("click", () => { if (plAt > 0) { plAt--; showItem(); } });
+$("pl-next").addEventListener("click", () => { if (plAt < plItems.length - 1) { plAt++; showItem(); } });
+document.addEventListener("keydown", (e) => {
+  if ($("player").classList.contains("hidden")) return;
+  if (e.key === "Escape") closePlayer();
+  if (e.key === "ArrowLeft" && plAt > 0) { plAt--; showItem(); }
+  if (e.key === "ArrowRight" && plAt < plItems.length - 1) { plAt++; showItem(); }
+});
 
 start();
 </script>
