@@ -26,8 +26,10 @@ export default async (req) => {
   }
 
   try {
-    const { slug, code } = await req.json();
-    if (!slug || !code) return json({ ok: false, error: "Missing details" }, 400);
+    // code: a discount code or a gift card. gift: a gift card used as
+    // well as a discount code (an early-bird code and a card together).
+    const { slug, code, gift } = await req.json();
+    if (!slug || (!code && !gift)) return json({ ok: false, error: "Missing details" }, 400);
 
     // starts_at is required: codes with a relative expiry (early bird)
     // are measured back from the course start, so leaving it out here
@@ -41,19 +43,23 @@ export default async (req) => {
 
     if (!course) return json({ ok: false, error: "Course not found" }, 404);
 
-    const result = await priceWithDiscount(course, code);
+    const result = await priceWithDiscount(course, code, gift);
     if (result.error) return json({ ok: false, error: result.error }, 200);
 
     return json({
       ok: true,
       code: result.row.code,
       label: result.row.label || null,
+      // With a code and a card: code_discount_cents is the code's share
+      // of discount_cents; the card's share is in gift.
+      code_discount_cents: result.codeDiscount ?? (result.gift ? 0 : result.discount),
       discount_cents: result.discount,
       total_cents: result.total,
       deposit_cents: result.deposit,
       free: !!result.free,
       // A gift card: what it pays (VAT included) and what is left on it.
       gift: result.gift ? {
+        code: result.gift.code,
         covered_cents: result.gift.covered,
         balance_after_cents: result.gift.balanceAfter,
         currency: result.gift.currency,
@@ -65,14 +71,39 @@ export default async (req) => {
   }
 };
 
-// Shared by create-checkout so the price is never trusted from the browser.
-export async function priceWithDiscount(course, code) {
-  const clean = String(code || "").trim();
-  if (!clean) return { error: "Enter a code" };
+// Shared by create-checkout and free-registration so the price is never
+// trusted from the browser.
+//
+// code is a discount code or a gift card; giftCode is a gift card used
+// on top of a discount code. Then the code comes off first and the card
+// pays towards what is left (with VAT), so an early-bird code and a gift
+// card work on the same booking.
+export async function priceWithDiscount(course, code, giftCode) {
+  let clean = String(code || "").trim();
+  let gift = String(giftCode || "").trim();
+  if (looksLikeGift(clean) && !gift) { gift = clean; clean = ""; }
+  if (!clean && !gift) return { error: "Enter a code" };
+  if (!clean) return priceWithGiftCard(course, gift, course.price_cents);
 
-  // Gift cards live in their own table and carry a balance.
-  if (looksLikeGift(clean)) return priceWithGiftCard(course, clean);
+  const base = await priceWithCode(course, clean);
+  if (base.error || !gift) return base;
+  if (base.free) return { error: "That code already covers the whole price, so there is nothing for the gift card to pay." };
 
+  const g = await priceWithGiftCard(course, gift, base.total);
+  if (g.error) return g;
+  return {
+    row: base.row,
+    codeDiscount: base.discount,
+    discount: course.price_cents - g.total,
+    total: g.total,
+    deposit: g.deposit,
+    free: g.free,
+    gift: g.gift,
+  };
+}
+
+// A discount code on its own (discount_codes).
+async function priceWithCode(course, clean) {
   const { data: rows } = await supabase
     .from("discount_codes")
     .select("*")
@@ -174,13 +205,15 @@ export async function priceWithDiscount(course, code) {
 // A gift card pays towards the price including VAT; whatever it does
 // not cover is paid by card as normal. The deposit and monthly options
 // still work, worked out on what is left. See netlify/lib/gift-cards.mjs.
-async function priceWithGiftCard(course, code) {
+// net is the price before VAT that the card pays towards: the full
+// price, or what is left after a discount code.
+async function priceWithGiftCard(course, code, net) {
   const found = await findCard(code, course.currency);
   if (found.error) return { error: found.error };
   const card = found.card;
 
   const vatPercent = await seminarVatPercent(course);
-  const a = applyCard(card, course.price_cents, vatPercent);
+  const a = applyCard(card, net, vatPercent);
   if (a.covered <= 0) return { error: "That gift card cannot be used on this course" };
 
   const total = a.remainingNet;
@@ -190,11 +223,11 @@ async function priceWithGiftCard(course, code) {
 
   return {
     row: { code: card.code, label: "Gift card" },
-    discount: a.discountNet,
+    discount: course.price_cents - total,
     total,
     deposit,
     free: a.free,
-    gift: { id: card.id, covered: a.covered, balanceAfter: a.balanceAfter, currency: card.currency },
+    gift: { id: card.id, code: card.code, covered: a.covered, balanceAfter: a.balanceAfter, currency: card.currency },
   };
 }
 

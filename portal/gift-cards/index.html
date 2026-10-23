@@ -80,6 +80,24 @@
   .muted{color:var(--muted)}
   .note{font-size:0.82rem;color:var(--muted);margin:0.8rem 0 0;max-width:70ch}
 
+  /* find a card */
+  .find{display:flex;gap:.6rem;flex-wrap:wrap}
+  .find input{flex:1 1 16rem}
+  .gc{border-top:1px solid var(--rule);padding:1rem 0}
+  .gc:first-child{border-top:0}
+  .gc .top{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap}
+  .gc .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;font-size:1rem;letter-spacing:.04em}
+  .gc .bal{font-weight:650}
+  .gc .who{color:var(--muted);font-size:.86rem;margin-top:.15rem}
+  .pill{display:inline-block;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;padding:.12rem .45rem;border:1px solid var(--rule);border-radius:2px;color:var(--muted)}
+  .pill.on{border-color:var(--good);color:var(--good)} .pill.off{border-color:var(--bad);color:var(--bad)} .pill.warn{border-color:var(--warn);color:var(--warn)}
+  .acts{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem}
+  .form{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-top:.6rem;padding:.7rem;background:var(--paper);border-radius:4px}
+  .form input,.form select{flex:1 1 9rem}
+  .hist{margin:.6rem 0 0;padding:0;list-style:none;font-size:.82rem;color:var(--muted)}
+  .hist li{padding:.15rem 0}
+  .gmsg{font-size:.85rem;margin-top:.5rem}
+  .gmsg.err{color:var(--bad)} .gmsg.ok{color:var(--good)}
   .empty{background:var(--card);border:1px dashed var(--rule);border-radius:6px;
     padding:2rem 1.25rem;text-align:center;color:var(--muted);font-size:0.9rem}
   .none{color:var(--muted);font-size:0.88rem;padding:0.6rem 0}
@@ -104,6 +122,15 @@
     <h1>Gift cards</h1>
     <p class="sub">For the VAT return. No VAT is charged when a card is sold; it is due when the card is spent,
       on what the card paid. That VAT is not in Stripe's figures, so it is listed here.</p>
+
+    <div class="panel">
+      <div class="phead"><h2>Find a card</h2></div>
+      <div class="find">
+        <input id="q" type="search" placeholder="Code, name or email" aria-label="Find a card by code, name or email">
+        <button class="btn" id="q-go" type="button">Find</button>
+      </div>
+      <div id="found"><p class="none">The latest cards show here. Search to find a particular one.</p></div>
+    </div>
 
     <div class="panel">
       <div class="period">
@@ -185,7 +212,9 @@ async function start() {
 
   $("gate").classList.add("hidden");
   $("app").classList.remove("hidden");
+  token = session.access_token;
   periods();
+  findCards();
   await load();
 }
 
@@ -327,6 +356,98 @@ function csv(name, head, rows) {
   a.download = name + "-" + $("p-from").value + "-to-" + $("p-to").value + ".csv";
   document.body.append(a); a.click(); a.remove();
 }
+// ---- find a card, and the office actions --------------------------
+// Resend, top up, cancel and reactivate go through
+// netlify/functions/gift-card-admin, which checks this is an admin and
+// logs who did what.
+let token = "";
+async function admin(method, body, q) {
+  const r = await fetch("/.netlify/functions/gift-card-admin" + (q ? "?q=" + encodeURIComponent(q) : ""), {
+    method, headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "That did not work.");
+  return j;
+}
+async function findCards() {
+  $("found").innerHTML = '<p class="none">Looking…</p>';
+  try { renderCards((await admin("GET", null, $("q").value.trim())).cards); }
+  catch (e) { $("found").innerHTML = '<p class="none">' + esc(e.message) + "</p>"; }
+}
+$("q-go").addEventListener("click", findCards);
+$("q").addEventListener("keydown", (e) => { if (e.key === "Enter") findCards(); });
+
+const HIST = { used: "Used", top_up: "Topped up", cancel: "Cancelled", reactivate: "Reactivated", resend: "Resent" };
+function renderCards(cards) {
+  const box = $("found");
+  if (!cards.length) { box.innerHTML = '<p class="none">No cards found.</p>'; return; }
+  box.innerHTML = "";
+  cards.forEach((c) => box.append(cardEl(c)));
+}
+function cardEl(c) {
+  const el = document.createElement("div");
+  el.className = "gc";
+  const expired = Date.parse(c.expires_at) <= Date.now();
+  const state = c.status === "void" ? '<span class="pill off">Cancelled</span>'
+    : expired ? '<span class="pill warn">Expired</span>'
+    : c.balance_cents <= 0 ? '<span class="pill">Used up</span>' : '<span class="pill on">Active</span>';
+  el.innerHTML =
+    '<div class="top"><span class="code">' + esc(c.code) + "</span>" + state +
+    '<span class="bal">' + money(c.balance_cents, c.currency) + " left of " + money(c.amount_cents, c.currency) + "</span></div>" +
+    '<div class="who">Bought ' + day(c.created_at) + " by " + esc(c.buyer_name || "") + " (" + esc(c.buyer_email || "") + ")" +
+    (c.recipient_name || c.recipient_email ? " for " + esc(c.recipient_name || "") + (c.recipient_email ? " (" + esc(c.recipient_email) + ")" : "") : "") +
+    " · expires " + day(c.expires_at) + "</div>" +
+    '<div class="acts"></div><div class="slot"></div><p class="gmsg"></p>' +
+    (c.history && c.history.length ? '<ul class="hist">' + c.history.map((h) => "<li>" + day(h.at) + " · " + (HIST[h.kind] || h.kind) +
+      (h.cents ? " " + money(h.cents, c.currency) : "") + (h.note ? " · " + esc(h.note) : "") + (h.by ? " · " + esc(h.by) : "") + "</li>").join("") + "</ul>" : "");
+  const acts = el.querySelector(".acts"), slot = el.querySelector(".slot"), msg = el.querySelector(".gmsg");
+  const say = (t, ok) => { msg.textContent = t; msg.className = "gmsg " + (ok ? "ok" : "err"); };
+  const done = (j, t) => { const n = cardEl(j.card); el.replaceWith(n); const m = n.querySelector(".gmsg"); m.textContent = t; m.className = "gmsg ok"; };
+  const button = (label, cls, fn) => { const b = document.createElement("button"); b.type = "button"; b.className = "btn " + cls; b.textContent = label; b.onclick = fn; acts.append(b); return b; };
+
+  button("Resend", "ghost", () => {
+    slot.innerHTML = '<div class="form"><select>' +
+      (c.recipient_email ? '<option value="recipient">To ' + esc(c.recipient_email) + " (recipient)</option>" : "") +
+      '<option value="buyer">To ' + esc(c.buyer_email) + " (buyer)</option>" +
+      '<option value="other">To another email…</option></select>' +
+      '<input type="email" placeholder="name@example.com" class="hidden"><button class="btn" type="button">Send</button></div>';
+    const sel = slot.querySelector("select"), inp = slot.querySelector("input");
+    sel.onchange = () => inp.classList.toggle("hidden", sel.value !== "other");
+    slot.querySelector(".btn").onclick = async (e) => {
+      e.target.disabled = true;
+      try { done(await admin("POST", { action: "resend", id: c.id, to: sel.value === "other" ? inp.value.trim() : sel.value }), "Sent."); }
+      catch (err) { say(err.message); e.target.disabled = false; }
+    };
+  });
+  button("Top up", "ghost", () => {
+    slot.innerHTML = '<div class="form"><input type="number" min="1" step="0.01" placeholder="Amount (' + esc(c.currency) + ')">' +
+      '<input type="text" placeholder="Why, e.g. refund for cancelled Munich seminar"><button class="btn" type="button">Add to card</button></div>';
+    const [amt, note] = slot.querySelectorAll("input");
+    slot.querySelector(".btn").onclick = async (e) => {
+      e.target.disabled = true;
+      try { const j = await admin("POST", { action: "top_up", id: c.id, amount: amt.value, note: note.value }); done(j, j.message || "Added."); }
+      catch (err) { say(err.message); e.target.disabled = false; }
+    };
+  });
+  if (c.status === "void") {
+    button("Reactivate", "ghost", async (e) => {
+      e.target.disabled = true;
+      try { done(await admin("POST", { action: "reactivate", id: c.id }), "Active again."); } catch (err) { say(err.message); e.target.disabled = false; }
+    });
+  } else {
+    button("Cancel card", "ghost", () => {
+      slot.innerHTML = '<div class="form"><input type="text" placeholder="Why, e.g. refunded in Stripe"><button class="btn" type="button">Cancel this card</button></div>';
+      slot.querySelector(".btn").onclick = async (e) => {
+        e.target.disabled = true;
+        try { done(await admin("POST", { action: "cancel", id: c.id, note: slot.querySelector("input").value }), "Cancelled. The code no longer works."); }
+        catch (err) { say(err.message); e.target.disabled = false; }
+      };
+    });
+  }
+  return el;
+}
+
 $("dl-used").addEventListener("click", () => csv("gift-cards-used",
   ["Date", "Card", "Used for", "VAT country", "Currency", "Paid by card (incl VAT)", "VAT rate %", "VAT included", "Net"],
   data.used.map((r) => [r.created_at.slice(0, 10), r.code, r.used_for, r.vat_country || "", r.currency,
