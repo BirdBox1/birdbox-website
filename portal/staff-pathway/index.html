@@ -325,7 +325,7 @@ function row(a) {
   const words = a.why.trim().split(/\s+/).length;
   const head = `<div class="head" data-toggle="${a.id}">
     <div>
-      <div class="name">${esc(a.full_name)} <span class="pill st-${a.status}">${STATUS[a.status]}</span>${fresh.has(a.id) ? '<span class="pill new">New</span>' : ""}${certLine(a)}${a.own_education === "yes" ? '<span class="pill nocert">Runs own education</span>' : ""}</div>
+      <div class="name">${esc(a.full_name)} <span class="pill st-${a.status}">${STATUS[a.status]}</span>${fresh.has(a.id) ? '<span class="pill new">New</span>' : ""}${certLine(a)}${a.own_education === "yes" ? '<span class="pill nocert">Runs own education</span>' : ""}${(a.lookalikes || []).length ? '<span class="pill st-declined">Possible duplicate</span>' : ""}</div>
       <div class="meta">${esc(where)} · ${REGION[a.region]} · ${esc(a.languages.join(", "))}</div>
       <div class="meta">${a.brand.toUpperCase()} · ${(a.tracks || []).map((t) => TRACK[t]).join(", ")} · applied ${day(a.created_at)}${a.earlier.length ? ` · applied before (${a.earlier.length})` : ""}</div>
     </div>
@@ -404,6 +404,7 @@ function row(a) {
         <div class="row"><button class="btn small" data-act="notes" data-id="${a.id}">Save notes</button>
           <button class="btn small bad" data-act="delete" data-id="${a.id}">Delete</button></div>
         ${earlier ? `<h3>Earlier applications</h3>${earlier}` : ""}
+        ${(a.lookalikes || []).length ? `<h3>Possible duplicate</h3>${a.lookalikes.map((o) => `<div class="told">Same name or phone as <b>${esc(o.full_name)}</b> (${esc(o.email)}), ${o.brand.toUpperCase()}, applied ${day(o.created_at)}: ${STATUS[o.status]}</div>`).join("")}` : ""}
       </div>
     </div>
   </div>`;
