@@ -143,8 +143,10 @@ function tellDecision(a, outcome, message, video) {
   const short = a.brand.toUpperCase();
   const accepted = outcome === "accepted";
   const again = accepted ? "" : reapplyFrom(new Date()).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-  const tec = a.brand === "tec";
-  const subject = tec
+  const tec = a.brand === "tec" || a.brand === "twc";
+  const subject = a.brand === "twc"
+    ? (accepted ? "Joining the TWC seminar staff" : "Your TWC seminar staff application")
+    : tec
     ? (accepted ? "Joining the TEC founding team" : "Your TEC founding staff application")
     : (accepted ? `Your place on the ${short} Staff Pathway` : `Your ${short} Staff Pathway application: our feedback`);
   const close = accepted

@@ -92,8 +92,9 @@ export default async (req) => {
   if (!a.region) return json({ error: "Choose the region you would work in." }, 400);
   if (!a.languages.length) return json({ error: "Tick the languages you can coach in." }, 400);
   if (!a.tracks.length) return json({ error: "Tick at least one track you want to develop towards." }, 400);
-  if (brand === "tec" && !a.education) return json({ error: "Tell us about your education." }, 400);
-  if (brand === "tec" && !a.own_education) return json({ error: "Tell us whether you run your own coach education, courses or seminars." }, 400);
+  const asks = PATHWAYS[brand].askEducation;
+  if (asks && !a.education) return json({ error: "Tell us about your education." }, 400);
+  if (asks && !a.own_education) return json({ error: "Tell us whether you run your own coach education, courses or seminars." }, 400);
   if (a.own_education === "yes" && !a.own_education_detail) return json({ error: "Tell us what coach education, courses or seminars you run." }, 400);
   const needs = PATHWAYS[brand].needsCourse;
   if (needs && !a.courses.some((c) => COURSES[c].brand === needs)) return json({ error: `Tick the ${BRAND_NAME[needs]} courses you have completed.` }, 400);
@@ -162,6 +163,11 @@ function tellApplicant(a) {
     `Thank you for applying to join the founding team of The Endurance Course. Your application is in.`,
     `Nathan reviews every application himself: your CV and coaching philosophy, your education and experience, your written piece and your reference. We may contact your reference, and we will invite the coaches we would like to know more about to a call.`,
     `Whatever the outcome, you will hear from us.`,
+  ] : a.brand === "twc" ? [
+    `Thank you for applying to join the seminar staff of The Weightlifting Course. Your application is in.`,
+    `Nathan reviews every application himself: your coaching video, your videos of the four lifts, your CV and coaching philosophy, your education and experience, your written piece and your reference. We may contact your reference, and we will invite the coaches we would like to know more about to a call.`,
+    `Whatever the outcome, you will hear from us.`,
+    `Please keep your video links working until you hear from us.`,
   ] : [
     `Thank you for applying to the ${title}. Your application is in.`,
     `Nathan reviews every application himself: your coaching video, your movement videos, your written piece and your reference. We may contact your reference, and we may invite you to a short call.`,
