@@ -64,7 +64,8 @@
   .teamshot { margin: 56px 0 0; border-block: 1px solid var(--line); background: var(--panel); }
   .teamshot__in { max-width: 1100px; margin: 0 auto; padding: 44px 24px 28px; }
   .teamshot__in p:last-child { color: #D9D4D5; max-width: 620px; margin: 0; }
-  .teamshot img { display: block; width: 100%; height: auto; max-width: 1340px; margin: 0 auto; }
+  .teamshot img { display: block; width: calc(100% - 48px); height: auto; max-width: 1052px; margin: 0 auto 48px; border-radius: 6px; border: 1px solid var(--line); }
+  @media (max-width: 600px) { .teamshot img { width: calc(100% - 32px); margin-bottom: 32px; } }
   .steps--text li > div { padding-top: 20px; }
   .month { display: grid; grid-template-columns: 280px 1fr; gap: 28px; align-items: center; margin-top: 44px; }
   .month img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; border: 1px solid var(--line); }
