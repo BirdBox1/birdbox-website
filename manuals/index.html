@@ -79,6 +79,9 @@
   footer a { color: var(--muted); }
   .hidden { display: none !important; }
 </style>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 </head>
 <body>
 
@@ -134,6 +137,19 @@ const $ = (id) => document.getElementById(id);
 
 const parts = location.pathname.split("/").filter(Boolean);
 const slug = parts[parts.length - 1] === "manuals" ? null : parts[parts.length - 1];
+if (slug) setTabIcon(slug.split("-")[0]);
+
+// The tab icon in the course's own logo (TGC, TCC, TEC, TWC); anything
+// else keeps the BirdBox bird. This page serves every course, so the
+// <head> starts with the bird and switches once the course is known.
+function setTabIcon(brand) {
+  const b = String(brand || "").toLowerCase();
+  if (!["tgc", "tcc", "tec", "twc"].includes(b)) return;
+  const set = (sel, href) => { const l = document.querySelector(sel); if (l) l.href = href; };
+  set('link[rel="icon"][sizes="any"]', "/favicon-" + b + ".ico");
+  set('link[rel="icon"][type="image/png"]', "/favicon-" + b + "-32.png");
+  set('link[rel="apple-touch-icon"]', "/apple-touch-icon-" + b + ".png");
+}
 
 load();
 
