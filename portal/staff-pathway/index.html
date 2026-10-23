@@ -380,7 +380,7 @@ function row(a) {
           <dt>Coaching philosophy</dt><dd>${play(a.philosophy_url, "Open coaching philosophy", `Coaching philosophy: ${a.full_name}`)}</dd>
         </dl>
         ${a.education ? `<h3>Education</h3><div class="written" style="max-height:10rem">${esc(a.education)}</div>` : ""}
-        ${a.other_quals ? `<h3>${a.brand === "tec" ? "Coaching qualifications" : "Other qualifications"}</h3><div class="written" style="max-height:10rem">${esc(a.other_quals)}</div>` : ""}
+        ${a.other_quals ? `<h3>${a.education || a.own_education ? "Coaching qualifications" : "Other qualifications"}</h3><div class="written" style="max-height:10rem">${esc(a.other_quals)}</div>` : ""}
         ${a.own_education ? `<h3>Runs their own coach education</h3><div>${a.own_education === "yes" ? "Yes" : "No"}</div>${a.own_education_detail ? `<div class="written" style="max-height:10rem;margin-top:0.4rem">${esc(a.own_education_detail)}</div>` : ""}` : ""}
         ${a.competition ? `<h3>Competition experience</h3><div class="written" style="max-height:10rem">${esc(a.competition)}</div>` : ""}
         ${a.coaching_video || a.brand === "tgc" ? `<h3>Coaching video</h3>

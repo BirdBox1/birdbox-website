@@ -324,14 +324,5 @@
 </footer>
 
 <script src="/staff-pathway/form.js"></script>
-<script>
-  // "Yes" opens a box to say what they run.
-  (function () {
-    var sel = document.getElementById("own_education"), box = document.getElementById("own_education_detail");
-    function sync() { box.classList.toggle("hidden", sel.value !== "yes"); }
-    sel.addEventListener("change", sync);
-    window.addEventListener("load", function () { setTimeout(sync, 600); });
-  })();
-</script>
 </body>
 </html>

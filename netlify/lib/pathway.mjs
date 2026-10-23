@@ -20,7 +20,7 @@
 //   targets:     how many new staff we want per region (admin only,
 //                never sent to the public form)
 export const PATHWAYS = {
-  tgc: { short: "TGC", name: "The Gymnastics Course", title: "TGC Staff Pathway", paid: true, needsCourse: "tgc", coachingVideo: true },
+  tgc: { short: "TGC", name: "The Gymnastics Course", title: "TGC Staff Pathway", paid: true, needsCourse: "tgc", coachingVideo: true, askEducation: true },
   tec: {
     short: "TEC", name: "The Endurance Course", title: "TEC Founding Staff", paid: false, needsCourse: null, askEducation: true,
     targets: [
