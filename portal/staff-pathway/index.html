@@ -73,6 +73,17 @@
   .side textarea.decision { min-height: 11rem; }
   .row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
   .told { font-size: 0.86rem; background: var(--paper); border-radius: 4px; padding: 0.6rem 0.75rem; white-space: pre-line; }
+  select.course { font: inherit; font-size: 0.85rem; border: 1px solid var(--rule); border-radius: 4px; padding: 0.4rem 0.6rem; background: var(--card); margin-left: auto; }
+  select.course + input.search { margin-left: 0; }
+  .tracker { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 0.8rem 1rem; margin-bottom: 1rem; }
+  .tracker h2 { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.6rem; font-weight: 650; }
+  .tracker .regions { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.6rem; }
+  .tracker .r { border: 1px solid var(--rule); border-radius: 5px; padding: 0.55rem 0.7rem; }
+  .tracker .r b { display: block; font-size: 0.9rem; }
+  .tracker .r .n { font-size: 1.3rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .tracker .r .n small { font-size: 0.8rem; color: var(--muted); font-weight: 400; }
+  .tracker .r .meta { font-size: 0.8rem; }
+  .tracker .r.met { border-color: #bfe0cc; background: #f3faf6; }
   .empty { padding: 2.5rem 1rem; text-align: center; color: var(--muted); background: var(--card); border: 1px solid var(--rule); border-radius: 6px; }
   .gate { max-width: 26rem; margin: 4rem auto; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 1.5rem; text-align: center; }
 
@@ -124,9 +135,15 @@
       <button type="button" data-tab="declined">Not this time<b id="n-declined"></b></button>
       <button type="button" data-tab="all">Everyone<b id="n-all"></b></button>
     </div>
+    <select id="course" class="course" aria-label="Course">
+      <option value="all">All courses</option>
+      <option value="tgc">TGC Staff Pathway</option>
+      <option value="tec">TEC Founding Staff</option>
+    </select>
     <input class="search" id="q" type="search" placeholder="Search name, email, country">
   </div>
 
+  <div class="tracker hidden" id="tracker"></div>
   <div class="msg" id="msg"></div>
   <div class="list" id="list"><div class="empty">Loading…</div></div>
 </section>
@@ -169,6 +186,9 @@ const TRACK = { seminars: "Seminars", mentorship: "Mentorship", programming: "Pr
 const COURSE = { "tgc-l1": "TGC Level 1 seminar", "tgc-l1-online": "TGC Level 1 online", "tgc-l2": "TGC Level 2", "tcc-l1": "TCC Level 1 seminar", "tcc-l1-online": "TCC Level 1 online", "tcc-l2": "TCC Level 2" };
 
 let all = [];
+let pathways = {};
+let course = "all";
+const inCourse = (a) => course === "all" || a.brand === course;
 let tab = "open";
 let fresh = new Set();
 const openRows = new Set();
@@ -189,6 +209,7 @@ async function call(body, retried = false) {
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(d.error || "That did not work.");
   if (d.applications) all = d.applications;
+  if (d.pathways) pathways = d.pathways;
   return d;
 }
 
@@ -209,7 +230,7 @@ async function start() {
 
 function visible() {
   const q = $("q").value.trim().toLowerCase();
-  let list = all;
+  let list = all.filter(inCourse);
   if (tab === "open") list = list.filter((a) => OPEN.includes(a.status));
   if (tab === "accepted") list = list.filter((a) => a.status === "accepted");
   if (tab === "declined") list = list.filter((a) => a.status === "declined" || a.status === "withdrawn");
@@ -229,17 +250,40 @@ function putTyped() {
 
 function render() {
   keepTyped();
-  $("n-open").textContent = " " + all.filter((a) => OPEN.includes(a.status)).length;
-  $("n-accepted").textContent = " " + all.filter((a) => a.status === "accepted").length;
-  $("n-declined").textContent = " " + all.filter((a) => a.status === "declined" || a.status === "withdrawn").length;
-  $("n-all").textContent = " " + all.length;
+  const mine = all.filter(inCourse);
+  $("n-open").textContent = " " + mine.filter((a) => OPEN.includes(a.status)).length;
+  $("n-accepted").textContent = " " + mine.filter((a) => a.status === "accepted").length;
+  $("n-declined").textContent = " " + mine.filter((a) => a.status === "declined" || a.status === "withdrawn").length;
+  $("n-all").textContent = " " + mine.length;
+  renderTracker();
   const list = visible();
   $("list").innerHTML = list.length ? list.map(row).join("") :
     `<div class="empty">${tab === "open" ? "Nothing waiting to be reviewed." : "Nobody here yet."}</div>`;
   putTyped();
 }
 
+// For TEC: where we still need people, against the targets for each
+// region. Accepted coaches count towards a target; ones still being
+// reviewed are shown alongside.
+function renderTracker() {
+  const t = pathways.tec && pathways.tec.targets;
+  const box = $("tracker");
+  if (!t || course === "tgc") { box.classList.add("hidden"); return; }
+  const tec = all.filter((a) => a.brand === "tec");
+  box.innerHTML = `<h2>TEC founding staff: where we need people</h2><div class="regions">${t.map((r) => {
+    const here = tec.filter((a) => r.regions.includes(a.region));
+    const yes = here.filter((a) => a.status === "accepted").length;
+    const open = here.filter((a) => OPEN.includes(a.status)).length;
+    const min = parseInt(r.want, 10) || 1;
+    return `<div class="r${yes >= min ? " met" : ""}"><b>${esc(r.label)}</b><span class="n">${yes} <small>of ${esc(r.want)}</small></span><div class="meta">${open} in review</div></div>`;
+  }).join("")}</div>`;
+  box.classList.remove("hidden");
+}
+
 function certLine(a) {
+  // Only TGC asks for a completed course; TEC applicants show any
+  // BirdBox certificates they hold, and nothing if they have none.
+  if (a.brand !== "tgc") return a.certificates.length ? '<span class="pill cert">✓ BirdBox certificate</span>' : "";
   const tgc = a.certificates.filter((c) => c.brand === a.brand && c.kind !== "workshop");
   return tgc.length ? `<span class="pill cert">✓ ${a.brand.toUpperCase()} certificate</span>` : `<span class="pill nocert">No ${a.brand.toUpperCase()} certificate found</span>`;
 }
@@ -373,6 +417,7 @@ $("tabs").addEventListener("click", (e) => {
   render();
 });
 $("q").addEventListener("input", render);
+$("course").addEventListener("change", (e) => { course = e.target.value; render(); });
 
 /* ---------------- the player ----------------
    Videos and documents open on top of the review page. Uploads play

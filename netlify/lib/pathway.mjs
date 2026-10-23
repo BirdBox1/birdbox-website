@@ -1,13 +1,35 @@
 // netlify/lib/pathway.mjs
 //
-// The Staff Pathway: coaches apply to be mentored for a year by Nathan
-// and Michaela, and the people we go on to bring in as staff come from
-// this group. TGC is the pilot; the other courses follow.
+// The Staff Pathway: how coaches apply to join BirdBox staff.
+//   TGC: a paid year of mentorship; the people we bring in as staff
+//        come from this group.
+//   TEC: free applications for the founding team of The Endurance
+//        Course, before it launches. No fee, no movement videos, and no
+//        BirdBox course needed.
 //
 // The application page reads the lists below from pathway-apply (GET),
 // so a movement or language added here shows on the form straight away.
 
+// The courses taking applications, and how each one works.
+//   paid:        shows the fee and the 12-month commitment
+//   needsCourse: applicants must tick one of this course's levels
+//   targets:     how many new staff we want per region (admin only,
+//                never sent to the public form)
+export const PATHWAYS = {
+  tgc: { short: "TGC", name: "The Gymnastics Course", title: "TGC Staff Pathway", paid: true, needsCourse: "tgc" },
+  tec: {
+    short: "TEC", name: "The Endurance Course", title: "TEC Founding Staff", paid: false, needsCourse: null,
+    targets: [
+      { label: "Europe", regions: ["europe", "uk"], want: "1–2" },
+      { label: "United States", regions: ["us"], want: "2–3" },
+      { label: "Asia", regions: ["asia"], want: "1" },
+      { label: "Australia and NZ", regions: ["oceania"], want: "1–2" },
+    ],
+  },
+};
+
 export const MOVEMENTS = {
+  tec: [],
   tgc: [
     { group: "Strict", name: "Toes-to-bar" },
     { group: "Strict", name: "Handstand push-up" },

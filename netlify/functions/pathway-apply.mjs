@@ -3,7 +3,7 @@
 // GET  ?brand=tgc  -> { movements, tracks, regions, languages, price }
 // POST { brand, full_name, email, ... , company?, t } -> { ok: true }
 //
-// The application form for the Staff Pathway (/tgc/staff-pathway/).
+// The application form for the Staff Pathway (/tgc/staff-pathway/, /tec/staff-pathway/).
 // Applying is free. Every application is saved for Nathan to review in the portal (Staff Pathway); the applicant gets a copy of
 // what they sent, and the office is told a new one is in.
 //
@@ -19,11 +19,11 @@
 import { createHash } from "node:crypto";
 import { db, json, OFFICE, SITE_URL, sendMail, esc } from "../lib/directory.mjs";
 import { NATHAN_SIGNATURE_HTML, NATHAN_SIGNATURE_TEXT } from "../lib/signature.mjs";
-import { MOVEMENTS, BUCKET, COURSES, TRACKS, REGIONS, LANGUAGES, PRICE, OPEN, reapplyFrom } from "../lib/pathway.mjs";
+import { PATHWAYS, MOVEMENTS, BUCKET, COURSES, TRACKS, REGIONS, LANGUAGES, PRICE, OPEN, reapplyFrom } from "../lib/pathway.mjs";
 
 const EMAIL_RE = /^[^@\s,"'()]+@[^@\s,"'()]+\.[^@\s,"'()]+$/;
 const URL_RE = /^https:\/\/[^\s<>"]+\.[^\s<>"]+$/i;
-const BRAND_NAME = { tgc: "The Gymnastics Course" };
+const BRAND_NAME = Object.fromEntries(Object.entries(PATHWAYS).map(([k, p]) => [k, p.name]));
 
 const text = (v, max) => String(v == null ? "" : v).replace(/\r/g, "").replace(/[ \t]+/g, " ").trim().slice(0, max);
 const link = (v) => { const s = text(v, 500); return URL_RE.test(s) ? s : null; };
@@ -33,8 +33,11 @@ export default async (req) => {
   const url = new URL(req.url);
   if (req.method === "GET") {
     const brand = url.searchParams.get("brand") || "tgc";
-    if (!MOVEMENTS[brand]) return json({ error: "Applications are not open for that course yet." }, 404);
-    return json({ movements: MOVEMENTS[brand], courses: COURSES, tracks: TRACKS, regions: REGIONS, languages: LANGUAGES, price: PRICE }, 200, "public, max-age=300");
+    if (!PATHWAYS[brand]) return json({ error: "Applications are not open for that course yet." }, 404);
+    return json({
+      movements: MOVEMENTS[brand] || [], courses: COURSES, tracks: TRACKS, regions: REGIONS, languages: LANGUAGES,
+      price: PATHWAYS[brand].paid ? PRICE : null,
+    }, 200, "public, max-age=300");
   }
   if (req.method !== "POST") return json({ error: "Use POST" }, 405);
 
@@ -44,7 +47,7 @@ export default async (req) => {
   if (b.company) return fakeOk();
   if (!(Number(b.t) >= 60000)) return fakeOk();
 
-  const brand = MOVEMENTS[b.brand] ? b.brand : null;
+  const brand = PATHWAYS[b.brand] ? b.brand : null;
   if (!brand) return json({ error: "Applications are not open for that course yet." }, 400);
 
   const a = {
@@ -69,7 +72,7 @@ export default async (req) => {
       email: text(b.ref_email, 254).toLowerCase(), relation: text(b.ref_relation, 200),
     },
   };
-  const moves = MOVEMENTS[brand];
+  const moves = MOVEMENTS[brand] || [];
   const given = Array.isArray(b.movement_videos) ? b.movement_videos : [];
   a.movement_videos = moves.map((m, i) => {
     const g = given[i] && typeof given[i] === "object" ? given[i] : { url: given[i] };
@@ -85,7 +88,8 @@ export default async (req) => {
   if (!a.region) return json({ error: "Choose the region you would work in." }, 400);
   if (!a.languages.length) return json({ error: "Tick the languages you can coach in." }, 400);
   if (!a.tracks.length) return json({ error: "Tick at least one track you want to develop towards." }, 400);
-  if (!a.courses.some((c) => COURSES[c].brand === brand)) return json({ error: `Tick the ${BRAND_NAME[brand]} courses you have completed.` }, 400);
+  const needs = PATHWAYS[brand].needsCourse;
+  if (needs && !a.courses.some((c) => COURSES[c].brand === needs)) return json({ error: `Tick the ${BRAND_NAME[needs]} courses you have completed.` }, 400);
   if (!a.coaching_video) return json({ error: "Add a link to your coaching video. It must start with https://." }, 400);
   const missing = a.movement_videos.filter((m) => !m.url && !m.path).map((m) => `${m.movement} (${m.group.toLowerCase()})`);
   if (missing.length) return json({ error: `Add a video for: ${missing.join(", ")}. Upload it, or paste a link starting with https://.` }, 400);
@@ -143,25 +147,25 @@ export default async (req) => {
 
 function tellApplicant(a) {
   const first = a.full_name.split(" ")[0];
+  const title = PATHWAYS[a.brand].title;
+  const paras = a.brand === "tec" ? [
+    `Thank you for applying to join the founding team of The Endurance Course. Your application is in.`,
+    `Nathan reviews every application himself: your coaching video, your CV and coaching philosophy, your written piece and your reference. We may contact your reference, and we will invite the coaches we would like to know more about to a call.`,
+    `Whatever the outcome, you will hear from us.`,
+    `Please keep your video link working until you hear from us.`,
+  ] : [
+    `Thank you for applying to the ${title}. Your application is in.`,
+    `Nathan reviews every application himself: your coaching video, your movement videos, your written piece and your reference. We may contact your reference, and we may invite you to a short call.`,
+    `Whatever the outcome, you will hear from us with feedback. If you are not accepted this time, the feedback comes with the courses and study that will strengthen your next application.`,
+    `Please keep your video links working until you hear from us.`,
+  ];
   return sendMail({
     to: a.email,
-    subject: `We have your ${a.brand.toUpperCase()} Staff Pathway application`,
-    text:
-`Hi ${first},
-
-Thank you for applying to the ${a.brand.toUpperCase()} Staff Pathway. Your application is in.
-
-Nathan reviews every application himself: your coaching video, your movement videos, your written piece and your reference. We may contact your reference, and we may invite you to a short call.
-
-Whatever the outcome, you will hear from us with feedback. If you are not accepted this time, the feedback comes with the courses and study that will strengthen your next application.
-
-Please keep your video links working until you hear from us.${NATHAN_SIGNATURE_TEXT}`,
+    subject: `We have your ${title} application`,
+    text: `Hi ${first},\n\n${paras.join("\n\n")}${NATHAN_SIGNATURE_TEXT}`,
     html: `<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#16181b;max-width:560px">
 <p>Hi ${esc(first)},</p>
-<p>Thank you for applying to the ${a.brand.toUpperCase()} Staff Pathway. Your application is in.</p>
-<p>Nathan reviews every application himself: your coaching video, your movement videos, your written piece and your reference. We may contact your reference, and we may invite you to a short call.</p>
-<p>Whatever the outcome, you will hear from us with feedback. If you are not accepted this time, the feedback comes with the courses and study that will strengthen your next application.</p>
-<p>Please keep your video links working until you hear from us.</p>
+${paras.map((t) => `<p>${esc(t)}</p>`).join("\n")}
 ${NATHAN_SIGNATURE_HTML}
 </div>`,
   });
@@ -173,10 +177,10 @@ function tellOffice(a) {
   return sendMail({
     to: OFFICE,
     replyTo: a.email,
-    subject: `New ${a.brand.toUpperCase()} Staff Pathway application: ${a.full_name}`,
-    text: `${a.full_name} (${a.email}) applied for the ${a.brand.toUpperCase()} Staff Pathway.\n\n${where} · ${REGIONS[a.region]} · ${a.languages.join(", ")}\nTracks: ${a.tracks.map((t) => TRACKS[t].split(":")[0]).join(", ")}\n\nReview it: ${review}`,
+    subject: `New ${PATHWAYS[a.brand].title} application: ${a.full_name}`,
+    text: `${a.full_name} (${a.email}) applied for the ${PATHWAYS[a.brand].title}.\n\n${where} · ${REGIONS[a.region]} · ${a.languages.join(", ")}\nTracks: ${a.tracks.map((t) => TRACKS[t].split(":")[0]).join(", ")}\n\nReview it: ${review}`,
     html: `<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#16181b">
-<p><strong>${esc(a.full_name)}</strong> (${esc(a.email)}) applied for the ${a.brand.toUpperCase()} Staff Pathway.</p>
+<p><strong>${esc(a.full_name)}</strong> (${esc(a.email)}) applied for the ${PATHWAYS[a.brand].title}.</p>
 <p>${esc(where)} · ${esc(REGIONS[a.region])} · ${esc(a.languages.join(", "))}<br>Tracks: ${esc(a.tracks.map((t) => TRACKS[t].split(":")[0]).join(", "))}</p>
 <p><a href="${review}">Review it in the portal</a></p></div>`,
   });
