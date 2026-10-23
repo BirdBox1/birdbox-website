@@ -88,19 +88,22 @@
   .front .who .n { font-family: var(--hand); font-size: 11cqw; line-height: 1.05; }
   .front .who .f { font-size: 3.8cqw; color: var(--muted); margin-top: 1.5cqw; }
 
-  .msg { padding: 7% 8% 7%; display: flex; flex-direction: column; gap: 4cqw; }
+  .msg { padding: 7% 8% 0; display: flex; flex-direction: column; gap: 4cqw; }
   .msg .ph { height: 32cqw; border-radius: 2cqw; background: url(/tcc/ng6445.jpeg) center 45% / cover; flex: none; }
   .msg .hi { font-family: var(--hand); font-size: 9cqw; line-height: 1.1; }
   .msg .body { font-family: var(--hand); font-size: 7cqw; line-height: 1.2; margin-top: 2cqw; white-space: pre-line; overflow-wrap: anywhere; }
   .msg .body.m { font-size: 5.6cqw; } .msg .body.l { font-size: 4.6cqw; }
   .msg .sig { font-family: var(--hand); font-size: 7cqw; margin-top: 3cqw; }
-  /* The staff-tee chest logos (gift/card/logos/, white parts turned to
-     ink for paper). Every chest logo has the same letter height, so the
-     columns are their real widths in cm (TGC 9.0, TCC 11.1, TEC 10.5,
-     TWC 12.6) and the four T's line up along the top. */
-  .msg .courses { margin-top: auto; }
-  .msg .course-cap { font-size: 3.2cqw; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; color: var(--muted); margin: 0 0 3cqw; text-align: center; }
-  .msg .course-row { display: grid; grid-template-columns: 9fr 11.1fr 10.5fr 12.6fr; gap: 3cqw; align-items: start; border-top: .3cqw solid #e3dfd8; padding-top: 4cqw; }
+  /* The staff-tee chest logos on a black banner across the foot of the
+     page, as they are on the shirts (gift/card/logos/, from the
+     BirdBox-Chest-Logos pack; TEC's dark grey-shirt version turned white).
+     Every T is the same height, so the columns are the logos' real
+     widths in cm (TGC 9.0, the others 11.1) and the T's line up. */
+  /* cqw here is measured inside the panel's 8% side padding (84% of its
+     width), so 9.524cqw is that 8% padding: the banner runs edge to edge. */
+  .msg .courses { margin: auto -9.524cqw 0; background: var(--ink); padding: 5cqw 9.524cqw 6cqw; }
+  .msg .course-cap { font-size: 3.2cqw; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; color: #9aa1a9; margin: 0 0 3.5cqw; text-align: center; }
+  .msg .course-row { display: grid; grid-template-columns: 9fr 11.1fr 11.1fr 11.1fr; gap: 3cqw; align-items: start; }
   .msg .course-row img { width: 100%; display: block; }
 
   .use { padding: 9% 8%; display: flex; flex-direction: column; gap: 5cqw; }
