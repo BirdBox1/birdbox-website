@@ -81,6 +81,7 @@
     files = v.files && typeof v.files === "object" ? v.files : {};
     document.querySelectorAll(".file[data-slot]").forEach(drawFile);
     updateCount();
+    syncOwn();
   }
 
   function build(cfg) {
@@ -197,6 +198,11 @@
       if ($("moves")) $("moves").innerHTML = '<p class="small">' + msg + "</p>";
       $("note").className = "note err"; $("note").textContent = msg;
     });
+
+  // "Do you run your own coach education?" Yes opens a box to say what.
+  const ownSel = $("own_education"), ownBox = $("own_education_detail");
+  function syncOwn() { if (ownSel && ownBox) ownBox.classList.toggle("hidden", ownSel.value !== "yes"); }
+  if (ownSel) ownSel.addEventListener("change", syncOwn);
 
   form.addEventListener("input", () => { updateCount(); store.set(collect()); });
   form.addEventListener("change", () => store.set(collect()));
