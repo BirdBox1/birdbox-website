@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Staff Pathway — BirdBox Coaching</title>
+<style>
+  :root {
+    --ink: #16181b; --paper: #f4f3f0; --card: #ffffff; --shell: #0d0e10; --rule: #e0ddd7;
+    --muted: #6c7178; --accent: #85151A; --good: #1f8a54; --warn: #b4610f; --bad: #b3261e;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .hidden { display: none !important; }
+  a { color: var(--accent); }
+
+  .bar { background: var(--shell); color: #fff; padding: 0.7rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .bar .left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+  .mark { width: 34px; height: 34px; border-radius: 4px; background: #fff; display: grid; place-items: center; flex: none; }
+  .mark img { width: 26px; height: 26px; object-fit: contain; display: block; }
+  .bar .brandname { font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #9aa1a9; white-space: nowrap; }
+  .bar a.linkbtn { font: inherit; font-size: 0.8rem; background: none; color: #cfd4d9; border: 1px solid #33373c; padding: 0.3rem 0.7rem; border-radius: 3px; text-decoration: none; white-space: nowrap; }
+
+  .wrap { max-width: 76rem; margin: 0 auto; padding: 1.25rem 1.25rem 4rem; }
+  h1 { font-size: 1.4rem; letter-spacing: -0.02em; margin: 0 0 0.2rem; font-weight: 600; }
+  .sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.25rem; }
+  .msg { font-size: 0.9rem; margin: 0.6rem 0; min-height: 1.2em; }
+  .msg.err { color: var(--bad); } .msg.ok { color: var(--good); }
+
+  .top { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+  .tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .tabs button, .btn { font: inherit; font-size: 0.85rem; background: var(--card); color: var(--muted); border: 1px solid var(--rule); padding: 0.4rem 0.9rem; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .tabs button.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .tabs b { font-weight: 600; margin-left: 0.25rem; }
+  .btn { border-radius: 4px; color: var(--ink); }
+  .btn:hover { border-color: #b9b5ad; }
+  .btn.good { background: var(--good); border-color: var(--good); color: #fff; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.bad { color: var(--bad); }
+  .btn.small { font-size: 0.78rem; padding: 0.25rem 0.6rem; }
+  .btn[disabled] { opacity: 0.6; cursor: wait; }
+  input.search { font: inherit; font-size: 0.9rem; border: 1px solid var(--rule); border-radius: 4px; padding: 0.4rem 0.7rem; min-width: 14rem; margin-left: auto; }
+
+  .list { display: flex; flex-direction: column; gap: 0.6rem; }
+  .app { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; }
+  .app.attn { border-color: #e9c48a; box-shadow: inset 4px 0 0 #e7a33a; }
+  .head { padding: 0.9rem 1rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; cursor: pointer; }
+  .name { font-weight: 650; font-size: 1.02rem; }
+  .meta { color: var(--muted); font-size: 0.84rem; }
+  .pill { display: inline-block; font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid var(--rule); border-radius: 999px; padding: 0.08rem 0.5rem; color: var(--muted); white-space: nowrap; margin-left: 0.35rem; vertical-align: 2px; }
+  .pill.st-accepted { color: var(--good); border-color: #bfe0cc; }
+  .pill.st-new, .pill.st-reviewing, .pill.st-interview { color: var(--warn); border-color: #ecd2ad; }
+  .pill.st-declined, .pill.st-withdrawn { color: var(--bad); border-color: #ecc4c0; }
+  .pill.new { background: var(--bad); color: #fff; border-color: var(--bad); }
+  .pill.cert { color: var(--good); border-color: #bfe0cc; }
+  .pill.nocert { color: var(--warn); border-color: #ecd2ad; }
+  .chev { color: var(--muted); font-size: 0.85rem; align-self: center; }
+
+  .body { border-top: 1px solid var(--rule); padding: 1rem; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 1.25rem; }
+  .body h3 { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 1rem 0 0.35rem; font-weight: 650; }
+  .body h3:first-child { margin-top: 0; }
+  dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 0.15rem 0.9rem; font-size: 0.88rem; }
+  dt { color: var(--muted); }
+  dd { margin: 0; overflow-wrap: anywhere; }
+  .written { white-space: pre-line; font-size: 0.92rem; background: var(--paper); padding: 0.8rem 0.9rem; border-radius: 4px; max-height: 26rem; overflow-y: auto; }
+  .moves { list-style: none; padding: 0; margin: 0; font-size: 0.88rem; columns: 2; column-gap: 1rem; }
+  .moves li { break-inside: avoid; padding: 0.1rem 0; }
+  .moves li.grp { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-top: 0.4rem; }
+  .side { display: flex; flex-direction: column; gap: 0.5rem; }
+  .side textarea, .side input { width: 100%; font: inherit; font-size: 0.88rem; border: 1px solid var(--rule); border-radius: 4px; padding: 0.45rem 0.55rem; }
+  .side textarea { min-height: 6rem; resize: vertical; }
+  .side textarea.decision { min-height: 11rem; }
+  .row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .told { font-size: 0.86rem; background: var(--paper); border-radius: 4px; padding: 0.6rem 0.75rem; white-space: pre-line; }
+  .empty { padding: 2.5rem 1rem; text-align: center; color: var(--muted); background: var(--card); border: 1px solid var(--rule); border-radius: 6px; }
+  .gate { max-width: 26rem; margin: 4rem auto; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 1.5rem; text-align: center; }
+
+  @media (max-width: 46rem) {
+    .wrap { padding: 1rem 0.75rem 3rem; }
+    .body { grid-template-columns: 1fr; }
+    .moves { columns: 1; }
+    input.search { margin-left: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="left">
+    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+    <span class="brandname">Staff Pathway</span>
+  </span>
+  <span class="right"><a class="linkbtn" href="/portal/">Back to portal</a></span>
+</div>
+
+<section id="view-gate" class="gate hidden"><p id="gate-text">Checking your access…</p></section>
+
+<section id="view-main" class="wrap hidden">
+  <h1>Staff Pathway applications</h1>
+  <p class="sub">Applications for the year of mentorship. Accepting or declining emails the applicant your message; declined applicants can apply again after six months. <a href="/tgc/staff-pathway/" target="_blank">Open the application page ↗</a></p>
+
+  <div class="top">
+    <div class="tabs" id="tabs">
+      <button type="button" data-tab="open" class="on">To review<b id="n-open"></b></button>
+      <button type="button" data-tab="accepted">Accepted<b id="n-accepted"></b></button>
+      <button type="button" data-tab="declined">Not this time<b id="n-declined"></b></button>
+      <button type="button" data-tab="all">Everyone<b id="n-all"></b></button>
+    </div>
+    <input class="search" id="q" type="search" placeholder="Search name, email, country">
+  </div>
+
+  <div class="msg" id="msg"></div>
+  <div class="list" id="list"><div class="empty">Loading…</div></div>
+</section>
+
+<script type="module" src="/portal/menu.js"></script>
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient("https://yvdmazpxtpuvidlcifnq.supabase.co", "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ");
+const $ = (id) => document.getElementById(id);
+const esc = (s) => (s == null ? "" : String(s).replace(/[<>&"]/g, (m) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[m])));
+const show = (w) => { $("view-gate").classList.toggle("hidden", w !== "gate"); $("view-main").classList.toggle("hidden", w !== "main"); };
+const gate = (html) => { $("gate-text").innerHTML = html; show("gate"); };
+const say = (t, k = "") => { $("msg").className = "msg " + k; $("msg").textContent = t; };
+const day = (d) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const link = (u, label) => u ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(label || "Watch ↗")}</a>` : '<span class="meta">none</span>';
+
+const STATUS = { new: "To review", reviewing: "Reviewing", interview: "Interview", accepted: "Accepted", declined: "Not this time", withdrawn: "Withdrawn" };
+const OPEN = ["new", "reviewing", "interview"];
+const REGION = { us: "United States", canada: "Canada", latam: "Latin America", europe: "Europe", uk: "UK and Ireland", mea: "Middle East and Africa", asia: "Asia", oceania: "Australia and NZ", other: "Elsewhere" };
+const TRACK = { seminars: "Seminars", mentorship: "Mentorship", programming: "Programming" };
+const COURSE = { "tgc-l1": "TGC Level 1 seminar", "tgc-l1-online": "TGC Level 1 online", "tgc-l2": "TGC Level 2", "tcc-l1": "TCC Level 1 seminar", "tcc-l1-online": "TCC Level 1 online", "tcc-l2": "TCC Level 2" };
+
+let all = [];
+let tab = "open";
+let fresh = new Set();
+const openRows = new Set();
+
+async function call(body, retried = false) {
+  const { data: { session } } = await db.auth.getSession();
+  const r = await fetch("/.netlify/functions/pathway-admin", {
+    method: body ? "POST" : "GET",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (r.status === 401 && !retried) {
+    const { error } = await db.auth.refreshSession();
+    if (!error) return call(body, true);
+    gate('Your login has expired. <a href="/portal/">Sign in to the portal</a>, then come back to this page.');
+    throw new Error("Please sign in again.");
+  }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || "That did not work.");
+  if (d.applications) all = d.applications;
+  return d;
+}
+
+async function start() {
+  show("gate");
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) return gate('You are not signed in. <a href="/portal/">Sign in to the portal</a>, then come back to this page.');
+  const { data: staff } = await db.from("staff").select("role, active").eq("id", session.user.id).maybeSingle();
+  if (!staff || !staff.active || staff.role !== "admin") return gate('The Staff Pathway is admin only. <a href="/portal/">Back to the portal</a>.');
+  show("main");
+  try {
+    await call();
+    fresh = new Set(all.filter((a) => !a.seen_at).map((a) => a.id));
+    render();
+    if (fresh.size) call({ action: "seen" }).catch(() => {});
+  } catch (e) { say(e.message, "err"); }
+}
+
+function visible() {
+  const q = $("q").value.trim().toLowerCase();
+  let list = all;
+  if (tab === "open") list = list.filter((a) => OPEN.includes(a.status));
+  if (tab === "accepted") list = list.filter((a) => a.status === "accepted");
+  if (tab === "declined") list = list.filter((a) => a.status === "declined" || a.status === "withdrawn");
+  if (q) list = list.filter((a) => [a.full_name, a.email, a.country, a.city, a.gym].join(" ").toLowerCase().includes(q));
+  return list;
+}
+
+// Typing in an open application survives a re-render (another button,
+// the search box), until it is saved or sent.
+const typed = {};
+function keepTyped() {
+  document.querySelectorAll("#list textarea[id], #list input[id]").forEach((el) => { typed[el.id] = el.value; });
+}
+function putTyped() {
+  for (const [id, v] of Object.entries(typed)) { const el = $(id); if (el) el.value = v; }
+}
+
+function render() {
+  keepTyped();
+  $("n-open").textContent = " " + all.filter((a) => OPEN.includes(a.status)).length;
+  $("n-accepted").textContent = " " + all.filter((a) => a.status === "accepted").length;
+  $("n-declined").textContent = " " + all.filter((a) => a.status === "declined" || a.status === "withdrawn").length;
+  $("n-all").textContent = " " + all.length;
+  const list = visible();
+  $("list").innerHTML = list.length ? list.map(row).join("") :
+    `<div class="empty">${tab === "open" ? "Nothing waiting to be reviewed." : "Nobody here yet."}</div>`;
+  putTyped();
+}
+
+function certLine(a) {
+  const tgc = a.certificates.filter((c) => c.brand === a.brand && c.kind !== "workshop");
+  return tgc.length ? `<span class="pill cert">✓ ${a.brand.toUpperCase()} certificate</span>` : `<span class="pill nocert">No ${a.brand.toUpperCase()} certificate found</span>`;
+}
+
+function row(a) {
+  const isOpen = openRows.has(a.id);
+  const where = [a.city, a.country].filter(Boolean).join(", ");
+  const words = a.why.trim().split(/\s+/).length;
+  const head = `<div class="head" data-toggle="${a.id}">
+    <div>
+      <div class="name">${esc(a.full_name)} <span class="pill st-${a.status}">${STATUS[a.status]}</span>${fresh.has(a.id) ? '<span class="pill new">New</span>' : ""}${certLine(a)}</div>
+      <div class="meta">${esc(where)} · ${REGION[a.region]} · ${esc(a.languages.join(", "))}</div>
+      <div class="meta">${a.brand.toUpperCase()} · ${(a.tracks || []).map((t) => TRACK[t]).join(", ")} · applied ${day(a.created_at)}${a.earlier.length ? ` · applied before (${a.earlier.length})` : ""}</div>
+    </div>
+    <span class="chev">${isOpen ? "Close ▲" : "Open ▼"}</span>
+  </div>`;
+  if (!isOpen) return `<div class="app${a.status === "new" ? " attn" : ""}">${head}</div>`;
+
+  const certs = a.certificates.length
+    ? a.certificates.map((c) => `${esc(c.course_title || (c.brand.toUpperCase() + " " + (c.level || "")))} <span class="meta">(${esc([c.awarded_on && String(c.awarded_on).slice(0, 7), c.place].filter(Boolean).join(", "))})</span>`).join("<br>")
+    : '<span class="meta">None under this email</span>';
+  const r = a.reference || {};
+  const moveList = (group) => (a.movement_videos || []).filter((m) => (m.group || "Strict") === group)
+    .map((m) => `<li>${link(m.view || m.url, m.movement + " ↗")}${m.uploaded ? ' <span class="meta">uploaded</span>' : ""}</li>`).join("");
+  const moves = ["Strict", "Dynamic"].map((g) => { const l = moveList(g); return l ? `<li class="grp">${g}</li>${l}` : ""; }).join("");
+  const earlier = a.earlier.map((o) => `<div class="told"><b>${day(o.created_at)}: ${STATUS[o.status]}</b>${o.decision_message ? "\n" + esc(o.decision_message) : ""}</div>`).join("");
+
+  const decided = a.status === "accepted" || a.status === "declined";
+  const side = decided
+    ? `<h3>What we told them (${day(a.decided_at)})</h3><div class="told">${esc(a.decision_message)}</div>${a.decision_video ? `<div>${link(a.decision_video, "Feedback video ↗")}</div>` : ""}`
+    : `<h3>Stage</h3>
+       <div class="row">
+         ${["reviewing", "interview"].map((s) => `<button class="btn small${a.status === s ? " primary" : ""}" data-act="status" data-status="${s}" data-id="${a.id}">${STATUS[s]}</button>`).join("")}
+         <button class="btn small bad" data-act="status" data-status="withdrawn" data-id="${a.id}">Withdrawn</button>
+       </div>
+       <h3>Decision</h3>
+       <textarea class="decision" id="dm-${a.id}" placeholder="Your message to ${esc(a.full_name.split(" ")[0])}. If declining, include what to work on: which courses, outside study, and how many more coaching hours.">${esc(a.decision_message || "")}</textarea>
+       <input id="dv-${a.id}" type="url" placeholder="Feedback video link (optional)">
+       <div class="row">
+         <button class="btn small good" data-act="decide" data-outcome="accepted" data-id="${a.id}">Accept and email</button>
+         <button class="btn small bad" data-act="decide" data-outcome="declined" data-id="${a.id}">Decline and email</button>
+       </div>`;
+
+  return `<div class="app">${head}
+    <div class="body">
+      <div>
+        <h3>Contact</h3>
+        <dl>
+          <dt>Email</dt><dd><a href="mailto:${esc(a.email)}">${esc(a.email)}</a></dd>
+          ${a.phone ? `<dt>Phone</dt><dd>${esc(a.phone)}</dd>` : ""}
+          ${a.gym ? `<dt>Coaches at</dt><dd>${esc(a.gym)}</dd>` : ""}
+          <dt>Years coaching</dt><dd>${a.years_coaching ?? "–"}</dd>
+        </dl>
+        <h3>Courses</h3>
+        <dl>
+          <dt>They ticked</dt><dd>${(a.courses || []).map((c) => COURSE[c] || c).join(", ") || "–"}</dd>
+          ${a.course_when ? `<dt>Most recent</dt><dd>${esc(a.course_when)}</dd>` : ""}
+          <dt>Our records</dt><dd>${certs}</dd>
+        </dl>
+        <h3>Documents</h3>
+        <dl>
+          <dt>CV</dt><dd>${link(a.cv_url, "Open CV ↗")}</dd>
+          <dt>Coaching philosophy</dt><dd>${link(a.philosophy_url, "Open coaching philosophy ↗")}</dd>
+        </dl>
+        ${a.other_quals ? `<h3>Other qualifications</h3><div class="written" style="max-height:10rem">${esc(a.other_quals)}</div>` : ""}
+        <h3>Coaching video</h3>
+        <div>${link(a.coaching_video, "Watch coaching video ↗")}</div>
+        <h3>Movement mastery</h3>
+        <ul class="moves">${moves}</ul>
+        <h3>Written piece (${words} words)</h3>
+        <div class="written">${esc(a.why)}</div>
+        <h3>Reference</h3>
+        <dl>
+          <dt>Name</dt><dd>${esc(r.name)}</dd>
+          <dt>Email</dt><dd><a href="mailto:${esc(r.email)}">${esc(r.email)}</a></dd>
+          ${r.role ? `<dt>Role</dt><dd>${esc(r.role)}</dd>` : ""}
+          ${r.relation ? `<dt>Knows them</dt><dd>${esc(r.relation)}</dd>` : ""}
+        </dl>
+      </div>
+      <div class="side">
+        ${side}
+        <h3>Private notes</h3>
+        <textarea id="nt-${a.id}" placeholder="Only you and Michaela see these">${esc(a.notes || "")}</textarea>
+        <div class="row"><button class="btn small" data-act="notes" data-id="${a.id}">Save notes</button>
+          <button class="btn small bad" data-act="delete" data-id="${a.id}">Delete</button></div>
+        ${earlier ? `<h3>Earlier applications</h3>${earlier}` : ""}
+      </div>
+    </div>
+  </div>`;
+}
+
+$("list").addEventListener("click", async (e) => {
+  const t = e.target.closest("[data-toggle]");
+  if (t && !e.target.closest("a")) {
+    const id = t.dataset.toggle;
+    openRows.has(id) ? openRows.delete(id) : openRows.add(id);
+    return render();
+  }
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const a = all.find((x) => x.id === b.dataset.id);
+  const body = { action: b.dataset.act, id: a.id };
+  if (body.action === "status") body.status = b.dataset.status;
+  if (body.action === "notes") body.notes = $("nt-" + a.id).value;
+  if (body.action === "decide") {
+    body.outcome = b.dataset.outcome;
+    body.message = $("dm-" + a.id).value;
+    body.video = $("dv-" + a.id).value;
+    const verb = body.outcome === "accepted" ? "Accept" : "Decline";
+    if (!confirm(`${verb} ${a.full_name} and email them this message now?`)) return;
+  }
+  if (body.action === "delete" && !confirm(`Delete ${a.full_name}'s application for good?`)) return;
+  b.disabled = true;
+  try {
+    await call(body);
+    if (body.action === "notes") delete typed["nt-" + a.id];
+    if (body.action === "decide") { delete typed["dm-" + a.id]; delete typed["dv-" + a.id]; }
+    say(body.action === "decide" ? `Emailed ${a.full_name}.` : "Saved.", "ok");
+    render();
+  } catch (err) { say(err.message, "err"); b.disabled = false; }
+});
+
+$("tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-tab]"); if (!b) return;
+  tab = b.dataset.tab;
+  document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("on", x === b));
+  render();
+});
+$("q").addEventListener("input", render);
+
+start();
+</script>
+</body>
+</html>
