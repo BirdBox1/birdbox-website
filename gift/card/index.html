@@ -35,7 +35,7 @@
 <style>
   :root {
     --paper: #f4f2ee; --ink: #16181b; --muted: #6b6f75; --card: #f3efe8; --gold: #c9a24a;
-    --tgc: #85151A; --tcc: #298DE9;
+    --tgc: #85151A; --tcc: #298DE9; --tec: #10502C; --twc: #F1A509;
     --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
     --hand: Caveat, "Bradley Hand", "Segoe Script", cursive;
     --sans: -apple-system, "Helvetica Neue", Arial, sans-serif;
@@ -75,14 +75,15 @@
   .front { background: var(--card); }
   .front .tag { position: absolute; top: 9cqw; left: 0; right: 0; text-align: center; font-size: 4cqw; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
   .gc { position: absolute; left: 11cqw; top: 34cqw; width: 78cqw; aspect-ratio: 85.6 / 54; border-radius: 3.6cqw; background: var(--ink); color: #fff; padding: 5.5cqw; display: flex; flex-direction: column; justify-content: space-between; transform: rotate(-7deg); overflow: hidden; box-shadow: 0 4cqw 7cqw -3cqw rgba(0,0,0,.45); }
-  .gc .top { display: flex; align-items: center; gap: 2.4cqw; }
-  .gc .tile { width: 9cqw; height: 9cqw; background: #fff; border-radius: 1.4cqw; display: grid; place-items: center; flex: none; }
-  .gc .tile img { width: 7cqw; }
-  .gc .brand { font-size: 2.6cqw; letter-spacing: .2em; text-transform: uppercase; color: #9aa1a9; line-height: 1.4; }
+  .gc .top { display: flex; align-items: flex-start; justify-content: space-between; padding-right: 5cqw; }
+  /* brand/birdBox.png is dark grey on transparent; inverted it reads as silver on the black card */
+  .gc .logo { height: 17cqw; filter: invert(1) brightness(.92); }
+  .gc .brand { font-size: 2.6cqw; letter-spacing: .2em; text-transform: uppercase; color: #9aa1a9; line-height: 1.4; text-align: right; }
   .gc .amt { font-family: var(--display); font-weight: 800; font-size: 15cqw; line-height: .85; color: var(--gold); white-space: nowrap; }
   .gc .amt.long { font-size: 12cqw; }
-  .gc .bars { position: absolute; right: 0; top: 0; bottom: 0; width: 5cqw; display: grid; grid-template-rows: repeat(2, 1fr); }
+  .gc .bars { position: absolute; right: 0; top: 0; bottom: 0; width: 5cqw; display: grid; grid-template-rows: repeat(4, 1fr); }
   .gc .bars i:nth-child(1) { background: var(--tgc); } .gc .bars i:nth-child(2) { background: var(--tcc); }
+  .gc .bars i:nth-child(3) { background: var(--tec); } .gc .bars i:nth-child(4) { background: var(--twc); }
   .front .who { position: absolute; bottom: 11cqw; left: 6cqw; right: 6cqw; text-align: center; }
   .front .who .n { font-family: var(--hand); font-size: 11cqw; line-height: 1.05; }
   .front .who .f { font-size: 3.8cqw; color: var(--muted); margin-top: 1.5cqw; }
@@ -112,9 +113,9 @@
   .use .qr b { display: block; font-size: 4.2cqw; }
 
   .back { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 12%; gap: 3cqw; text-align: center; }
-  .back img { width: 16cqw; }
+  .back img { width: 22cqw; }
   .back .site { font-size: 3.6cqw; color: var(--muted); letter-spacing: .04em; }
-  .back .bars { display: grid; grid-template-columns: repeat(2, 9cqw); gap: 1.4cqw; }
+  .back .bars { display: grid; grid-template-columns: repeat(4, 6cqw); gap: 1.4cqw; }
   .back .bars i { height: 1.4cqw; display: block; }
 
   /* ---------- the print sheet ---------- */
@@ -163,13 +164,13 @@
     p.appendChild(el("div", "tag", "BirdBox Coaching"));
     var gc = el("div", "gc");
     var top = el("div", "top");
-    var tile = el("div", "tile"); tile.appendChild(img("/brand/birdbox-mark.png"));
-    var brand = el("div", "brand"); brand.innerHTML = "BirdBox Coaching<br>Gift card";
-    top.appendChild(tile); top.appendChild(brand);
+    var logo = img("/brand/birdBox.png", "BirdBox"); logo.className = "logo";
+    var brand = el("div", "brand", "Gift card");
+    top.appendChild(logo); top.appendChild(brand);
     var amt = money(d.amount_cents, d.currency);
     gc.appendChild(top);
     gc.appendChild(el("div", "amt" + (amt.length > 6 ? " long" : ""), amt));
-    var bars = el("div", "bars"); for (var i = 0; i < 2; i++) bars.appendChild(el("i"));
+    var bars = el("div", "bars"); for (var i = 0; i < 4; i++) bars.appendChild(el("i"));
     gc.appendChild(bars);
     p.appendChild(gc);
     var who = el("div", "who");
@@ -192,8 +193,8 @@
     var foot = el("div", "courses");
     foot.appendChild(el("p", "course-cap", "In person or online"));
     var row = el("div", "course-row");
-    // Released courses only. Add TEC and TWC (and their colours on
-    // the card and the back) when they go on sale.
+    // Released courses only; add TEC and TWC here when they go on sale.
+    // The four colour stripes on the card and the back already include them.
     [["tgc", "The Gymnastics Course"], ["tcc", "The Coaches Course"]]
       .forEach(function (b) { row.appendChild(img("/brand/" + b[0] + ".png", b[1])); });
     foot.appendChild(row);
@@ -229,9 +230,9 @@
 
   function panelBack() {
     var p = el("div", "panel back");
-    p.appendChild(img("/brand/birdbox-mark.png", "BirdBox"));
+    p.appendChild(img("/brand/birdBox.png", "BirdBox"));
     var bars = el("div", "bars");
-    ["--tgc", "--tcc"].forEach(function (v) { var i = el("i"); i.style.background = "var(" + v + ")"; bars.appendChild(i); });
+    ["--tgc", "--tcc", "--tec", "--twc"].forEach(function (v) { var i = el("i"); i.style.background = "var(" + v + ")"; bars.appendChild(i); });
     p.appendChild(bars);
     p.appendChild(el("div", "site", "birdboxcoaching.com"));
     return p;
