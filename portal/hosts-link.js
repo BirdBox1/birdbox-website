@@ -1,8 +1,9 @@
 /* ============================================================
    portal/hosts-link.js
-   Adds "Online courses", "Host requests" and "Trainer directory" to the
-   portal menu, next to Discount codes, and puts a red count on the last
-   two when new requests or new directory listings have come in.
+   Adds "Online courses", "Host requests", "Trainer directory" and
+   "Staff Pathway" to the portal menu, next to Discount codes, and puts a
+   red count on the last three when new requests, directory listings or
+   Staff Pathway applications have come in.
 
    It copies whatever the Discount codes link is doing, so it shows
    for admins only and disappears on sign-out — no changes needed
@@ -17,6 +18,7 @@
 
   var link = null;
   var dirLink = null;
+  var pathLink = null;
   var db = null;
 
   function addLink() {
@@ -48,12 +50,20 @@
     dirLink.className = codes.className;
     link.insertAdjacentElement("afterend", dirLink);
 
+    pathLink = document.createElement("a");
+    pathLink.id = "pathwaylink";
+    pathLink.href = "/portal/staff-pathway/";
+    pathLink.textContent = "Staff Pathway";
+    pathLink.className = codes.className;
+    dirLink.insertAdjacentElement("afterend", pathLink);
+
     // Mirror the Discount codes link, which the portal already shows
     // to admins only and hides again on sign-out.
     new MutationObserver(function () {
       link.className = codes.className;
       dirLink.className = codes.className;
-      if (link.className.indexOf("hidden") > -1) { clearFlag(link); clearFlag(dirLink); }
+      pathLink.className = codes.className;
+      if (link.className.indexOf("hidden") > -1) { clearFlag(link); clearFlag(dirLink); clearFlag(pathLink); }
     }).observe(codes, { attributes: true, attributeFilter: ["class"] });
 
     return true;
@@ -89,7 +99,7 @@
     try {
       var sb = await client();
       var session = (await sb.auth.getSession()).data.session;
-      if (!session) { clearFlag(link); clearFlag(dirLink); return; }
+      if (!session) { clearFlag(link); clearFlag(dirLink); clearFlag(pathLink); return; }
 
       var res = await sb
         .from("host_requests")
@@ -110,6 +120,13 @@
         .select("id", { count: "exact", head: true })
         .eq("status", "held");
       if (!dir.error) setFlag(dirLink, (dir.count || 0) + (held.error ? 0 : held.count || 0));
+
+      // Staff Pathway applications nobody has opened the review page for yet.
+      var apps = await sb
+        .from("staff_pathway_applications")
+        .select("id", { count: "exact", head: true })
+        .is("seen_at", null);
+      if (!apps.error) setFlag(pathLink, apps.count || 0);
     } catch (err) {
       console.error("Host request count:", err && err.message);
     }
