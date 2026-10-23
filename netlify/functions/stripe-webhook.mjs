@@ -30,6 +30,7 @@ import { createClient } from "@supabase/supabase-js";
 import { grantOnlineCourse, learnStartLink } from "./learnworlds.mjs";
 import { isOnlineInvoice, onOnlineInvoicePaid, onOnlineInvoiceOverdue } from "./online-invoice.mjs";
 import { isOnlineSale, onOnlineSaleCompleted, onlinePlanMeta, onOnlinePlanFailed } from "./online-checkout.mjs";
+import { isGiftSale, onGiftSaleCompleted, redeemCard } from "../lib/gift-cards.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -116,6 +117,13 @@ export default async (req) => {
 // a purchase completed
 // ---------------------------------------------------------------
 async function onCheckoutCompleted(session) {
+  // A gift card bought on /gift/: issue it and email it. It creates
+  // no registration. Lives in netlify/lib/gift-cards.mjs.
+  if (isGiftSale(session)) {
+    await onGiftSaleCompleted(session);
+    return;
+  }
+
   // The online course bought on our own sales page: enrol them in
   // LearnWorlds and email them. Lives in online-checkout.mjs.
   if (isOnlineSale(session)) {
@@ -255,7 +263,17 @@ async function onCheckoutCompleted(session) {
   // one-argument version counted a single sale against every row
   // sharing the code — one Munich registration would have exhausted
   // the count on all of them.
-  if (discountCode) {
+  if (meta.gift_card_id) {
+    // A gift card paid part of this (its own code sits in
+    // discount_code). Take what it paid off its balance.
+    await redeemCard({
+      cardId: meta.gift_card_id,
+      cents: Number(meta.gift_cents || 0),
+      session: full.id,
+      usedFor: "seminar " + (meta.course_slug || meta.course_id),
+      registrationId: registration.id,
+    });
+  } else if (discountCode) {
     const { error: bumpError } = await supabase.rpc(
       "bump_discount_redemption",
       { p_code: discountCode, p_course_id: meta.course_id }

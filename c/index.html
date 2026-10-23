@@ -369,10 +369,10 @@
       <div class="options" id="options"></div>
 
       <div class="promo" id="promo">
-        <button class="promo-toggle" id="promotoggle" type="button">Have a discount code?</button>
+        <button class="promo-toggle" id="promotoggle" type="button">Have a discount code or gift card?</button>
         <div class="promo-row hidden" id="promorow">
           <input id="promoinput" type="text" autocomplete="off" autocapitalize="characters"
-                 spellcheck="false" placeholder="Enter code" aria-label="Discount code">
+                 spellcheck="false" placeholder="Discount or gift card code" aria-label="Discount or gift card code">
           <button id="promoapply" type="button">Apply</button>
         </div>
         <p class="promo-msg" id="promomsg"></p>
@@ -790,7 +790,9 @@ function renderBuyBox() {
   $("price").append(document.createTextNode(money(total)));
   if (discount > 0) {
     const saved = document.createElement("small");
-    saved.textContent = state.code + " applied — " + money(discount) + " off";
+    saved.textContent = state.gift
+      ? "Gift card " + state.code + " applied"
+      : state.code + " applied — " + money(discount) + " off";
     $("price").append(saved);
   }
 
@@ -1096,13 +1098,18 @@ async function applyCode() {
     state.discount = data.discount_cents;
     state.total = data.total_cents;
     state.free = !!data.free;
+    state.gift = data.gift || null;
     state.deposit = state.course.type === "workshop"
       ? data.total_cents
       : data.deposit_cents;
 
     msg.className = "promo-msg ok";
-    msg.textContent = (data.label ? data.label + " — " : "") +
-      state.money(data.discount_cents) + " off";
+    // A gift card pays towards the price with VAT, and may have money
+    // left on it afterwards; say both.
+    msg.textContent = data.gift
+      ? "Gift card pays " + state.money(data.gift.covered_cents) + " towards this course" +
+        (data.gift.balance_after_cents > 0 ? " — " + state.money(data.gift.balance_after_cents) + " stays on the card" : "")
+      : (data.label ? data.label + " — " : "") + state.money(data.discount_cents) + " off";
     $("promorow").classList.add("hidden");
     $("promotoggle").textContent = "Use a different code";
     renderBuyBox();

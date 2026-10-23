@@ -144,6 +144,7 @@ export default async (req) => {
     let full = course.price_cents;
     let discountCents = 0;
     let appliedCode = null;
+    let gift = null;
     let deposit = course.deposit_cents || Math.round(full * DEPOSIT_RATE);
 
     if (code) {
@@ -153,6 +154,10 @@ export default async (req) => {
       discountCents = priced.discount;
       deposit = priced.deposit;
       appliedCode = priced.row.code;
+      gift = priced.gift || null;
+      // A card that covers everything goes through free-registration,
+      // never Stripe, which cannot take a zero payment.
+      if (priced.free) return json({ error: "That gift card covers the whole price. Reload the page and use it again to register." }, 409);
     }
 
     // Klarna cannot save a card, so it is full payment only.
@@ -216,7 +221,9 @@ export default async (req) => {
         `First payment. Then ${months} monthly payments of about ${money(planParts[0].cents)}, taken automatically from this card starting ${nice(planParts[0].due)}. 0% interest — the same total as paying in full.`
       );
     }
-    if (appliedCode) {
+    if (gift) {
+      notes.push(`Gift card ${appliedCode} pays ${money(gift.covered)} including VAT; the rest is paid here.`);
+    } else if (appliedCode) {
       notes.push(`Code ${appliedCode} applied — ${money(discountCents)} off.`);
     }
     // Prices are quoted "+ VAT" on the site, so say what is being added.
@@ -356,6 +363,10 @@ export default async (req) => {
         full_price_cents: String(course.price_cents),
         discount_code: appliedCode || "",
         discount_cents: String(discountCents),
+        // A gift card paying part of it: the webhook takes gift_cents
+        // (VAT included, in the course currency) off the card.
+        gift_card_id: gift ? gift.id : "",
+        gift_cents: gift ? String(gift.covered) : "",
         prerequisite: prerequisite || "",
 
         // The webhook reads this to decide whether to enrol anyone in

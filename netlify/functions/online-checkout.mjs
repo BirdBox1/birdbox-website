@@ -66,6 +66,7 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { enrolById, isOnSite, LEARN_URL, learnStartLink } from "./learnworlds.mjs";
+import { findCard, applyCard, redeemCard } from "../lib/gift-cards.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -119,7 +120,7 @@ const EURO_COUNTRIES = new Set([
 ]);
 const GBP_COUNTRIES = new Set(["GB", "IM", "JE", "GG", "GI"]);
 
-function currencyForCountry(code) {
+export function currencyForCountry(code) {
   const c = String(code || "").toUpperCase();
   if (GBP_COUNTRIES.has(c)) return "GBP";
   if (c === "AU") return "AUD";
@@ -144,6 +145,7 @@ export default async (req, context) => {
       if (body.preview) {
         return json({ error: "This is a preview, so it cannot take a payment. Attendees pay from their own link." }, 409);
       }
+      if (body.check_gift) return await checkGift(body);
       return body.offer ? await seminarCheckout(req, body) : await checkout(req, body);
     }
     return json({ error: "Method not allowed" }, 405);
@@ -301,6 +303,15 @@ async function checkout(req, body) {
   const back = typeof body.return_path === "string" && body.return_path.startsWith("/") && !body.return_path.startsWith("//")
     ? body.return_path : "/";
 
+  // A gift card pays towards the price with VAT. Pay in full only:
+  // on a monthly plan it would only ever reach the first payment.
+  let gift = null;
+  if (body.code) {
+    if (option !== "full") return json({ error: "A gift card can be used with Pay in full" }, 400);
+    gift = await giftFor(body.code, currency, price, vatRow);
+    if (gift.error) return json({ error: gift.error }, 409);
+  }
+
   const each = Math.round(price / months);
   const name = product.label;
 
@@ -317,6 +328,9 @@ async function checkout(req, body) {
     months: String(months),
     country,
     vat_percent: vatRow ? String(vatRow.rate) : "0",
+    gift_card_id: gift ? gift.card.id : "",
+    gift_cents: gift ? String(gift.covered) : "",
+    gift_code: gift ? gift.card.code : "",
   };
 
   const lineItem = {
@@ -373,8 +387,55 @@ async function checkout(req, body) {
     session.payment_intent_data = { description: name };
   }
 
+  // The card's share comes off as a one-off Stripe coupon for the
+  // net amount, so Stripe adds VAT only on what is left. A card that
+  // covers the lot leaves nothing to pay, and Stripe still collects
+  // the address and the terms before sending them on.
+  if (gift) {
+    const coupon = await stripe.coupons.create({
+      amount_off: gift.discountNet,
+      currency: currency.toLowerCase(),
+      duration: "once",
+      max_redemptions: 1,
+      name: `Gift card ${gift.card.code}`.slice(0, 40),
+      metadata: { gift_card_id: gift.card.id },
+    });
+    session.discounts = [{ coupon: coupon.id }];
+  }
+
   const created = await stripe.checkout.sessions.create(session);
   return json({ url: created.url });
+}
+
+async function giftFor(code, currency, price, vatRow) {
+  const found = await findCard(code, currency);
+  if (found.error) return { error: found.error };
+  const a = applyCard(found.card, price, vatRow ? vatRow.rate : 0);
+  if (a.covered <= 0) return { error: "That gift card cannot be used on this course" };
+  return { card: found.card, ...a };
+}
+
+// POST { check_gift: true, code, brand, level, currency, country }
+// What a gift card would pay, for the buy box to show before checkout.
+async function checkGift(body) {
+  const brand = String(body.brand || "").toLowerCase();
+  const level = digits(body.level);
+  const currency = String(body.currency || "").toUpperCase();
+  const country = String(body.country || "").toUpperCase();
+  const { prices } = await loadOffer(brand, level);
+  const price = prices[currency];
+  if (!price) return json({ error: `This course is not on sale in ${currency}` }, 400);
+  const vatRow = (await vatList()).find((v) => v.code === country) || null;
+  const gift = await giftFor(body.code, currency, price, vatRow);
+  if (gift.error) return json({ ok: false, error: gift.error });
+  return json({
+    ok: true,
+    code: gift.card.code,
+    covered_cents: gift.covered,
+    remaining_net_cents: gift.remainingNet,
+    balance_after_cents: gift.balanceAfter,
+    free: gift.free,
+  });
 }
 
 // ---------------------------------------------------------------
@@ -709,6 +770,16 @@ export async function onOnlineSaleCompleted(session) {
       .update({ redeemed_at: new Date().toISOString(), online_sale_id: row.id })
       .eq("id", row.offer_id).is("redeemed_at", null);
   }
+  // A gift card paid some or all of it. Safe to repeat: the database
+  // takes from the card once per Stripe session.
+  if (paid && meta.gift_card_id) {
+    await redeemCard({
+      cardId: meta.gift_card_id,
+      cents: Number(meta.gift_cents || 0),
+      session: full.id,
+      usedFor: "online " + (meta.label || meta.lw_course_id),
+    });
+  }
   if (row.learnworlds_status === "enrolled") return;
 
   if (!paid) {
@@ -762,7 +833,8 @@ export async function onOnlineSaleCompleted(session) {
   const money = `${((full.amount_total || 0) / 100).toFixed(2)} ${String(full.currency || "").toUpperCase()}`;
   const how = (row.option === "plan"
     ? `first of ${row.months} monthly payments`
-    : "paid in full") + (row.offer_id ? ", seminar rate" : "");
+    : "paid in full") + (row.offer_id ? ", seminar rate" : "") +
+    (meta.gift_code ? `, gift card ${meta.gift_code} paid ${(Number(meta.gift_cents) / 100).toFixed(2)}` : "");
 
   if (result.status !== "enrolled") {
     await alert("Online course SOLD but NOT enrolled",

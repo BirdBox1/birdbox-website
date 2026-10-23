@@ -23,7 +23,7 @@
   var level = box.getAttribute("data-level");
   var API = "/.netlify/functions/online-checkout";
   var SYMBOL = { EUR: "€", GBP: "£", USD: "US$", AUD: "A$", CAD: "C$" };
-  var state = { offer: null, currency: null, language: null, option: "full", months: null, country: "" };
+  var state = { offer: null, currency: null, language: null, option: "full", months: null, country: "", giftCode: "", gift: null, giftOpen: false, giftErr: "" };
 
   // Each language named, and described, in its own words.
   var LANG_NAME = { en: "English", es: "Español", fr: "Français", it: "Italiano", de: "Deutsch", pt: "Português" };
@@ -209,7 +209,7 @@
       cs.appendChild(op);
     });
     cs.value = state.currency;
-    cs.onchange = function () { state.currency = cs.value; render(); };
+    cs.onchange = function () { state.currency = cs.value; recheckGift(); render(); };
     cf.appendChild(cl); cf.appendChild(cs);
     row.appendChild(cf);
 
@@ -228,7 +228,7 @@
       ks.appendChild(op);
     });
     ks.value = state.country;
-    ks.onchange = function () { state.country = ks.value; render(); };
+    ks.onchange = function () { state.country = ks.value; recheckGift(); render(); };
     kf.appendChild(kl); kf.appendChild(ks);
     row.appendChild(kf);
     box.appendChild(row);
@@ -262,6 +262,17 @@
       opts.appendChild(b);
     }
 
+    // With a gift card: what is left to pay, VAT included, and only
+    // Pay in full (on a plan the card would only reach the first month).
+    var g = state.gift;
+    if (g) {
+      state.option = "full";
+      var left = g.free ? money(0, state.currency) : money(g.remaining_net_cents, state.currency);
+      option("full", w.full, left, g.free ? "" : vatNote,
+        "Gift card " + g.code + " pays " + money(g.covered_cents, state.currency) + (rate > 0 ? " including VAT" : "") +
+        (g.balance_after_cents > 0 ? ". " + money(g.balance_after_cents, state.currency) + " stays on the card." : "."));
+      box.appendChild(opts);
+    } else {
     option("full", w.full, money(price, state.currency), vatNote, w.fullNote);
 
     // How many months, 3 to 8.
@@ -283,6 +294,9 @@
     option("plan", w.plan, money(each, state.currency), w.month + vatNote,
       w.planNote(state.months), mwrap);
     box.appendChild(opts);
+    }
+
+    box.appendChild(giftBox());
 
     var go = el("button", "tcc-cta ob-go", w.go);
     go.type = "button";
@@ -305,6 +319,88 @@
     err.id = "ob-err";
     err.hidden = true;
     box.appendChild(err);
+  }
+
+  // "Have a gift card?" — checked against the server for the chosen
+  // currency and country, since the card pays towards the price with VAT.
+  function giftBox() {
+    var wrap = el("div", "ob-field ob-gift");
+    wrap.style.marginTop = "4px";
+    if (state.gift) {
+      var p = el("p", "ob-small");
+      p.appendChild(document.createTextNode("Gift card " + state.gift.code + " applied. "));
+      var rm = el("a", null, "Remove");
+      rm.href = "#";
+      rm.style.color = "var(--accentText)";
+      rm.onclick = function (e) { e.preventDefault(); state.gift = null; state.giftCode = ""; render(); };
+      p.appendChild(rm);
+      wrap.appendChild(p);
+      return wrap;
+    }
+    if (!state.giftOpen) {
+      var t = el("a", null, "Have a gift card?");
+      t.href = "#";
+      t.style.color = "var(--accentText)";
+      t.style.fontWeight = "700";
+      t.onclick = function (e) { e.preventDefault(); state.giftOpen = true; render(); var i = document.getElementById("ob-gift"); if (i) i.focus(); };
+      var tp = el("p", "ob-small");
+      tp.appendChild(t);
+      wrap.appendChild(tp);
+      return wrap;
+    }
+    var l = el("label", null, "Gift card code");
+    l.htmlFor = "ob-gift";
+    var line = el("div");
+    line.style.display = "flex";
+    line.style.gap = "8px";
+    var inp = el("input");
+    inp.id = "ob-gift";
+    inp.type = "text";
+    inp.autocomplete = "off";
+    inp.setAttribute("autocapitalize", "characters");
+    inp.spellcheck = false;
+    inp.placeholder = "GIFT-XXXX-XXXX";
+    inp.value = state.giftCode;
+    inp.style.flex = "1";
+    var ap = el("button", "tcc-cta", "Apply");
+    ap.type = "button";
+    ap.style.width = "auto";
+    ap.style.padding = "0 18px";
+    ap.onclick = function () { state.giftCode = inp.value.trim(); checkGift(); };
+    inp.onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); ap.onclick(); } };
+    line.appendChild(inp); line.appendChild(ap);
+    wrap.appendChild(l); wrap.appendChild(line);
+    if (state.giftErr) {
+      var er = el("p", "ob-err", state.giftErr);
+      wrap.appendChild(er);
+    }
+    return wrap;
+  }
+
+  function checkGift() {
+    if (!state.giftCode) return;
+    if (!state.country) { state.giftErr = W().needCountry; render(); return; }
+    state.giftErr = "";
+    fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ check_gift: true, code: state.giftCode, brand: brand, level: level, currency: state.currency, country: state.country }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.ok) { state.gift = d; state.giftErr = ""; }
+        else { state.gift = null; state.giftErr = (d && d.error) || "That gift card code isn't recognised"; }
+        render();
+      })
+      .catch(function () { state.giftErr = "Could not check that code. Please try again."; render(); });
+  }
+
+  // Currency or country changed: the card's share changes with them.
+  function recheckGift() {
+    if (!state.gift) return;
+    state.gift = null;
+    state.giftOpen = true;
+    setTimeout(checkGift, 0);
   }
 
   function showError(msg) {
@@ -334,6 +430,7 @@
         option: state.option,
         months: state.months,
         country: state.country,
+        code: state.gift ? state.gift.code : undefined,
         return_path: location.pathname,
       }),
     })
