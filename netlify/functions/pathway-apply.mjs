@@ -93,7 +93,7 @@ export default async (req) => {
   if (brand === "tec" && !a.education) return json({ error: "Tell us about your education." }, 400);
   const needs = PATHWAYS[brand].needsCourse;
   if (needs && !a.courses.some((c) => COURSES[c].brand === needs)) return json({ error: `Tick the ${BRAND_NAME[needs]} courses you have completed.` }, 400);
-  if (!a.coaching_video) return json({ error: "Add a link to your coaching video. It must start with https://." }, 400);
+  if (PATHWAYS[brand].coachingVideo && !a.coaching_video) return json({ error: "Add a link to your coaching video. It must start with https://." }, 400);
   const missing = a.movement_videos.filter((m) => !m.url && !m.path).map((m) => `${m.movement} (${m.group.toLowerCase()})`);
   if (missing.length) return json({ error: `Add a video for: ${missing.join(", ")}. Upload it, or paste a link starting with https://.` }, 400);
   if (!a.cv_path) return json({ error: "Upload your CV." }, 400);
@@ -153,9 +153,8 @@ function tellApplicant(a) {
   const title = PATHWAYS[a.brand].title;
   const paras = a.brand === "tec" ? [
     `Thank you for applying to join the founding team of The Endurance Course. Your application is in.`,
-    `Nathan reviews every application himself: your coaching video, your CV and coaching philosophy, your written piece and your reference. We may contact your reference, and we will invite the coaches we would like to know more about to a call.`,
+    `Nathan reviews every application himself: your CV and coaching philosophy, your education and experience, your written piece and your reference. We may contact your reference, and we will invite the coaches we would like to know more about to a call.`,
     `Whatever the outcome, you will hear from us.`,
-    `Please keep your video link working until you hear from us.`,
   ] : [
     `Thank you for applying to the ${title}. Your application is in.`,
     `Nathan reviews every application himself: your coaching video, your movement videos, your written piece and your reference. We may contact your reference, and we may invite you to a short call.`,

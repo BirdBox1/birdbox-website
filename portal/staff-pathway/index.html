@@ -351,10 +351,10 @@ function row(a) {
         ${a.education ? `<h3>Education</h3><div class="written" style="max-height:10rem">${esc(a.education)}</div>` : ""}
         ${a.other_quals ? `<h3>${a.brand === "tec" ? "Coaching qualifications" : "Other qualifications"}</h3><div class="written" style="max-height:10rem">${esc(a.other_quals)}</div>` : ""}
         ${a.competition ? `<h3>Competition experience</h3><div class="written" style="max-height:10rem">${esc(a.competition)}</div>` : ""}
-        <h3>Coaching video</h3>
-        <div>${play(a.coaching_video, "▶ Watch coaching video", "Coaching video")}</div>
-        <h3>Movement mastery</h3>
-        <ul class="moves">${moves}</ul>
+        ${a.coaching_video || a.brand === "tgc" ? `<h3>Coaching video</h3>
+        <div>${play(a.coaching_video, "▶ Watch coaching video", "Coaching video")}</div>` : ""}
+        ${moves ? `<h3>Movement mastery</h3>
+        <ul class="moves">${moves}</ul>` : ""}
         <h3>Written piece (${words} words)</h3>
         <div class="written">${esc(a.why)}</div>
         <h3>Reference</h3>
