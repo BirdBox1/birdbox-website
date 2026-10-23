@@ -18,6 +18,7 @@
 
 import { createHash } from "node:crypto";
 import { db, json, OFFICE, SITE_URL, sendMail, esc } from "../lib/directory.mjs";
+import { NATHAN_SIGNATURE_HTML, NATHAN_SIGNATURE_TEXT } from "../lib/signature.mjs";
 import { MOVEMENTS, BUCKET, COURSES, TRACKS, REGIONS, LANGUAGES, PRICE, OPEN, reapplyFrom } from "../lib/pathway.mjs";
 
 const EMAIL_RE = /^[^@\s,"'()]+@[^@\s,"'()]+\.[^@\s,"'()]+$/;
@@ -154,16 +155,14 @@ Nathan reviews every application himself: your coaching video, your movement vid
 
 Whatever the outcome, you will hear from us with feedback. If you are not accepted this time, the feedback comes with the courses and study that will strengthen your next application.
 
-Please keep your video links working until you hear from us.
-
-BirdBox Coaching`,
+Please keep your video links working until you hear from us.${NATHAN_SIGNATURE_TEXT}`,
     html: `<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#16181b;max-width:560px">
 <p>Hi ${esc(first)},</p>
 <p>Thank you for applying to the ${a.brand.toUpperCase()} Staff Pathway. Your application is in.</p>
 <p>Nathan reviews every application himself: your coaching video, your movement videos, your written piece and your reference. We may contact your reference, and we may invite you to a short call.</p>
 <p>Whatever the outcome, you will hear from us with feedback. If you are not accepted this time, the feedback comes with the courses and study that will strengthen your next application.</p>
 <p>Please keep your video links working until you hear from us.</p>
-<p>BirdBox Coaching</p>
+${NATHAN_SIGNATURE_HTML}
 </div>`,
   });
 }
