@@ -525,6 +525,18 @@ const state = {
 
 load();
 
+// The tab icon in the course's own logo (TGC, TCC, TEC, TWC); anything
+// else keeps the BirdBox bird. This page serves every course, so the
+// <head> starts with the bird and switches once the course is known.
+function setTabIcon(brand) {
+  const b = String(brand || "").toLowerCase();
+  if (!["tgc", "tcc", "tec", "twc"].includes(b)) return;
+  const set = (sel, href) => { const l = document.querySelector(sel); if (l) l.href = href; };
+  set('link[rel="icon"][sizes="any"]', "/favicon-" + b + ".ico");
+  set('link[rel="icon"][type="image/png"]', "/favicon-" + b + "-32.png");
+  set('link[rel="apple-touch-icon"]', "/apple-touch-icon-" + b + ".png");
+}
+
 // Where the back link goes. Worked out from the course record rather
 // than the URL, because a slug does not always carry the level. A
 // workshop always returns to the workshops page whatever its level,
@@ -644,6 +656,7 @@ async function load() {
   const left = Math.max(0, course.capacity - (count || 0));
 
   state.course = course;
+  setTabIcon(course.brand);
   // A course stays bookable right up to its finish, so somebody can
   // register on the morning of day one. After that the page stays up
   // — links get shared and indexed — but it stops selling.
