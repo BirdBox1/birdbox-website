@@ -252,26 +252,33 @@ ${inner}
 
 // The same card as the Shop, /gift/ and the printable card: black, silver
 // logo, gold amount, "BirdBox Coaching", the four course colours down the
-// right edge. Tables, because email clients ignore most CSS layout.
+// right edge. Fixed at real card proportions (85.6 x 54 mm, so 300 x 189
+// px, narrow enough for a phone) and centred, so it looks like a card rather than a banner. Tables
+// with fixed sizes, because email clients ignore most CSS layout.
 function cardBlock(card) {
-  const bar = (c) => `<tr><td style="background:${c};height:38px;font-size:0;line-height:0">&nbsp;</td></tr>`;
+  const W = 300, H = 189, BAR = 13;
+  const bar = (c, h) => `<tr><td style="background:${c};height:${h}px;font-size:0;line-height:0">&nbsp;</td></tr>`;
   return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:22px 0;border-collapse:separate">
-<tr><td style="background:#F3EFE8;padding:22px;border-radius:10px">
-<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#16181b;border-radius:12px;border-collapse:separate;overflow:hidden">
+<tr><td style="background:#F3EFE8;padding:24px 10px;border-radius:10px" align="center">
+<table role="presentation" cellpadding="0" cellspacing="0" width="${W}" height="${H}" style="width:${W}px;height:${H}px;background:#16181b;border-radius:12px;border-collapse:separate;overflow:hidden">
 <tr>
-<td style="padding:22px 24px;color:#fff;vertical-align:top">
-<table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
-<td style="vertical-align:top"><img src="${SITE_URL}/brand/birdBox-silver.png" alt="BirdBox" width="54" style="display:block;width:54px;height:auto"></td>
-<td style="vertical-align:top;text-align:right;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#9aa1a9">Gift card</td>
-</tr></table>
-<div style="font-size:44px;font-weight:800;line-height:1;color:#c9a24a;margin:22px 0 6px">${esc(money(card.amount_cents, card.currency))}</div>
-<div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#9aa1a9">BirdBox Coaching</div>
+<td width="${W - BAR}" height="${H}" style="width:${W - BAR}px;height:${H}px;padding:0;vertical-align:top;color:#fff">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td height="92" style="height:92px;padding:16px 0 0 18px;vertical-align:top"><img src="${SITE_URL}/brand/birdBox-silver.png" alt="BirdBox" width="52" style="display:block;width:52px;height:auto"></td>
+<td style="padding:18px 16px 0 0;vertical-align:top;text-align:right;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#9aa1a9">Gift card</td>
+</tr>
+<tr><td colspan="2" style="padding:4px 18px 0">
+<div style="font-size:38px;font-weight:800;line-height:1;color:#c9a24a">${esc(money(card.amount_cents, card.currency))}</div>
+<div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#9aa1a9;margin-top:8px">BirdBox Coaching</div>
+</td></tr>
+</table>
 </td>
-<td width="16" style="width:16px;vertical-align:top;padding:0"><table role="presentation" cellpadding="0" cellspacing="0" width="16">${bar("#85151A")}${bar("#298DE9")}${bar("#10502C")}${bar("#F1A509")}</table></td>
+<td width="${BAR}" style="width:${BAR}px;padding:0;vertical-align:top"><table role="presentation" cellpadding="0" cellspacing="0" width="${BAR}">${bar("#85151A", 47)}${bar("#298DE9", 47)}${bar("#10502C", 47)}${bar("#F1A509", 48)}</table></td>
 </tr></table>
-<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-top:16px"><tr>
-<td style="font-size:12px;color:#6b6f75">Code</td><td style="font-size:12px;color:#6b6f75;text-align:right">Valid until</td></tr><tr>
-<td style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:20px;font-weight:700;letter-spacing:.06em;color:#16181b">${esc(card.code)}</td>
+<table role="presentation" cellpadding="0" cellspacing="0" width="${W}" style="width:${W}px;margin-top:16px"><tr>
+<td style="font-size:12px;color:#6b6f75;text-align:left">Code</td><td style="font-size:12px;color:#6b6f75;text-align:right">Valid until</td></tr><tr>
+<td style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px;font-weight:700;letter-spacing:.04em;color:#16181b;text-align:left">${esc(card.code)}</td>
 <td style="font-size:14px;color:#16181b;text-align:right">${esc(niceDate(card.expires_at))}</td></tr></table>
 </td></tr></table>`;
 }
@@ -320,7 +327,7 @@ ${card.message ? `<blockquote style="margin:18px 0;padding:4px 0 4px 16px;border
 ${cardBlock(card)}
 <p>${button(cardUrl(card), "Open your gift card")}</p>
 <p style="font-size:14px;color:#4a4e54">${esc(howToUse(card))}</p>
-<p style="font-size:14px;color:#4a4e54">${button(SITE_URL + "/seminars/", "Browse seminars")}&nbsp; ${button(SITE_URL + "/learn/", "Online courses")}</p>`);
+<p style="font-size:14px;color:#4a4e54">${button(SITE_URL + "/seminars/", "Browse seminars")}&nbsp; ${button(SITE_URL + "/", "All courses")}</p>`);
 
   const text = [
     `Hi ${card.recipient_name || "there"},`, "",
@@ -328,7 +335,7 @@ ${cardBlock(card)}
     ...(card.message ? [card.message, ""] : []),
     `Amount: ${money(card.amount_cents, card.currency)}`, `Code: ${card.code}`, `Valid until: ${niceDate(card.expires_at)}`, "",
     `Your card: ${cardUrl(card)}`, "", howToUse(card),
-    "", `Seminars: ${SITE_URL}/seminars/`,
+    "", `Seminars: ${SITE_URL}/seminars/`, `All courses: ${SITE_URL}/`,
   ].join("\n");
 
   const ok = await sendMail({
