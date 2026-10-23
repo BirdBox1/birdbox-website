@@ -237,7 +237,6 @@
     var rate = state.country ? vatFor(state.country) : 0;
     var vatNote = !state.country ? w.vatMaybe
       : rate > 0 ? w.vat(rate) : w.noVat;
-    var each = Math.round(price / state.months);
 
     var ph = el("div", "ob-field");
     ph.appendChild(stepLabel(w.how));
@@ -264,17 +263,19 @@
 
     // With a gift card: what is left to pay, VAT included, and only
     // Pay in full (on a plan the card would only reach the first month).
+    // With a gift card, the card comes off first. Pay in full shows what
+    // is left; monthly payments split what is left. A card that covers
+    // everything leaves Pay in full only.
     var g = state.gift;
-    if (g) {
-      state.option = "full";
-      var left = g.free ? money(0, state.currency) : money(g.remaining_net_cents, state.currency);
-      option("full", w.full, left, g.free ? "" : vatNote,
-        "Gift card " + g.code + " pays " + money(g.covered_cents, state.currency) + (rate > 0 ? " including VAT" : "") +
-        (g.balance_after_cents > 0 ? ". " + money(g.balance_after_cents, state.currency) + " stays on the card." : "."));
-      box.appendChild(opts);
-    } else {
-    option("full", w.full, money(price, state.currency), vatNote, w.fullNote);
+    var base = g ? g.remaining_net_cents : price;
+    var giftNote = g ? "Gift card " + g.code + " pays " + money(g.covered_cents, state.currency) + (rate > 0 ? " including VAT" : "") +
+      (g.balance_after_cents > 0 ? ". " + money(g.balance_after_cents, state.currency) + " stays on the card." : ".") : "";
+    if (g && g.free) state.option = "full";
 
+    option("full", w.full, money(base, state.currency), g && g.free ? "" : vatNote, g ? giftNote : w.fullNote);
+
+    if (!(g && g.free)) {
+    var eachLeft = Math.round(base / state.months);
     // How many months, 3 to 8.
     var mwrap = el("div", "ob-field");
     mwrap.style.marginTop = "10px";
@@ -283,7 +284,7 @@
     var msel = el("select");
     msel.id = "ob-months";
     o.months.forEach(function (n) {
-      var op = el("option", null, n + w.of + money(Math.round(price / n), state.currency));
+      var op = el("option", null, n + w.of + money(Math.round(base / n), state.currency));
       op.value = String(n);
       msel.appendChild(op);
     });
@@ -291,10 +292,10 @@
     msel.onchange = function () { state.months = parseInt(msel.value, 10); state.option = "plan"; render(); };
     mwrap.appendChild(ml); mwrap.appendChild(msel);
 
-    option("plan", w.plan, money(each, state.currency), w.month + vatNote,
-      w.planNote(state.months), mwrap);
-    box.appendChild(opts);
+    option("plan", w.plan, money(eachLeft, state.currency), w.month + vatNote,
+      g ? giftNote + " " + w.planNote(state.months) : w.planNote(state.months), mwrap);
     }
+    box.appendChild(opts);
 
     box.appendChild(giftBox());
 
