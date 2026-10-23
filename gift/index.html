@@ -6,6 +6,7 @@
 <title>Gift Cards — BirdBox Coaching</title>
 <meta name="description" content="Give a BirdBox Coaching gift card: spend it on any seminar or online course. Emailed on the day you choose, with a card to print.">
 <link rel="icon" href="/brand/birdbox-mark.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&display=swap">
 <!--
   Gift cards. The page only collects the choices; the price is checked
   and the Stripe Checkout made by netlify/functions/gift-checkout. The
@@ -38,20 +39,26 @@
   h1 { font-size: clamp(32px, 5vw, 48px); line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 16px; }
   .lead { color: #C9C3C5; margin: 0 0 28px; }
 
-  /* the card itself, which updates as they choose */
+  /* The card itself, updating as they choose. The same design as the
+     Shop (/shop/) and the printable card (/gift/card/): black, silver
+     logo, gold amount, "BirdBox Coaching", the four course colours down
+     the edge. It sits on a light panel so it doesn't vanish into the page. */
+  .stage { background: #F3EFE8; border: 1px solid #e3dfd8; padding: 34px 28px 22px; display: grid; justify-items: center; gap: 18px; }
   .card {
-    aspect-ratio: 1.6 / 1; border-radius: 16px; padding: 28px; position: relative; overflow: hidden;
-    background: radial-gradient(120% 140% at 100% 0%, #2a2e35 0%, #16181b 55%, #0d0e10 100%);
-    border: 1px solid #2c3036; box-shadow: 0 30px 60px -30px rgba(0,0,0,0.8);
+    aspect-ratio: 85.6 / 54; width: 100%; max-width: 440px; border-radius: 16px; padding: 6% 7%; position: relative; overflow: hidden;
+    background: #16181b; border: 1px solid #2c3036; color: #fff;
+    transform: rotate(-4deg); box-shadow: 0 30px 50px -24px rgba(0,0,0,0.55);
     display: flex; flex-direction: column; justify-content: space-between;
   }
-  .card .top { display: flex; align-items: center; gap: 12px; }
-  .card .mark { width: 40px; height: 40px; border-radius: 6px; background: #fff; display: grid; place-items: center; flex: none; }
-  .card .mark img { width: 30px; height: 30px; object-fit: contain; }
-  .card .brand { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #9aa1a9; }
-  .card .amt { font-size: clamp(44px, 9vw, 68px); font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
-  .card .for { color: #c9ccd0; font-size: 15px; min-height: 1.4em; }
-  .card .stripes { position: absolute; right: -40px; bottom: -40px; width: 220px; height: 220px; opacity: 0.5; pointer-events: none; }
+  .card .top { display: flex; justify-content: space-between; align-items: flex-start; padding-right: 6%; }
+  .card .logo { height: 64px; width: auto; }
+  .card .label { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #9aa1a9; }
+  .card .amt { font-size: clamp(44px, 7vw, 68px); font-weight: 800; letter-spacing: -0.02em; line-height: .9; color: #c9a24a; }
+  .card .name { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #9aa1a9; margin-top: 10px; }
+  .card .bars { position: absolute; right: 0; top: 0; bottom: 0; width: 6%; display: grid; grid-template-rows: repeat(4, 1fr); }
+  .card .bars i:nth-child(1) { background: #85151A; } .card .bars i:nth-child(2) { background: #298DE9; }
+  .card .bars i:nth-child(3) { background: #10502C; } .card .bars i:nth-child(4) { background: #F1A509; }
+  .stage .for { font-family: Caveat, "Bradley Hand", "Segoe Script", cursive; font-size: 30px; line-height: 1.1; color: #16181b; min-height: 1.1em; text-align: center; }
   .uses { list-style: none; padding: 0; margin: 24px 0 0; display: grid; gap: 10px; color: #C9C3C5; font-size: 15px; }
   .uses li { padding-left: 26px; position: relative; }
   .uses li::before { content: "✓"; position: absolute; left: 0; color: var(--accentText); font-weight: 800; }
@@ -111,20 +118,13 @@
     <h1>Give someone their next course</h1>
     <p class="lead">A BirdBox Coaching gift card can be spent on any seminar or online course from The Gymnastics Course or The Coaches Course. We email it on the day you choose, and you get a version to print too.</p>
 
-    <div class="card" aria-live="polite">
-      <div class="top">
-        <div class="mark"><img src="/brand/birdbox-mark.png" alt=""></div>
-        <div class="brand">BirdBox Coaching<br>Gift card</div>
+    <div class="stage" aria-live="polite">
+      <div class="card">
+        <div class="top"><img class="logo" src="/brand/birdBox-silver.png" alt="BirdBox"><span class="label">Gift card</span></div>
+        <div><div class="amt" id="cardAmt">€250</div><div class="name">BirdBox Coaching</div></div>
+        <div class="bars"><i></i><i></i><i></i><i></i></div>
       </div>
-      <div>
-        <div class="amt" id="cardAmt">€250</div>
-        <div class="for" id="cardFor"></div>
-      </div>
-      <svg class="stripes" viewBox="0 0 200 200" aria-hidden="true">
-        <g stroke="#2f7fd0" stroke-width="10" fill="none" opacity="0.6">
-          <path d="M0 200 L200 0"/><path d="M40 200 L200 40"/><path d="M80 200 L200 80"/>
-        </g>
-      </svg>
+      <div class="for" id="cardFor"></div>
     </div>
 
     <ul class="uses">
@@ -221,7 +221,7 @@
     var a = amount();
     $("cardAmt").textContent = sym() + (a > 0 ? a.toLocaleString("en-GB") : "—");
     var to = $("recipientName").value.trim(), from = $("fromName").value.trim();
-    $("cardFor").textContent = (to ? "For " + to : "") + (to && from ? " · " : "") + (from ? "From " + from : "");
+    $("cardFor").textContent = (to ? "For " + to : "") + (to && from ? ", " : "") + (from ? "from " + from : "");
   }
 
   function drawAmounts() {
