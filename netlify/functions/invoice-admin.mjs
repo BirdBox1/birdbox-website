@@ -56,6 +56,7 @@ export default async (request) => {
 
     switch (body.action) {
       case "create_and_send": return await createAndSend(body, me);
+      case "create_split":    return await createSplit(body, me);
       case "add_participant": return await addParticipant(body, me);
       case "void":            return await voidInvoice(body);
       case "list_unmatched":  return await listUnmatched();
@@ -90,6 +91,9 @@ async function createAndSend(b, me) {
 
   const places = parseInt(b.places, 10);
   if (!Number.isFinite(places) || places < 1) return json({ error: "Number of places must be at least 1." }, 400);
+
+  const dueDays = b.days_until_due == null || b.days_until_due === "" ? DAYS_TO_PAY : parseInt(b.days_until_due, 10);
+  if (!Number.isFinite(dueDays) || dueDays < 1 || dueDays > 30) return json({ error: "Days to pay must be between 1 and 30." }, 400);
 
   const unitCents = Math.round(Number(b.unit_price) * 100);
   if (!Number.isFinite(unitCents) || unitCents <= 0) return json({ error: "Price per place must be more than zero." }, 400);
@@ -203,6 +207,7 @@ async function createAndSend(b, me) {
       total_cents: total,
       status: "draft",
       created_by: me.id,
+      ...(b.split_role ? { split_role: b.split_role, split_host_id: b.split_host_id || null } : {}),
     })
     .select("id")
     .single();
@@ -249,10 +254,10 @@ async function createAndSend(b, me) {
     const invoice = await stripe.invoices.create({
       customer: customer.id,
       collection_method: "send_invoice",
-      days_until_due: DAYS_TO_PAY,
+      days_until_due: dueDays,
       auto_advance: false,
       currency: currency.toLowerCase(),
-      description: `${places} × ${course.title}`,
+      description: clean(b.invoice_description) || `${places} × ${course.title}`,
       default_tax_rates: taxRateId ? [taxRateId] : [],
       custom_fields: customFields.length ? customFields : undefined,
       discounts,
@@ -271,7 +276,8 @@ async function createAndSend(b, me) {
       invoice: invoice.id,
       amount: subtotal,
       currency: currency.toLowerCase(),
-      description: `${course.title} — ${places} place${places === 1 ? "" : "s"} at ${currency} ${each} each (excl. VAT)`,
+      description: clean(b.item_description) ||
+        `${course.title} — ${places} place${places === 1 ? "" : "s"} at ${currency} ${each} each (excl. VAT)`,
     });
 
     const finalised = await stripe.invoices.finalizeInvoice(invoice.id);
@@ -304,6 +310,7 @@ async function createAndSend(b, me) {
 
     return json({
       sent: true,
+      invoice_id: row.id,
       number: finalised.number || null,
       total_cents: stripeTotal,
       currency,
@@ -319,6 +326,122 @@ async function createAndSend(b, me) {
     await supabase.from("invoices").delete().eq("id", row.id);
     return json({ error: "Stripe did not accept the invoice: " + (err.message || "unknown error") }, 502);
   }
+}
+
+// ---------------------------------------------------------------
+// one place, two payers
+// ---------------------------------------------------------------
+// A gym pays part of each place and every participant pays the rest.
+// One invoice goes to the gym for its share of all the places, and one
+// to each participant for theirs. The participants are put on the
+// course straight away so their places are held, but as unpaid: each
+// is only paid in full — and only then sent their confirmation — once
+// BOTH their own invoice and the gym's have been paid. The webhook
+// (onSplitInvoicePaid) does that part; the invoices are linked through
+// split_role / split_host_id.
+async function createSplit(b, me) {
+  const courseId = b.course_id;
+  const pct = Number(b.host_percent);
+  if (!(pct > 0 && pct < 100)) return json({ error: "The host's share must be between 1% and 99%." }, 400);
+
+  const unitCents = Math.round(Number(b.unit_price) * 100);
+  if (!Number.isFinite(unitCents) || unitCents <= 0) return json({ error: "Price per place must be more than zero." }, 400);
+
+  const people = (Array.isArray(b.participants) ? b.participants : []).map((p) => ({
+    first: clean(p.first_name), last: clean(p.last_name), email: (clean(p.email) || "").toLowerCase(),
+  }));
+  if (!people.length) return json({ error: "Add at least one participant." }, 400);
+  if (people.length > 30) return json({ error: "That is too many participants for one split." }, 400);
+  for (const p of people) {
+    if (!p.first || !p.last) return json({ error: "Every participant needs a first and last name." }, 400);
+    if (!p.email.includes("@")) return json({ error: `The email for ${p.first} ${p.last} does not look right.` }, 400);
+  }
+
+  const { data: course, error: cErr } = await supabase
+    .from("courses").select("id, title, currency").eq("id", courseId).single();
+  if (cErr || !course) return json({ error: "Course not found." }, 404);
+  const currency = String(course.currency || "EUR").toUpperCase();
+
+  // Nobody twice: someone already on the course would end up with two places.
+  const { data: onCourse } = await supabase
+    .from("registrations").select("email, status").eq("course_id", courseId);
+  const taken = new Set((onCourse || [])
+    .filter((r) => (r.status || "active") === "active")
+    .map((r) => String(r.email || "").toLowerCase()));
+  const dupes = people.filter((p) => taken.has(p.email));
+  if (dupes.length) {
+    return json({ error: `Already registered on this course: ${dupes.map((p) => p.email).join(", ")}.` }, 400);
+  }
+
+  const hostCents = Math.round(unitCents * pct / 100);
+  const partCents = unitCents - hostCents;
+  const fmt = (c) => (c / 100).toFixed(2);
+  const n = people.length;
+  const hostName = clean(b.business_name) || clean(b.payer_name);
+
+  // 1. The gym's invoice, for its share of every place.
+  const hostRes = await createAndSend({
+    ...b,
+    places: n,
+    unit_price: fmt(hostCents),
+    discount_percent: 0, discount_amount: 0, discount_code: "",
+    split_role: "host",
+    split_host_id: null,
+    invoice_description: `${course.title} — ${pct}% of ${n} place${n === 1 ? "" : "s"}`,
+    item_description: `${course.title} — ${pct}% share of ${n} place${n === 1 ? "" : "s"} ` +
+      `(${people.map((p) => `${p.first} ${p.last}`).join(", ")}) at ${currency} ${fmt(hostCents)} each (excl. VAT)`,
+  }, me);
+  const host = await hostRes.json();
+  if (!hostRes.ok || host.error) return json({ error: "The host's invoice was not sent: " + (host.error || "unknown error") }, 502);
+
+  // 2. Each participant: a place held on the course, and their invoice.
+  const done = [];
+  const problems = [];
+  for (const p of people) {
+    const { data: reg, error: rErr } = await supabase.from("registrations").insert({
+      course_id: courseId,
+      first_name: p.first,
+      last_name: p.last,
+      email: p.email,
+      status: "active",
+      source: "manual",
+      source_note: `Split invoice — ${hostName} pays ${pct}%`,
+      payment_status: "pending",
+      amount_paid_cents: 0,
+      currency,
+    }).select("id").single();
+    if (rErr) { problems.push(`${p.first} ${p.last}: not registered — ${rErr.message}`); continue; }
+
+    const res = await createAndSend({
+      course_id: courseId,
+      payer_name: `${p.first} ${p.last}`,
+      payer_email: p.email,
+      vat_country: b.vat_country,
+      places: 1,
+      unit_price: fmt(partCents),
+      days_until_due: b.days_until_due,
+      split_role: "participant",
+      split_host_id: host.invoice_id,
+      invoice_description: `${course.title} — your ${100 - pct}% share`,
+      item_description: `${course.title} — ${p.first} ${p.last}: ${100 - pct}% share of the place ` +
+        `(${hostName} pays the other ${pct}%) (excl. VAT)`,
+    }, me);
+    const out = await res.json();
+    if (!res.ok || out.error) {
+      await supabase.from("registrations").delete().eq("id", reg.id);
+      problems.push(`${p.first} ${p.last}: invoice not sent — ${out.error || "unknown error"}`);
+      continue;
+    }
+    await supabase.from("registrations").update({ invoice_id: out.invoice_id }).eq("id", reg.id);
+    done.push({ name: `${p.first} ${p.last}`, number: out.number, total_cents: out.total_cents });
+  }
+
+  return json({
+    host: { number: host.number, total_cents: host.total_cents },
+    participants: done,
+    problems,
+    currency,
+  });
 }
 
 // ---------------------------------------------------------------
