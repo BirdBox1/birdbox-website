@@ -265,8 +265,7 @@ async function onCheckoutCompleted(session) {
   // sharing the code — one Munich registration would have exhausted
   // the count on all of them.
   if (meta.gift_card_id) {
-    // A gift card paid part of this (its own code sits in
-    // discount_code). Take what it paid off its balance.
+    // A gift card paid part of this. Take what it paid off its balance.
     await redeemCard({
       cardId: meta.gift_card_id,
       cents: Number(meta.gift_cents || 0),
@@ -276,7 +275,11 @@ async function onCheckoutCompleted(session) {
       vatCountry: meta.gift_vat_country,
       vatPercent: meta.gift_vat_percent,
     });
-  } else if (discountCode) {
+  }
+  // A discount code (on its own, or with a gift card) is counted as
+  // used. A gift card on its own carries its own code in discount_code
+  // and has no discount_codes row to count.
+  if (discountCode && discountCode !== (meta.gift_code || "")) {
     const { error: bumpError } = await supabase.rpc(
       "bump_discount_redemption",
       { p_code: discountCode, p_course_id: meta.course_id }

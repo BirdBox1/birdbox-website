@@ -37,13 +37,15 @@ export default async (req) => {
     const body = await req.json();
     const slug = String(body.slug || "").trim();
     const code = String(body.code || "").trim();
+    // A gift card used as well as a discount code.
+    const giftCode = String(body.gift || "").trim();
     const firstName = String(body.firstName || "").trim();
     const lastName = String(body.lastName || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
     const phone = String(body.phone || "").trim();
     const accepted = body.accepted === true;
 
-    if (!slug || !code) return json({ error: "Missing details" }, 400);
+    if (!slug || (!code && !giftCode)) return json({ error: "Missing details" }, 400);
     if (!firstName || !lastName) return json({ error: "Both names are needed — your certificate uses them." }, 400);
     if (!email || !email.includes("@") || email.startsWith("@") || email.endsWith("@")) {
       return json({ error: "A valid email address is needed." }, 400);
@@ -68,7 +70,7 @@ export default async (req) => {
     }
 
     // ---- the code, checked here and not taken on trust ---------
-    const priced = await priceWithDiscount(course, code);
+    const priced = await priceWithDiscount(course, code, giftCode);
     if (priced.error) return json({ error: priced.error }, 409);
 
     // Someone could send any code they like to this endpoint. Only a
@@ -145,7 +147,8 @@ export default async (req) => {
         // free text — inventing a fifth value here failed the insert
         // and, worse, reported it as the course being full.
         source: "manual",
-        source_note: gift ? `Paid by gift card ${priced.row.code}` : `Free place, code ${priced.row.code}` +
+        source_note: gift && priced.row.code !== gift.code ? `Code ${priced.row.code}, rest paid by gift card ${gift.code}`
+          : gift ? `Paid by gift card ${gift.code}` : `Free place, code ${priced.row.code}` +
           (priced.row.label ? ` — ${priced.row.label}` : ""),
       })
       .select("id")
@@ -185,8 +188,8 @@ export default async (req) => {
 
     // ---- burn the redemption ----------------------------------
     // This is what stops a host code being shared beyond its two uses.
-    // A gift card has no discount_codes row to count.
-    const { error: bumpErr } = gift ? { error: null } : await supabase.rpc("bump_discount_redemption", {
+    // A gift card on its own has no discount_codes row to count.
+    const { error: bumpErr } = gift && priced.row.code === gift.code ? { error: null } : await supabase.rpc("bump_discount_redemption", {
       p_code: priced.row.code,
       p_course_id: course.id,
     });

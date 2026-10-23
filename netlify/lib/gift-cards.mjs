@@ -290,7 +290,7 @@ function howToUse(card) {
 const button = (href, label) =>
   `<a href="${href}" style="display:inline-block;background:#16181b;color:#fff;text-decoration:none;font-weight:700;padding:13px 20px;border-radius:6px">${label}</a>`;
 
-async function sendBuyerEmail(card) {
+export async function sendBuyerEmail(card) {
   const to = card.recipient_email;
   const later = to && card.send_on && card.send_on > new Date().toISOString().slice(0, 10);
   const whatHappens = !to
@@ -346,3 +346,36 @@ ${cardBlock(card)}
   if (ok) await db.from("gift_cards").update({ sent_at: new Date().toISOString() }).eq("id", card.id);
   return ok;
 }
+
+// ---------------------------------------------------------------
+// the reminder, 30 days before a card with money on it expires
+// ---------------------------------------------------------------
+
+// To whoever has the card: the recipient if we emailed it to someone,
+// otherwise the buyer. Shows what is left, not what it started at.
+export async function sendExpiryReminder(card) {
+  const to = card.recipient_email || card.buyer_email;
+  if (!to) return false;
+  const first = card.recipient_email ? (card.recipient_name || "there") : ((card.buyer_name || "").split(" ")[0] || "there");
+  const left = money(card.balance_cents, card.currency);
+  const when = niceDate(card.expires_at);
+  const shown = { ...card, amount_cents: card.balance_cents };
+
+  const html = emailShell(`
+<p>Hi ${esc(first)},</p>
+<p>A reminder that your BirdBox Coaching gift card still has <b>${esc(left)}</b> on it, and it expires on <b>${esc(when)}</b>.</p>
+${cardBlock(shown)}
+<p>${button(cardUrl(card), "Open your gift card")}</p>
+<p style="font-size:14px;color:#4a4e54">${esc(howToUse(card))}</p>
+<p style="font-size:14px;color:#4a4e54">${button(SITE_URL + "/seminars/", "Browse seminars")}&nbsp; ${button(SITE_URL + "/", "All courses")}</p>`);
+
+  const text = [
+    `Hi ${first},`, "",
+    `A reminder that your BirdBox Coaching gift card still has ${left} on it, and it expires on ${when}.`, "",
+    `Code: ${card.code}`, `Your card: ${cardUrl(card)}`, "", howToUse(card), "",
+    `Seminars: ${SITE_URL}/seminars/`, `All courses: ${SITE_URL}/`,
+  ].join("\n");
+
+  return sendMail({ to, subject: `Your BirdBox gift card has ${left} left, and expires on ${when}`, html, text });
+}
+

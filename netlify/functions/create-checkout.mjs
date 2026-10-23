@@ -91,6 +91,8 @@ export default async (req) => {
     const slug = body.slug;
     const option = body.option || "full";
     const code = body.code ? String(body.code).trim() : null;
+    // A gift card used as well as a discount code (code holds the code).
+    const giftCode = body.gift ? String(body.gift).trim() : null;
 
     if (!slug) return json({ error: "Missing slug" }, 400);
     // Klarna was removed in September 2026 in favour of Pay monthly.
@@ -147,17 +149,19 @@ export default async (req) => {
     let gift = null;
     let deposit = course.deposit_cents || Math.round(full * DEPOSIT_RATE);
 
-    if (code) {
-      const priced = await priceWithDiscount(course, code);
+    let codeOff = 0;
+    if (code || giftCode) {
+      const priced = await priceWithDiscount(course, code, giftCode);
       if (priced.error) return json({ error: priced.error }, 409);
       full = priced.total;
       discountCents = priced.discount;
       deposit = priced.deposit;
       appliedCode = priced.row.code;
       gift = priced.gift || null;
-      // A card that covers everything goes through free-registration,
-      // never Stripe, which cannot take a zero payment.
-      if (priced.free) return json({ error: "That gift card covers the whole price. Reload the page and use it again to register." }, 409);
+      codeOff = priced.codeDiscount || 0;
+      // Nothing left to pay goes through free-registration, never
+      // Stripe, which cannot take a zero payment.
+      if (priced.free) return json({ error: "Your codes cover the whole price. Reload the page and apply them again to register." }, 409);
     }
 
     // Klarna cannot save a card, so it is full payment only.
@@ -221,8 +225,10 @@ export default async (req) => {
         `First payment. Then ${months} monthly payments of about ${money(planParts[0].cents)}, taken automatically from this card starting ${nice(planParts[0].due)}. 0% interest — the same total as paying in full.`
       );
     }
-    if (gift) {
-      notes.push(`Gift card ${appliedCode} pays ${money(gift.covered)} including VAT; the rest is paid here.`);
+    if (gift && appliedCode !== gift.code) {
+      notes.push(`Code ${appliedCode} applied — ${money(codeOff)} off. Gift card ${gift.code} pays ${money(gift.covered)} including VAT; the rest is paid here.`);
+    } else if (gift) {
+      notes.push(`Gift card ${gift.code} pays ${money(gift.covered)} including VAT; the rest is paid here.`);
     } else if (appliedCode) {
       notes.push(`Code ${appliedCode} applied — ${money(discountCents)} off.`);
     }
@@ -366,6 +372,7 @@ export default async (req) => {
         // A gift card paying part of it: the webhook takes gift_cents
         // (VAT included, in the course currency) off the card.
         gift_card_id: gift ? gift.id : "",
+        gift_code: gift ? gift.code : "",
         gift_cents: gift ? String(gift.covered) : "",
         // The VAT inside what the card paid, for the gift card VAT report.
         gift_vat_country: gift ? (course.country || "").trim().toUpperCase() : "",

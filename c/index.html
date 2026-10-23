@@ -439,6 +439,11 @@
       <ul class="tick" id="included"></ul>
     </div>
 
+    <!-- A quiet pointer to gift cards for people buying for someone else. -->
+    <p style="text-align:center;margin:28px 0 0">
+      <a href="/gift/" style="display:inline-block;border:1px solid var(--rule);color:var(--muted);text-decoration:none;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:9px 16px">Buying for someone else? Give a gift card &rarr;</a>
+    </p>
+
     <footer id="foot">
       <p>Registering means you accept our
         <a href="/agreements/#terms">terms of sale</a> and
@@ -506,7 +511,9 @@ const state = {
   finished: false,
   free: false,
   klarnaOk: false,
-  code: null,
+  code: null,       // the discount code applied, if any
+  giftCode: null,   // the gift card applied, if any
+  codeOff: 0,       // what the discount code takes off (before VAT)
   total: 0,
   deposit: 0,
   discount: 0,
@@ -790,9 +797,10 @@ function renderBuyBox() {
   $("price").append(document.createTextNode(money(total)));
   if (discount > 0) {
     const saved = document.createElement("small");
-    saved.textContent = state.gift
-      ? "Gift card " + state.code + " applied"
-      : state.code + " applied — " + money(discount) + " off";
+    saved.textContent = [
+      state.code ? state.code + " applied — " + money(state.codeOff) + " off" : null,
+      state.giftCode ? "Gift card " + state.giftCode + " applied" : null,
+    ].filter(Boolean).join(" · ");
     $("price").append(saved);
   }
 
@@ -975,7 +983,7 @@ function renderFreeForm() {
     <p class="said" id="f-said"></p>`;
 
   box.querySelector(".lead").textContent =
-    `${state.code} covers the full price, so there is nothing to pay. ` +
+    `${[state.code, state.giftCode].filter(Boolean).join(" and ")} ${state.code && state.giftCode ? "cover" : "covers"} the full price, so there is nothing to pay. ` +
     "We just need to know who is coming.";
 
   $("options").append(box);
@@ -1018,7 +1026,8 @@ function renderFreeForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slug: state.course.slug,
-          code: state.code,
+          code: state.code || undefined,
+          gift: state.giftCode || undefined,
           firstName: first,
           lastName: last,
           email,
@@ -1059,6 +1068,7 @@ function renderFreeForm() {
 
 function wirePromo() {
   $("promotoggle").addEventListener("click", () => {
+    if (state.code && state.giftCode) { clearCodes(); return; }
     $("promorow").classList.toggle("hidden");
     $("promoinput").focus();
   });
@@ -1069,11 +1079,15 @@ function wirePromo() {
   });
 }
 
+// One box for both: a discount code (early bird, group...) and a gift
+// card. Each is applied on top of the other: the code comes off first,
+// then the card pays towards what is left, with VAT.
 async function applyCode() {
   const input = $("promoinput");
   const msg = $("promomsg");
-  const code = input.value.trim();
-  if (!code) return;
+  const entered = input.value.trim();
+  if (!entered) return;
+  const isGift = /^gift[\s-]?[a-z0-9]{4}[\s-]?[a-z0-9]{4}$/i.test(entered);
 
   $("promoapply").disabled = true;
   msg.className = "promo-msg";
@@ -1083,7 +1097,9 @@ async function applyCode() {
     const res = await fetch("/.netlify/functions/validate-discount", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: state.course.slug, code: code }),
+      body: JSON.stringify(isGift
+        ? { slug: state.course.slug, code: state.code || undefined, gift: entered }
+        : { slug: state.course.slug, code: entered, gift: state.giftCode || undefined }),
     });
     const data = await res.json();
 
@@ -1094,30 +1110,47 @@ async function applyCode() {
       return;
     }
 
-    state.code = data.code;
+    if (isGift) state.giftCode = data.gift ? data.gift.code : entered.toUpperCase();
+    else state.code = data.code;
+    state.gift = data.gift || null;
+    state.codeOff = data.code_discount_cents || 0;
     state.discount = data.discount_cents;
     state.total = data.total_cents;
     state.free = !!data.free;
-    state.gift = data.gift || null;
     state.deposit = state.course.type === "workshop"
       ? data.total_cents
       : data.deposit_cents;
 
+    // Say what each one did. A gift card pays towards the price with
+    // VAT, and may have money left on it afterwards.
     msg.className = "promo-msg ok";
-    // A gift card pays towards the price with VAT, and may have money
-    // left on it afterwards; say both.
-    msg.textContent = data.gift
-      ? "Gift card pays " + state.money(data.gift.covered_cents) + " towards this course" +
-        (data.gift.balance_after_cents > 0 ? " — " + state.money(data.gift.balance_after_cents) + " stays on the card" : "")
-      : (data.label ? data.label + " — " : "") + state.money(data.discount_cents) + " off";
+    msg.textContent = [
+      state.code ? (data.label ? data.label + " — " : state.code + " — ") + state.money(state.codeOff) + " off" : null,
+      data.gift ? "Gift card pays " + state.money(data.gift.covered_cents) +
+        (data.gift.balance_after_cents > 0 ? ", " + state.money(data.gift.balance_after_cents) + " stays on the card" : "") : null,
+    ].filter(Boolean).join(". ");
+    input.value = "";
     $("promorow").classList.add("hidden");
-    $("promotoggle").textContent = "Use a different code";
+    $("promotoggle").textContent = state.code && state.giftCode ? "Remove codes"
+      : state.giftCode ? "Have a discount code too?" : "Have a gift card too?";
     renderBuyBox();
   } catch (e) {
     msg.className = "promo-msg err";
     msg.textContent = "Could not check that code. Please try again.";
   }
   $("promoapply").disabled = false;
+}
+
+// "Remove codes": back to the full price.
+function clearCodes() {
+  state.code = null; state.giftCode = null; state.gift = null; state.codeOff = 0;
+  state.discount = 0; state.free = false;
+  state.total = state.course.price_cents;
+  state.deposit = state.course.type === "workshop" ? state.total
+    : (state.course.deposit_cents || Math.round(state.total * DEPOSIT_RATE));
+  $("promomsg").textContent = "";
+  $("promotoggle").textContent = "Have a discount code or gift card?";
+  renderBuyBox();
 }
 
 async function loadTemplate(course) {
@@ -1245,7 +1278,7 @@ async function checkout(slug, option, btn, months) {
     const res = await fetch("/.netlify/functions/create-checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: slug, option: option, months: months || undefined, code: state.code }),
+      body: JSON.stringify({ slug: slug, option: option, months: months || undefined, code: state.code || undefined, gift: state.giftCode || undefined }),
     });
     const data = await res.json();
     if (data.url) { location.href = data.url; return; }
