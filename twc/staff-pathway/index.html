@@ -29,8 +29,8 @@
 
   .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
   .hero {
-    position: relative; display: grid; align-items: end; min-height: clamp(380px, 56vh, 560px);
-    background: radial-gradient(120% 140% at 85% 20%, rgba(241,165,9,0.22) 0%, rgba(241,165,9,0) 55%), linear-gradient(180deg, #1C1719 0%, #14100F 100%);
+    position: relative; display: grid; align-items: end; min-height: clamp(460px, 72vh, 680px);
+    background: linear-gradient(90deg, rgba(20,16,15,0.7) 0%, rgba(20,16,15,0.3) 50%, rgba(20,16,15,0) 100%), linear-gradient(180deg, rgba(20,16,15,0) 0%, rgba(20,16,15,0.1) 60%, rgba(20,16,15,0.7) 100%), url('img/hero.jpg') center 78% / cover no-repeat; filter: none;
     border-bottom: 1px solid var(--line);
   }
   .hero__in { width: 100%; max-width: 1100px; margin: 0 auto; padding: 48px 24px 44px; }
@@ -67,7 +67,7 @@
   .teamshot { margin: 56px 0 0; border-block: 1px solid var(--line); background: var(--panel); }
   .teamshot__in { max-width: 1100px; margin: 0 auto; padding: 44px 24px 28px; }
   .teamshot__in p:last-child { color: #D9D4D5; max-width: 620px; margin: 0; }
-  .teamshot img { display: block; width: 100%; height: min(360px, 34vw); max-width: 1340px; margin: 0 auto; object-fit: cover; object-position: center 72%; }
+  .teamshot img { display: block; width: 100%; height: auto; max-width: 1340px; margin: 0 auto; }
   .month { display: grid; grid-template-columns: 280px 1fr; gap: 28px; align-items: center; margin-top: 44px; }
   .month img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; border: 1px solid var(--line); }
   .month h2 { margin-top: 0; }
@@ -191,9 +191,9 @@
   <section class="teamshot">
     <div class="teamshot__in">
       <p class="banner__big">Coach it with us.</p>
-      <p>Our seminars are run by coaches who coach every week. This is where you would be.</p>
+      <p>A small team, chosen for experience and the quality of their coaching. This is the BirdBox team you would be joining.</p>
     </div>
-    <img src="img/seminar.jpg" alt="A BirdBox seminar" loading="lazy">
+    <img src="img/team.jpg" alt="The BirdBox Coaching team" loading="lazy">
   </section>
 
   <div class="wrap">
@@ -207,7 +207,7 @@
     </div>
   </div>
 
-  <section class="band band--plain" id="apply">
+  <section class="band" id="apply" style="background-image: url('img/floor.jpg'); background-position: center 74%;">
     <div class="band__in">
       <p class="eyebrow">Your application</p>
       <h2>Apply</h2>
