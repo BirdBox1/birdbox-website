@@ -33,9 +33,9 @@
 </div>
 <script>
   var c = JSON.parse(decodeURIComponent(location.hash.slice(1)));
-  var COL = { tgc: "#E8585C", tcc: "#4FA8DE", tec: "#3FAE6E", twc: "#F1A509", birdbox: "#C9A24A" };
-  var BAR = { tgc: "#85151A", tcc: "#298DE9", tec: "#10502C", twc: "#F1A509" };
-  var LOGO = { tgc: "/gift/card/logos/tgc.png", tcc: "/gift/card/logos/tcc.png", tec: "/gift/card/logos/tec.png", twc: "/gift/card/logos/twc.png", birdbox: "/brand/birdBox-silver.png" };
+  var COL = { tgc: "#E8585C", tcc: "#4FA8DE", tec: "#3FAE6E", twc: "#F1A509", birdbox: "#C9A24A", directory: "#6FB9E8" };
+  var BAR = { tgc: "#85151A", tcc: "#298DE9", tec: "#10502C", twc: "#F1A509", directory: "#4FA8DE" };
+  var LOGO = { tgc: "/gift/card/logos/tgc.png", tcc: "/gift/card/logos/tcc.png", tec: "/gift/card/logos/tec.png", twc: "/gift/card/logos/twc.png", birdbox: "/brand/birdBox-silver.png", directory: "/brand/birdBox-silver.png" };
   var b = c.brand || "birdbox";
   if (c.photo) document.getElementById("bg").style.backgroundImage = "url('/" + c.photo + "')";
   else { document.getElementById("shade").style.display = "none"; }
@@ -44,7 +44,7 @@
   var edge = document.getElementById("edge");
   if (BAR[b]) { edge.className = "bar"; edge.style.background = BAR[b]; } else { edge.className = "bars"; edge.innerHTML = "<i></i><i></i><i></i><i></i>"; }
   var logo = document.getElementById("logo");
-  logo.src = LOGO[b]; logo.classList.add(b === "birdbox" ? "bird" : b);
+  logo.src = LOGO[b]; logo.classList.add(b === "birdbox" || b === "directory" ? "bird" : b);
   var k = document.getElementById("kick"); k.textContent = c.kick || ""; k.style.color = COL[b];
   var t = document.getElementById("title"); t.textContent = c.title; if (c.title.length > 26) t.classList.add("long");
   document.getElementById("sub").textContent = c.sub || "";

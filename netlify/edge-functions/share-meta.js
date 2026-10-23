@@ -121,9 +121,10 @@ async function coach(slug, origin) {
   return {
     title: `${k.name} | BirdBox Trainer Directory`,
     description: [k.headline, where].filter(Boolean).join(" · ") || "A BirdBox-trained coach.",
-    // Always our own picture: a coach's profile photo is whatever they
-    // uploaded, and a shared link should look like BirdBox, not like them.
-    image: `${SITE}/share/coach.jpg`,
+    // Their own card: their photo framed as a BirdBox Trainer Directory
+    // picture (coach-card.js). ?p= changes with the photo, so a new photo
+    // is not hidden behind the cached old card.
+    image: k.photo ? `${SITE}/share/coach/${slug}.png?p=${shortHash(k.photo)}` : `${SITE}/share/coach.jpg`,
   };
 }
 
@@ -137,6 +138,12 @@ function dates(start, end, tz) {
   if (s.d === e.d && s.m === e.m && s.y === e.y) return `${s.d} ${s.m} ${s.y}`;
   if (s.m === e.m && s.y === e.y) return `${s.d}–${e.d} ${s.m} ${s.y}`;
   return `${s.d} ${s.m} – ${e.d} ${e.m} ${e.y}`;
+}
+
+function shortHash(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
 }
 
 function countryName(code) {
