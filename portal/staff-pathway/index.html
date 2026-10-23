@@ -73,8 +73,19 @@
   .side textarea.decision { min-height: 11rem; }
   .row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
   .told { font-size: 0.86rem; background: var(--paper); border-radius: 4px; padding: 0.6rem 0.75rem; white-space: pre-line; }
-  select.course { font: inherit; font-size: 0.85rem; border: 1px solid var(--rule); border-radius: 4px; padding: 0.4rem 0.6rem; background: var(--card); margin-left: auto; }
-  select.course + input.search { margin-left: 0; }
+  .brands { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.6rem; margin: 0 0 1.1rem; }
+  .brand { font: inherit; background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 0.7rem 0.6rem 0.6rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.35rem; color: var(--ink); min-width: 0; }
+  .brand:hover { border-color: #b9b5ad; }
+  .brand.on { border-color: var(--c, var(--ink)); box-shadow: inset 0 0 0 1px var(--c, var(--ink)); }
+  .brand .logo { height: 46px; display: flex; align-items: center; justify-content: center; }
+  .brand .logo img { max-height: 46px; max-width: 100%; display: block; }
+  .brand .logo { overflow: hidden; }
+  .brand .logo img.pad { max-height: 66px; }
+  .brand .logo b { font-size: 1.05rem; letter-spacing: 0.06em; }
+  .brand .c { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+  .brand .c.wait { color: var(--bad); font-weight: 650; }
+  .brand.off { opacity: 0.55; }
+  @media (max-width: 46rem) { .brands { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   .tracker { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 0.8rem 1rem; margin-bottom: 1rem; }
   .tracker h2 { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.6rem; font-weight: 650; }
   .tracker .regions { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.6rem; }
@@ -126,7 +137,9 @@
 
 <section id="view-main" class="wrap hidden">
   <h1>Staff Pathway applications</h1>
-  <p class="sub">Applications for the year of mentorship. Accepting or declining emails the applicant your message; declined applicants can apply again after six months. <a href="/tgc/staff-pathway/" target="_blank">Open the application page ↗</a></p>
+  <p class="sub">Applications to join BirdBox staff, by course. Accepting or declining emails the applicant your message. Application pages: <a href="/tgc/staff-pathway/" target="_blank">TGC ↗</a> · <a href="/tec/staff-pathway/" target="_blank">TEC ↗</a></p>
+
+  <div class="brands" id="brands" role="tablist" aria-label="Course"></div>
 
   <div class="top">
     <div class="tabs" id="tabs">
@@ -135,11 +148,6 @@
       <button type="button" data-tab="declined">Not this time<b id="n-declined"></b></button>
       <button type="button" data-tab="all">Everyone<b id="n-all"></b></button>
     </div>
-    <select id="course" class="course" aria-label="Course">
-      <option value="all">All courses</option>
-      <option value="tgc">TGC Staff Pathway</option>
-      <option value="tec">TEC Founding Staff</option>
-    </select>
     <input class="search" id="q" type="search" placeholder="Search name, email, country">
   </div>
 
@@ -187,7 +195,15 @@ const COURSE = { "tgc-l1": "TGC Level 1 seminar", "tgc-l1-online": "TGC Level 1 
 
 let all = [];
 let pathways = {};
-let course = "all";
+// The brand shown, remembered in the address (#tgc, #tec…).
+const BRANDS = [
+  { key: "all", label: "All" },
+  { key: "tgc", logo: "/brand/tgc.png", c: "#85151A" },
+  { key: "tcc", logo: "/brand/tcc.png", c: "#298DE9" },
+  { key: "tec", logo: "/brand/tec.png", c: "#10502C", pad: true },
+  { key: "twc", logo: "/brand/twc.png", c: "#F1A509", pad: true },
+];
+let course = BRANDS.some((b) => b.key === location.hash.slice(1)) ? location.hash.slice(1) : "all";
 const inCourse = (a) => course === "all" || a.brand === course;
 let tab = "open";
 let fresh = new Set();
@@ -255,11 +271,26 @@ function render() {
   $("n-accepted").textContent = " " + mine.filter((a) => a.status === "accepted").length;
   $("n-declined").textContent = " " + mine.filter((a) => a.status === "declined" || a.status === "withdrawn").length;
   $("n-all").textContent = " " + mine.length;
+  renderBrands();
   renderTracker();
   const list = visible();
   $("list").innerHTML = list.length ? list.map(row).join("") :
     `<div class="empty">${tab === "open" ? "Nothing waiting to be reviewed." : "Nobody here yet."}</div>`;
   putTyped();
+}
+
+// The logo row: one card per brand with what is waiting on it. A brand
+// without a pathway yet (TCC, TWC) says so.
+function renderBrands() {
+  $("brands").innerHTML = BRANDS.map((b) => {
+    const mine = b.key === "all" ? all : all.filter((a) => a.brand === b.key);
+    const waiting = mine.filter((a) => OPEN.includes(a.status)).length;
+    const open = b.key === "all" || !!pathways[b.key];
+    const note = !open ? "Not open yet" : waiting ? `${waiting} to review` : `${mine.length} application${mine.length === 1 ? "" : "s"}`;
+    const logo = b.logo ? `<img src="${b.logo}" alt="${b.key.toUpperCase()}"${b.pad ? ' class="pad"' : ""}>` : `<b>${b.label}</b>`;
+    return `<button type="button" role="tab" aria-selected="${course === b.key}" class="brand${course === b.key ? " on" : ""}${open ? "" : " off"}" data-brand="${b.key}" style="${b.c ? `--c:${b.c}` : ""}">
+      <span class="logo">${logo}</span><span class="c${waiting && open ? " wait" : ""}">${note}</span></button>`;
+  }).join("");
 }
 
 // For TEC: where we still need people, against the targets for each
@@ -268,7 +299,7 @@ function render() {
 function renderTracker() {
   const t = pathways.tec && pathways.tec.targets;
   const box = $("tracker");
-  if (!t || course === "tgc") { box.classList.add("hidden"); return; }
+  if (!t || (course !== "all" && course !== "tec")) { box.classList.add("hidden"); return; }
   const tec = all.filter((a) => a.brand === "tec");
   box.innerHTML = `<h2>TEC founding staff: where we need people</h2><div class="regions">${t.map((r) => {
     const here = tec.filter((a) => r.regions.includes(a.region));
@@ -420,7 +451,17 @@ $("tabs").addEventListener("click", (e) => {
   render();
 });
 $("q").addEventListener("input", render);
-$("course").addEventListener("change", (e) => { course = e.target.value; render(); });
+window.addEventListener("hashchange", () => {
+  const h = location.hash.slice(1);
+  course = BRANDS.some((b) => b.key === h) ? h : "all";
+  render();
+});
+$("brands").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-brand]"); if (!b) return;
+  course = b.dataset.brand;
+  history.replaceState(null, "", course === "all" ? location.pathname : "#" + course);
+  render();
+});
 
 /* ---------------- the player ----------------
    Videos and documents open on top of the review page. Uploads play
