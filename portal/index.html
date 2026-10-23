@@ -2292,7 +2292,24 @@
       <select id="gi-mode">
         <option value="full">Pay in full — invoice due in 7 days</option>
         <option value="plan">Payment plan — deposit, then monthly</option>
+        <option value="split">Split — the host pays a share, each participant pays the rest</option>
       </select>
+    </div>
+    <div id="gi-splitbox" class="hidden">
+      <div class="grid2">
+        <div class="field">
+          <label for="gi-split-pct">Host pays <span class="hint">% of each place</span></label>
+          <input id="gi-split-pct" type="number" min="1" max="99" step="1" value="50" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="gi-split-days">Days to pay</label>
+          <input id="gi-split-days" type="number" min="1" max="30" step="1" value="3" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field">
+        <label for="gi-split-people">Participants <span class="hint">one per line: First Last, email</span></label>
+        <textarea id="gi-split-people" rows="4" placeholder="Laura Miras, laura@example.com"></textarea>
+      </div>
     </div>
     <div id="gi-planbox" class="hidden">
       <div class="grid2">
@@ -10737,7 +10754,7 @@ async function renderGroupInvoices(course) {
   box.innerHTML = '<p class="whenline">Loading…</p>';
 
   const { data, error } = await db.from("invoices")
-    .select("id, payer_name, business_name, payer_email, places, total_cents, currency, status, due_date, paid_at, hosted_invoice_url, stripe_invoice_number, discount_code, created_at, names_token, names_emailed_at, kind, plan_state, schedule, paid_cents, instalments")
+    .select("id, payer_name, business_name, payer_email, places, total_cents, currency, status, due_date, paid_at, hosted_invoice_url, stripe_invoice_number, discount_code, created_at, names_token, names_emailed_at, kind, plan_state, schedule, paid_cents, instalments, split_role")
     .eq("course_id", course.id)
     .order("created_at", { ascending: false });
 
@@ -10779,8 +10796,16 @@ async function renderGroupInvoices(course) {
 
     const amt = document.createElement("span");
     amt.className = "amt";
-    const filled = usedBy[inv.id] || 0;
-    amt.textContent = money(inv.total_cents || 0, inv.currency) +
+    // A split invoice is half of places already named on the course,
+    // so the names count and names form do not apply to it.
+    const filled = inv.split_role ? inv.places : (usedBy[inv.id] || 0);
+    amt.textContent = inv.split_role
+      ? money(inv.total_cents || 0, inv.currency) +
+        (inv.split_role === "host"
+          ? ` · host's share of ${inv.places} place${inv.places === 1 ? "" : "s"}`
+          : " · participant's share") +
+        (inv.status === "sent" && inv.due_date ? ` · due ${inv.due_date}` : "")
+      : money(inv.total_cents || 0, inv.currency) +
       ` · ${inv.places} place${inv.places === 1 ? "" : "s"}` +
       (inv.status === "paid" ? ` · ${filled} of ${inv.places} named` : "") +
       (inv.status === "paid" && filled < inv.places
@@ -10886,7 +10911,10 @@ async function openInvoiceForm(course) {
   $("gi-count").value = "6";
   $("gi-first").value = giAddMonths(new Date().toISOString().slice(0, 10), 1);
   $("gi-mode").onchange = giMode;
-  for (const id of ["gi-dep", "gi-first"]) $(id).oninput = giSummary;
+  for (const id of ["gi-dep", "gi-first", "gi-split-pct", "gi-split-people"]) $(id).oninput = giSummary;
+  $("gi-split-people").value = "";
+  $("gi-split-pct").value = "50";
+  $("gi-split-days").value = "3";
   $("gi-count").onchange = giSummary;
   giMode();
   $("gi-disctype").value = "pct";
@@ -10943,11 +10971,32 @@ function giAddMonths(isoDate, months) {
 }
 
 function giMode() {
-  const plan = $("gi-mode").value === "plan";
+  const mode = $("gi-mode").value;
+  const plan = mode === "plan", split = mode === "split";
   $("gi-planbox").classList.toggle("hidden", !plan);
-  $("gi-when").textContent = plan ? GI_WHEN_PLAN : GI_WHEN_FULL;
-  $("gi-send").textContent = plan ? "Send payment plan" : "Send invoice";
+  $("gi-splitbox").classList.toggle("hidden", !split);
+  // In a split the places are the participants listed below.
+  $("gi-places").disabled = split;
+  $("gi-when").textContent = plan ? GI_WHEN_PLAN : split ? GI_WHEN_SPLIT : GI_WHEN_FULL;
+  $("gi-send").textContent = plan ? "Send payment plan" : split ? "Send all invoices" : "Send invoice";
   giSummary();
+}
+
+const GI_WHEN_SPLIT = "The host gets one invoice for their share of every place, and each participant gets their own invoice for the rest. Participants are put on the course now, as unpaid. Each one is marked paid in full, and sent their confirmation, only once both their own invoice and the host's are paid.";
+
+// "Laura Miras, laura@example.com" per line → people. Bad lines are
+// returned so the form can say which.
+function giSplitPeople() {
+  const people = [], bad = [];
+  for (const raw of $("gi-split-people").value.split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
+    const m = line.match(/^(.+?)[,;\s]+([^\s,;]+@[^\s,;]+)$/);
+    const name = m ? m[1].trim().split(/\s+/) : [];
+    if (!m || name.length < 2) { bad.push(line); continue; }
+    people.push({ first_name: name.shift(), last_name: name.join(" "), email: m[2] });
+  }
+  return { people, bad };
 }
 
 // Mirrors createPlan() in invoice-admin.mjs, so what is shown here is
@@ -10990,6 +11039,21 @@ function giSummary() {
     reverse ? "Reverse charge — no VAT; the customer accounts for it"
       : rate ? `VAT ${Number(rate.toFixed(2))}%: ${money(vat, cur)}` : "No VAT",
   ].filter(Boolean);
+  if ($("gi-mode") && $("gi-mode").value === "split") {
+    const pct = Number($("gi-split-pct").value) || 0;
+    const n = giSplitPeople().people.length;
+    $("gi-places").value = String(n || 1);
+    const hostUnit = Math.round(unit * pct / 100), partUnit = unit - hostUnit;
+    const gross = (c) => c + Math.round(c * rate / 100);
+    const vatLine = reverse ? "reverse charge on the host's invoice" : rate ? `incl. VAT ${Number(rate.toFixed(2))}%` : "no VAT";
+    $("gi-sum").innerHTML =
+      `<div>Host: ${n} × ${money(hostUnit, cur)} = ${money(hostUnit * n, cur)} + VAT</div>` +
+      `<div class="tot">Host invoice ${money(gross(hostUnit * n), cur)}</div>` +
+      `<div style="margin-top:.5rem">Each participant: ${money(partUnit, cur)} + VAT</div>` +
+      `<div class="tot">${n || "No"} participant invoice${n === 1 ? "" : "s"} of ${money(gross(partUnit), cur)}</div>` +
+      `<div class="hint">${vatLine}</div>`;
+    return;
+  }
   if ($("gi-mode") && $("gi-mode").value === "plan") {
     const sched = giPlanSchedule(taxable, rate);
     const total = sched.reduce((a, x) => a + x.gross, 0);
@@ -11013,6 +11077,7 @@ async function giSend() {
   const dval = Number($("gi-disc").value) || 0;
   const isPct = $("gi-disctype").value === "pct";
   if (dval < 0 || (isPct && dval > 100)) { msg.className = "msg err"; msg.textContent = "Check the discount — a percentage must be between 0 and 100."; return; }
+  if ($("gi-mode").value === "split") return giSendSplit();
   const plan = $("gi-mode").value === "plan";
   if (plan) {
     const pct = Number($("gi-dep").value);
@@ -11051,6 +11116,61 @@ async function giSend() {
                    : "Plan saved, but the email did NOT send — use Copy plan link on the list.")
       : `Sent${r.number ? " — invoice " + r.number : ""}, ${money(r.total_cents, r.currency)}.`;
     setTimeout(() => { $("giwrap").classList.add("hidden"); renderGroupInvoices(giCourse); }, 1500);
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = err.message;
+    $("gi-send").disabled = false;
+  }
+}
+
+async function giSendSplit() {
+  const msg = $("gi-msg");
+  const { people, bad } = giSplitPeople();
+  const pct = Number($("gi-split-pct").value);
+  const days = parseInt($("gi-split-days").value, 10);
+  const fail = (t) => { msg.className = "msg err"; msg.textContent = t; };
+  if (bad.length) return fail("Check these participant lines (First Last, email): " + bad.join(" | "));
+  if (!people.length) return fail("Add the participants, one per line.");
+  if (!(pct >= 1 && pct <= 99)) return fail("The host's share must be between 1% and 99%.");
+  if (!(days >= 1 && days <= 30)) return fail("Days to pay must be between 1 and 30.");
+  if (!$("gi-name").value.trim() || !$("gi-email").value.trim()) return fail("Fill in the host's name and email.");
+
+  const list = people.map((p) => `• ${p.first_name} ${p.last_name} — ${p.email}`).join("\n");
+  if (!window.confirm(
+    `Send ${people.length + 1} invoices, due in ${days} day${days === 1 ? "" : "s"}?\n\n` +
+    `Host: ${$("gi-email").value.trim()}\n${list}\n\n${$("gi-sum").innerText}\n\n` +
+    `The participants are added to the course now, as unpaid.`
+  )) return;
+
+  $("gi-send").disabled = true;
+  msg.className = "msg"; msg.textContent = "Sending…";
+  try {
+    const r = await callInvoice({
+      action: "create_split",
+      course_id: giCourse.id,
+      payer_name: $("gi-name").value,
+      business_name: $("gi-biz").value,
+      payer_email: $("gi-email").value,
+      address_line1: $("gi-a1").value,
+      address_line2: $("gi-a2").value,
+      city: $("gi-city").value,
+      postcode: $("gi-post").value,
+      address_country: $("gi-acountry").value,
+      vat_number: $("gi-vatno").value,
+      vat_country: $("gi-vat").value,
+      unit_price: $("gi-price").value,
+      host_percent: pct,
+      days_until_due: days,
+      participants: people,
+    });
+    const lines = [
+      `Host invoice${r.host.number ? " " + r.host.number : ""}: ${money(r.host.total_cents, r.currency)}`,
+      ...r.participants.map((p) => `${p.name}${p.number ? " " + p.number : ""}: ${money(p.total_cents, r.currency)}`),
+    ];
+    msg.className = r.problems.length ? "msg err" : "msg ok";
+    msg.textContent = "Sent — " + lines.join(" · ") + (r.problems.length ? " — NOT done: " + r.problems.join(" | ") : "");
+    if (!r.problems.length) setTimeout(() => { $("giwrap").classList.add("hidden"); openCourse(currentCourse); }, 2500);
+    else $("gi-send").disabled = false;
   } catch (err) {
     msg.className = "msg err";
     msg.textContent = err.message;

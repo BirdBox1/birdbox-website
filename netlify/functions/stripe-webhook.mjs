@@ -1093,12 +1093,20 @@ async function onGroupInvoicePaid(invoice) {
       last_error: null,
     })
     .eq("id", id)
-    .select("id, course_id, kind, plan_state, paid_cents, total_cents, currency, unit_price_cents, vat_rate, discount_code, discount_percent, discount_amount_cents, payer_name, business_name, payer_email, places, names_token, names_emailed_at, courses ( title, brand )")
+    .select("id, course_id, kind, plan_state, paid_cents, total_cents, currency, unit_price_cents, vat_rate, discount_code, discount_percent, discount_amount_cents, payer_name, business_name, payer_email, places, names_token, names_emailed_at, split_role, split_host_id, courses ( title, brand )")
     .maybeSingle();
 
   if (error) throw new Error("invoices: " + error.message);
   if (!row) {
     console.warn("Paid portal invoice has no row", { id, invoice: invoice.id });
+    return;
+  }
+
+  // Half of a split place (gym share or participant share): the people
+  // are already on the course, so no names form and no registering the
+  // payer — just settle who is now fully paid.
+  if (row.split_role) {
+    await onSplitInvoicePaid(row, invoice);
     return;
   }
 
@@ -1146,6 +1154,69 @@ async function onGroupInvoicePaid(invoice) {
       `copy the form link to them yourself or add each person.`
     );
   }
+}
+
+// A place paid partly by a gym and partly by the participant. Works out,
+// for everyone on the split, what has been paid so far; whoever now has
+// BOTH halves in is paid in full and sent their confirmation. Safe to
+// run twice: the move to paid_in_full is claimed in one update, so a
+// confirmation only ever goes once.
+async function onSplitInvoicePaid(row, invoice) {
+  const hostId = row.split_role === "host" ? row.id : row.split_host_id;
+  if (!hostId) return;
+
+  const [{ data: host }, { data: parts }] = await Promise.all([
+    supabase.from("invoices").select("id, status, total_cents, places, payer_name, business_name").eq("id", hostId).single(),
+    supabase.from("invoices").select("id, status, total_cents").eq("split_host_id", hostId),
+  ]);
+  if (!host) return;
+  const partById = Object.fromEntries((parts || []).map((p) => [p.id, p]));
+  const hostPaid = host.status === "paid";
+  const hostShare = hostPaid ? Math.round((host.total_cents || 0) / Math.max(1, host.places || 1)) : 0;
+
+  const { data: regs } = await supabase
+    .from("registrations")
+    .select("id, course_id, first_name, last_name, email, payment_status, status, invoice_id")
+    .in("invoice_id", Object.keys(partById).length ? Object.keys(partById) : ["00000000-0000-0000-0000-000000000000"]);
+
+  const nowFull = [];
+  for (const reg of regs || []) {
+    if ((reg.status || "active") !== "active" || reg.payment_status === "refunded") continue;
+    const own = partById[reg.invoice_id];
+    const ownPaid = own && own.status === "paid";
+    const paid = (ownPaid ? own.total_cents || 0 : 0) + hostShare;
+    const both = ownPaid && hostPaid;
+
+    if (both) {
+      const { data: claimed } = await supabase.from("registrations")
+        .update({ amount_paid_cents: paid, payment_status: "paid_in_full" })
+        .eq("id", reg.id).neq("payment_status", "paid_in_full")
+        .select("id");
+      if (claimed && claimed.length) {
+        await sendConfirmation({
+          courseId: reg.course_id, email: reg.email, firstName: reg.first_name,
+          option: "full", balanceCents: 0, online: null,
+        });
+        nowFull.push(`${reg.first_name} ${reg.last_name}`);
+      }
+    } else {
+      await supabase.from("registrations")
+        .update({ amount_paid_cents: paid, payment_status: paid > 0 ? "deposit_paid" : "pending" })
+        .eq("id", reg.id).neq("payment_status", "paid_in_full");
+    }
+  }
+
+  const who = row.split_role === "host" ? (host.business_name || host.payer_name) : row.payer_name;
+  const course = (row.courses && row.courses.title) || "a course";
+  const waiting = (regs || []).length - nowFull.length;
+  await alert(
+    "Split invoice paid",
+    `${who} has paid invoice ${invoice.number || invoice.id} ` +
+    `(${row.split_role === "host" ? "the host's share" : "their own share"}) for ${course}.\n\n` +
+    (nowFull.length ? `Now paid in full and sent their confirmation: ${nowFull.join(", ")}.\n` : "") +
+    (hostPaid ? "" : "Still waiting on the host's invoice.\n") +
+    (waiting > 0 && hostPaid ? "Some participants have still to pay their share.\n" : "")
+  );
 }
 
 // Registers the payer themselves on a one-place invoice or plan, the
