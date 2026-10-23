@@ -7327,10 +7327,22 @@ function wireMessages() {
     loadCourses();
   };
 
+  // Empties the box and tells the draft-saver (message-files.js), so a
+  // sent message is not kept as a draft and put back later.
+  const emptyBox = (box) => {
+    box.value = "";
+    box.dispatchEvent(new Event("input"));
+  };
+
   const send = async () => {
     if (!dmWith) return;
     const box = $("dm-box");
     const msg = $("dm-msg");
+    // On an iPad the word being typed is still held by predictive text
+    // when Send is tapped. Leaving the box first commits it, so the
+    // message is complete — and iOS cannot commit it again afterwards
+    // and put the whole message back into an emptied box.
+    box.blur();
     const body = box.value.trim();
     if (!body) return;
 
@@ -7347,7 +7359,12 @@ function wireMessages() {
 
     if (error) { msg.textContent = "Could not send: " + error.message; return; }
 
-    box.value = "";
+    emptyBox(box);
+    // Belt and braces for the keyboard putting the text back late:
+    // if what reappears is exactly what was sent, empty it again.
+    const again = () => { if (box.value.trim() === body) emptyBox(box); };
+    setTimeout(again, 150);
+    setTimeout(again, 700);
     msg.textContent = "";
     await openThread(dmWith);
   };
