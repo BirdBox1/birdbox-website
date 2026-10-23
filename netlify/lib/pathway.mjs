@@ -21,6 +21,7 @@
 //                never sent to the public form)
 export const PATHWAYS = {
   tgc: { short: "TGC", name: "The Gymnastics Course", title: "TGC Staff Pathway", paid: true, needsCourse: "tgc", coachingVideo: true, askEducation: true },
+  tcc: { short: "TCC", name: "The Coaches Course", title: "TCC Staff Pathway", paid: true, needsCourse: "tcc", coachingVideo: true, askEducation: true },
   tec: {
     short: "TEC", name: "The Endurance Course", title: "TEC Founding Staff", paid: false, needsCourse: null, askEducation: true,
     targets: [
@@ -38,6 +39,7 @@ export const PATHWAYS = {
 
 export const MOVEMENTS = {
   tec: [],
+  tcc: [],
   twc: [
     { group: "Lifts", name: "Snatch" },
     { group: "Lifts", name: "Clean and jerk" },
