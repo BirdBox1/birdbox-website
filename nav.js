@@ -57,6 +57,7 @@
   // ---- Navigation -------------------------------------------------------
   var LINKS = [
     { href: "/merch", text: "Merch Store" },
+    { href: "/gift/", text: "Gift Cards" },
     { href: "/blog", text: "Blog" },
     { href: "/trainer-directory", text: "Trainer Directory" },
     { href: "/birdbox-team/", text: "Meet the Team" },

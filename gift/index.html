@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gift Cards — BirdBox Coaching</title>
+<meta name="description" content="Give a BirdBox Coaching gift card: spend it on any seminar or online course. Emailed on the day you choose, with a card to print.">
+<link rel="icon" href="/brand/birdbox-mark.png">
+<!--
+  Gift cards. The page only collects the choices; the price is checked
+  and the Stripe Checkout made by netlify/functions/gift-checkout. The
+  card is issued and emailed by the Stripe webhook once paid — see
+  netlify/lib/gift-cards.mjs for how cards work.
+-->
+<style>
+  :root {
+    --paper: #14100F; --panel: #1C1719; --ink: #F2EFEF; --muted: #8A8385;
+    --line: #342F31; --accent: #2f7fd0; --accentText: #6FB9E8; --err: #ff8a80; --good: #7fd99a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--ink);
+    -webkit-font-smoothing: antialiased; font-size: 17px; line-height: 1.55;
+  }
+  .bb-topbar {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 28px;
+    padding: 16px 24px; border-bottom: 1px solid var(--line);
+    font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .bb-topbar a { color: #ADA6A8; text-decoration: none; }
+  .bb-topbar a:hover { color: #fff; }
+
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 48px 16px 80px; display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+  @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; gap: 32px; padding-top: 32px; } }
+
+  .kicker { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accentText); font-weight: 700; margin: 0 0 12px; }
+  h1 { font-size: clamp(32px, 5vw, 48px); line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 16px; }
+  .lead { color: #C9C3C5; margin: 0 0 28px; }
+
+  /* the card itself, which updates as they choose */
+  .card {
+    aspect-ratio: 1.6 / 1; border-radius: 16px; padding: 28px; position: relative; overflow: hidden;
+    background: radial-gradient(120% 140% at 100% 0%, #2a2e35 0%, #16181b 55%, #0d0e10 100%);
+    border: 1px solid #2c3036; box-shadow: 0 30px 60px -30px rgba(0,0,0,0.8);
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .card .top { display: flex; align-items: center; gap: 12px; }
+  .card .mark { width: 40px; height: 40px; border-radius: 6px; background: #fff; display: grid; place-items: center; flex: none; }
+  .card .mark img { width: 30px; height: 30px; object-fit: contain; }
+  .card .brand { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #9aa1a9; }
+  .card .amt { font-size: clamp(44px, 9vw, 68px); font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+  .card .for { color: #c9ccd0; font-size: 15px; min-height: 1.4em; }
+  .card .stripes { position: absolute; right: -40px; bottom: -40px; width: 220px; height: 220px; opacity: 0.5; pointer-events: none; }
+  .uses { list-style: none; padding: 0; margin: 24px 0 0; display: grid; gap: 10px; color: #C9C3C5; font-size: 15px; }
+  .uses li { padding-left: 26px; position: relative; }
+  .uses li::before { content: "✓"; position: absolute; left: 0; color: var(--accentText); font-weight: 800; }
+
+  form { display: grid; gap: 22px; }
+  .step { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin: 0 0 10px; }
+  .amounts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  @media (max-width: 420px) { .amounts { grid-template-columns: repeat(2, 1fr); } }
+  .amounts button {
+    font: inherit; font-weight: 700; color: var(--ink); background: var(--panel); border: 1px solid #3a3436;
+    border-radius: 8px; padding: 14px 6px; cursor: pointer;
+  }
+  .amounts button:hover { border-color: #5e575a; }
+  .amounts button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+  label { display: block; font-size: 14px; font-weight: 650; margin-bottom: 6px; color: #D6D0D2; }
+  label small { font-weight: 400; color: var(--muted); }
+  input, select, textarea {
+    width: 100%; background: var(--panel); color: var(--ink); border: 1px solid #3a3436; border-radius: 8px;
+    padding: 12px 13px; font: inherit; font-size: 16px;
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .custom { margin-top: 10px; display: none; }
+  .custom.show { display: block; }
+  .hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { font: inherit; font-size: 15px; color: var(--ink); background: var(--panel); border: 1px solid #3a3436; border-radius: 8px; padding: 12px; cursor: pointer; text-align: left; }
+  .seg button b { display: block; }
+  .seg button span { color: var(--muted); font-size: 13px; }
+  .seg button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .hide { display: none !important; }
+  .go { width: 100%; background: var(--accent); color: #fff; border: 0; font: inherit; font-weight: 800; font-size: 17px; padding: 16px; border-radius: 8px; cursor: pointer; }
+  .go[disabled] { opacity: 0.6; cursor: default; }
+  .err { color: var(--err); margin: 0; font-size: 15px; }
+  .small { color: var(--muted); font-size: 13px; margin: 0; }
+
+  .paid { max-width: 640px; margin: 0 auto; padding: 72px 16px 96px; text-align: center; }
+  .paid h1 { margin-bottom: 12px; }
+  .paid a { color: var(--accentText); }
+</style>
+</head>
+<body>
+<nav class="bb-topbar"></nav>
+
+<section class="paid hide" id="paid">
+  <p class="kicker">Thank you</p>
+  <h1>Your gift card is on its way</h1>
+  <p class="lead">We have emailed you the card and its code, with a link to a version you can print. If you chose to send it to someone, it goes to them on the day you picked.</p>
+  <p class="small">Nothing in your inbox within a few minutes? Check spam, or email <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a>.</p>
+</section>
+
+<main class="wrap" id="shop">
+  <div>
+    <p class="kicker">Gift cards</p>
+    <h1>Give someone their next course</h1>
+    <p class="lead">A BirdBox Coaching gift card can be spent on any seminar or online course: gymnastics, coaching, endurance or weightlifting. We email it on the day you choose, and you get a version to print too.</p>
+
+    <div class="card" aria-live="polite">
+      <div class="top">
+        <div class="mark"><img src="/brand/birdbox-mark.png" alt=""></div>
+        <div class="brand">BirdBox Coaching<br>Gift card</div>
+      </div>
+      <div>
+        <div class="amt" id="cardAmt">€250</div>
+        <div class="for" id="cardFor"></div>
+      </div>
+      <svg class="stripes" viewBox="0 0 200 200" aria-hidden="true">
+        <g stroke="#2f7fd0" stroke-width="10" fill="none" opacity="0.6">
+          <path d="M0 200 L200 0"/><path d="M40 200 L200 40"/><path d="M80 200 L200 80"/>
+        </g>
+      </svg>
+    </div>
+
+    <ul class="uses">
+      <li>Spend it on any seminar or online course</li>
+      <li>Valid for <span id="monthsText">24</span> months from the day it is bought</li>
+      <li>If the course costs less, the rest stays on the card for next time</li>
+    </ul>
+  </div>
+
+  <form id="form" novalidate>
+    <div>
+      <p class="step">1 · Amount</p>
+      <div class="row" style="grid-template-columns: 1fr 140px; margin-bottom: 10px;">
+        <div></div>
+        <select id="currency" aria-label="Currency"></select>
+      </div>
+      <div class="amounts" id="amounts"></div>
+      <div class="custom" id="customWrap">
+        <label for="custom">Your amount</label>
+        <input id="custom" type="number" inputmode="numeric" min="50" step="1">
+        <p class="hint" id="customHint"></p>
+      </div>
+    </div>
+
+    <div>
+      <p class="step">2 · Who is it for?</p>
+      <div class="row">
+        <div>
+          <label for="recipientName">Their name</label>
+          <input id="recipientName" type="text" autocomplete="off" maxlength="80">
+        </div>
+        <div>
+          <label for="fromName">From</label>
+          <input id="fromName" type="text" autocomplete="name" maxlength="80" required>
+        </div>
+      </div>
+      <div style="margin-top: 12px;">
+        <label for="message">Message <small>(optional)</small></label>
+        <textarea id="message" maxlength="400" placeholder="Happy birthday! Time to finally get that muscle-up."></textarea>
+      </div>
+    </div>
+
+    <div>
+      <p class="step">3 · How should it arrive?</p>
+      <div class="seg" id="how">
+        <button type="button" data-how="email" aria-pressed="true"><b>We email it to them</b><span>On the day you choose</span></button>
+        <button type="button" data-how="me" aria-pressed="false"><b>Send it to me</b><span>To print or pass on yourself</span></button>
+      </div>
+      <div class="row" id="emailRow" style="margin-top: 12px;">
+        <div>
+          <label for="recipientEmail">Their email</label>
+          <input id="recipientEmail" type="email" autocomplete="off">
+        </div>
+        <div>
+          <label for="sendOn">Send on</label>
+          <input id="sendOn" type="date">
+        </div>
+      </div>
+      <p class="hint">Either way, you get the card and a printable version as soon as you have paid.</p>
+    </div>
+
+    <p class="err hide" id="err" role="alert"></p>
+    <button class="go" id="go" type="submit">Continue to secure checkout →</button>
+    <p class="small">Card payment through Stripe. Spend the card on any course priced in the same currency. Gift cards are not refundable or exchangeable for cash.</p>
+  </form>
+</main>
+
+<script src="/nav.js"></script>
+<script>
+(function () {
+  var API = "/.netlify/functions/gift-checkout";
+  var SYMBOL = { EUR: "€", GBP: "£", USD: "US$", AUD: "A$", CAD: "C$" };
+  var $ = function (id) { return document.getElementById(id); };
+  var cfg = { presets: [100, 250, 500], min: 50, max: 3000, currencies: ["EUR", "GBP", "USD", "AUD", "CAD"], currency: "EUR", months: 24 };
+  var st = { amount: 250, custom: false, how: "email" };
+
+  if (new URLSearchParams(location.search).get("paid")) {
+    $("shop").classList.add("hide");
+    $("paid").classList.remove("hide");
+    return;
+  }
+
+  function sym() { return SYMBOL[$("currency").value] || $("currency").value + " "; }
+  function amount() { return st.custom ? parseInt($("custom").value, 10) : st.amount; }
+
+  function paintCard() {
+    var a = amount();
+    $("cardAmt").textContent = sym() + (a > 0 ? a.toLocaleString("en-GB") : "—");
+    var to = $("recipientName").value.trim(), from = $("fromName").value.trim();
+    $("cardFor").textContent = (to ? "For " + to : "") + (to && from ? " · " : "") + (from ? "From " + from : "");
+  }
+
+  function drawAmounts() {
+    var box = $("amounts");
+    box.innerHTML = "";
+    cfg.presets.concat(["other"]).forEach(function (p) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = p === "other" ? "Other" : sym() + p;
+      b.setAttribute("aria-pressed", String(p === "other" ? st.custom : !st.custom && st.amount === p));
+      b.onclick = function () {
+        if (p === "other") { st.custom = true; } else { st.custom = false; st.amount = p; }
+        $("customWrap").classList.toggle("show", st.custom);
+        drawAmounts(); paintCard();
+        if (st.custom) $("custom").focus();
+      };
+      box.appendChild(b);
+    });
+    $("customHint").textContent = "Between " + sym() + cfg.min + " and " + sym() + cfg.max.toLocaleString("en-GB") + ", whole numbers.";
+  }
+
+  function setup() {
+    var c = $("currency");
+    c.innerHTML = "";
+    cfg.currencies.forEach(function (x) { var o = document.createElement("option"); o.value = x; o.textContent = x; c.appendChild(o); });
+    c.value = cfg.currency;
+    c.onchange = function () { drawAmounts(); paintCard(); };
+    $("custom").min = cfg.min; $("custom").max = cfg.max;
+    $("monthsText").textContent = cfg.months;
+    var today = new Date();
+    var iso = function (d) { return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+    $("sendOn").value = iso(today);
+    $("sendOn").min = iso(today);
+    $("sendOn").max = iso(new Date(today.getTime() + 365 * 86400000));
+    drawAmounts(); paintCard();
+  }
+
+  ["custom", "recipientName", "fromName"].forEach(function (id) { $(id).addEventListener("input", paintCard); });
+
+  Array.prototype.forEach.call(document.querySelectorAll("#how button"), function (b) {
+    b.onclick = function () {
+      st.how = b.getAttribute("data-how");
+      Array.prototype.forEach.call(document.querySelectorAll("#how button"), function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      $("emailRow").classList.toggle("hide", st.how !== "email");
+    };
+  });
+
+  function fail(msg, focusId) {
+    $("err").textContent = msg;
+    $("err").classList.remove("hide");
+    if (focusId) $(focusId).focus();
+  }
+
+  $("form").onsubmit = function (e) {
+    e.preventDefault();
+    $("err").classList.add("hide");
+    var a = amount();
+    if (!(a >= cfg.min && a <= cfg.max) || a % 1) return fail("Choose an amount between " + sym() + cfg.min + " and " + sym() + cfg.max.toLocaleString("en-GB") + ".", "custom");
+    if (!$("fromName").value.trim()) return fail("Tell us who the card is from.", "fromName");
+    var email = st.how === "email" ? $("recipientEmail").value.trim() : "";
+    if (st.how === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("Enter their email, or choose Send it to me.", "recipientEmail");
+
+    var go = $("go");
+    go.disabled = true;
+    go.textContent = "Opening checkout…";
+    fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: a,
+        currency: $("currency").value,
+        from_name: $("fromName").value.trim(),
+        recipient_name: $("recipientName").value.trim(),
+        recipient_email: email,
+        message: $("message").value.trim(),
+        send_on: st.how === "email" ? $("sendOn").value : "",
+      }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.url) { location.href = d.url; return; }
+        throw new Error((d && d.error) || "Checkout could not start.");
+      })
+      .catch(function (err) {
+        go.disabled = false;
+        go.textContent = "Continue to secure checkout →";
+        fail(err.message + " Please try again, or email info@birdboxcoaching.com.");
+      });
+  };
+
+  setup();
+  fetch(API).then(function (r) { return r.json(); }).then(function (d) {
+    if (!d || !d.currencies) return;
+    cfg = d;
+    setup();
+  }).catch(function () {});
+})();
+</script>
+</body>
+</html>

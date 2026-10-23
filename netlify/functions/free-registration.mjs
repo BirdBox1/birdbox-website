@@ -16,6 +16,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { priceWithDiscount } from "./validate-discount.mjs";
 import { sendConfirmation } from "./stripe-webhook.mjs";
+import { redeemCard } from "../lib/gift-cards.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -54,7 +55,7 @@ export default async (req) => {
     // ---- the course -------------------------------------------
     const { data: course, error: cErr } = await supabase
       .from("courses")
-      .select("id, brand, type, level, title, slug, price_cents, deposit_cents, currency, capacity, status, starts_at, ends_at, grants_online_course")
+      .select("id, brand, type, level, title, slug, price_cents, deposit_cents, currency, capacity, status, starts_at, ends_at, grants_online_course, country")
       .eq("slug", slug)
       .single();
 
@@ -106,6 +107,21 @@ export default async (req) => {
       }, 409);
     }
 
+    // ---- a gift card that covers the lot -----------------------
+    // Taken off the card BEFORE the place is written, so the same card
+    // cannot be spent twice at once. Put back if the place fails.
+    const gift = priced.gift || null;
+    const giftKey = gift ? "free:" + crypto.randomUUID() : null;
+    if (gift) {
+      const left = await redeemCard({
+        cardId: gift.id, cents: gift.covered, session: giftKey,
+        usedFor: "seminar " + course.slug,
+      });
+      if (left === null) {
+        return json({ error: "That gift card could not be used. Please try again, or email " + OFFICE + "." }, 409);
+      }
+    }
+
     // ---- write it ---------------------------------------------
     const { data: registration, error: rErr } = await supabase
       .from("registrations")
@@ -127,7 +143,7 @@ export default async (req) => {
         // free text — inventing a fifth value here failed the insert
         // and, worse, reported it as the course being full.
         source: "manual",
-        source_note: `Free place, code ${priced.row.code}` +
+        source_note: gift ? `Paid by gift card ${priced.row.code}` : `Free place, code ${priced.row.code}` +
           (priced.row.label ? ` — ${priced.row.label}` : ""),
       })
       .select("id")
@@ -135,6 +151,7 @@ export default async (req) => {
 
     if (rErr) {
       console.error("Free registration failed", { slug, email, error: rErr });
+      if (gift) await giveBack(gift, giftKey);
 
       // A check constraint could be the capacity trigger or something
       // else entirely, so only say "full" when the seats agree. Saying
@@ -160,9 +177,14 @@ export default async (req) => {
       status: "paid",
     });
 
+    if (gift) {
+      await supabase.from("gift_card_redemptions").update({ registration_id: registration.id }).eq("stripe_session_id", giftKey);
+    }
+
     // ---- burn the redemption ----------------------------------
     // This is what stops a host code being shared beyond its two uses.
-    const { error: bumpErr } = await supabase.rpc("bump_discount_redemption", {
+    // A gift card has no discount_codes row to count.
+    const { error: bumpErr } = gift ? { error: null } : await supabase.rpc("bump_discount_redemption", {
       p_code: priced.row.code,
       p_course_id: course.id,
     });
@@ -192,6 +214,13 @@ export default async (req) => {
     return json({ error: "Could not complete that registration" }, 500);
   }
 };
+
+// The place could not be written: put the money back on the card.
+async function giveBack(gift, key) {
+  const { data: card } = await supabase.from("gift_cards").select("balance_cents").eq("id", gift.id).single();
+  if (card) await supabase.from("gift_cards").update({ balance_cents: card.balance_cents + gift.covered }).eq("id", gift.id);
+  await supabase.from("gift_card_redemptions").delete().eq("stripe_session_id", key);
+}
 
 async function alert(subject, text) {
   const key = process.env.RESEND_API_KEY;

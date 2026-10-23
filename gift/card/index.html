@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Your Gift Card — BirdBox Coaching</title>
+<link rel="icon" href="/brand/birdbox-mark.png">
+<!--
+  The printable gift card. Reached from the link in the gift card
+  emails (?t=TOKEN). Its details come from
+  netlify/functions/gift-card-view. Prints as a single A4 page; on a
+  phone, Print -> Save as PDF gives a file to forward.
+-->
+<style>
+  :root { --paper: #f4f2ee; --ink: #16181b; --muted: #6b6f75; --accent: #2f7fd0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); }
+  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.5; }
+  .page { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
+  .tools { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .tools a { color: var(--muted); font-size: 14px; }
+  .print { background: var(--ink); color: #fff; border: 0; font: inherit; font-weight: 700; padding: 11px 18px; border-radius: 8px; cursor: pointer; }
+
+  .card {
+    aspect-ratio: 1.6 / 1; border-radius: 18px; padding: clamp(20px, 5vw, 40px); position: relative; overflow: hidden; color: #fff;
+    background: radial-gradient(120% 140% at 100% 0%, #2a2e35 0%, #16181b 55%, #0d0e10 100%);
+    display: flex; flex-direction: column; justify-content: space-between;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .card .top { display: flex; align-items: center; gap: 14px; }
+  .mark { width: 48px; height: 48px; border-radius: 7px; background: #fff; display: grid; place-items: center; flex: none; }
+  .mark img { width: 36px; height: 36px; object-fit: contain; }
+  .brand { font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: #9aa1a9; }
+  .amt { font-size: clamp(48px, 12vw, 88px); font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+  .for { color: #c9ccd0; font-size: clamp(14px, 2.4vw, 18px); margin-top: 8px; }
+  .stripes { position: absolute; right: -50px; bottom: -50px; width: 280px; height: 280px; opacity: 0.5; }
+
+  .message { font-size: 19px; white-space: pre-line; margin: 32px 0 0; padding-left: 18px; border-left: 3px solid #c9ccd0; }
+  .details { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; margin: 32px 0 0; padding: 22px 24px; background: #fff; border-radius: 12px; border: 1px solid #e3dfd8; }
+  @media (max-width: 520px) { .details { grid-template-columns: 1fr; } }
+  .details dt { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .details dd { margin: 2px 0 0; font-size: 17px; font-weight: 650; }
+  .code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 24px !important; letter-spacing: 0.06em; }
+  .how { margin: 28px 0 0; color: #33363a; }
+  .how ol { padding-left: 20px; margin: 8px 0 0; }
+  .note { color: var(--muted); font-size: 14px; margin-top: 24px; }
+  .state { padding: 80px 0; text-align: center; color: var(--muted); }
+  .spent { background: #fff3cd; border: 1px solid #e6cf7a; padding: 12px 14px; border-radius: 8px; margin: 0 0 20px; }
+
+  @media print {
+    @page { size: A4; margin: 14mm; }
+    html, body { background: #fff; }
+    .tools { display: none; }
+    .page { padding: 0; max-width: none; }
+    .details { border-color: #ccc; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="tools">
+    <a href="/">birdboxcoaching.com</a>
+    <button class="print" type="button" onclick="window.print()">Print or save as PDF</button>
+  </div>
+  <div id="out"><p class="state">Loading your gift card…</p></div>
+</div>
+
+<script>
+(function () {
+  var out = document.getElementById("out");
+  var SYMBOL = { EUR: "€", GBP: "£", USD: "US$", AUD: "A$", CAD: "C$" };
+  function money(c, cur) {
+    var n = c / 100;
+    return (SYMBOL[cur] || cur + " ") + (n % 1 ? n.toFixed(2) : n.toLocaleString("en-GB"));
+  }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function date(iso) { return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }); }
+
+  var t = new URLSearchParams(location.search).get("t") || "";
+  fetch("/.netlify/functions/gift-card-view?t=" + encodeURIComponent(t))
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d || d.error) throw new Error((d && d.error) || "We couldn't find this gift card");
+      out.innerHTML = "";
+
+      if (!d.active || d.balance_cents <= 0) {
+        out.appendChild(el("p", "spent", d.balance_cents <= 0 ? "This gift card has been used up." : "This gift card has expired."));
+      }
+
+      var card = el("div", "card");
+      var top = el("div", "top");
+      var mark = el("div", "mark");
+      var img = el("img"); img.src = "/brand/birdbox-mark.png"; img.alt = "";
+      mark.appendChild(img);
+      var brand = el("div", "brand"); brand.innerHTML = "BirdBox Coaching<br>Gift card";
+      top.appendChild(mark); top.appendChild(brand);
+      var bottom = el("div");
+      bottom.appendChild(el("div", "amt", money(d.amount_cents, d.currency)));
+      var who = (d.recipient_name ? "For " + d.recipient_name : "") + (d.recipient_name && d.from_name ? " · " : "") + (d.from_name ? "From " + d.from_name : "");
+      if (who) bottom.appendChild(el("div", "for", who));
+      card.appendChild(top); card.appendChild(bottom);
+      card.insertAdjacentHTML("beforeend", '<svg class="stripes" viewBox="0 0 200 200" aria-hidden="true"><g stroke="#2f7fd0" stroke-width="10" fill="none" opacity="0.6"><path d="M0 200 L200 0"/><path d="M40 200 L200 40"/><path d="M80 200 L200 80"/></g></svg>');
+      out.appendChild(card);
+
+      if (d.message) out.appendChild(el("p", "message", d.message));
+
+      var dl = el("dl", "details");
+      function pair(k, v, cls) { var w = el("div"); w.appendChild(el("dt", null, k)); w.appendChild(el("dd", cls, v)); dl.appendChild(w); }
+      pair("Code", d.code, "code");
+      pair("Valid until", date(d.expires_at));
+      if (d.balance_cents !== d.amount_cents) pair("Left on the card", money(d.balance_cents, d.currency));
+      out.appendChild(dl);
+
+      var how = el("div", "how");
+      how.appendChild(el("b", null, "How to use it"));
+      var ol = el("ol");
+      ["Choose any seminar or online course on birdboxcoaching.com priced in " + d.currency + ".",
+       "Enter the code where it says “Have a discount code or gift card?” (online courses: “Have a gift card?”).",
+       "The card pays towards the price. Anything left stays on the card for next time."].forEach(function (s) { ol.appendChild(el("li", null, s)); });
+      how.appendChild(ol);
+      out.appendChild(how);
+
+      out.appendChild(el("p", "note", "Questions? info@birdboxcoaching.com"));
+    })
+    .catch(function (e) {
+      out.innerHTML = "";
+      out.appendChild(el("p", "state", e.message + ". Check the link in your email, or contact info@birdboxcoaching.com."));
+    });
+})();
+</script>
+</body>
+</html>

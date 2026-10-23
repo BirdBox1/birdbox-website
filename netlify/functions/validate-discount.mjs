@@ -9,6 +9,7 @@
 // anyone could list every live code.
 
 import { createClient } from "@supabase/supabase-js";
+import { looksLikeGift, findCard, applyCard, seminarVatPercent } from "../lib/gift-cards.mjs";
 
 // Must match create-checkout.mjs
 const DEPOSIT_RATE = 0.25;
@@ -34,7 +35,7 @@ export default async (req) => {
     // create-checkout passes it through fine.
     const { data: course } = await supabase
       .from("courses")
-      .select("id, brand, type, price_cents, deposit_cents, currency, status, starts_at")
+      .select("id, brand, type, price_cents, deposit_cents, currency, status, starts_at, country")
       .eq("slug", slug)
       .single();
 
@@ -51,6 +52,12 @@ export default async (req) => {
       total_cents: result.total,
       deposit_cents: result.deposit,
       free: !!result.free,
+      // A gift card: what it pays (VAT included) and what is left on it.
+      gift: result.gift ? {
+        covered_cents: result.gift.covered,
+        balance_after_cents: result.gift.balanceAfter,
+        currency: result.gift.currency,
+      } : null,
     });
   } catch (err) {
     console.error("validate-discount failed:", err);
@@ -62,6 +69,9 @@ export default async (req) => {
 export async function priceWithDiscount(course, code) {
   const clean = String(code || "").trim();
   if (!clean) return { error: "Enter a code" };
+
+  // Gift cards live in their own table and carry a balance.
+  if (looksLikeGift(clean)) return priceWithGiftCard(course, clean);
 
   const { data: rows } = await supabase
     .from("discount_codes")
@@ -159,6 +169,33 @@ export async function priceWithDiscount(course, code) {
     : Math.round(total * DEPOSIT_RATE);
 
   return { row, discount, total, deposit, free };
+}
+
+// A gift card pays towards the price including VAT; whatever it does
+// not cover is paid by card as normal. The deposit and monthly options
+// still work, worked out on what is left. See netlify/lib/gift-cards.mjs.
+async function priceWithGiftCard(course, code) {
+  const found = await findCard(code, course.currency);
+  if (found.error) return { error: found.error };
+  const card = found.card;
+
+  const vatPercent = await seminarVatPercent(course);
+  const a = applyCard(card, course.price_cents, vatPercent);
+  if (a.covered <= 0) return { error: "That gift card cannot be used on this course" };
+
+  const total = a.remainingNet;
+  const deposit = course.deposit_cents
+    ? Math.min(course.deposit_cents, total)
+    : Math.round(total * DEPOSIT_RATE);
+
+  return {
+    row: { code: card.code, label: "Gift card" },
+    discount: a.discountNet,
+    total,
+    deposit,
+    free: a.free,
+    gift: { id: card.id, covered: a.covered, balanceAfter: a.balanceAfter, currency: card.currency },
+  };
 }
 
 function json(body, status = 200) {
