@@ -92,6 +92,7 @@
   .gift__logo { height: 64px; width: auto; filter: invert(1) brightness(.92); }
   .gift__label { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #9aa1a9; }
   .gift__amt { font-size: clamp(44px, 7vw, 68px); font-weight: 800; line-height: .9; color: #c9a24a; letter-spacing: -0.02em; }
+  .gift__name { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #9aa1a9; margin-top: 10px; }
   .gift__bars { position: absolute; right: 0; top: 0; bottom: 0; width: 6%; display: grid; grid-template-rows: repeat(4, 1fr); }
   .gift__bars i:nth-child(1) { background: #85151A; } .gift__bars i:nth-child(2) { background: #298DE9; }
   .gift__bars i:nth-child(3) { background: #10502C; } .gift__bars i:nth-child(4) { background: #F1A509; }
@@ -200,7 +201,7 @@
   <section class="gift" aria-label="Gift cards">
     <div class="gift__card" aria-hidden="true">
       <div class="gift__top"><img class="gift__logo" src="/brand/birdBox.png" alt=""><span class="gift__label">Gift card</span></div>
-      <div class="gift__amt">€250</div>
+      <div><div class="gift__amt">€250</div><div class="gift__name">BirdBox Coaching</div></div>
       <div class="gift__bars"><i></i><i></i><i></i><i></i></div>
     </div>
     <div class="gift__copy">

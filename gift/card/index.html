@@ -77,10 +77,11 @@
   .gc { position: absolute; left: 11cqw; top: 34cqw; width: 78cqw; aspect-ratio: 85.6 / 54; border-radius: 3.6cqw; background: var(--ink); color: #fff; padding: 5.5cqw; display: flex; flex-direction: column; justify-content: space-between; transform: rotate(-7deg); overflow: hidden; box-shadow: 0 4cqw 7cqw -3cqw rgba(0,0,0,.45); }
   .gc .top { display: flex; align-items: flex-start; justify-content: space-between; padding-right: 5cqw; }
   /* brand/birdBox.png is dark grey on transparent; inverted it reads as silver on the black card */
-  .gc .logo { height: 17cqw; filter: invert(1) brightness(.92); }
+  .gc .logo { height: 13cqw; filter: invert(1) brightness(.92); }
   .gc .brand { font-size: 2.6cqw; letter-spacing: .2em; text-transform: uppercase; color: #9aa1a9; line-height: 1.4; text-align: right; }
-  .gc .amt { font-family: var(--display); font-weight: 800; font-size: 15cqw; line-height: .85; color: var(--gold); white-space: nowrap; }
-  .gc .amt.long { font-size: 12cqw; }
+  .gc .amt { font-family: var(--display); font-weight: 800; font-size: 13.5cqw; line-height: .85; color: var(--gold); white-space: nowrap; }
+  .gc .amt.long { font-size: 11cqw; }
+  .gc .name { font-size: 2.6cqw; letter-spacing: .2em; text-transform: uppercase; color: #9aa1a9; margin-top: 2.2cqw; }
   .gc .bars { position: absolute; right: 0; top: 0; bottom: 0; width: 5cqw; display: grid; grid-template-rows: repeat(4, 1fr); }
   .gc .bars i:nth-child(1) { background: var(--tgc); } .gc .bars i:nth-child(2) { background: var(--tcc); }
   .gc .bars i:nth-child(3) { background: var(--tec); } .gc .bars i:nth-child(4) { background: var(--twc); }
@@ -174,7 +175,10 @@
     top.appendChild(logo); top.appendChild(brand);
     var amt = money(d.amount_cents, d.currency);
     gc.appendChild(top);
-    gc.appendChild(el("div", "amt" + (amt.length > 6 ? " long" : ""), amt));
+    var foot = el("div");
+    foot.appendChild(el("div", "amt" + (amt.length > 6 ? " long" : ""), amt));
+    foot.appendChild(el("div", "name", "BirdBox Coaching"));
+    gc.appendChild(foot);
     var bars = el("div", "bars"); for (var i = 0; i < 4; i++) bars.appendChild(el("i"));
     gc.appendChild(bars);
     p.appendChild(gc);
