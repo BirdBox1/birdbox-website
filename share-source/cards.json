@@ -1,0 +1,42 @@
+[
+  {"file": "home", "page": "index.html", "brand": "birdbox", "photo": "home-bg.jpeg", "kick": "BirdBox Coaching", "title": "Develop better coaches", "sub": "Live seminars and online courses in gymnastics and coaching, around the world."},
+  {"file": "about", "page": "about/index.html", "brand": "birdbox", "photo": "brand/NG-6999.jpg", "kick": "BirdBox Coaching", "title": "About BirdBox", "sub": "Who we are and how we teach coaches."},
+  {"file": "team", "page": "birdbox-team/index.html", "brand": "birdbox", "photo": "tgc/staff-pathway/img/whiteboard.jpg", "kick": "BirdBox Coaching", "title": "Meet the team", "sub": "The coaches who teach our seminars and courses."},
+  {"file": "blog", "page": "blog/index.html", "brand": "birdbox", "photo": "brand/NG-6524.jpg", "kick": "BirdBox Coaching", "title": "The BirdBox blog", "sub": "Coaching, gymnastics and programming, written by our coaches."},
+  {"file": "seminars", "page": "seminars/index.html", "brand": "birdbox", "photo": "brand/NG-7332.jpg", "kick": "BirdBox Coaching", "title": "Upcoming seminars", "sub": "Live TGC and TCC seminars near you."},
+  {"file": "directory", "page": "trainer-directory/index.html", "brand": "birdbox", "photo": "trainer-directory/hero-directory.jpeg", "kick": "Trainer Directory", "title": "Find a BirdBox-trained coach", "sub": "Coaches who have completed our courses, near you or online."},
+  {"file": "quiz", "page": "quiz/index.html", "brand": "birdbox", "photo": "tcc/ng6929.jpeg", "kick": "BirdBox Coaching", "title": "Coaching self-assessment", "sub": "Find out what your coaching needs next."},
+  {"file": "support", "page": "support/index.html", "brand": "birdbox", "photo": "home-bg.jpeg", "kick": "BirdBox Coaching", "title": "Support", "sub": "Help with bookings, courses and your account."},
+  {"file": "privacy", "page": "privacy/index.html", "brand": "birdbox", "photo": "home-bg.jpeg", "kick": "BirdBox Coaching", "title": "Privacy notice", "sub": ""},
+  {"file": "agreements", "page": "agreements/index.html", "brand": "birdbox", "photo": "home-bg.jpeg", "kick": "BirdBox Coaching", "title": "Participant agreements", "sub": ""},
+  {"file": "programming-agreements", "page": "programming-agreements/index.html", "brand": "birdbox", "photo": "home-bg.jpeg", "kick": "BirdBox Coaching", "title": "Programming agreements", "sub": ""},
+
+  {"file": "tcc", "page": "tcc/index.html", "brand": "tcc", "photo": "tcc/ng6962.jpeg", "kick": "BirdBox Coaching", "title": "The Coaches Course", "sub": "Learn to coach movement, people and groups."},
+  {"file": "tcc-l1", "page": "tcc/level-1/index.html", "brand": "tcc", "photo": "tcc/level-1/NG-6445.jpg", "kick": "The Coaches Course", "title": "Level 1 live seminar", "sub": "Two days of hands-on coaching."},
+  {"file": "tcc-l2", "page": "tcc/level-2/index.html", "brand": "tcc", "photo": "tcc/level-2/hero-l2.jpeg", "kick": "The Coaches Course", "title": "Level 2 live seminar", "sub": ""},
+  {"file": "tcc-online", "page": "tcc/online-level-1/index.html", "brand": "tcc", "photo": "tcc/online-level-1/NG-6229.jpg", "kick": "The Coaches Course", "title": "Level 1 online course", "sub": "Study at your own pace, start straight away."},
+  {"file": "tcc-mentorship-essential", "page": "tcc/mentorship-essential/index.html", "brand": "tcc", "photo": "tcc/ng6767.jpeg", "kick": "The Coaches Course", "title": "Mentorship Essential", "sub": ""},
+  {"file": "tcc-mentorship-premium", "page": "tcc/mentorship-premium/index.html", "brand": "tcc", "photo": "tcc/ng7111.jpeg", "kick": "The Coaches Course", "title": "Mentorship Premium", "sub": ""},
+  {"file": "tcc-programming", "page": "tcc/programming/index.html", "brand": "tcc", "photo": "tcc/ng6953.jpeg", "kick": "The Coaches Course", "title": "Programming", "sub": ""},
+  {"file": "tcc-staff", "page": "tcc/staff-pathway/index.html", "brand": "tcc", "photo": "tcc/staff-pathway/img/hero.jpg", "kick": "The Coaches Course", "title": "Staff Pathway", "sub": "Train to teach on our seminars."},
+
+  {"file": "tgc", "page": "tgc/index.html", "brand": "tgc", "photo": "tgc/ng2680.jpeg", "kick": "BirdBox Coaching", "title": "The Gymnastics Course", "sub": "Coach gymnastics with confidence."},
+  {"file": "tgc-l1", "page": "tgc/level-1/index.html", "brand": "tgc", "photo": "tgc/level-1/hero-tgc-l1.jpeg", "kick": "The Gymnastics Course", "title": "Level 1 live seminar", "sub": "Two days of hands-on gymnastics coaching."},
+  {"file": "tgc-l2", "page": "tgc/level-2/index.html", "brand": "tgc", "photo": "tgc/level-2/hero-tgc-l2.jpeg", "kick": "The Gymnastics Course", "title": "Level 2 live seminar", "sub": ""},
+  {"file": "tgc-online", "page": "tgc/online-level-1/index.html", "brand": "tgc", "photo": "tgc/onlineimg.jpg", "kick": "The Gymnastics Course", "title": "Level 1 online course", "sub": "Study at your own pace, start straight away."},
+  {"file": "tgc-workshops", "page": "tgc/workshops/index.html", "brand": "tgc", "photo": "tgc/workshops/NG-2377.jpg", "kick": "The Gymnastics Course", "title": "Coaching workshops", "sub": "Half-day workshops on one skill at a time."},
+  {"file": "tgc-mentorship", "page": "tgc/mentorship/index.html", "brand": "tgc", "photo": "tgc/ng5643.jpeg", "kick": "The Gymnastics Course", "title": "Mentorship", "sub": ""},
+  {"file": "tgc-programming", "page": "tgc/programming/index.html", "brand": "tgc", "photo": "tgc/ng6346.jpeg", "kick": "The Gymnastics Course", "title": "Programming", "sub": ""},
+  {"file": "tgc-quiz", "page": "tgc/quiz/index.html", "brand": "tgc", "photo": "tgc/ng3922.jpeg", "kick": "The Gymnastics Course", "title": "What your coaching needs next", "sub": "A short quiz for gymnastics coaches."},
+  {"file": "tgc-staff", "page": "tgc/staff-pathway/index.html", "brand": "tgc", "photo": "tgc/staff-pathway/img/hero.jpg", "kick": "The Gymnastics Course", "title": "Staff Pathway", "sub": "Train to teach on our seminars."},
+
+  {"file": "tec", "page": "tec/index.html", "brand": "tec", "photo": "tec/staff-pathway/img/hero.jpg", "kick": "BirdBox Coaching", "title": "The Endurance Course", "sub": "Coming soon."},
+  {"file": "tec-staff", "page": "tec/staff-pathway/index.html", "brand": "tec", "photo": "tec/staff-pathway/img/team.jpg", "kick": "The Endurance Course", "title": "Founding staff", "sub": "Help us build the course."},
+  {"file": "twc", "page": "twc/index.html", "brand": "twc", "photo": null, "kick": "BirdBox Coaching", "title": "The Weightlifting Course", "sub": "Coming soon."},
+  {"file": "twc-staff", "page": "twc/staff-pathway/index.html", "brand": "twc", "photo": null, "kick": "The Weightlifting Course", "title": "Seminar staff", "sub": "Apply to coach on our seminars."},
+
+  {"file": "seminar-tgc", "page": null, "brand": "tgc", "photo": "tgc/level-1/hero-tgc-l1.jpeg", "kick": "The Gymnastics Course", "title": "Live seminar", "sub": ""},
+  {"file": "seminar-tcc", "page": null, "brand": "tcc", "photo": "tcc/level-1/NG-6445.jpg", "kick": "The Coaches Course", "title": "Live seminar", "sub": ""},
+  {"file": "seminar-birdbox", "page": null, "brand": "birdbox", "photo": "brand/NG-7332.jpg", "kick": "BirdBox Coaching", "title": "Live seminar", "sub": ""},
+  {"file": "coach", "page": null, "brand": "birdbox", "photo": "trainer-directory/hero-directory.jpeg", "kick": "Trainer Directory", "title": "A BirdBox-trained coach", "sub": ""}
+]
