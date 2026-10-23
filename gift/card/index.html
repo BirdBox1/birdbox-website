@@ -76,8 +76,8 @@
   .front .tag { position: absolute; top: 9cqw; left: 0; right: 0; text-align: center; font-size: 4cqw; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
   .gc { position: absolute; left: 11cqw; top: 34cqw; width: 78cqw; aspect-ratio: 85.6 / 54; border-radius: 3.6cqw; background: var(--ink); color: #fff; padding: 5.5cqw; display: flex; flex-direction: column; justify-content: space-between; transform: rotate(-7deg); overflow: hidden; box-shadow: 0 4cqw 7cqw -3cqw rgba(0,0,0,.45); }
   .gc .top { display: flex; align-items: flex-start; justify-content: space-between; padding-right: 5cqw; }
-  /* brand/birdBox.png is dark grey on transparent; inverted it reads as silver on the black card */
-  .gc .logo { height: 13cqw; filter: invert(1) brightness(.92); }
+  /* brand/birdBox-silver.png: the BirdBox logo in silver, for the black card */
+  .gc .logo { height: 13cqw; }
   .gc .brand { font-size: 2.6cqw; letter-spacing: .2em; text-transform: uppercase; color: #9aa1a9; line-height: 1.4; text-align: right; }
   .gc .amt { font-family: var(--display); font-weight: 800; font-size: 13.5cqw; line-height: .85; color: var(--gold); white-space: nowrap; }
   .gc .amt.long { font-size: 11cqw; }
@@ -170,7 +170,7 @@
     p.appendChild(el("div", "tag", "BirdBox Coaching"));
     var gc = el("div", "gc");
     var top = el("div", "top");
-    var logo = img("/brand/birdBox.png", "BirdBox"); logo.className = "logo";
+    var logo = img("/brand/birdBox-silver.png", "BirdBox"); logo.className = "logo";
     var brand = el("div", "brand", "Gift card");
     top.appendChild(logo); top.appendChild(brand);
     var amt = money(d.amount_cents, d.currency);
