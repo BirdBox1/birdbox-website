@@ -79,14 +79,15 @@
      colours down the edge. */
   .gift {
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 40px; align-items: center;
-    border: 1px solid var(--line); background: var(--panel); padding: 34px; margin-top: 22px;
+    /* Light panel so the black card stands out (it was lost on the dark page). */
+    border: 1px solid #e3dfd8; background: #F3EFE8; color: #16181b; padding: 34px; margin-top: 22px;
   }
   @media (max-width: 820px) { .gift { grid-template-columns: 1fr; gap: 26px; padding: 22px 18px; } }
   .gift__card {
     aspect-ratio: 85.6 / 54; width: 100%; max-width: 440px; justify-self: center; border-radius: 16px;
     background: #16181b; border: 1px solid #2c3036; position: relative; overflow: hidden;
     padding: 6% 7%; display: flex; flex-direction: column; justify-content: space-between;
-    transform: rotate(-4deg); box-shadow: 0 30px 50px -28px rgba(0,0,0,0.9);
+    transform: rotate(-4deg); box-shadow: 0 30px 50px -24px rgba(0,0,0,0.55);
   }
   .gift__top { display: flex; justify-content: space-between; align-items: flex-start; padding-right: 6%; }
   .gift__logo { height: 64px; width: auto; filter: invert(1) brightness(.92); }
@@ -97,16 +98,16 @@
   .gift__bars i:nth-child(1) { background: #85151A; } .gift__bars i:nth-child(2) { background: #298DE9; }
   .gift__bars i:nth-child(3) { background: #10502C; } .gift__bars i:nth-child(4) { background: #F1A509; }
   .gift__copy h2 { font-size: clamp(24px, 3vw, 34px); line-height: 1.08; font-weight: 800; text-transform: uppercase; letter-spacing: -0.01em; margin: 0 0 12px; }
-  .gift__copy p { font-size: 16px; line-height: 1.6; color: #DCD7D8; margin: 0 0 18px; max-width: 52ch; }
-  .gift__list { list-style: none; padding: 0; margin: 0 0 22px; display: grid; gap: 8px; font-size: 15px; color: #C9C4C5; }
+  .gift__copy p { font-size: 16px; line-height: 1.6; color: #3a3d42; margin: 0 0 18px; max-width: 52ch; }
+  .gift__list { list-style: none; padding: 0; margin: 0 0 22px; display: grid; gap: 8px; font-size: 15px; color: #3a3d42; }
   .gift__list li { padding-left: 24px; position: relative; }
-  .gift__list li::before { content: "✓"; position: absolute; left: 0; color: var(--accentText); font-weight: 800; }
+  .gift__list li::before { content: "✓"; position: absolute; left: 0; color: #2f7fd0; font-weight: 800; }
   .gift__amounts { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
   .gift__amounts a {
-    font-size: 15px; font-weight: 700; color: var(--ink); text-decoration: none;
-    border: 1px solid #4a4345; padding: 10px 16px; transition: border-color 0.2s ease;
+    font-size: 15px; font-weight: 700; color: #16181b; text-decoration: none; background: #fff;
+    border: 1px solid #cfc9bf; padding: 10px 16px; transition: border-color 0.2s ease;
   }
-  .gift__amounts a:hover { border-color: var(--accentText); }
+  .gift__amounts a:hover { border-color: #2f7fd0; }
   .gift__go {
     display: inline-block; background: #2f7fd0; color: #fff; text-decoration: none; font-weight: 800;
     font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; padding: 14px 22px;
