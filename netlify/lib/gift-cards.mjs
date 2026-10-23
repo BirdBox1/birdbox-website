@@ -320,7 +320,7 @@ ${card.message ? `<blockquote style="margin:18px 0;padding:4px 0 4px 16px;border
 ${cardBlock(card)}
 <p>${button(cardUrl(card), "Open your gift card")}</p>
 <p style="font-size:14px;color:#4a4e54">${esc(howToUse(card))}</p>
-<p style="font-size:14px;color:#4a4e54">${button(SITE_URL + "/seminars/", "Browse seminars")}&nbsp; ${button(SITE_URL + "/learn/", "Online courses")}</p>`);
+<p style="font-size:14px;color:#4a4e54">${button(SITE_URL + "/seminars/", "Browse seminars")}&nbsp; ${button(SITE_URL + "/", "All courses")}</p>`);
 
   const text = [
     `Hi ${card.recipient_name || "there"},`, "",
@@ -328,7 +328,7 @@ ${cardBlock(card)}
     ...(card.message ? [card.message, ""] : []),
     `Amount: ${money(card.amount_cents, card.currency)}`, `Code: ${card.code}`, `Valid until: ${niceDate(card.expires_at)}`, "",
     `Your card: ${cardUrl(card)}`, "", howToUse(card),
-    "", `Seminars: ${SITE_URL}/seminars/`,
+    "", `Seminars: ${SITE_URL}/seminars/`, `All courses: ${SITE_URL}/`,
   ].join("\n");
 
   const ok = await sendMail({
