@@ -7,7 +7,7 @@
 <meta name="description" content="A year of mentorship with BirdBox staff for coaches who want to develop towards TGC staff: seminars, mentorship or programming. Applications are free.">
 <style>
   :root {
-    --paper: #14100F; --panel: #1C1719; --field: #171214;
+    --paper: #14100F; --panel: #1C1719; --field: #2A2224; --fieldLine: #4E4547; --label: #E4DFE0;
     --ink: #F2EFEF; --soft: #C9C4C5; --muted: #8A8385; --line: #342F31;
     --accent: #D8393D; --accentText: #F0797D; --bad: #F0797D;
   }
@@ -74,31 +74,33 @@
 
   form { margin: 32px 0 60px; }
   fieldset { border: 1px solid var(--line); background: var(--panel); padding: 20px; margin: 0 0 16px; min-width: 0; }
-  legend { font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 0 8px; }
-  .hint { font-size: 14px; color: var(--muted); margin: 0 0 14px; }
+  legend { font-size: 15px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 0 8px; }
+  .hint { font-size: 15px; color: #C4BEBF; margin: 0 0 16px; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .full { grid-column: 1 / -1; }
-  label.f { display: block; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+  label.f { display: block; font-size: 15px; font-weight: 600; color: var(--label); margin-bottom: 7px; }
   input[type=text], input[type=email], input[type=url], input[type=tel], input[type=number], select, textarea {
-    width: 100%; border: 1px solid var(--line); background: var(--field); color: var(--ink);
-    padding: 10px 12px; font-size: 15px; font-family: inherit; border-radius: 0;
+    width: 100%; border: 1px solid var(--fieldLine); background: var(--field); color: var(--ink);
+    padding: 12px 14px; font-size: 16px; font-family: inherit; border-radius: 3px;
   }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  ::placeholder { color: #9A9294; opacity: 1; }
+  fieldset .grid { gap: 18px 16px; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(216,57,61,0.25); }
   textarea { min-height: 260px; resize: vertical; line-height: 1.55; }
   .checks { display: flex; flex-wrap: wrap; gap: 8px; }
-  .checks label { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); padding: 7px 11px; font-size: 14px; color: var(--soft); cursor: pointer; background: var(--field); }
+  .checks label { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--fieldLine); border-radius: 3px; padding: 9px 13px; font-size: 15px; color: var(--ink); cursor: pointer; background: var(--field); }
   .checks input { accent-color: var(--accent); margin: 0; }
   .radios { display: grid; gap: 8px; }
-  .radios label { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); padding: 10px 12px; color: var(--soft); cursor: pointer; background: var(--field); font-size: 15px; }
+  .radios label { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--fieldLine); border-radius: 3px; padding: 12px 14px; color: var(--ink); cursor: pointer; background: var(--field); font-size: 15px; }
   .radios input { accent-color: var(--accent); margin-top: 5px; }
   .moves { display: grid; gap: 8px; }
   .move { display: grid; grid-template-columns: 210px 1fr; gap: 10px; align-items: center; }
-  .move > span { font-size: 14px; color: var(--ink); }
+  .move > span { font-size: 15px; font-weight: 600; color: var(--label); }
   .move .either { display: grid; gap: 6px; min-width: 0; }
   .group { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accentText); margin: 14px 0 2px; }
   .group:first-child { margin-top: 0; }
   .file { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--soft); min-width: 0; }
-  .file .pick { display: inline-flex; align-items: center; border: 1px solid var(--line); background: var(--field); color: var(--ink); padding: 8px 12px; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; }
+  .file .pick { display: inline-flex; align-items: center; border: 1px solid var(--fieldLine); border-radius: 3px; background: var(--field); color: var(--ink); padding: 8px 12px; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; }
   .file .pick:hover, .file .pick:focus-within { border-color: var(--accent); }
   .file .pick input { position: absolute; width: 1px; height: 1px; opacity: 0; }
   .file .got { color: var(--accentText); overflow-wrap: anywhere; }
@@ -114,7 +116,7 @@
   .lang .x, .add { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; font-size: 13px; padding: 0; }
   .add { color: var(--accentText); margin-top: 10px; text-decoration: none; font-weight: 700; }
   .add:hover { text-decoration: underline; }
-  .doc .f { display: block; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .doc .f { display: block; font-size: 15px; font-weight: 600; color: var(--label); margin-bottom: 7px; }
   .count { font-size: 13px; color: var(--muted); text-align: right; margin-top: 6px; }
   .count.ok { color: var(--accentText); }
   .agree { display: flex; gap: 10px; align-items: flex-start; color: var(--soft); font-size: 15px; margin: 10px 0; cursor: pointer; }
