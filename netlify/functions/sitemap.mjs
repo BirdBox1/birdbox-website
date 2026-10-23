@@ -33,6 +33,7 @@ const STATIC = [
   { path: "/twc/staff-pathway/", priority: "0.5", freq: "monthly" },
   { path: "/tcc/staff-pathway/", priority: "0.5", freq: "monthly" },
   { path: "/about",             priority: "0.4", freq: "yearly"  },
+  { path: "/shop/",             priority: "0.5", freq: "monthly" },
   { path: "/gift/",             priority: "0.5", freq: "monthly" },
 ];
 

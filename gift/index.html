@@ -201,6 +201,13 @@
   var cfg = { presets: [100, 250, 500], min: 50, max: 3000, currencies: ["EUR", "GBP", "USD", "AUD", "CAD"], currency: "EUR", months: 24 };
   var st = { amount: 250, custom: false, how: "email" };
 
+  // Arriving from the Shop with an amount picked (?amount=100, or "other").
+  (function () {
+    var a = new URLSearchParams(location.search).get("amount");
+    if (a === "other") st.custom = true;
+    else if (/^\d+$/.test(a || "")) st.amount = parseInt(a, 10);
+  })();
+
   if (new URLSearchParams(location.search).get("paid")) {
     $("shop").classList.add("hide");
     $("paid").classList.remove("hide");
@@ -249,6 +256,7 @@
     $("sendOn").value = iso(today);
     $("sendOn").min = iso(today);
     $("sendOn").max = iso(new Date(today.getTime() + 365 * 86400000));
+    $("customWrap").classList.toggle("show", st.custom);
     drawAmounts(); paintCard();
   }
 
