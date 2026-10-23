@@ -4,7 +4,7 @@
   {"file": "team", "page": "birdbox-team/index.html", "brand": "birdbox", "photo": "tgc/staff-pathway/img/whiteboard.jpg", "kick": "BirdBox Coaching", "title": "Meet the team", "sub": "The coaches who teach our seminars and courses."},
   {"file": "blog", "page": "blog/index.html", "brand": "birdbox", "photo": "brand/NG-6524.jpg", "kick": "BirdBox Coaching", "title": "The BirdBox blog", "sub": "Coaching, gymnastics and programming, written by our coaches."},
   {"file": "seminars", "page": "seminars/index.html", "brand": "birdbox", "photo": "brand/NG-7332.jpg", "kick": "BirdBox Coaching", "title": "Upcoming seminars", "sub": "Live TGC and TCC seminars near you."},
-  {"file": "directory", "page": "trainer-directory/index.html", "brand": "birdbox", "photo": "trainer-directory/hero-directory.jpeg", "kick": "Trainer Directory", "title": "Find a BirdBox-trained coach", "sub": "Coaches who have completed our courses, near you or online."},
+  {"file": "directory", "page": "trainer-directory/index.html", "brand": "directory", "photo": "trainer-directory/hero-directory.jpeg", "kick": "Trainer Directory", "title": "Find a BirdBox-trained coach", "sub": "Coaches who have completed our courses, near you or online."},
   {"file": "quiz", "page": "quiz/index.html", "brand": "birdbox", "photo": "tcc/ng6929.jpeg", "kick": "BirdBox Coaching", "title": "Coaching self-assessment", "sub": "Find out what your coaching needs next."},
   {"file": "support", "page": "support/index.html", "brand": "birdbox", "photo": "home-bg.jpeg", "kick": "BirdBox Coaching", "title": "Support", "sub": "Help with bookings, courses and your account."},
   {"file": "privacy", "page": "privacy/index.html", "brand": "birdbox", "photo": "home-bg.jpeg", "kick": "BirdBox Coaching", "title": "Privacy notice", "sub": ""},
@@ -38,5 +38,5 @@
   {"file": "seminar-tgc", "page": null, "brand": "tgc", "photo": "tgc/level-1/hero-tgc-l1.jpeg", "kick": "The Gymnastics Course", "title": "Live seminar", "sub": ""},
   {"file": "seminar-tcc", "page": null, "brand": "tcc", "photo": "tcc/level-1/NG-6445.jpg", "kick": "The Coaches Course", "title": "Live seminar", "sub": ""},
   {"file": "seminar-birdbox", "page": null, "brand": "birdbox", "photo": "brand/NG-7332.jpg", "kick": "BirdBox Coaching", "title": "Live seminar", "sub": ""},
-  {"file": "coach", "page": null, "brand": "birdbox", "photo": "trainer-directory/hero-directory.jpeg", "kick": "Trainer Directory", "title": "A BirdBox-trained coach", "sub": ""}
+  {"file": "coach", "page": null, "brand": "directory", "photo": "trainer-directory/hero-directory.jpeg", "kick": "Trainer Directory", "title": "A BirdBox-trained coach", "sub": ""}
 ]
