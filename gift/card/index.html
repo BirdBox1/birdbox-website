@@ -6,54 +6,127 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Your Gift Card — BirdBox Coaching</title>
 <link rel="icon" href="/brand/birdbox-mark.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800&family=Caveat:wght@500&display=swap">
 <!--
-  The printable gift card. Reached from the link in the gift card
-  emails (?t=TOKEN). Its details come from
-  netlify/functions/gift-card-view. Prints as a single A4 page; on a
-  phone, Print -> Save as PDF gives a file to forward.
+  The gift card, on screen and as a card to print. Reached from the link
+  in the gift card emails (?t=TOKEN); its details come from
+  netlify/functions/gift-card-view.
+
+  PRINTING: one A4 sheet, one side, folded twice into an A6 card.
+  The sheet is four 105 x 148.5 mm panels:
+
+      +-----------------+-----------------+
+      |  inside RIGHT   |  inside LEFT    |   top half printed upside
+      |  (code)    180° |  (message) 180° |   down, on purpose
+      +-----------------+-----------------+
+      |  back           |  front          |
+      |                 |  (gift card)    |
+      +-----------------+-----------------+
+
+  Fold the top half behind, printed side out, then fold in half so the
+  front is on the outside. The inside pages come out the right way up,
+  message on the left and code on the right.
+
+  Each panel is drawn once (the panel* functions) and used twice: in the
+  on-screen preview and on the print sheet. Sizes inside a panel are in
+  cqw, so they scale with the panel like paper.
 -->
 <style>
-  :root { --paper: #f4f2ee; --ink: #16181b; --muted: #6b6f75; --accent: #2f7fd0; }
+  :root {
+    --paper: #f4f2ee; --ink: #16181b; --muted: #6b6f75; --card: #f3efe8; --gold: #c9a24a;
+    --tgc: #85151A; --tcc: #298DE9; --tec: #10502C; --twc: #F1A509;
+    --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+    --hand: Caveat, "Bradley Hand", "Segoe Script", cursive;
+    --sans: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--paper); color: var(--ink); }
-  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.5; }
-  .page { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
-  .tools { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  body { font-family: var(--sans); -webkit-font-smoothing: antialiased; line-height: 1.5; }
+
+  /* ---------- screen ---------- */
+  .page { max-width: 960px; margin: 0 auto; padding: 32px 16px 64px; }
+  .tools { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
   .tools a { color: var(--muted); font-size: 14px; }
-  .print { background: var(--ink); color: #fff; border: 0; font: inherit; font-weight: 700; padding: 11px 18px; border-radius: 8px; cursor: pointer; }
-
-  .card {
-    aspect-ratio: 1.6 / 1; border-radius: 18px; padding: clamp(20px, 5vw, 40px); position: relative; overflow: hidden; color: #fff;
-    background: radial-gradient(120% 140% at 100% 0%, #2a2e35 0%, #16181b 55%, #0d0e10 100%);
-    display: flex; flex-direction: column; justify-content: space-between;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-  }
-  .card .top { display: flex; align-items: center; gap: 14px; }
-  .mark { width: 48px; height: 48px; border-radius: 7px; background: #fff; display: grid; place-items: center; flex: none; }
-  .mark img { width: 36px; height: 36px; object-fit: contain; }
-  .brand { font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: #9aa1a9; }
-  .amt { font-size: clamp(48px, 12vw, 88px); font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
-  .for { color: #c9ccd0; font-size: clamp(14px, 2.4vw, 18px); margin-top: 8px; }
-  .stripes { position: absolute; right: -50px; bottom: -50px; width: 280px; height: 280px; opacity: 0.5; }
-
-  .message { font-size: 19px; white-space: pre-line; margin: 32px 0 0; padding-left: 18px; border-left: 3px solid #c9ccd0; }
-  .details { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; margin: 32px 0 0; padding: 22px 24px; background: #fff; border-radius: 12px; border: 1px solid #e3dfd8; }
-  @media (max-width: 520px) { .details { grid-template-columns: 1fr; } }
-  .details dt { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-  .details dd { margin: 2px 0 0; font-size: 17px; font-weight: 650; }
-  .code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 24px !important; letter-spacing: 0.06em; }
-  .how { margin: 28px 0 0; color: #33363a; }
-  .how ol { padding-left: 20px; margin: 8px 0 0; }
-  .note { color: var(--muted); font-size: 14px; margin-top: 24px; }
+  .btn { display: inline-block; background: var(--ink); color: #fff; border: 0; font: inherit; font-weight: 700; padding: 12px 18px; border-radius: 8px; cursor: pointer; text-decoration: none; }
+  .btn.light { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
   .state { padding: 80px 0; text-align: center; color: var(--muted); }
   .spent { background: #fff3cd; border: 1px solid #e6cf7a; padding: 12px 14px; border-radius: 8px; margin: 0 0 20px; }
 
+  .preview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 28px; align-items: start; }
+  @media (max-width: 720px) { .preview { grid-template-columns: 1fr; } .preview .front-wrap { max-width: 340px; margin: 0 auto; width: 100%; } }
+  .cap { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin: 0 0 10px; }
+  .shadow { box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 18px 40px -22px rgba(0,0,0,.45); }
+  .spread { display: grid; grid-template-columns: 1fr 1fr; }
+  .spread .panel + .panel { border-left: 1px dashed #d4cfc6; }
+
+  .how { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 36px 0 0; padding: 22px; background: #fff; border-radius: 12px; border: 1px solid #e3dfd8; }
+  .how h2 { grid-column: 1 / -1; font-size: 15px; margin: 0; }
+  .how div { font-size: 14px; color: #33363a; }
+  .how b { display: block; color: var(--ink); }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+  .note { color: var(--muted); font-size: 14px; margin-top: 18px; }
+
+  /* ---------- the panels (A6, 105 x 148.5 mm) ----------
+     A panel's own padding is in %, not cqw: cqw on the container itself
+     would measure the page instead of the panel. */
+  .panel { aspect-ratio: 105 / 148.5; width: 100%; container-type: inline-size; position: relative; overflow: hidden; background: #fbfaf7; color: var(--ink); }
+
+  .front { background: var(--card); }
+  .front .tag { position: absolute; top: 9cqw; left: 0; right: 0; text-align: center; font-size: 4cqw; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .gc { position: absolute; left: 11cqw; top: 34cqw; width: 78cqw; aspect-ratio: 85.6 / 54; border-radius: 3.6cqw; background: var(--ink); color: #fff; padding: 5.5cqw; display: flex; flex-direction: column; justify-content: space-between; transform: rotate(-7deg); overflow: hidden; box-shadow: 0 4cqw 7cqw -3cqw rgba(0,0,0,.45); }
+  .gc .top { display: flex; align-items: center; gap: 2.4cqw; }
+  .gc .tile { width: 9cqw; height: 9cqw; background: #fff; border-radius: 1.4cqw; display: grid; place-items: center; flex: none; }
+  .gc .tile img { width: 7cqw; }
+  .gc .brand { font-size: 2.6cqw; letter-spacing: .2em; text-transform: uppercase; color: #9aa1a9; line-height: 1.4; }
+  .gc .amt { font-family: var(--display); font-weight: 800; font-size: 15cqw; line-height: .85; color: var(--gold); white-space: nowrap; }
+  .gc .amt.long { font-size: 12cqw; }
+  .gc .bars { position: absolute; right: 0; top: 0; bottom: 0; width: 5cqw; display: grid; grid-template-rows: repeat(4, 1fr); }
+  .gc .bars i:nth-child(1) { background: var(--tgc); } .gc .bars i:nth-child(2) { background: var(--tcc); }
+  .gc .bars i:nth-child(3) { background: var(--tec); } .gc .bars i:nth-child(4) { background: var(--twc); }
+  .front .who { position: absolute; bottom: 11cqw; left: 6cqw; right: 6cqw; text-align: center; }
+  .front .who .n { font-family: var(--hand); font-size: 11cqw; line-height: 1.05; }
+  .front .who .f { font-size: 3.8cqw; color: var(--muted); margin-top: 1.5cqw; }
+
+  .msg { padding: 10% 9%; display: flex; flex-direction: column; justify-content: space-between; }
+  .msg .hi { font-family: var(--hand); font-size: 10cqw; line-height: 1.15; }
+  .msg .body { font-family: var(--hand); font-size: 8cqw; line-height: 1.25; margin-top: 4cqw; white-space: pre-line; overflow-wrap: anywhere; }
+  .msg .body.m { font-size: 6.4cqw; } .msg .body.l { font-size: 5.2cqw; }
+  .msg .sig { font-family: var(--hand); font-size: 8cqw; margin-top: 5cqw; }
+  .msg .course-cap { font-size: 3.2cqw; color: var(--muted); margin: 0 0 2cqw; text-align: center; }
+  .msg .course-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2cqw; background: var(--ink); padding: 3.5cqw; border-radius: 2cqw; }
+  .msg .course-row img { width: 100%; height: 9cqw; object-fit: contain; }
+
+  .use { padding: 9% 8%; display: flex; flex-direction: column; gap: 5cqw; }
+  .use .k { font-size: 3.6cqw; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+  .use .code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 7cqw; letter-spacing: .04em; font-weight: 700; border: .5cqw solid var(--ink); border-radius: 2cqw; padding: 3cqw 1cqw; text-align: center; margin-top: 1.5cqw; white-space: nowrap; }
+  .use .meta { display: flex; justify-content: space-between; gap: 2cqw; font-size: 3.6cqw; color: #4a4e54; margin-top: 2cqw; }
+  .use ol { margin: 0; padding-left: 5cqw; font-size: 3.8cqw; line-height: 1.45; display: grid; gap: 1.6cqw; }
+  .use .qr { display: flex; gap: 4cqw; align-items: center; margin-top: auto; }
+  .use .qr .box { width: 24cqw; height: 24cqw; flex: none; background: #fff; }
+  .use .qr .box img, .use .qr .box canvas { width: 100% !important; height: 100% !important; display: block; }
+  .use .qr span { font-size: 3.6cqw; line-height: 1.35; }
+  .use .qr b { display: block; font-size: 4.2cqw; }
+
+  .back { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 12%; gap: 3cqw; text-align: center; }
+  .back img { width: 16cqw; }
+  .back .site { font-size: 3.6cqw; color: var(--muted); letter-spacing: .04em; }
+  .back .bars { display: grid; grid-template-columns: repeat(4, 6cqw); gap: 1.4cqw; }
+  .back .bars i { height: 1.4cqw; display: block; }
+
+  /* ---------- the print sheet ---------- */
+  .sheet { display: none; }
+  @page { size: A4 portrait; margin: 0; }
   @media print {
-    @page { size: A4; margin: 14mm; }
     html, body { background: #fff; }
-    .tools { display: none; }
-    .page { padding: 0; max-width: none; }
-    .details { border-color: #ccc; }
+    .page { display: none; }
+    .sheet { display: grid; width: 210mm; height: 297mm; grid-template-columns: 105mm 105mm; grid-template-rows: 148.5mm 148.5mm; position: relative; overflow: hidden; }
+    .sheet .panel { width: 105mm; height: 148.5mm; aspect-ratio: auto; }
+    .sheet .flip { transform: rotate(180deg); }
+    .sheet .fold { position: absolute; border-color: #c8c3ba; border-style: dashed; border-width: 0; }
+    .sheet .fold.h { left: 0; right: 0; top: 148.5mm; border-top-width: .2mm; }
+    .sheet .fold.v { top: 0; bottom: 0; left: 105mm; border-left-width: .2mm; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
 </head>
@@ -61,21 +134,113 @@
 <div class="page">
   <div class="tools">
     <a href="/">birdboxcoaching.com</a>
-    <button class="print" type="button" onclick="window.print()">Print or save as PDF</button>
+    <button class="btn" type="button" id="printTop" hidden>Print the card</button>
   </div>
   <div id="out"><p class="state">Loading your gift card…</p></div>
 </div>
+<div class="sheet" id="sheet" aria-hidden="true"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 (function () {
   var out = document.getElementById("out");
   var SYMBOL = { EUR: "€", GBP: "£", USD: "US$", AUD: "A$", CAD: "C$" };
+  var SITE = location.origin;
   function money(c, cur) {
     var n = c / 100;
     return (SYMBOL[cur] || cur + " ") + (n % 1 ? n.toFixed(2) : n.toLocaleString("en-GB"));
   }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
-  function date(iso) { return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }); }
+  function img(src, alt) { var i = el("img"); i.src = src; i.alt = alt || ""; return i; }
+  function date(iso, short) { return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: short ? "short" : "long", year: "numeric" }); }
+
+  // ---- the four panels ------------------------------------------
+  function panelFront(d) {
+    var p = el("div", "panel front");
+    p.appendChild(el("div", "tag", "BirdBox Coaching"));
+    var gc = el("div", "gc");
+    var top = el("div", "top");
+    var tile = el("div", "tile"); tile.appendChild(img("/brand/birdbox-mark.png"));
+    var brand = el("div", "brand"); brand.innerHTML = "BirdBox Coaching<br>Gift card";
+    top.appendChild(tile); top.appendChild(brand);
+    var amt = money(d.amount_cents, d.currency);
+    gc.appendChild(top);
+    gc.appendChild(el("div", "amt" + (amt.length > 6 ? " long" : ""), amt));
+    var bars = el("div", "bars"); for (var i = 0; i < 4; i++) bars.appendChild(el("i"));
+    gc.appendChild(bars);
+    p.appendChild(gc);
+    var who = el("div", "who");
+    who.appendChild(el("div", "n", d.recipient_name ? "For " + d.recipient_name : "A gift for you"));
+    if (d.from_name) who.appendChild(el("div", "f", "from " + d.from_name));
+    p.appendChild(who);
+    return p;
+  }
+
+  function panelMessage(d) {
+    var p = el("div", "panel msg");
+    var top = el("div");
+    top.appendChild(el("div", "hi", (d.recipient_name || "Hello") + ","));
+    var text = d.message || "A little something to put towards your next course.";
+    top.appendChild(el("div", "body" + (text.length > 220 ? " l" : text.length > 110 ? " m" : ""), text));
+    if (d.from_name) top.appendChild(el("div", "sig", d.from_name + " x"));
+    p.appendChild(top);
+    var foot = el("div");
+    foot.appendChild(el("p", "course-cap", "Spend it on any of our courses, in person or online"));
+    var row = el("div", "course-row");
+    ["tgc", "tcc", "tec", "twc"].forEach(function (b) { row.appendChild(img("/brand/" + b + "-mark.png", b.toUpperCase())); });
+    foot.appendChild(row);
+    p.appendChild(foot);
+    return p;
+  }
+
+  function panelUse(d) {
+    var p = el("div", "panel use");
+    var a = el("div");
+    a.appendChild(el("div", "k", "Your gift card code"));
+    a.appendChild(el("div", "code", d.code));
+    var meta = el("div", "meta");
+    meta.appendChild(el("span", null, "Value " + money(d.amount_cents, d.currency)));
+    meta.appendChild(el("span", null, "Valid until " + date(d.expires_at, true)));
+    a.appendChild(meta);
+    p.appendChild(a);
+    var ol = el("ol");
+    ["Pick a seminar or online course on birdboxcoaching.com, priced in " + d.currency,
+     "Enter the code at checkout",
+     "Anything left stays on the card for next time"].forEach(function (s) { ol.appendChild(el("li", null, s)); });
+    p.appendChild(ol);
+    var qr = el("div", "qr");
+    var box = el("div", "box");
+    try {
+      new QRCode(box, { text: SITE + "/", width: 256, height: 256, colorDark: "#16181b", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
+    } catch (e) { box.style.display = "none"; }
+    var cap = el("span"); cap.appendChild(el("b", null, "Scan to choose")); cap.appendChild(document.createTextNode("birdboxcoaching.com"));
+    qr.appendChild(box); qr.appendChild(cap);
+    p.appendChild(qr);
+    return p;
+  }
+
+  function panelBack() {
+    var p = el("div", "panel back");
+    p.appendChild(img("/brand/birdbox-mark.png", "BirdBox"));
+    var bars = el("div", "bars");
+    ["--tgc", "--tcc", "--tec", "--twc"].forEach(function (v) { var i = el("i"); i.style.background = "var(" + v + ")"; bars.appendChild(i); });
+    p.appendChild(bars);
+    p.appendChild(el("div", "site", "birdboxcoaching.com"));
+    return p;
+  }
+
+  // ---- the A4 sheet: see the diagram at the top of this file -----
+  function buildSheet(d) {
+    var s = document.getElementById("sheet");
+    s.innerHTML = "";
+    var ir = panelUse(d); ir.classList.add("flip");
+    var il = panelMessage(d); il.classList.add("flip");
+    s.appendChild(ir); s.appendChild(il);
+    s.appendChild(panelBack()); s.appendChild(panelFront(d));
+    s.appendChild(el("div", "fold h")); s.appendChild(el("div", "fold v"));
+  }
+
+  function print() { window.print(); }
 
   var t = new URLSearchParams(location.search).get("t") || "";
   fetch("/.netlify/functions/gift-card-view?t=" + encodeURIComponent(t))
@@ -86,42 +251,42 @@
 
       if (!d.active || d.balance_cents <= 0) {
         out.appendChild(el("p", "spent", d.balance_cents <= 0 ? "This gift card has been used up." : "This gift card has expired."));
+      } else if (d.balance_cents !== d.amount_cents) {
+        out.appendChild(el("p", "spent", money(d.balance_cents, d.currency) + " is left on this card."));
       }
 
-      var card = el("div", "card");
-      var top = el("div", "top");
-      var mark = el("div", "mark");
-      var img = el("img"); img.src = "/brand/birdbox-mark.png"; img.alt = "";
-      mark.appendChild(img);
-      var brand = el("div", "brand"); brand.innerHTML = "BirdBox Coaching<br>Gift card";
-      top.appendChild(mark); top.appendChild(brand);
-      var bottom = el("div");
-      bottom.appendChild(el("div", "amt", money(d.amount_cents, d.currency)));
-      var who = (d.recipient_name ? "For " + d.recipient_name : "") + (d.recipient_name && d.from_name ? " · " : "") + (d.from_name ? "From " + d.from_name : "");
-      if (who) bottom.appendChild(el("div", "for", who));
-      card.appendChild(top); card.appendChild(bottom);
-      card.insertAdjacentHTML("beforeend", '<svg class="stripes" viewBox="0 0 200 200" aria-hidden="true"><g stroke="#2f7fd0" stroke-width="10" fill="none" opacity="0.6"><path d="M0 200 L200 0"/><path d="M40 200 L200 40"/><path d="M80 200 L200 80"/></g></svg>');
-      out.appendChild(card);
-
-      if (d.message) out.appendChild(el("p", "message", d.message));
-
-      var dl = el("dl", "details");
-      function pair(k, v, cls) { var w = el("div"); w.appendChild(el("dt", null, k)); w.appendChild(el("dd", cls, v)); dl.appendChild(w); }
-      pair("Code", d.code, "code");
-      pair("Valid until", date(d.expires_at));
-      if (d.balance_cents !== d.amount_cents) pair("Left on the card", money(d.balance_cents, d.currency));
-      out.appendChild(dl);
+      var pv = el("div", "preview");
+      var fw = el("div", "front-wrap");
+      fw.appendChild(el("p", "cap", "Front"));
+      var f = panelFront(d); f.classList.add("shadow");
+      fw.appendChild(f);
+      var iw = el("div");
+      iw.appendChild(el("p", "cap", "Inside"));
+      var sp = el("div", "spread shadow");
+      sp.appendChild(panelMessage(d)); sp.appendChild(panelUse(d));
+      iw.appendChild(sp);
+      pv.appendChild(fw); pv.appendChild(iw);
+      out.appendChild(pv);
 
       var how = el("div", "how");
-      how.appendChild(el("b", null, "How to use it"));
-      var ol = el("ol");
-      ["Choose any seminar or online course on birdboxcoaching.com priced in " + d.currency + ".",
-       "Enter the code where it says “Have a discount code or gift card?” (online courses: “Have a gift card?”).",
-       "The card pays towards the price. Anything left stays on the card for next time."].forEach(function (s) { ol.appendChild(el("li", null, s)); });
-      how.appendChild(ol);
+      how.appendChild(el("h2", null, "Make it into a card"));
+      [["1. Print one side of A4", "Ordinary paper works. Thin card (160gsm) feels like a shop gift card."],
+       ["2. Fold the top half behind", "Along the dotted line, printed side out. The upside-down half is meant to be."],
+       ["3. Fold in half again", "So the gift card is on the front. It fits a C6 envelope or tucks inside a birthday card."]
+      ].forEach(function (x) { var dv = el("div"); dv.appendChild(el("b", null, x[0])); dv.appendChild(document.createTextNode(x[1])); how.appendChild(dv); });
       out.appendChild(how);
 
-      out.appendChild(el("p", "note", "Questions? info@birdboxcoaching.com"));
+      var act = el("div", "actions");
+      var pb = el("button", "btn", "Print the card"); pb.type = "button"; pb.onclick = print;
+      var fc = el("a", "btn light", "Find a course"); fc.href = "/";
+      act.appendChild(pb); act.appendChild(fc);
+      out.appendChild(act);
+      out.appendChild(el("p", "note", "On a phone? Print → Save as PDF gives you a file to send instead. Questions: info@birdboxcoaching.com"));
+
+      var tp = document.getElementById("printTop");
+      tp.hidden = false; tp.onclick = print;
+
+      buildSheet(d);
     })
     .catch(function (e) {
       out.innerHTML = "";

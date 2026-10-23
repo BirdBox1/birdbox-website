@@ -245,7 +245,7 @@ function cardBlock(card) {
 }
 
 function howToUse(card) {
-  return `Use it on any BirdBox seminar or online course priced in ${card.currency}: choose the course on ${SITE_URL.replace(/^https?:\/\//, "")}, enter the code where it says "Have a discount code?", and the card pays towards the price. If the course costs less than the card, the rest stays on the card for next time.`;
+  return `Use it on any BirdBox seminar or online course priced in ${card.currency}: choose the course on ${SITE_URL.replace(/^https?:\/\//, "")}, enter the code at checkout ("Have a discount code or gift card?" on seminars, "Have a gift card?" on online courses), and the card pays towards the price. If the course costs less than the card, the rest stays on the card for next time.`;
 }
 
 const button = (href, label) =>
