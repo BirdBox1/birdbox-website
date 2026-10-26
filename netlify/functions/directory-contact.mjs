@@ -37,6 +37,12 @@ import {
 
 // Stricter than elsewhere: the address is used in a database filter, so
 // quotes, commas and brackets are not allowed in it.
+// A sender who reaches this many different coaches in a day is held, and so
+// is everything of theirs still in the queue.
+export const SPREAD_LIMIT = 3;
+// How long a request waits before it is emailed to the coach.
+const SEND_DELAY_MIN = 15;
+
 const EMAIL_RE = /^[^@\s,"'()]+@[^@\s,"'()]+\.[^@\s,"'()]+$/;
 const LOOKING_FOR = {
   personal: "Coaching for myself",
@@ -108,10 +114,14 @@ export default async (req) => {
     if (blocked && blocked.length) hold = "Sender was reported or blocked before";
 
     if (!hold) {
-      const { data: spread } = await db.from("directory_contact_requests").select("profile_id, email, ip_hash")
-        .gte("created_at", dayAgo).or(ip_hash ? `email.eq.${JSON.stringify(email)},ip_hash.eq.${ip_hash}` : `email.eq.${JSON.stringify(email)}`);
-      const coaches = new Set((spread || []).map((r) => r.profile_id));
-      if (coaches.size >= 2) hold = `Contacting several coaches (${coaches.size + 1} today)`;
+      const others = await coachesContacted(email, ip_hash, dayAgo);
+      others.add(p.id);
+      if (others.size >= SPREAD_LIMIT) {
+        hold = `Contacting several coaches (${others.size} today)`;
+        // Anything from them still waiting to be sent is held too, so the
+        // first messages of a blast never reach a coach.
+        await holdQueued(email, ip_hash, hold);
+      }
     }
 
     if (!hold) {
@@ -120,22 +130,38 @@ export default async (req) => {
       if (!verdict && SALES_RE.test(message + " " + name)) hold = "Sales wording in the message";
     }
 
-    const { data: row, error } = await db.from("directory_contact_requests").insert({
+    // Nothing is emailed straight away. Requests that pass wait in a queue
+    // for SEND_DELAY_MIN minutes; directory-contact-send emails them, after
+    // checking again that the sender has not started messaging other
+    // coaches in the meantime.
+    const { error } = await db.from("directory_contact_requests").insert({
       profile_id: p.id, name, email, phone, message, ip_hash,
-      looking_for: lookingFor, status: hold ? "held" : "sent", hold_reason: hold,
-    }).select("id").single();
+      looking_for: lookingFor, status: hold ? "held" : "queued", hold_reason: hold,
+      send_after: hold ? null : new Date(Date.now() + SEND_DELAY_MIN * 60e3).toISOString(),
+    });
     if (error) throw error;
-
-    if (!hold) {
-      const sent = await emailCoach(p, row.id, { name, email, phone, lookingFor: LOOKING_FOR[lookingFor], message });
-      if (sent) await db.from("directory_contact_requests").update({ emailed: true }).eq("id", row.id);
-    }
     return fakeOk();
   } catch (err) {
     console.error("directory-contact:", err.message || err);
     return json({ error: "That did not send. Try again, or write to " + OFFICE + "." }, 500);
   }
 };
+
+// The coaches this sender (same email, or same network) has contacted
+// since a given time.
+export async function coachesContacted(email, ipHash, since) {
+  const { data } = await db.from("directory_contact_requests").select("profile_id")
+    .gte("created_at", since)
+    .or(ipHash ? `email.eq.${JSON.stringify(email)},ip_hash.eq.${ipHash}` : `email.eq.${JSON.stringify(email)}`);
+  return new Set((data || []).map((r) => r.profile_id));
+}
+
+export async function holdQueued(email, ipHash, reason) {
+  let q = db.from("directory_contact_requests").update({ status: "held", hold_reason: reason, send_after: null })
+    .eq("status", "queued");
+  q = ipHash ? q.or(`email.eq.${JSON.stringify(email)},ip_hash.eq.${ipHash}`) : q.eq("email", email);
+  await q;
+}
 
 // A quick read of the message by Claude: is this someone looking for a
 // coach, or someone selling to one? Returns null if it cannot tell (no
@@ -154,9 +180,9 @@ async function screen({ name, lookingFor, message }) {
         system:
 `You screen messages sent through the contact form of a directory of fitness coaches. Coaches should only receive genuine enquiries.
 
-genuine: a person (or gym) who wants coaching, training, programming, a seminar, advice, or has a real question for the coach. Short or badly written is still genuine.
+genuine: a person (or gym) who wants coaching, training, programming, a seminar, advice, or has a real question for the coach. It says something about their training, goals, sport, gym or situation. Short or badly written is still genuine.
 marketing: anyone selling or pitching to the coach: SEO, websites, ads, leads, software, apps, social media growth, collaborations, sponsorships, affiliate or brand deals, recruiting, supplements, MLM.
-spam: nonsense, scams, crypto, adult content, phishing, or obviously automated text.
+spam: nonsense, scams, crypto, adult content, phishing, or obviously automated text. Includes scam openers that say nothing about training and only try to start a conversation, such as "I would like us to talk before making an appointment, please respond before I go further", "I have a proposal for you", "kindly get back to me", inheritance or funds offers. If the message could be sent unchanged to any business and never mentions fitness, training or coaching, it is spam.
 
 Reply with JSON only: {"verdict":"genuine"|"marketing"|"spam","reason":"a few words"}`,
         messages: [{ role: "user", content: `Name: ${name}\nLooking for: ${lookingFor}\nMessage:\n${message}` }],

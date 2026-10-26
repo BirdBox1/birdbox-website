@@ -292,7 +292,7 @@ $("list").addEventListener("click", async (e) => {
 
 // Contact requests the screening held back, newest first, then the last
 // 30 days of everything else so you can see what is getting through.
-const REQ_STATUS = { held: "Held", sent: "Sent to coach", released: "Sent after check", spam: "Blocked" };
+const REQ_STATUS = { queued: "Sending soon", held: "Held", sent: "Sent to coach", released: "Sent after check", spam: "Blocked" };
 function renderMessages() {
   const q = $("q").value.trim().toLowerCase();
   let list = [...requests].sort((a, b) => (a.status === "held" ? 0 : 1) - (b.status === "held" ? 0 : 1) || b.created_at.localeCompare(a.created_at));
@@ -307,7 +307,7 @@ function renderMessages() {
     return `<div class="coach${r.status === "held" ? " attn" : ""}" style="grid-template-columns:minmax(0,1fr) auto">
       <div>
         <div class="name">${esc(r.name)} → ${r.slug ? `<a href="/trainer-directory/coach/${encodeURIComponent(r.slug)}" target="_blank">${esc(r.coach)}</a>` : esc(r.coach)}
-          <span class="pill ${r.status === "held" ? "pending" : r.status === "spam" ? "rejected" : "live"}">${REQ_STATUS[r.status] || r.status}</span></div>
+          <span class="pill ${r.status === "held" || r.status === "queued" ? "pending" : r.status === "spam" ? "rejected" : "live"}">${REQ_STATUS[r.status] || r.status}</span></div>
         <div class="meta">${esc(r.email)}${r.phone ? " · " + esc(r.phone) : ""} · ${when}${r.looking_for_label ? " · " + esc(r.looking_for_label) : ""}</div>
         ${r.hold_reason ? `<div class="meta" style="color:var(--warn)">Held because: ${esc(r.hold_reason)}</div>` : ""}
         <div class="bio" style="-webkit-line-clamp:6;white-space:pre-line">${esc(r.message)}</div>
