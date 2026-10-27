@@ -10632,7 +10632,8 @@ function buildActions(box, course, reg, status) {
 
   // They still owe part of the seminar: one Stripe invoice for it,
   // tracked like a website balance (portal/balance-invoice.js).
-  if (status === "active" && window.openBalanceInvoice) {
+  // Not once they are paid in full: there is nothing left to collect.
+  if (status === "active" && reg.payment_status !== "paid_in_full" && window.openBalanceInvoice) {
     add("Invoice balance", "ghost small", () => window.openBalanceInvoice(reg, course, () => openCourse(course)));
   }
 

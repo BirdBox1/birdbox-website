@@ -59,11 +59,13 @@ async function send(b) {
 
   const { data: reg } = await supabase
     .from("registrations")
-    .select("id, first_name, last_name, email, status, currency, stripe_customer_id, " +
+    .select("id, first_name, last_name, email, status, payment_status, currency, stripe_customer_id, " +
             "courses!registrations_course_id_fkey(id, title, country, currency)")
     .eq("id", b.registration_id).maybeSingle();
   if (!reg) return json({ error: "Registration not found." }, 404);
   if ((reg.status || "active") !== "active") return json({ error: "This registration is not active." }, 400);
+  // Nothing left to collect: a second invoice would charge them twice.
+  if (reg.payment_status === "paid_in_full") return json({ error: "They have already paid in full, so there is no balance to invoice." }, 409);
   const course = reg.courses || {};
 
   const gross = Math.round(Number(b.amount) * 100);
