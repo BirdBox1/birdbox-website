@@ -1071,11 +1071,12 @@ function renderGrid() {
 
   const order = coachOrder();
   const shown = order.filter(s => !hiddenCoaches.has(s.id));
+  // Courses still needing a coach go first, so they are seen before anything else.
   let body = "<tbody>";
+  body += gridRow({ id:"none", full_name:"No coach yet" }, cells.get("none"), months, -1, 0, true);
   shown.forEach((s, idx) => {
     body += gridRow(s, cells.get(s.id), months, idx, shown.length);
   });
-  body += gridRow({ id:"none", full_name:"No coach yet" }, cells.get("none"), months, -1, 0, true);
   body += "</tbody>";
 
   $("gridwrap").innerHTML = `<table class="grid">${head}${body}</table>`;
