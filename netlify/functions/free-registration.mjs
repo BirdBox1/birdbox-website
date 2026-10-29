@@ -87,7 +87,9 @@ export default async (req) => {
       .from("registrations")
       .select("id", { count: "exact", head: true })
       .eq("course_id", course.id)
-      .not("payment_status", "in", '("refunded","failed")');
+      .not("payment_status", "in", '("refunded","failed")')
+      // Cancelled people have left the course, even if they were not refunded.
+      .neq("status", "cancelled");
 
     if (count !== null && course.capacity != null && count >= course.capacity) {
       return json({ error: "This course is full" }, 409);

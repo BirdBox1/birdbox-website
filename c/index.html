@@ -651,7 +651,9 @@ async function load() {
     .from("registrations")
     .select("id", { count: "exact", head: true })
     .eq("course_id", course.id)
-    .not("payment_status", "in", '("refunded","failed")');
+    .not("payment_status", "in", '("refunded","failed")')
+    // Cancelled people have left the course, even if they were not refunded.
+    .neq("status", "cancelled");
 
   const left = Math.max(0, course.capacity - (count || 0));
 
