@@ -62,6 +62,15 @@ const BRAND = {
   twc: { name: "The Weightlifting Course", colour: "#e8a317" },
 };
 
+// a checkout, invoice or payment the athlete app created, by its label
+// on the object itself or on the subscription it belongs to
+export function fromTrainApp(obj) {
+  const app = (m) => m && m.app === "birdbox-train";
+  return !!obj && (app(obj.metadata)
+    || app(obj.subscription_details?.metadata)
+    || app(obj.parent?.subscription_details?.metadata));
+}
+
 export default async (req) => {
   const signature = req.headers.get("stripe-signature");
   const rawBody = await req.text(); // must be the raw string, not parsed JSON
@@ -76,6 +85,14 @@ export default async (req) => {
   } catch (err) {
     console.error("Bad webhook signature:", err.message);
     return new Response("Invalid signature", { status: 400 });
+  }
+
+  // The athlete app (BirdBox Train) shares this Stripe account and labels
+  // everything it creates with metadata.app = "birdbox-train". Its
+  // programming and block payments are handled by the app's own webhook,
+  // so they never reach the seminar booking code below (31 Oct 2026).
+  if (fromTrainApp(event.data.object)) {
+    return new Response("ok", { status: 200 });
   }
 
   try {
