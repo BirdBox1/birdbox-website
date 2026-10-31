@@ -210,6 +210,7 @@ const VIDEOS = {
   es: { eye: "DPdywy9p3go", methodology: "PSmDNsK-Il4", dynamic: "5VmFI3Q2GqU", periodisation: "5u_sPReTrpA" },
   fr: { eye: "1rZLg7Re2H4", methodology: "6gw1KXFaaK8", dynamic: "R5TbCvcbXuk", periodisation: "ulfomEi7ckk" },
   pt: { eye: "ndiCIVxuIis", methodology: "8LOSO69Mtfw", dynamic: "Qp5vcOS2xlE", periodisation: "gRNfdmLgRLg" },
+  pl: { eye: "Ty1ZDBwMO_s", methodology: "6TgTivFT5JY", dynamic: "PEBAyvz57uk", periodisation: "NGwxSjvsP9Y" },
 };
 
 async function packFor(lang) {
