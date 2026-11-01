@@ -152,6 +152,22 @@
   .rc .l{display:flex;gap:8px}
   @media (max-width:640px){.rc{grid-template-columns:minmax(0,1fr) auto}.rc .d{grid-column:1/-1}.rc .l{grid-column:1/-1}}
   .certs .lc .btn{white-space:nowrap}
+  /* Trainer Directory tab (Nathan, 1 Nov 2026) */
+  .dgrid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;margin-top:16px}
+  @media (max-width:800px){.dgrid{grid-template-columns:1fr}}
+  .dbox{background:var(--panel);border:1px solid var(--line);padding:20px 22px}
+  .dbox h3{font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin:0 0 14px}
+  .dcard{display:flex;gap:16px;align-items:flex-start}
+  .dcard img{width:84px;height:84px;object-fit:cover;flex:none;background:var(--panel2)}
+  .dcard b{display:block;font-size:18px;margin-bottom:4px}
+  .dcard span{display:block;font-size:15px;line-height:1.5}
+  .dcard .on{display:inline-block;margin-top:6px;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--ink);padding:3px 8px}
+  .dlist{list-style:none;margin:0;padding:0;font-size:15px;line-height:1.5}
+  .dlist li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line)}
+  .dlist li:first-child{border-top:0}
+  .dlist .k{font-weight:800;white-space:nowrap}
+  .dnum{font-size:34px;font-weight:800;line-height:1;margin:0 0 6px}
+  .dbtns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
   .rcinv{grid-column:1/-1;border-top:1px solid var(--line);padding-top:14px}
   .rcinv .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   @media (max-width:640px){.rcinv .row{grid-template-columns:1fr}}
@@ -285,6 +301,7 @@
       <div><h3>Trainer Directory</h3><p id="dir-text">Get listed so athletes and gyms can find you. Your BirdBox courses fill themselves in.</p></div>
       <span class="btn small" id="dir-btn">Create my listing →</span>
     </a>
+    <div id="dir-more"></div>
     </div>
 
     <div class="pane hidden" id="t-mentorship">
@@ -737,7 +754,82 @@ async function showDirectory(session) {
       : text;
     $("dir-btn").textContent = btn;
     $("dir").classList.remove("hidden");
+    showDirectoryMore(d);
   } catch (e) {}
+}
+
+// The rest of the Trainer Directory tab: the listing as athletes see it,
+// their BirdBox courses, what would make it stronger, and contact requests.
+function showDirectoryMore(d) {
+  const box = $("dir-more"); box.innerHTML = "";
+  const el = (tag, cls, txt) => { const x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; };
+  const grid = el("div", "dgrid");
+  const left = el("div"), right = el("div");
+  left.style.display = right.style.display = "grid"; left.style.gap = right.style.gap = "16px"; left.style.alignContent = right.style.alignContent = "start";
+  const p = d.profile;
+
+  if (p) {
+    const card = el("div", "dbox");
+    card.appendChild(el("h3", null, "Your listing as athletes see it"));
+    const row = el("div", "dcard");
+    const img = document.createElement("img"); img.alt = "";
+    img.src = p.photo || "/brand/birdbox-mark.png";
+    img.onerror = () => { img.onerror = null; img.src = "/brand/birdbox-mark.png"; };
+    const txt = el("div");
+    txt.appendChild(el("b", null, p.full_name || "Your name"));
+    if (p.headline) txt.appendChild(el("span", null, p.headline));
+    const where = [p.gym_name, [p.city, p.country].filter(Boolean).join(", ")].filter(Boolean).join(" · ");
+    if (where) txt.appendChild(el("span", null, where));
+    if (p.coaches_online) txt.appendChild(el("span", "on", "Coaches online"));
+    row.append(img, txt); card.appendChild(row);
+    const btns = el("div", "dbtns");
+    if (d.status === "live" && d.url) { const v = el("a", "btn small", "View my public listing →"); v.href = d.url; v.target = "_blank"; v.rel = "noopener"; btns.appendChild(v); }
+    // Edit my listing is on the card above
+    if (btns.children.length) card.appendChild(btns);
+    if (p.review_note) { const n = el("p", "sub", "From our team: " + p.review_note); n.style.margin = "14px 0 0"; card.appendChild(n); }
+    left.appendChild(card);
+
+    // what would make it stronger
+    const checks = [
+      ["Photo", !!p.photo_path], ["Headline", !!p.headline], ["About you", !!(p.bio && p.bio.length > 40)],
+      ["Where you coach", !!(p.city || p.coaches_online)], ["A link (Instagram or website)", !!(p.instagram || p.website)],
+    ];
+    const todo = el("div", "dbox");
+    const left2 = checks.filter((c) => !c[1]).length;
+    todo.appendChild(el("h3", null, left2 ? "Make your listing stronger" : "Your listing is complete"));
+    const ul = el("ul", "dlist");
+    for (const [name, done] of checks) { const li = el("li"); li.append(el("span", null, name), el("span", "k", done ? "✓ Done" : "To add")); ul.appendChild(li); }
+    todo.appendChild(ul);
+    right.appendChild(todo);
+
+    const c = el("div", "dbox");
+    c.appendChild(el("h3", null, "Contact requests"));
+    c.appendChild(el("p", "dnum", String(d.contacts_90 || 0)));
+    c.appendChild(el("p", "sub", (d.contacts_90 === 1 ? "person has" : "people have") + " asked to work with you through your listing in the last 90 days. Each request was emailed to you."));
+    c.lastChild.style.margin = "0";
+    right.appendChild(c);
+  }
+
+  // their BirdBox courses
+  const cs = el("div", "dbox");
+  cs.appendChild(el("h3", null, "Your BirdBox courses"));
+  const list = d.courses || [];
+  if (list.length) {
+    const ul = el("ul", "dlist");
+    for (const q of list) {
+      const li = el("li");
+      li.append(el("span", null, q.title || "BirdBox course"), el("span", "k", q.verified ? "✓ Verified" : "Waiting for our check"));
+      ul.appendChild(li);
+    }
+    cs.appendChild(ul);
+  } else {
+    cs.appendChild(el("p", "sub", "No BirdBox courses on record for this email yet. Done one? Add it from Edit my listing and we will check it."));
+    cs.lastChild.style.margin = "0";
+  }
+  left.appendChild(cs);
+
+  grid.append(left, right);
+  box.appendChild(grid);
 }
 
 // ---------------- live courses ----------------

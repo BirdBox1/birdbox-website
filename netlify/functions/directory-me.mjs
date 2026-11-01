@@ -15,7 +15,7 @@
 
 import {
   db, json, OFFICE, SITE_URL, BRANDS, PROFILE_FIELDS, qualificationsFor, statusOf,
-  uniqueSlug, userFrom, sendMail, esc, photoUrl,
+  uniqueSlug, userFrom, sendMail, esc, photoUrl, qualTitle,
 } from "../lib/directory.mjs";
 
 const MAX_PENDING_COURSES = 20;
@@ -89,10 +89,16 @@ async function view(profile, user) {
     const ghost = { id: "new", email: String(user.email || "").toLowerCase(), other_emails: [] };
     const quals = (await qualificationsFor([ghost])).get("new");
     const meta = user.user_metadata || {};
-    return { profile: null, status: "none", courses: quals, suggested_name: meta.full_name || meta.name || "" };
+    return { profile: null, status: "none", courses: titled(quals), suggested_name: meta.full_name || meta.name || "" };
   }
   const quals = (await qualificationsFor([profile], { withPending: true })).get(profile.id);
   const verified = quals.filter((q) => q.verified);
+  // for the Trainer Directory tab in BirdBox Learn: how many people asked
+  // to work with them in the last 90 days (requests we passed on only)
+  const since = new Date(Date.now() - 90 * 86400000).toISOString();
+  const { count: contacts } = await db.from("directory_contact_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("profile_id", profile.id).eq("status", "sent").gte("created_at", since);
   return {
     profile: {
       full_name: profile.full_name, headline: profile.headline, qualifications: profile.qualifications, bio: profile.bio,
@@ -105,10 +111,13 @@ async function view(profile, user) {
       visible: profile.visible, slug: profile.slug, review_note: profile.rejected_at ? profile.review_note : null,
     },
     status: statusOf(profile, verified),
-    courses: quals,
+    courses: titled(quals),
+    contacts_90: contacts || 0,
     url: `${SITE_URL}/trainer-directory/coach/${encodeURIComponent(profile.slug)}`,
   };
 }
+
+const titled = (list) => (list || []).map((q) => ({ ...q, title: qualTitle(q) }));
 
 const clean = (v, max) => {
   const s = String(v == null ? "" : v).replace(/\s+/g, " ").trim();
