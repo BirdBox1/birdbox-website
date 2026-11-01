@@ -48,7 +48,17 @@ export default async (req) => {
 
   let body = {};
   try { body = await req.json(); } catch (e) { return ok(); }
-  const email = String(body.email || "").trim().toLowerCase();
+  // From the CoachRx move email (Nathan, 1 Nov 2026): their own code
+  // stands for their email, so they need not type it, and the link goes
+  // to the address on their offer whoever taps it.
+  let email = String(body.email || "").trim().toLowerCase();
+  if (typeof body.move === "string" && /^[0-9a-f]{64}$/.test(body.move)) {
+    const { data: mo } = await db.schema("train").from("move_offers")
+      .select("email").eq("code", body.move).maybeSingle();
+    if (!mo) return ok();
+    email = mo.email;
+    body.next = "/learn/";
+  }
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 254) return ok();
 
   // Only ever send people back into /learn/ on this site.

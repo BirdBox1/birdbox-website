@@ -27,6 +27,9 @@ export async function knownToBirdBox(email) {
     // a listing the office made, or one of their own the office approved
     () => has(db.from("directory_profiles").select("id", head).ilike("email", like).neq("source", "self")),
     () => has(db.from("directory_profiles").select("id", head).ilike("email", like).not("approved_at", "is", null)),
+    // moving over from CoachRx (Nathan, 1 Nov 2026)
+    () => has(db.schema("train").from("move_offers").select("id", head).eq("email", email)
+      .in("status", ["ready", "emailed", "moved"])),
     async () => {
       const train = db.schema("train");
       const { data: a } = await train.from("athletes").select("id").ilike("email", like).limit(5);
