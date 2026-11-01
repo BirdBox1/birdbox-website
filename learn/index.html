@@ -115,10 +115,10 @@
   .next-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
   .nx{display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c);padding:18px;text-decoration:none;color:var(--ink)}
   .nx:hover{border-color:var(--t)}
-  .nx .k{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t)}
+  .nx .k{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
   .nx h3{font-size:16px;margin:0}
-  .nx p{margin:0;font-size:14px;line-height:1.5;color:var(--muted)}
-  .nx .go{margin-top:auto;padding-top:8px;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--t)}
+  .nx p{margin:0;font-size:14px;line-height:1.5;color:var(--ink)}
+  .nx .go{margin-top:auto;padding-top:8px;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
   .extra{margin-top:40px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
   .extra .box{background:var(--panel);border:1px solid var(--line);padding:20px 22px;font-size:15px;line-height:1.6;color:var(--muted)}
   .extra h3{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin:0 0 10px}
@@ -928,14 +928,30 @@ async function fetchLiveCert(id, btn, msg) {
 //   fam:  course families they own or have done anything in, so we do not
 //         offer Level 1 Online to someone who already has it.
 function showNext(ownedOnline, finishedOnline, liveList) {
+  // Level 1 comes first (Nathan, 1 Nov 2026): a level counts as done only
+  // with its certificate, online or from a live course. Without one, the
+  // next step is that Level 1: get the certificate if the course is
+  // finished, finish it if they have it, or else take it online.
   const key = (c) => String(c.brand || "").toLowerCase() + ((String(c.level || "").match(/\d+/) || [""])[0]);
-  const has = new Set([...finishedOnline, ...liveList].map(key));
+  const certified = new Set([...ownedOnline.filter((c) => certInfo.has(c.id)), ...liveList].map(key));
+  const finished = new Set(finishedOnline.map(key));
+  const owned = new Map();
+  for (const c of ownedOnline) if (!owned.has(key(c))) owned.set(key(c), c);
   const fam = new Set([...ownedOnline, ...liveList].map((c) => String(c.brand || "").toLowerCase()));
   const ideas = [];
-  if (has.has("tgc1") && !has.has("tgc2")) ideas.push({ b: "tgc", k: "The Gymnastics Course", h: "Level 2 live seminar", p: "The next step after Level 1: advanced progressions and coaching the harder skills.", href: "/tgc/level-2/#map", go: "Pick a seminar →" });
-  if (has.has("tcc1") && !has.has("tcc2")) ideas.push({ b: "tcc", k: "The Coaches Course", h: "Level 2 live seminar", p: "Level 2 is a live seminar, and the Level 2 online course comes with it. Pick a date near you.", href: "/tcc/level-2/#map", go: "Pick a seminar →" });
-  if (!fam.has("tcc")) ideas.push({ b: "tcc", k: "The Coaches Course", h: "Level 1 Online", p: "The BirdBox coaching curriculum at your own pace, with 44 CEUs.", href: "/tcc/online-level-1/#buy", go: "Buy now →" });
-  if (!fam.has("tgc")) ideas.push({ b: "tgc", k: "The Gymnastics Course", h: "Level 1 Online", p: "The full TGC methodology online: proven progressions and 35 CEUs.", href: "/tgc/online-level-1/#buy", go: "Buy now →" });
+  const L1 = {
+    tgc: { k: "The Gymnastics Course", buy: "/tgc/online-level-1/#buy", buyText: "The full TGC methodology online: proven progressions and 35 CEUs." },
+    tcc: { k: "The Coaches Course", buy: "/tcc/online-level-1/#buy", buyText: "The BirdBox coaching curriculum at your own pace, with 44 CEUs." },
+  };
+  for (const b of ["tgc", "tcc"]) {
+    if (certified.has(b + "1")) continue;
+    const mine = owned.get(b + "1");
+    if (finished.has(b + "1")) ideas.push({ b, k: L1[b].k, h: "Get your Level 1 certificate", p: "You have finished Level 1. Download your certificate: it is what makes Level 2 the next step.", href: "#certificates", go: "Get my certificate →" });
+    else if (mine) ideas.push({ b, k: L1[b].k, h: "Finish Level 1 Online", p: "Pick up where you left off. Finish the course to earn your Level 1 certificate.", href: "/learn/player/?course=" + encodeURIComponent(mine.slug), go: "Continue →" });
+    else if (!fam.has(b)) ideas.push({ b, k: L1[b].k, h: "Level 1 Online", p: L1[b].buyText, href: L1[b].buy, go: "Buy now →" });
+  }
+  if (certified.has("tgc1") && !certified.has("tgc2")) ideas.push({ b: "tgc", k: "The Gymnastics Course", h: "Level 2 live seminar", p: "The next step after Level 1: advanced progressions and coaching the harder skills.", href: "/tgc/level-2/#map", go: "Pick a seminar →" });
+  if (certified.has("tcc1") && !certified.has("tcc2")) ideas.push({ b: "tcc", k: "The Coaches Course", h: "Level 2 live seminar", p: "Level 2 is a live seminar, and the Level 2 online course comes with it. Pick a date near you.", href: "/tcc/level-2/#map", go: "Pick a seminar →" });
   if (fam.has("tgc")) ideas.push({ b: "tgc", k: "The Gymnastics Course", h: "Workshops", p: "Focused sessions on one skill at a time, for coaches and athletes.", href: "/tgc/workshops/", go: "Find one →" });
   const list = $("next-list"); list.innerHTML = "";
   for (const i of ideas.slice(0, 3)) {
