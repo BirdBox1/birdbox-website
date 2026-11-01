@@ -1584,18 +1584,25 @@ async function loadProgramming() {
     if (x.next_payment) add("Next payment", day(x.next_payment) + (x.amount != null ? " · " + money(x.amount, x.currency) : ""));
     if (x.status === "past_due") add("Payment", "Your last payment did not go through. Update your card in Manage my plan.");
     if (x.given) add("Payments", "Given by BirdBox, no payments");
+    // paused for a block (Nathan, 1 Nov 2026): the block runs start to
+    // finish, so the plan can be changed again once the blog is back
+    if (x.paused_until) add("Paused", "While you do your block. It comes back on " + day(x.paused_until) + ", with no charge until then. You can change your plan once it is back.");
     const btns = document.createElement("div"); btns.className = "btns";
     const open = document.createElement("a"); open.className = "btn main"; open.href = APP_LINK; open.textContent = "Open the app →";
     btns.appendChild(open);
     if (x.manage && x.subscription) {
-      const m = document.createElement("button"); m.type = "button"; m.className = "btn ghost"; m.textContent = "Manage my plan";
       const msg = document.createElement("div"); msg.className = "msg";
-      m.onclick = async () => {
-        m.disabled = true; m.textContent = "Opening…"; msg.textContent = "";
-        try { const r = await account("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "portal", subscription: x.subscription }) }); location.href = r.url; }
-        catch (e) { m.disabled = false; m.textContent = "Manage my plan"; msg.className = "msg err"; msg.textContent = e.message; }
+      const go = (label, only) => {
+        const m = document.createElement("button"); m.type = "button"; m.className = "btn ghost"; m.textContent = label;
+        m.onclick = async () => {
+          m.disabled = true; m.textContent = "Opening…"; msg.textContent = "";
+          try { const r = await account("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "portal", subscription: x.subscription, only }) }); location.href = r.url; }
+          catch (e) { m.disabled = false; m.textContent = label; msg.className = "msg err"; msg.textContent = e.message; }
+        };
+        btns.appendChild(m);
       };
-      btns.appendChild(m);
+      if (x.paused_until) { go("Update my card", "card"); go("Cancel my plan", "cancel"); }
+      else go("Manage my plan", "");
       el.append(k, h, dl, btns, msg);
     } else el.append(k, h, dl, btns);
     box.appendChild(el);
