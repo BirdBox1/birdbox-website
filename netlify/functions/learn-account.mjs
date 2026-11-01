@@ -7,6 +7,7 @@
 // GET  ?part=programming  -> { plans, blocks }
 // GET  ?part=receipts     -> { receipts }
 // POST { action: "portal", subscription }  -> { url }
+// POST { action: "change_plan", subscription, tier }  -> { url }  tiers 1-3
 // POST { action: "invoice", charge, company?, vat? }  -> { pdf, filename }
 // GET  ?part=me           -> { known }   false: directory-only login
 // GET  ?part=discounts    -> { discounts, name }   their Level 1 50% offers
@@ -48,9 +49,10 @@ export default async (req, context) => {
 
   try {
     if (req.method === "GET") {
-      const part = new URL(req.url).searchParams.get("part");
+      const q = new URL(req.url).searchParams;
+      const part = q.get("part");
       if (part === "programming") return json({ ...(await programming(user, email)),
-        staff: await isStaff(user), shop: await shop(context), trial_ok: await trialOk(user, email) });
+        staff: await isStaff(user), shop: await shop(context, user, email, String(q.get("country") || "").toUpperCase()), trial_ok: await trialOk(user, email) });
       if (part === "receipts") return json({ receipts: await receipts(email) });
       // a directory-only login (no BirdBox record yet) sees only their listing
       if (part === "me") return json({ known: (await isStaff(user)) || (await knownToBirdBox(email)) });
@@ -65,6 +67,7 @@ export default async (req, context) => {
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       if (body.action === "portal") return portal(user, email, String(body.subscription || ""), String(body.only || ""));
+      if (body.action === "change_plan") return changePlan(user, email, String(body.subscription || ""), Number(body.tier));
       if (body.action === "invoice") return invoice(email, body);
       if (body.action === "seminar_pass") return seminarPass(user, email, String(body.brand || ""));
       if (body.action === "online_offer") return onlineOffer(user, email, String(body.brand || ""));
@@ -119,11 +122,33 @@ const INCLUDES = {
 };
 // the names on the TGC programming page; Tiers 4 and 5 are by application
 const NAMES = { 4: "Bespoke 1:1, Skill Only", 5: "Full CF Programme, 1:1" };
-// Grouped by course (TGC now; TCC, TEC and TWC programming later): a
-// course appears as soon as its plans have prices or a block is on sale.
-// Tiers 4 and 5 are BirdBox one-to-one coaching, not one course's.
-async function shop(context) {
-  const currency = currencyFor(context?.geo?.country?.code);
+// One tab per course (Nathan, 1 Nov 2026): TGC has the trial, the blog
+// plans (tiers 1 to 3), one-to-one (4 and 5) and its blocks; TCC has
+// one-to-one only; TEC and TWC say Coming soon until something is on sale.
+const COURSES = ["tgc", "tcc", "tec", "twc"];
+const APPLY = { tgc: "/tgc/programming/#apply", tcc: "/tcc/programming/#apply" };
+const ONE_TO_ONE = ["tgc", "tcc"];
+
+// The currency they paid in before (Stripe keeps one currency per
+// customer), otherwise where they are (Nathan, 1 Nov 2026).
+// A country they chose ("Change country", Nathan, 1 Nov 2026) comes before
+// where they are browsing from; someone who has paid before keeps that
+// currency whatever they choose.
+async function currencyOf(a, country) {
+  if (a) {
+    const { data: paid } = await train().from("payments").select("currency")
+      .eq("athlete_id", a.id).not("currency", "is", null).order("paid_at", { ascending: false }).limit(1);
+    const cur = String(paid?.[0]?.currency || "").toLowerCase();
+    if (["eur", "gbp", "usd", "aud", "cad"].includes(cur)) return { currency: cur, locked: true };
+  }
+  return { currency: currencyFor(country), locked: false };
+}
+
+async function shop(context, user, email, chosen) {
+  const a = user ? await athleteOf(user, email) : null;
+  const where = String(context?.geo?.country?.code || "").toUpperCase();
+  const country = /^[A-Z]{2}$/.test(chosen || "") ? chosen : where;
+  const { currency, locked } = await currencyOf(a, country);
   const { data: prices } = await train().from("stripe_prices")
     .select("tier, label, amounts, tracks:track_id(brand)")
     .eq("active", true).in("tier", [1, 2, 3, 4, 5]).like("price_id", "price_%").order("tier");
@@ -132,25 +157,33 @@ async function shop(context) {
     return { tier: p.tier, name: NAMES[p.tier] || p.label, amount: p.amounts?.[cur] ?? null, currency: cur,
       includes: INCLUDES[p.tier] || [], apply: p.tier >= 4 };
   };
-  const byBrand = new Map();
-  const course = (b) => { if (!byBrand.has(b)) byBrand.set(b, { brand: b, plans: [], blocks: [] }); return byBrand.get(b); };
-  for (const p of prices || []) if (p.tier <= 3) course(String(p.tracks?.brand || "tgc").toLowerCase()).plans.push(plan(p));
-  const one_to_one = (prices || []).filter((p) => p.tier >= 4).map(plan);
+  const courses = COURSES.map((brand) => ({ brand, plans: [], one_to_one: [], blocks: [],
+    apply_url: APPLY[brand] || null }));
+  const at = (b) => courses.find((c) => c.brand === b);
+  for (const p of prices || []) {
+    if (p.tier <= 3) at(String(p.tracks?.brand || "tgc").toLowerCase())?.plans.push(plan(p));
+    else for (const b of ONE_TO_ONE) at(b).one_to_one.push(plan(p));
+  }
 
-  const { data: rate } = await train().from("block_rates").select("week_cents").eq("currency", currency).maybeSingle();
-  const { data: tpls } = await train().from("tracks").select("id, name, brand, weeks, description, week_rate_cents")
+  const { data: rate } = await train().from("block_rates").select("week_cents, feedback_cents").eq("currency", currency).maybeSingle();
+  const { data: tpls } = await train().from("tracks").select("id, name, brand, weeks, description, week_rate_cents, feedback_rate_cents")
     .eq("kind", "block").eq("is_template", true).eq("sale_status", "live").order("name");
   for (const t of tpls || []) {
-    course(String(t.brand || "tgc").toLowerCase()).blocks.push({
+    const week = currency === "eur" ? (t.week_rate_cents || 995) : (rate?.week_cents || 995);
+    const fb = currency === "eur" ? (t.feedback_rate_cents || 1995) : (rate?.feedback_cents || 1995);
+    // only TGC sells blocks for now; a block for another course waits
+    const c = at(String(t.brand || "tgc").toLowerCase());
+    if (c && c.brand === "tgc") c.blocks.push({
       id: t.id, name: t.name, weeks: t.weeks || null, description: t.description || null,
-      // without feedback, paid in full: the price everyone starts from
-      from: (currency === "eur" ? (t.week_rate_cents || 995) : (rate?.week_cents || 995)) * (t.weeks || 1),
-      currency,
+      week: week, feedback_week: fb, from: week * (t.weeks || 1), currency,
     });
   }
-  const order = ["tgc", "tcc", "tec", "twc"];
-  const courses = [...byBrand.values()].sort((a, b) => (order.indexOf(a.brand) + 1 || 9) - (order.indexOf(b.brand) + 1 || 9));
-  return { currency, courses, one_to_one };
+  for (const c of courses) {
+    // TCC sells one-to-one only for now (Nathan, 1 Nov 2026)
+    if (c.brand === "tcc") { c.plans = []; c.blocks = []; }
+    c.coming_soon = !c.plans.length && !c.one_to_one.length && !c.blocks.length;
+  }
+  return { currency, country, locked, courses };
 }
 
 // their athlete record in the app: by login, then by email
@@ -192,7 +225,7 @@ async function programming(user, email) {
     };
     if (e.tier === 6 || e.tier === 7) { blocks.push(base); continue; }
     // given by BirdBox: a plan with no subscription behind it, not a trial
-    const plan = { ...base, subscription: e.stripe_subscription_id || null, trial: !!e.is_trial,
+    const plan = { ...base, tier: e.tier, subscription: e.stripe_subscription_id || null, trial: !!e.is_trial,
       given: !e.stripe_subscription_id && !e.is_trial,
       // paused while they do a block: no plan change until it comes back
       paused_until: e.paused_for_purchase ? e.pause_until : null };
@@ -457,6 +490,38 @@ async function onlineOffer(user, email, brand) {
   }
   if (!offer?.token) return json({ error: "Your link could not be made. Write to info@birdboxcoaching.com." }, 500);
   return json({ url: `/offer/?t=${offer.token}` });
+}
+
+// "Change to this plan" on a blog tier (Nathan, 1 Nov 2026): Stripe's own
+// page opens on that change for them to confirm. Moving up is charged the
+// difference now; moving down starts at their next payment (the portal's
+// settings). Only between blog tiers 1 to 3, and never while the blog is
+// paused for a block.
+async function changePlan(user, email, subId, tier) {
+  const a = await athleteOf(user, email);
+  if (!a || !/^sub_\w+$/.test(subId) || ![1, 2, 3].includes(tier)) return json({ error: "That plan could not be found." }, 404);
+  const { data: mine } = await train().from("enrolments").select("id, tier, paused_for_purchase")
+    .eq("athlete_id", a.id).eq("stripe_subscription_id", subId).in("status", ["active", "past_due"]).limit(1);
+  const e = mine?.[0];
+  if (!e || e.tier > 3) return json({ error: "That plan could not be found." }, 404);
+  if (e.paused_for_purchase) return json({ error: "Your blog is paused while you do your block. You can change your plan once it is back." }, 400);
+  if (e.tier === tier) return json({ error: "You're on that plan already." }, 400);
+  const { data: price } = await train().from("stripe_prices").select("price_id")
+    .eq("tier", tier).eq("active", true).like("price_id", "price_%").limit(1).maybeSingle();
+  if (!price?.price_id) return json({ error: "That plan is not on sale." }, 400);
+  const s = await stripe.subscriptions.retrieve(subId);
+  const item = s.items?.data?.[0];
+  if (!item) return json({ error: "That plan could not be found." }, 404);
+  const session = await stripe.billingPortal.sessions.create({
+    customer: typeof s.customer === "string" ? s.customer : s.customer.id,
+    return_url: RETURN_URL,
+    flow_data: {
+      type: "subscription_update_confirm",
+      subscription_update_confirm: { subscription: subId, items: [{ id: item.id, price: price.price_id, quantity: 1 }] },
+      after_completion: { type: "redirect", redirect: { return_url: RETURN_URL } },
+    },
+  });
+  return json({ url: session.url });
 }
 
 // Stripe's own page for one of their plans: change plan, card, or cancel.
