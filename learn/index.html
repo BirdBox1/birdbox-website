@@ -152,6 +152,12 @@
   .rc .l{display:flex;gap:8px}
   @media (max-width:640px){.rc{grid-template-columns:minmax(0,1fr) auto}.rc .d{grid-column:1/-1}.rc .l{grid-column:1/-1}}
   .certs .lc .btn{white-space:nowrap}
+  .rcinv{grid-column:1/-1;border-top:1px solid var(--line);padding-top:14px}
+  .rcinv .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:640px){.rcinv .row{grid-template-columns:1fr}}
+  .rcinv label{display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
+  .rcinv label small{font-weight:400;letter-spacing:0;text-transform:none;font-size:12px}
+  .rcinv input{width:100%;font:inherit;font-size:16px;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin:6px 0 12px}
   .card.mt label{color:var(--ink)}
   .mtiles{grid-template-columns:repeat(3,minmax(0,1fr))}
   @media (max-width:640px){.mtiles{grid-template-columns:1fr}.mtiles .brand{min-height:0}}
@@ -266,7 +272,7 @@
     <div class="pane hidden" id="t-receipts">
       <p class="kicker">BirdBox Learn</p>
       <h1>Receipts</h1>
-      <p class="sub">Everything you have paid BirdBox Coaching: seminars, online courses, programming, blocks, T-shirts and gift cards. Open any receipt or invoice to download it.</p>
+      <p class="sub">Everything you have paid BirdBox Coaching: seminars, online courses, programming, blocks, T-shirts and gift cards. Download a BirdBox invoice for any payment, with your business name and VAT number if you need them.</p>
       <div id="rc-list"><p class="sub">Loading…</p></div>
     </div>
 
@@ -772,7 +778,7 @@ async function showLive(session, ownedOnline, finishedOnline) {
     return el;
   };
   const box = $("live-list"); box.innerHTML = "";
-  renderCerts(finishedOnline, d.live, row);
+  renderCerts(finishedOnline, d.live, d.earlier, row);
   d.live.forEach((c) => box.appendChild(row(c, true)));
   d.earlier.forEach((c) => box.appendChild(row(c, false)));
   $("live").classList.toggle("hidden", !(d.live.length || d.earlier.length));
@@ -841,10 +847,11 @@ function showNext(ownedOnline, finishedOnline, liveList) {
 // ---------------- certificates tab ----------------
 
 // Every certificate in one list: online courses they have finished, then
-// live seminars and workshops. The buttons on the course cards stay too.
+// live seminars and workshops, then older courses verified by BirdBox.
+// The buttons on the course cards stay too.
 let certInfo = new Map();
 let certName = "";
-function renderCerts(finishedOnline, live, liveRow) {
+function renderCerts(finishedOnline, live, earlier, liveRow) {
   const box = $("cert-list"); box.innerHTML = "";
   for (const c of finishedOnline.filter((x) => x.current_version)) {
     const b = BRAND[String(c.brand || "").toLowerCase()] || BRAND.tcc;
@@ -862,6 +869,9 @@ function renderCerts(finishedOnline, live, liveRow) {
     box.appendChild(el);
   }
   for (const c of live) box.appendChild(liveRow(c, true));
+  // older courses checked by BirdBox, from before our records began: no
+  // download, but they count, so they are listed as verified
+  for (const c of earlier) box.appendChild(liveRow(c, false));
   if (!box.children.length) {
     box.innerHTML = '<div class="empty" style="color:var(--ink)">No certificates yet. Finish an online course, or come to a BirdBox seminar or workshop, and your certificate appears here.</div>';
   }
@@ -933,6 +943,35 @@ async function loadProgramming() {
 
 // ---------------- receipts tab ----------------
 
+// "Invoice" opens a short form: a business can add its name and VAT
+// number, then the BirdBox invoice downloads. It is made from the payment
+// each time; nothing is added to Stripe.
+function invoiceForm(r, btn) {
+  const f = document.createElement("form"); f.className = "rcinv hidden";
+  f.innerHTML = '<div class="row"><label>Business name <small>(optional)</small><input maxlength="100" autocomplete="organization"></label>' +
+    '<label>VAT number <small>(optional)</small><input maxlength="20"></label></div>' +
+    '<button class="btn small" type="submit">Download invoice</button><div class="msg"></div>';
+  const [co, vat] = f.querySelectorAll("input");
+  const go = f.querySelector("button"), msg = f.querySelector(".msg");
+  btn.onclick = () => { f.classList.toggle("hidden"); if (!f.classList.contains("hidden")) co.focus(); };
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    go.disabled = true; go.textContent = "Making your invoice…"; msg.className = "msg"; msg.textContent = "";
+    try {
+      const d = await account("", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "invoice", charge: r.id, company: co.value, vat: vat.value }) });
+      const bytes = Uint8Array.from(atob(d.pdf), (ch) => ch.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      const a = document.createElement("a"); a.href = url; a.download = d.filename || "BirdBox invoice.pdf";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      msg.className = "msg ok"; msg.textContent = "Downloaded.";
+    } catch (x) { msg.className = "msg err"; msg.textContent = x.message; }
+    go.disabled = false; go.textContent = "Download invoice";
+  };
+  return f;
+}
+
 async function loadReceipts() {
   const box = $("rc-list");
   let d;
@@ -947,9 +986,10 @@ async function loadReceipts() {
     if (extra) { const s2 = document.createElement("small"); s2.textContent = extra; w.appendChild(s2); }
     const a = document.createElement("span"); a.className = "a"; a.textContent = money(r.amount, r.currency);
     const l = document.createElement("span"); l.className = "l";
-    if (r.invoice) { const i = document.createElement("a"); i.className = "btn small"; i.href = r.invoice; i.target = "_blank"; i.rel = "noopener"; i.textContent = "Invoice"; l.appendChild(i); }
+    const inv = document.createElement("button"); inv.type = "button"; inv.className = "btn small"; inv.textContent = "Invoice";
+    l.appendChild(inv);
     if (r.receipt) { const i = document.createElement("a"); i.className = "btn ghost small"; i.href = r.receipt; i.target = "_blank"; i.rel = "noopener"; i.textContent = "Receipt"; l.appendChild(i); }
-    el.append(dt, w, a, l);
+    el.append(dt, w, a, l, invoiceForm(r, inv));
     box.appendChild(el);
   }
   if (!d.receipts.length) {
@@ -964,7 +1004,10 @@ async function loadReceipts() {
 // name and email come from the login. All mentorship interest is kept on
 // one list; the source says whether it was TCC or TGC.
 async function loadMentorship() {
-  const { data } = await db.from("learn_mentorships").select("id").eq("status", "active").limit(1);
+  // their own only (staff can read every mentorship)
+  const { data: { session } } = await db.auth.getSession();
+  const { data } = await db.from("learn_mentorships").select("id").eq("status", "active")
+    .ilike("email", session ? session.user.email.replace(/[%_\\]/g, "\\$&") : "-").limit(1);
   const mine = !!(data && data.length);
   $("mt-mine").classList.toggle("hidden", !mine);
 }

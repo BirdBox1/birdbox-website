@@ -7,6 +7,7 @@
 // GET  ?part=programming  -> { plans, blocks }
 // GET  ?part=receipts     -> { receipts }
 // POST { action: "portal", subscription }  -> { url }
+// POST { action: "invoice", charge, company?, vat? }  -> { pdf, filename }
 //
 // Programming comes from the app's own records (schema train). Receipts are
 // every successful payment on BirdBox's Stripe account made by a customer
@@ -15,6 +16,7 @@
 // payment; "portal" only opens Stripe's own page for one of their plans.
 
 import Stripe from "stripe";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { db, json, userFrom } from "../lib/directory.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -47,6 +49,7 @@ export default async (req) => {
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       if (body.action === "portal") return portal(user, email, String(body.subscription || ""));
+      if (body.action === "invoice") return invoice(email, body);
       return json({ error: "Unknown action" }, 400);
     }
     return json({ error: "Use GET or POST" }, 405);
@@ -134,27 +137,189 @@ async function customersOf(email) {
   return [...seen.values()];
 }
 
-async function receipts(email) {
+// A payment's items, VAT and invoice number, whichever way it was taken:
+// a Stripe invoice (programming, monthly payments, most seminars), a
+// checkout without one (one-off payments), or a bare payment (a block's
+// 4-weekly payment, whose VAT the app recorded).
+async function detailsOf(ch) {
+  const inv = ch.invoice && typeof ch.invoice === "object" ? ch.invoice : null;
+  const lines = [];
+  if (inv) {
+    for (const l of inv.lines?.data || []) {
+      const taxes = l.tax_amounts || l.taxes || [];
+      const tax = taxes.reduce((n, t) => n + (t.amount || 0), 0);
+      const inclusive = taxes.some((t) => t.inclusive || t.tax_behavior === "inclusive");
+      const after = l.amount - (l.discount_amounts || []).reduce((n, d) => n + (d.amount || 0), 0);
+      lines.push({ what: l.description || "Item", net: inclusive ? after - tax : after, tax });
+    }
+  } else {
+    const pi = typeof ch.payment_intent === "string" ? ch.payment_intent : ch.payment_intent?.id;
+    if (pi) {
+      const ss = await stripe.checkout.sessions.list({ payment_intent: pi, limit: 1, expand: ["data.line_items"] }).catch(() => null);
+      for (const l of ss?.data?.[0]?.line_items?.data || []) {
+        const qty = l.quantity && l.quantity > 1 ? ` × ${l.quantity}` : "";
+        lines.push({ what: (l.description || "Item") + qty, net: l.amount_total - (l.amount_tax || 0), tax: l.amount_tax || 0 });
+      }
+      if (!lines.length) {
+        const { data: p } = await db.schema("train").from("payments").select("tax_cents")
+          .eq("stripe_invoice_id", pi).maybeSingle();
+        const tax = p?.tax_cents || 0;
+        lines.push({ what: ch.description || "Payment", net: ch.amount - tax, tax });
+      }
+    }
+  }
+  if (!lines.length) lines.push({ what: ch.description || "Payment", net: ch.amount, tax: 0 });
+  return {
+    what: inv?.description || lines[0].what.replace(/ × \d+$/, "") || ch.description || "Payment",
+    lines,
+    number: inv?.number || ch.receipt_number || ch.id.slice(-10).toUpperCase(),
+    pdf: inv?.invoice_pdf || null,
+  };
+}
+
+async function chargesOf(email) {
   const out = [];
   for (const c of await customersOf(email)) {
     const charges = await stripe.charges.list({ customer: c.id, limit: 100, expand: ["data.invoice"] });
-    for (const ch of charges.data || []) {
-      if (ch.status !== "succeeded" || !ch.paid) continue;
-      const inv = ch.invoice && typeof ch.invoice === "object" ? ch.invoice : null;
-      const line = inv?.lines?.data?.[0]?.description || null;
-      out.push({
-        date: new Date(ch.created * 1000).toISOString(),
-        what: inv?.description || line || ch.description || ch.calculated_statement_descriptor || "Payment",
-        amount: ch.amount,
-        refunded: ch.amount_refunded || 0,
-        currency: ch.currency,
-        number: inv?.number || ch.receipt_number || null,
-        receipt: ch.receipt_url || null,
-        invoice: inv?.invoice_pdf || null,
-      });
-    }
+    for (const ch of charges.data || []) if (ch.status === "succeeded" && ch.paid) out.push(ch);
+  }
+  return out;
+}
+
+async function receipts(email) {
+  const out = [];
+  for (const ch of await chargesOf(email)) {
+    const d = await detailsOf(ch);
+    out.push({
+      id: ch.id,
+      date: new Date(ch.created * 1000).toISOString(),
+      what: d.what,
+      amount: ch.amount,
+      refunded: ch.amount_refunded || 0,
+      currency: ch.currency,
+      number: d.number,
+      receipt: ch.receipt_url || null,
+    });
   }
   return out.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+// ---------- the BirdBox invoice (Nathan, 1 Nov 2026) ----------
+//
+// For a payment already made: BirdBox's name, address and VAT number, the
+// buyer, each item with its VAT, and "paid". Made the same each time from
+// Stripe, so nothing is stored. A business can add its own name and VAT
+// number; the VAT shown is what was charged and cannot change afterwards.
+
+// the BirdBox logo for light pages, from the website itself; an invoice
+// still downloads without it if it cannot be fetched
+const LOGO_URL = (process.env.URL || "https://www.birdboxcoaching.com") + "/brand/birdBox.png";
+let logoBytes = null;
+async function logo() {
+  if (!logoBytes) {
+    const r = await fetch(LOGO_URL).catch(() => null);
+    if (r && r.ok) logoBytes = new Uint8Array(await r.arrayBuffer());
+  }
+  return logoBytes;
+}
+
+const BIRDBOX = ["BirdBox Coaching Limited", "19 Baggot Street Lower", "Dublin 2, D02 X658", "Ireland", "VAT IE4429982WH"];
+
+// the built-in fonts cover Western European letters; others lose accents
+// or become "?" so the page still opens
+const WIN = new Set([..."€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ"]);
+const LOOKS = { "Ł": "L", "ł": "l", "Đ": "D", "đ": "d", "Ħ": "H", "ħ": "h", "ı": "i", "ŀ": "l", "Ŀ": "L" };
+const plain = (t) => [...String(t ?? "")].map((ch) => {
+  const c = ch.codePointAt(0);
+  if (LOOKS[ch]) return LOOKS[ch];
+  if ((c >= 32 && c < 127) || (c >= 160 && c < 256) || WIN.has(ch)) return ch;
+  const base = ch.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return /^[\x20-\x7e]+$/.test(base) ? base : c === 10 ? " " : "?";
+}).join("");
+
+async function invoice(email, body) {
+  const id = String(body.charge || "");
+  if (!/^(ch|py)_\w+$/.test(id)) return json({ error: "That payment could not be found." }, 404);
+  const mine = (await chargesOf(email)).find((c) => c.id === id);
+  if (!mine) return json({ error: "That payment could not be found." }, 404);
+  const company = plain(String(body.company || "").replace(/\s+/g, " ").trim().slice(0, 100));
+  const vat = plain(String(body.vat || "").replace(/\s+/g, "").toUpperCase().slice(0, 20));
+
+  const d = await detailsOf(mine);
+  const cur = (mine.currency || "eur").toUpperCase();
+  // a space after the symbol: in Helvetica the euro sign touches the figure
+  const money = (c) => new Intl.NumberFormat("en-IE", { style: "currency", currency: cur }).format((c || 0) / 100)
+    .replace(/^([^\d-]+)/, "$1 ").replace(/\s+/g, " ");
+  const country = (code) => { try { return new Intl.DisplayNames(["en"], { type: "region" }).of(code); } catch (x) { return code; } };
+  const day = (t) => new Date(t * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
+  const b = mine.billing_details || {};
+  const cust = mine.customer && typeof mine.customer === "object" ? mine.customer : null;
+  const a = b.address || cust?.address || {};
+  const to = [company || null, b.name || cust?.name || null, vat ? "VAT " + vat : null,
+    a.line1, a.line2, [a.postal_code, a.city].filter(Boolean).join(" "), a.state, a.country ? country(a.country) : null,
+    b.email || email].filter(Boolean).map(plain);
+
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([595, 842]);
+  const f = await doc.embedFont(StandardFonts.Helvetica);
+  const fb = await doc.embedFont(StandardFonts.HelveticaBold);
+  const ink = rgb(0.1, 0.08, 0.07);
+  const text = (t, x, y, size = 10, bold = false) => page.drawText(plain(t), { x, y, size, font: bold ? fb : f, color: ink });
+  const right = (t, x, y, size = 10, bold = false) => {
+    const w = (bold ? fb : f).widthOfTextAtSize(plain(t), size);
+    text(t, x - w, y, size, bold);
+  };
+  const rule = (y) => page.drawLine({ start: { x: 50, y }, end: { x: 545, y }, thickness: 0.6, color: ink });
+  const fit = (t, max, size) => { let s2 = plain(t); while (s2.length > 3 && f.widthOfTextAtSize(s2, size) > max) s2 = s2.slice(0, -2); return s2 === plain(t) ? s2 : s2 + "…"; };
+
+  let y = 790;
+  const png = await logo();
+  if (png) {
+    try {
+      const img = await doc.embedPng(png);
+      const h = 64, w = h * img.width / img.height;
+      page.drawImage(img, { x: 50, y: 754, width: w, height: h });
+    } catch (x) {}
+  }
+  text("INVOICE", png ? 122 : 50, y - 10, 22, true);
+  right(d.number, 545, y, 12, true);
+  right("Date " + day(mine.created), 545, y - 16, 9);
+
+  y = 725;
+  text("From", 50, y, 9, true);
+  text("To", 320, y, 9, true);
+  BIRDBOX.forEach((l, i) => text(l, 50, y - 14 - i * 13));
+  to.forEach((l, i) => text(fit(l, 225, 10), 320, y - 14 - i * 13));
+  y = y - 14 - Math.max(BIRDBOX.length, to.length) * 13 - 24;
+
+  text("Description", 50, y, 9, true);
+  right("Before VAT", 395, y, 9, true);
+  right("VAT", 470, y, 9, true);
+  right("Total", 545, y, 9, true);
+  y -= 6; rule(y); y -= 16;
+  let net = 0, tax = 0;
+  for (const l of d.lines) {
+    const rate = l.net ? Math.round((l.tax / l.net) * 1000) / 10 : 0;
+    text(fit(l.what, 245, 10), 50, y);
+    right(money(l.net), 395, y);
+    right(l.tax ? money(l.tax) + " (" + rate + "%)" : "0", 470, y);
+    right(money(l.net + l.tax), 545, y);
+    net += l.net; tax += l.tax; y -= 16;
+  }
+  y -= 2; rule(y); y -= 18;
+  text("Total before VAT", 320, y); right(money(net), 545, y); y -= 15;
+  text("VAT", 320, y); right(money(tax), 545, y); y -= 17;
+  text("Total", 320, y, 12, true); right(money(net + tax), 545, y, 12, true); y -= 22;
+  text(`Paid in full by card on ${day(mine.created)}. Thank you.`, 50, y, 10, true); y -= 14;
+  if (mine.amount_refunded) { text(`${money(mine.amount_refunded)} has since been refunded.`, 50, y, 10); y -= 14; }
+  if (!tax) { text("No VAT was charged on this payment.", 50, y, 9); y -= 14; }
+
+  text("BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland · VAT IE4429982WH", 50, 60, 8);
+  text("Questions about this invoice: info@birdboxcoaching.com", 50, 48, 8);
+
+  const bytes = await doc.save();
+  return json({ pdf: Buffer.from(bytes).toString("base64"), filename: `BirdBox invoice ${d.number}.pdf` });
 }
 
 // Stripe's own page for one of their plans: change plan, card, or cancel

@@ -128,7 +128,10 @@ boot();
 async function boot() {
   const { data: { session } } = await db.auth.getSession();
   if (!session) { $("gate").innerHTML = 'Please <a href="/learn/">log in</a> first, then come back to your mentorship.'; return; }
-  const { data, error } = await db.from("learn_mentorships").select("*").eq("status", "active").order("created_at", { ascending: false });
+  // their own mentorship only: staff can read every mentorship, and must
+  // not see someone else's as if it were theirs (Nathan, 1 Nov 2026)
+  const { data, error } = await db.from("learn_mentorships").select("*").eq("status", "active")
+    .ilike("email", session.user.email.replace(/[%_\\]/g, "\\$&")).order("created_at", { ascending: false });
   if (error) { $("gate").textContent = "Could not load your mentorship: " + error.message; return; }
   if (!data || !data.length) {
     $("gate").innerHTML = 'There is no mentorship on <b></b> yet. If you have just joined, your mentor will set it up shortly — or write to <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a>.';
