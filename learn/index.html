@@ -1583,6 +1583,7 @@ async function loadProgramming() {
     else if (kind === "Block" || x.trial) add("Ends", day(x.ends));
     if (x.next_payment) add("Next payment", day(x.next_payment) + (x.amount != null ? " · " + money(x.amount, x.currency) : ""));
     if (x.status === "past_due") add("Payment", "Your last payment did not go through. Update your card in Manage my plan.");
+    if (x.given) add("Payments", "Given by BirdBox, no payments");
     const btns = document.createElement("div"); btns.className = "btns";
     const open = document.createElement("a"); open.className = "btn main"; open.href = APP_LINK; open.textContent = "Open the app →";
     btns.appendChild(open);

@@ -191,7 +191,9 @@ async function programming(user, email) {
       status: e.status,
     };
     if (e.tier === 6 || e.tier === 7) { blocks.push(base); continue; }
-    const plan = { ...base, subscription: e.stripe_subscription_id || null, trial: !!e.is_trial };
+    // given by BirdBox: a plan with no subscription behind it, not a trial
+    const plan = { ...base, subscription: e.stripe_subscription_id || null, trial: !!e.is_trial,
+      given: !e.stripe_subscription_id && !e.is_trial };
     if (e.stripe_subscription_id) {
       try {
         const s = await stripe.subscriptions.retrieve(e.stripe_subscription_id);
