@@ -130,7 +130,7 @@ function courseRow(c) {
   return `<div class="cp-course" style="--b:var(--b-${esc(c.brand)})">
     <img src="${b.mark}" alt="" onerror="this.src='/brand/birdbox-mark.png'">
     <div><h3>${esc(c.title)}</h3>${c.tagline ? `<p class="cp-tag">${esc(c.tagline)}</p>` : ""}<p>${esc(bits.join(" · "))}</p></div>
-    <span class="cp-ok" title="${c.verified === "certificate" ? "Certificate issued by BirdBox Coaching" : "Checked by the BirdBox team"}">
+    <span class="cp-ok" title="${c.verified === "certificate" ? "Certificate issued by BirdBox Coaching" : c.verified === "records" ? "On BirdBox Coaching's seminar records" : "Checked by the BirdBox team"}">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg>
       ${c.verified === "certificate" ? "Certified" : "Verified"}</span>
   </div>`;

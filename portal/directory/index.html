@@ -236,6 +236,7 @@ function row(c) {
   const courses = (c.courses || []).map((q) => {
     const bits = [q.date ? String(q.date).slice(0, 7) : "", q.place].filter(Boolean).join(", ");
     const tag = q.verified === "certificate" ? '<span class="ok">✓ certificate</span>'
+      : q.verified === "records" ? '<span class="ok">✓ RegFox records</span>'
       : q.verified ? '<span class="ok">✓ checked</span>'
       : `<span class="wait">to check</span> <button class="btn small" data-act="verify_course" data-course="${esc(q.id)}">Verify</button> <button class="btn small bad" data-act="drop_course" data-course="${esc(q.id)}">Remove</button>`;
     return `<li><span>${esc(q.title)}${bits ? ` <span class="note">(${esc(bits)})</span>` : ""}${q.note ? ` <span class="note">— “${esc(q.note)}”</span>` : ""}</span>${tag}</li>`;

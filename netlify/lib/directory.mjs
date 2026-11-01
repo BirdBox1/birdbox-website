@@ -98,7 +98,7 @@ export async function qualificationsFor(profiles, { withPending = false } = {}) 
   // no past courses and is not a real id to search for.
   const ids = profiles.map((p) => p.id).filter((id) => /^[0-9a-f-]{36}$/.test(id));
   const many = profiles.length > 50;
-  const quals = () => db.from("directory_qualifications").select("email, brand, level, kind, focus, awarded_on, place, course_title");
+  const quals = () => db.from("directory_qualifications").select("email, brand, level, kind, focus, awarded_on, place, course_title, source");
   const past = () => {
     let q = db.from("directory_courses").select("id, profile_id, brand, level, kind, course_month, location, note, verified_at");
     if (!withPending) q = q.not("verified_at", "is", null);
@@ -114,7 +114,10 @@ export async function qualificationsFor(profiles, { withPending = false } = {}) 
       out.get(id).push({
         brand: q.brand, level: q.level, kind: q.kind, focus: q.focus || null,
         course_title: q.course_title || null,
-        date: q.awarded_on, place: q.place, verified: "certificate",
+        date: q.awarded_on, place: q.place,
+        // a completed RegFox registration is on our records, not a
+        // certificate we issued (Nathan, 1 Nov 2026); both verify
+        verified: q.source === "regfox" ? "records" : "certificate",
       });
     }
   }
@@ -137,7 +140,7 @@ export async function qualificationsFor(profiles, { withPending = false } = {}) 
     // has since matched to a certificate).
     const seen = new Set();
     const unique = [];
-    list.sort((a, b) => (b.verified === "certificate") - (a.verified === "certificate"));
+    list.sort((a, b) => onRecord(b) - onRecord(a));
     for (const q of list) {
       const key = [q.brand, q.level || "", q.kind, q.focus || "", qualTitle(q), q.verified ? "" : q.id].join("|");
       if (q.verified && seen.has(key)) continue;
@@ -174,8 +177,11 @@ async function chunked(values, make) {
   return rows;
 }
 
+// Our own certificate, or a completed seminar on our RegFox records
+const onRecord = (q) => q.verified === "certificate" || q.verified === "records";
+
 export function hasCertificate(quals) {
-  return quals.some((q) => q.verified === "certificate");
+  return quals.some(onRecord);
 }
 
 // Live, waiting for the office, or not showing — and why.
