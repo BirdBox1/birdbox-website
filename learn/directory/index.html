@@ -404,6 +404,11 @@ async function boot() {
   session = s;
   if (!s) { view("v-login"); return; }
   $("who").textContent = s.user.email;
+  // a directory-only login has no courses page to go back to
+  fetch("/.netlify/functions/learn-account?part=me", { headers: { Authorization: "Bearer " + s.access_token } })
+    .then((r) => r.json()).then((me) => {
+      if (me && me.known === false) document.querySelectorAll(".back").forEach((a) => { a.style.display = "none"; });
+    }).catch(() => {});
   try { data = await call(); }
   catch (e) {
     // Never leave the page sitting on "Loading…".

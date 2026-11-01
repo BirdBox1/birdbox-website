@@ -8,6 +8,7 @@
 // GET  ?part=receipts     -> { receipts }
 // POST { action: "portal", subscription }  -> { url }
 // POST { action: "invoice", charge, company?, vat? }  -> { pdf, filename }
+// GET  ?part=me           -> { known }   false: directory-only login
 // GET  ?part=discounts    -> { discounts, name }   their Level 1 50% offers
 // POST { action: "seminar_pass", brand }  -> { pass, url }
 // POST { action: "online_offer", brand }  -> { url }
@@ -22,6 +23,7 @@ import Stripe from "stripe";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { randomBytes } from "node:crypto";
 import { db, json, userFrom } from "../lib/directory.mjs";
+import { knownToBirdBox } from "../lib/known.mjs";
 import { BRANDS, discountsFor, lockedName, makePass, passUsed, PASS_PERCENT } from "../lib/learn-pass.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -50,6 +52,8 @@ export default async (req, context) => {
       if (part === "programming") return json({ ...(await programming(user, email)),
         staff: await isStaff(user), shop: await shop(context), trial_ok: await trialOk(user, email) });
       if (part === "receipts") return json({ receipts: await receipts(email) });
+      // a directory-only login (no BirdBox record yet) sees only their listing
+      if (part === "me") return json({ known: (await isStaff(user)) || (await knownToBirdBox(email)) });
       if (part === "discounts") {
         const name = await lockedName(user, email);
         return json({ discounts: await discountsFor(user, email), percent: PASS_PERCENT,
