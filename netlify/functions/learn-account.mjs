@@ -64,7 +64,7 @@ export default async (req, context) => {
     }
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
-      if (body.action === "portal") return portal(user, email, String(body.subscription || ""));
+      if (body.action === "portal") return portal(user, email, String(body.subscription || ""), String(body.only || ""));
       if (body.action === "invoice") return invoice(email, body);
       if (body.action === "seminar_pass") return seminarPass(user, email, String(body.brand || ""));
       if (body.action === "online_offer") return onlineOffer(user, email, String(body.brand || ""));
@@ -166,7 +166,7 @@ async function programming(user, email) {
   if (!a) return { plans: [], blocks: [] };
 
   const { data: enr } = await train().from("enrolments")
-    .select("id, tier, status, start_date, end_date, stripe_subscription_id, is_trial, coach_id, tracks(name, brand)")
+    .select("id, tier, status, start_date, end_date, stripe_subscription_id, is_trial, coach_id, paused_for_purchase, pause_until, tracks(name, brand)")
     .eq("athlete_id", a.id)
     .in("status", ["consulting", "active", "past_due", "paused"])
     .order("created_at", { ascending: false });
@@ -193,7 +193,9 @@ async function programming(user, email) {
     if (e.tier === 6 || e.tier === 7) { blocks.push(base); continue; }
     // given by BirdBox: a plan with no subscription behind it, not a trial
     const plan = { ...base, subscription: e.stripe_subscription_id || null, trial: !!e.is_trial,
-      given: !e.stripe_subscription_id && !e.is_trial };
+      given: !e.stripe_subscription_id && !e.is_trial,
+      // paused while they do a block: no plan change until it comes back
+      paused_until: e.paused_for_purchase ? e.pause_until : null };
     if (e.stripe_subscription_id) {
       try {
         const s = await stripe.subscriptions.retrieve(e.stripe_subscription_id);
@@ -205,6 +207,8 @@ async function programming(user, email) {
         plan.currency = s.currency || item?.price?.currency || "eur";
         plan.manage = true;
       } catch (x) { plan.manage = false; }
+      // nothing is charged while it is paused: the "Paused" line says when
+      if (plan.paused_until) plan.next_payment = null;
     }
     plans.push(plan);
   }
@@ -455,17 +459,28 @@ async function onlineOffer(user, email, brand) {
   return json({ url: `/offer/?t=${offer.token}` });
 }
 
-// Stripe's own page for one of their plans: change plan, card, or cancel
-async function portal(user, email, subId) {
+// Stripe's own page for one of their plans: change plan, card, or cancel.
+// A blog paused for a block (Nathan, 1 Nov 2026) opens straight onto
+// "update card" or "cancel" only: changing the plan then would switch the
+// blog back on with no charge, and the block runs start to finish.
+async function portal(user, email, subId, only) {
   const a = await athleteOf(user, email);
   if (!a || !/^sub_\w+$/.test(subId)) return json({ error: "That plan could not be found." }, 404);
-  const { data: mine } = await train().from("enrolments").select("id")
-    .eq("athlete_id", a.id).eq("stripe_subscription_id", subId).limit(1);
+  const { data: mine } = await train().from("enrolments").select("id, paused_for_purchase")
+    .eq("athlete_id", a.id).eq("stripe_subscription_id", subId)
+    .in("status", ["consulting", "active", "past_due", "paused"]).limit(1);
   if (!mine?.length) return json({ error: "That plan could not be found." }, 404);
+  const paused = !!mine[0].paused_for_purchase;
   const s = await stripe.subscriptions.retrieve(subId);
+  const flow = !paused ? null
+    : only === "cancel" ? { type: "subscription_cancel", subscription_cancel: { subscription: subId },
+        after_completion: { type: "redirect", redirect: { return_url: RETURN_URL } } }
+    : { type: "payment_method_update",
+        after_completion: { type: "redirect", redirect: { return_url: RETURN_URL } } };
   const session = await stripe.billingPortal.sessions.create({
     customer: typeof s.customer === "string" ? s.customer : s.customer.id,
     return_url: RETURN_URL,
+    ...(flow ? { flow_data: flow } : {}),
   });
   return json({ url: session.url });
 }
