@@ -198,6 +198,20 @@
   .tier .btn:hover{background:transparent;color:var(--ink)}
   .tier .btn[disabled]{opacity:1;cursor:default;background:transparent;border-color:#6A6466;color:var(--ink)}
   .preview{border:1px dashed var(--ink);padding:12px 16px;margin:0 0 6px;max-width:1000px;font-size:15px;line-height:1.5}
+  .ctabs{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
+  .curline{font-size:15px;margin:0 0 16px;color:var(--ink);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .curline .link{background:none;border:0;padding:0;font:inherit;color:var(--ink);text-decoration:underline;cursor:pointer}
+  .curline select{font:inherit;font-size:16px;padding:6px 8px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .ctabs button{font:inherit;font-weight:800;letter-spacing:.06em;padding:10px 20px;background:transparent;color:var(--ink);border:1px solid var(--ink);cursor:pointer}
+  .ctabs button.on{font-weight:800}
+  h2.mine{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:6px 0 12px}
+  .soon{font-size:22px;font-weight:800;margin:24px 0}
+  .tier.yours{outline:2px solid var(--ink)}
+  .tier .badge{align-self:flex-start;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--ink);padding:3px 10px;margin:0 0 10px;color:var(--ink)}
+  .tier .tnote{font-size:15px;line-height:1.5;margin:auto 0 0;color:var(--ink)}
+  .tier .bopts{margin:0 0 14px;font-size:15px}
+  .tier .bopts .check{display:flex;gap:8px;align-items:center;margin:6px 0;text-transform:none;letter-spacing:0;font-weight:400}
+  .tier .bopts input{width:auto;margin:0}
   /* Blog tab (Nathan, 1 Nov 2026): the public posts, drawn as on the
      website, with the members' discussion under each */
   .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
@@ -1441,7 +1455,12 @@ const COURSE = {
 };
 const TRIAL_FOR = "tgc";
 
-function shopView(shop, preview, trialOk) {
+// One course's options (Nathan, 1 Nov 2026). In order: the free trial
+// (TGC, new people only), the blog plans (tiers 1 to 3), one-to-one
+// (4 and 5, by application), then the course's blocks. Their own tier
+// says "Your plan"; someone on one-to-one sees the blog plans for
+// information only. A course with nothing on sale says Coming soon.
+function courseView(co, mine, preview, trialOk) {
   const wrap = document.createElement("div"); wrap.className = "shop";
   const el = (tag, cls, txt) => { const x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; };
   const button = (label, onclick) => {
@@ -1450,62 +1469,108 @@ function shopView(shop, preview, trialOk) {
     if (preview) b.disabled = true; else b.onclick = () => onclick(b, msg);
     return [b, msg];
   };
-  const card = (colour, kicker, title, price, per, items, btn) => {
+  const colour = (BRAND[co.brand] || BRAND.tgc).c;
+  const card = (kicker, title, price, per, items, btn, note) => {
     const c = el("div", "tier"); c.style.borderTopColor = colour;
     c.append(el("p", "k", kicker), el("h3", null, title), el("div", "p", price), el("div", "pm", per));
     if (items && items.length) { const ul = el("ul"); for (const i of items) ul.appendChild(el("li", null, i)); c.appendChild(ul); }
-    c.append(...btn);
+    if (note) c.appendChild(el("p", "tnote", note));
+    if (btn) c.append(...btn);
     return c;
   };
+  if (co.coming_soon) { wrap.appendChild(el("p", "soon", "Coming soon")); return wrap; }
   if (preview) wrap.appendChild(el("p", "preview", "Preview for BirdBox staff: not on sale yet. Members see this once programming goes live; until then the buttons do nothing."));
 
-  for (const co of shop.courses || []) {
-    const info = COURSE[co.brand] || { name: co.brand.toUpperCase() + " programming", text: "" };
-    const colour = (BRAND[co.brand] || BRAND.tgc).c;
+  const info = COURSE[co.brand] || { name: co.brand.toUpperCase() + " programming", text: "" };
+  const blog = mine.find((x) => x.tier <= 3 && !x.trial);
+  const oneToOne = mine.find((x) => x.tier >= 4);
+
+  if (co.plans.length) {
     wrap.appendChild(el("h2", null, info.name));
     wrap.appendChild(el("p", "sub", (info.text ? info.text + " " : "") + "Monthly, VAT included, cancel any time."));
     const grid = el("div", "tiers");
     if (trialOk && co.brand === TRIAL_FOR) {
-      grid.appendChild(card(colour, "Free trial", "Two weeks free", "Free", "two weeks, no card needed",
+      grid.appendChild(card("Free trial", "Two weeks free", "Free", "two weeks, no card needed",
         ["Two weeks of " + info.name + " in the app", "Coaching demonstrations every session", "No payment details asked for"],
         button("Start my free trial →", startTrial)));
     }
     for (const t of co.plans) {
-      grid.appendChild(card(colour, "Tier " + t.tier, t.name, t.amount != null ? money(t.amount, t.currency) : "",
-        "per month, VAT included", t.includes, button("Join →", (b, m) => join({ tier: t.tier }, b, m))));
+      const price = t.amount != null ? money(t.amount, t.currency) : "";
+      let btn = null, note = null, yours = false;
+      if (oneToOne) note = "Talk to your coach about changing your plan.";
+      else if (blog && blog.tier === t.tier) yours = true;
+      else if (blog && !blog.subscription) note = "Your plan is given by BirdBox. Talk to us about changing it.";
+      else if (blog && blog.paused_until) note = "You can change your plan once your blog is back from your block.";
+      else if (blog) btn = button("Change to this plan →", (b, m) => changeTo(blog.subscription, t.tier, b, m));
+      else btn = button("Join →", (b, m) => join({ tier: t.tier }, b, m));
+      const c = card("Tier " + t.tier, t.name, price, "per month, VAT included", t.includes, btn, note);
+      if (yours) { c.classList.add("yours"); c.insertBefore(el("span", "badge", "Your plan"), c.firstChild); }
+      grid.appendChild(c);
     }
     wrap.appendChild(grid);
-    if (co.blocks.length) {
-      wrap.appendChild(el("h2", null, info.name.replace("programming", "blocks")));
-      wrap.appendChild(el("p", "sub", "A set number of weeks on one goal, yours to keep. Start today or on a Monday of your choice."));
-      const g2 = el("div", "tiers");
-      for (const k of co.blocks) {
-        const c = card(colour, k.weeks ? k.weeks + " weeks" : "Block", k.name, "From " + money(k.from, k.currency), "paid once, VAT included",
-          null, button("Buy →", (b, m) => join({ block: k.id, feedback: false, plan: "full" }, b, m)));
-        if (k.description) c.insertBefore(el("p", "sub", k.description), c.querySelector(".btn"));
-        // Give as a gift (Nathan, 1 Nov 2026): paid in full; we email them
-        // on the day chosen, and they choose when to start
-        const [gb] = button("Give as a gift →", () => c.querySelector(".giftf").classList.toggle("hidden"));
-        gb.classList.add("ghost"); gb.style.marginTop = "8px";
-        c.appendChild(gb);
-        c.appendChild(giftForm(k));
-        g2.appendChild(c);
-      }
-      wrap.appendChild(g2);
-    }
   }
 
-  if ((shop.one_to_one || []).length) {
+  if (co.one_to_one.length) {
     wrap.appendChild(el("h2", null, "One-to-one coaching"));
     wrap.appendChild(el("p", "sub", "A programme built around you by a BirdBox coach. Places are limited, so you apply first and we confirm the fit before anything is charged."));
     const g3 = el("div", "tiers");
-    for (const t of shop.one_to_one) {
-      g3.appendChild(card("#B7B1B3", "Tier " + t.tier, t.name, t.amount != null ? money(t.amount, t.currency) : "",
-        "per month, VAT included", t.includes, button("Apply →", () => { location.href = "/tgc/programming/#apply"; })));
+    for (const t of co.one_to_one) {
+      const yours = oneToOne && oneToOne.tier === t.tier;
+      // already on one-to-one: a change of tier is a talk with their coach
+      const c = card("Tier " + t.tier, t.name, t.amount != null ? money(t.amount, t.currency) : "",
+        "per month, VAT included", t.includes,
+        yours || oneToOne ? null : button("Apply →", () => { location.href = co.apply_url; }),
+        oneToOne && !yours ? "Talk to your coach about changing your plan." : null);
+      if (yours) { c.classList.add("yours"); c.insertBefore(el("span", "badge", "Your plan"), c.firstChild); }
+      g3.appendChild(c);
     }
     wrap.appendChild(g3);
   }
+
+  if (co.blocks.length) {
+    wrap.appendChild(el("h2", null, info.name.replace("programming", "blocks")));
+    wrap.appendChild(el("p", "sub", "A set number of weeks on one goal, yours to keep. Start today or on a Monday of your choice."));
+    const g2 = el("div", "tiers");
+    for (const k of co.blocks) {
+      const weeks = k.weeks || 1;
+      const c = card(k.weeks ? k.weeks + " weeks" : "Block", k.name, money(k.from, k.currency), "paid once, VAT included", null, null);
+      if (k.description) c.appendChild(el("p", "sub", k.description));
+      // coach feedback as an add-on, paid in full or every 4 weeks
+      const opts = el("div", "bopts");
+      opts.innerHTML = '<label class="check"><input type="checkbox" name="fb"> Add coach feedback on your videos, +' +
+        money(k.feedback_week, k.currency) + ' a week</label>' +
+        '<div class="payby hidden"><label class="check"><input type="radio" name="pay-' + k.id + '" value="full" checked> Pay in full</label>' +
+        '<label class="check"><input type="radio" name="pay-' + k.id + '" value="four_weekly"> Pay every 4 weeks</label></div>';
+      c.appendChild(opts);
+      const fb = opts.querySelector('[name="fb"]');
+      const show = () => {
+        const per = k.week + (fb.checked ? k.feedback_week : 0);
+        const four = fb.checked && opts.querySelector('[value="four_weekly"]').checked;
+        c.querySelector(".p").textContent = money(four ? per * Math.min(4, weeks) : per * weeks, k.currency);
+        c.querySelector(".pm").textContent = four ? "now, then every 4 weeks, VAT included" : "paid once, VAT included";
+        opts.querySelector(".payby").classList.toggle("hidden", !fb.checked);
+      };
+      opts.onchange = show;
+      const [bb, bm] = button("Buy →", (b, m) => join({ block: k.id, feedback: fb.checked,
+        plan: fb.checked && opts.querySelector('[value="four_weekly"]').checked ? "four_weekly" : "full" }, b, m));
+      c.append(bb, bm);
+      // Give as a gift (Nathan, 1 Nov 2026): paid in full; we email them
+      // on the day chosen, and they choose when to start
+      const [gb] = button("Give as a gift →", () => c.querySelector(".giftf").classList.toggle("hidden"));
+      gb.classList.add("ghost"); gb.style.marginTop = "8px";
+      c.appendChild(gb);
+      c.appendChild(giftForm(k));
+      g2.appendChild(c);
+    }
+    wrap.appendChild(g2);
+  }
   return wrap;
+}
+
+async function changeTo(subscription, tier, btn, msg) {
+  btn.disabled = true; const label = btn.textContent; btn.textContent = "Opening…"; msg.textContent = "";
+  try { const r = await account("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "change_plan", subscription, tier }) }); location.href = r.url; }
+  catch (e) { msg.className = "msg err"; msg.textContent = e.message; btn.disabled = false; btn.textContent = label; }
 }
 
 function giftForm(k) {
@@ -1551,7 +1616,8 @@ async function join(what, btn, msg) {
   btn.disabled = true; const label = btn.textContent; btn.textContent = "Opening…"; msg.textContent = "";
   try {
     const r = await fetch(APP_CHECKOUT, { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...what, email: session ? session.user.email : "", cancel_url: location.href }) });
+      body: JSON.stringify({ ...what, email: session ? session.user.email : "", cancel_url: location.href,
+        country: chosenCountry && chosenCountry !== "ZZ" ? chosenCountry : (chosenCountry === "ZZ" ? "ZZ" : shopCountry) }) });
     const d = await r.json().catch(() => ({}));
     if (d.url) { location.href = d.url; return; }
     if (d.already) { msg.className = "msg"; msg.textContent = "You are already on TGC programming. Change your plan with Manage my plan above."; }
@@ -1560,10 +1626,43 @@ async function join(what, btn, msg) {
   btn.disabled = false; btn.textContent = label;
 }
 
+// "Prices in £ for the United Kingdom · Change country" (Nathan, 1 Nov
+// 2026): we guess the country from where they are browsing; they change it
+// if it is wrong, and the currency follows the country they choose. Someone
+// who has paid before keeps that currency.
+let chosenCountry = "";
+try { chosenCountry = sessionStorage.getItem("bb-country") || ""; } catch {}
+const COUNTRIES = ["IE", "GB", "US", "CA", "AU", "NZ", "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR",
+  "DE", "GR", "HU", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "CH", "NO",
+  "IS", "LI", "AE", "SA", "QA", "IL", "ZA", "MX", "BR", "AR", "CL", "CO", "JP", "KR", "SG", "HK", "IN", "TH",
+  "MY", "PH", "ID", "CN", "TW", "TR", "UA", "RS"];
+const regionName = (c) => { try { return new Intl.DisplayNames(["en"], { type: "region" }).of(c); } catch { return c; } };
+const CURRENCY_WORD = { eur: "€", gbp: "£", usd: "$", aud: "AUD", cad: "CAD" };
+
+function currencyLine(shop) {
+  const line = document.createElement("div"); line.className = "curline";
+  const cur = CURRENCY_WORD[shop.currency] || String(shop.currency || "").toUpperCase();
+  if (shop.locked) { line.textContent = "Prices in " + cur + ", the currency you have paid in before."; return line; }
+  const names = COUNTRIES.map((c) => [c, regionName(c)]).sort((a, b) => a[1].localeCompare(b[1]));
+  const here = shop.country && names.some(([c]) => c === shop.country) ? shop.country : "";
+  line.innerHTML = '<span></span> · <button type="button" class="link">Change country</button>' +
+    '<select class="hidden" aria-label="Your country"><option value="">Another country (US dollars)</option>' +
+    names.map(([c, n]) => `<option value="${c}"${c === here ? " selected" : ""}>${n}</option>`).join("") + "</select>";
+  line.querySelector("span").textContent = "Prices in " + cur + (here ? " for " + regionName(here) : "");
+  const sel = line.querySelector("select");
+  line.querySelector("button").onclick = () => { sel.classList.remove("hidden"); sel.focus(); };
+  sel.onchange = () => {
+    chosenCountry = sel.value || "ZZ";
+    try { sessionStorage.setItem("bb-country", chosenCountry); } catch {}
+    loaded.programming = loadProgramming();
+  };
+  return line;
+}
+
 async function loadProgramming() {
-  const box = $("prog-list");
+  let box = $("prog-list");
   let d;
-  try { d = await account("?part=programming"); }
+  try { d = await account("?part=programming" + (chosenCountry ? "&country=" + encodeURIComponent(chosenCountry) : "")); }
   catch (e) { box.innerHTML = '<p class="msg err"></p>'; box.firstChild.textContent = e.message; loaded.programming = null; return; }
   box.innerHTML = "";
   const card = (x, kind) => {
@@ -1576,7 +1675,8 @@ async function loadProgramming() {
     const dl = document.createElement("dl");
     const add = (t, v) => { if (!v) return; const a = document.createElement("dt"); a.textContent = t; const c = document.createElement("dd"); c.textContent = v; dl.append(a, c); };
     if (x.programme && x.programme !== x.name) add("Programme", x.programme);
-    add("Coach", x.coach || (kind === "Block" ? null : x.trial ? null : "Being confirmed"));
+    // only plans with a coach: tiers 3 to 5 (tiers 1 and 2 have none)
+    add("Coach", x.coach || (kind === "Block" || x.trial || (x.tier && x.tier < 3) ? null : "Being confirmed"));
     add("Started", day(x.started));
     if (x.status === "awaiting_start") add("Starts", "Choose your start date in the app");
     if (x.ends_on) add("Ends", day(x.ends_on) + " (cancelled)");
@@ -1607,23 +1707,62 @@ async function loadProgramming() {
     } else el.append(k, h, dl, btns);
     box.appendChild(el);
   };
-  d.plans.forEach((x) => card(x, x.trial ? "Free trial" : "Programming plan"));
-  d.blocks.forEach((x) => card(x, "Block"));
+  // One tab per course (Nathan, 1 Nov 2026): TGC · TCC · TEC · TWC. Each
+  // shows their own programming on that course first, then what they could
+  // join. Before programming is on sale, members see only their own and
+  // staff see the options as a preview.
   if (d.staff) {
     const s2 = document.createElement("div"); s2.className = "plan"; s2.style.setProperty("--c", "#B7B1B3");
     s2.innerHTML = '<p class="k">BirdBox staff</p><h3>Your athletes and programming are in the coach portal</h3>' +
       '<div class="btns"><a class="btn main" style="color:#0C1116" href="https://app.birdboxcoaching.com">Open the coach portal →</a></div>';
     box.appendChild(s2);
   }
-  const none = !d.plans.length && !d.blocks.length;
-  if (PROGRAMMING_ON_SALE && none) box.appendChild(shopView(d.shop || {}, false, d.trial_ok));
-  else if (!PROGRAMMING_ON_SALE && d.staff) box.appendChild(shopView(d.shop || {}, true, true));
-  else if (none) {
-    const e2 = document.createElement("div"); e2.className = "empty"; e2.style.color = "var(--ink)";
-    e2.innerHTML = 'You have no programming with BirdBox yet. Train with us in the BirdBox Train app, with a monthly plan or a block. <a href="/tgc/programming/">See TGC programming →</a>';
-    box.appendChild(e2);
+  const courses = (d.shop && d.shop.courses) || [];
+  const mineOf = (b) => d.plans.filter((x) => x.brand === b);
+  const blocksOf = (b) => d.blocks.filter((x) => x.brand === b);
+  // open on the course they train on, else TGC
+  const first = (d.plans[0] && d.plans[0].brand) || (d.blocks[0] && d.blocks[0].brand) || "tgc";
+  let current = courses.some((c) => c.brand === first) ? first : "tgc";
+  const bar = document.createElement("div"); bar.className = "ctabs"; bar.setAttribute("role", "tablist");
+  const panel = document.createElement("div");
+  const draw = () => {
+    bar.querySelectorAll("button").forEach((b) => {
+      const on = b.dataset.course === current;
+      b.classList.toggle("on", on); b.setAttribute("aria-selected", on ? "true" : "false");
+      const c = BRAND[b.dataset.course] || BRAND.tgc;
+      b.style.background = on ? c.c : ""; b.style.borderColor = on ? c.c : ""; b.style.color = on ? c.on : "";
+    });
+    panel.innerHTML = "";
+    const co = courses.find((c) => c.brand === current) || { brand: current, plans: [], one_to_one: [], blocks: [], coming_soon: true };
+    const mine = mineOf(current), myBlocks = blocksOf(current);
+    if (mine.length || myBlocks.length) {
+      const h = document.createElement("h2"); h.className = "mine"; h.textContent = "Your " + current.toUpperCase() + " programming";
+      panel.appendChild(h);
+      const keep = box; box = panel;
+      mine.forEach((x) => card(x, x.trial ? "Free trial" : "Programming plan"));
+      myBlocks.forEach((x) => card(x, "Block"));
+      box = keep;
+    }
+    if (PROGRAMMING_ON_SALE || d.staff) panel.appendChild(courseView(co, mine, !PROGRAMMING_ON_SALE, PROGRAMMING_ON_SALE ? d.trial_ok : true));
+    else if (!mine.length && !myBlocks.length) {
+      const e2 = document.createElement("div"); e2.className = "empty"; e2.style.color = "var(--ink)";
+      e2.textContent = co.coming_soon ? "Coming soon" : "You have no " + current.toUpperCase() + " programming with BirdBox yet.";
+      panel.appendChild(e2);
+    }
+  };
+  for (const c of ["tgc", "tcc", "tec", "twc"]) {
+    const b = document.createElement("button"); b.type = "button"; b.dataset.course = c; b.textContent = c.toUpperCase();
+    b.setAttribute("role", "tab");
+    b.onclick = () => { current = c; draw(); };
+    bar.appendChild(b);
   }
+  box.append(bar);
+  if ((PROGRAMMING_ON_SALE || d.staff) && d.shop) box.appendChild(currencyLine(d.shop));
+  box.append(panel);
+  draw();
+  shopCountry = (d.shop && d.shop.country) || "";
 }
+let shopCountry = "";
 
 // ---------------- receipts tab ----------------
 
