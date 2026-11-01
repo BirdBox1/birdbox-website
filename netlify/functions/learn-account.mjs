@@ -34,7 +34,7 @@ const TIER = {
   7: "Block with feedback",
 };
 
-export default async (req) => {
+export default async (req, context) => {
   const user = await userFrom(req);
   if (!user) return json({ error: "Please log in again." }, 401);
   const email = String(user.email || "").trim().toLowerCase();
@@ -42,7 +42,8 @@ export default async (req) => {
   try {
     if (req.method === "GET") {
       const part = new URL(req.url).searchParams.get("part");
-      if (part === "programming") return json(await programming(user, email));
+      if (part === "programming") return json({ ...(await programming(user, email)),
+        staff: await isStaff(user), shop: await shop(context), trial_ok: await trialOk(user, email) });
       if (part === "receipts") return json({ receipts: await receipts(email) });
       return json({ error: "Which part?" }, 400);
     }
@@ -58,6 +59,82 @@ export default async (req) => {
     return json({ error: "Something went wrong. Try again in a minute, or write to info@birdboxcoaching.com." }, 500);
   }
 };
+
+// The free fortnight is only for someone who has never had programming
+// with us: no plan, block or trial, ever (the app's start_trial refuses
+// anyone else too).
+async function trialOk(user, email) {
+  const a = await athleteOf(user, email);
+  if (!a) return true;
+  const { data: me } = await train().from("athletes").select("trial_started_at").eq("id", a.id).maybeSingle();
+  if (me?.trial_started_at) return false;
+  const { count: e } = await train().from("enrolments").select("id", { count: "exact", head: true }).eq("athlete_id", a.id);
+  const { count: p } = await train().from("purchases").select("id", { count: "exact", head: true }).eq("athlete_id", a.id);
+  return !(e || p);
+}
+
+async function isStaff(user) {
+  const { data } = await db.from("staff").select("id").eq("id", user.id).eq("active", true).maybeSingle();
+  return !!data;
+}
+
+// What they could join (Nathan, 1 Nov 2026), in their own currency as the
+// app's checkout charges it. Only shown once programming is on sale; the
+// page decides that. Prices come from the app's own price list.
+const EUROPE = new Set(["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU",
+  "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE",
+  "CH", "NO", "IS", "LI", "AD", "MC", "SM", "VA", "AL", "BA", "ME", "MK", "RS", "XK", "MD", "UA", "GI", "FO", "GL"]);
+function currencyFor(country) {
+  const c = String(country || "").toUpperCase();
+  if (["GB", "IM", "JE", "GG"].includes(c)) return "gbp";
+  if (c === "AU") return "aud";
+  if (c === "CA") return "cad";
+  if (EUROPE.has(c)) return "eur";
+  return "usd";
+}
+// what each plan includes, as on the TGC programming page
+const INCLUDES = {
+  1: ["Blog programme", "Free community", "Weekly call"],
+  2: ["Blog programme", "Premium community", "Group call", "Feedback via the community"],
+  3: ["Blog programme", "Premium community", "Group call", "Written feedback from your coach"],
+  4: ["Bespoke programme", "Premium community", "1:1 coach call", "Feedback written, by Loom or DM"],
+  5: ["Bespoke programme", "Premium community", "1:1 coach call", "Feedback written, by Loom or DM"],
+};
+// the names on the TGC programming page; Tiers 4 and 5 are by application
+const NAMES = { 4: "Bespoke 1:1, Skill Only", 5: "Full CF Programme, 1:1" };
+// Grouped by course (TGC now; TCC, TEC and TWC programming later): a
+// course appears as soon as its plans have prices or a block is on sale.
+// Tiers 4 and 5 are BirdBox one-to-one coaching, not one course's.
+async function shop(context) {
+  const currency = currencyFor(context?.geo?.country?.code);
+  const { data: prices } = await train().from("stripe_prices")
+    .select("tier, label, amounts, tracks:track_id(brand)")
+    .eq("active", true).in("tier", [1, 2, 3, 4, 5]).like("price_id", "price_%").order("tier");
+  const plan = (p) => {
+    const cur = p.amounts?.[currency] != null ? currency : "eur";
+    return { tier: p.tier, name: NAMES[p.tier] || p.label, amount: p.amounts?.[cur] ?? null, currency: cur,
+      includes: INCLUDES[p.tier] || [], apply: p.tier >= 4 };
+  };
+  const byBrand = new Map();
+  const course = (b) => { if (!byBrand.has(b)) byBrand.set(b, { brand: b, plans: [], blocks: [] }); return byBrand.get(b); };
+  for (const p of prices || []) if (p.tier <= 3) course(String(p.tracks?.brand || "tgc").toLowerCase()).plans.push(plan(p));
+  const one_to_one = (prices || []).filter((p) => p.tier >= 4).map(plan);
+
+  const { data: rate } = await train().from("block_rates").select("week_cents").eq("currency", currency).maybeSingle();
+  const { data: tpls } = await train().from("tracks").select("id, name, brand, weeks, description, week_rate_cents")
+    .eq("kind", "block").eq("is_template", true).eq("sale_status", "live").order("name");
+  for (const t of tpls || []) {
+    course(String(t.brand || "tgc").toLowerCase()).blocks.push({
+      id: t.id, name: t.name, weeks: t.weeks || null, description: t.description || null,
+      // without feedback, paid in full: the price everyone starts from
+      from: (currency === "eur" ? (t.week_rate_cents || 995) : (rate?.week_cents || 995)) * (t.weeks || 1),
+      currency,
+    });
+  }
+  const order = ["tgc", "tcc", "tec", "twc"];
+  const courses = [...byBrand.values()].sort((a, b) => (order.indexOf(a.brand) + 1 || 9) - (order.indexOf(b.brand) + 1 || 9));
+  return { currency, courses, one_to_one };
+}
 
 // their athlete record in the app: by login, then by email
 async function athleteOf(user, email) {
