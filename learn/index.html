@@ -152,6 +152,12 @@
   .rc .l{display:flex;gap:8px}
   @media (max-width:640px){.rc{grid-template-columns:minmax(0,1fr) auto}.rc .d{grid-column:1/-1}.rc .l{grid-column:1/-1}}
   .certs .lc .btn{white-space:nowrap}
+  .card.mt label{color:var(--ink)}
+  .mtiles{grid-template-columns:repeat(3,minmax(0,1fr))}
+  @media (max-width:640px){.mtiles{grid-template-columns:1fr}.mtiles .brand{min-height:0}}
+  .mtiles .brand .st{color:var(--ink)}
+  .mtiles .brand{min-height:150px}
+  .mtiles .brand.on{border-color:var(--t);box-shadow:inset 0 0 0 1px var(--t)}
   .extra input{width:100%;font:inherit;font-size:16px;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin:4px 0 10px}
 </style>
 <link rel="icon" href="/favicon-birdbox.ico" sizes="any">
@@ -191,10 +197,11 @@
   <section id="home" class="hidden">
     <nav class="tabs" id="tabs">
       <a href="#" data-tab="courses">My courses</a>
+      <a href="#mentorship" data-tab="mentorship">Mentorship</a>
       <a href="#programming" data-tab="programming">Programming</a>
+      <a href="#directory" data-tab="directory">Trainer Directory</a>
       <a href="#certificates" data-tab="certificates">Certificates</a>
       <a href="#receipts" data-tab="receipts">Receipts</a>
-      <a href="#directory" data-tab="directory">Trainer Directory</a>
     </nav>
 
     <div class="pane" id="t-courses">
@@ -272,6 +279,34 @@
       <div><h3>Trainer Directory</h3><p id="dir-text">Get listed so athletes and gyms can find you. Your BirdBox courses fill themselves in.</p></div>
       <span class="btn small" id="dir-btn">Create my listing →</span>
     </a>
+    </div>
+
+    <div class="pane hidden" id="t-mentorship">
+      <p class="kicker">BirdBox Learn</p>
+      <h1>Mentorship</h1>
+      <div id="mt-mine" class="plan hidden" style="--c:#4FA8DE;--t:#4FA8DE;--on:#0C1116">
+        <p class="k">Your mentorship</p>
+        <h3 id="mt-title">My mentorship</h3>
+        <p class="sub" style="margin-bottom:16px">Your weekly reflections and your mentor's notes.</p>
+        <div class="btns"><a class="btn main" href="/learn/mentorship/">Open my mentorship →</a></div>
+      </div>
+      <div id="mt-soon">
+        <p class="sub">One-to-one and group mentorship with a BirdBox coach. Opening soon: register your interest and we will contact you first.</p>
+        <div class="brands mtiles">
+          <a class="brand" href="#mentorship" data-mt="tcc" style="--c:#298DE9;--t:#298DE9">
+            <img src="/brand/tcc-mark.png" alt=""><h3>TCC Mentorship</h3><span class="st">Register interest →</span></a>
+          <a class="brand" href="#mentorship" data-mt="tgc" style="--c:#85151A;--t:#E0555A">
+            <img src="/brand/tgc-mark.png" alt=""><h3>TGC Mentorship</h3><span class="st">Register interest →</span></a>
+          <a class="brand" href="/birdbox-team/#join" style="--c:#B7B1B3;--t:#F2EFEF">
+            <img src="/brand/birdbox-mark.png" alt=""><h3>BirdBox Staff Mentorship</h3><span class="st">Join the team →</span></a>
+        </div>
+        <form class="card mt hidden" id="mt-form" style="max-width:560px;margin-top:20px">
+          <h3 id="mt-head" style="font-size:16px;text-transform:uppercase;letter-spacing:.06em;margin:0 0 16px"></h3>
+          <input type="hidden" id="mt-which">
+          <button class="btn" type="submit" id="mt-go">Register my interest</button>
+          <div id="mt-msg" class="msg"></div>
+        </form>
+      </div>
     </div>
 
     <div class="pane hidden" id="t-account">
@@ -427,7 +462,7 @@ function makeDraggable(card, grid, key) {
 // One page per part (Nathan, 1 Nov 2026). Each tab has its own address,
 // so emails and the app can link straight to /learn/#receipts. Anything
 // else in the address (a course family like #tgc) is the My courses tab.
-const TABS = ["programming", "certificates", "receipts", "directory", "account"];
+const TABS = ["programming", "certificates", "receipts", "directory", "mentorship", "account"];
 const loaded = {};
 function showTab(tab) {
   document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("hidden", p.id !== "t-" + tab));
@@ -437,6 +472,7 @@ function showTab(tab) {
   if (on) on.parentNode.scrollLeft = Math.max(0, on.offsetLeft - 20);
   if (tab === "programming" && !loaded.programming) loaded.programming = loadProgramming();
   if (tab === "receipts" && !loaded.receipts) loaded.receipts = loadReceipts();
+  if (tab === "mentorship" && !loaded.mentorship) loaded.mentorship = loadMentorship();
 }
 
 function route() {
@@ -920,6 +956,54 @@ async function loadReceipts() {
     box.innerHTML = '<div class="empty" style="color:var(--ink)">No payments found for this email. If you paid with a different email, log out and use that one, or write to <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a>.</div>';
   }
 }
+
+// ---------------- mentorship tab ----------------
+
+// Someone in a mentorship gets the way into it; everyone else can register
+// their interest (Nathan, 1 Nov 2026): one button, nothing to type, as
+// name and email come from the login. All mentorship interest is kept on
+// one list; the source says whether it was TCC or TGC.
+async function loadMentorship() {
+  const { data } = await db.from("learn_mentorships").select("id").eq("status", "active").limit(1);
+  const mine = !!(data && data.length);
+  $("mt-mine").classList.toggle("hidden", !mine);
+}
+
+// TCC and TGC open the interest form; Staff goes to Join the team
+const MT_NAME = { tcc: "TCC Mentorship", tgc: "TGC Mentorship" };
+document.querySelectorAll("[data-mt]").forEach((t) => t.addEventListener("click", (e) => {
+  e.preventDefault();
+  document.querySelectorAll("[data-mt]").forEach((x) => x.classList.toggle("on", x === t));
+  $("mt-which").value = t.dataset.mt;
+  $("mt-head").textContent = MT_NAME[t.dataset.mt] + ": register your interest";
+  $("mt-msg").textContent = ""; $("mt-go").disabled = false;
+  $("mt-form").classList.remove("hidden");
+  $("mt-form").scrollIntoView({ behavior: "smooth", block: "start" });
+}));
+
+$("mt-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("mt-msg");
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { msg.className = "msg err"; msg.textContent = "Please log in again."; return; }
+  $("mt-go").disabled = true;
+  msg.className = "msg"; msg.textContent = "Sending…";
+  const meta = session.user.user_metadata || {};
+  const { error } = await db.from("interest_signups").insert({
+    brand: "mentorship",
+    email: session.user.email,
+    name: meta.full_name || meta.name || null,
+    // which one they chose, kept on the one mentorship list
+    source: "/learn/#mentorship-" + $("mt-which").value,
+  });
+  if (error && error.code !== "23505") {
+    $("mt-go").disabled = false;
+    msg.className = "msg err"; msg.textContent = "Something went wrong. Please try again in a moment.";
+    return;
+  }
+  msg.className = "msg ok";
+  msg.textContent = error ? "You are already on the list. We will be in touch." : "Thank you. You are on the list, and we will contact you when mentorship opens.";
+});
 
 // ---------------- certificates ----------------
 
