@@ -671,7 +671,7 @@
     <p class="l1-policy" style="margin-top:18px;">Tier 1 is self-serve and you can start today. Tiers 2 to 5 involve a coach, so places are limited and we ask you to apply &mdash; we&rsquo;ll come back to you to confirm the fit before anything is charged.</p>
   </section>
 
-  <section class="l1-section" id="apply">
+  <section class="l1-section" id="apply" data-brand="tgc">
     <p class="l1-label">Apply</p>
     <h2 class="l1-h2">Tell Us What You&rsquo;re Working Towards</h2>
     <p class="l1-lede">For Tiers 2 to 5. Takes a minute, and a coach will come back to you.</p>
@@ -701,6 +701,12 @@
         <label for="ap-goals">What are you working towards?</label>
         <textarea id="ap-goals" placeholder="Current level, the skills you want, anything we should know."></textarea>
       </div>
+      <div class="l1-field" id="ap-coach-wrap" hidden>
+        <label for="ap-coach">Coach you would like</label>
+        <select id="ap-coach"><option value="">Leave it to BirdBox</option></select>
+        <p class="l1-form__note" style="margin-top:6px">Your preferred coach depends on their availability. If they can&rsquo;t take you on, BirdBox will assign the most suitable coach for you.</p>
+      </div>
+      <input id="ap-website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
       <button class="tcc-cta" type="button" id="ap-submit" style="width:100%; justify-content:center;">Send Application &rarr;</button>
       <p class="l1-form__note" id="ap-note" role="status"></p>
     </div>
@@ -760,66 +766,7 @@
   <a class="bb-footer__staff" href="/portal/">Staff Login</a>
 </footer>
 
-<script type="module">
-  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-  const supabase = createClient(
-    "https://yvdmazpxtpuvidlcifnq.supabase.co",
-    "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
-  );
-
-  const tierEl = document.getElementById("ap-tier");
-  const note = document.getElementById("ap-note");
-  const btn = document.getElementById("ap-submit");
-
-  // Clicking Apply on a tier card preselects that tier and jumps to the form.
-  for (const b of document.querySelectorAll("[data-tier]")) {
-    b.addEventListener("click", () => {
-      tierEl.value = b.dataset.tier;
-      document.getElementById("apply").scrollIntoView({ behavior: "smooth" });
-      document.getElementById("ap-name").focus({ preventScroll: true });
-    });
-  }
-
-  function say(message, ok) {
-    note.textContent = message;
-    note.className = ok ? "l1-form__note l1-form__note--ok" : "l1-form__note";
-  }
-
-  btn.addEventListener("click", async () => {
-    const name = document.getElementById("ap-name").value.trim();
-    const email = document.getElementById("ap-email").value.trim();
-    if (!name) { say("Please add your name.", false); return; }
-    if (!email || !email.includes("@") || email.startsWith("@") || email.endsWith("@")) {
-      say("Please enter a valid email address.", false); return;
-    }
-
-    btn.disabled = true;
-    say("Sending\u2026", false);
-
-    const { error } = await supabase.from("programming_applications").insert({
-      brand: "tgc",
-      tier: tierEl.value,
-      name: name,
-      email: email,
-      country: document.getElementById("ap-country").value.trim() || null,
-      goals: document.getElementById("ap-goals").value.trim() || null,
-      source: window.location.pathname
-    });
-
-    if (error) {
-      console.error("Programming application failed:", error);
-      say("Something went wrong. Please try again in a moment.", false);
-      btn.disabled = false;
-      return;
-    }
-
-    say("Thanks \u2014 your application is in. A coach will come back to you.", true);
-    for (const id of ["ap-name", "ap-email", "ap-country", "ap-goals"]) {
-      document.getElementById(id).value = "";
-    }
-  });
-</script>
+<script type="module" src="/programming-apply.js"></script>
 
 <script src="/nav.js"></script>
 </body>

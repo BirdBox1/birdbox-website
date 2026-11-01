@@ -78,6 +78,23 @@
     margin: 0 0 32px;
   }
 
+  /* 1:1 Apply form (Nathan, 1 Nov 2026): tiers 4 and 5 only for TCC */
+  .l1-form {
+    width: 100%; max-width: 420px; text-align: left; border: 1px solid var(--line);
+    padding: 20px; background: rgba(28,23,25,0.72); margin-top: 22px;
+  }
+  .l1-form h2 { font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 6px; text-align: center; }
+  .l1-form .l1-lede { font-size: 14px; line-height: 1.55; color: #E6E1E2; margin: 0 0 14px; text-align: center; }
+  .l1-field { margin-bottom: 12px; }
+  .l1-field label { display: block; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #E6E1E2; margin-bottom: 5px; }
+  .l1-field input, .l1-field select, .l1-field textarea {
+    width: 100%; border: 1px solid var(--line); background: #171214; color: var(--ink);
+    padding: 10px 13px; font-size: 15px; font-family: inherit;
+  }
+  .l1-field textarea { min-height: 92px; resize: vertical; }
+  .l1-form__note { font-size: 13px; line-height: 1.5; margin: 10px 0 0; min-height: 20px; color: #E6E1E2; }
+  .l1-form__note--ok { font-weight: 700; }
+
   .bb-form {
     width: 100%;
     max-width: 420px;
@@ -218,7 +235,35 @@
     <p class="bb-note" id="bb-note" role="status"></p>
     <p class="bb-small">We will only email you about TCC Programming. No newsletters, no sharing.</p>
   </section>
+
+  <section class="l1-form" id="apply" data-brand="tcc" aria-label="Apply for 1:1 coaching">
+    <h2>Apply for 1:1 Coaching</h2>
+    <p class="l1-lede">One-to-one programming with a BirdBox coach. Places are limited, so apply and a coach will come back to you. Nothing is charged until you have spoken and you are both happy to go ahead.</p>
+    <div class="l1-field">
+      <label for="ap-tier">Which programme</label>
+      <select id="ap-tier">
+        <option value="tier-4">Tier 4 &mdash; Bespoke 1:1, &euro;250 a month</option>
+        <option value="tier-5">Tier 5 &mdash; Full Programme 1:1, &euro;500 a month</option>
+      </select>
+    </div>
+    <div class="l1-field"><label for="ap-name">Name</label><input id="ap-name" type="text" autocomplete="name"></div>
+    <div class="l1-field"><label for="ap-email">Email</label><input id="ap-email" type="email" autocomplete="email" required></div>
+    <div class="l1-field"><label for="ap-country">Country</label><input id="ap-country" type="text" autocomplete="country-name"></div>
+    <div class="l1-field">
+      <label for="ap-goals">What are you working towards?</label>
+      <textarea id="ap-goals" placeholder="Your coaching or training goals, your current level, anything we should know."></textarea>
+    </div>
+    <div class="l1-field" id="ap-coach-wrap" hidden>
+      <label for="ap-coach">Coach you would like</label>
+      <select id="ap-coach"><option value="">Leave it to BirdBox</option></select>
+      <p class="l1-form__note" style="margin-top:6px">Your preferred coach depends on their availability. If they can&rsquo;t take you on, BirdBox will assign the most suitable coach for you.</p>
+    </div>
+    <input id="ap-website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
+    <button class="bb-submit" type="button" id="ap-submit">Send Application &rarr;</button>
+    <p class="l1-form__note" id="ap-note" role="status"></p>
+  </section>
 </main>
+<script type="module" src="/programming-apply.js"></script>
 
 <footer class="bb-footer">
   &copy; BirdBox Coaching Ltd &mdash; Trading as BirdBox Coaching, The Gymnastics Course, The Endurance Course, and The Coaches Course.
