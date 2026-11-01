@@ -8,6 +8,9 @@
 // GET  ?part=receipts     -> { receipts }
 // POST { action: "portal", subscription }  -> { url }
 // POST { action: "change_plan", subscription, tier }  -> { url }  tiers 1-3
+// POST { action: "move_start", tier }   -> { url }  a CoachRx athlete's offer
+// POST { action: "move_trial" }         -> { ok }   they take the trial instead
+// POST { action: "move_upgrade", tier } -> { ok }   a reduced upgrade, 40 days
 // POST { action: "invoice", charge, company?, vat? }  -> { pdf, filename }
 // GET  ?part=me           -> { known }   false: directory-only login
 // GET  ?part=discounts    -> { discounts, name }   their Level 1 50% offers
@@ -52,7 +55,8 @@ export default async (req, context) => {
       const q = new URL(req.url).searchParams;
       const part = q.get("part");
       if (part === "programming") return json({ ...(await programming(user, email)),
-        staff: await isStaff(user), shop: await shop(context, user, email, String(q.get("country") || "").toUpperCase()), trial_ok: await trialOk(user, email) });
+        staff: await isStaff(user), shop: await shop(context, user, email, String(q.get("country") || "").toUpperCase()), trial_ok: await trialOk(user, email),
+        move: await moveOfferView(email) });
       if (part === "receipts") return json({ receipts: await receipts(email) });
       // a directory-only login (no BirdBox record yet) sees only their listing
       if (part === "me") return json({ known: (await isStaff(user)) || (await knownToBirdBox(email)) });
@@ -68,6 +72,9 @@ export default async (req, context) => {
       const body = await req.json().catch(() => ({}));
       if (body.action === "portal") return portal(user, email, String(body.subscription || ""), String(body.only || ""));
       if (body.action === "change_plan") return changePlan(user, email, String(body.subscription || ""), Number(body.tier));
+      if (body.action === "move_start") return moveStart(email, Number(body.tier), context);
+      if (body.action === "move_trial") return moveTrial(email);
+      if (body.action === "move_upgrade") return moveUpgrade(user, email, Number(body.tier));
       if (body.action === "invoice") return invoice(email, body);
       if (body.action === "seminar_pass") return seminarPass(user, email, String(body.brand || ""));
       if (body.action === "online_offer") return onlineOffer(user, email, String(body.brand || ""));
@@ -490,6 +497,123 @@ async function onlineOffer(user, email, brand) {
   }
   if (!offer?.token) return json({ error: "Your link could not be made. Write to info@birdboxcoaching.com." }, 500);
   return json({ url: `/offer/?t=${offer.token}` });
+}
+
+// ---- CoachRx athletes moving over (Nathan, 1 Nov 2026) ----
+//
+// Their offer is in train.move_offers, made from Barney's sheet, matched by
+// the email they sign in with:
+//   Tier 1 at their price (€35, or a promised €19.98), and with the
+//   standard offer Tier 2 for the same €35. Someone paying CoachRx now is
+//   not charged until their next CoachRx date (free_until); someone who is
+//   not pays from today, or takes the free trial instead and loses the
+//   offer. Their price lasts while they keep paying.
+//   For 40 days after moving: Tier 2 for €35, and Tier 3 at €120 less the
+//   gap between €35 and their price (€104.98 on €19.98). Not on "t1_only".
+const MOVE_T2 = 3500, NORMAL_T3 = 12000, T1_STANDARD = 3500;
+const EU_VAT = ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU",
+  "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE"];
+const vatApplies = (c) => c === "GB" || EU_VAT.includes(c);
+
+async function moveOffer(email) {
+  const { data } = await train().from("move_offers").select("*").eq("email", email).maybeSingle();
+  return data || null;
+}
+const upgradesAllowed = (o) => o.offer !== "t1_only";
+const t3Price = (o) => NORMAL_T3 - Math.max(0, T1_STANDARD - o.price_cents);
+const moveTierPrice = (o, tier) => tier === 1 ? o.price_cents : tier === 2 ? MOVE_T2 : t3Price(o);
+
+async function moveOfferView(email) {
+  const o = await moveOffer(email);
+  // declined, or gave the offer up for the free trial
+  if (!o || o.status === "declined" || o.status === "trial") return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const window = o.status === "moved" && o.upgrade_until && o.upgrade_until >= today && upgradesAllowed(o);
+  if (o.status === "moved" && !window) return null;
+  return {
+    status: o.status, offer: o.offer, first_name: o.first_name,
+    tier1_cents: o.price_cents, tier2_cents: o.offer === "t2_offer" ? MOVE_T2 : null,
+    free_until: o.free_until && o.free_until > today ? o.free_until : null,
+    // the trial is only for people not paying CoachRx now
+    can_trial: o.status === "ready" || o.status === "emailed" ? !o.free_until : false,
+    upgrade_until: window ? o.upgrade_until : null,
+    upgrades: window ? [
+      ...(o.moved_tier < 2 ? [{ tier: 2, cents: MOVE_T2 }] : []),
+      // only when it is below the normal €120
+      ...(o.moved_tier < 3 && t3Price(o) < 12000 ? [{ tier: 3, cents: t3Price(o) }] : []),
+    ] : [],
+  };
+}
+
+async function tierProduct(tier) {
+  const { data: p } = await train().from("stripe_prices").select("price_id")
+    .eq("tier", tier).eq("active", true).like("price_id", "price_%").limit(1).maybeSingle();
+  if (!p?.price_id) return null;
+  const price = await stripe.prices.retrieve(p.price_id);
+  return typeof price.product === "string" ? price.product : price.product.id;
+}
+
+async function moveStart(email, tier, context) {
+  const o = await moveOffer(email);
+  if (!o || !["ready", "emailed"].includes(o.status)) return json({ error: "That offer could not be found. Write to info@birdboxcoaching.com and we'll sort it." }, 404);
+  if (tier === 2 && o.offer !== "t2_offer") return json({ error: "That offer is not available." }, 400);
+  if (![1, 2].includes(tier)) return json({ error: "Which plan?" }, 400);
+  const product = await tierProduct(tier);
+  if (!product) return json({ error: "That plan is not on sale yet." }, 400);
+  const country = String(context?.geo?.country?.code || "").toUpperCase();
+  // Stripe needs a free period to end at least two days ahead: someone
+  // paid up to tomorrow gets the two days, rather than paying twice
+  const paidTo = o.free_until ? Math.floor(new Date(o.free_until + "T12:00:00Z").getTime() / 1000) : 0;
+  const free = paidTo > Date.now() / 1000;
+  const ends = Math.max(paidTo, Math.ceil(Date.now() / 1000) + 2 * 86400 + 3600);
+  const meta = { app: "birdbox-train", kind: "programming", tier: String(tier), move_offer: o.id, country };
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    customer_email: email,
+    payment_method_types: ["card"],
+    billing_address_collection: "required",
+    automatic_tax: { enabled: vatApplies(country) },
+    line_items: [{ quantity: 1, price_data: { currency: "eur", product, unit_amount: moveTierPrice(o, tier),
+      tax_behavior: "inclusive", recurring: { interval: "month" } } }],
+    subscription_data: { metadata: meta, ...(free ? { trial_end: ends } : {}) },
+    metadata: meta,
+    custom_text: free ? { submit: { message: "Nothing is charged until " + new Date(ends * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "long" }) + ", the end of what you paid CoachRx for." } } : undefined,
+    success_url: "https://www.birdboxcoaching.com/learn/?moved=1#programming",
+    cancel_url: RETURN_URL,
+  });
+  return json({ url: session.url });
+}
+
+// they take the free trial instead: the offer is given up (they were told)
+async function moveTrial(email) {
+  const o = await moveOffer(email);
+  if (!o || !["ready", "emailed"].includes(o.status) || o.free_until) return json({ error: "That offer could not be found." }, 404);
+  await train().from("move_offers").update({ status: "trial" }).eq("id", o.id);
+  return json({ ok: true });
+}
+
+// a reduced upgrade within the 40 days: the plan changes now, the
+// difference for this month is charged now, and the new price runs on
+async function moveUpgrade(user, email, tier) {
+  const o = await moveOffer(email);
+  const view = await moveOfferView(email);
+  const up = view?.upgrades?.find((u) => u.tier === tier);
+  if (!o || !up) return json({ error: "That upgrade is not available." }, 400);
+  const a = await athleteOf(user, email);
+  const { data: e } = await train().from("enrolments").select("stripe_subscription_id")
+    .eq("athlete_id", a?.id).in("status", ["active", "past_due"]).not("stripe_subscription_id", "is", null).lte("tier", 3).limit(1).maybeSingle();
+  if (!e?.stripe_subscription_id) return json({ error: "Your plan could not be found." }, 404);
+  const s = await stripe.subscriptions.retrieve(e.stripe_subscription_id);
+  if (s.metadata?.move_offer !== o.id) return json({ error: "That upgrade is not available." }, 400);
+  const product = await tierProduct(tier);
+  await stripe.subscriptions.update(s.id, {
+    items: [{ id: s.items.data[0].id, price_data: { currency: "eur", product, unit_amount: up.cents,
+      tax_behavior: "inclusive", recurring: { interval: "month" } } }],
+    proration_behavior: s.status === "trialing" ? "none" : "always_invoice",
+    metadata: { ...s.metadata, tier: String(tier) },
+  });
+  await train().from("move_offers").update({ moved_tier: tier }).eq("id", o.id);
+  return json({ ok: true });
 }
 
 // "Change to this plan" on a blog tier (Nathan, 1 Nov 2026): Stripe's own

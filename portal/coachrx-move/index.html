@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoachRx move — BirdBox Coaching</title>
+<!--
+  The CoachRx move (Nathan, 1 Nov 2026). Admins only.
+
+  Everyone Barney invited (train.move_offers, loaded from his sheet with
+  scripts/move-import.mjs in the app repo), where each one has got to:
+  ready (not emailed yet), emailed, moved (on BirdBox Train, with the tier
+  they chose), trial (took the free trial, offer gone) or declined.
+
+  From here: see the email one person gets, send it to yourself as a test,
+  or send it to everyone not emailed yet (10 at a time, until none are
+  left). All of it goes through netlify/functions/move-send.mjs.
+-->
+<style>
+  :root {
+    --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10;
+    --rule:#d6d2ca; --muted:#3f444a; --accent:#2f7fd0;
+    --good:#1b6e45; --warn:#8a4a0b; --bad:#9a1f18;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+
+  .bar{background:var(--shell);color:#fff;padding:0.7rem 1.25rem;
+    display:flex;align-items:center;justify-content:space-between;gap:1rem}
+  .bar .left{display:flex;align-items:center;gap:0.75rem}
+  .mark{width:34px;height:34px;border-radius:4px;background:#fff;
+    display:grid;place-items:center;flex:none}
+  .mark img{width:26px;height:26px;object-fit:contain}
+  .brandname{font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;color:#fff}
+  .bar a{color:#fff;font-size:0.85rem;text-decoration:none}
+
+  .wrap{max-width:68rem;margin:0 auto;padding:1.5rem 1rem 4rem}
+  h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0 0 0.2rem;font-weight:600}
+  .sub{color:var(--muted);font-size:0.95rem;margin:0 0 1.5rem;max-width:62ch}
+  h2{font-size:0.8rem;letter-spacing:0.12em;text-transform:uppercase;margin:0 0 .8rem;font-weight:700}
+
+  .panel{background:var(--card);border:1px solid var(--rule);
+    border-radius:6px;padding:1.25rem;margin-bottom:1.25rem}
+  .btn{font:inherit;font-weight:600;background:var(--ink);color:#fff;
+    border:0;border-radius:4px;padding:0.55rem 0.95rem;cursor:pointer;font-size:0.9rem}
+  .btn:disabled{opacity:.6;cursor:default}
+  .btn.ghost{background:none;color:var(--ink);border:1px solid var(--ink);font-weight:500}
+  .btn:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  input{font:inherit;padding:0.5rem 0.6rem;border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink);min-width:0}
+
+  .tiles{display:grid;gap:0.9rem;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));margin-bottom:1.25rem}
+  .tile{background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:.9rem 1rem}
+  .tile .k{font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;font-weight:700}
+  .tile .v{font-size:1.5rem;font-weight:700;margin-top:0.2rem;font-variant-numeric:tabular-nums}
+
+  .row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+  .row input{flex:1 1 14rem}
+  .msg{font-size:.92rem;margin-top:.6rem}
+  .msg.err{color:var(--bad);font-weight:600} .msg.ok{color:var(--good);font-weight:600}
+  pre.preview{white-space:pre-wrap;font:inherit;font-size:.92rem;background:var(--paper);
+    border:1px solid var(--rule);border-radius:4px;padding:1rem;margin:.8rem 0 0}
+
+  .tablewrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:0.88rem;font-variant-numeric:tabular-nums}
+  th{text-align:left;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;
+    font-weight:700;padding:0.5rem 0.6rem;border-bottom:2px solid var(--ink);white-space:nowrap}
+  td{padding:0.55rem 0.6rem;border-bottom:1px solid var(--rule);vertical-align:top}
+  td.num{text-align:right;white-space:nowrap}
+  .who{font-weight:600} .em{color:var(--muted);font-size:.85rem;word-break:break-all}
+  .st{font-weight:700;white-space:nowrap}
+  .st.moved{color:var(--good)} .st.trial,.st.declined{color:var(--bad)}
+  .empty{background:var(--card);border:1px dashed var(--rule);border-radius:6px;
+    padding:2rem 1.25rem;text-align:center;color:var(--muted);font-size:0.95rem}
+  .hidden{display:none !important}
+</style>
+  <script type="module" src="/portal/menu.js"></script>
+<link rel="icon" href="/favicon-birdbox.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-birdbox-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon-birdbox.png">
+</head>
+<body>
+
+<div class="bar">
+  <span class="left">
+    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+    <span class="brandname">CoachRx move</span>
+  </span>
+  <a href="/portal/">← Back to portal</a>
+</div>
+
+<div class="wrap">
+  <div id="gate" class="empty">Checking your access…</div>
+
+  <div id="app" class="hidden">
+    <h1>CoachRx move</h1>
+    <p class="sub">Everyone Barney invited to move from CoachRx to BirdBox Train, and where each one has got to. The email comes from BirdBox Coaching, with Barney copied.</p>
+
+    <div class="tiles" id="tiles"></div>
+
+    <div class="panel">
+      <h2>1. Check one person's email</h2>
+      <div class="row">
+        <input id="who" type="email" placeholder="Their email" autocomplete="off">
+        <button class="btn ghost" id="b-preview" type="button">Show their email</button>
+      </div>
+      <div class="row" style="margin-top:.6rem">
+        <input id="to" type="email" placeholder="Send a test to (your email)" autocomplete="email">
+        <button class="btn ghost" id="b-test" type="button">Send me a test</button>
+      </div>
+      <div class="msg" id="m-one"></div>
+      <pre class="preview hidden" id="preview"></pre>
+    </div>
+
+    <div class="panel">
+      <h2>2. Send to everyone not emailed yet</h2>
+      <p class="sub" style="margin:0 0 .8rem">Goes to each person still "Not emailed", 10 at a time, until none are left. Someone already emailed is not sent it again.</p>
+      <button class="btn" id="b-send" type="button">Send the move email</button>
+      <div class="msg" id="m-send"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Everyone</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Name</th><th>Offer</th><th class="num">Price</th><th>Free until</th><th>Where they are</th></tr></thead>
+          <tbody id="list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const db = createClient(
+  "https://yvdmazpxtpuvidlcifnq.supabase.co",
+  "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+);
+const $ = (id) => document.getElementById(id);
+const day = (iso) => iso ? new Date(iso.length === 10 ? iso + "T12:00:00Z" : iso)
+  .toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "";
+const euro = (c) => "€" + (c / 100).toFixed(2);
+const OFFER = { t2_offer: "€35, Tier 2 offer", t1_promised: "€19.98, Tier 1", t1_only: "€35, Tier 1, no offer" };
+const STATUS = { ready: "Not emailed", emailed: "Emailed", moved: "Moved", trial: "Took the trial", declined: "Not moving" };
+let token = null;
+
+start();
+
+async function start() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) {
+    $("gate").innerHTML = 'You are not signed in. <a href="/portal/">Sign in to the portal</a> first, then come back.';
+    return;
+  }
+  const { data: staff } = await db.from("staff").select("id, role, active, email").eq("id", session.user.id).maybeSingle();
+  if (!staff || !staff.active) { $("gate").textContent = "This account is not an active staff member."; return; }
+  if (staff.role !== "admin") { $("gate").textContent = "Only admins can see the CoachRx move."; return; }
+  token = session.access_token;
+  $("to").value = staff.email || "";
+  $("gate").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  await load();
+}
+
+async function call(body) {
+  const r = await fetch("/.netlify/functions/move-send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+    body: JSON.stringify(body),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || "That did not work.");
+  return d;
+}
+
+async function load() {
+  const { offers } = await call({ list: true });
+  const n = (s) => offers.filter((o) => o.status === s).length;
+  $("tiles").innerHTML = "";
+  for (const [k, v] of [["Invited", offers.length], ["Not emailed", n("ready")], ["Emailed", n("emailed")],
+                        ["Moved", n("moved")], ["Took the trial", n("trial")], ["Not moving", n("declined")]]) {
+    const t = document.createElement("div"); t.className = "tile";
+    t.innerHTML = `<div class="k"></div><div class="v"></div>`;
+    t.querySelector(".k").textContent = k; t.querySelector(".v").textContent = v;
+    $("tiles").appendChild(t);
+  }
+  const body = $("list"); body.innerHTML = "";
+  if (!offers.length) {
+    body.innerHTML = '<tr><td colspan="5">Nobody loaded yet. Barney\'s sheet is loaded on move day.</td></tr>';
+    return;
+  }
+  for (const o of offers) {
+    const tr = document.createElement("tr");
+    const name = [o.first_name, o.last_name].filter(Boolean).join(" ") || o.email;
+    const where = o.status === "moved" ? `Moved, Tier ${o.moved_tier || "?"} (${day(o.moved_at)})`
+      : o.status === "emailed" ? `Emailed ${day(o.emailed_at)}` : STATUS[o.status] || o.status;
+    tr.innerHTML = `<td><div class="who"></div><div class="em"></div></td><td></td><td class="num"></td><td></td><td><span class="st ${o.status}"></span></td>`;
+    const td = tr.querySelectorAll("td");
+    td[0].querySelector(".who").textContent = name;
+    td[0].querySelector(".em").textContent = o.email;
+    td[1].textContent = OFFER[o.offer] || o.offer;
+    td[2].textContent = euro(o.price_cents);
+    td[3].textContent = o.free_until ? day(o.free_until) : "Pays from day one";
+    td[4].querySelector(".st").textContent = where;
+    tr.style.cursor = "pointer";
+    tr.onclick = () => { $("who").value = o.email; $("who").scrollIntoView({ behavior: "smooth", block: "center" }); };
+    body.appendChild(tr);
+  }
+}
+
+function say(id, text, kind) { const m = $(id); m.className = "msg" + (kind ? " " + kind : ""); m.textContent = text; }
+
+$("b-preview").onclick = async () => {
+  say("m-one", "");
+  try {
+    const d = await call({ preview: $("who").value.trim() });
+    $("preview").textContent = "Subject: " + d.subject + "\n\n" + d.text;
+    $("preview").classList.remove("hidden");
+  } catch (e) { say("m-one", e.message, "err"); }
+};
+
+$("b-test").onclick = async () => {
+  const b = $("b-test"); b.disabled = true; say("m-one", "Sending…");
+  try {
+    const d = await call({ test: $("who").value.trim(), to: $("to").value.trim() });
+    say("m-one", "Test sent to " + d.to + ". Their status has not changed.", "ok");
+  } catch (e) { say("m-one", e.message, "err"); }
+  b.disabled = false;
+};
+
+$("b-send").onclick = async () => {
+  const b = $("b-send");
+  if (b.dataset.sure !== "1") {
+    b.dataset.sure = "1"; b.textContent = "Yes, send it now";
+    say("m-send", "Tap again to send. It goes to everyone still \"Not emailed\".");
+    return;
+  }
+  b.disabled = true; b.dataset.sure = "";
+  let sent = 0, failed = [];
+  try {
+    for (;;) {
+      const d = await call({ send: true });
+      sent += d.sent.length; failed = failed.concat(d.failed);
+      say("m-send", `Sent ${sent}… ${d.remaining} still to go.`);
+      if (!d.sent.length || !d.remaining) break;
+    }
+    say("m-send", `Done: ${sent} sent.` + (failed.length ? ` Not sent: ${failed.map((f) => f.email).join(", ")}.` : ""),
+      failed.length ? "err" : "ok");
+  } catch (e) { say("m-send", `Stopped after ${sent}: ${e.message}`, "err"); }
+  b.disabled = false; b.textContent = "Send the move email";
+  await load();
+};
+</script>
+</body>
+</html>

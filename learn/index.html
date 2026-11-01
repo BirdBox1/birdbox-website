@@ -199,6 +199,12 @@
   .tier .btn[disabled]{opacity:1;cursor:default;background:transparent;border-color:#6A6466;color:var(--ink)}
   .preview{border:1px dashed var(--ink);padding:12px 16px;margin:0 0 6px;max-width:1000px;font-size:15px;line-height:1.5}
   .ctabs{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
+  .movecard{max-width:1000px}
+  .getapp{font-size:16px;margin:0 0 16px;color:var(--ink)}
+  .getapp a{color:var(--ink);text-decoration:underline;font-weight:700}
+  .movecard .sub{font-size:16px;line-height:1.55;margin:0 0 14px;color:var(--ink)}
+  .movecard .movetrial{border-top:1px solid var(--line);margin-top:18px;padding-top:14px}
+  .movecard .movetrial .btn{margin:0 10px 8px 0}
   .curline{font-size:15px;margin:0 0 16px;color:var(--ink);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
   .curline .link{background:none;border:0;padding:0;font:inherit;color:var(--ink);text-decoration:underline;cursor:pointer}
   .curline select{font:inherit;font-size:16px;padding:6px 8px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
@@ -302,6 +308,11 @@
     <p class="kicker">BirdBox Learn</p>
     <h1>Your BirdBox account</h1>
     <p class="lede">Log in with the email address you bought your course with.</p>
+    <div id="move-note" class="box hidden" style="background:var(--panel);border:1px solid var(--accent);padding:18px 20px;margin:0 0 24px;max-width:520px;line-height:1.6">
+      <strong>Welcome over from CoachRx.</strong> Tap the button and we will email you a login link. It takes you straight to your offer.
+      <p style="margin:14px 0 0"><button type="button" class="btn main" id="move-link">Email me my login link</button></p>
+      <div class="msg" id="move-msg"></div>
+    </div>
     <p id="expired-note" class="msg err hidden" style="max-width:420px">That link has expired. Tap “Email me a login link” below and we will send you a fresh one.</p>
     <form class="card" id="login-form">
       <label for="l-email">Email</label>
@@ -686,7 +697,27 @@ if (params.get("welcome")) {
   $("welcome-note").classList.remove("hidden");
   setTimeout(() => { const p = $("p-new"); if (p) p.scrollIntoView({ behavior: "smooth", block: "center" }); }, 1200);
 }
-if (params.get("welcome") || params.get("expired")) history.replaceState(null, "", "/learn/" + location.hash);
+// From the CoachRx move email (?move=CODE): one tap emails their login
+// link to the address on their offer (Nathan, 1 Nov 2026).
+const moveCode = /^[0-9a-f]{64}$/.test(params.get("move") || "") ? params.get("move") : null;
+if (moveCode) $("move-note").classList.remove("hidden");
+$("move-link").addEventListener("click", async () => {
+  const msg = $("move-msg");
+  $("move-link").disabled = true;
+  msg.className = "msg"; msg.textContent = "Sending…";
+  let sent = false;
+  try {
+    const r = await fetch("/.netlify/functions/learn-access", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ move: moveCode }),
+    });
+    sent = r.ok;
+  } catch (e) {}
+  $("move-link").disabled = false;
+  if (!sent) { msg.className = "msg err"; msg.textContent = "Something went wrong sending the link. Try again, or write to info@birdboxcoaching.com."; return; }
+  msg.className = "msg ok";
+  msg.textContent = "On its way to the email address we wrote to. Check your inbox (and junk folder) and tap the link. Nothing after 5 minutes? Write to info@birdboxcoaching.com.";
+});
+if (params.get("welcome") || params.get("expired") || params.get("move")) history.replaceState(null, "", "/learn/" + location.hash);
 
 start();
 });
@@ -1567,6 +1598,69 @@ function courseView(co, mine, preview, trialOk) {
   return wrap;
 }
 
+// A CoachRx athlete's transfer offer (Nathan, 1 Nov 2026): shown above the
+// course tabs, whatever is on sale. Before they move: Tier 1 at their price
+// (and Tier 2 for €35 with the standard offer), free until their next
+// CoachRx date if they pay CoachRx now; the free trial only for those who
+// don't, with a clear warning that it gives the offer up. After they move,
+// for 40 days: the reduced upgrades.
+function moveCard(m) {
+  const el = (tag, cls, txt) => { const x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; };
+  const c = el("div", "plan movecard"); c.style.setProperty("--c", BRAND.tgc.c);
+  const per = (cents) => money(cents, "eur") + " a month, VAT included";
+  const act = async (body, b, msg, then) => {
+    b.disabled = true; const label = b.textContent; b.textContent = "Opening…"; msg.textContent = "";
+    try { const r = await account("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (r.url) { location.href = r.url; return; } if (then) then(r); }
+    catch (e) { msg.className = "msg err"; msg.textContent = e.message; b.disabled = false; b.textContent = label; }
+  };
+  const msg = el("div", "msg");
+  if (m.upgrades && m.upgrades.length) {
+    c.append(el("p", "k", "Your transfer offer"), el("h3", null, "Move up a tier, until " + day(m.upgrade_until)));
+    c.appendChild(el("p", "sub", "As you moved over from CoachRx, you can move up at a reduced price until " + day(m.upgrade_until) + ". The new price stays for as long as you keep your plan."));
+    const btns = el("div", "btns");
+    for (const u of m.upgrades) {
+      const b = el("button", "btn main", (u.tier === 2 ? "Tier 2" : "Tier 3") + " for " + money(u.cents, "eur") + " a month →"); b.type = "button";
+      b.onclick = () => act({ action: "move_upgrade", tier: u.tier }, b, msg, () => { msg.className = "msg ok"; msg.textContent = "Done. Your plan has changed; it shows in the app within a minute."; b.textContent = "Done"; });
+      btns.appendChild(b);
+    }
+    c.append(btns, msg);
+    return c;
+  }
+  c.append(el("p", "k", "Your transfer offer"), el("h3", null, (m.first_name ? m.first_name + ", w" : "W") + "elcome to BirdBox Train"));
+  c.appendChild(el("p", "sub", m.free_until
+    ? "You have already paid CoachRx up to " + day(m.free_until) + ", so nothing is charged until then. Your price stays for as long as you keep your plan."
+    : "Your price stays for as long as you keep your plan."));
+  const btns = el("div", "btns");
+  const start = (tier, cents) => {
+    const b = el("button", "btn main", "Tier " + tier + ": " + per(cents) + " →"); b.type = "button";
+    b.onclick = () => act({ action: "move_start", tier }, b, msg);
+    btns.appendChild(b);
+  };
+  start(1, m.tier1_cents);
+  if (m.tier2_cents) start(2, m.tier2_cents);
+  c.append(btns);
+  if (m.tier2_cents) c.appendChild(el("p", "sub", "Tier 2 adds the premium community and feedback through it, for the same price."));
+  if (m.can_trial) {
+    const t = el("div", "movetrial");
+    t.appendChild(el("p", "sub", "Or take the two-week free trial instead. If you do, your transfer offer is no longer available, and after the two weeks you will see the normal prices."));
+    const tb = el("button", "btn ghost", "Start the free trial instead"); tb.type = "button";
+    tb.onclick = () => {
+      if (tb.dataset.sure !== "1") {
+        tb.dataset.sure = "1"; tb.textContent = "Yes, start the trial and give up my offer";
+        const keep = el("button", "btn ghost", "Keep my offer"); keep.type = "button";
+        keep.onclick = () => { tb.dataset.sure = ""; tb.textContent = "Start the free trial instead"; keep.remove(); };
+        t.appendChild(keep); return;
+      }
+      act({ action: "move_trial" }, tb, msg, () => startTrial(tb, msg));
+    };
+    t.appendChild(tb);
+    c.appendChild(t);
+  }
+  c.appendChild(msg);
+  return c;
+}
+
 async function changeTo(subscription, tier, btn, msg) {
   btn.disabled = true; const label = btn.textContent; btn.textContent = "Opening…"; msg.textContent = "";
   try { const r = await account("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "change_plan", subscription, tier }) }); location.href = r.url; }
@@ -1716,6 +1810,14 @@ async function loadProgramming() {
     s2.innerHTML = '<p class="k">BirdBox staff</p><h3>Your athletes and programming are in the coach portal</h3>' +
       '<div class="btns"><a class="btn main" style="color:#0C1116" href="https://app.birdboxcoaching.com">Open the coach portal →</a></div>';
     box.appendChild(s2);
+  }
+  if (d.move) box.appendChild(moveCard(d.move));
+  // the app, for anyone training with us or about to (Nathan, 1 Nov 2026)
+  if (d.move || d.plans.length || d.blocks.length) {
+    const apps = document.createElement("p"); apps.className = "getapp";
+    apps.innerHTML = 'Get the BirdBox Train app: <a href="https://apps.apple.com/app/id6806654607" target="_blank" rel="noopener">App Store</a> · ' +
+      '<a href="https://play.google.com/store/apps/details?id=com.birdboxcoaching.programming" target="_blank" rel="noopener">Google Play</a>. Sign in with this email address.';
+    box.appendChild(apps);
   }
   const courses = (d.shop && d.shop.courses) || [];
   const mineOf = (b) => d.plans.filter((x) => x.brand === b);

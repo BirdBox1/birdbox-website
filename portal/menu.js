@@ -36,6 +36,7 @@ const LINKS = [
   { group: "Business" },
   { href: "/portal/codes/",       label: "Discount codes", admin: true },
   { href: "/portal/gift-cards/",  label: "Gift cards", admin: true },
+  { href: "/portal/coachrx-move/", label: "CoachRx move", admin: true },
   { href: "/portal/markets/",     label: "Where to go", admin: true },
   { href: "/portal/competitors/", label: "Their courses", admin: true },
   { group: "Me" },

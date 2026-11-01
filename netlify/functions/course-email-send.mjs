@@ -655,7 +655,7 @@ async function logoAttachment(file) {
   return logoCache[file];
 }
 
-export async function sendEmail({ to, sender, subject, text, brand, offerUrl = null, rich = false, copyOffice = true }) {
+export async function sendEmail({ to, sender, subject, text, brand, offerUrl = null, rich = false, copyOffice = true, cc = [] }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("No Resend key; not sending to", to);
@@ -669,7 +669,7 @@ export async function sendEmail({ to, sender, subject, text, brand, offerUrl = n
   const payload = JSON.stringify({
     from: sender.from,
     to: [to],
-    ...(copyOffice ? { cc: [OFFICE] } : {}),
+    ...(copyOffice || cc.length ? { cc: [...(copyOffice ? [OFFICE] : []), ...cc] } : {}),
     reply_to: sender.replyTo,
     subject,
     text: plainButtons(text),
