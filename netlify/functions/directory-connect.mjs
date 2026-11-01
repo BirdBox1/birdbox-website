@@ -5,7 +5,9 @@
 // Signed in with the Learn login (Authorization: Bearer <token>).
 //
 // GET  ?near&brand=tgc&online=1&from=0  -> { coaches, more, me }
-//      live coaches who take Connect messages, nearest first, 20 at a time
+//      live coaches who take Connect messages, nearest first, 20 at a time;
+//      &lat=&lng= measures from a place they searched for instead of their
+//      own listing (travelling, on holiday), Nathan, 1 Nov 2026
 // POST { slug, message }                 -> { ok }
 //
 // Only a coach whose own listing is live can use it, and only coaches who
@@ -64,7 +66,10 @@ async function near(me, q) {
   const profiles = await readAll(() => db.from("directory_profiles").select(PROFILE_FIELDS)
     .eq("visible", true).is("hidden_at", null).eq("coach_connect", true).neq("id", me.id).order("id"));
   const quals = await qualificationsFor(profiles);
-  const here = { lat: me.latitude == null ? null : Number(me.latitude), lng: me.longitude == null ? null : Number(me.longitude) };
+  const lat = parseFloat(q.get("lat")), lng = parseFloat(q.get("lng"));
+  const searched = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+  const here = searched ? { lat, lng }
+    : { lat: me.latitude == null ? null : Number(me.latitude), lng: me.longitude == null ? null : Number(me.longitude) };
   let list = profiles.filter((p) => statusOf(p, quals.get(p.id)) === "live")
     .map((p) => publicProfile(p, quals.get(p.id)))
     .filter((c) => (!brand || c.courses.some((x) => x.brand === brand)) && (!online || c.online))

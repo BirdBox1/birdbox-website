@@ -173,6 +173,8 @@
   .dbtns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
   .nearby{margin-top:34px}
   .nearby h2{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 6px}
+  .nplace{display:flex;gap:8px;max-width:520px;margin:0 0 14px}
+  .nplace input{flex:1;min-width:0;font:inherit;font-size:16px;padding:9px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
   .nfilt{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:0 0 14px}
   .nfilt select{font:inherit;font-size:15px;padding:9px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
   .nfilt .check{font-size:15px;color:var(--ink);display:flex;gap:8px;align-items:center}
@@ -964,7 +966,7 @@ function showDirectoryMore(d) {
 // ---- BirdBox coaches near you (Nathan, 1 Nov 2026) ----
 // Live coaches who take Connect messages, nearest first, with a Connect
 // button: the message is emailed to them as from a BirdBox coach.
-const near = { brand: "", online: false, from: 0 };
+const near = { brand: "", online: false, from: 0, place: null };
 async function connectApi(path, opts = {}) {
   const { data: { session } } = await db.auth.getSession();
   const r = await fetch("/.netlify/functions/directory-connect" + path, {
@@ -977,7 +979,9 @@ async function connectApi(path, opts = {}) {
 function showNear(box) {
   const sec = document.createElement("section"); sec.className = "nearby";
   sec.innerHTML = '<h2>BirdBox coaches near you</h2>' +
-    '<p class="sub">Other BirdBox coaches in the directory. Connect to cover a class, swap ideas or refer an athlete; your message is emailed to them and they reply to you.</p>' +
+    '<p class="sub">Other BirdBox coaches in the directory. Connect to cover a class, swap ideas, refer an athlete, or train with someone while you travel; your message is emailed to them and they reply to you.</p>' +
+    '<form class="nplace" id="n-place"><input id="n-q" placeholder="Travelling? Search a town or city" autocomplete="off"><button class="btn small" type="submit">Search</button></form>' +
+    '<p class="sub hidden" id="n-where" style="margin:-4px 0 12px"></p>' +
     '<div class="nfilt"><select id="n-brand"><option value="">All courses</option><option value="tgc">TGC</option><option value="tcc">TCC</option><option value="tec">TEC</option><option value="twc">TWC</option></select>' +
     '<label class="check"><input type="checkbox" id="n-online"> Coaches online</label></div>' +
     '<div id="n-list" class="nlist"></div><button class="btn ghost small hidden" id="n-more" type="button">Show more</button>';
@@ -985,13 +989,35 @@ function showNear(box) {
   $("n-brand").onchange = () => { near.brand = $("n-brand").value; near.from = 0; loadNear(true); };
   $("n-online").onchange = () => { near.online = $("n-online").checked; near.from = 0; loadNear(true); };
   $("n-more").onclick = () => loadNear(false);
+  // a place they are going to, instead of where their own listing is
+  $("n-place").onsubmit = async (e) => {
+    e.preventDefault();
+    const q = $("n-q").value.trim();
+    const where = $("n-where"); where.classList.remove("hidden");
+    if (q.length < 4) { where.textContent = "Type a little more, e.g. Lisbon, Portugal."; return; }
+    where.textContent = "Looking it up…";
+    try {
+      const r = await fetch("/.netlify/functions/geocode?lang=en&q=" + encodeURIComponent(q));
+      const d = await r.json();
+      const hit = (d.results || [])[0];
+      if (!hit) { where.textContent = "We could not find that place. Try the town and country, e.g. Lisbon, Portugal."; return; }
+      near.place = { lat: hit.latitude, lng: hit.longitude, name: [hit.city, hit.country_name].filter(Boolean).join(", ") || hit.label };
+      where.innerHTML = ""; where.append(document.createTextNode("Coaches near " + near.place.name + ". "));
+      const back = document.createElement("a"); back.href = "#directory"; back.textContent = "Back to near me";
+      back.style.color = "var(--ink)";
+      back.onclick = (ev) => { ev.preventDefault(); near.place = null; $("n-q").value = ""; where.classList.add("hidden"); loadNear(true); };
+      where.appendChild(back);
+      loadNear(true);
+    } catch (err) { where.textContent = "The place search is not answering. Please try again."; }
+  };
   loadNear(true);
 }
 async function loadNear(fresh) {
   const list = $("n-list");
   if (fresh) { list.innerHTML = '<p class="sub">Loading…</p>'; near.from = 0; }
   let d;
-  try { d = await connectApi(`?near&brand=${near.brand}&online=${near.online ? 1 : 0}&from=${near.from}`); }
+  const at = near.place ? `&lat=${near.place.lat}&lng=${near.place.lng}` : "";
+  try { d = await connectApi(`?near&brand=${near.brand}&online=${near.online ? 1 : 0}&from=${near.from}${at}`); }
   catch (e) { list.innerHTML = '<p class="sub"></p>'; list.firstChild.textContent = e.message; $("n-more").classList.add("hidden"); return; }
   if (fresh) list.innerHTML = "";
   for (const c of d.coaches) list.appendChild(nearCard(c));
