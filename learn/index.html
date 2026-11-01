@@ -136,7 +136,7 @@
   .pane h2.t{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 6px}
   .pane .sub{color:var(--ink);font-size:15px;line-height:1.6;margin:0 0 20px;max-width:60ch}
   .plan{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c,#85151A);padding:22px 24px;max-width:760px;margin-bottom:14px}
-  .plan .k{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t,#E0555A);margin:0 0 6px}
+  .plan .k{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);margin:0 0 6px}
   .plan h3{font-size:20px;margin:0 0 12px}
   .plan dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:0 0 18px;font-size:15px}
   .plan dt{font-weight:700}
@@ -168,6 +168,18 @@
   .dlist .k{font-weight:800;white-space:nowrap}
   .dnum{font-size:34px;font-weight:800;line-height:1;margin:0 0 6px}
   .dbtns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .shop h2{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:34px 0 6px}
+  .tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;max-width:1000px}
+  .tier{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-top:4px solid #85151A;padding:22px}
+  .tier .k{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin:0 0 6px}
+  .tier h3{font-size:18px;margin:0 0 12px}
+  .tier .p{font-size:30px;font-weight:800;line-height:1}
+  .tier .pm{font-size:13px;margin:4px 0 14px}
+  .tier ul{margin:0 0 18px;padding:0 0 0 18px;font-size:15px;line-height:1.7}
+  .tier .btn{margin-top:auto;background:#85151A;border-color:#85151A;color:#fff}
+  .tier .btn:hover{background:transparent;color:var(--ink)}
+  .tier .btn[disabled]{opacity:1;cursor:default;background:transparent;border-color:#6A6466;color:var(--ink)}
+  .preview{border:1px dashed var(--ink);padding:12px 16px;margin:0 0 6px;max-width:1000px;font-size:15px;line-height:1.5}
   .rcinv{grid-column:1/-1;border-top:1px solid var(--line);padding-top:14px}
   .rcinv .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   @media (max-width:640px){.rcinv .row{grid-template-columns:1fr}}
@@ -987,6 +999,116 @@ async function account(path, opts = {}) {
   return d;
 }
 
+// Joining programming from here (Nathan, 1 Nov 2026). Nothing links to a
+// live sale until programming is on sale (once Barney's programming is in):
+// until then members see the short line, and BirdBox staff see a preview
+// whose buttons do nothing. To put it on sale (the trial, the plans and
+// blocks together), set this to true.
+const PROGRAMMING_ON_SALE = false;
+const APP_CHECKOUT = "https://app.birdboxcoaching.com/.netlify/functions/checkout";
+
+const APP_TRIAL = "https://app.birdboxcoaching.com/.netlify/functions/trial-signup";
+
+// One section per course with programming (TGC now; TCC, TEC and TWC
+// later), then one-to-one coaching. The free trial sits with TGC, the
+// course it is for.
+const COURSE = {
+  tgc: { name: "TGC programming", text: "Gymnastics programming in the BirdBox Train app, built by the TGC coaching team to complement your training." },
+  tcc: { name: "TCC programming", text: "Programming from The Coaches Course, in the BirdBox Train app." },
+  tec: { name: "TEC programming", text: "Endurance programming from The Endurance Course, in the BirdBox Train app." },
+  twc: { name: "TWC programming", text: "Weightlifting programming from The Weightlifting Course, in the BirdBox Train app." },
+};
+const TRIAL_FOR = "tgc";
+
+function shopView(shop, preview, trialOk) {
+  const wrap = document.createElement("div"); wrap.className = "shop";
+  const el = (tag, cls, txt) => { const x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; };
+  const button = (label, onclick) => {
+    const b = el("button", "btn", preview ? "Opens when on sale" : label); b.type = "button";
+    const msg = el("div", "msg");
+    if (preview) b.disabled = true; else b.onclick = () => onclick(b, msg);
+    return [b, msg];
+  };
+  const card = (colour, kicker, title, price, per, items, btn) => {
+    const c = el("div", "tier"); c.style.borderTopColor = colour;
+    c.append(el("p", "k", kicker), el("h3", null, title), el("div", "p", price), el("div", "pm", per));
+    if (items && items.length) { const ul = el("ul"); for (const i of items) ul.appendChild(el("li", null, i)); c.appendChild(ul); }
+    c.append(...btn);
+    return c;
+  };
+  if (preview) wrap.appendChild(el("p", "preview", "Preview for BirdBox staff: not on sale yet. Members see this once programming goes live; until then the buttons do nothing."));
+
+  for (const co of shop.courses || []) {
+    const info = COURSE[co.brand] || { name: co.brand.toUpperCase() + " programming", text: "" };
+    const colour = (BRAND[co.brand] || BRAND.tgc).c;
+    wrap.appendChild(el("h2", null, info.name));
+    wrap.appendChild(el("p", "sub", (info.text ? info.text + " " : "") + "Monthly, VAT included, cancel any time."));
+    const grid = el("div", "tiers");
+    if (trialOk && co.brand === TRIAL_FOR) {
+      grid.appendChild(card(colour, "Free trial", "Two weeks free", "Free", "two weeks, no card needed",
+        ["Two weeks of " + info.name + " in the app", "Coaching demonstrations every session", "No payment details asked for"],
+        button("Start my free trial →", startTrial)));
+    }
+    for (const t of co.plans) {
+      grid.appendChild(card(colour, "Tier " + t.tier, t.name, t.amount != null ? money(t.amount, t.currency) : "",
+        "per month, VAT included", t.includes, button("Join →", (b, m) => join({ tier: t.tier }, b, m))));
+    }
+    wrap.appendChild(grid);
+    if (co.blocks.length) {
+      wrap.appendChild(el("h2", null, info.name.replace("programming", "blocks")));
+      wrap.appendChild(el("p", "sub", "A set number of weeks on one goal, yours to keep. Start today or on a Monday of your choice."));
+      const g2 = el("div", "tiers");
+      for (const k of co.blocks) {
+        const c = card(colour, k.weeks ? k.weeks + " weeks" : "Block", k.name, "From " + money(k.from, k.currency), "paid once, VAT included",
+          null, button("Buy →", (b, m) => join({ block: k.id, feedback: false, plan: "full" }, b, m)));
+        if (k.description) c.insertBefore(el("p", "sub", k.description), c.querySelector(".btn"));
+        g2.appendChild(c);
+      }
+      wrap.appendChild(g2);
+    }
+  }
+
+  if ((shop.one_to_one || []).length) {
+    wrap.appendChild(el("h2", null, "One-to-one coaching"));
+    wrap.appendChild(el("p", "sub", "A programme built around you by a BirdBox coach. Places are limited, so you apply first and we confirm the fit before anything is charged."));
+    const g3 = el("div", "tiers");
+    for (const t of shop.one_to_one) {
+      g3.appendChild(card("#B7B1B3", "Tier " + t.tier, t.name, t.amount != null ? money(t.amount, t.currency) : "",
+        "per month, VAT included", t.includes, button("Apply →", () => { location.href = "/tgc/programming/#apply"; })));
+    }
+    wrap.appendChild(g3);
+  }
+  return wrap;
+}
+
+async function startTrial(btn, msg) {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) return;
+  btn.disabled = true; btn.textContent = "Starting…"; msg.textContent = "";
+  const meta = session.user.user_metadata || {};
+  try {
+    const r = await fetch(APP_TRIAL, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: session.user.email, first_name: meta.first_name || (meta.full_name || "").split(" ")[0] || "" }) });
+    if (!r.ok) throw new Error("The trial could not start. Please try again.");
+    msg.className = "msg ok"; msg.textContent = "Done. Check your email: it tells you how to open your two weeks in the BirdBox Train app.";
+    btn.textContent = "Trial started";
+  } catch (e) { msg.className = "msg err"; msg.textContent = e.message; btn.disabled = false; btn.textContent = "Start my free trial →"; }
+}
+
+async function join(what, btn, msg) {
+  const { data: { session } } = await db.auth.getSession();
+  btn.disabled = true; const label = btn.textContent; btn.textContent = "Opening…"; msg.textContent = "";
+  try {
+    const r = await fetch(APP_CHECKOUT, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...what, email: session ? session.user.email : "", cancel_url: location.href }) });
+    const d = await r.json().catch(() => ({}));
+    if (d.url) { location.href = d.url; return; }
+    if (d.already) { msg.className = "msg"; msg.textContent = "You are already on TGC programming. Change your plan with Manage my plan above."; }
+    else throw new Error(d.error || "The checkout could not open. Please try again.");
+  } catch (e) { msg.className = "msg err"; msg.textContent = e.message; }
+  btn.disabled = false; btn.textContent = label;
+}
+
 async function loadProgramming() {
   const box = $("prog-list");
   let d;
@@ -1028,8 +1150,19 @@ async function loadProgramming() {
   };
   d.plans.forEach((x) => card(x, x.trial ? "Free trial" : "Programming plan"));
   d.blocks.forEach((x) => card(x, "Block"));
-  if (!d.plans.length && !d.blocks.length) {
-    box.innerHTML = '<div class="empty" style="color:var(--ink)">You have no programming with BirdBox yet. Train with us in the BirdBox Train app, with a monthly plan or a block. <a href="/tgc/programming/">See TGC programming →</a></div>';
+  if (d.staff) {
+    const s2 = document.createElement("div"); s2.className = "plan"; s2.style.setProperty("--c", "#B7B1B3");
+    s2.innerHTML = '<p class="k">BirdBox staff</p><h3>Your athletes and programming are in the coach portal</h3>' +
+      '<div class="btns"><a class="btn main" style="color:#0C1116" href="https://app.birdboxcoaching.com">Open the coach portal →</a></div>';
+    box.appendChild(s2);
+  }
+  const none = !d.plans.length && !d.blocks.length;
+  if (PROGRAMMING_ON_SALE && none) box.appendChild(shopView(d.shop || {}, false, d.trial_ok));
+  else if (!PROGRAMMING_ON_SALE && d.staff) box.appendChild(shopView(d.shop || {}, true, true));
+  else if (none) {
+    const e2 = document.createElement("div"); e2.className = "empty"; e2.style.color = "var(--ink)";
+    e2.innerHTML = 'You have no programming with BirdBox yet. Train with us in the BirdBox Train app, with a monthly plan or a block. <a href="/tgc/programming/">See TGC programming →</a>';
+    box.appendChild(e2);
   }
 }
 
