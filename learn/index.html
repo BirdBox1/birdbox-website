@@ -816,8 +816,13 @@ function showDirectoryMore(d) {
 
     const c = el("div", "dbox");
     c.appendChild(el("h3", null, "Contact requests"));
-    c.appendChild(el("p", "dnum", String(d.contacts_90 || 0)));
-    c.appendChild(el("p", "sub", (d.contacts_90 === 1 ? "person has" : "people have") + " asked to work with you through your listing in the last 90 days. Each request was emailed to you."));
+    // a big 0 reads as bad news: with none yet, say how requests reach them
+    if (d.contacts_90) {
+      c.appendChild(el("p", "dnum", String(d.contacts_90)));
+      c.appendChild(el("p", "sub", (d.contacts_90 === 1 ? "person has" : "people have") + " asked to work with you through your listing in the last 90 days. Each request was emailed to you."));
+    } else {
+      c.appendChild(el("p", "sub", "Athletes and gyms can ask to work with you straight from your listing, and we email each request to you. A photo, a few lines about you and a link help them choose you."));
+    }
     c.lastChild.style.margin = "0";
     right.appendChild(c);
   }
