@@ -627,6 +627,13 @@ function start() {
 async function boot() {
   const { data: { session } } = await db.auth.getSession();
   if (!session) { $("who").classList.add("hidden"); view("login"); return; }
+  // Someone with no BirdBox record yet (a course from before our records)
+  // logs in only to claim their Trainer Directory listing (Nathan, 1 Nov
+  // 2026): send them there, and show them nothing else.
+  try {
+    const me = await account("?part=me");
+    if (me && me.known === false) { location.replace("/learn/directory/"); return; }
+  } catch (e) {}
   $("who-email").textContent = session.user.email;
   $("acct-email").textContent = session.user.email;
   $("who").classList.remove("hidden");
