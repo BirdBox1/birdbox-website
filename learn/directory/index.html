@@ -304,6 +304,7 @@ function drawCourses() {
   $("courses").innerHTML = list.map((c) => {
     const bits = [c.kind === "online" ? "Online" : c.kind === "workshop" ? "Workshop" : "In person", monthYear(String(c.date || "").slice(0, 7)), c.place].filter(Boolean).join(" · ");
     const tag = c.verified === "certificate" ? `<span class="tag ok">✓ Certificate on record</span>`
+      : c.verified === "records" ? `<span class="tag ok">✓ On our seminar records</span>`
       : c.verified ? `<span class="tag ok">✓ Checked</span>`
       : `<span class="tag wait">Waiting for check</span><button type="button" data-rm="${esc(c.id)}">Remove</button>`;
     const sub = [c.brand === "tcc" ? "Formerly BirdBox Coaching Development" : "", bits].filter(Boolean).join(" · ");
