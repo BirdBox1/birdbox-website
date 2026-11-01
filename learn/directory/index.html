@@ -29,6 +29,7 @@
   .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--tcc); }
   .field small { display: block; font-size: 12px; color: var(--muted); margin-top: 5px; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  .ym { display: grid; grid-template-columns: 1.4fr 1fr; gap: 0 8px; }
   .row4 { display: grid; grid-template-columns: 1.3fr 1fr .7fr 1fr; gap: 0 12px; }
   @media (max-width: 720px) { .row2, .row4 { grid-template-columns: 1fr; } .box { padding: 18px 16px; } }
   .check { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; line-height: 1.45; cursor: pointer; margin-bottom: 12px; }
@@ -330,13 +331,19 @@ const COURSE_OPTIONS = [
   { code: "tgc1-online", brand: "tgc", level: "1", kind: "online", label: "The Gymnastics Course — Level 1 Online", sub: "Online" },
   { code: "tgc2", brand: "tgc", level: "2", kind: "seminar", label: "The Gymnastics Course — Level 2", sub: "In person" },
 ];
+// Month and year are two dropdowns, not a month box: Safari shows a month
+// box as plain text and quietly drops anything not typed as 2026-05.
+const MONTH_OPTS = '<option value="">Month</option>' + ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+  .map((m, i) => `<option value="${String(i + 1).padStart(2, "0")}">${m}</option>`).join("");
+const YEAR_OPTS = '<option value="">Year</option>' + Array.from({ length: new Date().getFullYear() - 2009 }, (_, i) => new Date().getFullYear() - i)
+  .map((y) => `<option value="${y}">${y}</option>`).join("");
 function drawAdd() {
   const have = new Set((data.courses || []).map((c) => `${c.brand}|${c.level || ""}|${c.kind}`));
   const opts = COURSE_OPTIONS.filter((o) => !have.has(`${o.brand}|${o.level || ""}|${o.kind}`));
   $("add-list").innerHTML = opts.map((o) => `<div class="opt" data-code="${o.code}" style="--b:var(--b-${o.brand})">
     <label><input type="checkbox"><span>${esc(o.label)}<small>${esc(o.sub)}</small></span></label>
     <div class="more">
-      <div class="field"><label>Month and year</label><input type="month" min="2010-01" class="a-month"></div>
+      <div class="field"><label>Month and year</label><div class="ym"><select class="a-mon" aria-label="Month">${MONTH_OPTS}</select><select class="a-year" aria-label="Year">${YEAR_OPTS}</select></div></div>
       ${o.kind === "online" ? "" : `<div class="field"><label>Where (gym and city)</label><input maxlength="120" class="a-where" placeholder="e.g. CrossFit Dublin, Ireland"></div>`}
     </div></div>`).join("");
   $("add-list").querySelectorAll(".opt input[type=checkbox]").forEach((cb) => {
@@ -351,7 +358,8 @@ function drawAdd() {
 function tickedCourses() {
   const out = [];
   for (const el of $("add-list").querySelectorAll(".opt.on")) {
-    const month = el.querySelector(".a-month").value;
+    const mon = el.querySelector(".a-mon").value, year = el.querySelector(".a-year").value;
+    const month = mon && year ? `${year}-${mon}` : "";
     const label = COURSE_OPTIONS.find((o) => o.code === el.dataset.code).label;
     if (!month) return { error: "Add the month and year for " + label + "." };
     const where = el.querySelector(".a-where");
