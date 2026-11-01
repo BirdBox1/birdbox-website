@@ -1483,6 +1483,12 @@ function shopView(shop, preview, trialOk) {
         const c = card(colour, k.weeks ? k.weeks + " weeks" : "Block", k.name, "From " + money(k.from, k.currency), "paid once, VAT included",
           null, button("Buy →", (b, m) => join({ block: k.id, feedback: false, plan: "full" }, b, m)));
         if (k.description) c.insertBefore(el("p", "sub", k.description), c.querySelector(".btn"));
+        // Give as a gift (Nathan, 1 Nov 2026): paid in full; we email them
+        // on the day chosen, and they choose when to start
+        const [gb] = button("Give as a gift →", () => c.querySelector(".giftf").classList.toggle("hidden"));
+        gb.classList.add("ghost"); gb.style.marginTop = "8px";
+        c.appendChild(gb);
+        c.appendChild(giftForm(k));
         g2.appendChild(c);
       }
       wrap.appendChild(g2);
@@ -1500,6 +1506,30 @@ function shopView(shop, preview, trialOk) {
     wrap.appendChild(g3);
   }
   return wrap;
+}
+
+function giftForm(k) {
+  const f = document.createElement("form"); f.className = "giftf rcinv hidden"; f.style.marginTop = "12px";
+  const today = new Date().toISOString().slice(0, 10);
+  const last = new Date(Date.now() + 92 * 86400000).toISOString().slice(0, 10);
+  f.innerHTML = '<label>Their first name<input name="to_name" maxlength="80" required></label>' +
+    '<label>Their email<input name="to_email" type="email" maxlength="254" required></label>' +
+    '<label>Your message <small>(optional)</small><textarea name="message" maxlength="500" rows="3" style="width:100%;font:inherit;font-size:16px;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin:6px 0 12px"></textarea></label>' +
+    `<label>Send it on<input name="send_on" type="date" min="${today}" max="${last}" value="${today}"></label>` +
+    '<label class="check" style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-weight:400;font-size:15px;margin:0 0 12px"><input type="checkbox" name="feedback" style="width:auto;margin:0"> Include coach feedback on their videos</label>' +
+    '<button class="btn small" type="submit">Pay for the gift</button><div class="msg"></div>' +
+    '<p class="sub" style="font-size:13px;margin:10px 0 0">Paid in full. We email them on the day you choose, with your message, and they choose when to start. You get the receipt.</p>';
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    const v = (n) => f.elements[n].value.trim();
+    const { data: { session } } = await db.auth.getSession();
+    const meta = (session && session.user.user_metadata) || {};
+    join({ block: k.id, feedback: f.elements.feedback.checked, plan: "full",
+      gift: { to_name: v("to_name"), to_email: v("to_email"), message: v("message"), send_on: v("send_on"),
+        from_name: meta.first_name || (meta.full_name || "").split(" ")[0] || "" } },
+      f.querySelector("button"), f.querySelector(".msg"));
+  };
+  return f;
 }
 
 async function startTrial(btn, msg) {
