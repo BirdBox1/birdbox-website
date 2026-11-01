@@ -96,9 +96,11 @@ async function view(profile, user) {
   // for the Trainer Directory tab in BirdBox Learn: how many people asked
   // to work with them in the last 90 days (requests we passed on only)
   const since = new Date(Date.now() - 90 * 86400000).toISOString();
-  const { count: contacts } = await db.from("directory_contact_requests")
-    .select("id", { count: "exact", head: true })
+  const { data: sentRows } = await db.from("directory_contact_requests")
+    .select("looking_for")
     .eq("profile_id", profile.id).eq("status", "sent").gte("created_at", since);
+  const fromCoaches = (sentRows || []).filter((r) => r.looking_for === "coach").length;
+  const contacts = (sentRows || []).length - fromCoaches;
   return {
     profile: {
       full_name: profile.full_name, headline: profile.headline, qualifications: profile.qualifications, bio: profile.bio,
@@ -108,11 +110,12 @@ async function view(profile, user) {
       public_email: profile.public_email, phone: profile.phone,
       facebook: profile.facebook, twitter: profile.twitter, linkedin: profile.linkedin,
       photo: photoUrl(profile.photo_path), photo_path: profile.photo_path,
-      visible: profile.visible, slug: profile.slug, review_note: profile.rejected_at ? profile.review_note : null,
+      visible: profile.visible, coach_connect: profile.coach_connect !== false, slug: profile.slug, review_note: profile.rejected_at ? profile.review_note : null,
     },
     status: statusOf(profile, verified),
     courses: titled(quals),
     contacts_90: contacts || 0,
+    coaches_90: fromCoaches,
     url: `${SITE_URL}/trainer-directory/coach/${encodeURIComponent(profile.slug)}`,
   };
 }
@@ -186,6 +189,8 @@ async function save(profile, user, email, b) {
     linkedin: cleanUrl(b.linkedin),
     photo_path,
     visible: b.visible !== false,
+    // coach-to-coach Connect: on unless they switch it off
+    coach_connect: b.coach_connect !== false,
     updated_at: new Date().toISOString(),
   };
   // Every coach has a pin on the map, online coaches included (theirs is

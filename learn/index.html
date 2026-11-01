@@ -171,6 +171,19 @@
   .dlist .k{font-weight:800;white-space:nowrap}
   .dnum{font-size:34px;font-weight:800;line-height:1;margin:0 0 6px}
   .dbtns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .nearby{margin-top:34px}
+  .nearby h2{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 6px}
+  .nfilt{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:0 0 14px}
+  .nfilt select{font:inherit;font-size:15px;padding:9px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .nfilt .check{font-size:15px;color:var(--ink);display:flex;gap:8px;align-items:center}
+  .nlist{display:grid;gap:10px}
+  .ncard{display:grid;grid-template-columns:72px minmax(0,1fr);gap:16px;background:var(--panel);border:1px solid var(--line);padding:14px 16px}
+  .ncard img{width:72px;height:72px;object-fit:cover;background:var(--panel2)}
+  .ncard .nt b{display:block;font-size:16px}
+  .ncard .nt span{display:block;font-size:14px;line-height:1.5}
+  .ncard .nq{margin-top:2px}
+  .ncard .nb{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  #n-more{margin-top:12px}
   .shop h2{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:34px 0 6px}
   .tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;max-width:1000px}
   .tier{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-top:4px solid #85151A;padding:22px}
@@ -918,6 +931,10 @@ function showDirectoryMore(d) {
       c.appendChild(el("p", "sub", "Athletes and gyms can ask to work with you straight from your listing, and we email each request to you. A photo, a few lines about you and a link help them choose you."));
     }
     c.lastChild.style.margin = "0";
+    if (d.coaches_90) {
+      const cc = el("p", "sub", `Plus ${d.coaches_90} ${d.coaches_90 === 1 ? "message" : "messages"} from BirdBox coaches.`);
+      cc.style.margin = "10px 0 0"; c.appendChild(cc);
+    }
     right.appendChild(c);
   }
 
@@ -941,6 +958,81 @@ function showDirectoryMore(d) {
 
   grid.append(left, right);
   box.appendChild(grid);
+  if (d.status === "live") showNear(box);
+}
+
+// ---- BirdBox coaches near you (Nathan, 1 Nov 2026) ----
+// Live coaches who take Connect messages, nearest first, with a Connect
+// button: the message is emailed to them as from a BirdBox coach.
+const near = { brand: "", online: false, from: 0 };
+async function connectApi(path, opts = {}) {
+  const { data: { session } } = await db.auth.getSession();
+  const r = await fetch("/.netlify/functions/directory-connect" + path, {
+    ...opts, headers: { ...(opts.headers || {}), "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || "Something went wrong.");
+  return d;
+}
+function showNear(box) {
+  const sec = document.createElement("section"); sec.className = "nearby";
+  sec.innerHTML = '<h2>BirdBox coaches near you</h2>' +
+    '<p class="sub">Other BirdBox coaches in the directory. Connect to cover a class, swap ideas or refer an athlete; your message is emailed to them and they reply to you.</p>' +
+    '<div class="nfilt"><select id="n-brand"><option value="">All courses</option><option value="tgc">TGC</option><option value="tcc">TCC</option><option value="tec">TEC</option><option value="twc">TWC</option></select>' +
+    '<label class="check"><input type="checkbox" id="n-online"> Coaches online</label></div>' +
+    '<div id="n-list" class="nlist"></div><button class="btn ghost small hidden" id="n-more" type="button">Show more</button>';
+  box.appendChild(sec);
+  $("n-brand").onchange = () => { near.brand = $("n-brand").value; near.from = 0; loadNear(true); };
+  $("n-online").onchange = () => { near.online = $("n-online").checked; near.from = 0; loadNear(true); };
+  $("n-more").onclick = () => loadNear(false);
+  loadNear(true);
+}
+async function loadNear(fresh) {
+  const list = $("n-list");
+  if (fresh) { list.innerHTML = '<p class="sub">Loading…</p>'; near.from = 0; }
+  let d;
+  try { d = await connectApi(`?near&brand=${near.brand}&online=${near.online ? 1 : 0}&from=${near.from}`); }
+  catch (e) { list.innerHTML = '<p class="sub"></p>'; list.firstChild.textContent = e.message; $("n-more").classList.add("hidden"); return; }
+  if (fresh) list.innerHTML = "";
+  for (const c of d.coaches) list.appendChild(nearCard(c));
+  if (fresh && !d.coaches.length) list.innerHTML = '<p class="sub">No coaches match yet.</p>';
+  near.from += d.coaches.length;
+  $("n-more").classList.toggle("hidden", !d.more);
+}
+function nearCard(c) {
+  const el = document.createElement("div"); el.className = "ncard";
+  const img = document.createElement("img"); img.alt = ""; img.src = c.photo || "/brand/birdbox-mark.png";
+  img.onerror = () => { img.onerror = null; img.src = "/brand/birdbox-mark.png"; };
+  const t = document.createElement("div"); t.className = "nt";
+  const n = document.createElement("b"); n.textContent = c.name;
+  const w = document.createElement("span");
+  w.textContent = [c.gym, [c.city, c.country].filter(Boolean).join(", "), c.km != null ? (c.km < 1 ? "under 1 km" : c.km + " km away") : null, c.online ? "Coaches online" : null].filter(Boolean).join(" · ");
+  const q = document.createElement("span"); q.className = "nq";
+  q.textContent = [...new Set((c.courses || []).map((x) => x.title))].join(" · ");
+  const btns = document.createElement("div"); btns.className = "nb";
+  const go = document.createElement("button"); go.type = "button"; go.className = "btn small"; go.textContent = "Connect";
+  const view = document.createElement("a"); view.className = "btn ghost small"; view.href = c.url; view.target = "_blank"; view.rel = "noopener"; view.textContent = "View listing";
+  btns.append(go, view);
+  t.append(n, w, q, btns);
+  el.append(img, t);
+  go.onclick = () => {
+    if (el.querySelector("form")) return;
+    const f = document.createElement("form"); f.className = "bform"; f.style.gridColumn = "1/-1";
+    f.innerHTML = '<textarea maxlength="1000" rows="3" placeholder="Say hello, and what you would like to talk about"></textarea>' +
+      '<button class="btn small" type="submit">Send</button> <span class="sub" style="font-size:13px">They get your name, your listing and your email to reply to.</span><div class="msg"></div>';
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      const b = f.querySelector("button"), msg = f.querySelector(".msg");
+      b.disabled = true; msg.className = "msg"; msg.textContent = "";
+      try {
+        await connectApi("", { method: "POST", body: JSON.stringify({ slug: c.slug, message: f.querySelector("textarea").value }) });
+        f.innerHTML = '<p class="msg ok">Sent. They will reply to your email if they would like to connect.</p>';
+        go.textContent = "Message sent"; go.disabled = true;
+      } catch (err) { msg.className = "msg err"; msg.textContent = err.message; b.disabled = false; }
+    };
+    el.appendChild(f); f.querySelector("textarea").focus();
+  };
+  return el;
 }
 
 // ---------------- live courses ----------------

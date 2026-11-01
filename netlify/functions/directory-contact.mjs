@@ -203,7 +203,7 @@ Reply with JSON only: {"verdict":"genuine"|"marketing"|"spam","reason":"a few wo
 function secret() {
   return process.env.DIRECTORY_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 }
-function sign(id) {
+export function sign(id) {
   return createHmac("sha256", secret()).update("report:" + id).digest("hex").slice(0, 32);
 }
 

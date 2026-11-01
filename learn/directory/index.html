@@ -197,6 +197,7 @@
 
       <div class="box">
         <label class="check" style="margin:0"><input type="checkbox" id="f-visible" checked> Show me in the Trainer Directory</label>
+        <label class="check" style="margin:10px 0 0"><input type="checkbox" id="f-connect" checked> Let other BirdBox coaches contact me</label>
       </div>
 
       <div class="savebar">
@@ -388,6 +389,7 @@ function fill() {
   $("f-tw").value = p?.twitter || "";
   $("f-li").value = p?.linkedin || "";
   $("f-visible").checked = p ? p.visible !== false : true;
+  $("f-connect").checked = p ? p.coach_connect !== false : true;
   photoPath = p?.photo_path || null;
   loc = p && (p.city || p.latitude != null) ? { city: p.city, country: p.country, latitude: p.latitude, longitude: p.longitude } : null;
   $("f-place").value = loc ? [loc.city, loc.country].filter(Boolean).join(", ") : "";
@@ -496,7 +498,7 @@ $("p-form").onsubmit = async (e) => {
       city: loc?.city || null, country: loc?.country || null, latitude: loc?.latitude ?? null, longitude: loc?.longitude ?? null,
       instagram: $("f-ig").value, website: $("f-web").value, public_email: $("f-email").value,
       phone: $("f-phone").value, facebook: $("f-fb").value, twitter: $("f-tw").value, linkedin: $("f-li").value,
-      photo_path: photoPath, visible: $("f-visible").checked,
+      photo_path: photoPath, visible: $("f-visible").checked, coach_connect: $("f-connect").checked,
       courses: ticked.courses,
     });
     if (oldPhoto && oldPhoto !== photoPath) db.storage.from("directory").remove([oldPhoto]).catch(() => {});
