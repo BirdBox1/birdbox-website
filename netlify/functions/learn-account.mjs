@@ -8,6 +8,9 @@
 // GET  ?part=receipts     -> { receipts }
 // POST { action: "portal", subscription }  -> { url }
 // POST { action: "invoice", charge, company?, vat? }  -> { pdf, filename }
+// GET  ?part=discounts    -> { discounts, name }   their Level 1 50% offers
+// POST { action: "seminar_pass", brand }  -> { pass, url }
+// POST { action: "online_offer", brand }  -> { url }
 //
 // Programming comes from the app's own records (schema train). Receipts are
 // every successful payment on BirdBox's Stripe account made by a customer
@@ -17,7 +20,9 @@
 
 import Stripe from "stripe";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { randomBytes } from "node:crypto";
 import { db, json, userFrom } from "../lib/directory.mjs";
+import { BRANDS, discountsFor, lockedName, makePass, passUsed, PASS_PERCENT } from "../lib/learn-pass.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const RETURN_URL = "https://www.birdboxcoaching.com/learn/#programming";
@@ -45,12 +50,20 @@ export default async (req, context) => {
       if (part === "programming") return json({ ...(await programming(user, email)),
         staff: await isStaff(user), shop: await shop(context), trial_ok: await trialOk(user, email) });
       if (part === "receipts") return json({ receipts: await receipts(email) });
+      if (part === "discounts") {
+        const name = await lockedName(user, email);
+        return json({ discounts: await discountsFor(user, email), percent: PASS_PERCENT,
+          // a name already on a BirdBox certificate is the one every new certificate uses
+          certificate_name: name?.from === "certificate" ? `${name.first} ${name.last}` : null });
+      }
       return json({ error: "Which part?" }, 400);
     }
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       if (body.action === "portal") return portal(user, email, String(body.subscription || ""));
       if (body.action === "invoice") return invoice(email, body);
+      if (body.action === "seminar_pass") return seminarPass(user, email, String(body.brand || ""));
+      if (body.action === "online_offer") return onlineOffer(user, email, String(body.brand || ""));
       return json({ error: "Unknown action" }, 400);
     }
     return json({ error: "Use GET or POST" }, 405);
@@ -397,6 +410,43 @@ async function invoice(email, body) {
 
   const bytes = await doc.save();
   return json({ pdf: Buffer.from(bytes).toString("base64"), filename: `BirdBox invoice ${d.number}.pdf` });
+}
+
+// ---------- the Level 1 discounts (Nathan, 1 Nov 2026) ----------
+
+// online -> live: a one-day pass for their own booking, in their name
+async function seminarPass(user, email, brand) {
+  if (!BRANDS.includes(brand)) return json({ error: "That discount could not be found." }, 404);
+  const mine = (await discountsFor(user, email)).find((d) => d.kind === "seminar" && d.brand === brand);
+  if (!mine || await passUsed(email, brand)) return json({ error: "That discount could not be found." }, 404);
+  const name = await lockedName(user, email);
+  if (!name || !name.first || !name.last) {
+    return json({ error: "We need your full name on record first. Write to info@birdboxcoaching.com and we will set it up." }, 409);
+  }
+  const pass = makePass({ user: user.id, email, first: name.first, last: name.last, brand });
+  return json({ pass, url: `/${brand}/level-1/#map` });
+}
+
+// live -> online: their personal offer link, made now if the seminar's
+// follow-up never made one (as the portal's "Send 50% link" does)
+async function onlineOffer(user, email, brand) {
+  if (!BRANDS.includes(brand)) return json({ error: "That discount could not be found." }, 404);
+  const mine = (await discountsFor(user, email)).find((d) => d.kind === "online" && d.brand === brand);
+  if (!mine) return json({ error: "That discount could not be found." }, 404);
+  let { data: offer } = await db.from("online_offers").select("id, token, redeemed_at")
+    .eq("registration_id", mine.registration_id).maybeSingle();
+  if (offer?.redeemed_at) return json({ error: "You have already used this discount." }, 409);
+  if (!offer) {
+    const { data: reg } = await db.from("registrations").select("course_id").eq("id", mine.registration_id).maybeSingle();
+    await db.from("online_offers").upsert({
+      token: randomBytes(18).toString("base64url"), registration_id: mine.registration_id,
+      course_id: reg?.course_id || null, brand, level: "1", discount_percent: PASS_PERCENT,
+    }, { onConflict: "registration_id", ignoreDuplicates: true });
+    ({ data: offer } = await db.from("online_offers").select("id, token, redeemed_at")
+      .eq("registration_id", mine.registration_id).maybeSingle());
+  }
+  if (!offer?.token) return json({ error: "Your link could not be made. Write to info@birdboxcoaching.com." }, 500);
+  return json({ url: `/offer/?t=${offer.token}` });
 }
 
 // Stripe's own page for one of their plans: change plan, card, or cancel

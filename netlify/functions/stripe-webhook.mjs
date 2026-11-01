@@ -173,8 +173,9 @@ async function onCheckoutCompleted(session) {
     full.custom_fields?.find((f) => f.key === key)?.dropdown?.value || null;
 
   const [billingFirst, ...billingRest] = (details.name || "").trim().split(" ");
-  const firstName = field("firstname") || billingFirst || "—";
-  const lastName = field("lastname") || billingRest.join(" ") || "—";
+  // A BirdBox Learn pass booking is in the name and email on their record
+  const firstName = meta.locked_first || field("firstname") || billingFirst || "—";
+  const lastName = meta.locked_last || field("lastname") || billingRest.join(" ") || "—";
 
   // Which language they chose for their free online course.
   const onlineLanguage = choice("lwlanguage");
@@ -212,7 +213,7 @@ async function onCheckoutCompleted(session) {
       course_id: meta.course_id,
       first_name: firstName,
       last_name: lastName,
-      email: details.email,
+      email: meta.locked_email || details.email,
       phone: details.phone || null,
       country: details.address?.country || null,
       waiver_signed_at: signedAt,
@@ -296,7 +297,8 @@ async function onCheckoutCompleted(session) {
   // A discount code (on its own, or with a gift card) is counted as
   // used. A gift card on its own carries its own code in discount_code
   // and has no discount_codes row to count.
-  if (discountCode && discountCode !== (meta.gift_code || "")) {
+  // (a BirdBox Learn pass is not a discount_codes row either)
+  if (discountCode && discountCode !== (meta.gift_code || "") && !meta.locked_email) {
     const { error: bumpError } = await supabase.rpc(
       "bump_discount_redemption",
       { p_code: discountCode, p_course_id: meta.course_id }

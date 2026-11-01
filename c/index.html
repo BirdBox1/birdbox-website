@@ -515,6 +515,7 @@ const state = {
   free: false,
   klarnaOk: false,
   code: null,       // the discount code applied, if any
+  pass: null,       // a BirdBox Learn pass (Level 1 Online student's 50%), if any
   giftCode: null,   // the gift card applied, if any
   codeOff: 0,       // what the discount code takes off (before VAT)
   total: 0,
@@ -684,6 +685,7 @@ async function load() {
 
   renderBuyBox();
   wirePromo();
+  if (!state.finished && !state.isFull) applyLearnPass();
 
   // ---- spec chips ------------------------------------------------
   const specs = [];
@@ -816,6 +818,7 @@ function renderBuyBox() {
   if (discount > 0) {
     const saved = document.createElement("small");
     saved.textContent = [
+      state.pass ? "Level 1 Online student — " + money(state.codeOff) + " off" : null,
       state.code ? state.code + " applied — " + money(state.codeOff) + " off" : null,
       state.giftCode ? "Gift card " + state.giftCode + " applied" : null,
     ].filter(Boolean).join(" · ");
@@ -1159,6 +1162,36 @@ async function applyCode() {
   $("promoapply").disabled = false;
 }
 
+// A Level 1 Online student's 50% (Nathan, 1 Nov 2026). BirdBox Learn
+// leaves a one-day pass in this tab; it only works on a Level 1 live
+// seminar of the same course, books the seat in their own name and
+// email, and is checked again when they pay. Codes cannot be added to it.
+async function applyLearnPass() {
+  let pass = new URLSearchParams(location.search).get("pass");
+  try { pass = pass || sessionStorage.getItem("bb-learn-pass"); } catch (e) {}
+  if (!pass) return;
+  try {
+    const res = await fetch("/.netlify/functions/validate-discount", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: state.course.slug, pass }),
+    });
+    const data = await res.json();
+    if (!data.ok) return;   // another course, or out of date: the normal price
+    state.pass = pass; state.code = null; state.giftCode = null; state.gift = null;
+    state.codeOff = data.code_discount_cents; state.discount = data.discount_cents;
+    state.total = data.total_cents;
+    state.deposit = state.course.type === "workshop" ? data.total_cents : data.deposit_cents;
+    const msg = $("promomsg");
+    msg.className = "promo-msg ok";
+    msg.textContent = data.label + " — " + state.money(state.codeOff) + " off. Booked for " +
+      data.locked.first + " " + data.locked.last + " (" + data.locked.email + "), as on your BirdBox record. " +
+      "Name not right? Write to info@birdboxcoaching.com before booking.";
+    $("promotoggle").classList.add("hidden");
+    $("promorow").classList.add("hidden");
+    renderBuyBox();
+  } catch (e) {}
+}
+
 // "Remove codes": back to the full price.
 function clearCodes() {
   state.code = null; state.giftCode = null; state.gift = null; state.codeOff = 0;
@@ -1296,7 +1329,9 @@ async function checkout(slug, option, btn, months) {
     const res = await fetch("/.netlify/functions/create-checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: slug, option: option, months: months || undefined, code: state.code || undefined, gift: state.giftCode || undefined }),
+      body: JSON.stringify(state.pass
+        ? { slug: slug, option: option, months: months || undefined, pass: state.pass }
+        : { slug: slug, option: option, months: months || undefined, code: state.code || undefined, gift: state.giftCode || undefined }),
     });
     const data = await res.json();
     if (data.url) { location.href = data.url; return; }
