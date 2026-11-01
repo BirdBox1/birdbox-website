@@ -99,7 +99,10 @@
   .dir p{margin:0;font-size:14px;line-height:1.5;color:var(--muted)}
   .dir .btn{margin-left:auto;flex:none}
   @media (max-width:640px){.dir{flex-wrap:wrap}.dir .btn{margin-left:0;width:100%}}
-  body[data-view="family"] #dir,body[data-view="family"] #live,body[data-view="family"] #next{display:none!important}
+  body[data-view="family"] #dir,body[data-view="family"] #live,body[data-view="family"] #next,body[data-view="family"] #disc{display:none!important}
+  .disc{margin-top:18px;max-width:760px}
+  .disc p{margin:0 0 8px;font-size:15px;line-height:1.6;color:var(--ink)}
+  .disc a{color:var(--ink);font-weight:800;margin-left:6px}
   .live,.next{margin-top:34px}
   .live h2,.next h2{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 4px}
   .live .sub{color:var(--muted);font-size:14px;margin:0 0 14px}
@@ -256,6 +259,7 @@
       </div>
     </div>
     <div id="courses" class="levels hidden"></div>
+    <div id="disc" class="disc hidden"></div>
 
 
     <section id="live" class="live hidden">
@@ -670,6 +674,7 @@ async function boot() {
     return c.lwDone || certByCourse.has(c.id) || (a && (a.success_status === "passed" || a.completion_status === "completed" || a.completed_at));
   });
   certName = defaultName;
+  showDiscounts();
   showLive(session, owned, finished);
   if (!list.length) {
     box.outerHTML = '<div id="courses" class="empty"></div>';
@@ -967,6 +972,49 @@ function showNext(ownedOnline, finishedOnline, liveList) {
     list.appendChild(a);
   }
   $("next").classList.toggle("hidden", !ideas.length);
+}
+
+// ---------------- your discounts ----------------
+
+// Level 1, online and live, of the same course (Nathan, 1 Nov 2026): a
+// plain line each, so nobody has to ask afterwards. Only shown to the
+// person it belongs to; the link works only from their own login.
+const DISC_COURSE = { tgc: "TGC", tcc: "TCC" };
+async function showDiscounts() {
+  const box = $("disc"); box.innerHTML = "";
+  let d;
+  try { d = await account("?part=discounts"); } catch (e) { return; }
+  // A new certificate carries the name already on their BirdBox
+  // certificate, so the two match; a change goes through the office.
+  if (d.certificate_name) {
+    certName = d.certificate_name;
+    document.querySelectorAll(".cert form input").forEach((i) => {
+      i.value = d.certificate_name; i.readOnly = true;
+      const h = i.parentNode.querySelector(".hint");
+      if (h) h.textContent = "As on your BirdBox certificate. Not right? Write to info@birdboxcoaching.com and we will change it.";
+    });
+  }
+  for (const x of d.discounts || []) {
+    const c = DISC_COURSE[x.brand] || x.brand.toUpperCase();
+    const p = document.createElement("p");
+    p.textContent = x.kind === "seminar"
+      ? `As a ${c} Level 1 Online student, you get ${d.percent}% off a ${c} Level 1 live seminar.`
+      : `As you have done a ${c} Level 1 live seminar, you get ${d.percent}% off ${c} Level 1 Online.`;
+    const a = document.createElement("a"); a.href = "#"; a.textContent = "Use my discount →";
+    a.onclick = async (e) => {
+      e.preventDefault();
+      a.textContent = "Opening…";
+      try {
+        const r = await account("", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: x.kind === "seminar" ? "seminar_pass" : "online_offer", brand: x.brand }) });
+        if (r.pass) { try { sessionStorage.setItem("bb-learn-pass", r.pass); } catch (e2) {} }
+        location.href = r.url;
+      } catch (err) { a.textContent = "Use my discount →"; p.appendChild(document.createTextNode(" " + err.message)); }
+    };
+    p.appendChild(a);
+    box.appendChild(p);
+  }
+  box.classList.toggle("hidden", !box.children.length);
 }
 
 // ---------------- certificates tab ----------------

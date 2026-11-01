@@ -32,7 +32,7 @@
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
-import { priceWithDiscount } from "./validate-discount.mjs";
+import { priceWithDiscount, priceWithPass } from "./validate-discount.mjs";
 
 // Bump this whenever the wording at /agreements/ changes.
 const WAIVER_VERSION = "2026-08-v1";
@@ -93,6 +93,9 @@ export default async (req) => {
     const code = body.code ? String(body.code).trim() : null;
     // A gift card used as well as a discount code (code holds the code).
     const giftCode = body.gift ? String(body.gift).trim() : null;
+    // A Level 1 Online student's pass from BirdBox Learn: 50%, in their
+    // own name and email, which cannot be changed at checkout
+    const passToken = body.pass ? String(body.pass) : null;
 
     if (!slug) return json({ error: "Missing slug" }, 400);
     // Klarna was removed in September 2026 in favour of Pay monthly.
@@ -152,7 +155,17 @@ export default async (req) => {
     let deposit = course.deposit_cents || Math.round(full * DEPOSIT_RATE);
 
     let codeOff = 0;
-    if (code || giftCode) {
+    let locked = null;
+    if (passToken) {
+      const priced = await priceWithPass(course, passToken);
+      if (priced.error) return json({ error: priced.error }, 409);
+      full = priced.total;
+      discountCents = priced.discount;
+      deposit = priced.deposit;
+      appliedCode = priced.row.code;
+      codeOff = priced.discount;
+      locked = priced.pass;
+    } else if (code || giftCode) {
       const priced = await priceWithDiscount(course, code, giftCode);
       if (priced.error) return json({ error: priced.error }, 409);
       full = priced.total;
@@ -231,6 +244,8 @@ export default async (req) => {
       notes.push(`Code ${appliedCode} applied — ${money(codeOff)} off. Gift card ${gift.code} pays ${money(gift.covered)} including VAT; the rest is paid here.`);
     } else if (gift) {
       notes.push(`Gift card ${gift.code} pays ${money(gift.covered)} including VAT; the rest is paid here.`);
+    } else if (locked) {
+      notes.push(`Level 1 Online student: ${money(discountCents)} off. Booked for ${locked.first} ${locked.last}.`);
     } else if (appliedCode) {
       notes.push(`Code ${appliedCode} applied — ${money(discountCents)} off.`);
     }
@@ -245,7 +260,7 @@ export default async (req) => {
     const origin = req.headers.get("origin") || process.env.SITE_URL;
 
     // ---- the questions we ask at checkout ----------------------
-    const customFields = [
+    const customFields = locked ? [] : [
       {
         key: "firstname",
         label: { type: "custom", custom: "Participant first name" },
@@ -391,11 +406,19 @@ export default async (req) => {
         vat_country: vat ? vat.code : "",
         vat_rate_id: vat ? vat.stripe_tax_rate_id : "",
         vat_percent: vat ? String(vat.percent) : "",
+
+        // A BirdBox Learn pass: the seat is in this name and email
+        locked_first: locked ? locked.first : "",
+        locked_last: locked ? locked.last : "",
+        locked_email: locked ? locked.email : "",
       },
 
       success_url: `${origin}/registration-complete/?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/c/${course.slug}/`,
     };
+
+    // their own email, which Stripe then shows but does not let them change
+    if (locked) session.customer_email = locked.email;
 
     // ---- the invoice -------------------------------------------
     // Created automatically for every venue country except those on

@@ -10,6 +10,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { looksLikeGift, findCard, applyCard, seminarVatPercent } from "../lib/gift-cards.mjs";
+import { readPass, passUsed, passCode, PASS_PERCENT } from "../lib/learn-pass.mjs";
 
 // Must match create-checkout.mjs
 const DEPOSIT_RATE = 0.25;
@@ -28,8 +29,8 @@ export default async (req) => {
   try {
     // code: a discount code or a gift card. gift: a gift card used as
     // well as a discount code (an early-bird code and a card together).
-    const { slug, code, gift } = await req.json();
-    if (!slug || (!code && !gift)) return json({ ok: false, error: "Missing details" }, 400);
+    const { slug, code, gift, pass } = await req.json();
+    if (!slug || (!code && !gift && !pass)) return json({ ok: false, error: "Missing details" }, 400);
 
     // starts_at is required: codes with a relative expiry (early bird)
     // are measured back from the course start, so leaving it out here
@@ -37,11 +38,20 @@ export default async (req) => {
     // create-checkout passes it through fine.
     const { data: course } = await supabase
       .from("courses")
-      .select("id, brand, type, price_cents, deposit_cents, currency, status, starts_at, country")
+      .select("id, brand, type, level, price_cents, deposit_cents, currency, status, starts_at, country")
       .eq("slug", slug)
       .single();
 
     if (!course) return json({ ok: false, error: "Course not found" }, 404);
+
+    // A Level 1 Online student's 50% from BirdBox Learn (never with codes)
+    if (pass) {
+      const r = await priceWithPass(course, pass);
+      if (r.error) return json({ ok: false, error: r.error }, 200);
+      return json({ ok: true, code: r.row.code, label: r.row.label, code_discount_cents: r.discount,
+        discount_cents: r.discount, total_cents: r.total, deposit_cents: r.deposit, free: false, gift: null,
+        locked: { first: r.pass.first, last: r.pass.last, email: r.pass.email } });
+    }
 
     const result = await priceWithDiscount(course, code, gift);
     if (result.error) return json({ ok: false, error: result.error }, 200);
@@ -100,6 +110,25 @@ export async function priceWithDiscount(course, code, giftCode) {
     free: g.free,
     gift: g.gift,
   };
+}
+
+// The Level 1 Online student's 50% (Nathan, 1 Nov 2026): only with a
+// pass from their BirdBox Learn page, only on a Level 1 live seminar of
+// the same course, and only once. See netlify/lib/learn-pass.mjs.
+export async function priceWithPass(course, token) {
+  const p = readPass(token);
+  if (!p) return { error: "This discount link has expired. Open it again from your BirdBox Learn page." };
+  const l1 = String(course.level || "").replace(/\D/g, "") === "1";
+  if (course.type !== "live_seminar" || !l1 || String(course.brand).toLowerCase() !== p.brand) {
+    return { error: "Your discount is for a " + p.brand.toUpperCase() + " Level 1 live seminar." };
+  }
+  if (await passUsed(p.email, p.brand)) return { error: "You have already used this discount." };
+  const full = course.price_cents;
+  const discount = Math.round(full * PASS_PERCENT / 100);
+  const total = full - discount;
+  const deposit = course.deposit_cents ? Math.min(course.deposit_cents, total) : Math.round(total * DEPOSIT_RATE);
+  return { row: { code: passCode(p.brand), label: `Level 1 Online student: ${PASS_PERCENT}% off` },
+    discount, total, deposit, free: false, pass: p };
 }
 
 // A discount code on its own (discount_codes).
