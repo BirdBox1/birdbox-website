@@ -183,6 +183,61 @@
   .tier .btn:hover{background:transparent;color:var(--ink)}
   .tier .btn[disabled]{opacity:1;cursor:default;background:transparent;border-color:#6A6466;color:var(--ink)}
   .preview{border:1px dashed var(--ink);padding:12px 16px;margin:0 0 6px;max-width:1000px;font-size:15px;line-height:1.5}
+  /* Blog tab (Nathan, 1 Nov 2026): the public posts, drawn as on the
+     website, with the members' discussion under each */
+  .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+  .bcard{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);text-decoration:none;color:var(--ink)}
+  .bcard:hover{border-color:#6A6466}
+  .bcard img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--panel2)}
+  .bcard .bt{padding:16px 18px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .bcard h3{font-size:17px;margin:0;line-height:1.3}
+  .bcard p{margin:0;font-size:14px;line-height:1.5;color:var(--ink)}
+  .bcard .bm{margin-top:auto;padding-top:8px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+  .bback{display:inline-block;margin:0 0 6px;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);text-decoration:none}
+  .bpost{max-width:46rem}
+  .bpost .art__eyebrow{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:18px 0 10px}
+  .bpost .art__title{font-size:clamp(28px,4.4vw,44px);line-height:1.1;font-weight:800;margin:0 0 16px}
+  .bpost .art__standfirst{font-size:18px;line-height:1.6;margin:0 0 22px}
+  .bpost .art__byline{display:flex;align-items:center;gap:12px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:30px}
+  .bpost .art__face{flex:none;width:44px;height:44px;border-radius:50%;overflow:hidden;background:#241E20;border:1px solid var(--line);display:grid;place-items:center;font-size:15px;font-weight:800}
+  .bpost .art__face img{width:100%;height:100%;object-fit:cover}
+  .bpost .art__who{font-size:14px;font-weight:700}
+  .bpost .art__when{font-size:13px}
+  .bpost .art__hero{width:100%;height:auto;max-height:62vh;object-fit:cover;border:1px solid var(--line);margin-bottom:34px}
+  .bpost h2{font-size:clamp(21px,2.8vw,28px);font-weight:800;margin:40px 0 14px}
+  .bpost h3{font-size:clamp(17px,2.2vw,21px);font-weight:800;margin:30px 0 10px}
+  .bpost p{font-size:17px;line-height:1.7;margin:0 0 20px}
+  .bpost figure{margin:30px 0}
+  .bpost figure img{max-width:100%;width:auto;height:auto;max-height:78vh;margin:0 auto;display:block;border:1px solid var(--line)}
+  .bpost figure.full img{width:100%;max-height:72vh;object-fit:cover}
+  .bpost figcaption{font-size:13px;margin-top:9px;line-height:1.5}
+  .bpost figure.portrait figcaption{text-align:center}
+  .bpost .vid{width:100%;display:block;background:#0E0B0C;border:1px solid var(--line)}
+  .bpost .embed{position:relative;width:100%;aspect-ratio:16/9;border:1px solid var(--line);background:#0E0B0C}
+  .bpost .embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .bpost .art__file{display:inline-block;margin:0 0 20px;padding:12px 18px;border:1px solid var(--ink);color:var(--ink);font-weight:800;text-decoration:none}
+  .bpost .art__about{display:flex;gap:16px;flex-wrap:wrap;margin:40px 0 0;padding:20px;background:var(--panel);border:1px solid var(--line)}
+  .bpost .art__about .art__face{width:62px;height:62px;font-size:19px}
+  .bpost .art__about .body{flex:1 1 16rem;min-width:0}
+  .bpost .art__about h4,.bpost .art__refs h4{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin:0 0 6px}
+  .bpost .art__about .name{font-size:17px;font-weight:800;margin-bottom:6px}
+  .bpost .art__about p{font-size:15px;line-height:1.6;margin:0}
+  .bpost .art__refs{margin:30px 0 0}
+  .bpost .art__refs p{font-size:14px;line-height:1.5;margin:0 0 6px;word-break:break-word}
+  .bpost .art__refs a{color:var(--ink)}
+  .disc-wrap{max-width:46rem;margin-top:44px;border-top:1px solid var(--line);padding-top:24px}
+  .disc-wrap h2{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 6px}
+  .cmt{background:var(--panel);border:1px solid var(--line);padding:14px 16px;margin-bottom:10px}
+  .cmt.reply{margin-left:28px}
+  .cmt.off{opacity:.6;border-style:dashed}
+  .cmt .who{font-size:14px;font-weight:800}
+  .cmt .badge{display:inline-block;margin-left:8px;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--ink);padding:2px 6px;vertical-align:1px}
+  .cmt .when{font-size:12px;margin-left:8px}
+  .cmt .txt{font-size:15px;line-height:1.6;margin:6px 0 8px;white-space:pre-wrap;word-break:break-word}
+  .cmt .acts{display:flex;gap:14px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+  .cmt .acts a{color:var(--ink);text-decoration:none;cursor:pointer}
+  .cmt .acts a:hover{text-decoration:underline}
+  .bform textarea{width:100%;font:inherit;font-size:16px;line-height:1.5;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin:0 0 10px;resize:vertical}
   .rcinv{grid-column:1/-1;border-top:1px solid var(--line);padding-top:14px}
   .rcinv .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   @media (max-width:640px){.rcinv .row{grid-template-columns:1fr}}
@@ -236,6 +291,7 @@
       <a href="#" data-tab="courses">My courses</a>
       <a href="#mentorship" data-tab="mentorship">Mentorship</a>
       <a href="#programming" data-tab="programming">Programming</a>
+      <a href="#blog" data-tab="blog">Blog</a>
       <a href="#directory" data-tab="directory">Trainer Directory</a>
       <a href="#certificates" data-tab="certificates">Certificates</a>
       <a href="#receipts" data-tab="receipts">Receipts</a>
@@ -292,6 +348,29 @@
       <h1>Programming</h1>
       <p class="sub">Your programming plan and blocks. You train in the BirdBox Train app; change your plan, your card or cancel here.</p>
       <div id="prog-list"><p class="sub">Loading…</p></div>
+    </div>
+
+    <div class="pane hidden" id="t-blog">
+      <div id="blog-list-view">
+        <p class="kicker">BirdBox Learn</p>
+        <h1>Blog</h1>
+        <p class="sub">Everything we write, with a discussion under each post for BirdBox members: ask a question, share how it went, reply to each other.</p>
+        <div id="blog-list" class="bgrid"><p class="sub">Loading…</p></div>
+      </div>
+      <div id="blog-post-view" class="hidden">
+        <a class="bback" href="#blog">← All posts</a>
+        <article id="bpost" class="bpost"></article>
+        <section class="disc-wrap">
+          <h2>Discussion</h2>
+          <p class="sub" style="margin-bottom:14px">Only BirdBox members see this. Your name shows as on your BirdBox record.</p>
+          <div id="bcomments"></div>
+          <form id="bform" class="bform">
+            <textarea id="bbody" maxlength="2000" rows="4" placeholder="Ask a question or share a thought"></textarea>
+            <button class="btn small" type="submit">Post</button>
+            <div id="bmsg" class="msg"></div>
+          </form>
+        </section>
+      </div>
     </div>
 
     <div class="pane hidden" id="t-certificates">
@@ -373,6 +452,7 @@
 
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { renderArticle } from "/blog/article.js";
 
 const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
@@ -501,7 +581,7 @@ function makeDraggable(card, grid, key) {
 // One page per part (Nathan, 1 Nov 2026). Each tab has its own address,
 // so emails and the app can link straight to /learn/#receipts. Anything
 // else in the address (a course family like #tgc) is the My courses tab.
-const TABS = ["programming", "certificates", "receipts", "directory", "mentorship", "account"];
+const TABS = ["programming", "blog", "certificates", "receipts", "directory", "mentorship", "account"];
 const loaded = {};
 function showTab(tab) {
   document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("hidden", p.id !== "t-" + tab));
@@ -512,11 +592,13 @@ function showTab(tab) {
   if (tab === "programming" && !loaded.programming) loaded.programming = loadProgramming();
   if (tab === "receipts" && !loaded.receipts) loaded.receipts = loadReceipts();
   if (tab === "mentorship" && !loaded.mentorship) loaded.mentorship = loadMentorship();
+  if (tab === "blog") showBlog();
 }
 
 function route() {
   const k = location.hash.slice(1);
-  const tab = TABS.includes(k) ? k : "courses";
+  // #blog/<slug> opens one post in the Blog tab
+  const tab = TABS.includes(k) ? k : k.startsWith("blog/") ? "blog" : "courses";
   showTab(tab);
   if (tab !== "courses") { document.body.dataset.view = "home"; window.scrollTo(0, 0); return; }
   const f = FAMILIES.find((x) => x.k === k);
@@ -1044,6 +1126,130 @@ function showDiscounts(d, shown) {
   }
   box.classList.toggle("hidden", !box.children.length);
 }
+
+// ---------------- blog tab ----------------
+
+// The posts on the public blog, drawn the same way (/blog/article.js), with
+// the members' discussion under each (Nathan, 1 Nov 2026). The public blog
+// has no comments; only BirdBox members, in here, see or write them.
+const blogFile = (path) => path ? db.storage.from("blog").getPublicUrl(path).data.publicUrl : null;
+const blogDay = (iso) => iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "";
+let blogPosts = null, blogCounts = {};
+
+async function blogApi(path, opts = {}) {
+  const { data: { session } } = await db.auth.getSession();
+  const r = await fetch("/.netlify/functions/blog-comments" + path, {
+    ...opts, headers: { ...(opts.headers || {}), "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || "Something went wrong.");
+  return d;
+}
+
+async function showBlog() {
+  const slug = location.hash.startsWith("#blog/") ? decodeURIComponent(location.hash.slice(6)) : null;
+  $("blog-list-view").classList.toggle("hidden", !!slug);
+  $("blog-post-view").classList.toggle("hidden", !slug);
+  if (!blogPosts) {
+    const { data } = await db.from("blog_posts")
+      .select("id, slug, title, excerpt, hero_path, blocks, author_name, author_bio, author_photo_path, references_text, published_at")
+      .eq("status", "published").order("published_at", { ascending: false });
+    blogPosts = data || [];
+    try { blogCounts = (await blogApi("?counts")).counts || {}; } catch (e) { blogCounts = {}; }
+  }
+  if (slug) openPost(slug); else blogList();
+}
+
+function blogList() {
+  const box = $("blog-list"); box.innerHTML = "";
+  for (const p of blogPosts) {
+    const a = document.createElement("a"); a.className = "bcard"; a.href = "#blog/" + encodeURIComponent(p.slug);
+    const img = document.createElement("img"); img.alt = ""; img.loading = "lazy";
+    const hero = blogFile(p.hero_path); if (hero) img.src = hero; else img.style.display = "none";
+    const t = document.createElement("div"); t.className = "bt";
+    const h = document.createElement("h3"); h.textContent = p.title;
+    const ex = document.createElement("p"); ex.textContent = p.excerpt || "";
+    const n = blogCounts[p.id] || 0;
+    const m = document.createElement("span"); m.className = "bm";
+    m.textContent = [p.author_name, blogDay(p.published_at), n ? n + (n === 1 ? " comment" : " comments") : null].filter(Boolean).join(" · ");
+    t.append(h, ex, m); a.append(img, t); box.appendChild(a);
+  }
+  if (!blogPosts.length) box.innerHTML = '<p class="sub">No posts yet.</p>';
+}
+
+let blogOpen = null;
+function openPost(slug) {
+  const post = blogPosts.find((p) => p.slug === slug);
+  const art = $("bpost"); art.innerHTML = "";
+  if (!post) { art.innerHTML = '<p class="sub">That post could not be found.</p>'; return; }
+  blogOpen = post;
+  renderArticle(post, art, blogFile);
+  window.scrollTo(0, 0);
+  loadComments();
+}
+
+async function loadComments() {
+  const box = $("bcomments"); box.innerHTML = '<p class="sub">Loading…</p>';
+  let d;
+  try { d = await blogApi("?post=" + blogOpen.id); }
+  catch (e) { box.innerHTML = '<p class="msg err"></p>'; box.firstChild.textContent = e.message; $("bform").classList.add("hidden"); return; }
+  $("bform").classList.remove("hidden");
+  box.innerHTML = "";
+  const tops = d.comments.filter((c) => !c.parent_id);
+  for (const c of tops) {
+    box.appendChild(commentEl(c, d.staff));
+    for (const r of d.comments.filter((x) => x.parent_id === c.id)) box.appendChild(commentEl(r, d.staff, true));
+  }
+  if (!tops.length) box.innerHTML = '<p class="sub">No comments yet. Be the first to ask a question or share a thought.</p>';
+}
+
+function commentEl(c, isStaff, reply) {
+  const el = document.createElement("div"); el.className = "cmt" + (reply ? " reply" : "") + (c.hidden ? " off" : "");
+  const who = document.createElement("span"); who.className = "who"; who.textContent = c.author_name;
+  el.appendChild(who);
+  if (c.role !== "member") { const b = document.createElement("span"); b.className = "badge"; b.textContent = c.role === "author" ? "Author" : "BirdBox coach"; el.appendChild(b); }
+  const w = document.createElement("span"); w.className = "when"; w.textContent = blogDay(c.created_at); el.appendChild(w);
+  if (c.hidden) { const h = document.createElement("span"); h.className = "when"; h.textContent = "· Hidden" + (c.reports ? ` (${c.reports} reports)` : ""); el.appendChild(h); }
+  const t = document.createElement("div"); t.className = "txt"; t.textContent = c.body; el.appendChild(t);
+  const acts = document.createElement("div"); acts.className = "acts";
+  const act = (label, fn) => { const a = document.createElement("a"); a.textContent = label; a.onclick = fn; acts.appendChild(a); return a; };
+  act("Reply", () => replyForm(el, reply ? c.parent_id : c.id));
+  if (!c.mine) {
+    const r = act("Report", async () => {
+      if (!confirm("Report this comment to the BirdBox team?")) return;
+      try { await blogApi("", { method: "POST", body: JSON.stringify({ action: "report", id: c.id }) }); r.textContent = "Reported"; r.onclick = null; }
+      catch (e) { alert(e.message); }
+    });
+  }
+  if (isStaff) act(c.hidden ? "Show" : "Hide", async () => {
+    try { await blogApi("", { method: "POST", body: JSON.stringify({ action: c.hidden ? "show" : "hide", id: c.id }) }); loadComments(); }
+    catch (e) { alert(e.message); }
+  });
+  el.appendChild(acts);
+  return el;
+}
+
+function replyForm(el, parentId) {
+  if (el.querySelector("form")) return;
+  const f = document.createElement("form"); f.className = "bform"; f.style.marginTop = "10px";
+  f.innerHTML = '<textarea maxlength="2000" rows="3" placeholder="Write a reply"></textarea><button class="btn small" type="submit">Reply</button><div class="msg"></div>';
+  f.onsubmit = (e) => { e.preventDefault(); postComment(f.querySelector("textarea"), f.querySelector("button"), f.querySelector(".msg"), parentId); };
+  el.appendChild(f); f.querySelector("textarea").focus();
+}
+
+async function postComment(area, btn, msg, parentId) {
+  const body = area.value.trim();
+  if (!body) return;
+  btn.disabled = true; msg.className = "msg"; msg.textContent = "";
+  try {
+    await blogApi("", { method: "POST", body: JSON.stringify({ action: "add", post: blogOpen.id, parent: parentId || undefined, body }) });
+    area.value = ""; blogCounts[blogOpen.id] = (blogCounts[blogOpen.id] || 0) + 1;
+    loadComments();
+  } catch (e) { msg.className = "msg err"; msg.textContent = e.message; }
+  btn.disabled = false;
+}
+
+$("bform").addEventListener("submit", (e) => { e.preventDefault(); postComment($("bbody"), $("bform").querySelector("button"), $("bmsg")); });
 
 // ---------------- certificates tab ----------------
 
