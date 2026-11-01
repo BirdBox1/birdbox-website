@@ -122,6 +122,36 @@
   .extra{margin-top:40px;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
   .extra .box{background:var(--panel);border:1px solid var(--line);padding:20px 22px;font-size:15px;line-height:1.6;color:var(--muted)}
   .extra h3{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin:0 0 10px}
+  /* tabs (Nathan, 1 Nov 2026): one page per part, the look unchanged */
+  .tabs{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+    border-bottom:1px solid var(--line);margin:0 0 30px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs a{flex:none;padding:12px 14px 11px;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--ink);text-decoration:none;border-bottom:3px solid transparent;white-space:nowrap}
+  .tabs a:hover{border-bottom-color:#6A6466}
+  .tabs a.on{border-bottom-color:var(--accent)}
+  @media (max-width:640px){.bar .who #who-email{display:none}}
+  .bar .who a.acct{color:var(--ink);font-size:13px;font-weight:700;text-decoration:none}
+  .bar .who a.acct:hover{text-decoration:underline}
+  .pane h2.t{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 6px}
+  .pane .sub{color:var(--ink);font-size:15px;line-height:1.6;margin:0 0 20px;max-width:60ch}
+  .plan{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c,#85151A);padding:22px 24px;max-width:760px;margin-bottom:14px}
+  .plan .k{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t,#E0555A);margin:0 0 6px}
+  .plan h3{font-size:20px;margin:0 0 12px}
+  .plan dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:0 0 18px;font-size:15px}
+  .plan dt{font-weight:700}
+  .plan dd{margin:0}
+  .plan .btns{display:flex;gap:10px;flex-wrap:wrap}
+  .plan .btn.main{background:var(--c,#85151A);border-color:var(--c,#85151A);color:var(--on,#fff)}
+  .plan .btn.main:hover{background:transparent;color:var(--ink)}
+  .rc{display:grid;grid-template-columns:150px minmax(0,1fr) auto auto;gap:16px;align-items:center;background:var(--panel);
+    border:1px solid var(--line);padding:14px 18px;margin-bottom:8px;font-size:15px}
+  .rc .d{font-weight:700}
+  .rc .w small{display:block;font-size:13px;margin-top:2px}
+  .rc .a{font-weight:800;white-space:nowrap;text-align:right}
+  .rc .l{display:flex;gap:8px}
+  @media (max-width:640px){.rc{grid-template-columns:minmax(0,1fr) auto}.rc .d{grid-column:1/-1}.rc .l{grid-column:1/-1}}
+  .certs .lc .btn{white-space:nowrap}
   .extra input{width:100%;font:inherit;font-size:16px;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);margin:4px 0 10px}
 </style>
 <link rel="icon" href="/favicon-birdbox.ico" sizes="any">
@@ -133,7 +163,7 @@
 <div class="bar">
   <a href="/"><img src="/brand/birdBox.png" alt="BirdBox Coaching"></a>
   <span class="name">BirdBox Learn</span>
-  <div class="who hidden" id="who"><span id="who-email"></span><button class="btn ghost small" id="logout" type="button">Log out</button></div>
+  <div class="who hidden" id="who"><span id="who-email"></span><a class="acct" href="#account">Account</a><button class="btn ghost small" id="logout" type="button">Log out</button></div>
 </div>
 
 <main class="wrap">
@@ -159,10 +189,19 @@
 
   <!-- Logged in -->
   <section id="home" class="hidden">
+    <nav class="tabs" id="tabs">
+      <a href="#" data-tab="courses">My courses</a>
+      <a href="#programming" data-tab="programming">Programming</a>
+      <a href="#certificates" data-tab="certificates">Certificates</a>
+      <a href="#receipts" data-tab="receipts">Receipts</a>
+      <a href="#directory" data-tab="directory">Trainer Directory</a>
+    </nav>
+
+    <div class="pane" id="t-courses">
     <p class="kicker">BirdBox Learn</p>
     <h1>My courses</h1>
     <div id="welcome-note" class="box hidden" style="background:var(--panel);border:1px solid var(--accent);padding:18px 20px;margin:0 0 24px;max-width:640px;line-height:1.6">
-      <strong>Welcome — your account is set up.</strong> Your course is below. Set a password now (at the bottom of this page) so you can log in any time without waiting for an email.
+      <strong>Welcome — your account is set up.</strong> Your course is below. <a href="#account">Set a password now</a> so you can log in any time without waiting for an email.
     </div>
     <p class="lede">Pick up where you left off. Your progress saves as you go, on any device.</p>
     <div id="brands" class="brands"></div>
@@ -177,11 +216,6 @@
     </div>
     <div id="courses" class="levels hidden"></div>
 
-    <a id="dir" class="dir hidden" href="/learn/directory/">
-      <img src="/brand/birdbox-mark.png" alt="">
-      <div><h3>Trainer Directory</h3><p id="dir-text">Get listed so athletes and gyms can find you. Your BirdBox courses fill themselves in.</p></div>
-      <span class="btn small" id="dir-btn">Create my listing →</span>
-    </a>
 
     <section id="live" class="live hidden">
       <h2>My live courses</h2>
@@ -205,6 +239,46 @@
         <p style="margin:0 0 12px">Your Endurance Course tasks and reflections, saved to your account.</p>
         <a class="btn small" href="/learn/portfolio/tec/" style="background:#3BA46A;border-color:#3BA46A">Open my TEC portfolio →</a>
       </div>
+    </div>
+    </div>
+
+    <div class="pane hidden" id="t-programming">
+      <p class="kicker">BirdBox Learn</p>
+      <h1>Programming</h1>
+      <p class="sub">Your programming plan and blocks. You train in the BirdBox Train app; change your plan, your card or cancel here.</p>
+      <div id="prog-list"><p class="sub">Loading…</p></div>
+    </div>
+
+    <div class="pane hidden" id="t-certificates">
+      <p class="kicker">BirdBox Learn</p>
+      <h1>Certificates</h1>
+      <p class="sub">Every BirdBox certificate you have earned, online and in person. Download one any time.</p>
+      <div id="cert-list" class="certs"></div>
+    </div>
+
+    <div class="pane hidden" id="t-receipts">
+      <p class="kicker">BirdBox Learn</p>
+      <h1>Receipts</h1>
+      <p class="sub">Everything you have paid BirdBox Coaching: seminars, online courses, programming, blocks, T-shirts and gift cards. Open any receipt or invoice to download it.</p>
+      <div id="rc-list"><p class="sub">Loading…</p></div>
+    </div>
+
+    <div class="pane hidden" id="t-directory">
+      <p class="kicker">BirdBox Learn</p>
+      <h1>Trainer Directory</h1>
+      <p class="sub">Your listing in the BirdBox Trainer Directory, so athletes and gyms can find you.</p>
+    <a id="dir" class="dir hidden" href="/learn/directory/">
+      <img src="/brand/birdbox-mark.png" alt="">
+      <div><h3>Trainer Directory</h3><p id="dir-text">Get listed so athletes and gyms can find you. Your BirdBox courses fill themselves in.</p></div>
+      <span class="btn small" id="dir-btn">Create my listing →</span>
+    </a>
+    </div>
+
+    <div class="pane hidden" id="t-account">
+      <p class="kicker">BirdBox Learn</p>
+      <h1>Account</h1>
+      <p class="sub">You are logged in as <strong id="acct-email"></strong>. This one login is for BirdBox Learn and the BirdBox Train app.</p>
+      <div class="extra" style="margin-top:0">
       <div class="box">
         <h3>Set or change your password</h3>
         <p style="margin:0 0 6px">So next time you can log in without waiting for an email.</p>
@@ -216,6 +290,7 @@
         <h3>Need help?</h3>
         Course missing? Check you are logged in with the email you paid with, or write to
         <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a> and we will sort it out.
+      </div>
       </div>
     </div>
   </section>
@@ -347,8 +422,28 @@ function makeDraggable(card, grid, key) {
     saveOrder(key, [...grid.children].map((x) => x.dataset.slug));
   };
 }
+// ---------------- tabs ----------------
+
+// One page per part (Nathan, 1 Nov 2026). Each tab has its own address,
+// so emails and the app can link straight to /learn/#receipts. Anything
+// else in the address (a course family like #tgc) is the My courses tab.
+const TABS = ["programming", "certificates", "receipts", "directory", "account"];
+const loaded = {};
+function showTab(tab) {
+  document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("hidden", p.id !== "t-" + tab));
+  document.querySelectorAll("#tabs a").forEach((a) => a.classList.toggle("on", a.dataset.tab === tab));
+  // on a phone the row slides sideways: keep the open tab in view
+  const on = document.querySelector("#tabs a.on");
+  if (on) on.parentNode.scrollLeft = Math.max(0, on.offsetLeft - 20);
+  if (tab === "programming" && !loaded.programming) loaded.programming = loadProgramming();
+  if (tab === "receipts" && !loaded.receipts) loaded.receipts = loadReceipts();
+}
+
 function route() {
   const k = location.hash.slice(1);
+  const tab = TABS.includes(k) ? k : "courses";
+  showTab(tab);
+  if (tab !== "courses") { document.body.dataset.view = "home"; window.scrollTo(0, 0); return; }
   const f = FAMILIES.find((x) => x.k === k);
   const owned = !!(f && ownedFamilies.get(k));
   const info = !!(f && !owned && f.page);
@@ -458,6 +553,7 @@ async function boot() {
   const { data: { session } } = await db.auth.getSession();
   if (!session) { $("who").classList.add("hidden"); view("login"); return; }
   $("who-email").textContent = session.user.email;
+  $("acct-email").textContent = session.user.email;
   $("who").classList.remove("hidden");
 
   const [{ data: isAdmin }, { data: enr }, { data: att }, { data: certs }] = await Promise.all([
@@ -467,6 +563,7 @@ async function boot() {
     db.from("learn_certificates").select("course_id, reference").eq("user_id", session.user.id),
   ]);
   const certByCourse = new Map((certs || []).map((c) => [c.course_id, c]));
+  certInfo = certByCourse;
   const defaultName = (session.user.user_metadata && (session.user.user_metadata.full_name || session.user.user_metadata.name)) || "";
 
   const map = new Map();
@@ -501,6 +598,7 @@ async function boot() {
     const a = attempts.get(c.id);
     return c.lwDone || certByCourse.has(c.id) || (a && (a.success_status === "passed" || a.completion_status === "completed" || a.completed_at));
   });
+  certName = defaultName;
   showLive(session, owned, finished);
   if (!list.length) {
     box.outerHTML = '<div id="courses" class="empty"></div>';
@@ -638,6 +736,7 @@ async function showLive(session, ownedOnline, finishedOnline) {
     return el;
   };
   const box = $("live-list"); box.innerHTML = "";
+  renderCerts(finishedOnline, d.live, row);
   d.live.forEach((c) => box.appendChild(row(c, true)));
   d.earlier.forEach((c) => box.appendChild(row(c, false)));
   $("live").classList.toggle("hidden", !(d.live.length || d.earlier.length));
@@ -701,6 +800,125 @@ function showNext(ownedOnline, finishedOnline, liveList) {
     list.appendChild(a);
   }
   $("next").classList.toggle("hidden", !ideas.length);
+}
+
+// ---------------- certificates tab ----------------
+
+// Every certificate in one list: online courses they have finished, then
+// live seminars and workshops. The buttons on the course cards stay too.
+let certInfo = new Map();
+let certName = "";
+function renderCerts(finishedOnline, live, liveRow) {
+  const box = $("cert-list"); box.innerHTML = "";
+  for (const c of finishedOnline.filter((x) => x.current_version)) {
+    const b = BRAND[String(c.brand || "").toLowerCase()] || BRAND.tcc;
+    const el = document.createElement("div");
+    el.className = "lc"; el.style.setProperty("--c", b.c);
+    const img = document.createElement("img"); img.src = b.mark; img.alt = "";
+    img.onerror = () => { img.onerror = null; img.src = "/brand/birdBox.png"; };
+    const txt = document.createElement("div");
+    const t = document.createElement("b"); t.textContent = c.title;
+    const m = document.createElement("small"); m.textContent = ["Online course", c.ceus ? c.ceus + " CEUs" : null].filter(Boolean).join(" · ");
+    txt.append(t, m);
+    const cb = certBlock(c, certInfo.get(c.id), certName);
+    cb.style.paddingTop = "0";
+    el.append(img, txt, cb);
+    box.appendChild(el);
+  }
+  for (const c of live) box.appendChild(liveRow(c, true));
+  if (!box.children.length) {
+    box.innerHTML = '<div class="empty" style="color:var(--ink)">No certificates yet. Finish an online course, or come to a BirdBox seminar or workshop, and your certificate appears here.</div>';
+  }
+}
+
+// ---------------- programming tab ----------------
+
+const APP_LINK = /iPhone|iPad|iPod/.test(navigator.userAgent) ? "https://apps.apple.com/app/id6806654607"
+  : /Android/.test(navigator.userAgent) ? "https://play.google.com/store/apps/details?id=com.birdboxcoaching.programming"
+  : "https://app.birdboxcoaching.com";
+const day = (d) => d ? new Date(String(d).length === 10 ? d + "T12:00:00" : d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "";
+const money = (cents, cur) => new Intl.NumberFormat("en-IE", { style: "currency", currency: String(cur || "eur").toUpperCase() }).format((cents || 0) / 100);
+
+async function account(path, opts = {}) {
+  const { data: { session } } = await db.auth.getSession();
+  const r = await fetch("/.netlify/functions/learn-account" + path, {
+    ...opts, headers: { ...(opts.headers || {}), Authorization: "Bearer " + (session ? session.access_token : "") },
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || "Something went wrong.");
+  return d;
+}
+
+async function loadProgramming() {
+  const box = $("prog-list");
+  let d;
+  try { d = await account("?part=programming"); }
+  catch (e) { box.innerHTML = '<p class="msg err"></p>'; box.firstChild.textContent = e.message; loaded.programming = null; return; }
+  box.innerHTML = "";
+  const card = (x, kind) => {
+    const b = BRAND[x.brand] || BRAND.tgc;
+    const el = document.createElement("div");
+    el.className = "plan";
+    el.style.setProperty("--c", b.c); el.style.setProperty("--t", b.t); el.style.setProperty("--on", b.on);
+    const k = document.createElement("p"); k.className = "k"; k.textContent = kind;
+    const h = document.createElement("h3"); h.textContent = x.name;
+    const dl = document.createElement("dl");
+    const add = (t, v) => { if (!v) return; const a = document.createElement("dt"); a.textContent = t; const c = document.createElement("dd"); c.textContent = v; dl.append(a, c); };
+    if (x.programme && x.programme !== x.name) add("Programme", x.programme);
+    add("Coach", x.coach || (kind === "Block" ? null : x.trial ? null : "Being confirmed"));
+    add("Started", day(x.started));
+    if (x.status === "awaiting_start") add("Starts", "Choose your start date in the app");
+    if (x.ends_on) add("Ends", day(x.ends_on) + " (cancelled)");
+    else if (kind === "Block" || x.trial) add("Ends", day(x.ends));
+    if (x.next_payment) add("Next payment", day(x.next_payment) + (x.amount != null ? " · " + money(x.amount, x.currency) : ""));
+    if (x.status === "past_due") add("Payment", "Your last payment did not go through. Update your card in Manage my plan.");
+    const btns = document.createElement("div"); btns.className = "btns";
+    const open = document.createElement("a"); open.className = "btn main"; open.href = APP_LINK; open.textContent = "Open the app →";
+    btns.appendChild(open);
+    if (x.manage && x.subscription) {
+      const m = document.createElement("button"); m.type = "button"; m.className = "btn ghost"; m.textContent = "Manage my plan";
+      const msg = document.createElement("div"); msg.className = "msg";
+      m.onclick = async () => {
+        m.disabled = true; m.textContent = "Opening…"; msg.textContent = "";
+        try { const r = await account("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "portal", subscription: x.subscription }) }); location.href = r.url; }
+        catch (e) { m.disabled = false; m.textContent = "Manage my plan"; msg.className = "msg err"; msg.textContent = e.message; }
+      };
+      btns.appendChild(m);
+      el.append(k, h, dl, btns, msg);
+    } else el.append(k, h, dl, btns);
+    box.appendChild(el);
+  };
+  d.plans.forEach((x) => card(x, x.trial ? "Free trial" : "Programming plan"));
+  d.blocks.forEach((x) => card(x, "Block"));
+  if (!d.plans.length && !d.blocks.length) {
+    box.innerHTML = '<div class="empty" style="color:var(--ink)">You have no programming with BirdBox yet. Train with us in the BirdBox Train app, with a monthly plan or a block. <a href="/tgc/programming/">See TGC programming →</a></div>';
+  }
+}
+
+// ---------------- receipts tab ----------------
+
+async function loadReceipts() {
+  const box = $("rc-list");
+  let d;
+  try { d = await account("?part=receipts"); }
+  catch (e) { box.innerHTML = '<p class="msg err"></p>'; box.firstChild.textContent = e.message; loaded.receipts = null; return; }
+  box.innerHTML = "";
+  for (const r of d.receipts) {
+    const el = document.createElement("div"); el.className = "rc";
+    const dt = document.createElement("span"); dt.className = "d"; dt.textContent = day(r.date);
+    const w = document.createElement("span"); w.className = "w"; w.textContent = r.what;
+    const extra = [r.number ? "No. " + r.number : null, r.refunded ? (r.refunded >= r.amount ? "Refunded" : money(r.refunded, r.currency) + " refunded") : null].filter(Boolean).join(" · ");
+    if (extra) { const s2 = document.createElement("small"); s2.textContent = extra; w.appendChild(s2); }
+    const a = document.createElement("span"); a.className = "a"; a.textContent = money(r.amount, r.currency);
+    const l = document.createElement("span"); l.className = "l";
+    if (r.invoice) { const i = document.createElement("a"); i.className = "btn small"; i.href = r.invoice; i.target = "_blank"; i.rel = "noopener"; i.textContent = "Invoice"; l.appendChild(i); }
+    if (r.receipt) { const i = document.createElement("a"); i.className = "btn ghost small"; i.href = r.receipt; i.target = "_blank"; i.rel = "noopener"; i.textContent = "Receipt"; l.appendChild(i); }
+    el.append(dt, w, a, l);
+    box.appendChild(el);
+  }
+  if (!d.receipts.length) {
+    box.innerHTML = '<div class="empty" style="color:var(--ink)">No payments found for this email. If you paid with a different email, log out and use that one, or write to <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a>.</div>';
+  }
 }
 
 // ---------------- certificates ----------------
