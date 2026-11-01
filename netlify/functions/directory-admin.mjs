@@ -18,7 +18,7 @@
 
 import {
   db, json, SITE_URL, BRANDS, PROFILE_FIELDS, qualificationsFor, statusOf, uniqueSlug,
-  userFrom, sendMail, esc, photoUrl, RELEASED, readAll,
+  userFrom, sendMail, esc, photoUrl, RELEASED, readAll, qualTitle,
 } from "../lib/directory.mjs";
 import { emailCoach } from "./directory-contact.mjs";
 
@@ -70,12 +70,19 @@ export default async (req) => {
         if (p && (before === "pending" || before === "rejected")) {
           await db.from("directory_profiles").update({ approved_at: now, approved_by: user.id, rejected_at: null, review_note: null }).eq("id", p.id);
           await tellCoach(p, "approved");
+        } else if (p && before === "live") {
+          await tellCoursesAdded(p);
         }
         break;
       }
-      case "drop_course":
+      case "drop_course": {
+        const { data: row } = await db.from("directory_courses").select("profile_id").eq("id", String(b.course_id || "")).maybeSingle();
         await db.from("directory_courses").delete().eq("id", String(b.course_id || ""));
+        // Removing the last one still waiting lets the ones we did verify go out.
+        const p = row ? await one(row.profile_id) : null;
+        if (p && statusOf(p, (await qualificationsFor([p])).get(p.id)) === "live") await tellCoursesAdded(p);
         break;
+      }
       case "hide":
         await db.from("directory_profiles").update({ hidden_at: now }).eq("id", String(b.id || ""));
         break;
@@ -333,6 +340,35 @@ async function geocodeMissing() {
   const { count } = await db.from("directory_profiles").select("id", { count: "exact", head: true })
     .is("latitude", null).or("city.not.is.null,country.not.is.null");
   return { placed, left: count || 0 };
+}
+
+// A coach already live sent us older courses to check. Once nothing of
+// theirs is left waiting, one email lists what we verified in the last
+// hour, so ticking two courses means one email, not two.
+async function tellCoursesAdded(p) {
+  const { count } = await db.from("directory_courses").select("id", { count: "exact", head: true })
+    .eq("profile_id", p.id).is("verified_at", null);
+  if (count) return;
+  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { data: rows } = await db.from("directory_courses").select("brand, level, kind, course_month, location")
+    .eq("profile_id", p.id).gte("verified_at", since).order("course_month", { ascending: false });
+  if (!rows || !rows.length) return;
+  const first = String(p.full_name || "").split(" ")[0] || "there";
+  const url = `${SITE_URL}/trainer-directory/coach/${encodeURIComponent(p.slug)}`;
+  const lines = rows.map((r) => {
+    const when = r.course_month ? new Date(r.course_month).toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }) : "";
+    return qualTitle(r) + ([when, r.location].filter(Boolean).length ? ` (${[when, r.location].filter(Boolean).join(", ")})` : "");
+  });
+  const single = rows.length === 1;
+  const intro = `Good news: we have checked ${single ? "the course" : "the courses"} you sent us and ${single ? "it is" : "they are"} now on your BirdBox Trainer Directory listing.`;
+  const outro = [`See your listing: ${url}`, `You can change your photo, gym or details any time at ${SITE_URL}/learn/directory/`];
+  await sendMail({
+    to: p.email,
+    subject: single ? "Your course is now on your Trainer Directory listing" : "Your courses are now on your Trainer Directory listing",
+    text: `Hi ${first},\n\n${intro}\n\n${lines.map((l) => "- " + l).join("\n")}\n\n${outro.join("\n\n")}\n\nBirdBox Coaching`,
+    html: `<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#16181b;max-width:560px">
+<p>Hi ${esc(first)},</p><p>${esc(intro)}</p><ul>${lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>${outro.map((x) => `<p>${esc(x)}</p>`).join("")}<p>BirdBox Coaching</p></div>`,
+  });
 }
 
 async function tellCoach(p, outcome, note) {
