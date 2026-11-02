@@ -656,6 +656,37 @@
     .ps-fbrow__ex { margin-top: 20px; } .ps-fbrow .ps-fbcard { padding: 22px; font-size: 16px; }
     .ps-fbcard__reply { margin-top: 10px; } .ps-fbrow .ps-fbcard__head { font-size: 17px; }
     .ps-flow--row { grid-template-columns: 1fr; } .ps-flow--row li { margin: 0 0 4px; } }
+  /* Sections you can tell apart (Nathan, 2 Nov 2026): every other plain
+     section sits on a lighter band the full width of the window, with
+     more room above and below; one-to-one has a red rule along the top. */
+  .ps-zone { position: relative; background: #211B1D; box-shadow: 0 0 0 100vmax #211B1D;
+    clip-path: inset(0 -100vmax); padding: 64px 0 56px; margin: 48px 0; }
+  .ps-zone + .ps-zone { margin-top: 0; }
+  .ps-zone--one::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+    background: var(--tcc); box-shadow: 0 0 0 100vmax var(--tcc); clip-path: inset(0 -100vmax); }
+  .ps-zone .l1-form, .ps-zone .l1-tier { background: var(--paper); }
+  .l1-section.ps-gap { padding-top: 56px; }
+  /* every drop-down the same height and look as the boxes beside it */
+  .l1-field select { -webkit-appearance: none; appearance: none; padding-right: 40px; line-height: 1.4;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23ffffff' stroke-width='2'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; border-radius: 0; }
+  /* the trial: what is in it, beside the form */
+  .ps-trial { align-items: start; gap: 40px; }
+  .ps-ticks { list-style: none; margin: 4px 0 0; padding: 0; max-width: 520px; }
+  .ps-ticks li { position: relative; padding: 12px 0 12px 30px; border-top: 1px solid var(--line);
+    font-size: 16px; line-height: 1.5; color: var(--ink); }
+  .ps-ticks li:first-child { border-top: none; }
+  .ps-ticks li::before { content: "\2713"; position: absolute; left: 2px; top: 12px; color: #ffffff; font-weight: 800; }
+  /* one-to-one: the plans and how it starts on the left, the application beside them */
+  .ps-one { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+  .ps-one .ps-plans--two { max-width: none; }
+  .ps-one__how { margin: 32px 0 0; }
+  .ps-one__how h3, .ps-apply h3 { font-size: 20px; font-weight: 800; margin: 0 0 16px; }
+  .ps-apply .l1-form { max-width: none; }
+  .ps-apply__lede { font-size: 15px; line-height: 1.55; color: var(--muted); margin: -8px 0 16px; }
+  @media (max-width: 1000px) { .ps-one { grid-template-columns: 1fr; } }
+  @media (min-width: 621px) and (max-width: 1000px) { .ps-one .ps-plans--two { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 760px) { .ps-trial { gap: 20px; } .ps-zone { padding: 44px 0 40px; } }
 </style>
 </head>
 <body>
@@ -745,12 +776,18 @@
     </div>
   </section>
 
-  <section class="l1-section" id="trial">
+  <section class="l1-section ps-zone" id="trial">
     <p class="l1-label">Free Trial</p>
     <h2 class="l1-h2">Try Two Weeks Free</h2>
     <div class="ps-trial">
       <div>
         <p class="l1-lede">Two weeks of TGC programming in the BirdBox Coaching app, with the coaching demonstrations and notes on every session. No card needed, and nothing is charged when it ends: if you want to carry on, choose a plan.</p>
+        <ul class="ps-ticks">
+          <li>Every session for two weeks, in the app on your phone</li>
+          <li>Coaching demonstrations and notes on every exercise</li>
+          <li>Log your sessions and see your history build</li>
+          <li>No card needed, and nothing is charged when it ends</li>
+        </ul>
       </div>
       <form class="l1-form" id="trial-form" novalidate>
         <div class="ps-names">
@@ -765,7 +802,7 @@
     </div>
   </section>
 
-  <section class="l1-section" id="plans">
+  <section class="l1-section ps-gap" id="plans">
     <p class="l1-label">Monthly Plans</p>
     <h2 class="l1-h2">Choose Your Plan</h2>
     <p class="l1-lede">Every plan has the full TGC gymnastics programming in the app. Move up for the premium community and group call, or for written and video feedback from your own coach. Monthly, VAT included, cancel any time.</p>
@@ -776,7 +813,7 @@
 
   <!-- data-video: a short feedback film (mp4, path on this site) and
        data-poster: its still. Empty until one is made; then it shows. -->
-  <section class="l1-section" id="feedback" data-video="/tgc/programming/new/feedback-film.mp4" data-poster="/tgc/programming/new/feedback-film.jpg">
+  <section class="l1-section ps-zone" id="feedback" data-video="/tgc/programming/new/feedback-film.mp4" data-poster="/tgc/programming/new/feedback-film.jpg">
     <p class="l1-label">Coach Feedback</p>
     <h2 class="l1-h2">A Coach Who Knows Your Training</h2>
     <p class="l1-lede">On Tier 3 and one-to-one, your own coach looks at your notes and videos and writes back, or records a video review, in the app: what is working, what to change, and what to focus on next session.</p>
@@ -811,47 +848,61 @@
       </ol>
   </section>
 
-  <section class="l1-section" id="blocks" hidden>
+  <section class="l1-section ps-gap" id="blocks" hidden>
     <p class="l1-label">Blocks</p>
     <h2 class="l1-h2">Focus On One Skill</h2>
     <p class="l1-lede">A set number of weeks on one goal, written by a TGC coach. Paid once and yours to keep; start today or on a Monday of your choice. Add coach feedback on your videos if you want a coach watching your progress.</p>
     <div class="ps-blocks" data-blocks></div>
   </section>
 
-  <section class="l1-section" id="one-to-one">
+  <section class="l1-section ps-zone ps-zone--one" id="one-to-one">
     <p class="l1-label">One-To-One</p>
     <h2 class="l1-h2">A Programme Built Around You</h2>
     <p class="l1-lede">A bespoke programme from a BirdBox coach, with a 1:1 call and written and video feedback in the app. Places are limited, so you apply first and we confirm the fit before anything is charged.</p>
-    <div class="ps-plans ps-plans--two" data-one></div>
-  </section>
-
-  <section class="l1-section" id="apply" data-brand="tgc">
-    <p class="l1-label">Apply</p>
-    <h2 class="l1-h2">Tell Us What You&rsquo;re Working Towards</h2>
-    <p class="l1-lede">For one-to-one coaching. Takes a minute, and a coach will come back to you.</p>
-    <div class="l1-form">
-      <div class="l1-field">
-        <label for="ap-tier">Which plan</label>
-        <select id="ap-tier">
-          <option value="tier-4">Tier 4 &mdash; Bespoke 1:1, Skill Only</option>
-          <option value="tier-5">Tier 5 &mdash; Full CF Programme, 1:1</option>
-        </select>
+    <div class="ps-one">
+      <div>
+        <div class="ps-plans ps-plans--two" data-one></div>
+        <div class="ps-one__how">
+          <h3>How One-To-One Starts</h3>
+          <ol class="ps-flow">
+            <li><span class="ps-flow__n">1</span><div><strong>Apply</strong><p>Tell us what you are working towards and, if you like, the coach you would like.</p></div></li>
+            <li><span class="ps-flow__n">2</span><div><strong>A call with your coach</strong><p>Your coach gets in touch within two working days to arrange a call.</p></div></li>
+            <li><span class="ps-flow__n">3</span><div><strong>Start in the app</strong><p>Nothing is paid until you have spoken and you are both happy to go ahead. Then your programme is written and goes into the app.</p></div></li>
+          </ol>
+        </div>
       </div>
-      <div class="l1-field"><label for="ap-name">Name</label><input id="ap-name" type="text" autocomplete="name"></div>
-      <div class="l1-field"><label for="ap-email">Email</label><input id="ap-email" type="email" autocomplete="email" required></div>
-      <div class="l1-field"><label for="ap-country">Country</label><input id="ap-country" type="text" autocomplete="country-name"></div>
-      <div class="l1-field">
-        <label for="ap-goals">What are you working towards?</label>
-        <textarea id="ap-goals" placeholder="Current level, the skills you want, anything we should know."></textarea>
+      <!-- the application; programming-apply.js reads its course from here -->
+      <div class="ps-apply" id="apply" data-brand="tgc">
+        <h3>Apply For One-To-One</h3>
+        <p class="ps-apply__lede">Takes a minute, and a coach will come back to you.</p>
+        <div class="l1-form">
+          <div class="l1-field">
+            <label for="ap-tier">Which plan</label>
+            <select id="ap-tier">
+              <option value="tier-4">Tier 4 &mdash; Bespoke 1:1, Skill Only</option>
+              <option value="tier-5">Tier 5 &mdash; Full CF Programme, 1:1</option>
+            </select>
+          </div>
+          <div class="ps-names">
+            <div class="l1-field"><label for="ap-first">First name</label><input id="ap-first" type="text" autocomplete="given-name" maxlength="80" required></div>
+            <div class="l1-field"><label for="ap-last">Surname</label><input id="ap-last" type="text" autocomplete="family-name" maxlength="80" required></div>
+          </div>
+          <div class="l1-field"><label for="ap-email">Email</label><input id="ap-email" type="email" autocomplete="email" required></div>
+          <div class="l1-field"><label for="ap-country">Country</label><select id="ap-country" autocomplete="country"><option value="">Choose your country</option></select></div>
+          <div class="l1-field">
+            <label for="ap-goals">What are you working towards?</label>
+            <textarea id="ap-goals" placeholder="Current level, the skills you want, anything we should know."></textarea>
+          </div>
+          <div class="l1-field" id="ap-coach-wrap" hidden>
+            <label for="ap-coach">Coach you would like</label>
+            <select id="ap-coach"><option value="">Leave it to BirdBox</option></select>
+            <p class="l1-form__note" style="margin-top:6px; color:#DCD7D8;">Your preferred coach depends on their availability. If they can&rsquo;t take you on, BirdBox will assign the most suitable coach for you.</p>
+          </div>
+          <input id="ap-website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
+          <button class="tcc-cta" type="button" id="ap-submit" style="width:100%; justify-content:center;">Send Application &rarr;</button>
+          <p class="l1-form__note" id="ap-note" role="status" style="color:#ffffff;"></p>
+        </div>
       </div>
-      <div class="l1-field" id="ap-coach-wrap" hidden>
-        <label for="ap-coach">Coach you would like</label>
-        <select id="ap-coach"><option value="">Leave it to BirdBox</option></select>
-        <p class="l1-form__note" style="margin-top:6px; color:#DCD7D8;">Your preferred coach depends on their availability. If they can&rsquo;t take you on, BirdBox will assign the most suitable coach for you.</p>
-      </div>
-      <input id="ap-website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
-      <button class="tcc-cta" type="button" id="ap-submit" style="width:100%; justify-content:center;">Send Application &rarr;</button>
-      <p class="l1-form__note" id="ap-note" role="status" style="color:#ffffff;"></p>
     </div>
   </section>
 

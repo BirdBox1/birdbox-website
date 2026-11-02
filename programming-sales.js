@@ -132,7 +132,7 @@ function tierCard(t, { pop, note, apply }) {
       const s = document.getElementById("ap-tier");
       s.value = "tier-" + t.tier; s.dispatchEvent(new Event("change"));
       document.getElementById("apply").scrollIntoView({ behavior: "smooth" });
-      document.getElementById("ap-name").focus({ preventScroll: true });
+      document.getElementById("ap-first").focus({ preventScroll: true });
     };
     c.appendChild(b);
   } else joinBox(c, "Join →", { tier: t.tier }, !!pop);
@@ -277,11 +277,13 @@ if (fb && fb.dataset.video) {
 // weekly email); the reply is the same whoever they are, and the app's
 // email tells them what happens next
 const trial = document.getElementById("trial-form");
-// the trial's country list, set to the country the page has guessed
-// until they choose one themselves
+// the country lists on the trial and the one-to-one application, set to
+// the country the page has guessed until they choose one themselves
 function trialCountries() {
-  const sel = document.getElementById("tr-country");
-  if (!sel) return;
+  for (const id of ["tr-country", "ap-country"]) fillCountries(document.getElementById(id));
+}
+function fillCountries(sel) {
+  if (!sel || sel.tagName !== "SELECT") return;
   if (sel.options.length < 2) {
     const names = COUNTRIES.map((c) => [c, regionName(c)]).sort((a, b) => a[1].localeCompare(b[1]));
     for (const [c, n] of names) sel.appendChild(new Option(n, c));
