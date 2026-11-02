@@ -118,7 +118,7 @@ function write(o) {
     t1_only: `Your price is ${price} a month, VAT included, for as long as you keep your plan.`,
   }[o.offer];
   const payLine = o.free_until
-    ? `You have already paid CoachRx up to ${day(o.free_until)}, so nothing is charged on BirdBox Train until then. Your CoachRx payments stop on ${MOVE_DAY}; nothing more is taken there.`
+    ? `You have already paid CoachRx up to ${day(o.free_until)}, so nothing is charged for your new plan until then. Your CoachRx payments stop on ${MOVE_DAY}; nothing more is taken there.`
     : "Your first payment is taken when you join. You can take the two-week free trial instead, but if you do, the offer above is no longer available and after the two weeks you will see the normal prices.";
   // on €35 Tier 3 is the normal €120, so only Tier 2 is offered later
   const upLine = o.offer === "t1_only" ? null
@@ -128,20 +128,20 @@ function write(o) {
 
   const text = [
     `Hi ${o.first_name || "there"},`,
-    `As Barney mentioned, your programming is moving from CoachRx to our own app, BirdBox Train, on ${MOVE_DAY}. It is the same programming from the same coaches, with your videos and your training history in one place.`,
+    `As Barney mentioned, your programming is moving from CoachRx to our own app, BirdBox Coaching, on ${MOVE_DAY}. It is the same programming from the same coaches, with your videos and your training history in one place.`,
     offerLine,
     payLine,
     upLine,
     `[[BUTTON: See my offer | ${SITE}/learn/?move=${o.code}]]`,
     "The button opens BirdBox Learn. Tap \"Email me my login link\" and we send a link to this email address. It takes you straight to your offer: choose your plan and add your card.",
-    "Then download the BirdBox Train app and sign in with this same email:",
+    "Then download the BirdBox Coaching app and sign in with this same email:",
     `[[BUTTON: App Store | ${APP_STORE}]]`,
     `[[BUTTON: Google Play | ${PLAY_STORE}]]`,
     "Any questions, just reply to this email. Barney is copied in.",
     "Nathan and Barney\nBirdBox Coaching",
   ].filter(Boolean).join("\n\n");
 
-  return { subject: "Your programming is moving to BirdBox Train", text };
+  return { subject: "Your programming is moving to the BirdBox Coaching app", text };
 }
 
 function euro(cents) {

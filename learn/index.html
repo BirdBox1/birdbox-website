@@ -386,7 +386,7 @@
     <div class="pane hidden" id="t-programming">
       <p class="kicker">BirdBox Learn</p>
       <h1>Programming</h1>
-      <p class="sub">Your programming plan and blocks. You train in the BirdBox Train app; change your plan, your card or cancel here.</p>
+      <p class="sub">Your programming plan and blocks. You train in the BirdBox Coaching app; change your plan, your card or cancel here.</p>
       <div id="prog-list"><p class="sub">Loading…</p></div>
     </div>
 
@@ -470,7 +470,7 @@
     <div class="pane hidden" id="t-account">
       <p class="kicker">BirdBox Learn</p>
       <h1>Account</h1>
-      <p class="sub">You are logged in as <strong id="acct-email"></strong>. This one login is for BirdBox Learn and the BirdBox Train app.</p>
+      <p class="sub">You are logged in as <strong id="acct-email"></strong>. This one login is for BirdBox Learn and the BirdBox Coaching app.</p>
       <div class="extra" style="margin-top:0">
       <div class="box">
         <h3>Set or change your password</h3>
@@ -1479,10 +1479,10 @@ const APP_TRIAL = "https://app.birdboxcoaching.com/.netlify/functions/trial-sign
 // later), then one-to-one coaching. The free trial sits with TGC, the
 // course it is for.
 const COURSE = {
-  tgc: { name: "TGC programming", text: "Gymnastics programming in the BirdBox Train app, built by the TGC coaching team to complement your training." },
-  tcc: { name: "TCC programming", text: "Programming from The Coaches Course, in the BirdBox Train app." },
-  tec: { name: "TEC programming", text: "Endurance programming from The Endurance Course, in the BirdBox Train app." },
-  twc: { name: "TWC programming", text: "Weightlifting programming from The Weightlifting Course, in the BirdBox Train app." },
+  tgc: { name: "TGC programming", text: "Gymnastics programming in the BirdBox Coaching app, built by the TGC coaching team to complement your training." },
+  tcc: { name: "TCC programming", text: "Programming from The Coaches Course, in the BirdBox Coaching app." },
+  tec: { name: "TEC programming", text: "Endurance programming from The Endurance Course, in the BirdBox Coaching app." },
+  twc: { name: "TWC programming", text: "Weightlifting programming from The Weightlifting Course, in the BirdBox Coaching app." },
 };
 const TRIAL_FOR = "tgc";
 
@@ -1627,7 +1627,7 @@ function moveCard(m) {
     c.append(btns, msg);
     return c;
   }
-  c.append(el("p", "k", "Your transfer offer"), el("h3", null, (m.first_name ? m.first_name + ", w" : "W") + "elcome to BirdBox Train"));
+  c.append(el("p", "k", "Your transfer offer"), el("h3", null, (m.first_name ? m.first_name + ", w" : "W") + "elcome to the BirdBox Coaching app"));
   c.appendChild(el("p", "sub", m.free_until
     ? "You have already paid CoachRx up to " + day(m.free_until) + ", so nothing is charged until then. Your price stays for as long as you keep your plan."
     : "Your price stays for as long as you keep your plan."));
@@ -1700,7 +1700,7 @@ async function startTrial(btn, msg) {
     const r = await fetch(APP_TRIAL, { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: session.user.email, first_name: meta.first_name || (meta.full_name || "").split(" ")[0] || "" }) });
     if (!r.ok) throw new Error("The trial could not start. Please try again.");
-    msg.className = "msg ok"; msg.textContent = "Done. Check your email: it tells you how to open your two weeks in the BirdBox Train app.";
+    msg.className = "msg ok"; msg.textContent = "Done. Check your email: it tells you how to open your two weeks in the BirdBox Coaching app.";
     btn.textContent = "Trial started";
   } catch (e) { msg.className = "msg err"; msg.textContent = e.message; btn.disabled = false; btn.textContent = "Start my free trial →"; }
 }
@@ -1815,7 +1815,7 @@ async function loadProgramming() {
   // the app, for anyone training with us or about to (Nathan, 1 Nov 2026)
   if (d.move || d.plans.length || d.blocks.length) {
     const apps = document.createElement("p"); apps.className = "getapp";
-    apps.innerHTML = 'Get the BirdBox Train app: <a href="https://apps.apple.com/app/id6806654607" target="_blank" rel="noopener">App Store</a> · ' +
+    apps.innerHTML = 'Get the BirdBox Coaching app: <a href="https://apps.apple.com/app/id6806654607" target="_blank" rel="noopener">App Store</a> · ' +
       '<a href="https://play.google.com/store/apps/details?id=com.birdboxcoaching.programming" target="_blank" rel="noopener">Google Play</a>. Sign in with this email address.';
     box.appendChild(apps);
   }
