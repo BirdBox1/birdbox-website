@@ -4378,7 +4378,7 @@ async function openCourse(course) {
     const off = offerByReg[r.id];
     if (off && off.redeemed_at) addPill("online course bought at 50%", "on");
     else if (off && off.opened_at && off.emailed_at) addPill("50% online course link opened", "warn");
-    else if (off && off.emailed_at) addPill(`50% online course link sent ${fmtDay(off.emailed_at)}`, "warn");
+    else if (off && off.emailed_at) addPill(`50% online course link sent ${fmtDay(off.emailed_at.slice(0, 10))}`, "warn");
 
     const line = el.querySelector(".money");
     const bits = [];
@@ -6585,7 +6585,7 @@ async function runPeopleSearch() {
       const off = offerByRegId[r.id];
       if (isAdmin() && regStatus === "active" && offerCourse(c)) {
         if (off && off.redeemed_at) pill("online course bought at 50%", "on");
-        else if (off && off.emailed_at) pill(`50% online course link sent ${fmtDay(off.emailed_at)}`, "warn");
+        else if (off && off.emailed_at) pill(`50% online course link sent ${fmtDay(off.emailed_at.slice(0, 10))}`, "warn");
       }
       if (isAdmin() && regStatus === "active" && offerCourse(c) && !(off && off.redeemed_at)) {
         const half = document.createElement("button");
@@ -10782,7 +10782,7 @@ async function sendOfferLink(reg, btn, done) {
       r = await callOffer(payload);
     }
     if (r.already_sent) {
-      if (!window.confirm(`${who} was already sent their 50% online course link on ${fmtDay(r.already_sent)}.\n\nSend it again?`)) return;
+      if (!window.confirm(`${who} was already sent their 50% online course link on ${fmtDay(r.already_sent.slice(0, 10))}.\n\nSend it again?`)) return;
       payload.resend = true;
       r = await callOffer(payload);
     }
