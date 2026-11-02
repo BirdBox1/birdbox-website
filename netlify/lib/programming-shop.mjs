@@ -26,7 +26,7 @@ export function currencyFor(country) {
 const INCLUDES = {
   1: ["Blog programme", "Free community"],
   2: ["Blog programme", "Premium community", "Group call", "Feedback via the community"],
-  3: ["Blog programme", "Premium community", "Group call", "Written feedback from your coach"],
+  3: ["Blog programme", "Premium community", "Group call", "Written and video feedback from your coach"],
   4: ["Bespoke programme", "Premium community", "1:1 coach call", "Feedback written, by Loom or DM"],
   5: ["Bespoke programme", "Premium community", "1:1 coach call", "Feedback written, by Loom or DM"],
 };
