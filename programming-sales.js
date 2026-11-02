@@ -239,6 +239,7 @@ async function load() {
   }
   shopCountry = shop.country || "";
   curLine(shop);
+  trialCountries();
   const co = shop.courses.find((c) => c.brand === brand) || { plans: [], one_to_one: [], blocks: [] };
 
   plans.innerHTML = "";
@@ -271,24 +272,46 @@ if (fb && fb.dataset.video) {
   film.hidden = false;
 }
 
-// the free trial: first name and email; the reply is the same whoever
-// they are, and the app's email tells them what happens next
+// the free trial: name, email and country (Nathan, 2 Nov 2026: the
+// surname and country go to Brevo, and the country picks the regional
+// weekly email); the reply is the same whoever they are, and the app's
+// email tells them what happens next
 const trial = document.getElementById("trial-form");
+// the trial's country list, set to the country the page has guessed
+// until they choose one themselves
+function trialCountries() {
+  const sel = document.getElementById("tr-country");
+  if (!sel) return;
+  if (sel.options.length < 2) {
+    const names = COUNTRIES.map((c) => [c, regionName(c)]).sort((a, b) => a[1].localeCompare(b[1]));
+    for (const [c, n] of names) sel.appendChild(new Option(n, c));
+    sel.appendChild(new Option("Another country", "ZZ"));
+    sel.onchange = () => { sel.dataset.picked = "1"; };
+  }
+  const here = country();
+  if (!sel.dataset.picked && here && [...sel.options].some((o) => o.value === here)) sel.value = here;
+}
 if (trial) trial.onsubmit = async (e) => {
   e.preventDefault();
   const msg = trial.querySelector(".ps-msg"), btn = trial.querySelector("button");
   const email = document.getElementById("tr-email").value.trim();
   const first = document.getElementById("tr-name").value.replace(/\s+/g, " ").trim();
+  const last = document.getElementById("tr-last").value.replace(/\s+/g, " ").trim();
+  const where = document.getElementById("tr-country").value;
   if (!first) { say(msg, "Please add your first name.", "err"); return; }
+  if (!last) { say(msg, "Please add your surname.", "err"); return; }
   if (!isEmail(email)) { say(msg, "Please add your email address.", "err"); return; }
+  if (!where) { say(msg, "Please choose your country.", "err"); return; }
   btn.disabled = true; say(msg, "Starting…");
   try {
     const r = await fetch(APP_TRIAL, { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, first_name: first, country: country() }) });
+      body: JSON.stringify({ email, first_name: first, last_name: last, country: where === "ZZ" ? "" : where }) });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || d.error) throw new Error(d.error || "The trial could not start. Please try again.");
     say(msg, "Done. Check your email: it tells you how to open your two weeks in the BirdBox Coaching app.", "ok");
     trial.reset();
+    delete document.getElementById("tr-country").dataset.picked;
+    trialCountries();
   } catch (err) { say(msg, err.message, "err"); btn.disabled = false; }
 };
 

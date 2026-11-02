@@ -27,8 +27,8 @@ const INCLUDES = {
   1: ["{programming}"],
   2: ["{programming}", "Premium community", "Group call", "Feedback via the community"],
   3: ["{programming}", "Premium community", "Group call", "Written and video feedback from your coach"],
-  4: ["Bespoke programme", "Premium community", "1:1 coach call", "Feedback written, by Loom or DM"],
-  5: ["Bespoke programme", "Premium community", "1:1 coach call", "Feedback written, by Loom or DM"],
+  4: ["Bespoke programme", "Premium community", "1:1 coach call", "Written and video feedback in the app"],
+  5: ["Bespoke programme", "Premium community", "1:1 coach call", "Written and video feedback in the app"],
 };
 // the first line of Tiers 1 to 3 is the course's own programming
 // (Nathan, 2 Nov 2026: "Gymnastics programming", not "Blog programme")
