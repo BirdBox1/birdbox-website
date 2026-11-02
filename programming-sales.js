@@ -139,7 +139,7 @@ function tierCard(t, { pop, note, apply }) {
   return c;
 }
 
-const NAMES = { 1: "Blog", 2: "Blog + Community", 3: "Blog + 1:1 Feedback" };
+const NAMES = { 1: "Gymnastics", 2: "Gymnastics + Community", 3: "Gymnastics + 1:1 Feedback" };
 const NOTES = {
   2: "Post your videos in the premium community and join the weekly group call.",
   3: "Your coach is confirmed within 24 hours of joining.",
