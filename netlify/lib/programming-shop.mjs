@@ -24,12 +24,15 @@ export function currencyFor(country) {
 }
 // what each plan includes, as on the TGC programming page
 const INCLUDES = {
-  1: ["Blog programme", "Free community"],
-  2: ["Blog programme", "Premium community", "Group call", "Feedback via the community"],
-  3: ["Blog programme", "Premium community", "Group call", "Written and video feedback from your coach"],
-  4: ["Bespoke programme", "Premium community", "1:1 coach call", "Feedback written, by Loom or DM"],
-  5: ["Bespoke programme", "Premium community", "1:1 coach call", "Feedback written, by Loom or DM"],
+  1: ["{programming}"],
+  2: ["{programming}", "Premium community", "Group call", "Feedback via the community"],
+  3: ["{programming}", "Premium community", "Group call", "Written and video feedback from your coach"],
+  4: ["Bespoke programme", "Premium community", "1:1 coach call", "Written and video feedback in the app"],
+  5: ["Bespoke programme", "Premium community", "1:1 coach call", "Written and video feedback in the app"],
 };
+// the first line of Tiers 1 to 3 is the course's own programming
+// (Nathan, 2 Nov 2026: "Gymnastics programming", not "Blog programme")
+const PROGRAMMING = { tgc: "Gymnastics programming", tec: "Endurance programming", twc: "Weightlifting programming" };
 // the names on the TGC programming page; Tiers 4 and 5 are by application
 const NAMES = { 4: "Bespoke 1:1, Skill Only", 5: "Full CF Programme, 1:1" };
 // One tab per course (Nathan, 1 Nov 2026): TGC has the trial, the blog
@@ -62,17 +65,20 @@ export async function shopFor(context, a, chosen) {
   const { data: prices } = await train().from("stripe_prices")
     .select("tier, label, amounts, tracks:track_id(brand)")
     .eq("active", true).in("tier", [1, 2, 3, 4, 5]).like("price_id", "price_%").order("tier");
-  const plan = (p) => {
+  const plan = (p, brand) => {
     const cur = p.amounts?.[currency] != null ? currency : "eur";
+    const includes = (INCLUDES[p.tier] || []).map((x) => x === "{programming}" ? (PROGRAMMING[brand] || "Programming") : x);
     return { tier: p.tier, name: NAMES[p.tier] || p.label, amount: p.amounts?.[cur] ?? null, currency: cur,
-      includes: INCLUDES[p.tier] || [], apply: p.tier >= 4 };
+      includes, apply: p.tier >= 4 };
   };
   const courses = COURSES.map((brand) => ({ brand, plans: [], one_to_one: [], blocks: [],
     apply_url: APPLY[brand] || null }));
   const at = (b) => courses.find((c) => c.brand === b);
   for (const p of prices || []) {
-    if (p.tier <= 3) at(String(p.tracks?.brand || "tgc").toLowerCase())?.plans.push(plan(p));
-    else for (const b of ONE_TO_ONE) at(b).one_to_one.push(plan(p));
+    if (p.tier <= 3) {
+      const b = String(p.tracks?.brand || "tgc").toLowerCase();
+      at(b)?.plans.push(plan(p, b));
+    } else for (const b of ONE_TO_ONE) at(b).one_to_one.push(plan(p, b));
   }
 
   const { data: rate } = await train().from("block_rates").select("week_cents, feedback_cents").eq("currency", currency).maybeSingle();
