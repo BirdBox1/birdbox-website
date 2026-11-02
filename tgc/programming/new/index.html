@@ -614,8 +614,8 @@
   .ps-see { display: block; font-size: 14px; font-weight: 700; color: #ffffff; margin: -4px 0 14px; }
   /* the film is portrait (9:16), filmed the way a phone shows it */
   .ps-film { margin: 0; }
-  .ps-fbrow { display: grid; grid-template-columns: 300px 260px 1fr; gap: 32px; align-items: start; margin: 0 0 36px; }
-  .ps-fbrow .ps-phone { max-width: 260px; margin: 0 0 10px; }
+  .ps-fbrow { display: grid; grid-template-columns: 380px 300px minmax(0, 360px); gap: 40px; align-items: start; margin: 0 0 36px; }
+  .ps-fbrow .ps-phone { max-width: 300px; margin: 0 0 10px; }
   .ps-fbrow .ps-fbcard { max-width: none; }
   .ps-flow { list-style: none; margin: 0; padding: 0; max-width: 460px; }
   .ps-flow--row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; max-width: none; }
@@ -627,6 +627,10 @@
   .ps-flow p { margin: 0; color: #DCD7D8; font-size: 15px; line-height: 1.5; }
   .ps-film video { width: 100%; aspect-ratio: 9 / 16; display: block; border: 1px solid var(--line);
     border-radius: 18px; background: #0B0909; }
+  /* not wide enough for three: film and phone side by side, example under */
+  @media (min-width: 761px) and (max-width: 1180px) {
+    .ps-fbrow { grid-template-columns: minmax(0, 380px) minmax(0, 300px); }
+    .ps-fbrow > :last-child { grid-column: 1 / -1; max-width: 520px; } }
   @media (max-width: 760px) {
     .ps-fbrow { grid-template-columns: 1fr; } .ps-film { max-width: 340px; margin: 0 auto; width: 100%; }
     .ps-fbrow .ps-phone { margin: 0 auto 10px; } .ps-fbrow .ps-note { text-align: center; }
@@ -761,7 +765,7 @@
         <p class="ps-note" data-film-note style="margin-top:10px;">Real reviews from BirdBox coaches, shown with the athletes&rsquo; permission. Music added.</p>
       </div>
       <div>
-        <div class="ps-phone"><img src="/tgc/programming/new/app-coach-feedback.jpg" alt="The Coach tab in the app: your coach, then every review and piece of feedback, each with a button to watch or read it" loading="lazy" width="510" height="1322"></div>
+        <div class="ps-phone"><img src="/tgc/programming/new/app-coach-feedback.jpg" alt="The Coach tab in the app: your coach, then every review and piece of feedback, each with a button to watch or read it" loading="lazy" width="610" height="1322"></div>
         <p class="ps-note">Every review stays in your app to watch again.</p>
       </div>
       <div>
