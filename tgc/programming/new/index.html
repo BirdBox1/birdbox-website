@@ -613,10 +613,26 @@
     text-transform: uppercase; border: 1px solid #ffffff; color: #ffffff; padding: 4px 8px; margin: 0 0 10px; }
   .ps-see { display: block; font-size: 14px; font-weight: 700; color: #ffffff; margin: -4px 0 14px; }
   /* the film is portrait (9:16), filmed the way a phone shows it */
+  /* film, phone and example in one row the width of the page: the film
+     and the phone the same height, the example card stretched to match,
+     the three captions on one line underneath */
   .ps-film { margin: 0; }
-  .ps-fbrow { display: grid; grid-template-columns: 380px 300px minmax(0, 360px); gap: 40px; align-items: start; margin: 0 0 36px; }
-  .ps-fbrow .ps-phone { max-width: 300px; margin: 0 0 10px; }
-  .ps-fbrow .ps-fbcard { max-width: none; }
+  .ps-fbrow { display: grid; grid-template-columns: 9fr 7.6fr 10fr; column-gap: 40px; row-gap: 12px;
+    grid-template-areas: "film phone ex" "c1 c2 c3"; align-items: stretch; margin: 8px 0 48px; }
+  .ps-fbrow__film { grid-area: film; } .ps-fbrow__phone { grid-area: phone; }
+  .ps-fbrow__ex { grid-area: ex; } .ps-fbrow__c1 { grid-area: c1; }
+  .ps-fbrow__c2 { grid-area: c2; } .ps-fbrow__c3 { grid-area: c3; }
+  .ps-fbrow .ps-note { margin: 0; }
+  .ps-fbrow .ps-phone { max-width: none; width: 100%; margin: 0; align-self: start; }
+  .ps-fbrow .ps-fbcard { max-width: none; padding: 30px 32px; font-size: 18px; line-height: 1.65;
+    display: flex; flex-direction: column; }
+  .ps-fbcard__reply { margin-top: auto; border: 1px solid #C9C3C2; border-radius: 10px; padding: 12px;
+    text-align: center; font-size: 15px; font-weight: 700; color: #8E2A2E; background: #ffffff; }
+  .ps-fbrow .ps-fbcard__head { align-items: center; font-size: 20px; }
+  .ps-fbrow .ps-fbcard__day { font-size: 15px; padding-bottom: 14px; margin-bottom: 4px; }
+  .ps-fbrow .ps-fbcard__lab { margin: 24px 0 8px; font-size: 12px; }
+  .ps-fbrow .ps-fbcard p { margin: 0 0 14px; }
+  .ps-fbrow .ps-example { border-color: #1C1719; color: #1C1719; margin: 0; }
   .ps-flow { list-style: none; margin: 0; padding: 0; max-width: 460px; }
   .ps-flow--row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; max-width: none; }
   .ps-flow--row li { margin: 0; }
@@ -629,11 +645,14 @@
     border-radius: 18px; background: #0B0909; }
   /* not wide enough for three: film and phone side by side, example under */
   @media (min-width: 761px) and (max-width: 1180px) {
-    .ps-fbrow { grid-template-columns: minmax(0, 380px) minmax(0, 300px); }
-    .ps-fbrow > :last-child { grid-column: 1 / -1; max-width: 520px; } }
+    .ps-fbrow { grid-template-columns: 9fr 7.5fr; grid-template-areas: "film phone" "c1 c2" "ex ex" "c3 c3"; }
+    .ps-fbrow__ex { margin-top: 28px; } }
   @media (max-width: 760px) {
-    .ps-fbrow { grid-template-columns: 1fr; } .ps-film { max-width: 340px; margin: 0 auto; width: 100%; }
-    .ps-fbrow .ps-phone { margin: 0 auto 10px; } .ps-fbrow .ps-note { text-align: center; }
+    .ps-fbrow { grid-template-columns: 1fr; grid-template-areas: "film" "c1" "phone" "c2" "ex" "c3"; }
+    .ps-film { max-width: 340px; margin: 0 auto; width: 100%; }
+    .ps-fbrow .ps-phone { max-width: 300px; margin: 20px auto 0; } .ps-fbrow__c1, .ps-fbrow__c2 { text-align: center; }
+    .ps-fbrow__ex { margin-top: 20px; } .ps-fbrow .ps-fbcard { padding: 22px; font-size: 16px; }
+    .ps-fbcard__reply { margin-top: 10px; } .ps-fbrow .ps-fbcard__head { font-size: 17px; }
     .ps-flow--row { grid-template-columns: 1fr; } .ps-flow--row li { margin: 0 0 4px; } }
 </style>
 </head>
@@ -760,27 +779,24 @@
          list of reviews, and an example of written feedback; the four
          steps run underneath -->
     <div class="ps-fbrow">
-      <div class="ps-film" hidden>
+      <div class="ps-film ps-fbrow__film" hidden>
         <video controls playsinline preload="none"></video>
-        <p class="ps-note" data-film-note style="margin-top:10px;">Real reviews from BirdBox coaches, shown with the athletes&rsquo; permission. Music added.</p>
       </div>
-      <div>
-        <div class="ps-phone"><img src="/tgc/programming/new/app-coach-feedback.jpg" alt="The Coach tab in the app: your coach, then every review and piece of feedback, each with a button to watch or read it" loading="lazy" width="610" height="1322"></div>
-        <p class="ps-note">Every review stays in your app to watch again.</p>
+      <div class="ps-phone ps-fbrow__phone"><img src="/tgc/programming/new/app-coach-feedback.jpg" alt="The Coach tab in the app: your coach, then every review and piece of feedback, each with a button to watch or read it" loading="lazy" width="610" height="1322"></div>
+      <div class="ps-fbcard ps-fbrow__ex">
+        <div class="ps-fbcard__head"><span>Mon 19 Oct &middot; Feedback</span><span class="ps-example">Example</span></div>
+        <div class="ps-fbcard__day">Strict Pulling &amp; Core Compression &middot; Sophie</div>
+        <div class="ps-fbcard__lab">Strict pull-up eccentric</div>
+        <p>Great control at the top, Sophie: you held the three seconds well. From about halfway down your shoulders shrug up and the descent speeds up.</p>
+        <p>Next time, pause at the point where you feel you are about to lose the position. Hold there for 3&ndash;5 seconds, then continue the descent slowly.</p>
+        <div class="ps-fbcard__lab">On the whole day</div>
+        <p>Good first assessment. Keep the ball-ups slow and you&rsquo;ll feel the intended stimulus more.</p>
+        <div class="ps-fbcard__reply" aria-hidden="true">Open the day to reply &rarr;</div>
       </div>
-      <div>
-        <span class="ps-example">Example</span>
-        <div class="ps-fbcard">
-          <div class="ps-fbcard__head"><span>Mon 19 Oct &middot; Feedback</span></div>
-          <div class="ps-fbcard__day">Strict Pulling &amp; Core Compression &middot; Sophie</div>
-          <div class="ps-fbcard__lab">Strict pull-up eccentric</div>
-          <p>Great control at the top, Sophie: you held the three seconds well. From about halfway down your shoulders shrug up and the descent speeds up.</p>
-          <p>Next time, pause at the point where you feel you are about to lose the position. Hold there for 3&ndash;5 seconds, then continue the descent slowly.</p>
-          <div class="ps-fbcard__lab">On the whole day</div>
-          <p>Good first assessment. Keep the ball-ups slow and you&rsquo;ll feel the intended stimulus more.</p>
-        </div>
-        <p class="ps-note" style="margin-top:12px;">An example of written feedback. The athlete&rsquo;s name is made up.</p>
-      </div>
+      <p class="ps-note ps-fbrow__c1" data-film-note>Real reviews from BirdBox coaches, shown with the athletes&rsquo; permission. Music added.</p>
+      <p class="ps-note ps-fbrow__c2">Every review stays in your app to watch again.</p>
+      <p class="ps-note ps-fbrow__c3">An example of written feedback. The athlete&rsquo;s name is made up.</p>
+    </div>
     </div>
       <ol class="ps-flow ps-flow--row">
         <li><span class="ps-flow__n">1</span><div><strong>Film your set</strong><p>Tap Film it now on the exercise, or add a video you already have.</p></div></li>
