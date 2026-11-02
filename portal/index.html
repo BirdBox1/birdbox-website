@@ -4377,8 +4377,8 @@ async function openCourse(course) {
     // The online course at the seminar rate: sent, opened, bought.
     const off = offerByReg[r.id];
     if (off && off.redeemed_at) addPill("online course bought at 50%", "on");
-    else if (off && off.opened_at && off.emailed_at) addPill("50% link opened", "warn");
-    else if (off && off.emailed_at) addPill("50% link sent", "warn");
+    else if (off && off.opened_at && off.emailed_at) addPill("50% online course link opened", "warn");
+    else if (off && off.emailed_at) addPill(`50% online course link sent ${fmtDay(off.emailed_at)}`, "warn");
 
     const line = el.querySelector(".money");
     const bits = [];
@@ -6470,6 +6470,15 @@ async function runPeopleSearch() {
     }
   }
 
+  // Whether their 50% online course link has gone, so it is not sent twice.
+  const offerByRegId = {};
+  {
+    const { data: offs } = await db.from("online_offers")
+      .select("registration_id, emailed_at, opened_at, redeemed_at")
+      .in("registration_id", rows.map((r) => r.id));
+    for (const o of offs || []) offerByRegId[o.registration_id] = o;
+  }
+
   // Grouped by person, because somebody who has been on four courses
   // should read as one person with four courses, not four results.
   const byPerson = {};
@@ -6573,14 +6582,19 @@ async function runPeopleSearch() {
 
       // Asking for the online course at 50%: send their link from
       // here, without opening the course first.
+      const off = offerByRegId[r.id];
       if (isAdmin() && regStatus === "active" && offerCourse(c)) {
+        if (off && off.redeemed_at) pill("online course bought at 50%", "on");
+        else if (off && off.emailed_at) pill(`50% online course link sent ${fmtDay(off.emailed_at)}`, "warn");
+      }
+      if (isAdmin() && regStatus === "active" && offerCourse(c) && !(off && off.redeemed_at)) {
         const half = document.createElement("button");
         half.className = "btn ghost tiny";
         half.type = "button";
-        half.textContent = "Send 50% link";
+        half.textContent = off && off.emailed_at ? "Resend 50% online course link" : "Send 50% online course link";
         half.onclick = (e) => {
           e.stopPropagation();
-          sendOfferLink(r, half);
+          sendOfferLink(r, half, runPeopleSearch);
         };
         flags.append(half);
       }
@@ -10678,7 +10692,7 @@ function buildActions(box, course, reg, status) {
   if (status === "active" && offerCourse(course)) {
     const off = offerByReg[reg.id];
     if (!(off && off.redeemed_at)) {
-      add(off && off.emailed_at ? "Resend 50% link" : "Send 50% link", "ghost small",
+      add(off && off.emailed_at ? "Resend 50% online course link" : "Send 50% online course link", "ghost small",
           (b) => sendOfferLink(reg, b, () => openCourse(course)));
     }
   }
@@ -10768,12 +10782,12 @@ async function sendOfferLink(reg, btn, done) {
       r = await callOffer(payload);
     }
     if (r.already_sent) {
-      if (!window.confirm(`${who} was already sent their 50% link on ${fmtDay(r.already_sent)}.\n\nSend it again?`)) return;
+      if (!window.confirm(`${who} was already sent their 50% online course link on ${fmtDay(r.already_sent)}.\n\nSend it again?`)) return;
       payload.resend = true;
       r = await callOffer(payload);
     }
     if (r.sent) {
-      window.alert(`Sent to ${r.to}. Nothing else to do — when they pay they are enrolled automatically.`);
+      window.alert(`50% online course link sent to ${r.to}. Nothing else to do — when they pay they are enrolled automatically.`);
       if (done) done();
     }
   } catch (err) {
