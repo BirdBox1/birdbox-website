@@ -597,6 +597,26 @@
     .ps-blocks, .ps-trial { grid-template-columns: 1fr; }
   }
   @media (max-width: 620px) { .ps-plans--two { grid-template-columns: 1fr; } }
+  /* app screens in a phone frame (Nathan, 2 Nov 2026) */
+  .ps-phone { width: 100%; max-width: 250px; margin: 0 auto 18px; border: 8px solid #0B0909;
+    border-radius: 34px; overflow: hidden; background: #0B0909;
+    box-shadow: 0 0 0 1px #3A3436, 0 18px 40px rgba(0,0,0,0.55); }
+  .ps-phone img { width: 100%; height: auto; display: block; border-radius: 26px; }
+  .l1-band--inside .l1-card { display: flex; flex-direction: column; }
+  .ps-fb { display: grid; grid-template-columns: 280px 1fr; gap: 28px; align-items: start; }
+  .ps-fb .ps-phone { max-width: 280px; margin: 0; }
+  .ps-fbcard { background: #F4F2F1; color: #1C1719; border-radius: 18px; padding: 20px 22px;
+    max-width: 520px; font-size: 15px; line-height: 1.55; }
+  .ps-fbcard__head { display: flex; justify-content: space-between; gap: 10px; font-weight: 800; font-size: 16px; }
+  .ps-fbcard__day { color: #4A4446; font-size: 14px; margin: 4px 0 12px; border-bottom: 1px solid #D9D5D4; padding-bottom: 10px; }
+  .ps-fbcard__lab { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #4A4446; margin: 12px 0 4px; }
+  .ps-fbcard p { margin: 0 0 8px; }
+  .ps-example { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
+    text-transform: uppercase; border: 1px solid #ffffff; color: #ffffff; padding: 4px 8px; margin: 0 0 10px; }
+  .ps-see { display: block; font-size: 14px; font-weight: 700; color: #ffffff; margin: -4px 0 14px; }
+  .ps-film { max-width: 760px; margin: 0 0 28px; }
+  .ps-film video { width: 100%; display: block; border: 1px solid var(--line); background: #0B0909; }
+  @media (max-width: 760px) { .ps-fb { grid-template-columns: 1fr; } .ps-fb .ps-phone { margin: 0 auto; } }
 </style>
 </head>
 <body>
@@ -617,7 +637,7 @@
     <img class="tcc-hero__mark" src="/brand/tgc-mark.png" alt="The Gymnastics Course">
     <p class="tcc-row__eyebrow">Programming</p>
     <h1 class="tcc-hero__title">Gymnastics programming,<em>done for you.</em></h1>
-    <p class="tcc-hero__lede">A structured gymnastics development system designed to complement your existing CrossFit&reg; training &mdash; built by the TGC coaching team on the same methodology we teach in seminars. In the BirdBox Train app.</p>
+    <p class="tcc-hero__lede">A structured gymnastics development system designed to complement your existing CrossFit&reg; training &mdash; built by the TGC coaching team on the same methodology we teach in seminars. In the BirdBox Coaching app.</p>
     <div class="ps-heroacts">
       <a class="tcc-cta" href="#trial">Try Two Weeks Free &rarr;</a>
       <a class="tcc-cta tcc-cta--ghost" href="#plans">See The Plans</a>
@@ -631,7 +651,7 @@
   <div class="l1-chips">
     <div class="l1-chip"><div class="l1-chip__big">2 Weeks Free</div><div class="l1-chip__small">No Card Needed</div></div>
     <div class="l1-chip"><div class="l1-chip__big" data-from>From &euro;35</div><div class="l1-chip__small">Per Month</div></div>
-    <div class="l1-chip"><div class="l1-chip__big">BirdBox Train</div><div class="l1-chip__small">iPhone &amp; Android</div></div>
+    <div class="l1-chip"><div class="l1-chip__big">In The App</div><div class="l1-chip__small">iPhone &amp; Android</div></div>
     <div class="l1-chip"><div class="l1-chip__big">Scalable</div><div class="l1-chip__small">Every Ability</div></div>
   </div>
 
@@ -649,14 +669,17 @@
       <h2 class="l1-h2">What You Get Each Week</h2>
       <div class="l1-grid3">
         <div class="l1-card">
+          <div class="ps-phone"><img src="/tgc/programming/new/app-day.jpg" alt="A training day in the BirdBox Coaching app: pick your level, then the coaches notes, warm-up, sections A to C and cool-down" loading="lazy" width="610" height="1322"></div>
           <h3 class="l1-card__title">Your Training In The App</h3>
-          <p class="l1-card__text">Every session, demonstration and progression in the BirdBox Train app, on your phone wherever you train. Pick your level each day and log as you go.</p>
+          <p class="l1-card__text">Every session, demonstration and progression in the BirdBox Coaching app, on your phone wherever you train. Pick your level each day and log as you go.</p>
         </div>
         <div class="l1-card">
+          <div class="ps-phone"><img src="/tgc/programming/new/app-exercise.jpg" alt="An exercise in the app: what to do, the demonstration video, the coaches note and a box to log your result" loading="lazy" width="610" height="1322"></div>
           <h3 class="l1-card__title">Coaching Demonstrations Every Session</h3>
           <p class="l1-card__text">Movement videos and coaching notes help you understand the intent behind each session, not just the reps.</p>
         </div>
         <div class="l1-card">
+          <div class="ps-phone"><img src="/tgc/programming/new/app-notes.jpg" alt="The day&rsquo;s coaches notes in the app, with a video from the coach" loading="lazy" width="610" height="1322"></div>
           <h3 class="l1-card__title">Built By The TGC Coaching Team</h3>
           <p class="l1-card__text">Developed by our coaches using the same principles they teach in seminars around the world every weekend.</p>
         </div>
@@ -678,7 +701,7 @@
       </div>
       <div class="ps-step">
         <h3 class="l1-card__title">Open The App</h3>
-        <p class="l1-card__text">We email you straight away. Download BirdBox Train and sign in with the same email. Your plan and receipts are in BirdBox Learn.</p>
+        <p class="l1-card__text">We email you straight away. Download the BirdBox Coaching app and sign in with the same email. Your plan and receipts are in BirdBox Learn.</p>
       </div>
     </div>
   </section>
@@ -688,7 +711,7 @@
     <h2 class="l1-h2">Try Two Weeks Free</h2>
     <div class="ps-trial">
       <div>
-        <p class="l1-lede">Two weeks of TGC programming in the BirdBox Train app, with the coaching demonstrations and notes on every session. No card needed, and nothing is charged when it ends: if you want to carry on, choose a plan.</p>
+        <p class="l1-lede">Two weeks of TGC programming in the BirdBox Coaching app, with the coaching demonstrations and notes on every session. No card needed, and nothing is charged when it ends: if you want to carry on, choose a plan.</p>
         <p class="l1-lede">The free trial is for anyone who has not had programming with BirdBox before.</p>
       </div>
       <form class="l1-form" id="trial-form" novalidate>
@@ -707,6 +730,34 @@
     <p class="ps-curline" data-curline></p>
     <div class="ps-plans" data-plans><p class="ps-loading">Loading prices&hellip;</p></div>
     <p class="l1-policy" style="margin-top:18px;">Already on a TGC plan? Change it in <a href="/learn/#programming">BirdBox Learn</a>: you pay the difference now and the new price from your next payment.</p>
+  </section>
+
+  <!-- data-video: a short feedback film (mp4, path on this site) and
+       data-poster: its still. Empty until one is made; then it shows. -->
+  <section class="l1-section" id="feedback" data-video="" data-poster="">
+    <p class="l1-label">Coach Feedback</p>
+    <h2 class="l1-h2">A Coach Who Knows Your Training</h2>
+    <p class="l1-lede">On Tier 3 and one-to-one, your own coach looks at your notes and videos and writes back in the app: what is working, what to change, and what to focus on next session.</p>
+    <div class="ps-film" hidden>
+      <video controls playsinline preload="none"></video>
+      <p class="ps-note" data-film-note></p>
+    </div>
+    <div class="ps-fb">
+      <div class="ps-phone"><img src="/tgc/programming/new/app-coach-card.jpg" alt="Your coach in the app, with a button to message them" loading="lazy" width="610" height="470"></div>
+      <div>
+        <span class="ps-example">Example</span>
+        <div class="ps-fbcard">
+          <div class="ps-fbcard__head"><span>Mon 19 Oct &middot; Feedback</span></div>
+          <div class="ps-fbcard__day">Strict Pulling &amp; Core Compression &middot; Sophie</div>
+          <div class="ps-fbcard__lab">Strict pull-up eccentric</div>
+          <p>Great control at the top, Sophie: you held the three seconds well. From about halfway down your shoulders shrug up and the descent speeds up, so the last part isn&rsquo;t counting.</p>
+          <p>Next time, stop the rep when you feel the shoulders lift and log that time. A shorter, cleaner descent will build your strict pull-up faster than a long one that loses position.</p>
+          <div class="ps-fbcard__lab">On the whole day</div>
+          <p>Good first assessment. Keep the ball-ups slow and you&rsquo;ll feel the front-lever work more.</p>
+        </div>
+        <p class="ps-note" style="margin-top:12px;">An example of written feedback. The athlete&rsquo;s name is made up.</p>
+      </div>
+    </div>
   </section>
 
   <section class="l1-section" id="blocks" hidden>

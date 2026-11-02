@@ -121,6 +121,10 @@ function tierCard(t, { pop, note, apply }) {
   for (const i of t.includes || []) ul.appendChild(el("li", null, i));
   c.appendChild(ul);
   if (note) c.appendChild(el("p", "ps-note", note));
+  if (SEE[t.tier] && document.querySelector(SEE[t.tier][1])) {
+    const a = el("a", "ps-see", SEE[t.tier][0]); a.href = SEE[t.tier][1];
+    c.appendChild(a);
+  }
   if (apply) {
     const b = el("button", "l1-tier__btn", "Apply →"); b.type = "button";
     // programming-apply.js has already run, so pick the tier here
@@ -131,7 +135,7 @@ function tierCard(t, { pop, note, apply }) {
       document.getElementById("ap-name").focus({ preventScroll: true });
     };
     c.appendChild(b);
-  } else joinBox(c, "Join →", { tier: t.tier }, t.tier === 1);
+  } else joinBox(c, "Join →", { tier: t.tier }, !!pop);
   return c;
 }
 
@@ -140,6 +144,8 @@ const NOTES = {
   2: "Post your videos in the premium community and join the weekly group call.",
   3: "Your coach is confirmed within 24 hours of joining.",
 };
+// Tier 3 links down to what feedback looks like
+const SEE = { 3: ["See what coach feedback looks like ↓", "#feedback"] };
 
 function blockCard(k) {
   const weeks = k.weeks || 1;
@@ -238,7 +244,7 @@ async function load() {
   plans.innerHTML = "";
   for (const t of co.plans) {
     plans.appendChild(tierCard({ ...t, name: NAMES[t.tier] || t.name },
-      { pop: t.tier === 2 ? "Most popular" : null, note: NOTES[t.tier] }));
+      { pop: t.tier === 2 ? "Recommended" : null, note: NOTES[t.tier] }));
   }
   if (!co.plans.length) plans.appendChild(el("p", "ps-empty", "Monthly plans are coming soon."));
   const low = co.plans.filter((t) => t.amount != null).sort((a, b) => a.amount - b.amount)[0];
@@ -253,6 +259,16 @@ async function load() {
   blocks.innerHTML = "";
   for (const k of co.blocks) blocks.appendChild(blockCard(k));
   $("#blocks").hidden = !co.blocks.length;
+}
+
+// The feedback film (Nathan, 2 Nov 2026): shown once the page names one
+// on #feedback (data-video, data-poster)
+const fb = document.getElementById("feedback");
+if (fb && fb.dataset.video) {
+  const film = fb.querySelector(".ps-film"), v = film.querySelector("video");
+  v.src = fb.dataset.video;
+  if (fb.dataset.poster) v.poster = fb.dataset.poster;
+  film.hidden = false;
 }
 
 // the free trial: first name and email; the reply is the same whoever
@@ -271,7 +287,7 @@ if (trial) trial.onsubmit = async (e) => {
       body: JSON.stringify({ email, first_name: first, country: country() }) });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || d.error) throw new Error(d.error || "The trial could not start. Please try again.");
-    say(msg, "Done. Check your email: it tells you how to open your two weeks in the BirdBox Train app.", "ok");
+    say(msg, "Done. Check your email: it tells you how to open your two weeks in the BirdBox Coaching app.", "ok");
     trial.reset();
   } catch (err) { say(msg, err.message, "err"); btn.disabled = false; }
 };
