@@ -7,6 +7,10 @@
 // the person gets a confirmation.
 //
 // The page marks its course on the section: <section id="apply" data-brand="tcc">.
+//
+// The new sales pages (Nathan, 2 Nov 2026) ask for first name and surname
+// in two boxes and the country from a list; the older pages still have one
+// Name box and a typed country. Both work here.
 
 const APPLY = "https://app.birdboxcoaching.com/.netlify/functions/apply";
 const $ = (id) => document.getElementById(id);
@@ -17,6 +21,15 @@ const note = $("ap-note");
 const btn = $("ap-submit");
 const coachWrap = $("ap-coach-wrap");
 const coachEl = $("ap-coach");
+// the first box the person types in
+const firstBox = () => $("ap-first") || $("ap-name");
+// the country as words, whether it was chosen from a list or typed
+function countryText() {
+  const c = $("ap-country");
+  if (!c) return "";
+  if (c.tagName === "SELECT") return c.value && c.value !== "ZZ" ? c.selectedOptions[0].text : "";
+  return c.value.trim();
+}
 
 function say(message, ok) {
   note.textContent = message;
@@ -49,18 +62,29 @@ for (const b of document.querySelectorAll("[data-tier]")) {
     tierEl.value = b.dataset.tier;
     loadCoaches();
     section.scrollIntoView({ behavior: "smooth" });
-    $("ap-name").focus({ preventScroll: true });
+    firstBox().focus({ preventScroll: true });
   });
 }
 tierEl.addEventListener("change", loadCoaches);
 loadCoaches();
 
 btn.addEventListener("click", async () => {
-  const name = $("ap-name").value.replace(/\s+/g, " ").trim();
+  const tidy = (id) => ($(id) ? $(id).value.replace(/\s+/g, " ").trim() : "");
+  let first, last;
+  if ($("ap-first")) {
+    first = tidy("ap-first"); last = tidy("ap-last");
+    if (!first) { say("Please add your first name.", false); return; }
+    if (!last) { say("Please add your surname.", false); return; }
+  } else {
+    const name = tidy("ap-name");
+    if (!name) { say("Please add your name.", false); return; }
+    const cut = name.indexOf(" ");
+    first = cut > 0 ? name.slice(0, cut) : name;
+    last = cut > 0 ? name.slice(cut + 1) : "";
+  }
   const email = $("ap-email").value.trim();
-  if (!name) { say("Please add your name.", false); return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say("Please enter a valid email address.", false); return; }
-  const cut = name.indexOf(" ");
+  if ($("ap-country")?.tagName === "SELECT" && !$("ap-country").value) { say("Please choose your country.", false); return; }
   btn.disabled = true;
   say("Sending…", false);
   try {
@@ -69,10 +93,10 @@ btn.addEventListener("click", async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         brand, tier: tierNum(),
-        first_name: cut > 0 ? name.slice(0, cut) : name,
-        last_name: cut > 0 ? name.slice(cut + 1) : "",
+        first_name: first,
+        last_name: last,
         email,
-        country: $("ap-country").value.trim(),
+        country: countryText(),
         goals: $("ap-goals").value.trim(),
         coach_id: coachWrap.hidden ? "" : coachEl.value,
         website: ($("ap-website") || {}).value || "",
@@ -81,7 +105,7 @@ btn.addEventListener("click", async () => {
     const d = await r.json().catch(() => ({}));
     if (!r.ok || d.error) throw new Error(d.error || "Something went wrong. Please try again in a moment.");
     say("Thanks, your application is in. Check your email: we have sent you a confirmation.", true);
-    for (const id of ["ap-name", "ap-email", "ap-country", "ap-goals"]) $(id).value = "";
+    for (const id of ["ap-name", "ap-first", "ap-last", "ap-email", "ap-goals"]) if ($(id)) $(id).value = "";
   } catch (e) {
     say(e.message, false);
     btn.disabled = false;
