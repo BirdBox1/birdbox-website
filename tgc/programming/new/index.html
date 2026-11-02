@@ -614,8 +614,10 @@
   .ps-example { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
     text-transform: uppercase; border: 1px solid #ffffff; color: #ffffff; padding: 4px 8px; margin: 0 0 10px; }
   .ps-see { display: block; font-size: 14px; font-weight: 700; color: #ffffff; margin: -4px 0 14px; }
-  .ps-film { max-width: 760px; margin: 0 0 28px; }
-  .ps-film video { width: 100%; display: block; border: 1px solid var(--line); background: #0B0909; }
+  /* the film is portrait (9:16), filmed the way a phone shows it */
+  .ps-film { max-width: 340px; margin: 0 0 28px; }
+  .ps-film video { width: 100%; aspect-ratio: 9 / 16; display: block; border: 1px solid var(--line);
+    border-radius: 18px; background: #0B0909; }
   @media (max-width: 760px) { .ps-fb { grid-template-columns: 1fr; } .ps-fb .ps-phone { margin: 0 auto; } }
 </style>
 </head>
@@ -734,13 +736,13 @@
 
   <!-- data-video: a short feedback film (mp4, path on this site) and
        data-poster: its still. Empty until one is made; then it shows. -->
-  <section class="l1-section" id="feedback" data-video="" data-poster="">
+  <section class="l1-section" id="feedback" data-video="/tgc/programming/new/feedback-film.mp4" data-poster="/tgc/programming/new/feedback-film.jpg">
     <p class="l1-label">Coach Feedback</p>
     <h2 class="l1-h2">A Coach Who Knows Your Training</h2>
     <p class="l1-lede">On Tier 3 and one-to-one, your own coach looks at your notes and videos and writes back in the app: what is working, what to change, and what to focus on next session.</p>
     <div class="ps-film" hidden>
       <video controls playsinline preload="none"></video>
-      <p class="ps-note" data-film-note></p>
+      <p class="ps-note" data-film-note style="margin-top:10px;">Real reviews from BirdBox coaches, shown with the athletes&rsquo; permission. Music added.</p>
     </div>
     <div class="ps-fb">
       <div class="ps-phone"><img src="/tgc/programming/new/app-coach-card.jpg" alt="Your coach in the app, with a button to message them" loading="lazy" width="610" height="470"></div>
