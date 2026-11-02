@@ -27,8 +27,8 @@ const INCLUDES = {
   1: ["Blog programme", "Free community"],
   2: ["Blog programme", "Premium community", "Group call", "Feedback via the community"],
   3: ["Blog programme", "Premium community", "Group call", "Written and video feedback from your coach"],
-  4: ["Bespoke programme", "Premium community", "1:1 coach call", "Feedback written, by Loom or DM"],
-  5: ["Bespoke programme", "Premium community", "1:1 coach call", "Feedback written, by Loom or DM"],
+  4: ["Bespoke programme", "Premium community", "1:1 coach call", "Written and video feedback in the app"],
+  5: ["Bespoke programme", "Premium community", "1:1 coach call", "Written and video feedback in the app"],
 };
 // the names on the TGC programming page; Tiers 4 and 5 are by application
 const NAMES = { 4: "Bespoke 1:1, Skill Only", 5: "Full CF Programme, 1:1" };
