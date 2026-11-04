@@ -424,8 +424,9 @@ async function onlineOffer(user, email, brand) {
 //   For 40 days after moving: Tier 2 for €35, and Tier 3 at €120 less the
 //   gap between €35 and their price (€104.98 on €19.98). Not on "t1_only".
 const MOVE_T2 = 3500, NORMAL_T3 = 12000, T1_STANDARD = 3500;
+// Ireland included: programming is taxed for Irish buyers too (Kristine, 4 Nov 2026)
 const EU_VAT = ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU",
-  "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE"];
+  "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE"];
 const vatApplies = (c) => c === "GB" || EU_VAT.includes(c);
 
 async function moveOffer(email) {
