@@ -74,6 +74,7 @@ export default async (req, context) => {
       const body = await req.json().catch(() => ({}));
       if (body.action === "portal") return portal(user, email, String(body.subscription || ""), String(body.only || ""));
       if (body.action === "change_plan") return changePlan(user, email, String(body.subscription || ""), Number(body.tier));
+      if (body.action === "keep_plan") return keepPlan(user, email, String(body.subscription || ""));
       if (body.action === "move_start") return moveStart(email, Number(body.tier), context);
       if (body.action === "move_trial") return moveTrial(email);
       if (body.action === "move_upgrade") return moveUpgrade(user, email, Number(body.tier));
@@ -160,6 +161,20 @@ async function programming(user, email) {
         plan.amount = item?.price?.unit_amount ?? null;
         plan.currency = s.currency || item?.price?.currency || "eur";
         plan.manage = true;
+        // a downgrade waiting for the month end: its plan and date
+        if (s.schedule) {
+          const sc = await stripe.subscriptionSchedules.retrieve(typeof s.schedule === "string" ? s.schedule : s.schedule.id);
+          const next = (sc.phases || []).find((ph) => ph.start_date > Date.now() / 1000);
+          const pid = next?.items?.[0]?.price;
+          if (next && pid) {
+            const { data: p } = await train().from("stripe_prices").select("tier")
+              .eq("price_id", typeof pid === "string" ? pid : pid.id).maybeSingle();
+            if (p?.tier) plan.pending = { tier: p.tier, name: TIER[p.tier] || "", on: new Date(next.start_date * 1000).toISOString().slice(0, 10) };
+            // the next payment is the lower price
+            const np = typeof pid === "string" ? await stripe.prices.retrieve(pid) : pid;
+            if (np?.unit_amount != null) plan.amount = np.unit_amount;
+          }
+        }
       } catch (x) { plan.manage = false; }
       // nothing is charged while it is paused: the "Paused" line says when
       if (plan.paused_until) plan.next_payment = null;
@@ -551,6 +566,31 @@ async function changePlan(user, email, subId, tier) {
   const s = await stripe.subscriptions.retrieve(subId);
   const item = s.items?.data?.[0];
   if (!item) return json({ error: "That plan could not be found." }, 404);
+  const end = item.current_period_end || s.current_period_end;
+
+  // A downgrade waits for their next payment date (Nathan, 6 Nov 2026): no
+  // refund or credit, the plan they paid for (feedback included) runs to
+  // the end of the month, and the next payment is the lower price. Stripe
+  // switches the price then, and the app follows (stripe-webhook.mjs).
+  if (tier < e.tier) {
+    if (s.cancel_at_period_end) return json({ error: "Your plan is set to end. Keep it first, then change it." }, 400);
+    const sched = s.schedule
+      ? await stripe.subscriptionSchedules.retrieve(typeof s.schedule === "string" ? s.schedule : s.schedule.id)
+      : await stripe.subscriptionSchedules.create({ from_subscription: subId });
+    await stripe.subscriptionSchedules.update(sched.id, {
+      end_behavior: "release",
+      phases: [
+        { items: [{ price: item.price.id, quantity: 1 }], start_date: sched.phases[0].start_date, end_date: end,
+          metadata: s.metadata || {} },
+        { items: [{ price: price.price_id, quantity: 1 }], iterations: 1, proration_behavior: "none",
+          metadata: { ...(s.metadata || {}), tier: String(tier) } },
+      ],
+    });
+    return json({ scheduled: true, on: new Date(end * 1000).toISOString().slice(0, 10), name: TIER[tier] });
+  }
+
+  // an upgrade starts now; a downgrade waiting for the month end is dropped
+  if (s.schedule) await stripe.subscriptionSchedules.release(typeof s.schedule === "string" ? s.schedule : s.schedule.id);
   const session = await stripe.billingPortal.sessions.create({
     customer: typeof s.customer === "string" ? s.customer : s.customer.id,
     return_url: RETURN_URL,
@@ -561,6 +601,18 @@ async function changePlan(user, email, subId, tier) {
     },
   });
   return json({ url: session.url });
+}
+
+// Keep my current plan: drops a downgrade waiting for the month end
+async function keepPlan(user, email, subId) {
+  const a = await athleteOf(user, email);
+  if (!a || !/^sub_\w+$/.test(subId)) return json({ error: "That plan could not be found." }, 404);
+  const { data: mine } = await train().from("enrolments").select("id")
+    .eq("athlete_id", a.id).eq("stripe_subscription_id", subId).in("status", ["active", "past_due"]).limit(1);
+  if (!mine?.length) return json({ error: "That plan could not be found." }, 404);
+  const s = await stripe.subscriptions.retrieve(subId);
+  if (s.schedule) await stripe.subscriptionSchedules.release(typeof s.schedule === "string" ? s.schedule : s.schedule.id);
+  return json({ ok: true });
 }
 
 // Stripe's own page for one of their plans: change plan, card, or cancel.
