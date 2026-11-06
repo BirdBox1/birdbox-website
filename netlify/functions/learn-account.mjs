@@ -35,11 +35,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const RETURN_URL = "https://www.birdboxcoaching.com/learn/#programming";
 const train = () => db.schema("train");
 
-// the plan names the buyer saw (train.stripe_prices labels)
+// the plan names the buyer saw (train.stripe_prices labels), as on the
+// TGC programming page (Nathan, 6 Nov 2026)
 const TIER = {
-  1: "TGC Athlete Programming",
-  2: "TGC Athlete + Community",
-  3: "TGC Athlete + 1:1 Feedback",
+  1: "Gymnastics",
+  2: "Gymnastics + Community",
+  3: "Gymnastics + 1:1 Feedback",
   4: "BirdBox Bespoke 1:1",
   5: "BirdBox Full Programme 1:1",
   6: "Block",
