@@ -38,7 +38,9 @@ const GRAPH = "https://graph.facebook.com/v21.0";
 // Which kinds are worth interrupting somebody's phone for. Everything else
 // still lands in the portal as a badge — a thirty-person seminar would
 // otherwise fire thirty registration messages at every coach on it.
-const SEND_KINDS = ["message", "allocation", "cancelled", "invoice_paid"];
+// "health": someone held for a doctor's note, or one uploaded to check,
+// from the training app (6 Nov 2026, Nathan: act fast to let them in)
+const SEND_KINDS = ["message", "allocation", "cancelled", "invoice_paid", "health"];
 
 // Netlify stops waiting at 26 seconds. Twenty messages at roughly a third of
 // a second each leaves comfortable room; the rest go on the next run, a
