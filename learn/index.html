@@ -1532,7 +1532,8 @@ function courseView(co, mine, preview, trialOk) {
       else if (blog && blog.tier === t.tier) yours = true;
       else if (blog && !blog.subscription) note = "Your plan is given by BirdBox. Talk to us about changing it.";
       else if (blog && blog.paused_until) note = "You can change your plan once your blog is back from your block.";
-      else if (blog) btn = button("Change to this plan →", (b, m) => changeTo(blog.subscription, t.tier, b, m));
+      else if (blog && blog.pending && blog.pending.tier === t.tier) note = "Your plan changes to this on " + day(blog.pending.on) + ".";
+      else if (blog) btn = button("Change to this plan →", (b, m) => changeTo(blog.subscription, t.tier, b, m, { ...blog, toName: t.name }));
       else btn = button("Join →", (b, m) => join({ tier: t.tier }, b, m));
       const c = card("Tier " + t.tier, t.name, price, "per month, VAT included", t.includes, btn, note);
       if (yours) { c.classList.add("yours"); c.insertBefore(el("span", "badge", "Your plan"), c.firstChild); }
@@ -1661,9 +1662,19 @@ function moveCard(m) {
   return c;
 }
 
-async function changeTo(subscription, tier, btn, msg) {
-  btn.disabled = true; const label = btn.textContent; btn.textContent = "Opening…"; msg.textContent = "";
-  try { const r = await account("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "change_plan", subscription, tier }) }); location.href = r.url; }
+// An upgrade starts now, in Stripe's confirm page. A downgrade waits for
+// their next payment date, with no refund: the plan they paid for runs to
+// the end of the month (Nathan, 6 Nov 2026).
+async function changeTo(subscription, tier, btn, msg, current) {
+  const down = current && tier < current.tier;
+  if (down && !confirm("Change to " + (current.toName || "this plan") + " from " + day(current.next_payment) + "?\n\n" +
+    "You keep " + current.name + " until then, and your next payment is at the new price. Nothing is refunded.")) return;
+  btn.disabled = true; const label = btn.textContent; btn.textContent = down ? "Changing…" : "Opening…"; msg.textContent = "";
+  try {
+    const r = await account("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "change_plan", subscription, tier }) });
+    if (r.scheduled) { loaded.programming = loadProgramming(); return; }
+    location.href = r.url;
+  }
   catch (e) { msg.className = "msg err"; msg.textContent = e.message; btn.disabled = false; btn.textContent = label; }
 }
 
@@ -1777,6 +1788,7 @@ async function loadProgramming() {
     else if (kind === "Block" || x.trial) add("Ends", day(x.ends));
     if (x.next_payment) add("Next payment", day(x.next_payment) + (x.amount != null ? " · " + money(x.amount, x.currency) : ""));
     if (x.status === "past_due") add("Payment", "Your last payment did not go through. Update your card with Update billing information.");
+    if (x.pending) add("Changing to", x.pending.name + " from " + day(x.pending.on) + ". You keep " + x.name + " until then.");
     if (x.given) add("Payments", "Given by BirdBox, no payments");
     // paused for a block (Nathan, 1 Nov 2026): the block runs start to
     // finish, so the plan can be changed again once the blog is back
@@ -1801,6 +1813,15 @@ async function loadProgramming() {
         const ch = document.createElement("button"); ch.type = "button"; ch.className = "btn ghost"; ch.textContent = "Change my plan";
         ch.onclick = () => { const t = document.querySelector("#prog-list .shop .tiers"); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); };
         btns.appendChild(ch);
+      }
+      if (x.pending) {
+        const kp = document.createElement("button"); kp.type = "button"; kp.className = "btn ghost"; kp.textContent = "Keep " + x.name;
+        kp.onclick = async () => {
+          kp.disabled = true; msg.textContent = "";
+          try { await account("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "keep_plan", subscription: x.subscription }) }); loaded.programming = loadProgramming(); }
+          catch (e) { kp.disabled = false; msg.className = "msg err"; msg.textContent = e.message; }
+        };
+        btns.appendChild(kp);
       }
       go("Update billing information", "card");
       go("Cancel my plan", "cancel");
