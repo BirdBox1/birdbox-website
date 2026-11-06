@@ -31,6 +31,8 @@ const train = supabase.schema("train");
 const SITE = (process.env.SITE_URL || "https://birdboxcoaching.com").replace(/\/+$/, "");
 const BARNEY = process.env.MOVE_CC || "barney@birdboxcoaching.com";
 const MOVE_DAY = "Monday 9 November";
+// the offer must be taken by then (learn-account.mjs MOVE_DEADLINE), Nathan 6 Nov 2026
+const DEADLINE = "Sunday 22 November";
 const BATCH = 10;
 const APP_STORE = "https://apps.apple.com/app/id6806654607";
 const PLAY_STORE = "https://play.google.com/store/apps/details?id=com.birdboxcoaching.programming";
@@ -112,28 +114,33 @@ async function sendBatch(emails) {
 function write(o) {
   const price = euro(o.price_cents);
   const t3 = 12000 - Math.max(0, 3500 - o.price_cents);
+  const free = o.offer === "free";
+  // the standard offer is Gymnastics + Community for €35 (Nathan, 6 Nov 2026)
   const offerLine = {
-    t2_offer: `Your price is ${price} a month, VAT included. For the same ${price} you can choose Tier 2, which adds the premium community and feedback through it. Your price stays for as long as you keep your plan.`,
-    t1_promised: `You keep your price of ${price} a month, VAT included, for as long as you keep your plan.`,
-    t1_only: `Your price is ${price} a month, VAT included, for as long as you keep your plan.`,
+    t2_offer: `Your plan is Gymnastics + Community for ${price} a month, VAT included: the programming plus the premium community, where coaching questions are answered and you can share your training videos. Your price stays for as long as you keep your plan.`,
+    t1_promised: `You keep your price of ${price} a month, VAT included, for Gymnastics, for as long as you keep your plan.`,
+    t1_only: `Your plan is Gymnastics for ${price} a month, VAT included, for as long as you keep your plan.`,
+    free: "Your account is free: Gymnastics programming, with no card needed.",
   }[o.offer];
-  const payLine = o.free_until
+  const payLine = free ? null : o.free_until
     ? `You have already paid CoachRx up to ${day(o.free_until)}, so nothing is charged for your new plan until then. Your CoachRx payments stop on ${MOVE_DAY}; nothing more is taken there.`
     : "Your first payment is taken when you join. You can take the two-week free trial instead, but if you do, the offer above is no longer available and after the two weeks you will see the normal prices.";
-  // on €35 Tier 3 is the normal €120, so only Tier 2 is offered later
-  const upLine = o.offer === "t1_only" ? null
-    : t3 < 12000
-      ? `For 40 days after you join you can also move up a tier at a reduced price, from the same page: Tier 2 (blog + community) for €35, or Tier 3 (blog + 1:1 feedback from a coach) for ${euro(t3)} a month.`
-      : "If you start on Tier 1, you can still move to Tier 2 for €35 at any time in your first 40 days, from the same page.";
+  // only someone keeping a lower price has reduced upgrades; on €35 the next plan is the normal €120
+  const upLine = o.offer === "t1_promised" && t3 < 12000
+    ? `For 40 days after you join you can also move up at a reduced price, from the same page: Gymnastics + Community for €35, or Gymnastics + 1:1 Feedback for ${euro(t3)} a month.`
+    : null;
 
   const text = [
     `Hi ${o.first_name || "there"},`,
-    `As Barney mentioned, your programming is moving from CoachRx to our own app, BirdBox Coaching, on ${MOVE_DAY}. It is the same programming from the same coaches, with your videos and your training history in one place.`,
+    `As Barney mentioned, your programming is moving from CoachRx to our own app, BirdBox Coaching. CoachRx programming ends on Sunday 8 November, so please move over this weekend. It is the same programming from the same coaches, with your videos in one place.`,
     offerLine,
+    `This offer is open until ${DEADLINE}.`,
     payLine,
     upLine,
     `[[BUTTON: See my offer | ${SITE}/learn/?move=${o.code}]]`,
-    "The button opens BirdBox Learn. Tap \"Email me my login link\" and we send a link to this email address. It takes you straight to your offer: choose your plan and add your card.",
+    free
+      ? "The button opens BirdBox Learn. Tap \"Email me my login link\" and we send a link to this email address. It takes you straight to your offer: tap \"Start my free account\"."
+      : "The button opens BirdBox Learn. Tap \"Email me my login link\" and we send a link to this email address. It takes you straight to your offer: choose your plan and add your card.",
     "Then download the BirdBox Coaching app and sign in with this same email:",
     `[[BUTTON: App Store | ${APP_STORE}]]`,
     `[[BUTTON: Google Play | ${PLAY_STORE}]]`,

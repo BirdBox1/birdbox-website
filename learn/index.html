@@ -1621,7 +1621,7 @@ function moveCard(m) {
     c.appendChild(el("p", "sub", "As you moved over from CoachRx, you can move up at a reduced price until " + day(m.upgrade_until) + ". The new price stays for as long as you keep your plan."));
     const btns = el("div", "btns");
     for (const u of m.upgrades) {
-      const b = el("button", "btn main", (u.tier === 2 ? "Tier 2" : "Tier 3") + " for " + money(u.cents, "eur") + " a month →"); b.type = "button";
+      const b = el("button", "btn main", (u.tier === 2 ? "Gymnastics + Community" : "Gymnastics + 1:1 Feedback") + " for " + money(u.cents, "eur") + " a month →"); b.type = "button";
       b.onclick = () => act({ action: "move_upgrade", tier: u.tier }, b, msg, () => { msg.className = "msg ok"; msg.textContent = "Done. Your plan has changed; it shows in the app within a minute."; b.textContent = "Done"; });
       btns.appendChild(b);
     }
@@ -1629,19 +1629,29 @@ function moveCard(m) {
     return c;
   }
   c.append(el("p", "k", "Your transfer offer"), el("h3", null, (m.first_name ? m.first_name + ", w" : "W") + "elcome to the BirdBox Coaching app"));
-  c.appendChild(el("p", "sub", m.free_until
-    ? "You have already paid CoachRx up to " + day(m.free_until) + ", so nothing is charged until then. Your price stays for as long as you keep your plan."
-    : "Your price stays for as long as you keep your plan."));
+  const until = "This offer is open until " + day(m.deadline) + ".";
   const btns = el("div", "btns");
+  if (m.free) {
+    // staff and free CoachRx accounts (Nathan, 6 Nov 2026): no card
+    c.appendChild(el("p", "sub", "Your account is free: Gymnastics programming, with no card needed. " + until));
+    const b = el("button", "btn main", "Start my free account →"); b.type = "button";
+    b.onclick = () => act({ action: "move_free" }, b, msg, () => { msg.className = "msg ok"; msg.textContent = "Done. Download the BirdBox Coaching app and sign in with this email to see your programming."; b.textContent = "Done"; setTimeout(() => location.reload(), 2500); });
+    btns.appendChild(b);
+    c.append(btns, msg);
+    return c;
+  }
+  c.appendChild(el("p", "sub", (m.free_until
+    ? "You have already paid CoachRx up to " + day(m.free_until) + ", so nothing is charged until then. Your price stays for as long as you keep your plan."
+    : "Your price stays for as long as you keep your plan.") + " " + until));
   const start = (tier, cents) => {
-    const b = el("button", "btn main", "Tier " + tier + ": " + per(cents) + " →"); b.type = "button";
+    const b = el("button", "btn main", (tier === 2 ? "Gymnastics + Community" : "Gymnastics") + ": " + per(cents) + " →"); b.type = "button";
     b.onclick = () => act({ action: "move_start", tier }, b, msg);
     btns.appendChild(b);
   };
-  start(1, m.tier1_cents);
-  if (m.tier2_cents) start(2, m.tier2_cents);
+  // the standard offer is Gymnastics + Community for €35, with no choice of tier (Nathan, 6 Nov 2026)
+  if (m.tier2_cents) start(2, m.tier2_cents); else start(1, m.tier1_cents);
   c.append(btns);
-  if (m.tier2_cents) c.appendChild(el("p", "sub", "Tier 2 adds the premium community and feedback through it, for the same price."));
+  if (m.tier2_cents) c.appendChild(el("p", "sub", "That's the programming plus the premium community, where coaching questions are answered and you can share your training videos."));
   if (m.can_trial) {
     const t = el("div", "movetrial");
     t.appendChild(el("p", "sub", "Or take the two-week free trial instead. If you do, your transfer offer is no longer available, and after the two weeks you will see the normal prices."));

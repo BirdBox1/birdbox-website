@@ -143,7 +143,7 @@ const $ = (id) => document.getElementById(id);
 const day = (iso) => iso ? new Date(iso.length === 10 ? iso + "T12:00:00Z" : iso)
   .toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "";
 const euro = (c) => "€" + (c / 100).toFixed(2);
-const OFFER = { t2_offer: "€35, Tier 2 offer", t1_promised: "€19.98, Tier 1", t1_only: "€35, Tier 1, no offer" };
+const OFFER = { t2_offer: "€35, Gymnastics + Community", t1_promised: "€19.98, Gymnastics", t1_only: "€35, Gymnastics, no offer", free: "Free account" };
 const STATUS = { ready: "Not emailed", emailed: "Emailed", moved: "Moved", trial: "Took the trial", declined: "Not moving" };
 let token = null;
 
@@ -202,7 +202,7 @@ async function load() {
     td[0].querySelector(".who").textContent = name;
     td[0].querySelector(".em").textContent = o.email;
     td[1].textContent = OFFER[o.offer] || o.offer;
-    td[2].textContent = euro(o.price_cents);
+    td[2].textContent = o.offer === "free" ? "Free" : euro(o.price_cents);
     td[3].textContent = o.free_until ? day(o.free_until) : "Pays from day one";
     td[4].querySelector(".st").textContent = where;
     tr.style.cursor = "pointer";

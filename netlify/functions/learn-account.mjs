@@ -10,6 +10,7 @@
 // POST { action: "change_plan", subscription, tier }  -> { url }  tiers 1-3
 // POST { action: "move_start", tier }   -> { url }  a CoachRx athlete's offer
 // POST { action: "move_trial" }         -> { ok }   they take the trial instead
+// POST { action: "move_free" }          -> { ok }   a free Tier 1 account, no card
 // POST { action: "move_upgrade", tier } -> { ok }   a reduced upgrade, 40 days
 // POST { action: "invoice", charge, company?, vat? }  -> { pdf, filename }
 // GET  ?part=me           -> { known }   false: directory-only login
@@ -77,6 +78,7 @@ export default async (req, context) => {
       if (body.action === "keep_plan") return keepPlan(user, email, String(body.subscription || ""));
       if (body.action === "move_start") return moveStart(email, Number(body.tier), context);
       if (body.action === "move_trial") return moveTrial(email);
+      if (body.action === "move_free") return moveFree(user, email);
       if (body.action === "move_upgrade") return moveUpgrade(user, email, Number(body.tier));
       if (body.action === "invoice") return invoice(email, body);
       if (body.action === "seminar_pass") return seminarPass(user, email, String(body.brand || ""));
@@ -439,7 +441,13 @@ async function onlineOffer(user, email, brand) {
 //   offer. Their price lasts while they keep paying.
 //   For 40 days after moving: Tier 2 for €35, and Tier 3 at €120 less the
 //   gap between €35 and their price (€104.98 on €19.98). Not on "t1_only".
+// Changed 6 Nov 2026 (Nathan): the standard offer is Tier 2 for €35 with no
+// choice of tier; "free" is a free Tier 1 account with no card (staff and
+// free CoachRx accounts); and an offer not taken by MOVE_DEADLINE has gone,
+// so their link shows the normal prices. Moved before it, they keep it.
 const MOVE_T2 = 3500, NORMAL_T3 = 12000, T1_STANDARD = 3500;
+export const MOVE_DEADLINE = "2026-11-22";
+const moveOpen = () => new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Dublin" }) <= MOVE_DEADLINE;
 // Ireland included: programming is taxed for Irish buyers too (Kristine, 4 Nov 2026)
 const EU_VAT = ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU",
   "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE"];
@@ -460,12 +468,16 @@ async function moveOfferView(email) {
   const today = new Date().toISOString().slice(0, 10);
   const window = o.status === "moved" && o.upgrade_until && o.upgrade_until >= today && upgradesAllowed(o);
   if (o.status === "moved" && !window) return null;
+  if (o.status !== "moved" && !moveOpen()) return null;
   return {
-    status: o.status, offer: o.offer, first_name: o.first_name,
-    tier1_cents: o.price_cents, tier2_cents: o.offer === "t2_offer" ? MOVE_T2 : null,
+    status: o.status, offer: o.offer, first_name: o.first_name, deadline: MOVE_DEADLINE,
+    free: o.offer === "free",
+    // the standard offer is Tier 2 only; the others Tier 1 at their price
+    tier1_cents: o.offer === "t2_offer" || o.offer === "free" ? null : o.price_cents,
+    tier2_cents: o.offer === "t2_offer" ? MOVE_T2 : null,
     free_until: o.free_until && o.free_until > today ? o.free_until : null,
-    // the trial is only for people not paying CoachRx now
-    can_trial: o.status === "ready" || o.status === "emailed" ? !o.free_until : false,
+    // the trial is only for people not paying CoachRx now, and never instead of a free account
+    can_trial: (o.status === "ready" || o.status === "emailed") && o.offer !== "free" ? !o.free_until : false,
     upgrade_until: window ? o.upgrade_until : null,
     upgrades: window ? [
       ...(o.moved_tier < 2 ? [{ tier: 2, cents: MOVE_T2 }] : []),
@@ -486,8 +498,8 @@ async function tierProduct(tier) {
 async function moveStart(email, tier, context) {
   const o = await moveOffer(email);
   if (!o || !["ready", "emailed"].includes(o.status)) return json({ error: "That offer could not be found. Write to info@birdboxcoaching.com and we'll sort it." }, 404);
-  if (tier === 2 && o.offer !== "t2_offer") return json({ error: "That offer is not available." }, 400);
-  if (![1, 2].includes(tier)) return json({ error: "Which plan?" }, 400);
+  if (!moveOpen()) return json({ error: "Your transfer offer ended on 22 November. The plans below are open to you at the normal prices." }, 400);
+  if (o.offer === "free" || tier !== (o.offer === "t2_offer" ? 2 : 1)) return json({ error: "That offer is not available." }, 400);
   const product = await tierProduct(tier);
   if (!product) return json({ error: "That plan is not on sale yet." }, 400);
   const country = String(context?.geo?.country?.code || "").toUpperCase();
@@ -519,6 +531,28 @@ async function moveTrial(email) {
   const o = await moveOffer(email);
   if (!o || !["ready", "emailed"].includes(o.status) || o.free_until) return json({ error: "That offer could not be found." }, 404);
   await train().from("move_offers").update({ status: "trial" }).eq("id", o.id);
+  return json({ ok: true });
+}
+
+// a free account (staff and free CoachRx accounts, Nathan 6 Nov 2026): the
+// blog at Tier 1 straight away, with no card and nothing in Stripe
+async function moveFree(user, email) {
+  const o = await moveOffer(email);
+  if (!o || o.offer !== "free" || !["ready", "emailed"].includes(o.status)) return json({ error: "That offer could not be found. Write to info@birdboxcoaching.com and we'll sort it." }, 404);
+  if (!moveOpen()) return json({ error: "Your transfer offer ended on 22 November. Write to info@birdboxcoaching.com and we'll sort it." }, 400);
+  const { data: p } = await train().from("stripe_prices").select("track_id")
+    .eq("tier", 1).eq("active", true).not("track_id", "is", null).limit(1).maybeSingle();
+  if (!p?.track_id) return json({ error: "That plan could not be found. Write to info@birdboxcoaching.com." }, 500);
+  let a = await athleteOf(user, email);
+  if (!a) {
+    const { error } = await train().from("athletes").insert({ id: user.id, email, first_name: o.first_name, last_name: o.last_name });
+    if (error) throw new Error(error.message);
+    a = { id: user.id };
+  }
+  const { error: e } = await train().rpc("set_programme", { p_athlete: a.id, p_tier: 1, p_track: p.track_id });
+  if (e) throw new Error(e.message);
+  await train().from("move_offers").update({ status: "moved", athlete_id: a.id, moved_at: new Date().toISOString(),
+    moved_tier: 1, upgrade_until: null }).eq("id", o.id);
   return json({ ok: true });
 }
 
