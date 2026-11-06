@@ -1469,8 +1469,8 @@ async function account(path, opts = {}) {
 // live sale until programming is on sale (once Barney's programming is in):
 // until then members see the short line, and BirdBox staff see a preview
 // whose buttons do nothing. To put it on sale (the trial, the plans and
-// blocks together), set this to true.
-const PROGRAMMING_ON_SALE = false;
+// blocks together), set this to true. It went on sale on 6 Nov 2026.
+const PROGRAMMING_ON_SALE = true; // on sale from 6 Nov 2026 (Nathan)
 const APP_CHECKOUT = "https://app.birdboxcoaching.com/.netlify/functions/checkout";
 
 const APP_TRIAL = "https://app.birdboxcoaching.com/.netlify/functions/trial-signup";
@@ -1776,7 +1776,7 @@ async function loadProgramming() {
     if (x.ends_on) add("Ends", day(x.ends_on) + " (cancelled)");
     else if (kind === "Block" || x.trial) add("Ends", day(x.ends));
     if (x.next_payment) add("Next payment", day(x.next_payment) + (x.amount != null ? " · " + money(x.amount, x.currency) : ""));
-    if (x.status === "past_due") add("Payment", "Your last payment did not go through. Update your card in Manage my plan.");
+    if (x.status === "past_due") add("Payment", "Your last payment did not go through. Update your card with Update billing information.");
     if (x.given) add("Payments", "Given by BirdBox, no payments");
     // paused for a block (Nathan, 1 Nov 2026): the block runs start to
     // finish, so the plan can be changed again once the blog is back
@@ -1795,8 +1795,15 @@ async function loadProgramming() {
         };
         btns.appendChild(m);
       };
-      if (x.paused_until) { go("Update my card", "card"); go("Cancel my plan", "cancel"); }
-      else go("Manage my plan", "");
+      // three plain choices in place of one "Manage my plan" (Nathan, 6 Nov
+      // 2026): change plan here in Learn, the card and cancelling in Stripe
+      if (!x.paused_until && x.tier && x.tier <= 3) {
+        const ch = document.createElement("button"); ch.type = "button"; ch.className = "btn ghost"; ch.textContent = "Change my plan";
+        ch.onclick = () => { const t = document.querySelector("#prog-list .shop .tiers"); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); };
+        btns.appendChild(ch);
+      }
+      go("Update billing information", "card");
+      go("Cancel my plan", "cancel");
       el.append(k, h, dl, btns, msg);
     } else el.append(k, h, dl, btns);
     box.appendChild(el);
