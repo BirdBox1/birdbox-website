@@ -576,8 +576,11 @@ async function portal(user, email, subId, only) {
   if (!mine?.length) return json({ error: "That plan could not be found." }, 404);
   const paused = !!mine[0].paused_for_purchase;
   const s = await stripe.subscriptions.retrieve(subId);
-  const flow = !paused ? null
-    : only === "cancel" ? { type: "subscription_cancel", subscription_cancel: { subscription: subId },
+  // Update billing information and Cancel my plan open Stripe straight on
+  // that step (Nathan, 6 Nov 2026); a paused blog only ever gets those two
+  const step = only === "cancel" || only === "card" ? only : paused ? "card" : "";
+  const flow = !step ? null
+    : step === "cancel" ? { type: "subscription_cancel", subscription_cancel: { subscription: subId },
         after_completion: { type: "redirect", redirect: { return_url: RETURN_URL } } }
     : { type: "payment_method_update",
         after_completion: { type: "redirect", redirect: { return_url: RETURN_URL } } };
