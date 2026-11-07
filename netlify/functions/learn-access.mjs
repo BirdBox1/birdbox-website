@@ -89,22 +89,34 @@ export default async (req) => {
       console.error("learn-access generateLink:", error?.message);
       return ok();
     }
-    await sendLink(email, data.properties.action_link, origin, known);
+    await sendLink(email, data.properties.action_link, origin, known, await firstName(email));
   } catch (err) {
     console.error("learn-access:", err && (err.message || err));
   }
   return ok();
 };
 
-async function sendLink(to, link, origin, known = true) {
+// Their first name for the greeting, where we have it (Nathan, 7 Nov
+// 2026): their CoachRx move offer, then their app record; else "there".
+async function firstName(email) {
+  const train = db.schema("train");
+  const { data: mo } = await train.from("move_offers").select("first_name").eq("email", email).maybeSingle();
+  if (mo?.first_name) return mo.first_name;
+  const { data: a } = await train.from("athletes").select("first_name").ilike("email", email).limit(1);
+  return a?.[0]?.first_name || null;
+}
+
+async function sendLink(to, link, origin, known = true, name = null) {
   const key = process.env.RESEND_API_KEY;
   if (!key) { console.warn("No Resend key; login link not sent to", to); return; }
+  const hi = `Hi ${String(name || "").trim() || "there"},`;
+  const hiHtml = hi.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
   // directory-only: say what the link is for
   const intro = known ? "Here is your BirdBox login link" :
     "Here is your link to the BirdBox Trainer Directory. Add the BirdBox course you did and we will check it; your listing goes live once we have";
   const text =
-`Hi,
+`${hi}
 
 ${intro}:
 
@@ -129,7 +141,7 @@ ${origin}/learn/`;
   <tr><td bgcolor="#191513" style="background:#191513;padding:16px 26px;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#ffffff;">BirdBox Coaching</td></tr>
   <tr><td style="padding:26px 26px 30px;">
     <h1 style="margin:0 0 16px;font-size:22px;color:#191513;letter-spacing:-0.3px;">Your login link</h1>
-    <p style="${p}">Hi,</p>
+    <p style="${p}">${hiHtml}</p>
     <p style="${p}">${intro}. Tap the button and you are logged straight in.</p>
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 18px;"><tr>
       <td bgcolor="#191513" style="background:#191513;border-radius:10px;"><a href="${link.replace(/&/g, "&amp;")}" style="display:inline-block;padding:15px 34px;color:#ffffff;font-size:17px;font-weight:700;text-decoration:none;">Log in</a></td></tr></table>
