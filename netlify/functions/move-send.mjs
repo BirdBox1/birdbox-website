@@ -126,6 +126,8 @@ function write(o) {
   const t3 = 12000 - Math.max(0, 3500 - o.price_cents);
   const free = o.offer === "free";
   const paid = !free && o.free_until;
+  // on a CoachRx free trial, never paid: the free time is given, not paid for (Nathan, 7 Nov 2026)
+  const trial = /^TRIALING/i.test(o.coachrx_status || "");
   const name = o.first_name || "there";
   const link = `${SITE}/learn/?move=${o.code}`;
 
@@ -147,11 +149,15 @@ function write(o) {
     ? {
         head: `Nothing is taken until ${dayLong(o.free_until)}`,
         rows: [
-          `You have already paid CoachRx up to <b>${dayLong(o.free_until)}</b>, so the new app is yours free until then.`,
+          trial
+            ? `As Barney said, you get the new app <b>free until ${dayLong(o.free_until)}</b>, in place of your CoachRx free trial.`
+            : `You have already paid CoachRx up to <b>${dayLong(o.free_until)}</b>, so the new app is yours free until then.`,
           // no risk in adding the card (Nathan, 7 Nov 2026)
           `<b>Not sure yet? Add your card anyway.</b> If you decide not to continue, cancel in BirdBox Learn (Student Login on our website) any time before ${day(o.free_until)} and nothing is ever taken.`,
           `If you carry on, your first payment is ${price} on ${day(o.free_until)}, then on ${monthly}.`,
-          "Your CoachRx payments are stopped, so nothing more is taken there. You will never be charged twice.",
+          trial
+            ? "Your CoachRx trial ends without any payment, so nothing is taken there. You will never be charged twice."
+            : "Your CoachRx payments are stopped, so nothing more is taken there. You will never be charged twice.",
         ],
       }
     : {
