@@ -57,7 +57,8 @@ export default async (req) => {
       .select("email").eq("code", body.move).maybeSingle();
     if (!mo) return ok();
     email = mo.email;
-    body.next = "/learn/";
+    // opens on their programming offer, not My courses (Nathan, 7 Nov 2026)
+    body.next = "/learn/?move_offer=1";
   }
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 254) return ok();
 
@@ -118,15 +119,26 @@ Did not ask for this? You can ignore this email.
 BirdBox Coaching
 ${origin}/learn/`;
 
-  const html = `<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#16181b;max-width:520px">
-<p>Hi,</p>
-<p>${intro}.</p>
-<p style="margin:28px 0"><a href="${link.replace(/&/g, "&amp;")}" style="display:inline-block;background:#4FA8DE;color:#0C1116;text-decoration:none;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:14px;padding:14px 26px">Log in</a></p>
-<p>The link works once and expires in 1 hour. If it has run out, ask for a new one at <a href="${origin}/learn/">${origin.replace(/^https?:\/\//, "")}/learn</a>.</p>
-<p>Once you are in, you can set a password so you can log in without waiting for an email next time.</p>
-<p style="color:#6c7178;font-size:14px">Did not ask for this? You can ignore this email.</p>
-<p>BirdBox Coaching</p>
-</div>`;
+  // Laid out as the move and welcome emails (Nathan, 7 Nov 2026): a white
+  // card, one large dark button, and the password step said plainly.
+  const p = "margin:0 0 14px;font-size:15px;line-height:1.6;color:#3d3936;";
+  const html = `<!doctype html>
+<html><body style="margin:0;padding:0;background:#f4f3f1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f4f3f1" style="background:#f4f3f1;padding:32px 16px;"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:520px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e6e3e0;">
+  <tr><td bgcolor="#191513" style="background:#191513;padding:16px 26px;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#ffffff;">BirdBox Coaching</td></tr>
+  <tr><td style="padding:26px 26px 30px;">
+    <h1 style="margin:0 0 16px;font-size:22px;color:#191513;letter-spacing:-0.3px;">Your login link</h1>
+    <p style="${p}">Hi,</p>
+    <p style="${p}">${intro}. Tap the button and you are logged straight in.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 18px;"><tr>
+      <td bgcolor="#191513" style="background:#191513;border-radius:10px;"><a href="${link.replace(/&/g, "&amp;")}" style="display:inline-block;padding:15px 34px;color:#ffffff;font-size:17px;font-weight:700;text-decoration:none;">Log in</a></td></tr></table>
+    <p style="${p}"><b>Then set a password.</b> Once you are in, a box at the top asks you for one, so next time you can log in with your email and password without waiting for a link.</p>
+    <p style="${p}">The link works once and runs out after 1 hour. If it has, ask for a new one at <a href="${origin}/learn/" style="color:#191513;">${origin.replace(/^https?:\/\//, "")}/learn</a>.</p>
+    <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#3d3936;">Did not ask for this? You can ignore this email.</p>
+    <p style="margin:0;font-size:15px;line-height:1.6;color:#191513;">BirdBox Coaching</p>
+  </td></tr>
+</table></td></tr></table></body></html>`;
 
   try {
     const res = await fetch("https://api.resend.com/emails", {

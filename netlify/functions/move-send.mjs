@@ -71,7 +71,7 @@ export default async (request) => {
       if (!o) return json({ error: "No offer for that email." }, 404);
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(b.to || ""))) return json({ error: "Say who the test goes to." }, 400);
       const m = write(o);
-      const r = await sendEmail({ to: b.to, sender: SENDER, subject: "[Test] " + m.subject, text: m.text, copyOffice: false });
+      const r = await sendEmail({ to: b.to, sender: SENDER, subject: "[Test] " + m.subject, text: m.text, html: m.html, copyOffice: false });
       return r.ok ? json({ sent: true, to: b.to }) : json({ error: "The email did not send: " + r.error }, 502);
     }
     if (b.send === true) return json(await sendBatch(b.emails));
@@ -100,7 +100,7 @@ async function sendBatch(emails) {
   const sent = [], failed = [];
   for (const o of list || []) {
     const m = write(o);
-    const r = await sendEmail({ to: o.email, sender: SENDER, subject: m.subject, text: m.text,
+    const r = await sendEmail({ to: o.email, sender: SENDER, subject: m.subject, text: m.text, html: m.html,
       copyOffice: false, cc: [BARNEY] });
     if (!r.ok) { failed.push({ email: o.email, error: r.error }); continue; }
     await train.from("move_offers").update({ status: "emailed", emailed_at: new Date().toISOString() }).eq("id", o.id);
@@ -110,45 +110,131 @@ async function sendBatch(emails) {
   return { sent, failed, remaining: count || 0 };
 }
 
-// The email, written for this one person's offer
+// The email, written for this one person's offer. Redesigned 7 Nov 2026
+// (Nathan): The Gymnastics Course logo at the top as on the welcome email;
+// "improved programming"; what they get and what it normally costs; their
+// own payment day in a box of its own (card now, nothing taken until the
+// date they paid CoachRx up to, CoachRx payments stopped, never charged
+// twice); one dark "See my offer" button and one "Get the app" button with
+// the two stores as small links, as the welcome email has.
+const LOGO = "https://birdbox-train.netlify.app/logos/email-tgc.png";
+const GET_APP = "https://birdbox-train.netlify.app/get-app.html";
+const NORMAL = { 1: 3500, 2: 6000, 3: 12000 };
+
 function write(o) {
   const price = euro(o.price_cents);
   const t3 = 12000 - Math.max(0, 3500 - o.price_cents);
   const free = o.offer === "free";
-  // the standard offer is Gymnastics + Community for €35 (Nathan, 6 Nov 2026)
-  const offerLine = {
-    t2_offer: `Your plan is Gymnastics + Community for ${price} a month, VAT included: the programming plus the premium community, where coaching questions are answered and you can share your training videos. Your price stays for as long as you keep your plan.`,
-    t1_promised: `You keep your price of ${price} a month, VAT included, for Gymnastics, for as long as you keep your plan.`,
-    t1_only: `Your plan is Gymnastics for ${price} a month, VAT included, for as long as you keep your plan.`,
-    free: "Your account is free: Gymnastics programming, with no card needed.",
+  const paid = !free && o.free_until;
+  const name = o.first_name || "there";
+  const link = `${SITE}/learn/?move=${o.code}`;
+
+  // what they get, and what it normally costs
+  const plan = {
+    t2_offer: { title: "Gymnastics + Community", line: `Normally ${euro(NORMAL[2])} a month. Yours for <b>${price} a month</b>, VAT included, for as long as you keep your plan.`,
+      what: "The improved TGC programming plus the premium community: coaching questions answered, a place to share your training videos, and feedback from Barney in the group." },
+    t1_promised: { title: "Gymnastics", line: `Normally ${euro(NORMAL[1])} a month. You keep <b>${price} a month</b>, VAT included, for as long as you keep your plan.`,
+      what: "The improved TGC programming, with every session, demonstration video and your results in the app." },
+    t1_only: { title: "Gymnastics", line: `<b>${price} a month</b>, VAT included, for as long as you keep your plan.`,
+      what: "The improved TGC programming, with every session, demonstration video and your results in the app." },
+    free: { title: "Gymnastics: free account", line: "<b>Free</b>. No card needed.",
+      what: "The improved TGC programming, with every session, demonstration video and your results in the app." },
   }[o.offer];
-  const payLine = free ? null : o.free_until
-    ? `You have already paid CoachRx up to ${day(o.free_until)}, so nothing is charged for your new plan until then. Your CoachRx payments stop on ${MOVE_DAY}; nothing more is taken there.`
-    : "Your first payment is taken when you join. You can take the two-week free trial instead, but if you do, the offer above is no longer available and after the two weeks you will see the normal prices.";
-  // only someone keeping a lower price has reduced upgrades; on €35 the next plan is the normal €120
+
+  // their own payment day
+  const monthly = paid ? `the ${ordinal(Number(o.free_until.slice(8, 10)))} of each month` : null;
+  const payBox = free ? null : paid
+    ? {
+        head: `Nothing is taken until ${dayLong(o.free_until)}`,
+        rows: [
+          `You have already paid CoachRx up to <b>${dayLong(o.free_until)}</b>, so the new app is yours free until then.`,
+          // no risk in adding the card (Nathan, 7 Nov 2026)
+          `<b>Not sure yet? Add your card anyway.</b> If you decide not to continue, cancel in BirdBox Learn (Student Login on our website) any time before ${day(o.free_until)} and nothing is ever taken.`,
+          `If you carry on, your first payment is ${price} on ${day(o.free_until)}, then on ${monthly}.`,
+          "Your CoachRx payments are stopped, so nothing more is taken there. You will never be charged twice.",
+        ],
+      }
+    : {
+        // they have had the programming free while the app was built (Barney and Nathan, 7 Nov 2026)
+        head: "Your first payment is when you join",
+        rows: [
+          "When the programme moved to CoachRx, a payment was never set up on your account, so you have had your programming free while we built the new app. Thank you for your patience. We will not ask for anything you missed.",
+          `To carry on in the new app, a paid plan now starts: your first ${price} is taken when you join, then on the same day each month.`,
+          "You can take the two-week free trial instead, but if you do, this offer is no longer available and afterwards you see the normal prices.",
+        ],
+      };
+
   const upLine = o.offer === "t1_promised" && t3 < 12000
     ? `For 40 days after you join you can also move up at a reduced price, from the same page: Gymnastics + Community for €35, or Gymnastics + 1:1 Feedback for ${euro(t3)} a month.`
     : null;
+  const steps = [
+    `Tap <b>See my offer</b>, then <b>Email me my login link</b>. We email a link to this address.`,
+    free ? "The link opens your offer. Tap <b>Start my free account</b>." : "The link opens your offer. Tap the plan and add your card.",
+    "Get the BirdBox Coaching app and sign in with this same email.",
+  ];
+  const intro = "As Barney mentioned, your TGC programming is moving from CoachRx to our own app, BirdBox Coaching. It is improved programming from the same coaches, with your sessions, videos and results in one place. CoachRx programming ends on Sunday 8 November, so please move over this weekend.";
 
   const text = [
-    `Hi ${o.first_name || "there"},`,
-    `As Barney mentioned, your programming is moving from CoachRx to our own app, BirdBox Coaching. CoachRx programming ends on Sunday 8 November, so please move over this weekend. It is the same programming from the same coaches, with your videos in one place.`,
-    offerLine,
-    `This offer is open until ${DEADLINE}.`,
-    payLine,
+    `Hi ${name},`,
+    intro,
+    `YOUR PLAN: ${plan.title}. ${strip(plan.line)} ${plan.what}`,
+    payBox && `${payBox.head.toUpperCase()}\n${payBox.rows.map((r) => "- " + strip(r)).join("\n")}`,
     upLine,
-    `[[BUTTON: See my offer | ${SITE}/learn/?move=${o.code}]]`,
-    free
-      ? "The button opens BirdBox Learn. Tap \"Email me my login link\" and we send a link to this email address. It takes you straight to your offer: tap \"Start my free account\"."
-      : "The button opens BirdBox Learn. Tap \"Email me my login link\" and we send a link to this email address. It takes you straight to your offer: choose your plan and add your card.",
-    "Then download the BirdBox Coaching app and sign in with this same email:",
-    `[[BUTTON: App Store | ${APP_STORE}]]`,
-    `[[BUTTON: Google Play | ${PLAY_STORE}]]`,
+    `This offer is open until ${DEADLINE}.`,
+    `[[BUTTON: See my offer | ${link}]]`,
+    steps.map((s, i) => `${i + 1}. ${strip(s)}`).join("\n"),
+    `[[BUTTON: Get the app | ${GET_APP}]]`,
+    `Or go straight to the App Store (${APP_STORE}) or Google Play (${PLAY_STORE}).`,
     "Any questions, just reply to this email. Barney is copied in.",
     "Nathan and Barney\nBirdBox Coaching",
   ].filter(Boolean).join("\n\n");
 
-  return { subject: "Your programming is moving to the BirdBox Coaching app", text };
+  const p = "margin:0 0 14px;font-size:15px;line-height:1.6;color:#3d3936;";
+  const head = "margin:22px 0 8px;font-size:13px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:#191513;";
+  const button = (href, label) => `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 14px;"><tr>
+      <td bgcolor="#191513" style="background:#191513;border-radius:10px;"><a href="${href}" style="display:inline-block;padding:14px 26px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;">${label}</a></td></tr></table>`;
+  const html = `<!doctype html>
+<html><body style="margin:0;padding:0;background:#f4f3f1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3f1;padding:32px 16px;"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e6e3e0;">
+  <tr><td style="padding:22px 26px 14px;" align="center">
+    <img src="${LOGO}" alt="The Gymnastics Course" width="300" style="display:block;width:100%;max-width:300px;height:auto;border:0;" />
+  </td></tr>
+  <tr><td style="padding:8px 26px 30px;">
+    <h1 style="margin:0 0 16px;font-size:22px;color:#191513;letter-spacing:-0.3px;">Your programming is moving</h1>
+    <p style="${p}">Hi ${esc(name)},</p>
+    <p style="${p}">${intro}</p>
+
+    <p style="${head}">Your plan</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 6px;border:1px solid #e6e3e0;border-radius:10px;"><tr><td style="padding:16px 18px;">
+      <p style="margin:0 0 6px;font-size:18px;font-weight:700;color:#191513;">${plan.title}</p>
+      <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#191513;">${plan.line}</p>
+      <p style="margin:0;font-size:14px;line-height:1.6;color:#3d3936;">${plan.what}</p>
+    </td></tr></table>
+
+    ${payBox ? `<p style="${head}">Your payments</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 6px;background:#f4f3f1;border-radius:10px;" bgcolor="#f4f3f1"><tr><td bgcolor="#f4f3f1" style="padding:16px 18px;">
+      <p style="margin:0 0 10px;font-size:17px;font-weight:700;color:#191513;">${payBox.head}</p>
+      ${payBox.rows.map((r) => `<p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#191513;">${r}</p>`).join("")}
+    </td></tr></table>` : ""}
+
+    ${upLine ? `<p style="${p}margin-top:14px;">${upLine}</p>` : ""}
+    <p style="margin:18px 0 4px;font-size:15px;line-height:1.6;color:#191513;"><b>This offer is open until ${DEADLINE}.</b></p>
+    ${button(link, "See my offer")}
+
+    <p style="${head}">How to move</p>
+    ${steps.map((s, i) => `<p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#3d3936;">${i + 1}. ${s}</p>`).join("")}
+    ${button(GET_APP, "Get the app")}
+    <p style="margin:0 0 18px;font-size:13px;line-height:1.6;color:#3d3936;">It opens the App Store on an iPhone and Google Play on Android. Or go straight to
+      <a href="${APP_STORE}" style="color:#191513;">App Store</a> · <a href="${PLAY_STORE}" style="color:#191513;">Google Play</a>.</p>
+
+    <p style="${p}">Any questions, just reply to this email. Barney is copied in.</p>
+    <p style="margin:0;font-size:15px;line-height:1.6;color:#191513;">Nathan and Barney<br>BirdBox Coaching</p>
+  </td></tr>
+  <tr><td style="padding:14px 26px;border-top:1px solid #e6e3e0;font-size:12px;color:#3d3936;">BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland</td></tr>
+</table></td></tr></table></body></html>`;
+
+  return { subject: "Your programming is moving to the BirdBox Coaching app", text, html };
 }
 
 function euro(cents) {
@@ -158,6 +244,19 @@ function euro(cents) {
 function day(d) {
   return new Date(d + "T12:00:00Z").toLocaleDateString("en-IE", { day: "numeric", month: "long", timeZone: "UTC" });
 }
+
+function dayLong(d) {
+  const t = new Date(d + "T12:00:00Z");
+  return t.toLocaleDateString("en-IE", { weekday: "long", timeZone: "UTC" }) + " " + day(d);
+}
+
+function ordinal(n) {
+  const s = n % 100 >= 11 && n % 100 <= 13 ? "th" : { 1: "st", 2: "nd", 3: "rd" }[n % 10] || "th";
+  return n + s;
+}
+
+const strip = (s) => String(s).replace(/<[^>]+>/g, "");
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
