@@ -113,7 +113,9 @@
   .coachsel { font-size:0.78rem; padding:0.2rem 0.35rem; max-width:9.5rem; }
 
   /* ---------- coach grid ---------- */
-  .gridwrap { overflow:auto; -webkit-overflow-scrolling:touch;
+  /* Scrolls inside its own box, so the dates and "No coach yet" can
+     stay pinned at the top while the coaches scroll under them. */
+  .gridwrap { overflow:auto; -webkit-overflow-scrolling:touch; max-height:85vh;
               border-top:1px solid var(--rule); background:var(--card); }
   table.grid { border-collapse:separate; border-spacing:0; font-size:0.78rem; }
   .grid th, .grid td { padding:0; border-right:1px solid var(--rule);
@@ -149,7 +151,9 @@
                padding:0 1.1rem 0.7rem; }
   .hiddenbar .lab { font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase;
                     color:var(--muted); font-weight:600; }
-  tr.unassigned td, tr.unassigned th.who { background:#fffdf5; }
+  tr.unassigned td, tr.unassigned th.who { background:#fffdf5; position:sticky; z-index:2;
+                                           box-shadow:0 2px 0 var(--rule); }
+  tr.unassigned th.who { z-index:4; }
 
   .chip { display:block; margin:1px; border-radius:3px; color:#fff;
           font-size:0.58rem; font-weight:700; padding:0.12rem 0.08rem; line-height:1.1;
@@ -1071,14 +1075,16 @@ function renderGrid() {
 
   const order = coachOrder();
   const shown = order.filter(s => !hiddenCoaches.has(s.id));
+  // Courses still needing a coach go first, so they are seen before anything else.
   let body = "<tbody>";
+  body += gridRow({ id:"none", full_name:"No coach yet" }, cells.get("none"), months, -1, 0, true);
   shown.forEach((s, idx) => {
     body += gridRow(s, cells.get(s.id), months, idx, shown.length);
   });
-  body += gridRow({ id:"none", full_name:"No coach yet" }, cells.get("none"), months, -1, 0, true);
   body += "</tbody>";
 
   $("gridwrap").innerHTML = `<table class="grid">${head}${body}</table>`;
+  pinTop();
 
   // Anybody folded away, with a tap to bring them back.
   const away = order.filter(s => hiddenCoaches.has(s.id));
@@ -1124,6 +1130,19 @@ function renderGrid() {
   const nw = all.filter(i => i.workshop).length;
   say(`${nc} on sale, ${all.length - nc} planned in this view.` +
       (nw ? ` ${nw} workshop${nw===1?"":"s"}, shown hollow with the day.` : ""));
+}
+
+// The two date rows and "No coach yet" stay at the top of the grid as it
+// scrolls. Each pinned row sits just below the ones above it, so it needs
+// their heights, which are only known once the table is drawn.
+function pinTop() {
+  const t = $("gridwrap").querySelector("table.grid");
+  if (!t || !t.tHead) return;
+  const [months, weeks] = t.tHead.rows;
+  const h1 = months.getBoundingClientRect().height;
+  weeks.querySelectorAll("th").forEach(th => th.style.top = h1 + "px");
+  const h2 = weeks.getBoundingClientRect().height;
+  t.querySelectorAll("tr.unassigned > *").forEach(c => c.style.top = (h1 + h2) + "px");
 }
 
 function gridRow(person, row, months, idx, total, unassigned) {
