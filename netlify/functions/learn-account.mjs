@@ -561,6 +561,11 @@ async function moveFree(user, email) {
   }
   const { error: e } = await train().rpc("set_programme", { p_athlete: a.id, p_tier: 1, p_track: p.track_id });
   if (e) throw new Error(e.message);
+  // marked free, so the coach portal shows "Free" and counts them apart
+  // from paying athletes (Nathan, 7 Nov 2026)
+  const { error: fe } = await train().from("enrolments").update({ is_free: true })
+    .eq("athlete_id", a.id).eq("track_id", p.track_id).in("status", ["active", "consulting"]);
+  if (fe) console.error("move_free is_free:", fe.message);
   await train().from("move_offers").update({ status: "moved", athlete_id: a.id, moved_at: new Date().toISOString(),
     moved_tier: 1, upgrade_until: null }).eq("id", o.id);
   return json({ ok: true });
