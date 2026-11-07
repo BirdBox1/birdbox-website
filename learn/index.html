@@ -198,7 +198,10 @@
   .tier .btn:hover{background:transparent;color:var(--ink)}
   .tier .btn[disabled]{opacity:1;cursor:default;background:transparent;border-color:#6A6466;color:var(--ink)}
   .preview{border:1px dashed var(--ink);padding:12px 16px;margin:0 0 6px;max-width:1000px;font-size:15px;line-height:1.5}
-  .ctabs{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
+  /* four equal boxes, each logo fitted (Nathan, 7 Nov 2026) */
+  .ctabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0 12px;max-width:640px}
+  /* never three and one: on a very narrow phone, two and two */
+  @media (max-width:340px){.ctabs{grid-template-columns:repeat(2,1fr)}}
   .movecard{max-width:1000px}
   .getapp{font-size:16px;margin:0 0 16px;color:var(--ink)}
   .getapp a{color:var(--ink);text-decoration:underline;font-weight:700}
@@ -208,7 +211,7 @@
   .curline{font-size:15px;margin:0 0 16px;color:var(--ink);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
   .curline .link{background:none;border:0;padding:0;font:inherit;color:var(--ink);text-decoration:underline;cursor:pointer}
   .curline select{font:inherit;font-size:16px;padding:6px 8px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
-  .ctabs button{font:inherit;font-weight:800;letter-spacing:.06em;padding:10px 20px;background:transparent;color:var(--ink);border:1px solid var(--ink);cursor:pointer}
+  .ctabs button{font:inherit;font-weight:800;letter-spacing:.06em;padding:10px 8px;height:64px;display:flex;align-items:center;justify-content:center;background:transparent;color:var(--ink);border:1px solid var(--ink);cursor:pointer}
   .ctabs button.on{font-weight:800}
   h2.mine{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:6px 0 12px}
   .soon{font-size:22px;font-weight:800;margin:24px 0}
@@ -1930,6 +1933,10 @@ async function loadProgramming() {
       b.classList.toggle("on", on); b.setAttribute("aria-selected", on ? "true" : "false");
       const c = BRAND[b.dataset.course] || BRAND.tgc;
       b.style.background = on ? c.c : ""; b.style.borderColor = on ? c.c : ""; b.style.color = on ? c.on : "";
+      // on its own colour the logo goes one colour, so no letter vanishes:
+      // white on red and green, dark on yellow (Nathan, 7 Nov 2026)
+      const img = b.querySelector("img");
+      if (img) img.style.filter = on ? (c.on === "#FFFFFF" ? "brightness(0) invert(1)" : "brightness(0)") : "";
     });
     panel.innerHTML = "";
     const co = courses.find((c) => c.brand === current) || { brand: current, plans: [], one_to_one: [], blocks: [], coming_soon: true };
@@ -1956,7 +1963,7 @@ async function loadProgramming() {
     // the course logo, not its letters (Nathan, 7 Nov 2026)
     const b = document.createElement("button"); b.type = "button"; b.dataset.course = c;
     const logo = document.createElement("img"); logo.src = (BRAND[c] || BRAND.tgc).mark; logo.alt = "";
-    logo.style.cssText = "display:block;height:34px;width:auto;margin:0 auto";
+    logo.style.cssText = "display:block;max-height:36px;max-width:100%;width:auto;height:auto;margin:0 auto";
     b.appendChild(logo); b.setAttribute("aria-label", c.toUpperCase());
     b.setAttribute("role", "tab");
     b.onclick = () => { current = c; draw(); };
