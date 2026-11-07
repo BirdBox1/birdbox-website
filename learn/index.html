@@ -1922,9 +1922,12 @@ async function loadProgramming() {
   const courses = (d.shop && d.shop.courses) || [];
   const mineOf = (b) => d.plans.filter((x) => x.brand === b);
   const blocksOf = (b) => d.blocks.filter((x) => x.brand === b);
-  // open on the course they train on, else TGC
-  const first = (d.plans[0] && d.plans[0].brand) || (d.blocks[0] && d.blocks[0].brand) || "tgc";
-  let current = courses.some((c) => c.brand === first) ? first : "tgc";
+  // open on the course they pay for, then one given or on trial, then a
+  // block, else TGC; even a course whose plans are not on sale yet
+  // (Nathan, 7 Nov 2026)
+  const paid = d.plans.find((x) => x.subscription && !x.trial);
+  const first = (paid || d.plans[0] || d.blocks[0] || { brand: "tgc" }).brand || "tgc";
+  let current = ["tgc", "tcc", "tec", "twc"].includes(first) ? first : "tgc";
   const bar = document.createElement("div"); bar.className = "ctabs"; bar.setAttribute("role", "tablist");
   const panel = document.createElement("div");
   const draw = () => {
