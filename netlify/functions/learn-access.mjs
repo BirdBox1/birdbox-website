@@ -73,6 +73,16 @@ export default async (req) => {
     if ((count || 0) >= 3) return ok();
     await db.from("directory_link_sends").insert({ email });
 
+    // From the welcome back email's box (?offer=back, Nathan, 7 Nov 2026):
+    // a past member with an offer gets their login link; any other email
+    // gets a note saying we have no offer under it, never the Trainer
+    // Directory link, which only confused people.
+    if (body.offer === "back") {
+      const { data: cb } = await db.schema("train").from("comeback_offers")
+        .select("first_name,status").eq("email", email).maybeSingle();
+      if (!cb || !["emailed", "joined"].includes(cb.status)) { await sendNoOffer(email, origin); return ok(); }
+    }
+
     const known = await knownToBirdBox(email);
 
     const { error: cErr } = await db.auth.admin.createUser({ email, email_confirm: true });
@@ -102,6 +112,8 @@ async function firstName(email) {
   const train = db.schema("train");
   const { data: mo } = await train.from("move_offers").select("first_name").eq("email", email).maybeSingle();
   if (mo?.first_name) return mo.first_name;
+  const { data: cb } = await train.from("comeback_offers").select("first_name").eq("email", email).maybeSingle();
+  if (cb?.first_name) return cb.first_name;
   const { data: a } = await train.from("athletes").select("first_name").ilike("email", email).limit(1);
   return a?.[0]?.first_name || null;
 }
@@ -124,9 +136,7 @@ ${link}
 
 Tap it and you go straight in, logged in. The link works once and expires in 1 hour. If it has run out, ask for a new one at ${origin}/learn/
 
-Once you are in, you can set a password under "Set or change your password" so you can log in without waiting for an email next time.
-
-Did not ask for this? You can ignore this email.
+${known ? 'Once you are in, a box at the top asks you for a password, so next time you can log in with your email and password without waiting for a link.\n\n' : ""}Did not ask for this? You can ignore this email.
 
 BirdBox Coaching
 ${origin}/learn/`;
@@ -145,7 +155,7 @@ ${origin}/learn/`;
     <p style="${p}">${intro}. Tap the button and you are logged straight in.</p>
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 18px;"><tr>
       <td bgcolor="#191513" style="background:#191513;border-radius:10px;"><a href="${link.replace(/&/g, "&amp;")}" style="display:inline-block;padding:15px 34px;color:#ffffff;font-size:17px;font-weight:700;text-decoration:none;">Log in</a></td></tr></table>
-    <p style="${p}"><b>Then set a password.</b> Once you are in, a box at the top asks you for one, so next time you can log in with your email and password without waiting for a link.</p>
+    ${known ? `<p style="${p}"><b>Then set a password.</b> Once you are in, a box at the top asks you for one, so next time you can log in with your email and password without waiting for a link.</p>` : ""}
     <p style="${p}">The link works once and runs out after 1 hour. If it has, ask for a new one at <a href="${origin}/learn/" style="color:#191513;">${origin.replace(/^https?:\/\//, "")}/learn</a>.</p>
     <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#3d3936;">Did not ask for this? You can ignore this email.</p>
     <p style="margin:0;font-size:15px;line-height:1.6;color:#191513;">BirdBox Coaching</p>
@@ -168,5 +178,51 @@ ${origin}/learn/`;
     if (!res.ok) console.error("Resend rejected the login link to", to, await res.text());
   } catch (err) {
     console.error("Could not send the login link to", to, err.message);
+  }
+}
+
+// Asked from the welcome back box with an email that has no offer
+// (Nathan, 7 Nov 2026): say so, and how to get in with the right one.
+async function sendNoOffer(to, origin) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) { console.warn("No Resend key; no-offer note not sent to", to); return; }
+  const p = "margin:0 0 14px;font-size:15px;line-height:1.6;color:#3d3936;";
+  const text =
+`Hi there,
+
+You asked for a login link to your welcome back offer, but we do not have an offer under this email address.
+
+The offer is under the email address our welcome back email was sent to. Open that email, tap See my offer, and type that address.
+
+Cannot find it, or think this is wrong? Just reply to this email and we will sort it out.
+
+BirdBox Coaching
+${origin}/learn/`;
+  const html = `<!doctype html>
+<html><body style="margin:0;padding:0;background:#f4f3f1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f4f3f1" style="background:#f4f3f1;padding:32px 16px;"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:520px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e6e3e0;">
+  <tr><td bgcolor="#191513" style="background:#191513;padding:16px 26px;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#ffffff;">BirdBox Coaching</td></tr>
+  <tr><td style="padding:26px 26px 30px;">
+    <h1 style="margin:0 0 16px;font-size:22px;color:#191513;letter-spacing:-0.3px;">We could not find your offer</h1>
+    <p style="${p}">Hi there,</p>
+    <p style="${p}">You asked for a login link to your welcome back offer, but we do not have an offer under this email address.</p>
+    <p style="${p}">The offer is under the email address our welcome back email was sent to. Open that email, tap <b>See my offer</b>, and type that address.</p>
+    <p style="${p}">Cannot find it, or think this is wrong? Just reply to this email and we will sort it out.</p>
+    <p style="margin:0;font-size:15px;line-height:1.6;color:#191513;">BirdBox Coaching</p>
+  </td></tr>
+</table></td></tr></table></body></html>`;
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: `BirdBox Coaching <${FROM}>`, to: [to], reply_to: OFFICE,
+        subject: "Your BirdBox welcome back offer", text, html,
+      }),
+    });
+    if (!res.ok) console.error("Resend rejected the no-offer note to", to, await res.text());
+  } catch (err) {
+    console.error("Could not send the no-offer note to", to, err.message);
   }
 }
