@@ -718,6 +718,7 @@
     </div>
     <div class="mgroup" id="mg-business">
       <span class="mhead">Business</span>
+      <a class="linkbtn hidden" id="saleslink" href="/portal/sales/">Sales</a>
       <button id="reconcilebtn" class="hidden" type="button">Check plan payments</button>
       <a class="linkbtn hidden" id="codeslink" href="/portal/codes/">Discount codes</a>
       <a class="linkbtn hidden" id="giftlink" href="/portal/gift-cards/">Gift cards</a>
@@ -3350,6 +3351,7 @@ $("signout").addEventListener("click", async () => {
   if (toast) toast.remove();
   $("codeslink").classList.add("hidden");
   $("giftlink").classList.add("hidden");
+  $("saleslink").classList.add("hidden");
       $("availlink").classList.add("hidden");
   $("bloglink").classList.add("hidden");
   $("feedbacklink").classList.add("hidden");
@@ -3417,6 +3419,7 @@ async function start() {
       refreshWorkshopFlag();
   $("codeslink").classList.toggle("hidden", !admin);
   $("giftlink").classList.toggle("hidden", !admin);
+  $("saleslink").classList.toggle("hidden", !admin);
   // Every coach can write a post; admins also review and publish.
   $("bloglink").classList.remove("hidden");
     refreshBlogFlag();
