@@ -545,7 +545,8 @@ async function moveTrial(email) {
 }
 
 // a free account (staff and free CoachRx accounts, Nathan 6 Nov 2026): the
-// blog at Tier 1 straight away, with no card and nothing in Stripe
+// blog straight away (Tier 2 for our coaches, Tier 1 for others), with no
+// card and nothing in Stripe
 async function moveFree(user, email) {
   const o = await moveOffer(email);
   if (!o || o.offer !== "free" || !["ready", "emailed"].includes(o.status)) return json({ error: "That offer could not be found. Write to info@birdboxcoaching.com and we'll sort it." }, 404);
@@ -559,7 +560,10 @@ async function moveFree(user, email) {
     if (error) throw new Error(error.message);
     a = { id: user.id };
   }
-  const { error: e } = await train().rpc("set_programme", { p_athlete: a.id, p_tier: 1, p_track: p.track_id });
+  // our coaches get Tier 2, everyone else Tier 1 (Nathan, 7 Nov 2026): a
+  // coach's offer is marked "Coach: …" in its notes
+  const tier = /^coach\b/i.test(o.notes || "") ? 2 : 1;
+  const { error: e } = await train().rpc("set_programme", { p_athlete: a.id, p_tier: tier, p_track: p.track_id });
   if (e) throw new Error(e.message);
   // marked free, so the coach portal shows "Free" and counts them apart
   // from paying athletes (Nathan, 7 Nov 2026)
@@ -567,7 +571,7 @@ async function moveFree(user, email) {
     .eq("athlete_id", a.id).eq("track_id", p.track_id).in("status", ["active", "consulting"]);
   if (fe) console.error("move_free is_free:", fe.message);
   await train().from("move_offers").update({ status: "moved", athlete_id: a.id, moved_at: new Date().toISOString(),
-    moved_tier: 1, upgrade_until: null }).eq("id", o.id);
+    moved_tier: tier, upgrade_until: null }).eq("id", o.id);
   return json({ ok: true });
 }
 
