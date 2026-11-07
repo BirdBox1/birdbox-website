@@ -9,12 +9,18 @@
 
 import { db, json, PROFILE_FIELDS, qualificationsFor, statusOf, publicProfile, readAll } from "../lib/directory.mjs";
 
-const CACHE = "public, max-age=60, s-maxage=300";
+// browsers ask every time (Netlify answers from its own copy, below), so
+// a coach who just saved never gets their old page from their own phone
+const CACHE = "public, max-age=0, must-revalidate";
 // Netlify's own CDN keeps the list for 5 minutes and serves the old copy
 // while it fetches a new one, so visitors never wait for the database.
 // "durable" shares one copy across all of Netlify's servers, so only the
 // first visitor anywhere waits for it to be built.
 const CDN_CACHE = "public, durable, s-maxage=300, stale-while-revalidate=86400";
+// Every copy is tagged "directory", so a coach's save can clear them at
+// once and their changes show straight away (7 Nov 2026, Nathan; Irina
+// saved and still saw her old page). See directory-me.mjs.
+const TAG = "directory";
 
 export default async (req) => {
   if (req.method !== "GET") return json({ error: "Use GET" }, 405);
@@ -38,6 +44,7 @@ export default async (req) => {
       if (!live.length) return json({ error: "Not found" }, 404, "public, max-age=60");
       const res = json({ coach: live[0] }, 200, CACHE);
       res.headers.set("Netlify-CDN-Cache-Control", CDN_CACHE);
+    res.headers.set("Netlify-Cache-Tag", TAG);
       return res;
     }
     // The list page does not show bios or links, so they are left out
@@ -45,6 +52,7 @@ export default async (req) => {
     const slim = live.map(({ bio, instagram, website, facebook, twitter, linkedin, ...c }) => c);
     const res = json({ coaches: slim }, 200, CACHE);
     res.headers.set("Netlify-CDN-Cache-Control", CDN_CACHE);
+    res.headers.set("Netlify-Cache-Tag", TAG);
     return res;
   } catch (err) {
     console.error("directory-public:", err.message || err);
