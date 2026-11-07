@@ -121,6 +121,19 @@
     </div>
 
     <div class="panel">
+      <h2>3. Reminder to everyone emailed who has not moved</h2>
+      <p class="sub" style="margin:0 0 .8rem">Short reminder: their offer, then the two steps in order, card first, app second. Goes to each person still "Emailed" who has not had it, 10 at a time. Anyone already on a plan is skipped. Check one first with the email box above.</p>
+      <div class="row">
+        <button class="btn ghost" id="b-rprev" type="button">Show their reminder</button>
+        <button class="btn ghost" id="b-rtest" type="button">Send me a test reminder</button>
+      </div>
+      <div class="msg" id="m-rone"></div>
+      <pre class="preview hidden" id="rpreview"></pre>
+      <div style="margin-top:.8rem"><button class="btn" id="b-remind" type="button">Send the reminder</button></div>
+      <div class="msg" id="m-remind"></div>
+    </div>
+
+    <div class="panel">
       <h2>Everyone</h2>
       <div class="tablewrap">
         <table>
@@ -181,7 +194,8 @@ async function load() {
   const n = (s) => offers.filter((o) => o.status === s).length;
   $("tiles").innerHTML = "";
   for (const [k, v] of [["Invited", offers.length], ["Not emailed", n("ready")], ["Emailed", n("emailed")],
-                        ["Moved", n("moved")], ["Took the trial", n("trial")], ["Not moving", n("declined")]]) {
+                        ["Moved", n("moved")], ["Took the trial", n("trial")], ["Not moving", n("declined")],
+                        ["Reminder to send", offers.filter((o) => o.status === "emailed" && !o.reminded_at).length]]) {
     const t = document.createElement("div"); t.className = "tile";
     t.innerHTML = `<div class="k"></div><div class="v"></div>`;
     t.querySelector(".k").textContent = k; t.querySelector(".v").textContent = v;
@@ -229,6 +243,47 @@ $("b-test").onclick = async () => {
     say("m-one", "Test sent to " + d.to + ". Their status has not changed.", "ok");
   } catch (e) { say("m-one", e.message, "err"); }
   b.disabled = false;
+};
+
+$("b-rprev").onclick = async () => {
+  say("m-rone", "");
+  try {
+    const d = await call({ preview: $("who").value.trim(), reminder: true });
+    $("rpreview").textContent = "Subject: " + d.subject + "\n\n" + d.text;
+    $("rpreview").classList.remove("hidden");
+  } catch (e) { say("m-rone", e.message, "err"); }
+};
+
+$("b-rtest").onclick = async () => {
+  const b = $("b-rtest"); b.disabled = true; say("m-rone", "Sending…");
+  try {
+    const d = await call({ test: $("who").value.trim(), to: $("to").value.trim(), reminder: true });
+    say("m-rone", "Test reminder sent to " + d.to + ". Nothing has changed for them.", "ok");
+  } catch (e) { say("m-rone", e.message, "err"); }
+  b.disabled = false;
+};
+
+$("b-remind").onclick = async () => {
+  const b = $("b-remind");
+  if (b.dataset.sure !== "1") {
+    b.dataset.sure = "1"; b.textContent = "Yes, send the reminder now";
+    say("m-remind", "Tap again to send. It goes to everyone \"Emailed\" who has not had the reminder.");
+    return;
+  }
+  b.disabled = true; b.dataset.sure = "";
+  let sent = 0, skipped = 0, failed = [];
+  try {
+    for (;;) {
+      const d = await call({ remind: true });
+      sent += d.sent.length; skipped += d.skipped.length; failed = failed.concat(d.failed);
+      say("m-remind", `Sent ${sent}… ${d.remaining} still to go.`);
+      if ((!d.sent.length && !d.skipped.length) || !d.remaining) break;
+    }
+    say("m-remind", `Done: ${sent} sent` + (skipped ? `, ${skipped} skipped (already on a plan)` : "") + "."
+      + (failed.length ? ` Not sent: ${failed.map((f) => f.email).join(", ")}.` : ""), failed.length ? "err" : "ok");
+  } catch (e) { say("m-remind", `Stopped after ${sent}: ${e.message}`, "err"); }
+  b.disabled = false; b.textContent = "Send the reminder";
+  await load();
 };
 
 $("b-send").onclick = async () => {

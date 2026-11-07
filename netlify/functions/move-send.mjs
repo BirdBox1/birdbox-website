@@ -17,6 +17,12 @@
 //                                          (or just the emails listed) are
 //                                          sent and marked "emailed";
 //                                          { sent, failed, remaining }
+//
+// The reminder (Nathan, 7 Nov 2026): add reminder: true to preview or test
+// to see it, and POST { remind: true } sends it, 10 at a time, to everyone
+// "emailed" who has not been reminded yet. Anyone already on a plan is
+// skipped (and marked, so they are not looked at again).
+//                                          { sent, skipped, failed, remaining }
 
 import { createClient } from "@supabase/supabase-js";
 import { senderFor, sendEmail } from "./course-email-send.mjs";
@@ -57,24 +63,25 @@ export default async (request) => {
     const b = await request.json();
     if (b.list) {
       const { data, error } = await train.from("move_offers")
-        .select("email, first_name, last_name, offer, price_cents, free_until, coachrx_status, notes, status, emailed_at, moved_at, moved_tier, upgrade_until")
+        .select("email, first_name, last_name, offer, price_cents, free_until, coachrx_status, notes, status, emailed_at, reminded_at, moved_at, moved_tier, upgrade_until")
         .order("last_name");
       if (error) throw new Error(error.message);
       return json({ offers: data || [] });
     }
     if (b.preview) {
       const o = await offer(b.preview);
-      return o ? json(write(o)) : json({ error: "No offer for that email." }, 404);
+      return o ? json(b.reminder ? writeReminder(o) : write(o)) : json({ error: "No offer for that email." }, 404);
     }
     if (b.test) {
       const o = await offer(b.test);
       if (!o) return json({ error: "No offer for that email." }, 404);
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(b.to || ""))) return json({ error: "Say who the test goes to." }, 400);
-      const m = write(o);
+      const m = b.reminder ? writeReminder(o) : write(o);
       const r = await sendEmail({ to: b.to, sender: SENDER, subject: "[Test] " + m.subject, text: m.text, html: m.html, copyOffice: false });
       return r.ok ? json({ sent: true, to: b.to }) : json({ error: "The email did not send: " + r.error }, 502);
     }
     if (b.send === true) return json(await sendBatch(b.emails));
+    if (b.remind === true) return json(await remindBatch());
     return json({ error: "Nothing asked for." }, 400);
   } catch (err) {
     console.error("move-send failed:", err);
@@ -108,6 +115,118 @@ async function sendBatch(emails) {
   }
   const { count } = await train.from("move_offers").select("id", { count: "exact", head: true }).eq("status", "ready");
   return { sent, failed, remaining: count || 0 };
+}
+
+// The reminder, 10 at a time: everyone emailed, not moved, not reminded.
+// Someone already on a programming plan (an older free account, say) is
+// skipped and marked so the next batch moves on.
+async function remindBatch() {
+  const todo = () => train.from("move_offers").select("*", { count: "exact" })
+    .eq("status", "emailed").is("reminded_at", null);
+  const { data: list, error } = await todo().order("created_at").limit(BATCH);
+  if (error) throw new Error(error.message);
+
+  const sent = [], skipped = [], failed = [];
+  for (const o of list || []) {
+    if (await onPlan(o.email)) {
+      await train.from("move_offers").update({ reminded_at: new Date().toISOString() }).eq("id", o.id);
+      skipped.push(o.email);
+      continue;
+    }
+    const m = writeReminder(o);
+    const r = await sendEmail({ to: o.email, sender: SENDER, subject: m.subject, text: m.text, html: m.html,
+      copyOffice: false, cc: [BARNEY] });
+    if (!r.ok) { failed.push({ email: o.email, error: r.error }); continue; }
+    await train.from("move_offers").update({ reminded_at: new Date().toISOString() }).eq("id", o.id);
+    sent.push(o.email);
+  }
+  const { count } = await todo().limit(1);
+  return { sent, skipped, failed, remaining: count || 0 };
+}
+
+// on a programming plan already (not the trial)
+async function onPlan(email) {
+  const { data: a } = await train.from("athletes").select("id").eq("email", email).maybeSingle();
+  if (!a) return false;
+  const { count } = await train.from("enrolments").select("id", { count: "exact", head: true })
+    .eq("athlete_id", a.id).eq("is_trial", false).in("status", ["consulting", "active", "past_due", "paused"]);
+  return (count || 0) > 0;
+}
+
+// The reminder (Nathan, 7 Nov 2026). Only 15 of 174 had moved by the
+// evening: most had not opened the first email, and of those who started,
+// most opened the app before adding their card and found no programming.
+// So: short, CoachRx is ending, their offer in one line, and the two steps
+// in the right order, card first, app second.
+function writeReminder(o) {
+  const name = o.first_name || "there";
+  const link = `${SITE}/learn/?move=${o.code}`;
+  const free = o.offer === "free";
+  const price = euro(o.price_cents);
+  const dublin = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Dublin" });
+  const ending = dublin <= "2026-11-08"
+    ? (dublin === "2026-11-08" ? "CoachRx programming ends today." : "CoachRx programming ends on Sunday 8 November.")
+    : "CoachRx programming has now ended.";
+  const offerLine = free
+    ? "Your offer: a free account with the full TGC programming. No card needed."
+    : o.offer === "t2_offer"
+      ? `Your offer: Gymnastics + Community, normally ${euro(NORMAL[2])} a month, yours for ${price} a month for as long as you keep it.`
+      : `Your offer: Gymnastics at ${price} a month for as long as you keep it.`;
+  const payLine = free ? null : o.free_until
+    ? `Nothing is taken until ${dayLong(o.free_until)}, as you have already paid CoachRx up to then. Not sure yet? Add your card anyway: you can cancel any time before then and nothing is ever taken.`
+    : "Your first payment is taken when you join, then on the same day each month.";
+  const step1 = free
+    ? "Tap <b>See my offer</b>, sign in with this email and tap <b>Start my free account</b>."
+    : "Tap <b>See my offer</b>, sign in with this email and add your card.";
+  const step2 = "Then get the BirdBox Coaching app and sign in with the same email. Your programming will be there.";
+  const warn = "Please do step 1 first. If you open the app before, it cannot find your programming yet.";
+  const intro = `A quick reminder from us and Barney. ${ending} Your programming carries on in our own app, BirdBox Coaching, and your place is waiting for you.`;
+
+  const text = [
+    `Hi ${name},`,
+    intro,
+    offerLine,
+    payLine,
+    "Two steps, in this order:",
+    `1. ${strip(step1)}\n2. ${strip(step2)}`,
+    `[[BUTTON: See my offer | ${link}]]`,
+    warn,
+    `Get the app: ${GET_APP}`,
+    `This offer is open until ${DEADLINE}. Any questions, just reply to this email. Barney is copied in.`,
+    "Nathan and Barney\nBirdBox Coaching",
+  ].filter(Boolean).join("\n\n");
+
+  const p = "margin:0 0 14px;font-size:15px;line-height:1.6;color:#3d3936;";
+  const html = `<!doctype html>
+<html><body style="margin:0;padding:0;background:#f4f3f1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3f1;padding:32px 16px;"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e6e3e0;">
+  <tr><td style="padding:22px 26px 14px;" align="center">
+    <img src="${LOGO}" alt="The Gymnastics Course" width="300" style="display:block;width:100%;max-width:300px;height:auto;border:0;" />
+  </td></tr>
+  <tr><td style="padding:8px 26px 30px;">
+    <h1 style="margin:0 0 16px;font-size:22px;color:#191513;letter-spacing:-0.3px;">One step to keep your programming</h1>
+    <p style="${p}">Hi ${esc(name)},</p>
+    <p style="${p}">${intro}</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;background:#f4f3f1;border-radius:10px;" bgcolor="#f4f3f1"><tr><td bgcolor="#f4f3f1" style="padding:16px 18px;">
+      <p style="margin:0 0 ${payLine ? 8 : 0}px;font-size:15px;line-height:1.6;color:#191513;"><b>${offerLine}</b></p>
+      ${payLine ? `<p style="margin:0;font-size:14px;line-height:1.6;color:#191513;">${payLine}</p>` : ""}
+    </td></tr></table>
+    <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#191513;"><b>Two steps, in this order:</b></p>
+    <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#3d3936;">1. ${step1}</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 14px;"><tr>
+      <td bgcolor="#191513" style="background:#191513;border-radius:10px;"><a href="${link}" style="display:inline-block;padding:14px 26px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;">See my offer</a></td></tr></table>
+    <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#3d3936;">2. ${step2} <a href="${GET_APP}" style="color:#191513;">Get the app</a></p>
+    <p style="margin:14px 0 14px;font-size:14px;line-height:1.6;color:#191513;padding:10px 14px;border:1px solid #e6e3e0;border-radius:10px;">${warn}</p>
+    <p style="${p}">This offer is open until ${DEADLINE}. Any questions, just reply to this email. Barney is copied in.</p>
+    <p style="margin:0;font-size:15px;line-height:1.6;color:#191513;">Nathan and Barney<br>BirdBox Coaching</p>
+  </td></tr>
+  <tr><td style="padding:14px 26px;border-top:1px solid #e6e3e0;font-size:12px;color:#3d3936;">BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland</td></tr>
+</table></td></tr></table></body></html>`;
+
+  const subject = dublin === "2026-11-08" ? "CoachRx ends today: one step to keep your programming"
+    : "One step to keep your TGC programming";
+  return { subject, text, html };
 }
 
 // The email, written for this one person's offer. Redesigned 7 Nov 2026
