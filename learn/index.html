@@ -914,6 +914,13 @@ function arrive() {
   arrived = true;
   if (MOVE_IN && !TABS.includes(location.hash.slice(1))) history.replaceState(null, "", "/learn/#programming");
   if (VIA_LINK || MOVE_IN) $("pw-note").classList.remove("hidden");
+  // Anyone with a CoachRx offer still to take opens on it, however they
+  // logged in (the link's ?move_offer=1 can be dropped on the way back)
+  if (!TABS.includes(location.hash.slice(1))) {
+    account("?part=programming").then((d) => {
+      if (d?.move && !d.move.upgrades?.length && !TABS.includes(location.hash.slice(1))) location.hash = "#programming";
+    }).catch(() => {});
+  }
 }
 $("pw-skip").addEventListener("click", () => $("pw-note").classList.add("hidden"));
 $("pw-go").addEventListener("click", async () => {
