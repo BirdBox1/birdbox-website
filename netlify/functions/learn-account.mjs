@@ -469,6 +469,14 @@ async function moveOfferView(email) {
   const window = o.status === "moved" && o.upgrade_until && o.upgrade_until >= today && upgradesAllowed(o);
   if (o.status === "moved" && !window) return null;
   if (o.status !== "moved" && !moveOpen()) return null;
+  const upgrades = window ? [
+    ...(o.moved_tier < 2 ? [{ tier: 2, cents: MOVE_T2 }] : []),
+    // only when it is below the normal €120
+    ...(o.moved_tier < 3 && t3Price(o) < 12000 ? [{ tier: 3, cents: t3Price(o) }] : []),
+  ] : [];
+  // moved, with no reduced upgrade left to offer: their plan card shows
+  // instead of the offer (Nathan's test, 7 Nov 2026)
+  if (o.status === "moved" && !upgrades.length) return null;
   return {
     status: o.status, offer: o.offer, first_name: o.first_name, deadline: MOVE_DEADLINE,
     free: o.offer === "free",
@@ -479,11 +487,7 @@ async function moveOfferView(email) {
     // the trial is only for people not paying CoachRx now, and never instead of a free account
     can_trial: (o.status === "ready" || o.status === "emailed") && o.offer !== "free" ? !o.free_until : false,
     upgrade_until: window ? o.upgrade_until : null,
-    upgrades: window ? [
-      ...(o.moved_tier < 2 ? [{ tier: 2, cents: MOVE_T2 }] : []),
-      // only when it is below the normal €120
-      ...(o.moved_tier < 3 && t3Price(o) < 12000 ? [{ tier: 3, cents: t3Price(o) }] : []),
-    ] : [],
+    upgrades,
   };
 }
 

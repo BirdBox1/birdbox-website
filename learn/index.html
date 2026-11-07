@@ -392,6 +392,11 @@
       <p class="kicker">BirdBox Learn</p>
       <h1>Programming</h1>
       <p class="sub">Your programming plan and blocks. You train in the BirdBox Coaching app; change your plan, your card or cancel here.</p>
+      <div id="moved-note" class="box hidden" style="background:var(--panel);border:1px solid var(--accent);padding:18px 20px;margin:0 0 24px;max-width:640px;line-height:1.6">
+        <strong>You are in. Your plan is set up.</strong> Nothing is taken until the date on your plan below.
+        <p style="margin:12px 0 6px"><strong>Now get the app:</strong> download BirdBox Coaching and sign in with this same email. Your programming is waiting there.</p>
+        <p style="margin:0"><a class="btn main small" href="https://birdbox-train.netlify.app/get-app.html">Get the app →</a></p>
+      </div>
       <div id="prog-list"><p class="sub">Loading…</p></div>
     </div>
 
@@ -726,7 +731,9 @@ $("move-link").addEventListener("click", async () => {
   msg.className = "msg ok";
   msg.textContent = "On its way to the email address we wrote to. Check your inbox (and junk folder) and tap the link. Nothing after 5 minutes? Write to info@birdboxcoaching.com.";
 });
-if (params.get("welcome") || params.get("expired") || params.get("move") || params.get("move_offer")) history.replaceState(null, "", "/learn/" + location.hash);
+// Back from the move checkout (?moved=1): you are in, now get the app (Nathan, 7 Nov 2026)
+if (params.get("moved")) $("moved-note").classList.remove("hidden");
+if (params.get("welcome") || params.get("expired") || params.get("move") || params.get("move_offer") || params.get("moved")) history.replaceState(null, "", "/learn/" + location.hash);
 
 start();
 });
