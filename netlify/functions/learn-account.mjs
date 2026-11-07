@@ -12,6 +12,8 @@
 // POST { action: "move_trial" }         -> { ok }   they take the trial instead
 // POST { action: "move_free" }          -> { ok }   a free Tier 1 account, no card
 // POST { action: "move_upgrade", tier } -> { ok }   a reduced upgrade, 40 days
+// POST { action: "comeback_start" }     -> { url }  a past member's offer: Tier 2
+//                                                    for €35, the first 7 days free
 // POST { action: "invoice", charge, company?, vat? }  -> { pdf, filename }
 // GET  ?part=me           -> { known }   false: directory-only login
 // GET  ?part=discounts    -> { discounts, name }   their Level 1 50% offers
@@ -59,12 +61,12 @@ export default async (req, context) => {
       const part = q.get("part");
       // all at once rather than one after another: the tab was slow (Nathan, 7 Nov 2026)
       if (part === "programming") {
-        const [mine, staff, shop, trial_ok, move] = await Promise.all([
+        const [mine, staff, shop, trial_ok, move, comeback] = await Promise.all([
           programming(user, email), isStaff(user),
           athleteOf(user, email).then((a) => shopFor(context, a, String(q.get("country") || "").toUpperCase())),
-          trialOk(user, email), moveOfferView(email),
+          trialOk(user, email), moveOfferView(email), comebackView(user, email),
         ]);
-        return json({ ...mine, staff, shop, trial_ok, move });
+        return json({ ...mine, staff, shop, trial_ok, move, comeback: move ? null : comeback });
       }
       if (part === "receipts") return json({ receipts: await receipts(email) });
       // a directory-only login (no BirdBox record yet) sees only their listing
@@ -86,6 +88,7 @@ export default async (req, context) => {
       if (body.action === "move_trial") return moveTrial(email);
       if (body.action === "move_free") return moveFree(user, email);
       if (body.action === "move_upgrade") return moveUpgrade(user, email, Number(body.tier));
+      if (body.action === "comeback_start") return comebackStart(user, email, context);
       if (body.action === "invoice") return invoice(email, body);
       if (body.action === "seminar_pass") return seminarPass(user, email, String(body.brand || ""));
       if (body.action === "online_offer") return onlineOffer(user, email, String(body.brand || ""));
@@ -530,6 +533,59 @@ async function moveStart(email, tier, context) {
     subscription_data: { metadata: meta, ...(free ? { trial_end: ends } : {}) },
     metadata: meta,
     custom_text: free ? { submit: { message: "Nothing is charged until " + new Date(ends * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "long" }) + ", the end of what you paid CoachRx for." } } : undefined,
+    success_url: "https://www.birdboxcoaching.com/learn/?moved=1#programming",
+    cancel_url: RETURN_URL,
+  });
+  return json({ url: session.url });
+}
+
+// A past member's offer (Nathan, 7 Nov 2026), in train.comeback_offers,
+// matched by the email they sign in with: Gymnastics + Community (Tier 2)
+// for the Tier 1 price, €35 a month, for as long as they keep it (cancel
+// and come back, and it is the normal price). The first 7 days are free:
+// card now, the first €35 on day 8. Open until offer_until, 30 days from
+// the email; after that it is gone and they see the normal prices. Not
+// shown to anyone already on a programming plan.
+const COMEBACK_CENTS = 3500, COMEBACK_FREE_DAYS = 7;
+async function comebackOffer(email) {
+  const { data } = await train().from("comeback_offers").select("*").eq("email", email).maybeSingle();
+  return data || null;
+}
+const dublinToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Dublin" });
+async function onPlan(user, email) {
+  const a = await athleteOf(user, email);
+  if (!a) return false;
+  const { count } = await train().from("enrolments").select("id", { count: "exact", head: true })
+    .eq("athlete_id", a.id).in("status", ["consulting", "active", "past_due", "paused"]).lte("tier", 5);
+  return (count || 0) > 0;
+}
+async function comebackView(user, email) {
+  const o = await comebackOffer(email);
+  if (!o || o.status !== "emailed" || !o.offer_until || o.offer_until < dublinToday()) return null;
+  if (await onPlan(user, email)) return null;
+  return { first_name: o.first_name, deadline: o.offer_until, cents: COMEBACK_CENTS, normal_cents: 6000, free_days: COMEBACK_FREE_DAYS };
+}
+async function comebackStart(user, email, context) {
+  const o = await comebackOffer(email);
+  if (!o || o.status !== "emailed" || !o.offer_until) return json({ error: "That offer could not be found. Write to info@birdboxcoaching.com and we'll sort it." }, 404);
+  if (o.offer_until < dublinToday()) return json({ error: "Your offer ended on " + new Date(o.offer_until + "T12:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "long" }) + ". The plans below are open to you at the normal prices." }, 400);
+  if (await onPlan(user, email)) return json({ error: "You are already on a programming plan." }, 400);
+  const product = await tierProduct(2);
+  if (!product) return json({ error: "That plan is not on sale yet." }, 400);
+  const country = String(context?.geo?.country?.code || "").toUpperCase();
+  const meta = { app: "birdbox-train", kind: "programming", tier: "2", comeback_offer: o.id, country };
+  const first = new Date(Date.now() + COMEBACK_FREE_DAYS * 86400000).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    customer_email: email,
+    payment_method_types: ["card"],
+    billing_address_collection: "required",
+    automatic_tax: { enabled: vatApplies(country) },
+    line_items: [{ quantity: 1, price_data: { currency: "eur", product, unit_amount: COMEBACK_CENTS,
+      tax_behavior: "inclusive", recurring: { interval: "month" } } }],
+    subscription_data: { metadata: meta, trial_period_days: COMEBACK_FREE_DAYS },
+    metadata: meta,
+    custom_text: { submit: { message: "Your first 7 days are free. Nothing is taken until " + first + "; cancel before then in BirdBox Learn and you pay nothing." } },
     success_url: "https://www.birdboxcoaching.com/learn/?moved=1#programming",
     cancel_url: RETURN_URL,
   });
