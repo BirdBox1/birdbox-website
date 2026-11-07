@@ -57,9 +57,15 @@ export default async (req, context) => {
     if (req.method === "GET") {
       const q = new URL(req.url).searchParams;
       const part = q.get("part");
-      if (part === "programming") return json({ ...(await programming(user, email)),
-        staff: await isStaff(user), shop: await shopFor(context, await athleteOf(user, email), String(q.get("country") || "").toUpperCase()), trial_ok: await trialOk(user, email),
-        move: await moveOfferView(email) });
+      // all at once rather than one after another: the tab was slow (Nathan, 7 Nov 2026)
+      if (part === "programming") {
+        const [mine, staff, shop, trial_ok, move] = await Promise.all([
+          programming(user, email), isStaff(user),
+          athleteOf(user, email).then((a) => shopFor(context, a, String(q.get("country") || "").toUpperCase())),
+          trialOk(user, email), moveOfferView(email),
+        ]);
+        return json({ ...mine, staff, shop, trial_ok, move });
+      }
       if (part === "receipts") return json({ receipts: await receipts(email) });
       // a directory-only login (no BirdBox record yet) sees only their listing
       if (part === "me") return json({ known: (await isStaff(user)) || (await knownToBirdBox(email)) });

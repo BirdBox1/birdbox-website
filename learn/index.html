@@ -916,6 +916,7 @@ async function boot() {
 // After an emailed login link: a CoachRx mover opens on their programming
 // offer, and anyone is asked for a password (Nathan, 7 Nov 2026)
 let arrived = false;
+let progPrefetch = null;
 function arrive() {
   if (arrived) return;
   arrived = true;
@@ -924,7 +925,8 @@ function arrive() {
   // Anyone with a CoachRx offer still to take opens on it, however they
   // logged in (the link's ?move_offer=1 can be dropped on the way back)
   if (!TABS.includes(location.hash.slice(1))) {
-    account("?part=programming").then((d) => {
+    progPrefetch = account("?part=programming");
+    progPrefetch.then((d) => {
       if (d?.move && !d.move.upgrades?.length && !TABS.includes(location.hash.slice(1))) location.hash = "#programming";
     }).catch(() => {});
   }
@@ -1827,7 +1829,9 @@ function currencyLine(shop) {
 async function loadProgramming() {
   let box = $("prog-list");
   let d;
-  try { d = await account("?part=programming" + (chosenCountry ? "&country=" + encodeURIComponent(chosenCountry) : "")); }
+  // the check at login already fetched it: use that rather than ask twice
+  const pre = !chosenCountry ? progPrefetch : null; progPrefetch = null;
+  try { d = await (pre || account("?part=programming" + (chosenCountry ? "&country=" + encodeURIComponent(chosenCountry) : ""))); }
   catch (e) { box.innerHTML = '<p class="msg err"></p>'; box.firstChild.textContent = e.message; loaded.programming = null; return; }
   box.innerHTML = "";
   const card = (x, kind) => {
@@ -1901,12 +1905,17 @@ async function loadProgramming() {
   }
   if (d.move) box.appendChild(moveCard(d.move));
   // the app, for anyone training with us or about to (Nathan, 1 Nov 2026)
-  if (d.move || d.plans.length || d.blocks.length) {
-    const apps = document.createElement("p"); apps.className = "getapp";
-    apps.innerHTML = 'Get the BirdBox Coaching app: <a href="https://apps.apple.com/app/id6806654607" target="_blank" rel="noopener">App Store</a> · ' +
-      '<a href="https://play.google.com/store/apps/details?id=com.birdboxcoaching.programming" target="_blank" rel="noopener">Google Play</a>. Sign in with this email address.';
-    box.appendChild(apps);
-  }
+  // A box of its own with a proper button, under their plan, not a line of
+  // small links above the course tabs (Nathan, 7 Nov 2026)
+  const appBox = () => {
+    const apps = document.createElement("div"); apps.className = "plan"; apps.style.setProperty("--c", "#B7B1B3");
+    apps.innerHTML = '<p class="k">Train in the app</p><h3>Get the BirdBox Coaching app</h3>' +
+      '<p class="sub">Your programming is in the app. Download it and sign in with this same email address.</p>' +
+      '<div class="btns"><a class="btn main" href="https://birdbox-train.netlify.app/get-app.html">Get the app →</a></div>' +
+      '<p class="sub" style="margin-top:10px">Or go straight to the <a href="https://apps.apple.com/app/id6806654607" target="_blank" rel="noopener">App Store</a> · ' +
+      '<a href="https://play.google.com/store/apps/details?id=com.birdboxcoaching.programming" target="_blank" rel="noopener">Google Play</a>.</p>';
+    return apps;
+  };
   const courses = (d.shop && d.shop.courses) || [];
   const mineOf = (b) => d.plans.filter((x) => x.brand === b);
   const blocksOf = (b) => d.blocks.filter((x) => x.brand === b);
@@ -1932,7 +1941,10 @@ async function loadProgramming() {
       mine.forEach((x) => card(x, x.trial ? "Free trial" : "Programming plan"));
       myBlocks.forEach((x) => card(x, "Block"));
       box = keep;
-    }
+      panel.appendChild(appBox());
+    } else if (d.move && current === "tgc") panel.appendChild(appBox());
+    // the currency sits with the plans on sale, under their own plan (Nathan, 7 Nov 2026)
+    if ((PROGRAMMING_ON_SALE || d.staff) && d.shop) panel.appendChild(currencyLine(d.shop));
     if (PROGRAMMING_ON_SALE || d.staff) panel.appendChild(courseView(co, mine, !PROGRAMMING_ON_SALE, PROGRAMMING_ON_SALE ? d.trial_ok : true));
     else if (!mine.length && !myBlocks.length) {
       const e2 = document.createElement("div"); e2.className = "empty"; e2.style.color = "var(--ink)";
@@ -1941,13 +1953,16 @@ async function loadProgramming() {
     }
   };
   for (const c of ["tgc", "tcc", "tec", "twc"]) {
-    const b = document.createElement("button"); b.type = "button"; b.dataset.course = c; b.textContent = c.toUpperCase();
+    // the course logo, not its letters (Nathan, 7 Nov 2026)
+    const b = document.createElement("button"); b.type = "button"; b.dataset.course = c;
+    const logo = document.createElement("img"); logo.src = (BRAND[c] || BRAND.tgc).mark; logo.alt = "";
+    logo.style.cssText = "display:block;height:34px;width:auto;margin:0 auto";
+    b.appendChild(logo); b.setAttribute("aria-label", c.toUpperCase());
     b.setAttribute("role", "tab");
     b.onclick = () => { current = c; draw(); };
     bar.appendChild(b);
   }
   box.append(bar);
-  if ((PROGRAMMING_ON_SALE || d.staff) && d.shop) box.appendChild(currencyLine(d.shop));
   box.append(panel);
   draw();
   shopCountry = (d.shop && d.shop.country) || "";
