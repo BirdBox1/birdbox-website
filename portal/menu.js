@@ -34,6 +34,7 @@ const LINKS = [
   { href: "/portal/hosts/",       label: "Host requests", admin: true },
   { href: "/portal/broadcast/",   label: "Message the team", admin: true },
   { group: "Business" },
+  { href: "/portal/sales/",       label: "Sales", admin: true },
   { href: "/portal/codes/",       label: "Discount codes", admin: true },
   { href: "/portal/gift-cards/",  label: "Gift cards", admin: true },
   { href: "/portal/coachrx-move/", label: "CoachRx move", admin: true },

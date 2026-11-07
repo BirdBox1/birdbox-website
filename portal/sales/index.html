@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales — BirdBox Coaching</title>
+<!--
+  One month of sales on one page (Nathan, 7 Nov 2026). Admins only.
+  Everything comes from netlify/functions/sales-report.mjs:
+    - taken: money Stripe actually took this month, refunds taken off,
+      VAT included, sorted into seminars, online courses, programming and
+      gift cards; anything that cannot be told apart shows as Other
+    - sold: seminar places booked, online courses bought, new paid
+      programming plans and gift cards, from our own records
+    - euro totals use today's rate; each currency is shown as charged too
+  Dark text on white throughout (Nathan is partly colour blind): no pale
+  grey, blue or red text; the bars are one dark colour, named in words.
+-->
+<style>
+  :root { --ink:#16181b; --paper:#f4f3f0; --card:#fff; --shell:#0d0e10; --rule:#e0ddd7; --soft:#3d3936; }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .bar{background:var(--shell);color:#fff;padding:0.7rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+  .bar .left{display:flex;align-items:center;gap:0.75rem}
+  .mark{width:34px;height:34px;border-radius:4px;background:#fff;display:grid;place-items:center;flex:none}
+  .mark img{width:26px;height:26px;object-fit:contain}
+  .brandname{font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;color:#fff}
+  .bar a{color:#fff;font-size:0.85rem;text-decoration:none}
+  .wrap{max-width:68rem;margin:0 auto;padding:1.5rem 1.25rem 4rem}
+  .head{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;flex-wrap:wrap;margin-bottom:1.2rem}
+  h1{font-size:1.4rem;letter-spacing:-0.02em;margin:0;font-weight:600}
+  h2{font-size:0.75rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink);margin:0 0 0.9rem;font-weight:700}
+  select{font:inherit;padding:0.5rem 0.6rem;border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink)}
+  .hero{background:var(--ink);color:#fff;border-radius:8px;padding:1.4rem 1.5rem;margin-bottom:1.1rem}
+  .hero .k{font-size:0.78rem;letter-spacing:0.14em;text-transform:uppercase;font-weight:700}
+  .hero .v{font-size:2.6rem;font-weight:700;letter-spacing:-0.02em;line-height:1.15;margin-top:0.2rem;font-variant-numeric:tabular-nums}
+  .hero .n{font-size:0.9rem;margin-top:0.3rem}
+  .tiles{display:grid;gap:0.9rem;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));margin-bottom:1.1rem}
+  .tile{background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.1rem}
+  .tile .k{font-size:0.75rem;letter-spacing:0.12em;text-transform:uppercase;font-weight:700}
+  .tile .v{font-size:1.6rem;font-weight:700;margin-top:0.25rem;font-variant-numeric:tabular-nums}
+  .tile .n{font-size:0.88rem;color:var(--soft);margin-top:0.25rem}
+  .tile .c{font-size:0.82rem;color:var(--soft);margin-top:0.35rem;font-variant-numeric:tabular-nums}
+  .panel{background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:1.25rem;margin-bottom:1.1rem}
+  .bars{display:grid;gap:0.7rem}
+  .brow{display:grid;grid-template-columns:9.5rem 1fr 6.5rem;gap:0.8rem;align-items:center;font-size:0.92rem}
+  .brow .track{height:20px;position:relative}
+  .brow .fill{height:100%;background:var(--ink);border-radius:0 4px 4px 0;min-width:2px}
+  .brow .val{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+  .tablewrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:0.9rem;font-variant-numeric:tabular-nums}
+  th{text-align:left;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;padding:0.5rem 0.6rem;border-bottom:1px solid var(--rule);white-space:nowrap}
+  td{padding:0.55rem 0.6rem;border-bottom:1px solid var(--rule);vertical-align:top}
+  td.num,th.num{text-align:right;white-space:nowrap}
+  .note{font-size:0.85rem;color:var(--soft);margin:0.8rem 0 0;max-width:72ch}
+  .empty{background:var(--card);border:1px dashed var(--rule);border-radius:8px;padding:2rem 1.25rem;text-align:center;font-size:0.95rem}
+  .hidden{display:none !important}
+  details summary{cursor:pointer;font-weight:600;font-size:0.92rem}
+  @media (max-width:560px){ .brow{grid-template-columns:7rem 1fr 5.5rem} .hero .v{font-size:2rem} }
+</style>
+<script type="module" src="/portal/menu.js"></script>
+<link rel="icon" href="/favicon-birdbox.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-birdbox-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon-birdbox.png">
+</head>
+<body>
+
+<div class="bar">
+  <span class="left">
+    <span class="mark"><img src="/brand/birdBox.png" alt=""></span>
+    <span class="brandname">Sales</span>
+  </span>
+  <a href="/portal/">← Back to portal</a>
+</div>
+
+<div class="wrap">
+  <div id="gate" class="empty">Checking your access…</div>
+
+  <div id="app" class="hidden">
+    <div class="head">
+      <h1 id="title">Sales this month</h1>
+      <label>Month <select id="month"></select></label>
+    </div>
+
+    <div id="loading" class="empty">Adding up this month's sales… (it reads every payment from Stripe, so give it a few seconds)</div>
+    <div id="report" class="hidden">
+      <div class="hero">
+        <div class="k">Payments taken</div>
+        <div class="v" id="total"></div>
+        <div class="n" id="totalnote"></div>
+      </div>
+
+      <div class="tiles" id="tiles"></div>
+
+      <div class="panel">
+        <h2>Taken, by kind (in euro)</h2>
+        <div class="bars" id="bars"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Seminars and workshops</h2>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Course</th><th class="num">Places booked</th><th class="num">Payments</th><th class="num">Taken</th></tr></thead>
+          <tbody id="courses"></tbody>
+        </table></div>
+        <p class="note" id="duenote"></p>
+      </div>
+
+      <div class="panel">
+        <details>
+          <summary>Every payment this month</summary>
+          <div class="tablewrap" style="margin-top:0.8rem"><table>
+            <thead><tr><th>Date</th><th>Kind</th><th>For</th><th class="num">Amount</th></tr></thead>
+            <tbody id="every"></tbody>
+          </table></div>
+        </details>
+      </div>
+
+      <p class="note">Payments taken are what Stripe took this month, with refunds taken off and VAT included.
+        Euro totals use today's exchange rate; the amounts in each currency are as charged.
+        Places booked, courses bought and plans are counted from our own records.
+        Programming payments still to come this month are on the Income page in the programming portal.</p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.1/+esm";
+
+const db = createClient(
+  "https://yvdmazpxtpuvidlcifnq.supabase.co",
+  "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
+);
+const $ = (id) => document.getElementById(id);
+const SYMBOL = { EUR: "€", GBP: "£", USD: "US$", AUD: "A$", CAD: "C$", CHF: "CHF " };
+const KIND = { seminars: "Seminars", online: "Online courses", programming: "Programming", gift_cards: "Gift cards", other: "Other" };
+const money = (c, cur = "EUR") => (SYMBOL[cur] || cur + " ") +
+  (c / 100).toLocaleString("en-GB", { minimumFractionDigits: c % 100 ? 2 : 0, maximumFractionDigits: 2 });
+const each = (byCur) => Object.entries(byCur || {}).sort((a, b) => b[1] - a[1]).map(([c, v]) => money(v, c)).join(" · ");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let token = null;
+
+start();
+
+async function start() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) {
+    $("gate").innerHTML = 'You are not signed in. <a href="/portal/">Sign in to the portal</a> first, then come back.';
+    return;
+  }
+  const { data: staff } = await db.from("staff").select("id, role, active").eq("id", session.user.id).maybeSingle();
+  if (!staff || !staff.active) { $("gate").textContent = "This account is not an active staff member."; return; }
+  if (staff.role !== "admin") { $("gate").textContent = "Only admins can see sales."; return; }
+  token = session.access_token;
+  $("gate").classList.add("hidden");
+  $("app").classList.remove("hidden");
+
+  // this month and the 11 before it
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const v = d.toISOString().slice(0, 7);
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = d.toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
+    $("month").appendChild(o);
+  }
+  $("month").onchange = () => load($("month").value);
+  load($("month").value);
+}
+
+async function load(month) {
+  $("report").classList.add("hidden");
+  $("loading").classList.remove("hidden");
+  $("loading").textContent = "Adding up the sales… (it reads every payment from Stripe, so give it a few seconds)";
+  const label = $("month").selectedOptions[0].textContent;
+  $("title").textContent = month === $("month").options[0].value ? "Sales this month" : "Sales in " + label;
+  try {
+    const r = await fetch("/.netlify/functions/sales-report?month=" + month, { headers: { Authorization: "Bearer " + token } });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || "The sales could not be loaded.");
+    draw(d, label);
+  } catch (e) {
+    $("loading").textContent = e.message;
+  }
+}
+
+function draw(d, label) {
+  const k = d.kinds, s = d.sold;
+  $("total").textContent = money(d.total_eur_cents);
+  const count = Object.values(k).reduce((n, x) => n + x.count, 0);
+  $("totalnote").textContent = `${count} payment${count === 1 ? "" : "s"} in ${label}, in euro at today's rate`
+    + (d.unconverted ? " (a currency with no rate today is left out of this total)" : "");
+
+  const tile = (key, sold) => `
+    <div class="tile">
+      <div class="k">${KIND[key]}</div>
+      <div class="v">${money(k[key].eur_cents)}</div>
+      <div class="n">${sold}</div>
+      ${Object.keys(k[key].by_currency).length > 1 || !k[key].by_currency.EUR ? `<div class="c">${esc(each(k[key].by_currency)) || "Nothing taken"}</div>` : ""}
+    </div>`;
+  const giftValue = each(s.gift_card_value);
+  $("tiles").innerHTML =
+    tile("seminars", `${s.seminar_places} place${s.seminar_places === 1 ? "" : "s"} booked · ${k.seminars.count} payment${k.seminars.count === 1 ? "" : "s"}`) +
+    tile("online", `${s.online_courses} course${s.online_courses === 1 ? "" : "s"} bought · ${k.online.count} payment${k.online.count === 1 ? "" : "s"}`) +
+    tile("programming", `${s.programming_plans} new paid plan${s.programming_plans === 1 ? "" : "s"} · ${s.programming_trials} free trial${s.programming_trials === 1 ? "" : "s"} started`) +
+    tile("gift_cards", `${s.gift_cards} sold${giftValue ? " · " + esc(giftValue) : ""}`) +
+    (k.other.count ? tile("other", `${k.other.count} payment${k.other.count === 1 ? "" : "s"} not sorted: see the list below`) : "");
+
+  // one bar per kind, one colour, the amount written beside it
+  const rows = Object.keys(KIND).filter((x) => x !== "other" || k.other.count);
+  const max = Math.max(1, ...rows.map((x) => k[x].eur_cents));
+  $("bars").innerHTML = rows.map((x) => `
+    <div class="brow" title="${KIND[x]}: ${money(k[x].eur_cents)}, ${k[x].count} payments">
+      <span>${KIND[x]}</span>
+      <span class="track"><span class="fill" style="display:block;width:${(k[x].eur_cents / max * 100).toFixed(1)}%"></span></span>
+      <span class="val">${money(k[x].eur_cents)}</span>
+    </div>`).join("");
+
+  $("courses").innerHTML = (d.seminars || []).map((c) => `
+    <tr><td>${esc(c.name)}</td><td class="num">${c.places || "—"}</td><td class="num">${c.payments || "—"}</td>
+      <td class="num">${c.payments ? esc(each(c.by_currency)) : "—"}</td></tr>`).join("")
+    || `<tr><td colspan="4">No seminar sales this month.</td></tr>`;
+  const due = d.due_seminar_instalments;
+  $("duenote").textContent = due && due.count
+    ? `Still due this month: ${due.count} seminar instalment${due.count === 1 ? "" : "s"}, ${each(due.by_currency)}.`
+    : "No seminar instalments left to take this month.";
+
+  $("every").innerHTML = (d.payments || []).map((p) => `
+    <tr><td>${new Date(p.at * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</td>
+      <td>${KIND[p.kind]}</td><td>${esc(p.what)}</td>
+      <td class="num">${money(p.cents, p.currency)}${p.refunded ? ` (${money(p.refunded, p.currency)} refunded)` : ""}</td></tr>`).join("")
+    || `<tr><td colspan="4">No payments.</td></tr>`;
+
+  $("loading").classList.add("hidden");
+  $("report").classList.remove("hidden");
+}
+</script>
+</body>
+</html>
