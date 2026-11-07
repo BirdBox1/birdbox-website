@@ -656,6 +656,8 @@ async function keepPlan(user, email, subId) {
   if (!mine?.length) return json({ error: "That plan could not be found." }, 404);
   const s = await stripe.subscriptions.retrieve(subId);
   if (s.schedule) await stripe.subscriptionSchedules.release(typeof s.schedule === "string" ? s.schedule : s.schedule.id);
+  // cancelled at the period end: carry on as before (Nathan, 7 Nov 2026)
+  if (s.cancel_at_period_end || s.cancel_at) await stripe.subscriptions.update(subId, { cancel_at_period_end: false, ...(s.cancel_at && !s.cancel_at_period_end ? { cancel_at: "" } : {}) });
   return json({ ok: true });
 }
 

@@ -1880,6 +1880,21 @@ async function loadProgramming() {
       };
       // three plain choices in place of one "Manage my plan" (Nathan, 6 Nov
       // 2026): change plan here in Learn, the card and cancelling in Stripe
+      // cancelled, ending at the period end: one button to keep it, and no
+      // change or cancel until they do (Nathan, 7 Nov 2026)
+      if (x.ends_on) {
+        const kc = document.createElement("button"); kc.type = "button"; kc.className = "btn main"; kc.textContent = "Keep my plan";
+        kc.onclick = async () => {
+          kc.disabled = true; kc.textContent = "Keeping…"; msg.textContent = "";
+          try { await account("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "keep_plan", subscription: x.subscription }) }); loaded.programming = loadProgramming(); }
+          catch (e) { kc.disabled = false; kc.textContent = "Keep my plan"; msg.className = "msg err"; msg.textContent = e.message; }
+        };
+        btns.appendChild(kc);
+        go("Update billing information", "card");
+        el.append(k, h, dl, btns, msg);
+        box.appendChild(el);
+        return;
+      }
       if (!x.paused_until && x.tier && x.tier <= 3) {
         const ch = document.createElement("button"); ch.type = "button"; ch.className = "btn ghost"; ch.textContent = "Change my plan";
         ch.onclick = () => { const t = document.querySelector("#prog-list .shop .tiers"); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); };
