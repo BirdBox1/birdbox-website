@@ -327,6 +327,11 @@
 
   <!-- Logged in -->
   <section id="home" class="hidden">
+    <div id="pw-note" class="box hidden" style="background:var(--panel);border:1px solid var(--accent);padding:18px 20px;margin:0 0 24px;max-width:640px;line-height:1.6">
+      <strong>You are logged in. Set a password now</strong> so next time you can log in with your email and password, without waiting for a link.
+      <p style="margin:12px 0 0"><input id="pw-new" type="password" autocomplete="new-password" placeholder="New password (8+ characters)" style="max-width:280px"> <button class="btn main small" id="pw-go" type="button">Save password</button> <button class="btn ghost small" id="pw-skip" type="button">Not now</button></p>
+      <div class="msg" id="pw-msg"></div>
+    </div>
     <nav class="tabs" id="tabs">
       <a href="#" data-tab="courses">My courses</a>
       <a href="#mentorship" data-tab="mentorship">Mentorship</a>
@@ -496,6 +501,10 @@ import { renderArticle } from "/blog/article.js";
 
 const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
+// Came in from an emailed login link (Nathan, 7 Nov 2026): offer a
+// password straight away. Read before Supabase tidies the address.
+const VIA_LINK = /access_token=|type=magiclink/.test(location.hash);
+const MOVE_IN = new URLSearchParams(location.search).get("move_offer") === "1";
 const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const $ = (id) => document.getElementById(id);
@@ -717,7 +726,7 @@ $("move-link").addEventListener("click", async () => {
   msg.className = "msg ok";
   msg.textContent = "On its way to the email address we wrote to. Check your inbox (and junk folder) and tap the link. Nothing after 5 minutes? Write to info@birdboxcoaching.com.";
 });
-if (params.get("welcome") || params.get("expired") || params.get("move")) history.replaceState(null, "", "/learn/" + location.hash);
+if (params.get("welcome") || params.get("expired") || params.get("move") || params.get("move_offer")) history.replaceState(null, "", "/learn/" + location.hash);
 
 start();
 });
@@ -829,6 +838,7 @@ async function boot() {
     box.outerHTML = '<div id="courses" class="empty"></div>';
     $("courses").innerHTML = "There are no online courses on <strong></strong> yet. Tap a course above to see what is available. If you bought an online course with a different email, log out and use that one. If you have only just paid, give it a couple of minutes and refresh.";
     $("courses").querySelector("strong").textContent = session.user.email;
+    arrive();
     route();
     view("home");
     return;
@@ -891,9 +901,34 @@ async function boot() {
     if (done && c.current_version) card.appendChild(certBlock(c, certByCourse.get(c.id), defaultName));
     box.appendChild(card);
   }
+  arrive();
   route();
   view("home");
 }
+
+// After an emailed login link: a CoachRx mover opens on their programming
+// offer, and anyone is asked for a password (Nathan, 7 Nov 2026)
+let arrived = false;
+function arrive() {
+  if (arrived) return;
+  arrived = true;
+  if (MOVE_IN && !TABS.includes(location.hash.slice(1))) history.replaceState(null, "", "/learn/#programming");
+  if (VIA_LINK || MOVE_IN) $("pw-note").classList.remove("hidden");
+}
+$("pw-skip").addEventListener("click", () => $("pw-note").classList.add("hidden"));
+$("pw-go").addEventListener("click", async () => {
+  const msg = $("pw-msg");
+  const password = $("pw-new").value;
+  if (password.length < 8) { msg.className = "msg err"; msg.textContent = "Use at least 8 characters."; return; }
+  $("pw-go").disabled = true;
+  const { error } = await db.auth.updateUser({ password });
+  $("pw-go").disabled = false;
+  if (error) { msg.className = "msg err"; msg.textContent = error.message; return; }
+  $("pw-new").value = "";
+  msg.className = "msg ok";
+  msg.textContent = "Saved. Next time log in with your email and this password.";
+  setTimeout(() => $("pw-note").classList.add("hidden"), 2500);
+});
 
 // ---------------- trainer directory ----------------
 
@@ -1640,8 +1675,9 @@ function moveCard(m) {
     c.append(btns, msg);
     return c;
   }
-  c.appendChild(el("p", "sub", (m.free_until
-    ? "You have already paid CoachRx up to " + day(m.free_until) + ", so nothing is charged until then. Your price stays for as long as you keep your plan."
+  // their own payment day, as clear as the move email (Nathan, 7 Nov 2026)
+  c.appendChild(el("p", "sub", (m.tier2_cents ? "Gymnastics + Community is normally €60 a month. " : "") + (m.free_until
+    ? "You have already paid CoachRx up to " + day(m.free_until) + ", so the app is yours free until then. You add your card now, but nothing is taken until " + day(m.free_until) + ". Your CoachRx payments are stopped, so you are never charged twice. Your price stays for as long as you keep your plan."
     : "Your price stays for as long as you keep your plan.") + " " + until));
   const start = (tier, cents) => {
     const b = el("button", "btn main", (tier === 2 ? "Gymnastics + Community" : "Gymnastics") + ": " + per(cents) + " →"); b.type = "button";

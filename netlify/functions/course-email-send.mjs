@@ -655,7 +655,9 @@ async function logoAttachment(file) {
   return logoCache[file];
 }
 
-export async function sendEmail({ to, sender, subject, text, brand, offerUrl = null, rich = false, copyOffice = true, cc = [] }) {
+// html: an email already laid out by the caller (the CoachRx move email,
+// 7 Nov 2026), sent as it is instead of the course template
+export async function sendEmail({ to, sender, subject, text, html = null, brand, offerUrl = null, rich = false, copyOffice = true, cc = [] }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("No Resend key; not sending to", to);
@@ -673,7 +675,7 @@ export async function sendEmail({ to, sender, subject, text, brand, offerUrl = n
     reply_to: sender.replyTo,
     subject,
     text: plainButtons(text),
-    html: template(text, brand, offerUrl, rich, !!logo),
+    html: html || template(text, brand, offerUrl, rich, !!logo),
     ...(logo ? { attachments: [logo] } : {}),
   });
 
