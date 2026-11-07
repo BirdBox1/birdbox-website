@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Two Weeks Free | TGC Programming</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Two weeks of TGC gymnastics programming in the BirdBox Coaching app. No card needed.">
+<meta property="og:site_name" content="BirdBox Coaching">
+<meta property="og:title" content="Two Weeks Free | TGC Programming">
+<meta property="og:description" content="Two weeks of TGC gymnastics programming in the BirdBox Coaching app. No card needed.">
+<meta property="og:url" content="https://birdboxcoaching.com/tgc/trial/">
+<meta property="og:image" content="https://birdboxcoaching.com/share/tgc-programming.jpg">
+<link rel="icon" href="/favicon-tgc.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-tgc-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon-tgc.png">
+<!--
+  The free trial on its own (Nathan, 7 Nov 2026): the link the social team
+  sends by Instagram DM ("comment PROGRAMMING"). Only the logo, the form and,
+  once sent, how to get into the app — not the whole sales page. Shared only:
+  nothing on the site links here, it is not in the sitemap, and search engines
+  are told not to list it. It signs up
+  through the same trial-signup as /tgc/programming/, which also emails them.
+-->
+<style>
+  :root {
+    --paper: #14100F;
+    --panel: #1C1719;
+    --ink: #F2EFEF;
+    --muted: #C9C4C5;
+    --line: #342F31;
+    --tgc: #D8393D;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  main { max-width: 440px; margin: 0 auto; padding: 36px 16px 48px; }
+  .mark { display: block; width: 132px; height: auto; margin: 0 auto 22px; }
+  .label {
+    text-align: center; font-size: 12px; font-weight: 800; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--tgc); margin: 0 0 8px;
+  }
+  h1 {
+    text-align: center; font-size: 30px; line-height: 1.12; font-weight: 900;
+    text-transform: uppercase; letter-spacing: -0.01em; margin: 0 0 12px;
+  }
+  .lede { text-align: center; font-size: 15px; line-height: 1.55; color: var(--muted); margin: 0 0 26px; }
+  .card { background: var(--panel); border: 1px solid var(--line); padding: 22px 18px; }
+  .names { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field { margin: 0 0 14px; }
+  label { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+  input, select {
+    width: 100%; font: inherit; font-size: 16px; color: var(--ink); background: var(--paper);
+    border: 1px solid var(--line); border-radius: 0; padding: 12px; -webkit-appearance: none; appearance: none;
+  }
+  select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 32px; }
+  input:focus, select:focus { outline: none; border-color: var(--tgc); }
+  .btn {
+    display: flex; justify-content: center; align-items: center; width: 100%;
+    padding: 15px 20px; background: var(--tgc); color: #fff; border: 0; cursor: pointer;
+    font: inherit; font-size: 14px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none;
+  }
+  .btn:disabled { opacity: 0.6; cursor: default; }
+  .btn--ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); margin-top: 10px; }
+  .msg { min-height: 1.2em; margin: 12px 0 0; font-size: 14px; line-height: 1.45; text-align: center; color: var(--muted); }
+  .msg--err { color: #FF8A8C; }
+  .small { font-size: 13px; line-height: 1.5; color: var(--muted); text-align: center; margin: 14px 0 0; }
+  .ticks { list-style: none; padding: 0; margin: 22px 0 0; }
+  .ticks li { position: relative; padding: 5px 0 5px 24px; font-size: 14px; line-height: 1.45; color: var(--muted); }
+  .ticks li::before { content: ""; position: absolute; left: 2px; top: 11px; width: 10px; height: 6px;
+    border-left: 2px solid var(--tgc); border-bottom: 2px solid var(--tgc); transform: rotate(-45deg); }
+  .steps { list-style: none; padding: 0; margin: 0 0 20px; counter-reset: s; }
+  .steps li { counter-increment: s; position: relative; padding: 0 0 18px 44px; font-size: 15px; line-height: 1.5; color: var(--muted); }
+  .steps li strong { display: block; color: var(--ink); font-size: 16px; margin-bottom: 2px; }
+  .steps li::before {
+    content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center; background: var(--tgc); color: #fff; font-weight: 900; font-size: 14px;
+  }
+  .email { color: var(--ink); font-weight: 700; word-break: break-all; }
+  .stores { text-align: center; font-size: 13px; color: var(--muted); margin: 12px 0 0; }
+  .stores a { color: var(--ink); font-weight: 700; }
+  [hidden] { display: none !important; }
+  @media (max-width: 360px) { .names { grid-template-columns: 1fr; gap: 0; } h1 { font-size: 26px; } }
+</style>
+</head>
+<body>
+<main>
+  <img class="mark" src="/brand/tgc-mark.png" alt="The Gymnastics Course">
+
+  <section id="signup">
+    <p class="label">TGC Programming</p>
+    <h1>Two Week Free Trial</h1>
+    <p class="lede">Two weeks of TGC gymnastics programming in the BirdBox Coaching app. No card needed, and nothing is charged when it ends.</p>
+
+    <form class="card" id="trial-form" novalidate>
+      <div class="names">
+        <div class="field"><label for="tr-name">First name</label><input id="tr-name" autocomplete="given-name" maxlength="80" required></div>
+        <div class="field"><label for="tr-last">Surname</label><input id="tr-last" autocomplete="family-name" maxlength="80" required></div>
+      </div>
+      <div class="field"><label for="tr-email">Email</label><input id="tr-email" type="email" inputmode="email" autocomplete="email" maxlength="254" required></div>
+      <div class="field"><label for="tr-country">Country</label><select id="tr-country" autocomplete="country"><option value="">Choose your country</option></select></div>
+      <button class="btn" type="submit">Start My Free Trial</button>
+      <p class="msg" role="status"></p>
+    </form>
+
+    <ul class="ticks">
+      <li>Every session for two weeks, on your phone</li>
+      <li>Coaching demonstrations and notes on every exercise</li>
+      <li>Log your sessions and see your history build</li>
+    </ul>
+  </section>
+
+  <section id="done" hidden>
+    <p class="label">You're in</p>
+    <h1>Thank you for registering</h1>
+    <p class="lede">Your two weeks of TGC programming are ready. Here's how to start.</p>
+
+    <div class="card">
+      <ol class="steps">
+        <li><strong>Download the app</strong>Get BirdBox Coaching from the App Store or Google Play.</li>
+        <li><strong>Sign in with your email</strong>Use <span class="email" data-email></span>, the same email you just gave us.</li>
+        <li><strong>Start training</strong>Your free two weeks are waiting in the app.</li>
+      </ol>
+      <a class="btn" id="get-app" href="https://app.birdboxcoaching.com" target="_blank" rel="noopener">Download the App</a>
+      <p class="stores"><a href="https://apps.apple.com/app/id6806654607" target="_blank" rel="noopener">App Store</a> · <a href="https://play.google.com/store/apps/details?id=com.birdboxcoaching.programming" target="_blank" rel="noopener">Google Play</a></p>
+    </div>
+
+    <p class="small">We've also emailed you these steps. If it isn't in your inbox, check your spam folder, or write to <a href="mailto:info@birdboxcoaching.com" style="color:var(--ink)">info@birdboxcoaching.com</a>.</p>
+  </section>
+</main>
+
+<script>
+(() => {
+  const APP_TRIAL = "https://app.birdboxcoaching.com/.netlify/functions/trial-signup";
+  const SHOP = "/.netlify/functions/programming-shop";
+  // the same country list as the programming sales pages (programming-sales.js)
+  const COUNTRIES = ["IE", "GB", "US", "CA", "AU", "NZ", "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR",
+    "DE", "GR", "HU", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "CH", "NO",
+    "IS", "LI", "AE", "SA", "QA", "IL", "ZA", "MX", "BR", "AR", "CL", "CO", "JP", "KR", "SG", "HK", "IN", "TH",
+    "MY", "PH", "ID", "CN", "TW", "TR", "UA", "RS"];
+  const regionName = (c) => { try { return new Intl.DisplayNames(["en"], { type: "region" }).of(c); } catch { return c; } };
+  const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+  const $ = (id) => document.getElementById(id);
+
+  const form = $("trial-form"), sel = $("tr-country");
+  const msg = form.querySelector(".msg"), btn = form.querySelector("button");
+  const say = (text, err) => { msg.textContent = text; msg.className = "msg" + (err ? " msg--err" : ""); };
+
+  const names = COUNTRIES.map((c) => [c, regionName(c)]).sort((a, b) => a[1].localeCompare(b[1]));
+  for (const [c, n] of names) sel.appendChild(new Option(n, c));
+  sel.appendChild(new Option("Another country", "ZZ"));
+  sel.onchange = () => { sel.dataset.picked = "1"; };
+  // start on the country we guess from where they are, until they choose
+  fetch(SHOP).then((r) => r.json()).then((shop) => {
+    if (!sel.dataset.picked && shop.country && COUNTRIES.includes(shop.country)) sel.value = shop.country;
+  }).catch(() => {});
+
+  // the app button goes straight to the right store on a phone
+  const ua = navigator.userAgent;
+  $("get-app").href = /iPhone|iPad|iPod/.test(ua) ? "https://apps.apple.com/app/id6806654607"
+    : /Android/.test(ua) ? "https://play.google.com/store/apps/details?id=com.birdboxcoaching.programming"
+    : "https://app.birdboxcoaching.com";
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const email = $("tr-email").value.trim();
+    const first = $("tr-name").value.replace(/\s+/g, " ").trim();
+    const last = $("tr-last").value.replace(/\s+/g, " ").trim();
+    const where = sel.value;
+    if (!first) return say("Please add your first name.", true);
+    if (!last) return say("Please add your surname.", true);
+    if (!isEmail(email)) return say("Please add your email address.", true);
+    if (!where) return say("Please choose your country.", true);
+    btn.disabled = true; say("Starting…");
+    try {
+      const r = await fetch(APP_TRIAL, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, first_name: first, last_name: last, country: where === "ZZ" ? "" : where }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || d.error) throw new Error(d.error || "The trial could not start. Please try again.");
+      document.querySelector("[data-email]").textContent = email;
+      $("signup").hidden = true;
+      $("done").hidden = false;
+      window.scrollTo(0, 0);
+    } catch (err) { say(err.message, true); btn.disabled = false; }
+  };
+})();
+</script>
+</body>
+</html>
