@@ -317,14 +317,25 @@
       <div class="msg" id="move-msg"></div>
     </div>
     <p id="expired-note" class="msg err hidden" style="max-width:420px">That link has expired. Tap “Email me a login link” below and we will send you a fresh one.</p>
+    <div id="back-note" class="box hidden" style="background:var(--panel);border:1px solid var(--accent);padding:18px 20px;margin:0 0 24px;max-width:520px;line-height:1.6">
+      <strong>Welcome back.</strong> Type the email address we wrote to, then tap the button. We email you a login link that takes you straight to your offer. You do not need a password.
+      <p style="margin:14px 0 6px"><label for="b-email" style="display:block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin:0 0 6px">Email</label>
+      <input id="b-email" type="email" autocomplete="email" style="width:100%;max-width:360px;font:inherit;font-size:16px;padding:11px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line)"></p>
+      <p style="margin:12px 0 0"><button type="button" class="btn main" id="b-link">Email me my login link</button></p>
+      <div class="msg" id="b-msg"></div>
+      <p style="margin:16px 0 0;font-size:14px"><a href="#" id="b-have">I already have a password</a></p>
+    </div>
     <form class="card" id="login-form">
+      <p class="pw-only" style="margin:0 0 18px"><button class="btn main" id="l-new" type="button">New here? Get a login link</button></p>
+      <p class="link-only hidden" style="margin:0 0 14px;line-height:1.6"><strong>New here?</strong> Type your email and tap the button. We email you a login link. You do not need a password.</p>
       <label for="l-email">Email</label>
       <input id="l-email" type="email" autocomplete="email" required>
-      <label for="l-pass">Password</label>
-      <input id="l-pass" type="password" autocomplete="current-password">
-      <button class="btn" id="l-go" type="submit">Log in</button>
-      <button class="btn ghost" id="l-link" type="button">First time, or forgot your password? Email me a login link</button>
+      <label for="l-pass" class="pw-only">Password</label>
+      <input id="l-pass" class="pw-only" type="password" autocomplete="current-password">
+      <button class="btn pw-only" id="l-go" type="submit">Log in</button>
+      <button class="btn ghost" id="l-link" type="button">Forgot your password? Email me a login link</button>
       <div id="l-msg" class="msg"></div>
+      <p class="link-only hidden" style="margin:14px 0 0;font-size:14px"><a href="#" id="l-back">I already have a password</a></p>
     </form>
   </section>
 
@@ -704,7 +715,10 @@ $("login-form").addEventListener("submit", async (e) => {
   const { error } = await db.auth.signInWithPassword({ email, password });
   $("l-go").disabled = false;
   if (error) { msg.className = "msg err"; msg.textContent = "That email and password did not match. Try again, or use the login link button."; return; }
-  // From the welcome email's link (?welcome=1) or an expired one (?expired=1).
+  start();
+});
+
+// From the welcome email's link (?welcome=1) or an expired one (?expired=1).
 const params = new URLSearchParams(location.search);
 if (params.get("expired")) {
   $("expired-note").classList.remove("hidden");
@@ -734,11 +748,48 @@ $("move-link").addEventListener("click", async () => {
   msg.className = "msg ok";
   msg.textContent = "On its way to the email address we wrote to. Check your inbox (and junk folder) and tap the link. Nothing after 5 minutes? Write to info@birdboxcoaching.com.";
 });
+// From the past members welcome back email (?offer=back): one email box
+// and one button, no password (Nathan, 7 Nov 2026)
+if (params.get("offer") === "back") { $("back-note").classList.remove("hidden"); $("login-form").classList.add("hidden"); }
+$("b-have").addEventListener("click", (e) => { e.preventDefault(); $("back-note").classList.add("hidden"); $("login-form").classList.remove("hidden"); });
+$("b-email").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("b-link").click(); } });
+$("b-link").addEventListener("click", async () => {
+  const msg = $("b-msg");
+  const email = $("b-email").value.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.className = "msg err"; msg.textContent = "Type your email address first."; return; }
+  $("b-link").disabled = true;
+  msg.className = "msg"; msg.textContent = "Sending…";
+  let sent = false;
+  try {
+    const r = await fetch("/.netlify/functions/learn-access", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, next: "/learn/", offer: "back" }),
+    });
+    sent = r.ok;
+  } catch (e) {}
+  $("b-link").disabled = false;
+  if (!sent) { msg.className = "msg err"; msg.textContent = "Something went wrong sending the link. Try again, or write to info@birdboxcoaching.com."; return; }
+  msg.className = "msg ok";
+  msg.textContent = "On its way. Check your inbox (and junk folder) and tap the link in our email. Nothing after 5 minutes? Write to info@birdboxcoaching.com.";
+});
 // Back from the move checkout (?moved=1): you are in, now get the app (Nathan, 7 Nov 2026)
 if (params.get("moved")) $("moved-note").classList.remove("hidden");
-if (params.get("welcome") || params.get("expired") || params.get("move") || params.get("move_offer") || params.get("moved")) history.replaceState(null, "", "/learn/" + location.hash);
+if (params.get("welcome") || params.get("expired") || params.get("move") || params.get("move_offer") || params.get("moved") || params.get("offer")) history.replaceState(null, "", "/learn/" + location.hash);
 
-start();
+
+// "New here?" switches the form to email only: type it, get a login
+// link (Nathan, 7 Nov 2026)
+function loginMode(link) {
+  document.querySelectorAll("#login-form .pw-only").forEach((x) => x.classList.toggle("hidden", link));
+  document.querySelectorAll("#login-form .link-only").forEach((x) => x.classList.toggle("hidden", !link));
+  $("l-link").className = link ? "btn main" : "btn ghost";
+  $("l-link").textContent = link ? "Email me a login link" : "Forgot your password? Email me a login link";
+  $("l-msg").textContent = "";
+  $("l-email").focus();
+}
+$("l-new").addEventListener("click", () => loginMode(true));
+$("l-back").addEventListener("click", (e) => { e.preventDefault(); loginMode(false); });
+$("l-email").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && $("l-pass").classList.contains("hidden")) { e.preventDefault(); $("l-link").click(); }
 });
 
 $("l-link").addEventListener("click", async () => {
