@@ -52,11 +52,13 @@ export default async (req) => {
         await removePhotos(user.id);
         await db.from("directory_profiles").delete().eq("id", profile.id);
       }
+      await clearPublicCopies();
       return json(await view(null, user));
     } else {
       return json({ error: "Unknown action." }, 400);
     }
 
+    await clearPublicCopies();
     return json(await view(await findProfile(user, email), user));
   } catch (err) {
     console.error("directory-me:", err.message || err);
@@ -317,4 +319,26 @@ async function tellOffice(profile, newCourses = 0) {
 async function removePhotos(uid) {
   const { data } = await db.storage.from("directory").list(uid);
   if (data && data.length) await db.storage.from("directory").remove(data.map((f) => `${uid}/${f.name}`));
+}
+
+// The public directory pages are kept by Netlify's CDN for 5 minutes
+// (directory-public.mjs), so a coach who saved and looked straight away
+// saw their old page (Irina, 7 Nov 2026). Clear every copy tagged
+// "directory" so the next visit builds it fresh. Netlify gives functions
+// the token and site id; if either is missing the cache just expires as
+// before.
+async function clearPublicCopies() {
+  const token = process.env.NETLIFY_PURGE_API_TOKEN;
+  const site = process.env.SITE_ID;
+  if (!token || !site) { console.warn("directory-me: no purge token, cache left to expire"); return; }
+  try {
+    const r = await fetch("https://api.netlify.com/api/v1/purge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify({ site_id: site, cache_tags: ["directory"] })
+    });
+    if (!r.ok) console.warn("directory-me: purge", r.status, await r.text().catch(() => ""));
+  } catch (err) {
+    console.warn("directory-me: purge failed", err.message || err);
+  }
 }
