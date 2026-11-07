@@ -128,6 +128,7 @@ function write(o) {
   const paid = !free && o.free_until;
   // on a CoachRx free trial, never paid: the free time is given, not paid for (Nathan, 7 Nov 2026)
   const trial = /^TRIALING/i.test(o.coachrx_status || "");
+  const lapsed = /last payment failed/i.test(o.coachrx_status || "");
   const name = o.first_name || "there";
   const link = `${SITE}/learn/?move=${o.code}`;
 
@@ -164,7 +165,10 @@ function write(o) {
         // they have had the programming free while the app was built (Barney and Nathan, 7 Nov 2026)
         head: "Your first payment is when you join",
         rows: [
-          "When the programme moved to CoachRx, a payment was never set up on your account, so you have had your programming free while we built the new app. Thank you for your patience. We will not ask for anything you missed.",
+          // paid CoachRx, then the last payment failed (Nathan, 7 Nov 2026)
+          lapsed
+            ? "Your last CoachRx payment did not go through, and that plan has now ended. We will not ask for it."
+            : "When the programme moved to CoachRx, a payment was never set up on your account, so you have had your programming free while we built the new app. Thank you for your patience. We will not ask for anything you missed.",
           `To carry on in the new app, a paid plan now starts: your first ${price} is taken when you join, then on the same day each month.`,
           "You can take the two-week free trial instead, but if you do, this offer is no longer available and afterwards you see the normal prices.",
         ],
