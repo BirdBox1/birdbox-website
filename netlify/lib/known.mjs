@@ -30,6 +30,9 @@ export async function knownToBirdBox(email) {
     // moving over from CoachRx (Nathan, 1 Nov 2026)
     () => has(db.schema("train").from("move_offers").select("id", head).eq("email", email)
       .in("status", ["ready", "emailed", "moved"])),
+    // a past member with a come-back offer (Nathan, 7 Nov 2026)
+    () => has(db.schema("train").from("comeback_offers").select("id", head).eq("email", email)
+      .in("status", ["emailed", "joined"])),
     async () => {
       const train = db.schema("train");
       const { data: a } = await train.from("athletes").select("id").ilike("email", like).limit(5);

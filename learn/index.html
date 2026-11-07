@@ -930,7 +930,7 @@ function arrive() {
   if (!TABS.includes(location.hash.slice(1))) {
     progPrefetch = account("?part=programming");
     progPrefetch.then((d) => {
-      if (d?.move && !d.move.upgrades?.length && !TABS.includes(location.hash.slice(1))) location.hash = "#programming";
+      if (((d?.move && !d.move.upgrades?.length) || d?.comeback) && !TABS.includes(location.hash.slice(1))) location.hash = "#programming";
     }).catch(() => {});
   }
 }
@@ -1731,6 +1731,32 @@ function moveCard(m) {
   return c;
 }
 
+// A past member's come-back offer (Nathan, 7 Nov 2026): Gymnastics +
+// Community for the Gymnastics price, €35 a month for as long as they keep
+// it, the first 7 days free, open until their deadline.
+function comebackCard(m) {
+  const el = (tag, cls, txt) => { const x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; };
+  const c = el("div", "plan movecard"); c.style.setProperty("--c", BRAND.tgc.c);
+  const msg = el("div", "msg");
+  c.append(el("p", "k", "Your welcome back offer"),
+    el("h3", null, (m.first_name ? m.first_name + ", w" : "W") + "elcome back"));
+  c.appendChild(el("p", "sub", "Gymnastics + Community is normally " + money(m.normal_cents, "eur") + " a month. As a past member, it is yours for "
+    + money(m.cents, "eur") + " a month, VAT included, the price of Gymnastics on its own, for as long as you keep your plan."));
+  c.appendChild(el("p", "sub", "Your first " + m.free_days + " days are free. You add your card now, but nothing is taken until day " + (m.free_days + 1)
+    + ". Cancel before then in BirdBox Learn and you pay nothing. This offer is open until " + day(m.deadline) + "."));
+  const btns = el("div", "btns");
+  const b = el("button", "btn main", "Gymnastics + Community: " + money(m.cents, "eur") + " a month, " + m.free_days + " days free →"); b.type = "button";
+  b.onclick = async () => {
+    b.disabled = true; const label = b.textContent; b.textContent = "Opening…"; msg.textContent = "";
+    try { const r = await account("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "comeback_start" }) });
+      if (r.url) { location.href = r.url; return; } }
+    catch (e) { msg.className = "msg err"; msg.textContent = e.message; b.disabled = false; b.textContent = label; }
+  };
+  btns.appendChild(b);
+  c.append(btns, el("p", "sub", "That's the improved programming plus the premium community, where coaching questions are answered and you can share your training videos."), msg);
+  return c;
+}
+
 // An upgrade starts now, in Stripe's confirm page. A downgrade waits for
 // their next payment date, with no refund: the plan they paid for runs to
 // the end of the month (Nathan, 6 Nov 2026).
@@ -1926,6 +1952,7 @@ async function loadProgramming() {
     box.appendChild(s2);
   }
   if (d.move) box.appendChild(moveCard(d.move));
+  else if (d.comeback) box.appendChild(comebackCard(d.comeback));
   // the app, for anyone training with us or about to (Nathan, 1 Nov 2026)
   // A box of its own with a proper button, under their plan, not a line of
   // small links above the course tabs (Nathan, 7 Nov 2026)
@@ -1972,7 +1999,7 @@ async function loadProgramming() {
       myBlocks.forEach((x) => card(x, "Block"));
       box = keep;
       panel.appendChild(appBox());
-    } else if (d.move && current === "tgc") panel.appendChild(appBox());
+    } else if ((d.move || d.comeback) && current === "tgc") panel.appendChild(appBox());
     // the currency sits with the plans on sale, under their own plan (Nathan, 7 Nov 2026)
     if ((PROGRAMMING_ON_SALE || d.staff) && d.shop) panel.appendChild(currencyLine(d.shop));
     if (PROGRAMMING_ON_SALE || d.staff) panel.appendChild(courseView(co, mine, !PROGRAMMING_ON_SALE, PROGRAMMING_ON_SALE ? d.trial_ok : true));
