@@ -179,7 +179,7 @@
     btn.disabled = true; say("Starting…");
     try {
       const r = await fetch(APP_TRIAL, { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, first_name: first, last_name: last, country: where === "ZZ" ? "" : where }) });
+        body: JSON.stringify({ email, first_name: first, last_name: last, country: where === "ZZ" ? "" : where, via: "link" }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok || d.error) throw new Error(d.error || "The trial could not start. Please try again.");
       document.querySelector("[data-email]").textContent = email;
