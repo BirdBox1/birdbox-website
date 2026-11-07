@@ -1589,7 +1589,11 @@ function courseView(co, mine, preview, trialOk) {
       else if (blog && blog.pending && blog.pending.tier === t.tier) note = "Your plan changes to this on " + day(blog.pending.on) + ".";
       else if (blog) btn = button("Change to this plan →", (b, m) => changeTo(blog.subscription, t.tier, b, m, { ...blog, toName: t.name }));
       else btn = button("Join →", (b, m) => join({ tier: t.tier }, b, m));
-      const c = card("Tier " + t.tier, t.name, price, "per month, VAT included", t.includes, btn, note);
+      // their own plan at what they actually pay (a CoachRx mover's €35,
+      // not the list €60), with the list price beside it (Nathan, 7 Nov 2026)
+      const own = yours && blog.amount != null && t.amount != null && blog.amount !== t.amount;
+      const c = card("Tier " + t.tier, t.name, own ? money(blog.amount, blog.currency || t.currency) : price,
+        own ? "per month, VAT included: your price (normally " + price + ")" : "per month, VAT included", t.includes, btn, note);
       if (yours) { c.classList.add("yours"); c.insertBefore(el("span", "badge", "Your plan"), c.firstChild); }
       grid.appendChild(c);
     }
@@ -1914,9 +1918,10 @@ async function loadProgramming() {
     const apps = document.createElement("div"); apps.className = "plan"; apps.style.setProperty("--c", "#B7B1B3");
     apps.innerHTML = '<p class="k">Train in the app</p><h3>Get the BirdBox Coaching app</h3>' +
       '<p class="sub">Your programming is in the app. Download it and sign in with this same email address.</p>' +
-      '<div class="btns"><a class="btn main" href="https://birdbox-train.netlify.app/get-app.html">Get the app →</a></div>' +
-      '<p class="sub" style="margin-top:10px">Or go straight to the <a href="https://apps.apple.com/app/id6806654607" target="_blank" rel="noopener">App Store</a> · ' +
-      '<a href="https://play.google.com/store/apps/details?id=com.birdboxcoaching.programming" target="_blank" rel="noopener">Google Play</a>.</p>';
+      // red with white text like Open the app, and white links, never pale grey or blue (Nathan, 7 Nov 2026)
+      '<div class="btns"><a class="btn main" style="background:#85151A;border-color:#85151A;color:#FFFFFF" href="https://birdbox-train.netlify.app/get-app.html">Get the app →</a></div>' +
+      '<p class="sub" style="margin-top:10px">Or go straight to the <a style="color:var(--ink);text-decoration:underline;font-weight:700" href="https://apps.apple.com/app/id6806654607" target="_blank" rel="noopener">App Store</a> · ' +
+      '<a style="color:var(--ink);text-decoration:underline;font-weight:700" href="https://play.google.com/store/apps/details?id=com.birdboxcoaching.programming" target="_blank" rel="noopener">Google Play</a>.</p>';
     return apps;
   };
   const courses = (d.shop && d.shop.courses) || [];
