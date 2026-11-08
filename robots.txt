@@ -1,0 +1,10 @@
+# BirdBox Coaching (8 Nov 2026)
+User-agent: *
+Allow: /
+Disallow: /portal/
+Disallow: /learn/
+Disallow: /registration-complete/
+Disallow: /invoice-names/
+Disallow: /unsubscribed/
+
+Sitemap: https://birdboxcoaching.com/sitemap.xml

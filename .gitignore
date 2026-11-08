@@ -1,1 +1,4 @@
 data-private/
+
+# Word documents are working files, not website pages
+*.docx

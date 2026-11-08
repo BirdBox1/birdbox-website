@@ -16,25 +16,43 @@ const supabase = createClient(
 
 const SITE = (process.env.SITE_URL || "https://birdboxcoaching.com").replace(/\/+$/, "");
 
-// Key static pages. Add or remove to match your real routes.
+// Key static pages, always with the trailing slash (without it Netlify
+// answers with a redirect, which Google counts against the page).
+// Updated 8 Nov 2026: the level, programming, workshop, mentorship and quiz
+// pages were missing. Trial, portal, learn and thank-you pages stay out.
 const STATIC = [
-  { path: "/",                  priority: "1.0", freq: "weekly"  },
-  { path: "/tcc",               priority: "0.9", freq: "weekly"  },
-  { path: "/tgc",               priority: "0.9", freq: "weekly"  },
-  { path: "/tec",               priority: "0.7", freq: "monthly" },
-  { path: "/twc",               priority: "0.7", freq: "monthly" },
-  { path: "/seminars/",         priority: "0.8", freq: "daily"   },
-  { path: "/blog/",             priority: "0.7", freq: "weekly"  },
-  { path: "/tcc/online-level-1/", priority: "0.8", freq: "monthly" },
-  { path: "/tgc/online-level-1/", priority: "0.8", freq: "monthly" },
-  { path: "/trainer-directory/", priority: "0.5", freq: "monthly" },
-  { path: "/tgc/staff-pathway/", priority: "0.5", freq: "monthly" },
-  { path: "/tec/staff-pathway/", priority: "0.5", freq: "monthly" },
-  { path: "/twc/staff-pathway/", priority: "0.5", freq: "monthly" },
-  { path: "/tcc/staff-pathway/", priority: "0.5", freq: "monthly" },
-  { path: "/about",             priority: "0.4", freq: "yearly"  },
-  { path: "/shop/",             priority: "0.5", freq: "monthly" },
-  { path: "/gift/",             priority: "0.5", freq: "monthly" },
+  { path: "/",                         priority: "1.0", freq: "weekly"  },
+  { path: "/tgc/",                     priority: "0.9", freq: "weekly"  },
+  { path: "/tcc/",                     priority: "0.9", freq: "weekly"  },
+  { path: "/tec/",                     priority: "0.7", freq: "monthly" },
+  { path: "/twc/",                     priority: "0.7", freq: "monthly" },
+  { path: "/seminars/",                priority: "0.9", freq: "daily"   },
+  { path: "/tgc/level-1/",             priority: "0.8", freq: "monthly" },
+  { path: "/tgc/level-2/",             priority: "0.8", freq: "monthly" },
+  { path: "/tcc/level-1/",             priority: "0.8", freq: "monthly" },
+  { path: "/tcc/level-2/",             priority: "0.8", freq: "monthly" },
+  { path: "/tgc/online-level-1/",      priority: "0.8", freq: "monthly" },
+  { path: "/tcc/online-level-1/",      priority: "0.8", freq: "monthly" },
+  { path: "/tgc/programming/",         priority: "0.8", freq: "weekly"  },
+  { path: "/tcc/programming/",         priority: "0.7", freq: "monthly" },
+  { path: "/tgc/workshops/",           priority: "0.7", freq: "monthly" },
+  { path: "/tgc/mentorship/",          priority: "0.6", freq: "monthly" },
+  { path: "/tcc/mentorship-essential/", priority: "0.6", freq: "monthly" },
+  { path: "/tcc/mentorship-premium/",  priority: "0.6", freq: "monthly" },
+  { path: "/quiz/",                    priority: "0.6", freq: "monthly" },
+  { path: "/tgc/quiz/",                priority: "0.6", freq: "monthly" },
+  { path: "/blog/",                    priority: "0.7", freq: "weekly"  },
+  { path: "/trainer-directory/",       priority: "0.6", freq: "weekly"  },
+  { path: "/tgc/staff-pathway/",       priority: "0.5", freq: "monthly" },
+  { path: "/tcc/staff-pathway/",       priority: "0.5", freq: "monthly" },
+  { path: "/tec/staff-pathway/",       priority: "0.5", freq: "monthly" },
+  { path: "/twc/staff-pathway/",       priority: "0.5", freq: "monthly" },
+  { path: "/about/",                   priority: "0.5", freq: "yearly"  },
+  { path: "/birdbox-team/",            priority: "0.4", freq: "yearly"  },
+  { path: "/shop/",                    priority: "0.5", freq: "monthly" },
+  { path: "/gift/",                    priority: "0.5", freq: "monthly" },
+  { path: "/support/",                 priority: "0.4", freq: "yearly"  },
+  { path: "/privacy/",                 priority: "0.2", freq: "yearly"  },
 ];
 
 const esc = (s) => String(s ?? "")
@@ -88,6 +106,19 @@ export default async () => {
       entries.push(urlEntry(`${SITE}/blog/${p.slug}/`, day(p.updated_at || p.published_at), "monthly", "0.6"));
     }
   } catch (_) { /* skip posts if unavailable */ }
+
+  // Each coach in the trainer directory who is shown publicly
+  try {
+    const { data: coaches } = await supabase
+      .from("directory_profiles")
+      .select("slug")
+      .eq("visible", true)
+      .is("hidden_at", null);
+    for (const c of coaches || []) {
+      if (!c.slug) continue;
+      entries.push(urlEntry(`${SITE}/trainer-directory/coach/${c.slug}/`, null, "monthly", "0.5"));
+    }
+  } catch (_) { /* skip coaches if unavailable */ }
 
   const xml =
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
