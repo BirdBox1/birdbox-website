@@ -12,7 +12,9 @@
       gift cards; anything that cannot be told apart shows as Other
     - sold: seminar places booked, online courses bought, new paid
       programming plans and gift cards, from our own records
-    - euro totals use today's rate; each currency is shown as charged too
+    - taken is in euro as Stripe converted it on the day (never moves);
+      new sales (full value), paid out to the bank, and plan payments still
+      to come (part=outlook) sit in a band under it (Nathan, 8 Nov 2026)
   Dark text on white throughout (Nathan is partly colour blind): no pale
   grey, blue or red text; the bars are one dark colour, named in words.
 -->
@@ -92,6 +94,8 @@
         <div class="n" id="totalnote"></div>
       </div>
 
+      <div class="tiles" id="health"></div>
+
       <div class="tiles" id="tiles"></div>
 
       <div class="panel">
@@ -105,23 +109,41 @@
           <thead><tr><th>Course</th><th class="num">Places booked</th><th class="num">Payments</th><th class="num">Taken</th></tr></thead>
           <tbody id="courses"></tbody>
         </table></div>
-        <p class="note" id="duenote"></p>
+      </div>
+
+      <div class="panel">
+        <h2>Still to come on plans</h2>
+        <div id="outlook">Adding up the plan payments still to come…</div>
+      </div>
+
+      <div class="panel">
+        <h2>Paid out to the bank</h2>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Arrives</th><th>From</th><th>To</th><th class="num">Amount</th></tr></thead>
+          <tbody id="payouts"></tbody>
+        </table></div>
+        <p class="note" id="payoutnote"></p>
       </div>
 
       <div class="panel">
         <details>
           <summary>Every payment this month</summary>
           <div class="tablewrap" style="margin-top:0.8rem"><table>
-            <thead><tr><th>Date</th><th>Kind</th><th>For</th><th class="num">Amount</th></tr></thead>
+            <thead><tr><th>Date</th><th>Kind</th><th>For</th><th>Account</th><th class="num">Amount</th></tr></thead>
             <tbody id="every"></tbody>
           </table></div>
         </details>
       </div>
 
-      <p class="note">Payments taken are what Stripe took this month, with refunds taken off and VAT included.
-        Euro totals use today's exchange rate; the amounts in each currency are as charged.
-        Places booked, courses bought and plans are counted from our own records.
-        Programming payments still to come this month are on the Income page in the programming portal.</p>
+      <p class="note">Payments taken are what Stripe took this month, VAT included, in euro as Stripe converted
+        them on the day, so a past month does not change. A refund counts in the month it was given.
+        New sales are the full value of what was sold this month, plan payments still to come included;
+        programming counts only what was taken, as it is month to month.
+        Still to come is every plan payment Stripe is set to take, never programming; the euro figure there
+        uses today's rate, so it is an estimate.
+        Paid out is what reached the bank this month, after Stripe's fees, and should match the Revolut statement.
+        Only the Irish company's Stripe accounts are included, never GymProg LLC.</p>
+      <p class="note" id="missing"></p>
     </div>
   </div>
 </div>
@@ -169,6 +191,53 @@ async function start() {
   }
   $("month").onchange = () => load($("month").value);
   load($("month").value);
+  loadOutlook();
+}
+
+// plan payments still to come: the same whichever month is shown
+let outlookData = null;
+async function loadOutlook() {
+  try {
+    const r = await fetch("/.netlify/functions/sales-report?part=outlook", { headers: { Authorization: "Bearer " + token } });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || "The plan payments could not be loaded.");
+    outlookData = d;
+  } catch (e) {
+    outlookData = { error: e.message };
+  }
+  drawOutlook();
+}
+
+function drawOutlook() {
+  const o = outlookData;
+  const tileEl = document.getElementById("tile-outlook");
+  if (!o) return;
+  if (o.error) {
+    $("outlook").textContent = o.error;
+    if (tileEl) tileEl.querySelector(".n").textContent = o.error;
+    return;
+  }
+  if (tileEl) {
+    tileEl.querySelector(".v").textContent = money(o.total.eur_cents);
+    tileEl.querySelector(".n").textContent = `${o.total.count} plan payment${o.total.count === 1 ? "" : "s"} to come, in euro at today's rate`;
+    tileEl.querySelector(".c").textContent = each(o.total.by_currency);
+  }
+  const monthName = (k) => k === "unknown" ? "Date not set"
+    : new Date(k + "-01T00:00:00Z").toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
+  const kindsIn = (b) => Object.entries(b.by_kind).sort((a, c) => c[1] - a[1])
+    .map(([k, v]) => `${KIND[k]} ${money(v)}`).join(" · ");
+  const rows = o.months.map((b) => `
+    <tr><td>${monthName(b.month)}</td><td class="num">${b.count}</td><td>${esc(kindsIn(b))}</td><td class="num">${money(b.eur_cents)}</td></tr>`).join("");
+  const notes = [];
+  if (o.unknown_end) notes.push(`${o.unknown_end} old academy plan${o.unknown_end === 1 ? " has" : "s have"} no end date in Stripe, so only the next payment is counted.`);
+  $("outlook").innerHTML = `
+    <div class="tablewrap"><table>
+      <thead><tr><th>Month</th><th class="num">Payments</th><th>What for</th><th class="num">Expected</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="4">No plan payments to come.</td></tr>`}
+      ${o.overdue.count ? `<tr><td>Sent, not paid yet</td><td class="num">${o.overdue.count}</td><td>Invoices past the date to pay: ${esc(each(o.overdue.by_currency))}</td><td class="num">${money(o.overdue.eur_cents)}</td></tr>` : ""}
+      </tbody>
+    </table></div>
+    ${notes.map((n) => `<p class="note">${esc(n)}</p>`).join("")}`;
 }
 
 async function load(month) {
@@ -191,8 +260,44 @@ function draw(d, label) {
   const k = d.kinds, s = d.sold;
   $("total").textContent = money(d.total_eur_cents);
   const count = Object.values(k).reduce((n, x) => n + x.count, 0);
-  $("totalnote").textContent = `${count} payment${count === 1 ? "" : "s"} in ${label}, in euro at today's rate`
-    + (d.unconverted ? " (a currency with no rate today is left out of this total)" : "");
+  $("totalnote").textContent = `${count} payment${count === 1 ? "" : "s"} in ${label}, in euro as converted on the day`
+    + (d.refunds_eur_cents ? `, after ${money(Math.abs(d.refunds_eur_cents))} refunded` : "")
+    + (d.unconverted ? " (a payment with no exchange rate is left out of this total)" : "");
+
+  // the health of the month: sold, in the bank, still to come
+  const ns = d.new_sales;
+  const nsParts = [["seminars", "Seminars"], ["online", "Online courses"], ["gift_cards", "Gift cards"], ["programming", "Programming taken"]]
+    .filter(([k]) => ns[k].eur_cents).map(([k, n]) => `${n} ${money(ns[k].eur_cents)}`).join(" · ");
+  const out = d.paid_out;
+  $("health").innerHTML = `
+    <div class="tile">
+      <div class="k">New sales this month</div>
+      <div class="v">${money(ns.total_eur_cents)}</div>
+      <div class="n">Full value sold, plan payments to come included</div>
+      <div class="c">${esc(nsParts) || "Nothing sold"}</div>
+    </div>
+    <div class="tile">
+      <div class="k">Paid out to the bank</div>
+      <div class="v">${Object.keys(out.by_currency).length ? esc(each(out.by_currency)) : money(0)}</div>
+      <div class="n">${out.payouts.length} payout${out.payouts.length === 1 ? "" : "s"} from Stripe, after fees</div>
+      <div class="c">Stripe fees on this month's payments ${money(d.fees_eur_cents)}</div>
+    </div>
+    <div class="tile" id="tile-outlook">
+      <div class="k">Still to come on plans</div>
+      <div class="v">…</div>
+      <div class="n">Adding up…</div>
+      <div class="c"></div>
+    </div>`;
+  drawOutlook();
+
+  $("payouts").innerHTML = out.payouts.map((p) => `
+    <tr><td>${new Date(p.arrival * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}${p.status === "in_transit" ? " (on its way)" : ""}</td>
+      <td>${esc(p.account)}</td><td>${esc(p.bank || "Bank")}</td><td class="num">${money(p.cents, p.currency)}</td></tr>`).join("")
+    || `<tr><td colspan="4">No payouts arrived this month.</td></tr>`;
+  $("payoutnote").textContent = "Payouts arrive a few days after the payments, so the start of a month carries the end of the last one.";
+  $("missing").textContent = d.missing_accounts && d.missing_accounts.length
+    ? "Not included yet (no Stripe key added): " + d.missing_accounts.join(", ") + "."
+    : "";
 
   const tile = (key, sold) => `
     <div class="tile">
@@ -223,16 +328,11 @@ function draw(d, label) {
     <tr><td>${esc(c.name)}</td><td class="num">${c.places || "—"}</td><td class="num">${c.payments || "—"}</td>
       <td class="num">${c.payments ? esc(each(c.by_currency)) : "—"}</td></tr>`).join("")
     || `<tr><td colspan="4">No seminar sales this month.</td></tr>`;
-  const due = d.due_seminar_instalments;
-  $("duenote").textContent = due && due.count
-    ? `Still due this month: ${due.count} seminar instalment${due.count === 1 ? "" : "s"}, ${each(due.by_currency)}.`
-    : "No seminar instalments left to take this month.";
-
   $("every").innerHTML = (d.payments || []).map((p) => `
     <tr><td>${new Date(p.at * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</td>
-      <td>${KIND[p.kind]}</td><td>${esc(p.what)}</td>
-      <td class="num">${money(p.cents, p.currency)}${p.refunded ? ` (${money(p.refunded, p.currency)} refunded)` : ""}</td></tr>`).join("")
-    || `<tr><td colspan="4">No payments.</td></tr>`;
+      <td>${KIND[p.kind]}</td><td>${esc(p.what)}</td><td>${esc(p.account)}</td>
+      <td class="num">${p.cents < 0 ? "− " + money(-p.cents, p.currency) : money(p.cents, p.currency)}</td></tr>`).join("")
+    || `<tr><td colspan="5">No payments.</td></tr>`;
 
   $("loading").classList.add("hidden");
   $("report").classList.remove("hidden");
