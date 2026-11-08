@@ -165,7 +165,9 @@ async function accountMonth(a, from, to) {
   const [charges, refunds, payouts] = await Promise.all([
     listAll(s.charges, { created: { gte: from, lt: to }, expand: ["data.balance_transaction"] }),
     listAll(s.refunds, { created: { gte: from, lt: to }, expand: ["data.balance_transaction", "data.charge"] }),
-    listAll(s.payouts, { arrival_date: { gte: from, lt: to }, expand: ["data.destination"] }),
+    // the bank's name and last digits, when the key is allowed to see them
+    listAll(s.payouts, { arrival_date: { gte: from, lt: to }, expand: ["data.destination"] })
+      .catch(() => listAll(s.payouts, { arrival_date: { gte: from, lt: to } })),
   ]);
 
   const ok = charges.filter((c) => c.status === "succeeded" && c.captured);
