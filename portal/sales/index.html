@@ -59,6 +59,27 @@
   .note{font-size:0.85rem;color:var(--soft);margin:0.8rem 0 0;max-width:72ch}
   .empty{background:var(--card);border:1px dashed var(--rule);border-radius:8px;padding:2rem 1.25rem;text-align:center;font-size:0.95rem}
   .hidden{display:none !important}
+  .pick{display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap}
+  .switch{display:inline-flex;border:1px solid var(--ink);border-radius:4px;overflow:hidden}
+  .switch button{font:inherit;font-size:0.9rem;padding:0.45rem 0.9rem;border:0;background:#fff;color:var(--ink);cursor:pointer}
+  .switch button[aria-pressed="true"]{background:var(--ink);color:#fff;font-weight:600}
+  .legend{display:flex;gap:0.5rem 1rem;align-items:center;flex-wrap:wrap;font-size:0.88rem;margin:-0.3rem 0 0.9rem}
+  .key{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:0.2rem}
+  .key.solid,.ycol .in{background:var(--ink)}
+  .key.expected,.ycol .ex{background:repeating-linear-gradient(135deg,var(--ink) 0 2px,#fff 2px 6px);border:2px solid var(--ink)}
+  .ychart{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;align-items:end;height:240px;padding-top:1.4rem;border-bottom:1px solid var(--rule)}
+  .ycol{position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end;cursor:default}
+  .ycol .ex{border-bottom:0;border-radius:4px 4px 0 0}
+  .ycol .in{border-radius:0}
+  .ycol > :first-child{border-top-left-radius:4px;border-top-right-radius:4px}
+  .ycol .gap{height:2px}
+  .ycol .lbl{position:absolute;bottom:calc(var(--h) + 4px);left:50%;transform:translateX(-50%);font-size:0.72rem;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .ymonths{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;font-size:0.78rem;text-align:center;margin-top:0.35rem}
+  .tip{position:fixed;z-index:9;background:var(--ink);color:#fff;font-size:0.82rem;padding:0.45rem 0.6rem;border-radius:4px;pointer-events:none;white-space:nowrap;font-variant-numeric:tabular-nums}
+  #ytable td:first-child{white-space:nowrap}
+  tr.total td{font-weight:700;border-top:2px solid var(--ink)}
+  tr.future td{font-style:italic}
+  @media (max-width:560px){ .ychart{gap:3px;height:200px} .ymonths{gap:3px} .ycol .lbl{display:none} }
   details summary{cursor:pointer;font-weight:600;font-size:0.92rem}
   @media (max-width:560px){ .brow{grid-template-columns:7rem 1fr 5.5rem} .hero .v{font-size:2rem} }
 </style>
@@ -83,9 +104,46 @@
   <div id="app" class="hidden">
     <div class="head">
       <h1 id="title">Sales this month</h1>
-      <label>Month <select id="month"></select></label>
+      <div class="pick">
+        <div class="switch" role="group" aria-label="Show a month or a year">
+          <button type="button" id="view-month" aria-pressed="true">Month</button>
+          <button type="button" id="view-year" aria-pressed="false">Year</button>
+        </div>
+        <label id="month-pick">Month <select id="month"></select></label>
+        <label id="year-pick" class="hidden">Year <select id="year"></select></label>
+      </div>
     </div>
 
+    <!-- the year: what has come in, month by month, and what is still to come -->
+    <div id="yearview" class="hidden">
+      <div id="yearloading" class="empty">Adding up the year…</div>
+      <div id="yearreport" class="hidden">
+        <div class="hero">
+          <div class="k" id="yhead">Came in</div>
+          <div class="v" id="ytotal"></div>
+          <div class="n" id="ynote"></div>
+        </div>
+        <div class="tiles" id="ytiles"></div>
+        <div class="panel">
+          <h2 id="ycharthead">Month by month (in euro)</h2>
+          <div class="legend"><span class="key solid"></span> Came in <span class="key expected"></span> Still to come on plans</div>
+          <div class="ychart" id="ychart" role="img"></div>
+        </div>
+        <div class="panel">
+          <h2>The year in figures</h2>
+          <div class="tablewrap"><table>
+            <thead><tr><th>Month</th><th class="num">Came in</th><th class="num">Seminars</th><th class="num">Online courses</th>
+              <th class="num">Programming</th><th class="num">Gift cards</th><th class="num">Paid out</th><th class="num">New sales</th><th class="num">Still to come</th></tr></thead>
+            <tbody id="ytable"></tbody>
+          </table></div>
+          <p class="note">Came in is what Stripe took each month, VAT included, in euro as converted on the day.
+            Still to come is the plan payments Stripe is set to take, never programming, at today's rate.
+            Paid out is what reached the bank. New sales is the full value sold that month.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="monthview">
     <div id="loading" class="empty">Adding up this month's sales… (it reads every payment from Stripe, so give it a few seconds)</div>
     <div id="report" class="hidden">
       <div class="hero">
@@ -145,6 +203,7 @@
         Only the Irish company's Stripe accounts are included, never GymProg LLC.</p>
       <p class="note" id="missing"></p>
     </div>
+    </div>
   </div>
 </div>
 
@@ -192,6 +251,150 @@ async function start() {
   $("month").onchange = () => load($("month").value);
   load($("month").value);
   loadOutlook();
+
+  // the year view: this year so far, the last 12 months, or last year
+  const y = now.getUTCFullYear();
+  for (const [v, t] of [[String(y), `${y} (so far, and what is to come)`], ["last12", "Last 12 months"], [String(y - 1), String(y - 1)]]) {
+    $("year").appendChild(new Option(t, v));
+  }
+  $("year").onchange = () => loadYear($("year").value);
+  $("view-month").onclick = () => showView("month");
+  $("view-year").onclick = () => showView("year");
+}
+
+function showView(v) {
+  const year = v === "year";
+  $("view-month").setAttribute("aria-pressed", String(!year));
+  $("view-year").setAttribute("aria-pressed", String(year));
+  $("month-pick").classList.toggle("hidden", year);
+  $("year-pick").classList.toggle("hidden", !year);
+  $("yearview").classList.toggle("hidden", !year);
+  $("monthview").classList.toggle("hidden", year);
+  $("title").textContent = year ? "Sales this year" : ($("month").value === $("month").options[0].value ? "Sales this month" : "Sales in " + $("month").selectedOptions[0].textContent);
+  if (year && !yearLoaded[$("year").value]) loadYear($("year").value);
+}
+
+/* ---------- the year ---------- */
+
+// Each month is read on its own (the same report as the month view), a
+// few at a time so Stripe is not asked for everything at once. Months
+// already read are kept while the page is open.
+const monthCache = {};
+const yearLoaded = {};
+async function monthReport(m) {
+  if (!monthCache[m]) {
+    monthCache[m] = fetch("/.netlify/functions/sales-report?month=" + m, { headers: { Authorization: "Bearer " + token } })
+      .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "Could not load " + m); return d; })
+      .catch((e) => { delete monthCache[m]; throw e; });
+  }
+  return monthCache[m];
+}
+
+async function loadYear(which) {
+  $("yearreport").classList.add("hidden");
+  $("yearloading").classList.remove("hidden");
+  const now = new Date();
+  const thisMonth = now.toISOString().slice(0, 7);
+  const months = [];
+  if (which === "last12") {
+    for (let i = 11; i >= 0; i--) months.push(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1)).toISOString().slice(0, 7));
+  } else {
+    for (let i = 1; i <= 12; i++) months.push(`${which}-${String(i).padStart(2, "0")}`);
+  }
+  const past = months.filter((m) => m <= thisMonth);
+  const got = {};
+  let done = 0;
+  const say = () => { $("yearloading").textContent = `Adding up the year… ${done} of ${past.length} months read from Stripe`; };
+  say();
+  try {
+    const queue = [...past];
+    await Promise.all([0, 1, 2].map(async () => {
+      while (queue.length) {
+        const m = queue.shift();
+        got[m] = await monthReport(m);
+        done++; say();
+      }
+    }));
+    if (!outlookData) await loadOutlook();
+    yearLoaded[which] = true;
+    if ($("year").value === which) drawYear(which, months, got, thisMonth);
+  } catch (e) {
+    $("yearloading").textContent = e.message + " Choose the year again to retry.";
+  }
+}
+
+function drawYear(which, months, got, thisMonth) {
+  const ahead = {};
+  const o = outlookData && !outlookData.error ? outlookData : null;
+  for (const b of o?.months || []) ahead[b.month] = b.eur_cents;
+  const rows = months.map((m) => {
+    const d = got[m];
+    const k = d?.kinds;
+    const paidOut = d ? Object.entries(d.paid_out.by_currency).reduce((t, [c, v]) => t + (c === "EUR" ? v : 0), 0) : null;
+    return {
+      m, past: !!d,
+      in: d ? d.total_eur_cents : 0,
+      seminars: k?.seminars.eur_cents || 0, online: k?.online.eur_cents || 0,
+      programming: k?.programming.eur_cents || 0, gift: k?.gift_cards.eur_cents || 0,
+      out: paidOut, sales: d ? d.new_sales.total_eur_cents : null,
+      ahead: m >= thisMonth ? (ahead[m] || 0) : 0,
+    };
+  });
+  const sum = (f) => rows.reduce((t, r) => t + (r[f] || 0), 0);
+  const name = (m, style = "short") => new Date(m + "-01T00:00:00Z").toLocaleDateString("en-GB", { month: style, timeZone: "UTC", ...(style === "long" ? { year: "numeric" } : {}) });
+  const label = which === "last12" ? "the last 12 months" : which;
+  const later = Object.entries(ahead).filter(([m]) => m > months[months.length - 1]).reduce((t, [, v]) => t + v, 0);
+
+  $("yhead").textContent = "Came in, " + label;
+  $("ytotal").textContent = money(sum("in"));
+  $("ynote").textContent = `${rows.filter((r) => r.past).length} month${rows.filter((r) => r.past).length === 1 ? "" : "s"} of payments, VAT included, in euro as converted on the day`;
+  const tile = (k, v, n) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`;
+  $("ytiles").innerHTML =
+    tile("Paid out to the bank", money(sum("out")), "Stripe payouts in euro, after fees") +
+    tile("New sales", money(sum("sales")), "Full value sold, plan payments to come included") +
+    tile("Still to come on plans", money(sum("ahead")),
+      which === "last12" || Number(which) < new Date().getUTCFullYear()
+        ? "From this month on, in euro at today's rate"
+        : `Rest of ${which}, in euro at today's rate` + (later ? ` · ${money(later)} more after ${which}` : "")) ;
+
+  // one column a month: what came in (solid) under what is still to come (striped)
+  const max = Math.max(1, ...rows.map((r) => r.in + r.ahead));
+  $("ychart").setAttribute("aria-label", `Money in each month of ${label}; the table below has the figures.`);
+  $("ychart").innerHTML = rows.map((r) => {
+    const hIn = r.in / max * 100, hEx = r.ahead / max * 100, total = r.in + r.ahead;
+    const parts = (hEx ? `<div class="ex" style="height:${hEx}%"></div>` : "") + (hEx && hIn ? `<div class="gap"></div>` : "") + (hIn ? `<div class="in" style="height:${hIn}%"></div>` : "");
+    const tip = [name(r.m, "long"), r.past ? "Came in " + money(r.in) : "", r.ahead ? "Still to come " + money(r.ahead) : ""].filter(Boolean).join(" · ");
+    const short = "€" + (total / 100000).toFixed(total >= 1000000 ? 0 : 1) + "k";
+    return `<div class="ycol" style="--h:${(hIn + hEx).toFixed(1)}%" data-tip="${esc(tip)}">${parts}${total ? `<span class="lbl">${short}</span>` : ""}</div>`;
+  }).join("");
+  const old = document.getElementById("ymonths"); if (old) old.remove();
+  $("ychart").insertAdjacentHTML("afterend", `<div class="ymonths" id="ymonths">${rows.map((r) => `<span>${name(r.m)}</span>`).join("")}</div>`);
+  hoverTips($("ychart"));
+
+  const cell = (v, show = true) => `<td class="num">${show && v ? money(v) : "—"}</td>`;
+  $("ytable").innerHTML = rows.map((r) => `
+    <tr class="${r.past ? "" : "future"}"><td>${name(r.m, "long")}${r.past ? "" : " (to come)"}</td>
+      ${cell(r.in, r.past)}${cell(r.seminars, r.past)}${cell(r.online, r.past)}${cell(r.programming, r.past)}${cell(r.gift, r.past)}
+      ${cell(r.out, r.past)}${cell(r.sales, r.past)}${cell(r.ahead)}</tr>`).join("") + `
+    <tr class="total"><td>Total</td>${cell(sum("in"))}${cell(sum("seminars"))}${cell(sum("online"))}${cell(sum("programming"))}${cell(sum("gift"))}
+      ${cell(sum("out"))}${cell(sum("sales"))}${cell(sum("ahead"))}</tr>`;
+
+  $("yearloading").classList.add("hidden");
+  $("yearreport").classList.remove("hidden");
+}
+
+// a small label that follows the pointer over a column
+function hoverTips(root) {
+  let tip = document.getElementById("tip");
+  if (!tip) { tip = document.createElement("div"); tip.id = "tip"; tip.className = "tip hidden"; document.body.appendChild(tip); }
+  root.querySelectorAll("[data-tip]").forEach((el) => {
+    el.onmousemove = (e) => {
+      tip.textContent = el.dataset.tip; tip.classList.remove("hidden");
+      const x = Math.min(e.clientX + 12, window.innerWidth - tip.offsetWidth - 8);
+      tip.style.left = x + "px"; tip.style.top = (e.clientY - 36) + "px";
+    };
+    el.onmouseleave = () => tip.classList.add("hidden");
+  });
 }
 
 // plan payments still to come: the same whichever month is shown
