@@ -2169,7 +2169,9 @@ $("mt-form").addEventListener("submit", async (e) => {
   msg.className = "msg"; msg.textContent = "Sending…";
   const meta = session.user.user_metadata || {};
   const { error } = await db.from("interest_signups").insert({
-    brand: "mentorship",
+    // "mentorship-tcc" or "mentorship-tgc": brevo-sync files TCC into the
+    // TCC Mentorship list and TGC into the TGC list (8 Nov 2026)
+    brand: "mentorship-" + ($("mt-which").value || "tcc"),
     email: session.user.email,
     name: meta.full_name || meta.name || null,
     // which one they chose, kept on the one mentorship list
