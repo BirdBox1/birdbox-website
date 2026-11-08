@@ -15,7 +15,7 @@
  * underneath it, the additions simply do not appear.
  */
 
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/+esm";
 
 // A phone keyboard has no shift key, so Enter-to-send leaves no way to
 // start a second line. The portal treats Enter as a new line on a touch

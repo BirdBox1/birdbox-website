@@ -12,7 +12,7 @@
 //
 // The token itself comes from netlify/functions/portal-switch.mjs.
 
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/+esm";
 
 const db = createClient(
   "https://yvdmazpxtpuvidlcifnq.supabase.co",
