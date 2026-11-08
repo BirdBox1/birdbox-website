@@ -28,7 +28,9 @@ const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
 // browser. It can only read what is public anyway.
 const SUPABASE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";
 
-const ROBOTS = /bot\b|crawler|spider|facebookexternalhit|facebot|whatsapp|telegram|slack|discord|linkedin|embedly|pinterest|skype|vkshare|redditbot|applebot|googlebot|bingbot|duckduck|yandex|iframely|preview/i;
+// Google's test tools and other crawlers don't say "bot" (Google-InspectionTool
+// runs the Rich Results Test), so they are named here too (8 Nov 2026).
+const ROBOTS = /bot\b|google-inspectiontool|googleother|google-extended|adsbot-google|storebot-google|mediapartners-google|bingpreview|crawler|spider|facebookexternalhit|facebot|whatsapp|telegram|slack|discord|linkedin|embedly|pinterest|skype|vkshare|redditbot|applebot|googlebot|bingbot|duckduck|yandex|iframely|preview/i;
 
 const BRAND = {
   tgc: "The Gymnastics Course",
