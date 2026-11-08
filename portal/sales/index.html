@@ -104,14 +104,6 @@
       </div>
 
       <div class="panel">
-        <h2>Seminars and workshops</h2>
-        <div class="tablewrap"><table>
-          <thead><tr><th>Course</th><th class="num">Places booked</th><th class="num">Payments</th><th class="num">Taken</th></tr></thead>
-          <tbody id="courses"></tbody>
-        </table></div>
-      </div>
-
-      <div class="panel">
         <h2>Still to come on plans</h2>
         <div id="outlook">Adding up the plan payments still to come…</div>
       </div>
@@ -123,6 +115,14 @@
           <tbody id="payouts"></tbody>
         </table></div>
         <p class="note" id="payoutnote"></p>
+      </div>
+
+      <div class="panel">
+        <h2>Seminars and workshops</h2>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Course</th><th class="num">Places booked</th><th class="num">Payments</th><th class="num">Taken</th></tr></thead>
+          <tbody id="courses"></tbody>
+        </table></div>
       </div>
 
       <div class="panel">
@@ -235,6 +235,7 @@ function drawOutlook() {
       <thead><tr><th>Month</th><th class="num">Payments</th><th>What for</th><th class="num">Expected</th></tr></thead>
       <tbody>${rows || `<tr><td colspan="4">No plan payments to come.</td></tr>`}
       ${o.overdue.count ? `<tr><td>Sent, not paid yet</td><td class="num">${o.overdue.count}</td><td>Invoices past the date to pay: ${esc(each(o.overdue.by_currency))}</td><td class="num">${money(o.overdue.eur_cents)}</td></tr>` : ""}
+      ${o.total.count ? `<tr><td><strong>Total</strong></td><td class="num"><strong>${o.total.count}</strong></td><td>${esc(each(o.total.by_currency))}</td><td class="num"><strong>${money(o.total.eur_cents)}</strong></td></tr>` : ""}
       </tbody>
     </table></div>
     ${notes.map((n) => `<p class="note">${esc(n)}</p>`).join("")}`;
