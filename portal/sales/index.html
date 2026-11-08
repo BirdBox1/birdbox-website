@@ -323,6 +323,8 @@ async function loadYear(which) {
   }
 }
 
+const SALES_RECORDED_FROM = "2026-09";
+
 function drawYear(which, months, got, thisMonth) {
   const ahead = {};
   const o = outlookData && !outlookData.error ? outlookData : null;
@@ -336,7 +338,11 @@ function drawYear(which, months, got, thisMonth) {
       in: d ? d.total_eur_cents : 0,
       seminars: k?.seminars.eur_cents || 0, online: k?.online.eur_cents || 0,
       programming: k?.programming.eur_cents || 0, gift: k?.gift_cards.eur_cents || 0,
-      out: paidOut, sales: d ? d.new_sales.total_eur_cents : null,
+      out: paidOut,
+      // bookings were only recorded in the portal from September 2026
+      // (August holds a one-off import of older RegFox bookings)
+      sales: d && m >= SALES_RECORDED_FROM ? d.new_sales.total_eur_cents : null,
+      recorded: m >= SALES_RECORDED_FROM,
       ahead: m >= thisMonth ? (ahead[m] || 0) : 0,
     };
   });
@@ -344,6 +350,8 @@ function drawYear(which, months, got, thisMonth) {
   const name = (m, style = "short") => new Date(m + "-01T00:00:00Z").toLocaleDateString("en-GB", { month: style, timeZone: "UTC", ...(style === "long" ? { year: "numeric" } : {}) });
   const label = which === "last12" ? "the last 12 months" : which;
   const later = Object.entries(ahead).filter(([m]) => m > months[months.length - 1]).reduce((t, [, v]) => t + v, 0);
+  const lookingAhead = months[months.length - 1] >= thisMonth;
+  const overdue = lookingAhead ? (o?.overdue?.eur_cents || 0) : 0;
 
   $("yhead").textContent = "Came in, " + label;
   $("ytotal").textContent = money(sum("in"));
@@ -351,11 +359,16 @@ function drawYear(which, months, got, thisMonth) {
   const tile = (k, v, n) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`;
   $("ytiles").innerHTML =
     tile("Paid out to the bank", money(sum("out")), "Stripe payouts in euro, after fees") +
-    tile("New sales", money(sum("sales")), "Full value sold, plan payments to come included") +
-    tile("Still to come on plans", money(sum("ahead")),
-      which === "last12" || Number(which) < new Date().getUTCFullYear()
-        ? "From this month on, in euro at today's rate"
-        : `Rest of ${which}, in euro at today's rate` + (later ? ` · ${money(later)} more after ${which}` : "")) ;
+    (rows.some((r) => r.past && r.recorded)
+      ? tile("New sales", money(sum("sales")), "Full value sold, plan payments to come included"
+        + (rows.some((r) => r.past && !r.recorded) ? ` · since ${name(SALES_RECORDED_FROM, "long")} (not recorded before)` : ""))
+      : tile("New sales", "Not recorded", `Bookings were only recorded in the portal from ${name(SALES_RECORDED_FROM, "long")}`)) +
+    (lookingAhead
+      ? tile("Still to come on plans", money(sum("ahead") + overdue),
+        [which === "last12" ? `${money(sum("ahead"))} from this month on` : `${money(sum("ahead"))} due in the rest of ${which}`,
+         overdue ? `${money(overdue)} overdue invoices` : "",
+         later ? `${money(later)} more after ${which === "last12" ? "that" : which}` : ""].filter(Boolean).join(" · ") + ". In euro at today's rate")
+      : tile("Still to come on plans", "—", "Shown for this year and the last 12 months"));
 
   // one column a month: what came in (solid) under what is still to come (striped)
   const max = Math.max(1, ...rows.map((r) => r.in + r.ahead));
@@ -375,9 +388,12 @@ function drawYear(which, months, got, thisMonth) {
   $("ytable").innerHTML = rows.map((r) => `
     <tr class="${r.past ? "" : "future"}"><td>${name(r.m, "long")}${r.past ? "" : " (to come)"}</td>
       ${cell(r.in, r.past)}${cell(r.seminars, r.past)}${cell(r.online, r.past)}${cell(r.programming, r.past)}${cell(r.gift, r.past)}
-      ${cell(r.out, r.past)}${cell(r.sales, r.past)}${cell(r.ahead)}</tr>`).join("") + `
+      ${cell(r.out, r.past)}${r.past && !r.recorded ? `<td class="num">not recorded</td>` : cell(r.sales, r.past)}${cell(r.ahead)}</tr>`).join("") +
+    (overdue ? `
+    <tr><td>Overdue invoices</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>
+      <td class="num">—</td><td class="num">—</td>${cell(overdue)}</tr>` : "") + `
     <tr class="total"><td>Total</td>${cell(sum("in"))}${cell(sum("seminars"))}${cell(sum("online"))}${cell(sum("programming"))}${cell(sum("gift"))}
-      ${cell(sum("out"))}${cell(sum("sales"))}${cell(sum("ahead"))}</tr>`;
+      ${cell(sum("out"))}${cell(sum("sales"))}${cell(sum("ahead") + overdue)}</tr>`;
 
   $("yearloading").classList.add("hidden");
   $("yearreport").classList.remove("hidden");
