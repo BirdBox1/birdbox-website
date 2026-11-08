@@ -1,3 +1,17 @@
+# Files that are part of the project but not the website (Nathan, 8 Nov
+# 2026). The whole folder is published, so without these anyone could read
+# the back-end code, the AI feedback manuals and the SQL. The functions still
+# read prompts/ behind the scenes (netlify.toml
+# included_files), so hiding them here changes nothing for them.
+# "404!" = show the not-found page even though the file exists.
+/netlify/*            /404.html    404!
+/sql/*                /404.html    404!
+/prompts/*            /404.html    404!
+/share-source/*       /404.html    404!
+/brand/README.md      /404.html    404!
+/package.json         /404.html    404!
+/test-checkout.html   /404.html    404!
+
 # The new programming page went live at /tgc/programming/ (6 Nov 2026,
 # Nathan); its draft address sends people there, plans section and all.
 /tgc/programming/new/*    /tgc/programming/:splat    301

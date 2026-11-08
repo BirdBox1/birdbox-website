@@ -321,7 +321,7 @@
   .msg.err { color: var(--bad); }
 
   .state { padding: 5rem 0; text-align: center; color: var(--muted); }
-  .state h1 { font-size: 1.3rem; color: var(--ink); }
+  .state h1, .state h2 { font-size: 1.3rem; color: var(--ink); }
   .state a { color: var(--ink); }
   .hidden { display: none !important; }
 </style>
@@ -344,7 +344,7 @@
   <div id="loading" class="state"><p>Loading…</p></div>
 
   <div id="missing" class="state hidden">
-    <h1>This course is not available</h1>
+    <h2>This course is not available</h2>
     <p>It may have been removed, or the link may be wrong.<br>
        Please check the link, or contact
        <a href="mailto:info@birdboxcoaching.com">info@birdboxcoaching.com</a>.</p>
@@ -1346,6 +1346,11 @@ async function checkout(slug, option, btn, months) {
 }
 
 function notFound() {
+  // keep a wrong or old course address out of Google (8 Nov 2026)
+  const robots = document.createElement("meta");
+  robots.name = "robots"; robots.content = "noindex";
+  document.head.appendChild(robots);
+  document.title = "Course not available | BirdBox Coaching";
   $("loading").classList.add("hidden");
   $("missing").classList.remove("hidden");
 }
