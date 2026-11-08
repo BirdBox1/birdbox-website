@@ -85,7 +85,7 @@ function tags(m) {
     `<meta property="og:image" content="${esc(m.image)}">`,
     `<meta name="twitter:card" content="summary_large_image">`,
     `<link rel="canonical" href="${esc(m.url)}">`,
-    m.ld ? `<script type="application/ld+json">${ld({ ...m.ld, url: m.url })}</script>` : "",
+    m.ld ? `<script type="application/ld+json">${ld(withUrl(m.ld, m.url))}</script>` : "",
     "",
   ].join("\n");
 }
@@ -103,7 +103,7 @@ async function rest(path) {
 // course's own "Live seminar" image: courses.image_url is the host gym's
 // logo, too small and plain for a link preview.
 async function seminar(slug) {
-  const c = await rest(`courses?slug=eq.${encodeURIComponent(slug)}&select=brand,type,title,summary,venue_name,address,city,country,starts_at,ends_at,timezone,status,archived,cancelled_at,price_cents,currency,language&limit=1`);
+  const c = await rest(`courses?slug=eq.${encodeURIComponent(slug)}&select=brand,type,title,summary,venue_name,address,city,country,starts_at,ends_at,timezone,status,archived,cancelled_at,price_cents,currency,language,on_sale_on,created_at&limit=1`);
   if (!c) return null;
   const when = dates(c.starts_at, c.ends_at, c.timezone);
   const where = [c.city, countryName(c.country)].filter(Boolean).join(", ");
@@ -145,6 +145,8 @@ async function seminar(slug) {
         price: (c.price_cents / 100).toFixed(2),
         priceCurrency: String(c.currency || "EUR").toUpperCase(),
         availability: c.status === "full" ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+        // on sale from: the date set in the portal, else the day it was added
+        validFrom: c.on_sale_on || c.created_at || undefined,
       } : undefined,
     } : null,
   };
@@ -213,6 +215,13 @@ function countryName(code) {
   if (!code) return "";
   if (String(code).length !== 2) return code;
   try { return new Intl.DisplayNames(["en"], { type: "region" }).of(String(code).toUpperCase()) || code; } catch { return code; }
+}
+
+// the page's address on the item, and on its price (where to book)
+function withUrl(item, url) {
+  const out = { ...item, url };
+  if (item.offers) out.offers = { ...item.offers, url };
+  return out;
 }
 
 // JSON for a <script> tag: "<" written as \u003c so text can never close it
