@@ -16,7 +16,7 @@
  * Once the course is created, the plan is stamped live and pointed at it.
  */
 
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/+esm";
 
 const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ";

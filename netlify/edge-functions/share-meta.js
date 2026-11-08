@@ -15,6 +15,12 @@
 //
 // The fixed pages (home, TGC, TCC...) carry their own tags in their
 // HTML; their pictures are in /share/, made by share-source/render.py.
+//
+// 8 Nov 2026: it also adds the page's canonical address, and for Google
+// the facts in its own format (JSON-LD): each seminar as an event with
+// dates, venue and price, so it can show in search results; each blog
+// post as an article. A course address that matches no course goes out
+// as "not found" to search engines, so old or mistyped links drop out.
 
 const SITE = "https://birdboxcoaching.com";
 const SUPABASE_URL = "https://yvdmazpxtpuvidlcifnq.supabase.co";
@@ -38,8 +44,9 @@ export default async (request, context) => {
   const url = new URL(request.url);
   const parts = url.pathname.split("/").filter(Boolean);
   let meta = null;
+  let missing = false;
   try {
-    if (parts[0] === "c" && parts[1]) meta = await seminar(parts[1]);
+    if (parts[0] === "c" && parts[1]) { meta = await seminar(parts[1]); missing = !meta; }
     else if (parts[0] === "blog" && parts[1] && parts[1] !== "index.html") meta = await post(parts[1]);
     else if (parts[0] === "trainer-directory" && parts[1] === "coach" && parts[2]) meta = await coach(parts[2], url.origin);
   } catch (err) {
@@ -47,13 +54,19 @@ export default async (request, context) => {
   }
 
   const res = await context.next();
+  if (missing && (res.headers.get("content-type") || "").includes("text/html")) {
+    const headers = new Headers(res.headers);
+    headers.set("X-Robots-Tag", "noindex");
+    return new Response(res.body, { status: 404, headers });
+  }
   if (!meta || !(res.headers.get("content-type") || "").includes("text/html")) return res;
 
-  meta.url = SITE + url.pathname;
+  // one address per page: always with the closing slash, never with ?…
+  meta.url = SITE + url.pathname.replace(/\/?$/, "/");
   let html = await res.text();
-  html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(meta.title)}</title>`);
+  html = html.replace(/<title>[\s\S]*?<\/title>/, () => `<title>${esc(meta.title)}</title>`);
   html = html.replace(/<meta\s+name="description"[^>]*>/i, "");
-  html = html.replace("</head>", tags(meta) + "</head>");
+  html = html.replace("</head>", () => tags(meta) + "</head>");
   const headers = new Headers(res.headers);
   headers.delete("content-length");
   return new Response(html, { status: res.status, headers });
@@ -69,6 +82,8 @@ function tags(m) {
     `<meta property="og:url" content="${esc(m.url)}">`,
     `<meta property="og:image" content="${esc(m.image)}">`,
     `<meta name="twitter:card" content="summary_large_image">`,
+    `<link rel="canonical" href="${esc(m.url)}">`,
+    m.ld ? `<script type="application/ld+json">${ld({ ...m.ld, url: m.url })}</script>` : "",
     "",
   ].join("\n");
 }
@@ -86,29 +101,75 @@ async function rest(path) {
 // course's own "Live seminar" image: courses.image_url is the host gym's
 // logo, too small and plain for a link preview.
 async function seminar(slug) {
-  const c = await rest(`courses?slug=eq.${encodeURIComponent(slug)}&select=brand,type,title,summary,city,country,starts_at,ends_at,timezone,status&limit=1`);
+  const c = await rest(`courses?slug=eq.${encodeURIComponent(slug)}&select=brand,type,title,summary,venue_name,address,city,country,starts_at,ends_at,timezone,status,archived,cancelled_at,price_cents,currency,language&limit=1`);
   if (!c) return null;
   const when = dates(c.starts_at, c.ends_at, c.timezone);
   const where = [c.city, countryName(c.country)].filter(Boolean).join(", ");
   const first = [when, where].filter(Boolean).join(" · ");
   const brand = BRAND[c.brand] || "BirdBox Coaching";
+  const description = [first, c.summary || (c.type === "workshop" ? `${brand} workshop.` : `${brand} live seminar.`)].filter(Boolean).join(". ");
+  const image = `${SITE}/share/${c.brand === "tgc" || c.brand === "tcc" ? "seminar-" + c.brand : "seminar-birdbox"}.jpg`;
+  // Only a course that is on sale (or full) is described as an event.
+  const listed = !c.archived && ["published", "full"].includes(c.status) && c.starts_at;
   return {
     title: c.title || brand,
-    description: [first, c.summary || (c.type === "workshop" ? `${brand} workshop.` : `${brand} live seminar.`)].filter(Boolean).join(". "),
-    image: `${SITE}/share/${c.brand === "tgc" || c.brand === "tcc" ? "seminar-" + c.brand : "seminar-birdbox"}.jpg`,
+    description,
+    image,
+    ld: listed ? {
+      "@context": "https://schema.org",
+      "@type": "EducationEvent",
+      name: c.title || brand,
+      description,
+      image: [image],
+      startDate: c.starts_at,
+      endDate: c.ends_at || c.starts_at,
+      eventStatus: c.cancelled_at ? "https://schema.org/EventCancelled" : "https://schema.org/EventScheduled",
+      eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+      inLanguage: c.language || "en",
+      location: {
+        "@type": "Place",
+        name: c.venue_name || where || brand,
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: c.address || undefined,
+          addressLocality: c.city || undefined,
+          addressCountry: c.country || undefined,
+        },
+      },
+      organizer: { "@type": "Organization", name: "BirdBox Coaching", url: SITE },
+      performer: { "@type": "Organization", name: brand },
+      offers: c.price_cents ? {
+        "@type": "Offer",
+        price: (c.price_cents / 100).toFixed(2),
+        priceCurrency: String(c.currency || "EUR").toUpperCase(),
+        availability: c.status === "full" ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+      } : undefined,
+    } : null,
   };
 }
 
 async function post(slug) {
-  const p = await rest(`blog_posts?slug=eq.${encodeURIComponent(slug)}&status=eq.published&select=title,excerpt,hero_path&limit=1`);
+  const p = await rest(`blog_posts?slug=eq.${encodeURIComponent(slug)}&status=eq.published&select=title,excerpt,hero_path,published_at,updated_at&limit=1`);
   if (!p) return null;
+  const image = p.hero_path
+    ? `${SUPABASE_URL}/storage/v1/object/public/blog/${p.hero_path.split("/").map(encodeURIComponent).join("/")}`
+    : `${SITE}/share/blog.jpg`;
   return {
     type: "article",
     title: p.title,
     description: p.excerpt || "From the BirdBox Coaching blog.",
-    image: p.hero_path
-      ? `${SUPABASE_URL}/storage/v1/object/public/blog/${p.hero_path.split("/").map(encodeURIComponent).join("/")}`
-      : `${SITE}/share/blog.jpg`,
+    image,
+    ld: {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      headline: p.title,
+      description: p.excerpt || undefined,
+      image: [image],
+      datePublished: p.published_at || undefined,
+      dateModified: p.updated_at || p.published_at || undefined,
+      author: { "@type": "Organization", name: "BirdBox Coaching", url: SITE },
+      publisher: { "@type": "Organization", name: "BirdBox Coaching", logo: { "@type": "ImageObject", url: `${SITE}/icon-512.png` } },
+    },
   };
 }
 
@@ -150,6 +211,11 @@ function countryName(code) {
   if (!code) return "";
   if (String(code).length !== 2) return code;
   try { return new Intl.DisplayNames(["en"], { type: "region" }).of(String(code).toUpperCase()) || code; } catch { return code; }
+}
+
+// JSON for a <script> tag: "<" written as \u003c so text can never close it
+function ld(obj) {
+  return JSON.stringify(obj).replace(/</g, "\\u003c");
 }
 
 function esc(s) {

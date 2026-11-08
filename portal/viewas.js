@@ -79,7 +79,7 @@
   var db = null;
   async function client() {
     if (db) return db;
-    var mod = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm");
+    var mod = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/+esm");
     db = mod.createClient(SUPABASE_URL, SUPABASE_KEY);
     return db;
   }
