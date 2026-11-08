@@ -140,6 +140,10 @@
             Still to come is the plan payments Stripe is set to take, never programming, at today's rate.
             Paid out is what reached the bank. New sales is the full value sold that month.</p>
         </div>
+        <div class="panel">
+          <h2 id="ybarshead">Taken, by kind (in euro)</h2>
+          <div class="bars" id="ybars"></div>
+        </div>
       </div>
     </div>
 
@@ -394,6 +398,17 @@ function drawYear(which, months, got, thisMonth) {
       <td class="num">—</td><td class="num">—</td>${cell(overdue)}</tr>` : "") + `
     <tr class="total"><td>Total</td>${cell(sum("in"))}${cell(sum("seminars"))}${cell(sum("online"))}${cell(sum("programming"))}${cell(sum("gift"))}
       ${cell(sum("out"))}${cell(sum("sales"))}${cell(sum("ahead") + overdue)}</tr>`;
+
+  // one bar per kind for the whole period, same look as the month view
+  const kinds = [["seminars", "seminars"], ["online", "online"], ["programming", "programming"], ["gift", "gift_cards"]];
+  const kmax = Math.max(1, ...kinds.map(([f]) => sum(f)));
+  $("ybarshead").textContent = `Taken, by kind, ${label} (in euro)`;
+  $("ybars").innerHTML = kinds.map(([f, key]) => `
+    <div class="brow" title="${KIND[key]}: ${money(sum(f))}">
+      <span>${KIND[key]}</span>
+      <span class="track"><span class="fill" style="display:block;width:${(sum(f) / kmax * 100).toFixed(1)}%"></span></span>
+      <span class="val">${money(sum(f))}</span>
+    </div>`).join("");
 
   $("yearloading").classList.add("hidden");
   $("yearreport").classList.remove("hidden");
