@@ -274,7 +274,9 @@ function sortOldAcademy(c) {
   const d = (c.description || "").trim();
   const tidy = d.replace(/_/g, " ").replace(/\s+[a-z0-9]{10}\s+plan$/i, "").replace(/\s+/g, " ");
   if (/online/i.test(d)) return { kind: "online", label: tidy };
-  if (/regfox|\bt[gcew]c[ _]l\d|^(TGC|TCC|TEC|TWC|BB) L\d|seminar|workshop/i.test(d)) return { kind: "seminars", label: tidy };
+  // a LearnWorlds order paid in instalments through Paythen: an online course
+  if (/payment_plan_order_id/i.test(d)) return { kind: "online", label: "Online course plan (old academy)" };
+  if (/regfox|\b(t[gcew]c|bb)[ _]l\d|seminar|workshop|^BirdBox Coaching /i.test(d)) return { kind: "seminars", label: tidy };
   if (/^(Subscription (creation|update)|Payment for order)$/i.test(d)) return { kind: "online", label: "Online course (old academy)" };
   return { kind: "other", label: tidy || "Payment (old academy)" };
 }
