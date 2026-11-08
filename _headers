@@ -1,0 +1,19 @@
+# Photos, icons and fonts can be kept by the browser for a week, so a
+# visitor's second page loads without downloading them again (Nathan,
+# 8 Nov 2026). Pages, scripts and data are left as they are, so changes to
+# those show straight away. A photo replaced under the same name can take up
+# to a week to show for someone who already saw it: give it a new name.
+/*.jpg
+  Cache-Control: public, max-age=604800
+/*.jpeg
+  Cache-Control: public, max-age=604800
+/*.png
+  Cache-Control: public, max-age=604800
+/*.webp
+  Cache-Control: public, max-age=604800
+/*.svg
+  Cache-Control: public, max-age=604800
+/*.ico
+  Cache-Control: public, max-age=604800
+/*.woff2
+  Cache-Control: public, max-age=604800
