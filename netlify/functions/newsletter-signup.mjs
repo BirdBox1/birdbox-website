@@ -6,14 +6,17 @@
 // POST { email, brand, page, website }   ("website" is a hidden trap field)
 //   -> { ok: true } once the email is saved
 //
-// 1. Saved first to public.email_signups, so nobody is lost if Brevo is down
-//    or not set up yet. One row per email (lower-cased, unique index).
-// 2. Then added to the Brevo list in BREVO_NEWSLETTER_LIST_ID, using
-//    BREVO_API_KEY. synced_at or sync_error records how that went.
+// Saved to public.interest_signups, the same table as the TEC, TWC, quiz,
+// trial and programming forms. Its database trigger (brevo_sync) sends each
+// new row to the Supabase function brevo-sync, which adds the person in
+// Brevo to General, their brand's list (TGC or TCC; home = General only)
+// and their region's list. So this needs no Brevo key of its own.
 //
-// Unsubscribing stays with Brevo: someone who unsubscribed there and signs up
-// here again is added back to the list but stays blocked from emails until
-// they choose otherwise in Brevo.
+// Country comes from where the visit came from (Netlify's geo lookup), so
+// the region list is right without asking.
+//
+// One row per brand and email (unique index). Someone already on that
+// brand's list is told thanks and nothing changes.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -24,11 +27,10 @@ const supabase = createClient(
 );
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-// the table allows these brands; the home page saves with none
-const BRANDS = new Set(["tgc", "tcc", "tec", "twc"]);
-const CONSENT = "Join Coaches Worldwide: get updates, resources, and exclusive offers.";
+// brevo-sync knows these; anything else counts as the home page
+const BRANDS = new Set(["tgc", "tcc"]);
 
-export default async (req) => {
+export default async (req, context) => {
   if (req.method !== "POST") return json({ error: "Use POST" }, 405);
 
   let body;
@@ -39,49 +41,22 @@ export default async (req) => {
 
   const email = String(body.email || "").trim().toLowerCase().slice(0, 200);
   if (!EMAIL.test(email)) return json({ error: "Please enter a valid email address." }, 400);
-  const brand = BRANDS.has(body.brand) ? body.brand : null;
+  const brand = BRANDS.has(body.brand) ? body.brand : "home";
   const page = String(body.page || "").slice(0, 100);
+  const country = context?.geo?.country?.code || null;
 
-  // 1. save it
-  const { data: row, error } = await supabase.from("email_signups")
-    .insert({ email, brand, source: `footer ${page}`.trim(), consent: true, consent_text: CONSENT })
-    .select("id").single();
-  let id = row?.id;
-  if (error) {
-    if (error.code !== "23505") {
-      console.error("newsletter-signup save:", error.message);
-      return json({ error: "Sorry, that didn't save. Please try again in a minute." }, 500);
-    }
-    // already signed up: try Brevo again below, in case it failed last time
-    const { data: old } = await supabase.from("email_signups").select("id").eq("email", email).maybeSingle();
-    id = old?.id;
+  const { error } = await supabase.from("interest_signups").insert({
+    email,
+    brand,
+    country,
+    source: `newsletter ${page}`.trim(),
+    lang: "en", // the box is on English pages; Brevo emails use this
+  });
+  if (error && error.code !== "23505") {
+    console.error("newsletter-signup save:", error.message);
+    return json({ error: "Sorry, that didn't save. Please try again in a minute." }, 500);
   }
-
-  // 2. Brevo
-  const key = process.env.BREVO_API_KEY;
-  const list = Number(process.env.BREVO_NEWSLETTER_LIST_ID);
-  if (!key || !list) {
-    console.warn("newsletter-signup: Brevo not set up, saved only");
-    if (id) await supabase.from("email_signups").update({ sync_error: "Brevo not set up" }).eq("id", id);
-    return json({ ok: true });
-  }
-  try {
-    const r = await fetch("https://api.brevo.com/v3/contacts", {
-      method: "POST",
-      headers: { "api-key": key, "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ email, listIds: [list], updateEnabled: true }),
-    });
-    const ok = r.ok || r.status === 204;
-    const why = ok ? null : `Brevo ${r.status}: ${(await r.text()).slice(0, 200)}`;
-    if (why) console.error("newsletter-signup:", why);
-    if (id) await supabase.from("email_signups")
-      .update(ok ? { synced_at: new Date().toISOString(), sync_error: null } : { sync_error: why })
-      .eq("id", id);
-  } catch (err) {
-    console.error("newsletter-signup Brevo:", err.message || err);
-    if (id) await supabase.from("email_signups").update({ sync_error: String(err.message || err).slice(0, 200) }).eq("id", id);
-  }
-  // saved either way, so the person is told it worked
+  // 23505: already signed up for this brand, so already in Brevo
   return json({ ok: true });
 };
 
