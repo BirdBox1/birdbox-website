@@ -540,6 +540,7 @@
 </footer>
 
 <script src="/nav.js"></script>
+<script src="/newsletter.js" data-brand="birdbox" defer></script>
 
 <script type="module">
   import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -842,15 +843,6 @@
   }
 
   loadQuotes();
-
-  // Signup is not wired to Mailchimp yet, so say so rather than pretend.
-  const note = document.getElementById("bb-signup-note");
-  document.getElementById("bb-signup-btn").addEventListener("click", () => {
-    const value = document.getElementById("bb-email").value.trim();
-    note.textContent = value.includes("@")
-      ? "Thanks \u2014 the mailing list isn\u2019t connected yet, so nothing has been saved."
-      : "Please enter a valid email address.";
-  });
 
   loadSeminars();
 </script>
