@@ -109,12 +109,22 @@ export default async () => {
 
   // Each coach in the trainer directory who is shown publicly
   try {
-    const { data: coaches } = await supabase
-      .from("directory_profiles")
-      .select("slug")
-      .eq("visible", true)
-      .is("hidden_at", null);
-    for (const c of coaches || []) {
+    // the database hands back at most 1,000 rows at a time, and there are
+    // more coaches than that, so read them a page at a time (8 Nov 2026)
+    const coaches = [];
+    for (let from = 0; from < 20000; from += 1000) {
+      const { data, error } = await supabase
+        .from("directory_profiles")
+        .select("slug")
+        .eq("visible", true)
+        .is("hidden_at", null)
+        .order("id")
+        .range(from, from + 999);
+      if (error) break;
+      coaches.push(...(data || []));
+      if (!data || data.length < 1000) break;
+    }
+    for (const c of coaches) {
       if (!c.slug) continue;
       entries.push(urlEntry(`${SITE}/trainer-directory/coach/${c.slug}/`, null, "monthly", "0.5"));
     }
