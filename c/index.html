@@ -397,9 +397,14 @@
         <p class="movements" id="movements"></p>
       </div>
 
-      <div id="descwrap" class="hidden">
+      <div id="descriptionwrap" class="hidden">
         <h2>About this course</h2>
         <div id="description"></div>
+      </div>
+
+      <div id="timetablewrap" class="hidden">
+        <h2>Timetable</h2>
+        <div id="timetable"></div>
       </div>
     </div>
 
@@ -570,7 +575,7 @@ async function load() {
 
   const { data: course, error } = await db
     .from("courses")
-    .select("id, brand, type, level, title, slug, summary, description, movements, workshop_focus, venue_name, address, city, country, starts_at, ends_at, timezone, capacity, price_cents, deposit_cents, currency, status, language, image_url")
+    .select("id, brand, type, level, title, slug, summary, description, movements, workshop_focus, day_shape_override, venue_name, address, city, country, starts_at, ends_at, timezone, capacity, price_cents, deposit_cents, currency, status, language, image_url")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -709,10 +714,13 @@ async function load() {
 
   fill("movements", course.movements || course.workshop_focus);
   fill("description", course.description || (tpl && tpl.intro), true);
+  // The same day the pre-course email describes: the course's own hours
+  // if it runs differently, otherwise the standard day for that level.
+  fill("timetable", course.day_shape_override || (tpl && tpl.day_shape), true);
 
   // Only show the text panel if something ended up inside it, and let
   // the first surviving section sit flush with the panel's padding.
-  const shown = ["movementswrap", "descwrap"]
+  const shown = ["movementswrap", "descriptionwrap", "timetablewrap"]
     .map((id) => $(id))
     .filter((el) => !el.classList.contains("hidden"));
   if (shown.length) {
