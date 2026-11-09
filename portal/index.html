@@ -549,6 +549,11 @@
   /* ---------------- direct messages ---------------- */
   .dm { display: grid; grid-template-columns: 1fr; gap: 1rem; }
   @media (min-width: 44rem) { .dm { grid-template-columns: 15rem 1fr; align-items: start; } }
+  .dm-teamhead { display: flex; align-items: center; justify-content: space-between;
+                 gap: 0.5rem; margin-bottom: 0.4rem; }
+  .dm-unreadfirst { font: inherit; font-size: 0.8rem; padding: 0.25rem 0.6rem; border-radius: 999px;
+                    border: 1px solid var(--rule); background: transparent; color: var(--muted); cursor: pointer; }
+  .dm-unreadfirst.on { background: var(--ink); border-color: var(--ink); color: #fff; }
   .dm-people { display: grid; gap: 0.15rem; max-height: 26rem; overflow-y: auto; }
   .dm-person {
     display: flex; align-items: center; gap: 0.6rem; width: 100%;
@@ -906,7 +911,10 @@
     <div class="panel">
       <div class="dm">
         <div id="dm-side">
-          <div class="whenline" style="font-weight:650;color:var(--ink);margin-bottom:0.4rem">The team</div>
+          <div class="dm-teamhead">
+            <span class="whenline" style="font-weight:650;color:var(--ink)">The team</span>
+            <button class="dm-unreadfirst" id="dm-unreadfirst" type="button" aria-pressed="false">Unread first</button>
+          </div>
           <div class="dm-people" id="dm-people"></div>
         </div>
 
@@ -7043,16 +7051,37 @@ async function openMessages() {
   if (dmWith) await openThread(dmWith);
 }
 
+let dmUnreadFirst = (() => { try { return localStorage.getItem("bb.dmUnreadFirst") === "1"; } catch (e) { return false; } })();
+
 function renderPeople() {
   const box = $("dm-people");
+  const uf = $("dm-unreadfirst");
+  if (uf) {
+    const n = Object.values(dmUnread || {}).filter(Boolean).length;
+    uf.textContent = n ? `Unread first (${n})` : "Unread first";
+    uf.setAttribute("aria-pressed", dmUnreadFirst ? "true" : "false");
+    uf.classList.toggle("on", dmUnreadFirst);
+    uf.onclick = () => {
+      dmUnreadFirst = !dmUnreadFirst;
+      try { localStorage.setItem("bb.dmUnreadFirst", dmUnreadFirst ? "1" : "0"); } catch (e) { /* private mode */ }
+      renderPeople();
+      box.scrollTop = 0;
+    };
+  }
   box.innerHTML = "";
 
   // Whoever you spoke to last is at the top, the way every messenger
   // does it. People you have never written to fall in underneath,
   // alphabetically, so they are still findable.
+  // "Unread first" puts anyone with an unread message at the top,
+  // newest first, before everybody else (Nathan, 9 Nov 2026)
   const others = staffList
     .filter((p) => p.id !== me.id)
     .sort((a, b) => {
+      if (dmUnreadFirst) {
+        const ua = dmUnread[a.id] ? 1 : 0, ub = dmUnread[b.id] ? 1 : 0;
+        if (ua !== ub) return ub - ua;
+      }
       const la = dmLast[a.id], lb = dmLast[b.id];
       if (la && lb) return lb.at.localeCompare(la.at);
       if (la) return -1;
