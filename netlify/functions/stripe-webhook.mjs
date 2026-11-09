@@ -132,6 +132,30 @@ export default async (req) => {
 };
 
 // ---------------------------------------------------------------
+// an old balance split into monthly payments (payment link)
+// ---------------------------------------------------------------
+// The first payment is taken at checkout; the rest are monthly. Ends
+// half a month after the last payment is due, so exactly N are taken
+// (the same rule as the online course plans).
+async function onBalanceDebtPlan(session) {
+  const n = parseInt(session.metadata?.payments, 10);
+  if (!session.subscription || !(n >= 1 && n <= 12)) {
+    console.log("Balance plan without a subscription or count, nothing to set", { session: session.id });
+    return;
+  }
+  const sub = await stripe.subscriptions.retrieve(session.subscription);
+  if (sub.cancel_at) return;
+  const end = new Date(sub.start_date * 1000);
+  end.setUTCMonth(end.getUTCMonth() + n - 1);
+  end.setUTCDate(end.getUTCDate() + 15);
+  await stripe.subscriptions.update(sub.id, {
+    cancel_at: Math.floor(end.getTime() / 1000),
+    proration_behavior: "none",
+  });
+  console.log("Balance plan set to end after", n, "payments", { subscription: sub.id });
+}
+
+// ---------------------------------------------------------------
 // a purchase completed
 // ---------------------------------------------------------------
 async function onCheckoutCompleted(session) {
@@ -146,6 +170,15 @@ async function onCheckoutCompleted(session) {
   // LearnWorlds and email them. Lives in online-checkout.mjs.
   if (isOnlineSale(session)) {
     await onOnlineSaleCompleted(session);
+    return;
+  }
+
+  // An old seminar balance split into monthly payments through a
+  // Stripe payment link (metadata kind "balance_debt", payments N).
+  // It is not a booking, so it must never reach the booking code
+  // below; the plan is set to end by itself after N payments.
+  if (session.metadata?.kind === "balance_debt") {
+    await onBalanceDebtPlan(session);
     return;
   }
 
