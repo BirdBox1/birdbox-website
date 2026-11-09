@@ -175,11 +175,22 @@ function writeReminder(o) {
   const payLine = free ? null : o.free_until
     ? `Nothing is taken until ${dayLong(o.free_until)}, as you have already paid CoachRx up to then. Not sure yet? Add your card anyway: you can cancel any time before then and nothing is ever taken.`
     : "Your first payment is taken when you join, then on the same day each month.";
-  const step1 = free
-    ? "Tap <b>See my offer</b>, sign in with this email and tap <b>Start my free account</b>."
-    : "Tap <b>See my offer</b>, sign in with this email and add your card.";
-  const step2 = "Then get the BirdBox Coaching app and sign in with the same email. Your programming will be there.";
-  const warn = "Please do step 1 first. If you open the app before, it cannot find your programming yet.";
+  // The steps say where each thing happens (Nathan, 9 Nov 2026): Nikola
+  // opened the app first, asked for a code and got nothing, as she had no
+  // account yet. The card goes in on the website (BirdBox Learn), and the
+  // password set there is the one for the app. Button names match Learn.
+  const learnPrice = new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" }).format(o.price_cents / 100);
+  const planButton = free ? "Start my free account"
+    : `${o.offer === "t2_offer" ? "Gymnastics + Community" : "Gymnastics"}: ${learnPrice} a month, VAT included`;
+  const steps = [
+    "<b>Go to BirdBox Learn.</b> Tap the <b>Open BirdBox Learn</b> button below. It opens in your web browser, not the app, on the BirdBox Learn login page with a box that says \"Welcome over from CoachRx\".",
+    "<b>Log in and set your password.</b> Tap <b>Email me my login link</b>. We email a login link to this address. Open that email and tap the link. You are now logged in to BirdBox Learn. It asks you to set a password: type one in and tap <b>Save password</b>.",
+    free
+      ? `<b>Start your account.</b> On the <b>Programming</b> page, tap <b>${planButton}</b>. When you are done, it says "You are in. Your plan is set up."`
+      : `<b>Add your card.</b> On the <b>Programming</b> page, tap <b>${planButton}</b> and add your card details.${o.free_until ? ` Nothing is taken until ${day(o.free_until)}.` : ""} When you are done, it says "You are in. Your plan is set up."`,
+    "<b>Now open the app.</b> Get the BirdBox Coaching app and sign in with this email and the password you set in step 2. Your programming will be there.",
+  ];
+  const warn = "Please do steps 1 to 3 on the website first. If you open the app before, it cannot find you yet and no code will arrive.";
   const intro = `A quick reminder from us and Barney. ${ending} Your programming carries on in our own app, BirdBox Coaching, and your place is waiting for you.`;
 
   const text = [
@@ -187,9 +198,10 @@ function writeReminder(o) {
     intro,
     offerLine,
     payLine,
-    "Two steps, in this order:",
-    `1. ${strip(step1)}\n2. ${strip(step2)}`,
-    `[[BUTTON: See my offer | ${link}]]`,
+    "Four steps, in this order:",
+    `1. ${strip(steps[0])}`,
+    `[[BUTTON: Open BirdBox Learn | ${link}]]`,
+    steps.slice(1).map((t, i) => `${i + 2}. ${strip(t)}`).join("\n\n"),
     warn,
     `Get the app: ${GET_APP}`,
     `This offer is open until ${DEADLINE}. Any questions, just reply to this email. Barney is copied in.`,
@@ -205,18 +217,20 @@ function writeReminder(o) {
     <img src="${LOGO}" alt="The Gymnastics Course" width="300" style="display:block;width:100%;max-width:300px;height:auto;border:0;" />
   </td></tr>
   <tr><td style="padding:8px 26px 30px;">
-    <h1 style="margin:0 0 16px;font-size:22px;color:#191513;letter-spacing:-0.3px;">One step to keep your programming</h1>
+    <h1 style="margin:0 0 16px;font-size:22px;color:#191513;letter-spacing:-0.3px;">Four steps to keep your programming</h1>
     <p style="${p}">Hi ${esc(name)},</p>
     <p style="${p}">${intro}</p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;background:#f4f3f1;border-radius:10px;" bgcolor="#f4f3f1"><tr><td bgcolor="#f4f3f1" style="padding:16px 18px;">
       <p style="margin:0 0 ${payLine ? 8 : 0}px;font-size:15px;line-height:1.6;color:#191513;"><b>${offerLine}</b></p>
       ${payLine ? `<p style="margin:0;font-size:14px;line-height:1.6;color:#191513;">${payLine}</p>` : ""}
     </td></tr></table>
-    <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#191513;"><b>Two steps, in this order:</b></p>
-    <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#3d3936;">1. ${step1}</p>
+    <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#191513;"><b>Four steps, in this order:</b></p>
+    <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#3d3936;">1. ${steps[0]}</p>
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 14px;"><tr>
-      <td bgcolor="#191513" style="background:#191513;border-radius:10px;"><a href="${link}" style="display:inline-block;padding:14px 26px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;">See my offer</a></td></tr></table>
-    <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#3d3936;">2. ${step2} <a href="${GET_APP}" style="color:#191513;">Get the app</a></p>
+      <td bgcolor="#191513" style="background:#191513;border-radius:10px;"><a href="${link}" style="display:inline-block;padding:14px 26px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;">Open BirdBox Learn</a></td></tr></table>
+    <p style="margin:0 0 10px;font-size:15px;line-height:1.6;color:#3d3936;">2. ${steps[1]}</p>
+    <p style="margin:0 0 10px;font-size:15px;line-height:1.6;color:#3d3936;">3. ${steps[2]}</p>
+    <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#3d3936;">4. ${steps[3]} <a href="${GET_APP}" style="color:#191513;">Get the app</a></p>
     <p style="margin:14px 0 14px;font-size:14px;line-height:1.6;color:#191513;padding:10px 14px;border:1px solid #e6e3e0;border-radius:10px;">${warn}</p>
     <p style="${p}">This offer is open until ${DEADLINE}. Any questions, just reply to this email. Barney is copied in.</p>
     <p style="margin:0;font-size:15px;line-height:1.6;color:#191513;">Nathan and Barney<br>BirdBox Coaching</p>
@@ -224,8 +238,7 @@ function writeReminder(o) {
   <tr><td style="padding:14px 26px;border-top:1px solid #e6e3e0;font-size:12px;color:#3d3936;">BirdBox Coaching Limited · 19 Baggot Street Lower, Dublin 2, D02 X658, Ireland</td></tr>
 </table></td></tr></table></body></html>`;
 
-  const subject = dublin === "2026-11-08" ? "CoachRx ends today: one step to keep your programming"
-    : "One step to keep your TGC programming";
+  const subject = "Four steps to keep your TGC programming";
   return { subject, text, html };
 }
 
