@@ -28,11 +28,11 @@ const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.
   .replace(/\/+$/, "");
 
 // Copied on every host email so the artwork follows without anybody
-// having to remember to ask. Any coach already assigned to the course
-// is copied too — they are the ones who will hear from the host.
-const MEDIA_EMAILS = (process.env.MEDIA_EMAILS ||
-  "media@thegymnasticscourse.education,sarah@birdboxcoaching.com")
-  .split(",").map((e) => e.trim()).filter(Boolean);
+// having to remember to ask: Sarah makes the host media and runs
+// social. Any coach already assigned to the course is copied too —
+// they are the ones who will hear from the host. (The old media
+// address is no longer copied, Nathan 9 Nov 2026.)
+const MEDIA_EMAILS = ["sarah@birdboxcoaching.com"];
 
 // Early bird stops four weeks out — after that it is not early.
 const EARLY_BIRD_DAYS = 28;
