@@ -1151,6 +1151,22 @@
       })
       .catch(() => {});
 
+    // Seminars at the same venue share coordinates, so each pin would sit
+    // exactly on top of the last and only one could be clicked. One pin
+    // per spot instead, its popup listing every date there.
+    const spots = new Map();
+    const markerAt = (c) => {
+      const key = `${(+c.latitude).toFixed(4)},${(+c.longitude).toFixed(4)}`;
+      if (!spots.has(key)) {
+        spots.set(key, { marker: L.marker([c.latitude, c.longitude], { icon: pinFor(c) }).addTo(map), html: [] });
+      }
+      return spots.get(key);
+    };
+    const addToPopup = (spot, html) => {
+      spot.html.push(html);
+      spot.marker.bindPopup(spot.html.join('<hr style="border:0;border-top:1px solid currentColor;opacity:0.25;margin:10px 0">'), { maxHeight: 320 });
+    };
+
     const bounds = [];
     for (const c of placed) {
       const colour = pinColour(c);
@@ -1159,9 +1175,7 @@
       const money = formatMoney(c.price_cents, c.currency);
       const full = c.status === "full";
 
-      L.marker([c.latitude, c.longitude], { icon: pinFor(c) })
-        .addTo(map)
-        .bindPopup(
+      addToPopup(markerAt(c),
           `<div class="sm-pin__what">${escapeHtml(pinTitle(c))}</div>` +
           `<div class="sm-pin__where">${escapeHtml(where)}</div>` +
           `<div class="sm-pin__when">${escapeHtml(when)}` +

@@ -1117,14 +1117,30 @@
       return;
     }
 
+    // Seminars at the same venue share coordinates, so each pin would sit
+    // exactly on top of the last and only one could be clicked. One pin
+    // per spot instead, its popup listing every date there.
+    const spots = new Map();
+    const markerAt = (c) => {
+      const key = `${(+c.latitude).toFixed(4)},${(+c.longitude).toFixed(4)}`;
+      if (!spots.has(key)) {
+        spots.set(key, { marker: L.marker([c.latitude, c.longitude], { icon: pin }).addTo(map), html: [] });
+      }
+      return spots.get(key);
+    };
+    const addToPopup = (spot, html) => {
+      spot.html.push(html);
+      spot.marker.bindPopup(spot.html.join('<hr style="border:0;border-top:1px solid currentColor;opacity:0.25;margin:10px 0">'), { maxHeight: 320 });
+    };
+
     const bounds = [];
     for (const c of placed) {
       const where = [c.city, countryName(c.country)].filter(Boolean).join(", ");
       const when = formatWhen(c.starts_at, c.ends_at, c.timezone);
       const full = c.status === "full";
-      const marker = L.marker([c.latitude, c.longitude], { icon: pin }).addTo(map);
+      const marker = markerAt(c);
       const money = formatMoney(c.price_cents, c.currency);
-      marker.bindPopup(
+      addToPopup(marker, 
         `<div class="l1-pin__city">${where}</div>` +
         `<div class="l1-pin__when">${when}${full ? " &middot; Full" : ""}</div>` +
         (money ? `<div class="l1-pin__price">${money}</div>` : "") +
