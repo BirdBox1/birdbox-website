@@ -251,9 +251,11 @@
     location.pathname.replace(/^\/blog\/?/, "").replace(/\/+$/, "")
   );
 
-  const fileUrl = (path) => path
-    ? supabase.storage.from("blog").getPublicUrl(path).data.publicUrl
-    : null;
+  // an author photo can be a Meet the Team photo link, used as it is
+  // (Nathan, 10 Nov 2026); anything else is a file in the "blog" bucket
+  const fileUrl = (path) => !path ? null
+    : /^https:\/\//.test(path) ? path
+    : supabase.storage.from("blog").getPublicUrl(path).data.publicUrl;
 
   async function load() {
     if (!slug) {
