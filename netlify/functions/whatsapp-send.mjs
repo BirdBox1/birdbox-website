@@ -40,7 +40,9 @@ const GRAPH = "https://graph.facebook.com/v21.0";
 // otherwise fire thirty registration messages at every coach on it.
 // "health": someone held for a doctor's note, or one uploaded to check,
 // from the training app (6 Nov 2026, Nathan: act fast to let them in)
-const SEND_KINDS = ["message", "allocation", "cancelled", "invoice_paid", "health"];
+// "call_recording": a weekly call recording still not published to the
+// Premium chat, from the training app's call-publish-reminder (10 Nov 2026)
+const SEND_KINDS = ["message", "allocation", "cancelled", "invoice_paid", "health", "call_recording"];
 
 // Netlify stops waiting at 26 seconds. Twenty messages at roughly a third of
 // a second each leaves comfortable room; the rest go on the next run, a
