@@ -15,6 +15,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { priceWithDiscount } from "./validate-discount.mjs";
+import { withLocalPrice } from "../lib/local-price.mjs";
 import { sendConfirmation } from "./stripe-webhook.mjs";
 import { redeemCard, seminarVat } from "../lib/gift-cards.mjs";
 
@@ -55,13 +56,15 @@ export default async (req) => {
     }
 
     // ---- the course -------------------------------------------
-    const { data: course, error: cErr } = await supabase
+    const { data: raw, error: cErr } = await supabase
       .from("courses")
       .select("id, brand, type, level, title, slug, price_cents, deposit_cents, currency, capacity, status, starts_at, ends_at, grants_online_course, country")
       .eq("slug", slug)
       .single();
 
-    if (cErr || !course) return json({ error: "Course not found" }, 404);
+    if (cErr || !raw) return json({ error: "Course not found" }, 404);
+    // A rand course is priced at its reduced price (local-price.mjs).
+    const course = withLocalPrice(raw);
     if (course.status !== "published") {
       return json({ error: "This course is not open for registration" }, 409);
     }
