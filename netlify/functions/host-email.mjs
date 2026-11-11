@@ -9,6 +9,7 @@
 // could list every live code.
 
 import { createClient } from "@supabase/supabase-js";
+import { localDiscountPercent } from "../lib/local-price.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -27,11 +28,11 @@ const SITE_URL = (process.env.SITE_URL || "https://warm-beijinho-9a5b1c.netlify.
   .replace(/\/+$/, "");
 
 // Copied on every host email so the artwork follows without anybody
-// having to remember to ask. Any coach already assigned to the course
-// is copied too — they are the ones who will hear from the host.
-const MEDIA_EMAILS = (process.env.MEDIA_EMAILS ||
-  "media@thegymnasticscourse.education,sarah@birdboxcoaching.com")
-  .split(",").map((e) => e.trim()).filter(Boolean);
+// having to remember to ask: Sarah makes the host media and runs
+// social. Any coach already assigned to the course is copied too —
+// they are the ones who will hear from the host. (The old media
+// address is no longer copied, Nathan 9 Nov 2026.)
+const MEDIA_EMAILS = ["sarah@birdboxcoaching.com"];
 
 // Early bird stops four weeks out — after that it is not early.
 const EARLY_BIRD_DAYS = 28;
@@ -68,7 +69,7 @@ export default async (request) => {
 
     const { data: course, error: cErr } = await supabase
       .from("courses")
-      .select("id, brand, type, title, slug, starts_at, timezone, host_name, host_email")
+      .select("id, brand, type, title, slug, starts_at, timezone, host_name, host_email, currency")
       .eq("id", courseId)
       .single();
 
@@ -109,7 +110,9 @@ export default async (request) => {
     // Workshops do not run an early bird at all. Enforced here rather
     // than only in the form, because a code created by accident is
     // live the moment it exists.
-    if (earlyBirdCode && course.type !== "workshop") {
+    // Nor does a rand course: its reduced price is already the lowest
+    // (netlify/lib/local-price.mjs), and checkout would refuse the code.
+    if (earlyBirdCode && course.type !== "workshop" && !localDiscountPercent(course)) {
       const expires = new Date(
         new Date(course.starts_at).getTime() - EARLY_BIRD_DAYS * 86400000
       );
