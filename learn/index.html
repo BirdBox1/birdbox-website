@@ -1400,7 +1400,8 @@ function showDiscounts(d, shown) {
 // The posts on the public blog, drawn the same way (/blog/article.js), with
 // the members' discussion under each (Nathan, 1 Nov 2026). The public blog
 // has no comments; only BirdBox members, in here, see or write them.
-const blogFile = (path) => path ? db.storage.from("blog").getPublicUrl(path).data.publicUrl : null;
+// an author photo can be a Meet the Team photo link, used as it is (10 Nov 2026)
+const blogFile = (path) => !path ? null : /^https:\/\//.test(path) ? path : db.storage.from("blog").getPublicUrl(path).data.publicUrl;
 const blogDay = (iso) => iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "";
 let blogPosts = null, blogCounts = {};
 

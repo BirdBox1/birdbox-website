@@ -322,9 +322,11 @@ const fmtWhen = (iso) => iso
   : "";
 
 // The bucket is public, because a published post is public anyway.
-const fileUrl = (path) => path
-  ? db.storage.from("blog").getPublicUrl(path).data.publicUrl
-  : null;
+// an author photo can be a Meet the Team photo link, used as it is
+// (Nathan, 10 Nov 2026)
+const fileUrl = (path) => !path ? null
+  : /^https:\/\//.test(path) ? path
+  : db.storage.from("blog").getPublicUrl(path).data.publicUrl;
 
 start();
 
@@ -450,6 +452,14 @@ $("back-list").addEventListener("click", loadList);
 // The row is created before anything is typed, so an image can be
 // uploaded against a real post id rather than held in the browser.
 async function createPost() {
+  // The author's photo is their Meet the Team photo (Nathan, 10 Nov 2026).
+  // The staff profile photo (me.photo_path) is in a private folder the
+  // public blog cannot read, so posts that used it showed no photo.
+  const { data: cp } = await db.schema("train").from("coach_profiles")
+    .select("photo_path").eq("staff_id", me.id).maybeSingle()
+    .then((r) => r, () => ({ data: null }));
+  const teamPhoto = /^https:\/\//.test(cp?.photo_path || "") ? cp.photo_path : null;
+
   const { data, error } = await db.from("blog_posts").insert({
     title: "",
     slug: "draft-" + Date.now(),
@@ -459,7 +469,7 @@ async function createPost() {
     author_staff_id: me.id,
     author_name: me.full_name || "",
     author_bio: me.bio || "",
-    author_photo_path: me.photo_path || null,
+    author_photo_path: teamPhoto,
   }).select("*").single();
 
   if (error) { window.alert("Could not start a post: " + error.message); return; }
@@ -1085,7 +1095,7 @@ $("mydelete").addEventListener("click", async () => {
     post.hero_path,
     post.author_photo_path,
     ...blocks.map((b) => b.path),
-  ].filter(Boolean);
+  ].filter((p) => p && !/^https?:\/\//.test(p));
   if (paths.length) await db.storage.from("blog").remove(paths);
 
   const { error } = await db.from("blog_posts").delete().eq("id", post.id);
@@ -1165,7 +1175,7 @@ $("delete").addEventListener("click", async () => {
     post.hero_path,
     post.author_photo_path,
     ...blocks.map((b) => b.path),
-  ].filter(Boolean);
+  ].filter((p) => p && !/^https?:\/\//.test(p));
   if (paths.length) await db.storage.from("blog").remove(paths);
 
   const { error } = await db.from("blog_posts").delete().eq("id", post.id);
