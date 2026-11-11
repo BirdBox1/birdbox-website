@@ -142,7 +142,10 @@ async function seminar(slug) {
       performer: { "@type": "Organization", name: brand },
       offers: c.price_cents ? {
         "@type": "Offer",
-        price: (c.price_cents / 100).toFixed(2),
+        // A rand course sells 31% below its listed price (local-price.mjs).
+        price: (String(c.currency || "").toUpperCase() === "ZAR"
+          ? Math.round((c.price_cents * 69) / 100 / 100)
+          : c.price_cents / 100).toFixed(2),
         priceCurrency: String(c.currency || "EUR").toUpperCase(),
         availability: c.status === "full" ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
         // on sale from: the date set in the portal, else the day it was added
