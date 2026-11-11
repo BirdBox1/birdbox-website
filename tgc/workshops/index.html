@@ -866,8 +866,15 @@
     } catch (e) { return code; }
   }
 
+  // A rand course sells 31% below its listed price (exchange rate);
+  // the list shows what people actually pay. Must match LOCAL_DISCOUNT
+  // in netlify/lib/local-price.mjs.
+  const LOCAL_DISCOUNT = { ZAR: 31 };
+
   function formatMoney(cents, currency) {
     if (cents == null || !currency) return "";
+    const off = LOCAL_DISCOUNT[String(currency).toUpperCase()];
+    if (off) cents = Math.round((cents * (100 - off)) / 100 / 100) * 100;
     try {
       return new Intl.NumberFormat("en-GB", {
         style: "currency", currency: currency.toUpperCase(), maximumFractionDigits: 0,
