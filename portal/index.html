@@ -6091,8 +6091,13 @@ async function openHostEmail(course) {
 
   // The field would sit there inviting a code the server now refuses
   // to create for a workshop, so it is hidden rather than ignored.
+  // A rand course is already at its lowest price (LOCAL_DISCOUNT), so
+  // it has no early bird either. Emptied, not just hidden, because the
+  // send reads the field.
+  const noEarlyBird = workshop || !!localPct(full.currency);
   const ebField = $("host-eb").closest(".field");
-  if (ebField) ebField.classList.toggle("hidden", workshop);
+  if (ebField) ebField.classList.toggle("hidden", noEarlyBird);
+  $("host-eb").value = noEarlyBird ? "" : ($("host-eb").value || "EB10");
 
   const ends = earlyBirdEnds(full);
   $("host-eb-hint").textContent =
@@ -6136,6 +6141,12 @@ function hostEmailBody(course) {
   const isWorkshop = course.type === "workshop";
   const noun = isWorkshop ? "workshop" : "seminar";
 
+  // A rand course: the reduced price, and no early bird or group codes.
+  const localOff = localPct(course.currency);
+  const fmtLocal = (cents) => new Intl.NumberFormat("en-GB", {
+    style: "currency", currency: String(course.currency).toUpperCase(), maximumFractionDigits: 0,
+  }).format(cents / 100);
+
   const lines = [
     `Hey ${first},`,
     "",
@@ -6174,6 +6185,26 @@ function hostEmailBody(course) {
       "Please do share the link on your socials or with anyone who might be interested. " +
       "Workshops fill on word of mouth more than anything else, and the people who come " +
       "are usually the ones who heard about it from you.",
+      ""
+    );
+  } else if (localOff) {
+    lines.push(
+      "PRICE AND PROMOTION",
+      "",
+      `The ${noun} is priced at ${fmtLocal(localReduced(course.price_cents, course.currency))}, ` +
+      `${localOff}% below our normal price of ${fmtLocal(course.price_cents)}, to allow for the ` +
+      `exchange rate. That is already the lowest price, so there is no early bird or group ` +
+      `discount code for this ${noun}.`,
+      "",
+      "Please do share the link on your socials or with anyone who might be interested. Early " +
+      "registrations genuinely help — they let us book travel in good time and give us " +
+      "confidence the seminar will run.",
+      "",
+      "MINIMUM NUMBERS",
+      "",
+      "We need at least 7 paying participants for the seminar to go ahead. If we are short " +
+      "10 to 14 days before, we would have to move or cancel it — sooner where there is " +
+      "long-haul travel involved. So the earlier the sign-ups come in, the better.",
       ""
     );
   } else {

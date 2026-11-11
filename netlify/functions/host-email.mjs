@@ -9,6 +9,7 @@
 // could list every live code.
 
 import { createClient } from "@supabase/supabase-js";
+import { localDiscountPercent } from "../lib/local-price.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -68,7 +69,7 @@ export default async (request) => {
 
     const { data: course, error: cErr } = await supabase
       .from("courses")
-      .select("id, brand, type, title, slug, starts_at, timezone, host_name, host_email")
+      .select("id, brand, type, title, slug, starts_at, timezone, host_name, host_email, currency")
       .eq("id", courseId)
       .single();
 
@@ -109,7 +110,9 @@ export default async (request) => {
     // Workshops do not run an early bird at all. Enforced here rather
     // than only in the form, because a code created by accident is
     // live the moment it exists.
-    if (earlyBirdCode && course.type !== "workshop") {
+    // Nor does a rand course: its reduced price is already the lowest
+    // (netlify/lib/local-price.mjs), and checkout would refuse the code.
+    if (earlyBirdCode && course.type !== "workshop" && !localDiscountPercent(course)) {
       const expires = new Date(
         new Date(course.starts_at).getTime() - EARLY_BIRD_DAYS * 86400000
       );
