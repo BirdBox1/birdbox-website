@@ -489,6 +489,23 @@ const PLAN_MONTHS = [2, 3, 4, 5, 6];
 // courses where it cannot work and vanished from the ones where it can.
 const KLARNA_CURRENCIES = ["EUR", "GBP", "SEK", "NOK", "DKK", "CHF", "PLN", "CZK"];
 
+// A seminar priced in one of these currencies is always this much below
+// its normal price, to allow for the exchange rate (Nathan, 11 Nov 2026:
+// South Africa, 31%). The normal price is shown crossed out, and
+// discount codes cannot be used; gift cards and course credits can.
+// Must match LOCAL_DISCOUNT in netlify/lib/local-price.mjs, which is
+// what checkout actually charges.
+const LOCAL_DISCOUNT = { ZAR: 31 };
+
+// The promo box's button, worded for what can be used on this course.
+function promoLabel(after) {
+  const local = state.course && state.course.local_discount_percent;
+  if (after === "both") return "Remove codes";
+  if (after === "gift") return local ? "Have a course credit too?" : "Have a discount code too?";
+  if (after === "code") return "Have a gift card too?";
+  return local ? "Have a gift card or course credit?" : "Have a discount code or gift card?";
+}
+
 const BRAND = {
   birdbox: { icon: "/brand/birdBox.png", colour: "#2f7fd0", label: "BirdBox" },
   tcc:     { icon: "/brand/tcc.png",     colour: "#2f7fd0", label: "The Coaches Course" },
@@ -576,6 +593,16 @@ async function load() {
 
   if (error || !course) return notFound();
 
+  // A rand course: from here on the reduced price is the price, and the
+  // normal one is kept to show crossed out. Deposit is 25% of it.
+  const localPct = LOCAL_DISCOUNT[String(course.currency || "").trim().toUpperCase()] || 0;
+  if (localPct) {
+    course.list_price_cents = course.price_cents;
+    course.price_cents = Math.round((course.price_cents * (100 - localPct)) / 100 / 100) * 100;
+    course.deposit_cents = null;
+    course.local_discount_percent = localPct;
+  }
+
   // Workshops inherit a template too — the shared furniture comes from
   // it, while the name and movements typed per workshop win.
   const tpl = await loadTemplate(course);
@@ -660,6 +687,11 @@ async function load() {
 
   state.course = course;
   setTabIcon(course.brand);
+  if (localPct) {
+    $("promotoggle").textContent = promoLabel();
+    $("promoinput").placeholder = "Gift card or course credit code";
+    $("promoinput").setAttribute("aria-label", "Gift card or course credit code");
+  }
   // A course stays bookable right up to its finish, so somebody can
   // register on the morning of day one. After that the page stays up
   // — links get shared and indexed — but it stops selling.
@@ -808,16 +840,18 @@ function renderBuyBox() {
 
   // ---- price -----------------------------------------------------
   $("price").innerHTML = "";
-  if (discount > 0) {
+  const local = course.local_discount_percent || 0;
+  if (discount > 0 || local) {
     const was = document.createElement("span");
     was.className = "was";
-    was.textContent = money(course.price_cents);
+    was.textContent = money(course.list_price_cents || course.price_cents);
     $("price").append(was);
   }
   $("price").append(document.createTextNode(money(total)));
-  if (discount > 0) {
+  if (discount > 0 || local) {
     const saved = document.createElement("small");
     saved.textContent = [
+      local ? local + "% off to allow for the exchange rate. This is the lowest price for this seminar" : null,
       state.pass ? "Level 1 Online student — " + money(state.codeOff) + " off" : null,
       state.code ? state.code + " applied — " + money(state.codeOff) + " off" : null,
       state.giftCode ? "Gift card " + state.giftCode + " applied" : null,
@@ -1148,12 +1182,12 @@ async function applyCode() {
     msg.textContent = [
       state.code ? (data.label ? data.label + " — " : state.code + " — ") + state.money(state.codeOff) + " off" : null,
       data.gift ? "Gift card pays " + state.money(data.gift.covered_cents) +
-        (data.gift.balance_after_cents > 0 ? ", " + state.money(data.gift.balance_after_cents) + " stays on the card" : "") : null,
+        (data.gift.balance_after_cents > 0 ? ", " + cardMoney(data.gift.balance_after_cents, data.gift.currency) + " stays on the card" : "") : null,
     ].filter(Boolean).join(". ");
     input.value = "";
     $("promorow").classList.add("hidden");
-    $("promotoggle").textContent = state.code && state.giftCode ? "Remove codes"
-      : state.giftCode ? "Have a discount code too?" : "Have a gift card too?";
+    $("promotoggle").textContent = promoLabel(state.code && state.giftCode ? "both"
+      : state.giftCode ? "gift" : "code");
     renderBuyBox();
   } catch (e) {
     msg.className = "promo-msg err";
@@ -1192,6 +1226,14 @@ async function applyLearnPass() {
   } catch (e) {}
 }
 
+// What is left on a gift card, in the card's own currency: a euro card
+// used on a rand course keeps its euros.
+function cardMoney(cents, currency) {
+  if (!currency || currency === state.course.currency) return state.money(cents);
+  return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 2 })
+    .format((cents || 0) / 100);
+}
+
 // "Remove codes": back to the full price.
 function clearCodes() {
   state.code = null; state.giftCode = null; state.gift = null; state.codeOff = 0;
@@ -1200,7 +1242,7 @@ function clearCodes() {
   state.deposit = state.course.type === "workshop" ? state.total
     : (state.course.deposit_cents || Math.round(state.total * DEPOSIT_RATE));
   $("promomsg").textContent = "";
-  $("promotoggle").textContent = "Have a discount code or gift card?";
+  $("promotoggle").textContent = promoLabel();
   renderBuyBox();
 }
 

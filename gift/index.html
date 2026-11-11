@@ -214,9 +214,9 @@
 <script>
 (function () {
   var API = "/.netlify/functions/gift-checkout";
-  var SYMBOL = { EUR: "€", GBP: "£", USD: "US$", AUD: "A$", CAD: "C$" };
+  var SYMBOL = { EUR: "€", GBP: "£", USD: "US$", AUD: "A$", CAD: "C$", ZAR: "R" };
   var $ = function (id) { return document.getElementById(id); };
-  var cfg = { presets: [100, 250, 500], min: 50, max: 3000, currencies: ["EUR", "GBP", "USD", "AUD", "CAD"], currency: "EUR", months: 24 };
+  var cfg = { presets: [100, 250, 500], min: 50, max: 3000, currencies: ["EUR", "GBP", "USD", "AUD", "CAD", "ZAR"], currency: "EUR", months: 24, scale: { ZAR: 10 } };
   var st = { amount: 250, custom: false, how: "email" };
 
   // Arriving from the Shop with an amount picked (?amount=100, or "other").
@@ -233,6 +233,11 @@
   }
 
   function sym() { return SYMBOL[$("currency").value] || $("currency").value + " "; }
+  // Rand cards come in bigger numbers (R1,000 / R2,500 / R5,000).
+  function lim() {
+    var k = (cfg.scale && cfg.scale[$("currency").value]) || 1;
+    return { presets: cfg.presets.map(function (p) { return p * k; }), min: cfg.min * k, max: cfg.max * k };
+  }
   function amount() { return st.custom ? parseInt($("custom").value, 10) : st.amount; }
 
   function paintCard() {
@@ -245,10 +250,14 @@
   function drawAmounts() {
     var box = $("amounts");
     box.innerHTML = "";
-    cfg.presets.concat(["other"]).forEach(function (p) {
+    var L = lim();
+    // Switching currency moves a preset choice to the same place in the new list.
+    if (!st.custom && L.presets.indexOf(st.amount) < 0) st.amount = L.presets[1];
+    $("custom").min = L.min; $("custom").max = L.max;
+    L.presets.concat(["other"]).forEach(function (p) {
       var b = document.createElement("button");
       b.type = "button";
-      b.textContent = p === "other" ? "Other" : sym() + p;
+      b.textContent = p === "other" ? "Other" : sym() + p.toLocaleString("en-GB");
       b.setAttribute("aria-pressed", String(p === "other" ? st.custom : !st.custom && st.amount === p));
       b.onclick = function () {
         if (p === "other") { st.custom = true; } else { st.custom = false; st.amount = p; }
@@ -258,7 +267,7 @@
       };
       box.appendChild(b);
     });
-    $("customHint").textContent = "Between " + sym() + cfg.min + " and " + sym() + cfg.max.toLocaleString("en-GB") + ", whole numbers.";
+    $("customHint").textContent = "Between " + sym() + L.min.toLocaleString("en-GB") + " and " + sym() + L.max.toLocaleString("en-GB") + ", whole numbers.";
   }
 
   function setup() {
@@ -267,7 +276,6 @@
     cfg.currencies.forEach(function (x) { var o = document.createElement("option"); o.value = x; o.textContent = x; c.appendChild(o); });
     c.value = cfg.currency;
     c.onchange = function () { drawAmounts(); paintCard(); };
-    $("custom").min = cfg.min; $("custom").max = cfg.max;
     $("monthsText").textContent = cfg.months;
     var today = new Date();
     var iso = function (d) { return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
@@ -298,7 +306,8 @@
     e.preventDefault();
     $("err").classList.add("hide");
     var a = amount();
-    if (!(a >= cfg.min && a <= cfg.max) || a % 1) return fail("Choose an amount between " + sym() + cfg.min + " and " + sym() + cfg.max.toLocaleString("en-GB") + ".", "custom");
+    var L = lim();
+    if (!(a >= L.min && a <= L.max) || a % 1) return fail("Choose an amount between " + sym() + L.min.toLocaleString("en-GB") + " and " + sym() + L.max.toLocaleString("en-GB") + ".", "custom");
     if (!$("fromName").value.trim()) return fail("Tell us who the card is from.", "fromName");
     var email = st.how === "email" ? $("recipientEmail").value.trim() : "";
     if (st.how === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("Enter their email, or choose Send it to me.", "recipientEmail");

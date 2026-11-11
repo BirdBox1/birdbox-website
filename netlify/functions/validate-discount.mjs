@@ -11,6 +11,10 @@
 import { createClient } from "@supabase/supabase-js";
 import { looksLikeGift, findCard, applyCard, seminarVatPercent } from "../lib/gift-cards.mjs";
 import { readPass, passUsed, passCode, PASS_PERCENT } from "../lib/learn-pass.mjs";
+import { withLocalPrice, fxRate } from "../lib/local-price.mjs";
+
+// Said wherever a code is refused on a rand (local price) course.
+const LOCAL_NO_CODES = "This course is already at its lowest price, so discount codes can't be used. A gift card or course credit still works.";
 
 // Must match create-checkout.mjs
 const DEPOSIT_RATE = 0.25;
@@ -36,11 +40,14 @@ export default async (req) => {
     // are measured back from the course start, so leaving it out here
     // made every such code look inapplicable on this path, even though
     // create-checkout passes it through fine.
-    const { data: course } = await supabase
+    const { data: raw } = await supabase
       .from("courses")
       .select("id, brand, type, level, price_cents, deposit_cents, currency, status, starts_at, country")
       .eq("slug", slug)
       .single();
+
+    // A rand course is priced at its reduced price from here on.
+    const course = withLocalPrice(raw);
 
     if (!course) return json({ ok: false, error: "Course not found" }, 404);
 
@@ -68,9 +75,11 @@ export default async (req) => {
       deposit_cents: result.deposit,
       free: !!result.free,
       // A gift card: what it pays (VAT included) and what is left on it.
+      // covered_cents is in the course's currency (a card in another
+      // currency is converted); balance_after_cents is in the card's own.
       gift: result.gift ? {
         code: result.gift.code,
-        covered_cents: result.gift.covered,
+        covered_cents: result.gift.shown ?? result.gift.covered,
         balance_after_cents: result.gift.balanceAfter,
         currency: result.gift.currency,
       } : null,
@@ -116,6 +125,7 @@ export async function priceWithDiscount(course, code, giftCode) {
 // pass from their BirdBox Learn page, only on a Level 1 live seminar of
 // the same course, and only once. See netlify/lib/learn-pass.mjs.
 export async function priceWithPass(course, token) {
+  if (course.local_discount_percent) return { error: LOCAL_NO_CODES };
   const p = readPass(token);
   if (!p) return { error: "This discount link has expired. Open it again from your BirdBox Learn page." };
   const l1 = String(course.level || "").replace(/\D/g, "") === "1";
@@ -195,14 +205,24 @@ async function priceWithCode(course, clean) {
 
   const full = course.price_cents;
   let discount = 0;
+  const local = !!course.local_discount_percent;
 
   if (row.kind === "percent") {
+    // On a rand course the reduced price is the lowest there is. Only a
+    // free place (a 100% code: host places, places paid for upfront)
+    // still works, because that is a place rather than a discount.
+    if (local && Number(row.percent_off) < 100) return { error: LOCAL_NO_CODES };
     discount = Math.round(full * (Number(row.percent_off) / 100));
+  } else if (String(row.currency).toUpperCase() !== String(course.currency).toUpperCase()) {
+    // A fixed credit only makes sense in the currency it was issued in,
+    // except on a rand course, where it is converted at today's rate.
+    // A $150 credit is worth about R2,500 off; the rest is paid.
+    if (!local) return { error: "That credit is in a different currency to this course" };
+    let rate;
+    try { rate = await fxRate(row.currency, course.currency); }
+    catch (e) { return { error: "We couldn't convert that credit just now. Please try again in a few minutes." }; }
+    discount = Math.floor(row.amount_off_cents * rate);
   } else {
-    // A fixed credit only makes sense in the currency it was issued in.
-    if (String(row.currency).toUpperCase() !== String(course.currency).toUpperCase()) {
-      return { error: "That credit is in a different currency to this course" };
-    }
     discount = row.amount_off_cents;
   }
 
@@ -237,13 +257,28 @@ async function priceWithCode(course, clean) {
 // net is the price before VAT that the card pays towards: the full
 // price, or what is left after a discount code.
 async function priceWithGiftCard(course, code, net) {
-  const found = await findCard(code, course.currency);
+  const local = !!course.local_discount_percent;
+  // A rand course takes a card in any currency, converted below.
+  const found = await findCard(code, local ? null : course.currency);
   if (found.error) return { error: found.error };
   const card = found.card;
 
+  // The card's balance in the course's currency. rate is 1 unless it
+  // is a foreign card on a rand course.
+  let rate = 1;
+  if (card.currency !== String(course.currency).toUpperCase()) {
+    try { rate = await fxRate(card.currency, course.currency); }
+    catch (e) { return { error: "We couldn't convert that gift card just now. Please try again in a few minutes." }; }
+  }
+  const asCourse = rate === 1 ? card : { ...card, balance_cents: Math.floor(card.balance_cents * rate) };
+
   const vatPercent = await seminarVatPercent(course);
-  const a = applyCard(card, net, vatPercent);
+  const a = applyCard(asCourse, net, vatPercent);
   if (a.covered <= 0) return { error: "That gift card cannot be used on this course" };
+
+  // What comes off the card, in the card's own currency. This is what
+  // the webhook and free-registration take off it.
+  const fromCard = rate === 1 ? a.covered : Math.min(card.balance_cents, Math.ceil(a.covered / rate));
 
   const total = a.remainingNet;
   const deposit = course.deposit_cents
@@ -256,7 +291,10 @@ async function priceWithGiftCard(course, code, net) {
     total,
     deposit,
     free: a.free,
-    gift: { id: card.id, code: card.code, covered: a.covered, balanceAfter: a.balanceAfter, currency: card.currency },
+    // covered: off the card, in its currency. shown: the same in the
+    // course's currency, for the page and the checkout note.
+    gift: { id: card.id, code: card.code, covered: fromCard, shown: a.covered,
+      balanceAfter: card.balance_cents - fromCard, currency: card.currency },
   };
 }
 

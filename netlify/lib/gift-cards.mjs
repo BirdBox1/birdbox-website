@@ -25,10 +25,20 @@
 
 import { db, sendMail, esc, SITE_URL, OFFICE } from "./directory.mjs";
 
-export const GIFT_CURRENCIES = ["EUR", "GBP", "USD", "AUD", "CAD"];
+export const GIFT_CURRENCIES = ["EUR", "GBP", "USD", "AUD", "CAD", "ZAR"];
 export const GIFT_PRESETS = [100, 250, 500];   // in whole units of the currency
 export const GIFT_MIN = 50;
 export const GIFT_MAX = 3000;
+
+// A rand is worth far less than a euro, so rand cards come in bigger
+// numbers: R1,000 / R2,500 / R5,000, from R500 up to R30,000. Every
+// other currency uses the amounts above as they are.
+export const GIFT_SCALE = { ZAR: 10 };
+
+export function giftLimits(currency) {
+  const k = GIFT_SCALE[String(currency || "").toUpperCase()] || 1;
+  return { presets: GIFT_PRESETS.map((p) => p * k), min: GIFT_MIN * k, max: GIFT_MAX * k };
+}
 export const GIFT_MONTHS = 24;                 // how long a card lasts
 export const MESSAGE_MAX = 400;
 

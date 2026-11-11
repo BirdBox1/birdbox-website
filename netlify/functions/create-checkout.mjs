@@ -33,6 +33,7 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { priceWithDiscount, priceWithPass } from "./validate-discount.mjs";
+import { withLocalPrice } from "../lib/local-price.mjs";
 
 // Bump this whenever the wording at /agreements/ changes.
 const WAIVER_VERSION = "2026-08-v1";
@@ -108,13 +109,18 @@ export default async (req) => {
     }
 
     // ---- look up the course ------------------------------------
-    const { data: course, error } = await supabase
+    const { data: raw, error } = await supabase
       .from("courses")
       .select("id, brand, type, level, language, title, summary, slug, price_cents, deposit_cents, currency, capacity, status, starts_at, city, country, grants_online_course")
       .eq("slug", slug)
       .single();
 
-    if (error || !course) return json({ error: "Course not found" }, 404);
+    if (error || !raw) return json({ error: "Course not found" }, 404);
+
+    // A rand course is priced at its reduced price (31% off) from here
+    // on, so the deposit, monthly payments and metadata all follow it.
+    // See netlify/lib/local-price.mjs.
+    const course = withLocalPrice(raw);
 
     if (course.status !== "published") {
       return json({ error: "This course is not open for registration" }, 409);
@@ -240,10 +246,16 @@ export default async (req) => {
         `First payment. Then ${months} monthly payments of about ${money(planParts[0].cents)}, taken automatically from this card starting ${nice(planParts[0].due)}. 0% interest — the same total as paying in full.`
       );
     }
+    if (course.local_discount_percent) {
+      notes.push(`Reduced by ${course.local_discount_percent}% from ${money(course.list_price_cents)} to allow for the exchange rate.`);
+    }
+    // gift.shown is what the card pays in the course's currency (a card
+    // in another currency is converted); gift.covered is in the card's.
+    const giftPays = gift ? (gift.shown ?? gift.covered) : 0;
     if (gift && appliedCode !== gift.code) {
-      notes.push(`Code ${appliedCode} applied — ${money(codeOff)} off. Gift card ${gift.code} pays ${money(gift.covered)} including VAT; the rest is paid here.`);
+      notes.push(`Code ${appliedCode} applied — ${money(codeOff)} off. Gift card ${gift.code} pays ${money(giftPays)} including VAT; the rest is paid here.`);
     } else if (gift) {
-      notes.push(`Gift card ${gift.code} pays ${money(gift.covered)} including VAT; the rest is paid here.`);
+      notes.push(`Gift card ${gift.code} pays ${money(giftPays)} including VAT; the rest is paid here.`);
     } else if (locked) {
       notes.push(`Level 1 Online student: ${money(discountCents)} off. Booked for ${locked.first} ${locked.last}.`);
     } else if (appliedCode) {
@@ -387,7 +399,8 @@ export default async (req) => {
         discount_code: appliedCode || "",
         discount_cents: String(discountCents),
         // A gift card paying part of it: the webhook takes gift_cents
-        // (VAT included, in the course currency) off the card.
+        // (VAT included, in the CARD's currency, which differs from the
+        // course's only for a converted card on a rand course) off it.
         gift_card_id: gift ? gift.id : "",
         gift_code: gift ? gift.code : "",
         gift_cents: gift ? String(gift.covered) : "",

@@ -1833,6 +1833,7 @@
               <option value="GBP">GBP</option>
               <option value="AUD">AUD</option>
               <option value="CAD">CAD</option>
+              <option value="ZAR">ZAR</option>
             </select>
           </div>
         </div>
@@ -1847,6 +1848,7 @@
           </div>
         </div>
         <p class="whenline" id="f-price-note"></p>
+        <p class="whenline" id="f-local-note"></p>
       </div>
 
       <div class="panel">
@@ -2732,7 +2734,7 @@ const COUNTRY_CODES = [
 // listed leaves the currency alone and says so, rather than guessing
 // — a wrong currency here would put a wrong price on a live page.
 const COUNTRY_CURRENCY = {
-  GB: "GBP", US: "USD", AU: "AUD", CA: "CAD",
+  GB: "GBP", US: "USD", AU: "AUD", CA: "CAD", ZA: "ZAR",
   AT: "EUR", BE: "EUR", HR: "EUR", CY: "EUR", EE: "EUR", FI: "EUR",
   FR: "EUR", DE: "EUR", GR: "EUR", IE: "EUR", IT: "EUR", LV: "EUR",
   LT: "EUR", LU: "EUR", MT: "EUR", NL: "EUR", PT: "EUR", SK: "EUR",
@@ -2798,6 +2800,32 @@ async function loadPriceTable() {
 
 const levelDigits = (v) => String(v == null ? "" : v).replace(/\D/g, "");
 
+// A course in one of these currencies always sells at this much off
+// the price typed in, to allow for the exchange rate (Nathan, 11 Nov
+// 2026). The price typed in is the normal one, shown crossed out on
+// the registration page. Must match netlify/lib/local-price.mjs.
+const LOCAL_DISCOUNT = { ZAR: 31 };
+const localPct = (cur) => LOCAL_DISCOUNT[String(cur || "").toUpperCase()] || 0;
+const localReduced = (cents, cur) => {
+  const p = localPct(cur);
+  return p ? Math.round((cents * (100 - p)) / 100 / 100) * 100 : cents;
+};
+
+// Under the price: what a rand course actually sells for.
+function showLocalNote() {
+  const el = $("f-local-note");
+  if (!el) return;
+  const cur = $("f-currency").value;
+  const p = localPct(cur);
+  const price = parseFloat($("f-price").value);
+  if (!p) { el.textContent = ""; return; }
+  el.className = "whenline";
+  el.textContent = Number.isFinite(price) && price > 0
+    ? `${cur} courses sell at ${p}% off: people pay ${cur} ${(localReduced(Math.round(price * 100), cur) / 100).toLocaleString("en-GB")}. ` +
+      `${cur} ${price.toLocaleString("en-GB")} is shown crossed out. No discount codes work; deposit is 25% of the reduced price.`
+    : `${cur} courses sell at ${p}% off the price typed here. Type the normal price.`;
+}
+
 function standardPrice() {
   const brand = $("f-brand").value;
   const type = $("f-type").value;
@@ -2832,6 +2860,7 @@ function applyStandardPrice() {
   note.textContent =
     `Standard price filled in: ${$("f-currency").value} ${whole}, excluding VAT. ` +
     "Change it if this course is priced differently.";
+  showLocalNote();
 }
 
 /* ---------------- time zones ---------------- */
@@ -5250,6 +5279,7 @@ async function openEditCourse(course) {
   suppressAutoPrice = false;
   $("f-price-note").textContent =
     "This is the price this course was created with. Changing the currency will fill in the standard price instead.";
+  showLocalNote();
   toggleWorkshopFields();
   updateWhenPreview();
   if (full.image_url) {
@@ -11025,7 +11055,8 @@ async function openInvoiceForm(course) {
   $("gi-places").value = "1";
   // The course list does not carry the price, so ask for it.
   const { data: priced } = await db.from("courses").select("price_cents").eq("id", course.id).maybeSingle();
-  const pc = priced ? priced.price_cents : null;
+  // A rand course's places sell at the reduced price (LOCAL_DISCOUNT).
+  const pc = priced && priced.price_cents != null ? localReduced(priced.price_cents, course.currency) : null;
   $("gi-price").value = pc != null ? (pc / 100).toFixed(2) : "";
   $("gi-cur").textContent = (course.currency || "EUR") + ", excl. VAT";
   $("gi-msg").textContent = ""; $("gi-msg").className = "msg";
@@ -12216,6 +12247,10 @@ $("f-city").addEventListener("blur", buildSlug);
 $("f-city").addEventListener("input", updateWhenPreview);
 
 // Brand, level and currency all change which standard price applies.
+// The rand note follows the price and currency as they are typed.
+$("f-price").addEventListener("input", showLocalNote);
+$("f-currency").addEventListener("change", showLocalNote);
+
 for (const id of ["f-brand", "f-level", "f-currency"]) {
   $(id).addEventListener("change", applyStandardPrice);
 }

@@ -20,7 +20,7 @@
 import Stripe from "stripe";
 import { json } from "../lib/directory.mjs";
 import {
-  GIFT_CURRENCIES, GIFT_PRESETS, GIFT_MIN, GIFT_MAX, GIFT_MONTHS, MESSAGE_MAX, money,
+  GIFT_CURRENCIES, GIFT_PRESETS, GIFT_MIN, GIFT_MAX, GIFT_SCALE, giftLimits, GIFT_MONTHS, MESSAGE_MAX, money,
 } from "../lib/gift-cards.mjs";
 import { currencyForCountry } from "./online-checkout.mjs";
 
@@ -35,11 +35,15 @@ export default async (req, context) => {
     let country = null;
     try { country = context?.geo?.country?.code || null; } catch (e) { country = null; }
     return json({
-      currency: currencyForCountry(country),
+      // Online courses are never sold in rand, so currencyForCountry
+      // has no ZA; a gift card can be.
+      currency: country === "ZA" ? "ZAR" : currencyForCountry(country),
       currencies: GIFT_CURRENCIES,
       presets: GIFT_PRESETS,
       min: GIFT_MIN,
       max: GIFT_MAX,
+      // Multiply presets, min and max by this for a currency (rand x10).
+      scale: GIFT_SCALE,
       months: GIFT_MONTHS,
       message_max: MESSAGE_MAX,
     });
@@ -52,8 +56,9 @@ export default async (req, context) => {
     if (!GIFT_CURRENCIES.includes(currency)) return json({ error: "Choose a currency" }, 400);
 
     const units = Number(b.amount);
-    if (!Number.isInteger(units) || units < GIFT_MIN || units > GIFT_MAX) {
-      return json({ error: `Choose an amount between ${GIFT_MIN} and ${GIFT_MAX}, in whole numbers` }, 400);
+    const lim = giftLimits(currency);
+    if (!Number.isInteger(units) || units < lim.min || units > lim.max) {
+      return json({ error: `Choose an amount between ${lim.min} and ${lim.max}, in whole numbers` }, 400);
     }
     const cents = units * 100;
 
