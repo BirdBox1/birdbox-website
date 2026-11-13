@@ -55,9 +55,17 @@
   table.plan{width:100%;border-collapse:collapse;font-size:14.5px;margin:4px 0 6px}
   table.plan th,table.plan td{border-top:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top;line-height:1.5}
   table.plan th{width:110px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-  .ask{border:1px solid var(--accent);border-left:6px solid var(--accent);background:var(--panel2);padding:18px 22px;margin:0 0 20px}
+  .ask{border:1px solid var(--accent);border-left:6px solid var(--accent);background:var(--panel2);padding:20px 24px;margin:6px 0 20px}
   .ask span{display:block;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
-  .ask p{margin:0;font-size:clamp(18px,2.2vw,22px);font-weight:700;line-height:1.4}
+  .ask p{margin:0;font-size:clamp(20px,2.6vw,26px);font-weight:700;line-height:1.35}
+  .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:0 0 18px}
+  .facts div{background:var(--panel2);border:1px solid var(--line);padding:10px 14px}
+  .facts span{display:block;font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+  .facts b{font-size:15px;line-height:1.4}
+  .story p{font-size:17px;line-height:1.7;margin:0 0 14px;max-width:70ch}
+  .intro{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:0 0 20px}
+  .intro .panel{margin:0} .intro h2{margin-bottom:8px} .intro p{font-size:15px;line-height:1.6;color:var(--muted);margin:0 0 8px}
+  .how{margin:0;padding-left:22px} .how li{font-size:15.5px;line-height:1.6;margin:0 0 8px}
   .plannote{font-size:14px;color:var(--muted);margin:8px 0 0;line-height:1.5}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
   .chips button{font:inherit;font-size:13px;padding:7px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
@@ -70,6 +78,12 @@
   .ans h3{margin:0 0 4px;font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--good)}
   .ans ul{margin:10px 0 0;padding-left:20px} .ans li{margin:0 0 8px;line-height:1.55;font-size:15px}
   .ans .fix{margin:12px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:15px;line-height:1.55}
+  .ans li .rate{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px}
+  .rate button{font:inherit;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:6px 10px;background:var(--paper);color:var(--muted);border:1px solid var(--line);cursor:pointer}
+  .rate button.on[data-v="2"]{background:var(--good);border-color:var(--good);color:#0d0b0b}
+  .rate button.on[data-v="1"]{background:var(--amber);border-color:var(--amber);color:#0d0b0b}
+  .rate button.on[data-v="0"]{background:var(--bad);border-color:var(--bad);color:#0d0b0b}
+  .score{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:15px} .score b{font-size:20px;margin-right:6px}
   .nav2{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px}
   #printout{display:none}
   @media(max-width:640px){.panel{padding:18px} table.plan th{width:70px}}
@@ -118,7 +132,27 @@
 
     <div id="v-list">
       <h1>Programming case studies</h1>
-      <p class="lede">Four coaches, four programmes, four problems. For each one, read the case, write what you notice and what you would programme instead, and say which parts of the unit you used. Then open Nathan's answer and compare it with yours. Do them in any order: everything saves as you go.</p>
+      <p class="lede">Four real-world programmes, each with a problem in it. Your job is to spot it, fix it, and explain why, using what you learned in this unit.</p>
+      <div class="intro">
+        <div class="panel"><h2>Why case studies</h2>
+          <p>Knowing the programming rules is the start. The skill is seeing when a real programme breaks them, for a real person, and knowing what to do about it.</p>
+          <p>Each case is the kind of situation coaches meet every week: a class programme, a keen beginner, a health concern, an athlete training twice a day.</p></div>
+        <div class="panel"><h2>What you get from it</h2>
+          <p>Practice applying the risks, rules and programming aspects before it matters with your own athletes.</p>
+          <p>A straight comparison of your thinking with Nathan's, so you can see what you would have missed.</p>
+          <p>A record in your portfolio of how you programme, which you can download as a PDF.</p></div>
+      </div>
+      <div class="panel"><h2>How to do it</h2>
+        <ol class="how">
+          <li><b>Read the question first</b>, then the case in full, including the plan.</li>
+          <li><b>Write what you notice.</b> The risks, the rules it breaks, and anything that does not fit the person or the goal. Where there are numbers, work them out.</li>
+          <li><b>Write what you would programme instead</b>, and choose the parts of the unit you used and why.</li>
+          <li><b>Open Nathan's answer.</b> It opens once you have written yours, and your answer is then kept as it is, so the comparison is honest.</li>
+          <li><b>Check yourself.</b> For each of Nathan's key points, mark whether you got it, partly got it, or missed it, then reflect on what you missed.</li>
+          <li><b>Finish with your own gym</b>, applying the same thinking to an athlete or class you coach.</li>
+        </ol>
+        <p class="note" style="margin:6px 0 0">Allow about 20 minutes a case. Do them in any order: everything saves as you go.</p></div>
+      <h2 style="margin:28px 0 12px">The cases</h2>
       <div id="case-list"></div>
       <div class="row noprint" style="margin-top:18px">
         <button class="btn ghost" id="b-pdf" type="button">Download PDF</button>
@@ -166,7 +200,7 @@ const PARTS = [
 ];
 
 const CASES = [
-  { id: "class", ask: "The head coach wants members building strict pulling and starting to go upside down. Review the week: what would you change, and why?", title: "The class programme", covers: "Rules 1 to 4, frequency and intensity", av: "GYM",
+  { id: "class", facts: [["Gym", "A busy community gym"], ["Members", "Adults, mixed ability"], ["Classes", "6 days a week, 60 minutes"], ["Goal", "Strict pull-ups and first handstands"]], story: ["You have just started coaching at a busy community gym. Most members are adults who train three or four times a week in mixed-ability classes of 60 minutes.", "Over the last few months the head coach has noticed that members keep stalling on their pull-ups. Many can kip, but few can do a strict pull-up. Nobody in the gym can hold a handstand, and members keep asking for it.", "The head coach writes the programme, and has asked you to look over next week's classes before they go up on the whiteboard."], ask: "The head coach wants members building strict pulling and starting to go upside down. Review the week: what would you change, and why?", title: "The class programme", covers: "Rules 1 to 4, frequency and intensity", av: "GYM",
     who: "A gym runs classes six days a week. The head coach asks you to look at next week's plan, because members keep stalling on pull-ups and nobody can hold a handstand.",
     planTitle: "Next week's classes",
     plan: [["Mon", "Back squat 5 × 5. Workout: 21-15-9 thrusters and kipping pull-ups. Then 5 × 5 strict pull-ups."],
@@ -183,7 +217,7 @@ const CASES = [
       "Rule 3: there is no standardised gymnastics warm-up. It is the easiest fix, and it also gives the daily exposure of Rule 2.",
       "Rule 1: any gymnastics added must be a supplement that does not take away the day's main element."],
     fix: "A standardised gymnastics warm-up every day (hollow, arch, hang, support and inversion positions). Strict and eccentric pulling and inversion development placed before the main element, as a short supplement. One of the kipping days swapped for development work." },
-  { id: "beginner", ask: "Is this plan right for Sam? Review it, and write the plan you would give Sam instead.", title: "The keen beginner", covers: "Eccentric loading, rhabdomyolysis and the 125 second limit", av: "SM",
+  { id: "beginner", facts: [["Athlete", "Sam, 38"], ["Job", "Office worker, sitting most of the day"], ["Training", "6 weeks, 3 classes a week"], ["Goal", "A first strict pull-up by the summer"]], story: ["Sam has spent most of the last ten years at a desk, and did no regular exercise before joining the gym six weeks ago. Sam is keen, never misses a class, and has told the coaches that the big goal is a first pull-up by the summer.", "To help, a coach has written Sam an extra programme to do after class, three times a week. Sam is excited and plans to start it on Monday."], ask: "Is this plan right for Sam? Review it, and write the plan you would give Sam instead.", title: "The keen beginner", covers: "Eccentric loading, rhabdomyolysis and the 125 second limit", av: "SM",
     who: "Sam, 38, works in an office and joined the gym 6 weeks ago. Sam has never done a pull-up, wants one by the summer, and comes to 3 classes a week.",
     planTitle: "The coach's plan, after class, 3 times a week",
     plan: [["1", "10 × 10 jumping pull-ups with a 5 second lowering."], ["2", "3 × 30 second hang in hollow."]],
@@ -194,7 +228,7 @@ const CASES = [
       "The hang is fine: 90 seconds held sits within the 120 second isometric target.",
       "It comes after class, when Sam is already fatigued (Rule 4)."],
     fix: "A small dose: for example 5 sets of 3 lowerings at 5 seconds (75 seconds), before the main element. Short, frequent exposure on most days (Rule 2) rather than three big sessions, and a simple linear progression towards mastery of the position." },
-  { id: "redflag", ask: "Should the coach go ahead with this plan for Linda? Review it, and say what you would do instead.", title: "The red flag", covers: "Blood pressure, isometric holds and inversion", av: "LM",
+  { id: "redflag", facts: [["Athlete", "Linda, 54"], ["Training", "2 years, 3 classes a week"], ["Health", "Told her blood pressure is \"a bit high\""], ["Goal", "Her first handstand"]], story: ["Linda has trained at the gym for two years. She moves well, she is consistent, and she has recently set her heart on learning a handstand.", "While chatting before class, she mentions that at her last check-up her doctor said her blood pressure was \"a bit high\". That was a while ago, and she has not had it checked since.", "Her coach has written her a handstand plan to do three times a week."], ask: "Should the coach go ahead with this plan for Linda? Review it, and say what you would do instead.", title: "The red flag", covers: "Blood pressure, isometric holds and inversion", av: "LM",
     who: "Linda, 54, has trained for 2 years. In conversation she mentions her doctor said her blood pressure is \"a bit high\", but she has not had it checked since. She wants to learn a handstand.",
     planTitle: "The coach's plan, 3 times a week",
     plan: [["1", "5 × 30 second headstand holds."], ["2", "5 × 30 second wall handstand holds."]],
@@ -204,7 +238,7 @@ const CASES = [
       "Long isometric holds and being upside down both raise blood pressure, more so if the athlete holds their breath. This plan is 300 seconds of inverted isometric work in one session, well past the 120 second target.",
       "The goal is fine. The timing and the dose are the problem."],
     fix: "Ask Linda to have her blood pressure checked and get her doctor's clearance before inversion work. Meanwhile, build the handstand without inverting (hollow, support, wrist preparation) with short holds and steady breathing, and keep the session within the 120 second isometric target." },
-  { id: "twice", ask: "Review Jordan's training day. What would you change, and why?", title: "Twice a day", covers: "Concurrent training, 6 hours between sessions and Rule 4", av: "JK",
+  { id: "twice", facts: [["Athlete", "Jordan, 26"], ["Level", "Competitive, a competition in 4 months"], ["Training", "4 mornings a week, before work"], ["Goal", "Strict ring muscle-ups and strict handstand push-ups"]], story: ["Jordan is a competitive athlete preparing for a competition in four months. Jordan works nine to five, so all of the training happens in the morning before work.", "To fit everything in, Jordan has split each training morning into two sessions, with breakfast and a short break in between."], ask: "Review Jordan's training day. What would you change, and why?", title: "Twice a day", covers: "Concurrent training, 6 hours between sessions and Rule 4", av: "JK",
     who: "Jordan, 26, is a competitive athlete who trains before work, four days a week.",
     planTitle: "Jordan's training day",
     plan: [["07:00", "High-intensity workout: rowing, wall balls and burpees."], ["09:00", "Gymnastics strength: strict ring muscle-up transitions and strict handstand push-ups."]],
@@ -263,7 +297,11 @@ async function boot() {
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const filled = (t) => String(t || "").trim().length >= MIN;
 const caseOf = (id) => (doc.cases[id] = doc.cases[id] || { used: [] });
-const status = (id) => { const C = doc.cases[id]; if (!C) return "new"; if (C.revealed && filled(C.compare)) return "done"; if (C.revealed || C.notice || C.plan || C.why) return "going"; return "new"; };
+const RATE = [[2, "I got this"], [1, "Partly"], [0, "I missed it"]];
+const rated = (K, C) => K.answer.every((_, j) => C.check && C.check[j] != null);
+const score = (K, C) => K.answer.reduce((t, _, j) => t + ((C.check && C.check[j]) || 0), 0) / 2;
+const scoreText = (K, C) => { const v = score(K, C); return (Number.isInteger(v) ? v : Math.floor(v) + "½") + " of " + K.answer.length; };
+const status = (id) => { const C = doc.cases[id]; if (!C) return "new"; const K = CASES.find((x) => x.id === id); if (C.revealed && filled(C.compare) && rated(K, C)) return "done"; if (C.revealed || C.notice || C.plan || C.why) return "going"; return "new"; };
 const ownStatus = () => { const O = doc.own; if (filled(O.after)) return "done"; if (O.who || O.notice || O.plan || O.why) return "going"; return "new"; };
 const ST = { new: "Not started", going: "In progress", done: "Done" };
 
@@ -274,7 +312,7 @@ function list() {
   CASES.forEach((K, i) => {
     const s = status(K.id), b = document.createElement("button");
     b.type = "button"; b.className = "case " + s;
-    b.innerHTML = `<span class="num">${s === "done" ? "✓" : i + 1}</span><span class="txt"><b>${esc(K.title)}</b><span>${esc(K.covers)}</span></span><span class="st">${ST[s]}</span>`;
+    b.innerHTML = `<span class="num">${s === "done" ? "✓" : i + 1}</span><span class="txt"><b>${esc(K.title)}</b><span>${esc(K.covers)}</span></span><span class="st">${s === "done" ? scoreText(K, doc.cases[K.id]) + " key points" : ST[s]}</span>`;
     b.onclick = () => openCase(K.id); box.appendChild(b);
   });
   const s = ownStatus(), b = document.createElement("button");
@@ -290,11 +328,13 @@ const chips = (used, ro) => `<div class="chips${ro ? " ro" : ""}">${PARTS.map(([
 const mine = (t) => `<p class="mine${String(t || "").trim() ? "" : " empty"}">${String(t || "").trim() ? esc(t) : "(left empty)"}</p>`;
 function caseHead(K, i) {
   return `<p class="kicker">Case ${i + 1} of ${CASES.length} · ${esc(K.covers)}</p><h1>${esc(K.title)}</h1>
-    <div class="panel"><div class="who"><span class="av">${esc(K.av)}</span><p>${esc(K.who)}</p></div>
-      <label class="f" style="margin-top:0">${esc(K.planTitle)}</label>
+    <div class="ask"><span>The question</span><p>${esc(K.ask)}</p></div>
+    <div class="panel"><h2 style="margin-bottom:14px">The case</h2>
+      <div class="facts">${K.facts.map(([l, v]) => `<div><span>${esc(l)}</span><b>${esc(v)}</b></div>`).join("")}</div>
+      <div class="story">${K.story.map((t) => `<p>${esc(t)}</p>`).join("")}</div>
+      <label class="f">${esc(K.planTitle)}</label>
       <table class="plan">${K.plan.map(([d, t]) => `<tr><th>${esc(d)}</th><td>${esc(t)}</td></tr>`).join("")}</table>
-      ${K.planNote ? `<p class="plannote">${esc(K.planNote)}</p>` : ""}</div>
-    <div class="ask"><span>The question</span><p>${esc(K.ask)}</p></div>`;
+      ${K.planNote ? `<p class="plannote">${esc(K.planNote)}</p>` : ""}</div>`;
 }
 function bindInputs(root, obj, after) {
   root.querySelectorAll("textarea[data-k]").forEach((t) => { t.oninput = () => { obj[t.dataset.k] = t.value; changed(); if (after) after(); }; });
@@ -340,13 +380,21 @@ function openCase(id) {
         <label class="f">What you noticed</label>${mine(C.notice)}
         <label class="f">What you would programme instead</label>${mine(C.plan)}
         <label class="f">The parts of the unit you used</label>${chips(C.used || [], true)}${mine(C.why)}</div>
-      <div class="ans"><h3>Nathan's answer</h3><ul>${K.answer.map((a) => `<li>${esc(a)}</li>`).join("")}</ul><p class="fix"><b>What he would programme:</b> ${esc(K.fix)}</p></div>
+      <div class="ans"><h3>Nathan's answer</h3><p class="sub" style="margin:4px 0 0">For each key point, check it against your answer above.</p>
+        <ul>${K.answer.map((a, j) => `<li>${esc(a)}<div class="rate noprint">${RATE.map(([v, t]) => `<button type="button" data-j="${j}" data-v="${v}" class="${C.check && C.check[j] === v ? "on" : ""}">${t}</button>`).join("")}</div></li>`).join("")}</ul>
+        <p class="score" id="score"></p>
+        <p class="fix"><b>What he would programme:</b> ${esc(K.fix)}</p></div>
       <div class="panel"><h2><span class="n">2</span>Compare</h2>
-        <p class="sub">What did you see that matches? What did you miss or see differently, and why do you think that was?</p>
+        <p class="sub">Look at the points you partly got or missed. Why do you think you missed them, and what will you look for next time?</p>
         ${area("compare", C.compare, "Your comparison")}
         <label class="f">What would you change in your plan now?</label>
         ${area("change", C.change, "Your plan, improved", 80)}</div>` + navRow(i);
     bindInputs(body, C);
+    const showScore = () => { $("score").innerHTML = rated(K, C) ? `<b>${scoreText(K, C)}</b> key points` : `<span class="note">Rate every key point to see your score.</span>`; };
+    body.querySelectorAll(".rate button").forEach((b) => { b.onclick = () => {
+      C.check = C.check || {}; C.check[b.dataset.j] = +b.dataset.v;
+      b.parentNode.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); showScore(); changed(); }; });
+    showScore();
   }
   body.querySelectorAll("[data-go]").forEach((b) => { b.onclick = async () => { if (timer) await save(); b.dataset.go === "own" ? openOwn() : openCase(b.dataset.go); }; });
 }
@@ -378,9 +426,9 @@ $("b-pdf").onclick = async () => {
   const p = (t) => `<p>${String(t || "").trim() ? esc(t) : "—"}</p>`, used = (u) => p((u || []).map((k) => (PARTS.find((x) => x[0] === k) || [, k])[1]).join(" · "));
   let h = `<h1>Programming case studies</h1><p>The Gymnastics Course · Lesson 17 · ${esc(session.user.email)} · ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>`;
   CASES.forEach((K, i) => { const C = doc.cases[K.id] || {};
-    h += `<div class="pc"><h2>Case ${i + 1}: ${esc(K.title)}</h2><p><b>${esc(K.ask)}</b></p><p>${esc(K.who)}</p><p>${K.plan.map(([d, t]) => esc(d) + ": " + esc(t)).join("\n")}</p>
+    h += `<div class="pc"><h2>Case ${i + 1}: ${esc(K.title)}</h2><p><b>${esc(K.ask)}</b></p><p>${K.facts.map(([l, v]) => esc(l) + ": " + esc(v)).join(" · ")}</p>${K.story.map((t) => `<p>${esc(t)}</p>`).join("")}<p>${K.plan.map(([d, t]) => esc(d) + ": " + esc(t)).join("\n")}</p>
       <h3>What I noticed</h3>${p(C.notice)}<h3>What I would programme instead</h3>${p(C.plan)}<h3>The parts of the unit I used</h3>${used(C.used)}${p(C.why)}`;
-    if (C.revealed) h += `<h3>Nathan's answer</h3><ul>${K.answer.map((a) => `<li>${esc(a)}</li>`).join("")}</ul><p>${esc(K.fix)}</p><h3>My comparison</h3>${p(C.compare)}<h3>What I would change now</h3>${p(C.change)}`;
+    if (C.revealed) h += `<h3>Nathan's answer and my self-check${rated(K, C) ? " (" + scoreText(K, C) + " key points)" : ""}</h3><ul>${K.answer.map((a, j) => `<li>${esc(a)}${C.check && C.check[j] != null ? " [" + RATE.find((r) => r[0] === C.check[j])[1] + "]" : ""}</li>`).join("")}</ul><p>${esc(K.fix)}</p><h3>My comparison</h3>${p(C.compare)}<h3>What I would change now</h3>${p(C.change)}`;
     h += "</div>"; });
   const O = doc.own;
   h += `<div class="pc"><h2>My own athlete or class</h2><h3>The athlete or class</h3>${p(O.who)}<h3>What I noticed</h3>${p(O.notice)}<h3>What I programmed</h3>${p(O.plan)}<h3>The parts of the unit I used</h3>${used(O.used)}${p(O.why)}<h3>After coaching it</h3>${p(O.after)}</div>`;
