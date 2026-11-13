@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>My gym's programming — BirdBox Learn</title>
+<title>Programming case studies — BirdBox Learn</title>
 <meta name="robots" content="noindex, nofollow">
 <style>
   :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
@@ -39,78 +39,40 @@
   .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
   .state{font-size:13px;color:var(--muted)}
   .note{font-size:13px;color:var(--muted);line-height:1.5}
-  /* the reader */
-  .drop{border:2px dashed #5A5456;background:var(--panel2);padding:22px;text-align:center;cursor:pointer;transition:border-color .15s}
-  .drop:hover,.drop.over{border-color:var(--accent)}
-  .drop b{display:block;font-size:16px;margin-bottom:4px} .drop span{font-size:13px;color:var(--muted)}
-  .thumbs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
-  .thumbs div{position:relative;width:78px;height:78px;border:1px solid var(--line);background:#000}
-  .thumbs img{width:100%;height:100%;object-fit:cover}
-  .thumbs button{position:absolute;top:2px;right:2px;width:22px;height:22px;border:none;background:rgba(0,0,0,.75);color:#fff;cursor:pointer;font-size:12px}
-  .or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin:16px 0}
-  .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
-  .status{margin:12px 0 0;padding:10px 14px;border-left:3px solid var(--accent);background:var(--panel2);font-size:14px;line-height:1.5}
-  .status.err{border-left-color:var(--bad);color:var(--bad)} .status.ok{border-left-color:var(--good)}
-  /* the week */
-  .days{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:18px}
-  .day{background:var(--panel2);border:1px solid var(--line);padding:14px}
-  .day h3{font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center}
-  .day h3 select{font-size:12px;padding:4px 6px}
-  .it{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--line);cursor:pointer}
-  .it:first-of-type{border-top:none}
-  .it .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
-  .it .t{flex:1;min-width:0} .it .t b{display:block;font-size:14px;font-weight:700} .it .t small{display:block;font-size:12px;color:var(--muted);line-height:1.4}
-  .it .int{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;flex:none;margin-top:2px}
-  .int.high{background:#5A2326;color:#FFB3B6} .int.moderate{background:#5A4520;color:#FFD592} .int.low{background:#204A33;color:#A6E8C2}
-  .edit{border-top:1px solid var(--line);padding:10px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .edit label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;flex-direction:column;gap:4px}
-  .edit input,.edit select{width:100%;font-size:14px;padding:7px 8px}
-  .edit .wide{grid-column:1/-1} .edit .acts{grid-column:1/-1;display:flex;justify-content:space-between}
-  .edit .nums{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;align-items:end}
-  .edit .tutbox{grid-column:1/-1;background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--t);padding:8px 12px}
-  .edit .tutbox span{display:block;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-  .edit .tutbox b{font-size:20px;margin-right:8px} .edit .tutbox small{font-size:12px;color:var(--muted)}
-  .addit{margin-top:8px}
-  .quick{width:100%;margin-top:10px;font-size:14px;padding:9px 10px}
-  .quick::placeholder{color:#8E888A}
-  /* the summaries */
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-  .stat{background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--line);padding:14px 16px}
-  .stat.g{border-top-color:var(--g)} .stat.w{border-top-color:var(--w)} .stat.m{border-top-color:var(--m)} .stat.a{border-top-color:var(--t)}
-  .stat span{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-  .stat strong{display:block;font-size:26px;margin:4px 0 2px}
-  .stat small{font-size:12.5px;color:var(--muted);line-height:1.45}
-  table.sum{width:100%;border-collapse:collapse;font-size:14px;margin-top:16px}
-  table.sum th,table.sum td{border-top:1px solid var(--line);padding:9px 8px;text-align:left}
-  table.sum thead th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-top:none}
-  table.sum tr.grp th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding-top:16px}
-  table.sum td.warn{color:var(--amber);font-weight:800}
-  .bar2{height:8px;background:var(--panel2);min-width:60px;position:relative} .bar2 i{position:absolute;left:0;top:0;bottom:0}
-  .wk{display:grid;grid-template-columns:100px repeat(7,minmax(0,1fr));gap:3px;margin-top:18px;font-size:12px}
-  .wk .h{font-size:11px;font-weight:800;color:var(--muted);text-align:center;padding:4px 0;letter-spacing:.06em;text-transform:uppercase}
-  .wk .r{font-weight:700;padding:7px 0;font-size:12.5px}
-  .wk .c{min-height:28px;background:var(--panel2);display:flex;align-items:center;justify-content:center}
-  .wk .c.low{background:#2E7D52} .wk .c.moderate{background:#B07A1E} .wk .c.high{background:#B5383D}
-  .wk .c i{font-style:normal;font-size:10px;font-weight:800;background:#fff;color:#14100F;padding:1px 4px}
-  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
-  .legend span::before{content:"";display:inline-block;width:12px;height:12px;margin-right:5px;vertical-align:-2px}
-  .legend .low::before{background:#2E7D52} .legend .moderate::before{background:#B07A1E} .legend .high::before{background:#B5383D} .legend .a::before{background:#fff}
-  /* accessory */
-  .pills{display:flex;gap:6px;margin:0 0 16px}
-  .pills button{font:inherit;font-size:13px;font-weight:800;padding:9px 16px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
-  .pills button.on{background:var(--accent);border-color:var(--accent);color:#fff}
-  .sess{background:var(--panel2);border:1px solid var(--line);padding:16px;margin-bottom:12px}
-  .sess .top{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
-  .sess .top b{font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin-right:6px}
-  .sess .top select{font-size:14px;padding:7px 8px}
-  .sess .load{font-size:13px;color:var(--muted);margin-top:10px} .sess .load b{color:var(--ink)} .sess .load .bad{color:var(--bad)} .sess .load .warn{color:var(--amber)}
-  .plan{display:flex;gap:14px;align-items:center;border:1px solid var(--line);background:var(--panel2);padding:16px 18px;margin:0 0 10px;cursor:pointer}
-  .plan:hover{border-color:var(--accent)} .plan .txt{flex:1;min-width:0} .plan b{display:block;font-size:16px} .plan span{font-size:13px;color:var(--muted)}
-  .plan .acts{display:flex;gap:6px;flex:none}
-  .flag{border:1px solid var(--line);border-left:3px solid var(--amber);background:var(--panel2);padding:10px 14px;margin:8px 0 0;font-size:14px;line-height:1.5}
-  .flag.bad{border-left-color:var(--bad)} .flag.ok{border-left-color:var(--good)} .flag b{display:block;margin-bottom:2px}
-  @media(max-width:640px){.wk{grid-template-columns:70px repeat(7,minmax(0,1fr));font-size:10px}.panel{padding:18px}}
-  @media print{ body{background:#fff;color:#000} .bar,.noprint{display:none!important} .panel,.day,.sess,.stat{border:1px solid #ccc;background:none} }
+  /* the case list */
+  .case{display:flex;gap:16px;align-items:center;border:1px solid var(--line);background:var(--panel);padding:18px 20px;margin:0 0 10px;cursor:pointer;text-align:left;width:100%;font:inherit;color:inherit}
+  .case:hover{border-color:var(--accent)}
+  .case .num{width:36px;height:36px;border-radius:50%;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+  .case.done .num{background:var(--good);color:#0d0b0b} .case.going .num{background:var(--accent);color:#fff}
+  .case .txt{flex:1;min-width:0} .case b{display:block;font-size:17px} .case span{font-size:13.5px;color:var(--muted)}
+  .case .st{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);flex:none}
+  .case.done .st{color:var(--good)} .case.going .st{color:var(--accent)}
+  .case.own{border-style:dashed}
+  /* one case */
+  .who{display:flex;gap:14px;align-items:flex-start;margin:0 0 16px}
+  .who .av{width:46px;height:46px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+  .who p{margin:0;font-size:16px;line-height:1.6}
+  table.plan{width:100%;border-collapse:collapse;font-size:14.5px;margin:4px 0 6px}
+  table.plan th,table.plan td{border-top:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top;line-height:1.5}
+  table.plan th{width:110px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .plannote{font-size:14px;color:var(--muted);margin:8px 0 0;line-height:1.5}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+  .chips button{font:inherit;font-size:13px;padding:7px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+  .chips button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .chips.ro button{cursor:default}
+  .err{color:var(--bad);font-size:14px;margin:10px 0 0;min-height:1em}
+  .mine{background:var(--panel2);border:1px solid var(--line);padding:12px 14px;font-size:15px;line-height:1.55;white-space:pre-wrap;margin:0}
+  .mine.empty{color:var(--muted);font-style:italic}
+  .ans{border:1px solid var(--line);border-left:4px solid var(--good);background:var(--panel2);padding:18px 20px;margin:0 0 20px}
+  .ans h3{margin:0 0 4px;font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--good)}
+  .ans ul{margin:10px 0 0;padding-left:20px} .ans li{margin:0 0 8px;line-height:1.55;font-size:15px}
+  .ans .fix{margin:12px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:15px;line-height:1.55}
+  .nav2{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px}
+  #printout{display:none}
+  @media(max-width:640px){.panel{padding:18px} table.plan th{width:70px}}
+  @media print{ body{background:#fff;color:#000} .bar,.noprint,#eye{display:none!important} #printout{display:block!important}
+    #printout h2{font-size:18px;margin:24px 0 6px} #printout h3{font-size:13px;letter-spacing:.1em;text-transform:uppercase;margin:14px 0 4px}
+    #printout p,#printout li{font-size:13px;line-height:1.5;white-space:pre-wrap} #printout .pc{page-break-inside:avoid;border-top:1px solid #ccc;padding-top:6px} }
 </style>
 <link rel="icon" href="/favicon-tgc.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-tgc-32.png">
@@ -129,7 +91,7 @@
   <section id="login" class="hidden">
     <p class="kicker">BirdBox Learn</p>
     <h1>My TGC portfolio</h1>
-    <p class="lede">Log in with the email address you bought your course with, and your programming review opens here.</p>
+    <p class="lede">Log in with the email address you bought your course with, and your programming case studies open here.</p>
     <form class="card" id="login-form">
       <label for="l-email">Email</label>
       <input id="l-email" type="email" autocomplete="email" required>
@@ -150,72 +112,25 @@
 
   <section id="eye" class="hidden">
     <p class="kicker"><a href="index.html">← My portfolio</a> · The Gymnastics Course · Lesson 17 · Programming</p>
-    <h1>My gym's programming</h1>
-    <p class="lede">Read a week of your gym's programming to see its volume, intensity and frequency, then build one to three gymnastics accessory sessions on top of it, and see the whole week together.</p>
 
     <div id="v-list">
-      <div class="row noprint" style="margin-bottom:16px"><button class="btn" id="b-new" type="button">+ New week</button></div>
-      <div id="plan-list"></div>
+      <h1>Programming case studies</h1>
+      <p class="lede">Four coaches, four programmes, four problems. For each one, read the case, write what you notice and what you would programme instead, and say which parts of the unit you used. Then open Nathan's answer and compare it with yours. Do them in any order: everything saves as you go.</p>
+      <div id="case-list"></div>
+      <div class="row noprint" style="margin-top:18px">
+        <button class="btn ghost" id="b-pdf" type="button">Download PDF</button>
+        <span class="state" id="state-list"></span>
+      </div>
     </div>
 
-    <div id="v-edit" class="hidden">
-    <div class="row noprint" style="margin-bottom:14px"><button class="btn ghost small" id="b-back" type="button">← My weeks</button></div>
-    <div class="panel">
-      <label class="f" for="p-title" style="margin-top:0">Name this week</label>
-      <input type="text" id="p-title" placeholder="e.g. Our classes, week of 20 October">
-    </div>
-
-    <div class="panel">
-      <h2><span class="n">1</span>My gym's week</h2>
-      <p class="sub">Add screenshots of the week (from your gym's app, a spreadsheet or a photo of the whiteboard), or paste it in. The week is read and filled in for you: then check it, and fix anything that is not right.</p>
-      <div class="noprint" id="reader-week"></div>
-      <div class="days" id="days"></div>
-    </div>
-
-    <div class="panel">
-      <h2><span class="n">2</span>What the week shows</h2>
-      <p class="sub"><b>Volume</b> is how much (reps, load, distance), <b>frequency</b> how many days a pattern is trained, and <b>intensity</b> how hard (the % of a maximum, or how the workout is run).</p>
-      <div class="cards" id="gymcards"></div>
-      <div id="gymtable"></div>
-      <div id="gymjoints"></div>
-      <div class="wk" id="grid"></div>
-      <div class="legend"><span class="low">Low</span><span class="moderate">Moderate</span><span class="high">High</span><span class="a">A = my accessory session</span></div>
-      <label class="f" for="p-see">What I notice about my gym's week</label>
-      <textarea id="p-see" placeholder="e.g. Pulling three days a week, all at high intensity for time; no inversion; squats every day."></textarea>
-    </div>
-
-    <div class="panel">
-      <h2><span class="n">3</span>My accessory sessions</h2>
-      <p class="sub">Gymnastics accessory coaching on top of the gym's week (programming rule 1: a supplement that does not take away the day's main element). Choose how many, put each on a day, and add the drills by hand or from a screenshot. For holds put the seconds held; for slow lowerings the seconds of lowering.</p>
-      <div class="pills noprint" id="nsess"></div>
-      <div class="pills noprint" id="same"></div>
-      <div id="sessbox"></div>
-    </div>
-
-    <div class="panel">
-      <h2><span class="n">4</span>The whole week</h2>
-      <p class="sub">The gym's week and my accessory sessions together. Each accessory session is checked against the unit: about <b>120 seconds of isometric</b> work as a training target, and no more than <b>125 seconds of purposeful eccentric loading</b> in a session.</p>
-      <div class="cards" id="allcards"></div>
-      <div id="alltable"></div>
-      <div id="alljoints"></div>
-      <div id="flags"></div>
-      <label class="f" for="p-why">Why I built my accessory sessions this way</label>
-      <textarea id="p-why" placeholder="e.g. The gym pulls hard three days a week, so my sessions build the hang in hollow and slow eccentrics on the days with no pulling, and add the inversion the week is missing."></textarea>
-    </div>
-
-    <div class="panel">
-      <h2><span class="n">5</span>After coaching it</h2>
-      <textarea id="p-after" style="min-height:90px" placeholder="After a few weeks: what changed for your athletes, and what you will change next."></textarea>
-      <div id="freelink" class="hidden"></div>
-    </div>
-
-    <div class="row noprint">
-      <button class="btn" id="b-save" type="button">Save</button>
-      <button class="btn ghost" id="b-pdf" type="button">Download PDF</button>
-      <span class="state" id="state"></span>
-    </div>
+    <div id="v-case" class="hidden">
+      <div class="row noprint" style="margin-bottom:14px"><button class="btn ghost small" id="b-back" type="button">← All cases</button></div>
+      <div id="case-body"></div>
+      <div class="row noprint" style="margin-top:6px"><span class="state" id="state"></span></div>
     </div>
   </section>
+
+  <div id="printout"></div>
 </main>
 
 <script type="module">
@@ -231,69 +146,74 @@ const show = (id) => ["loading", "login", "soon", "eye"].forEach((s) => $(s).cla
 const TGC_LIVE = false, TGC_TESTERS = ["nathan@birdboxcoaching.com"];
 const canOpen = (s) => TGC_LIVE || TGC_TESTERS.includes(String((s && s.user && s.user.email) || "").toLowerCase());
 
-const TOOL = "tgc-programming";
-// Lesson 17 · Programming (Nathan, 19 Oct 2026): "a dual tool: review my gym's programming to understand volume, intensity, frequency
-// of movements; the second to help build an accessory training programme around this gym's week, with 1-2-3 sessions of gymnastics
-// accessory coaching, tracking the overall time under tension, eccentric loading, volume, intensity and frequency"; "tracking all
-// movements for the week's programming, not just gymnastics, then adding the accessory sessions on top, manually or with screenshots";
-// "visually pleasing and clean, easy to use; copy and paste a week or import a screenshot and the system reads this and populates it".
-// The week is read by netlify/functions/programming-read.mjs (the AI model, a few reads a day per learner).
-// From the lesson: 120 s isometric target, no more than 125 s of purposeful eccentric loading in a session, the four programming rules,
-// one workout a day / 6 hours between concurrent sessions.
-// The two-week free programme in the BirdBox programming app: set FREE_URL once it is live.
-const FREE_URL = "";
-const ISO_TARGET = 120, ECC_LIMIT = 125, GAP = 6;
-const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const MOD = [["gymnastics", "Gymnastics", "g"], ["weightlifting", "Weightlifting", "w"], ["monostructural", "Metabolic conditioning", "m"]];
-const PAT = {
-  // the gymnastics of the course, by group (Nathan, 19 Oct: "this needs more, think of all the movements we have covered,
-  // e.g. toes to bar doesn't fit in here"); the plain group keys stay as "other" for anything else
-  gymnastics: [
-    ["hang", "Hang in hollow", "pull"], ["strictpu", "Strict pull-up", "pull"], ["beat", "Beat swing", "pull"], ["kippu", "Kipping pull-up", "pull"],
-    ["c2b", "Chest to bar / butterfly pull-up", "pull"], ["rope", "Rope climb", "pull"], ["ringrow", "Ring row", "pull"], ["pull", "Other pulling", "pull"],
-    ["hollow", "Hollow and arch (holds, rocks)", "midline"], ["lsit", "L-sit / V-sit", "midline"], ["t2bstrict", "Strict toes to bar", "midline"], ["t2bkip", "Kipping toes to bar", "midline"],
-    ["situp", "Sit-up / GHD sit-up", "midline"], ["midline", "Other midline", "midline"],
-    ["pushup", "Push-up", "push"], ["lowrings", "Low rings (support, ring push-up)", "push"], ["dip", "Dip (bar or ring)", "push"], ["burpee", "Burpee", "push"], ["push", "Other pushing", "push"],
-    ["bmu", "Bar muscle-up", "muscleup"], ["rmu", "Ring muscle-up", "muscleup"],
-    ["hand", "Handstand hold / walk", "inversion"], ["hspu", "Handstand push-up", "inversion"], ["wallwalk", "Wall walk", "inversion"], ["inversion", "Other inversion", "inversion"],
-    ["pistol", "Pistol", "legs"], ["squatbw", "Air squat / lunge", "legs"], ["legs", "Other legs", "legs"],
-    ["jump", "Box jump / broad jump", "jump"],
-  ],
-  weightlifting: [["squat", "Squat"], ["hinge", "Hinge"], ["press", "Press"], ["olympic", "Olympic lifts"], ["carry", "Carry"]],
-  monostructural: [["run", "Run"], ["row", "Row"], ["bike", "Bike"], ["ski", "Ski"], ["jump", "Jump rope"], ["other", "Other"]],
-};
-const INT = [["low", "Low"], ["moderate", "Moderate"], ["high", "High"]];
-// joint volume (Nathan, 19 Oct: "we talk about joint volume on the course, how much flexion and extension happens at each joint,
-// and a coach / programmer should know this"): the joints each movement takes through flexion and extension. Each rep adds one to
-// each of its joints; holds and lowerings add their seconds; cyclical work (run, row, bike, ski, jump rope) counts as days, not reps.
-// Drafted by Claude from the course movements (Nathan to check).
-const JOINTS = [["shoulder", "Shoulder"], ["elbow", "Elbow"], ["wrist", "Wrist / grip"], ["spine", "Spine"], ["hip", "Hip"], ["knee", "Knee"], ["ankle", "Ankle"]];
-const JMAP = {
-  "gymnastics:hang": ["shoulder", "elbow", "wrist", "spine"], "gymnastics:strictpu": ["shoulder", "elbow", "wrist"], "gymnastics:beat": ["shoulder", "spine", "hip"],
-  "gymnastics:kippu": ["shoulder", "elbow", "wrist", "spine", "hip"], "gymnastics:c2b": ["shoulder", "elbow", "wrist", "spine", "hip"], "gymnastics:rope": ["shoulder", "elbow", "wrist", "hip"],
-  "gymnastics:ringrow": ["shoulder", "elbow", "wrist"], "gymnastics:pull": ["shoulder", "elbow", "wrist"],
-  "gymnastics:hollow": ["spine", "hip", "shoulder"], "gymnastics:lsit": ["hip", "shoulder", "elbow", "wrist", "spine"], "gymnastics:t2bstrict": ["hip", "spine", "shoulder", "wrist"],
-  "gymnastics:t2bkip": ["hip", "spine", "shoulder", "wrist"], "gymnastics:situp": ["hip", "spine"], "gymnastics:midline": ["hip", "spine"],
-  "gymnastics:pushup": ["shoulder", "elbow", "wrist", "spine"], "gymnastics:lowrings": ["shoulder", "elbow", "wrist"], "gymnastics:dip": ["shoulder", "elbow", "wrist"],
-  "gymnastics:burpee": ["shoulder", "elbow", "wrist", "hip", "knee", "ankle"], "gymnastics:push": ["shoulder", "elbow", "wrist"],
-  "gymnastics:bmu": ["shoulder", "elbow", "wrist", "spine", "hip"], "gymnastics:rmu": ["shoulder", "elbow", "wrist", "spine", "hip"],
-  "gymnastics:hand": ["shoulder", "wrist", "elbow", "spine"], "gymnastics:hspu": ["shoulder", "elbow", "wrist"], "gymnastics:wallwalk": ["shoulder", "wrist", "elbow", "hip", "spine"],
-  "gymnastics:inversion": ["shoulder", "elbow", "wrist"], "gymnastics:pistol": ["hip", "knee", "ankle"], "gymnastics:squatbw": ["hip", "knee", "ankle"], "gymnastics:legs": ["hip", "knee", "ankle"],
-  "gymnastics:jump": ["hip", "knee", "ankle"],
-  "weightlifting:squat": ["hip", "knee", "ankle", "spine"], "weightlifting:hinge": ["hip", "spine", "knee", "wrist"], "weightlifting:press": ["shoulder", "elbow", "wrist"],
-  "weightlifting:olympic": ["hip", "knee", "ankle", "shoulder", "elbow", "wrist", "spine"], "weightlifting:carry": ["wrist", "spine"],
-  "monostructural:run": ["hip", "knee", "ankle"], "monostructural:row": ["hip", "knee", "ankle", "spine", "shoulder", "elbow"], "monostructural:bike": ["hip", "knee", "ankle"],
-  "monostructural:ski": ["shoulder", "elbow", "spine", "hip"], "monostructural:jump": ["ankle", "knee"],
-};
-// a thruster or a wall ball is a squat and a press
-const jointsOf = (x) => { const j = [...(JMAP[x.modality + ":" + x.pattern] || [])]; if (/thruster|wall ?ball|push press|squat clean/i.test(x.name || "")) for (const a of ["shoulder", "elbow", "wrist"]) if (!j.includes(a)) j.push(a); return j; };
-const WHERE = [["before", "In class, before the main element"], ["after", "In class, after the main element"], ["own", "Its own session"]];
-const GROUPS = { pull: "Pull", midline: "Midline", push: "Push", muscleup: "Muscle-ups", inversion: "Inversion", legs: "Legs", jump: "Jump" };
-// the groups a movement trains (a muscle-up is both a pull and a push)
-const groupsOf = (m, p) => { const e = (PAT[m] || []).find((x) => x[0] === p); const g = e && e[2] ? e[2] : p; return g === "muscleup" ? ["pull", "push"] : [g]; };
-const patName = (m, p) => ((PAT[m] || []).find((x) => x[0] === p) || [, p || "Other"])[1];
-const modOf = (m) => MOD.find((x) => x[0] === m) || MOD[0];
-let session = null, doc = null, cur = null, timer = null, open = null;
+// Lesson 17 · Programming. Case studies (Michaela's idea, agreed with Nathan 13 Nov 2026), replacing the gym programming
+// review. Each case: read it, write what you notice, what you would programme instead and which parts of the unit you used,
+// then open Nathan's answer (locked until the learner has committed to their own) and compare. A last, optional task applies
+// the same thinking to the learner's own gym. Every case and answer comes from the Lesson 17 text: 120 s isometric target,
+// no more than 125 s of purposeful eccentric loading in a session, rhabdomyolysis risk factors, hypertension as a red flag,
+// the four programming rules, one workout a day, at least 6 hours between concurrent sessions, linear progression to mastery.
+const TOOL = "tgc-cases";
+const MIN = 15; // characters before a box counts as written
+
+const PARTS = [
+  ["r1", "Rule 1: a supplement, not the main element"], ["r2", "Rule 2: frequent exposure"], ["r3", "Rule 3: standardised gymnastics warm-up"],
+  ["r4", "Rule 4: gymnastics first"], ["iso", "120 s isometric target"], ["ecc", "125 s eccentric limit"], ["rhabdo", "Rhabdomyolysis risk factors"],
+  ["bp", "Blood pressure as a red flag"], ["one", "One workout a day"], ["gap", "6 hours between sessions"], ["linear", "Linear progression to mastery"],
+  ["vif", "Volume, intensity and frequency"], ["pos", "Position and perfection over volume and intensity"],
+];
+
+const CASES = [
+  { id: "class", title: "The class programme", covers: "Rules 1 to 4, frequency and intensity", av: "GYM",
+    who: "A gym runs classes six days a week. The head coach asks you to look at next week's plan, because members keep stalling on pull-ups and nobody can hold a handstand.",
+    planTitle: "Next week's classes",
+    plan: [["Mon", "Back squat 5 × 5. Workout: 21-15-9 thrusters and kipping pull-ups. Then 5 × 5 strict pull-ups."],
+      ["Tue", "400 m run intervals, then 3 sets of max kipping pull-ups."],
+      ["Wed", "Deadlift. Workout: 15 minute AMRAP of 10 chest to bar pull-ups, 15 wall balls, 200 m run."],
+      ["Thu", "Rest."],
+      ["Fri", "Clean and jerk. Workout: kipping toes to bar and burpees."],
+      ["Sat", "Partner workout: 100 kipping pull-ups, 100 push-ups, 100 air squats."]],
+    planNote: "Every class starts with the same general warm-up: a jog and some stretching.",
+    answer: [
+      "Rule 4: the strict pull-ups on Monday come after the workout, when the athletes are already fatigued. Strength and skill work belongs before the main element.",
+      "Too much pulling at high intensity: kipping or chest to bar pull-ups on four days, with almost no strict strength behind them. Frequency is high, but it is all volume and intensity, not position and perfection.",
+      "Nothing for the handstand goal: there is no inversion in the week, and very little midline work.",
+      "Rule 3: there is no standardised gymnastics warm-up. It is the easiest fix, and it also gives the daily exposure of Rule 2.",
+      "Rule 1: any gymnastics added must be a supplement that does not take away the day's main element."],
+    fix: "A standardised gymnastics warm-up every day (hollow, arch, hang, support and inversion positions). Strict and eccentric pulling and inversion development placed before the main element, as a short supplement. One of the kipping days swapped for development work." },
+  { id: "beginner", title: "The keen beginner", covers: "Eccentric loading, rhabdomyolysis and the 125 second limit", av: "SM",
+    who: "Sam, 38, works in an office and joined the gym 6 weeks ago. Sam has never done a pull-up, wants one by the summer, and comes to 3 classes a week.",
+    planTitle: "The coach's plan, after class, 3 times a week",
+    plan: [["1", "10 × 10 jumping pull-ups with a 5 second lowering."], ["2", "3 × 30 second hang in hollow."]],
+    planNote: "",
+    answer: [
+      "The maths: 10 × 10 × 5 seconds is 500 seconds of eccentric loading in one session, four times the 125 second limit.",
+      "Every primary risk factor for exercise-induced rhabdomyolysis is here: low exercise experience, a sedentary job, high volume and high intensity.",
+      "The hang is fine: 90 seconds held sits within the 120 second isometric target.",
+      "It comes after class, when Sam is already fatigued (Rule 4)."],
+    fix: "A small dose: for example 5 sets of 3 lowerings at 5 seconds (75 seconds), before the main element. Short, frequent exposure on most days (Rule 2) rather than three big sessions, and a simple linear progression towards mastery of the position." },
+  { id: "redflag", title: "The red flag", covers: "Blood pressure, isometric holds and inversion", av: "LM",
+    who: "Linda, 54, has trained for 2 years. In conversation she mentions her doctor said her blood pressure is \"a bit high\", but she has not had it checked since. She wants to learn a handstand.",
+    planTitle: "The coach's plan, 3 times a week",
+    plan: [["1", "5 × 30 second headstand holds."], ["2", "5 × 30 second wall handstand holds."]],
+    planNote: "",
+    answer: [
+      "High blood pressure is a red flag. It is not ignored, and it is not programmed around without a medical check.",
+      "Long isometric holds and being upside down both raise blood pressure, more so if the athlete holds their breath. This plan is 300 seconds of inverted isometric work in one session, well past the 120 second target.",
+      "The goal is fine. The timing and the dose are the problem."],
+    fix: "Ask Linda to have her blood pressure checked and get her doctor's clearance before inversion work. Meanwhile, build the handstand without inverting (hollow, support, wrist preparation) with short holds and steady breathing, and keep the session within the 120 second isometric target." },
+  { id: "twice", title: "Twice a day", covers: "Concurrent training, 6 hours between sessions and Rule 4", av: "JK",
+    who: "Jordan, 26, is a competitive athlete who trains before work, four days a week.",
+    planTitle: "Jordan's training day",
+    plan: [["07:00", "High-intensity workout: rowing, wall balls and burpees."], ["09:00", "Gymnastics strength: strict ring muscle-up transitions and strict handstand push-ups."]],
+    planNote: "",
+    answer: [
+      "Two hours between sessions. The lesson's minimum is 6 hours between concurrent training sessions for the adaptations to happen.",
+      "Rule 4: the gymnastics strength comes after the high-intensity workout, so it is trained with central nervous system fatigue: the opposite of gymnastics first.",
+      "One workout a day is the base. A second session has to earn its place and be spaced properly."],
+    fix: "Swap the order: gymnastics strength in the morning and the high-intensity workout in the evening, 6 or more hours later. On days that cannot happen, one workout that day, with the gymnastics first." },
+];
+
+let session = null, doc = null, cur = null, timer = null;
 
 $("login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -317,16 +237,16 @@ async function unlock() {
     if (!list.includes(TOOL)) await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: "_unlocked", data: { tools: [...list, TOOL] } }, { onConflict: "user_id,tool" });
   } catch (e) { /* never block the task */ }
 }
-function changed() { $("state").textContent = "Unsaved changes"; clearTimeout(timer); timer = setTimeout(save, 1500); if (cur) summarise(); }
+const stateEls = () => [$("state"), $("state-list")];
+const setState = (t) => stateEls().forEach((el) => { el.textContent = t; });
+function changed() { setState("Unsaved changes"); clearTimeout(timer); timer = setTimeout(save, 1200); }
 async function save() {
   clearTimeout(timer);
   const { error } = await db.from("learn_portfolio").upsert({ user_id: session.user.id, tool: TOOL, data: doc, updated_at: new Date().toISOString() }, { onConflict: "user_id,tool" });
-  if (error) { $("state").textContent = "Not saved — " + error.message; return false; }
-  $("state").textContent = "Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (error) { setState("Not saved: " + error.message); return false; }
+  setState("Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
   return true;
 }
-$("b-save").onclick = async () => { if (await save()) $("state").textContent = "Saved ✓"; };
-$("b-pdf").onclick = async () => { await save(); window.print(); };
 async function boot() {
   ({ data: { session } } = await db.auth.getSession());
   if (!session) { show("login"); return; }
@@ -334,352 +254,134 @@ async function boot() {
   if (new URLSearchParams(location.search).get("tool")) unlock();
   const { data } = await db.from("learn_portfolio").select("data").eq("user_id", session.user.id).eq("tool", TOOL).maybeSingle();
   doc = (data && data.data) || {};
-  // (the first version kept one week in the row itself: it becomes the first in the list)
-  if (!doc.plans) { const old = doc.week ? { ...doc } : null; doc = { plans: [] }; if (old) doc.plans.push({ id: "p" + Date.now().toString(36), created: new Date().toISOString(), title: "My first week", ...old }); }
+  doc.cases = doc.cases || {}; doc.own = doc.own || {};
   list(); show("eye");
 }
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const num = (v) => (v == null || v === "" || isNaN(+v) ? null : +v);
+const filled = (t) => String(t || "").trim().length >= MIN;
+const caseOf = (id) => (doc.cases[id] = doc.cases[id] || { used: [] });
+const status = (id) => { const C = doc.cases[id]; if (!C) return "new"; if (C.revealed && filled(C.compare)) return "done"; if (C.revealed || C.notice || C.plan || C.why) return "going"; return "new"; };
+const ownStatus = () => { const O = doc.own; if (filled(O.after)) return "done"; if (O.who || O.notice || O.plan || O.why) return "going"; return "new"; };
+const ST = { new: "Not started", going: "In progress", done: "Done" };
 
-// ---------- the list of weeks (Nathan, 19 Oct: "what if they want to do another week or build another example?") ----------
-const when = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+// ---------- the list ----------
 function list() {
-  cur = null; $("v-list").classList.remove("hidden"); $("v-edit").classList.add("hidden");
-  const box = $("plan-list"); box.innerHTML = "";
-  if (!doc.plans.length) { box.innerHTML = '<p class="sub">No weeks yet. Press <b>New week</b>, then add screenshots of your gym\'s week or paste it in.</p>'; return; }
-  for (const P of [...doc.plans].sort((a, b) => (b.created || "").localeCompare(a.created || ""))) {
-    const moves = (P.week || []).reduce((a, D) => a + D.items.length, 0), n = P.n || 0, d = document.createElement("div"); d.className = "plan";
-    d.innerHTML = `<div class="txt"><b>${esc(P.title || "Untitled week")}</b><span>${when(P.created)} · ${moves} movement${moves === 1 ? "" : "s"} · ${n} accessory session${n === 1 ? "" : "s"}${P.same && n > 1 ? " (the same)" : ""}</span></div>`;
-    const acts = document.createElement("div"); acts.className = "acts noprint";
-    const cp = document.createElement("button"); cp.type = "button"; cp.className = "btn ghost small"; cp.textContent = "Use as a starting point";
-    cp.onclick = (e) => { e.stopPropagation(); const c = JSON.parse(JSON.stringify(P)); c.id = "p" + Date.now().toString(36); c.created = new Date().toISOString(); c.title = (P.title || "Week") + " (copy)"; delete c.after; doc.plans.push(c); edit(c); changed(); };
-    const del = document.createElement("button"); del.type = "button"; del.className = "btn ghost small"; del.textContent = "Delete";
-    del.onclick = async (e) => { e.stopPropagation(); if (!confirm(`Delete "${P.title || "this week"}"? This cannot be undone.`)) return; doc.plans = doc.plans.filter((x) => x !== P); await save(); list(); };
-    acts.append(cp, del); d.appendChild(acts); d.onclick = () => edit(P); box.appendChild(d);
-  }
-}
-$("b-new").onclick = () => { const P = { id: "p" + Date.now().toString(36), created: new Date().toISOString(), title: "" }; doc.plans.push(P); edit(P); changed(); };
-$("b-back").onclick = async () => { await save(); list(); window.scrollTo(0, 0); };
-function edit(P) {
-  cur = P; open = null; $("v-list").classList.add("hidden"); $("v-edit").classList.remove("hidden");
-  const t = $("p-title"); t.value = P.title || ""; t.oninput = () => { P.title = t.value; changed(); };
-  render(); window.scrollTo(0, 0);
-}
-function render() {
-  cur.week = cur.week && cur.week.length === 7 ? cur.week : WEEKDAYS.map(() => ({ items: [] }));
-  cur.n = cur.n || 2;
-  cur.sess = cur.sess && cur.sess.length === 3 ? cur.sess : [1, 3, 5].map((d) => ({ day: d, where: "before", gap: null, items: [] }));
-  for (const [id, key] of [["p-see", "see"], ["p-why", "why"], ["p-after", "after"]]) { const el = $(id); el.value = cur[key] || ""; el.oninput = () => { cur[key] = el.value; changed(); }; }
-  if (FREE_URL) { const f = $("freelink"); f.classList.remove("hidden"); f.innerHTML = `<p class="sub" style="margin:16px 0 8px">Want a starting point? Try two weeks of BirdBox gymnastics programming free in our programming app.</p><a class="btn ghost small" href="${FREE_URL}" target="_blank" rel="noopener">Two weeks free</a>`; }
-  reader($("reader-week"), "week");
-  renderWeek(); renderSess(); summarise();
-}
-
-// ---------- the reader: screenshots and/or pasted text, read by the AI model ----------
-function reader(box, mode, sessIndex) {
-  const files = [];
-  box.innerHTML = `<div class="drop" tabindex="0"><b>${mode === "week" ? "Add screenshots of the week" : "Add a screenshot of this session"}</b><span>Drop them here or click to choose · up to 7 images</span></div>
-    <input type="file" accept="image/*" multiple class="hidden"><div class="thumbs"></div>
-    <div class="or">or paste it</div>
-    <textarea placeholder="${mode === "week" ? "Paste the week here: Monday ... Tuesday ..." : "Paste the session here"}" style="min-height:${mode === "week" ? 110 : 70}px"></textarea>
-    <div class="row" style="margin-top:12px"><button class="btn" type="button">${mode === "week" ? "Read my week" : "Read this session"}</button><button class="link" type="button">${mode === "week" ? "or add it by hand" : ""}</button></div>
-    <div class="status hidden"></div>`;
-  const drop = box.querySelector(".drop"), inp = box.querySelector("input"), th = box.querySelector(".thumbs"), ta = box.querySelector("textarea"), go = box.querySelector(".btn"), st = box.querySelector(".status"), hand = box.querySelector(".link");
-  const say = (t, cls = "") => { st.className = "status " + cls; st.textContent = t; st.classList.toggle("hidden", !t); };
-  const addFiles = (list) => { for (const f of list) if (f.type.startsWith("image/") && files.length < 7) files.push(f); thumbs(); };
-  const thumbs = () => { th.innerHTML = ""; files.forEach((f, i) => { const d = document.createElement("div"), im = document.createElement("img"), x = document.createElement("button"); im.src = URL.createObjectURL(f); x.type = "button"; x.textContent = "✕"; x.onclick = () => { files.splice(i, 1); thumbs(); }; d.append(im, x); th.appendChild(d); }); };
-  drop.onclick = () => inp.click(); drop.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") inp.click(); };
-  inp.onchange = () => { addFiles(inp.files); inp.value = ""; };
-  drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); }; drop.ondragleave = () => drop.classList.remove("over");
-  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); addFiles(e.dataTransfer.files); };
-  ta.addEventListener("paste", (e) => { const imgs = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith("image/")); if (imgs.length) { e.preventDefault(); addFiles(imgs); } });
-  if (hand.textContent) hand.onclick = () => { box.querySelector(".drop").scrollIntoView({ block: "start" }); $("days").scrollIntoView({ behavior: "smooth", block: "start" }); };
-  else hand.remove();
-  go.onclick = async () => {
-    if (!files.length && !ta.value.trim()) { say("Add a screenshot or paste the programming first.", "err"); return; }
-    go.disabled = true; say(files.length ? `Reading ${files.length} screenshot${files.length > 1 ? "s" : ""}… this takes about half a minute.` : "Reading…");
-    try {
-      const images = []; for (const f of files) images.push(await shrink(f));
-      const { data: { session: s } } = await db.auth.getSession();
-      const res = await fetch("/.netlify/functions/programming-read", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + (s && s.access_token) },
-        body: JSON.stringify({ text: ta.value, images, mode }) });
-      const out = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(out.error || "The reader could not read that.");
-      const n = fill(out.days || [], mode, sessIndex);
-      say(`Read ${n} movement${n === 1 ? "" : "s"}. Check each day below and fix anything that is not right.${out.notes ? " Note: " + out.notes : ""}`, "ok");
-      files.length = 0; thumbs(); ta.value = "";
-    } catch (e) { say((e instanceof TypeError ? "The reader could not be reached. Check your connection and try again." : e.message) + " You can still add it by hand.", "err"); }
-    finally { go.disabled = false; }
-  };
-}
-// screenshots are made smaller before they are sent (at most 1600 px across), so a week of them goes quickly
-async function shrink(file) {
-  const bmp = await createImageBitmap(file), k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height)), c = document.createElement("canvas");
-  c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k); c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
-  return { media_type: "image/jpeg", data: c.toDataURL("image/jpeg", 0.82).split(",")[1] };
-}
-// each movement: sets, reps per set, seconds held each, seconds of lowering each rep (Nathan, 19 Oct: "there should be boxes for sets,
-// time under tension, reps, eccentric loading time"); the totals are worked out. (Older saves and reader answers that give only
-// totals become one set.)
-function clean(x) {
-  const o = { name: String(x.name || "Movement"), part: x.part || "workout", modality: PAT[x.modality] ? x.modality : "gymnastics", pattern: x.pattern || "other",
-    sets: num(x.sets), reps: num(x.reps_per_set ?? x.reps), hold_s: num(x.hold_s ?? x.hold_seconds_each), ecc_s: num(x.ecc_s ?? x.eccentric_seconds_each),
-    load_kg: num(x.load_kg), metres: num(x.metres), calories: num(x.calories), seconds: num(x.seconds),
-    intensity: ["low", "moderate", "high"].includes(x.intensity) ? x.intensity : "moderate", scheme: x.scheme || "", estimated: !!x.estimated };
-  if (o.hold_s == null && num(x.hold_seconds)) { o.hold_s = num(x.hold_seconds) / Math.max(1, (o.sets || 1) * (o.reps || 1)); }
-  if (o.ecc_s == null && num(x.eccentric_seconds)) { o.ecc_s = +(num(x.eccentric_seconds) / Math.max(1, (o.sets || 1) * (o.reps || 1))).toFixed(1); }
-  return o;
-}
-// the totals for a movement: reps, seconds held, seconds of lowering, time under tension
-function tot(x) {
-  const S = x.sets || 1, per = x.reps || (x.hold_s || x.ecc_s ? 1 : 0);
-  const held = S * (x.reps || 1) * (x.hold_s || 0), ecc = S * (x.reps || 1) * (x.ecc_s || 0);
-  return { reps: x.reps ? S * x.reps : 0, held: Math.round(held), ecc: Math.round(ecc), tut: Math.round(held + ecc), per };
-}
-function fill(days, mode, si) {
-  let n = 0;
-  if (mode === "accessory") { const S = cur.sess[si]; for (const d of days) for (const x of d.items || []) { S.items.push(clean(x)); n++; } renderSess(); changed(); return n; }
-  days.forEach((d, k) => { let i = WEEKDAYS.findIndex((w) => String(d.day || "").toLowerCase().startsWith(w.slice(0, 3).toLowerCase()));
-    if (i < 0) { const m = String(d.day || "").match(/(\d+)/); i = m ? Math.min(6, +m[1] - 1) : Math.min(6, k); }
-    for (const x of d.items || []) { cur.week[i].items.push(clean(x)); n++; } });
-  renderWeek(); changed(); return n;
-}
-
-// ---------- quick entry: one line per drill, read in the browser ----------
-// (Nathan, 19 Oct: "I should be able to write something like 3x20s chin over bar hold, 4x8 seconds eccentric wall facing handstand
-// push up, 3x 25 v-ups")
-const SKILLS = [
-  [/chest[ -]?to[ -]?bar|\bc2b\b|butterfly/, "gymnastics", "c2b"], [/bar muscle|\bbmu\b/, "gymnastics", "bmu"], [/ring muscle|\brmu\b|muscle[ -]?up/, "gymnastics", "rmu"],
-  [/beat swing|\bbeats?\b/, "gymnastics", "beat"], [/kip.*(pull|chin)|kipping pull/, "gymnastics", "kippu"], [/hang.*hollow|hollow hang|dead hang|active hang/, "gymnastics", "hang"],
-  [/chin[ -]?over[ -]?(the )?bar|strict pull|pull[ -]?ups?|chin[ -]?ups?|flexed arm hang/, "gymnastics", "strictpu"], [/rope/, "gymnastics", "rope"], [/ring rows?/, "gymnastics", "ringrow"],
-  [/kip.*(toes|t2b)|kipping (toes|t2b)/, "gymnastics", "t2bkip"], [/toes[ -]?to[ -]?bar|\bt2b\b|\bttb\b|knees[ -]?to[ -]?elbows?|\bk2e\b/, "gymnastics", "t2bstrict"],
-  [/l[ -]?sit|v[ -]?sit|tuck sit/, "gymnastics", "lsit"], [/hollow|arch (hold|rock)|superman/, "gymnastics", "hollow"], [/ghd|sit[ -]?ups?|abmat/, "gymnastics", "situp"],
-  [/v[ -]?ups?|tuck[ -]?ups?|crunch|plank|dead ?bug/, "gymnastics", "midline"],
-  [/handstand push|hspu|pike push/, "gymnastics", "hspu"], [/wall walk/, "gymnastics", "wallwalk"], [/handstand|hand ?walk|freestanding/, "gymnastics", "hand"],
-  [/dips?\b/, "gymnastics", "dip"], [/ring (push|support)|support hold|low ring|ring pass/, "gymnastics", "lowrings"], [/push[ -]?ups?|press[ -]?ups?/, "gymnastics", "pushup"], [/burpee/, "gymnastics", "burpee"],
-  [/pistol/, "gymnastics", "pistol"], [/air squat|lunge|step[ -]?up|cossack/, "gymnastics", "squatbw"], [/box jump|broad jump|jump squat/, "gymnastics", "jump"],
-  [/snatch|clean/, "weightlifting", "olympic"], [/jerk|push press|strict press|shoulder press|bench|overhead press/, "weightlifting", "press"],
-  [/deadlift|\bdl\b|kettlebell swing|kb swing|good morning|rdl/, "weightlifting", "hinge"], [/squat|thruster|wall ?ball/, "weightlifting", "squat"], [/carry|farmer/, "weightlifting", "carry"],
-  [/\brun\b|running/, "monostructural", "run"], [/\brow\b|rowing|rower/, "monostructural", "row"], [/bike|echo|assault/, "monostructural", "bike"], [/\bski\b/, "monostructural", "ski"], [/double[ -]?under|single[ -]?under|skip/, "monostructural", "jump"],
-];
-function quickParse(line, intensity) {
-  let t = " " + line.toLowerCase().replace(/×/g, "x") + " ";
-  let sets = 1, reps = null, secs = null, kg = null, metres = null, cal = null;
-  // 3x20s, 3 x 20 s, 4x8 seconds, 3x 25, 5x3 @ 100kg
-  // a rep scheme: 21-15-9 = 45; 5-5-5-5-5 = 25
-  let m = t.match(/\b(\d+(?:\s*-\s*\d+)+)\b/);
-  if (m && !/\d+\s*x/.test(t)) { reps = m[1].split("-").reduce((a, v) => a + +v, 0); t = t.replace(m[0], " "); m = null; }
-  else m = t.match(/(\d+)\s*x\s*(\d+)\s*(s|sec|secs|seconds?)\b/);
-  if (m) { sets = +m[1]; secs = +m[2]; t = t.replace(m[0], " "); }
-  else if ((m = t.match(/(\d+)\s*x\s*(\d+)/))) { sets = +m[1]; reps = +m[2]; t = t.replace(m[0], " "); }
-  else if ((m = t.match(/(\d+)\s*(reps?|rounds?)\b/))) { reps = +m[1]; t = t.replace(m[0], " "); }
-  // a tempo or a hold given separately: "@ 5s lowering", "5 second hold", "hold 20s"
-  if ((m = t.match(/@?\s*(\d+)\s*(s|sec|secs|seconds?)\b/))) { secs = +m[1]; t = t.replace(m[0], " "); }
-  if ((m = t.match(/@?\s*(\d+(?:\.\d+)?)\s*(kg|kgs|lb|lbs)\b/))) { kg = Math.round(+m[1] * (/lb/.test(m[2]) ? 0.4536 : 1)); t = t.replace(m[0], " "); }
-  if ((m = t.match(/(\d+)\s*(m|metres|meters)\b/))) { metres = +m[1]; t = t.replace(m[0], " "); }
-  if ((m = t.match(/(\d+)\s*(cal|cals|calories)\b/))) { cal = +m[1]; t = t.replace(m[0], " "); }
-  if (!m && (m = t.match(/^\s*(\d+)\s+/)) && reps == null && secs == null) { reps = +m[1]; t = t.replace(m[0], " "); }
-  const ecc = /eccentric|lowering|negative|tempo/.test(t), hold = /hold|held|isometric|\biso\b|hang|support|sit\b|l[ -]?sit|plank|hollow/.test(t);
-  const sk = SKILLS.find(([re]) => re.test(t)) || [null, "gymnastics", "midline"];
-  const name = t.replace(/@|\b(of|with|seconds?|secs?)\b/g, " ").replace(/\s+/g, " ").trim();
-  const x = { name: name ? name[0].toUpperCase() + name.slice(1) : "Drill", modality: sk[1], pattern: sk[2], intensity, scheme: line.trim() };
-  x.sets = sets; x.reps = reps;
-  if (secs != null && ecc) x.ecc_s = secs;
-  else if (secs != null && (hold || reps == null)) x.hold_s = secs;
-  if (kg) x.load_kg = kg; if (metres) x.metres = metres; if (cal) x.calories = cal;
-  return clean(x);
-}
-function quickEl(list, intensity, ph, after) {
-  const q = document.createElement("textarea"); q.className = "quick noprint"; q.rows = 1; q.placeholder = ph;
-  const go = () => { const lines = q.value.split(/\n+/).map((l) => l.trim()).filter(Boolean); if (!lines.length) return;
-    for (const l of lines) list.push(quickParse(l, intensity)); q.value = ""; after(); changed(); };
-  q.onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); go(); } };
-  q.addEventListener("paste", () => setTimeout(() => { if (q.value.includes("\n")) go(); }, 0));
-  return q;
-}
-
-// ---------- 1. the week, day by day ----------
-const line = (x) => { const t = tot(x), sx = x.sets && x.sets > 1 ? x.sets + " x " : "";
-  return [x.reps != null ? `${sx}${x.reps} reps${sx ? " (" + t.reps + ")" : ""}` : x.hold_s ? `${sx}${x.hold_s} s hold` : x.sets > 1 ? `${x.sets} sets` : null, x.load_kg ? `@ ${x.load_kg} kg` : null, x.metres ? `${x.metres} m` : null, x.calories ? `${x.calories} cal` : null, x.seconds ? `${x.seconds} s` : null,
-    x.ecc_s ? `${x.ecc_s} s lowering` : null, t.tut ? `${t.tut} s under tension` : null, x.scheme && !/^\s*\d/.test(x.scheme) ? x.scheme : x.scheme && x.scheme.length > 14 ? null : x.scheme, x.estimated ? "estimated" : null].filter(Boolean).join(" · "); };
-function itemsEl(list, key) {
-  const box = document.createElement("div");
-  list.forEach((x, i) => {
-    const id = key + ":" + i, it = document.createElement("div"); it.className = "it";
-    it.innerHTML = `<span class="dot" style="background:var(--${modOf(x.modality)[2]})"></span><div class="t"><b>${esc(x.name)}</b><small>${esc(patName(x.modality, x.pattern))}${line(x) ? " · " + esc(line(x)) : ""}</small></div><span class="int ${x.intensity}">${x.intensity}</span>`;
-    it.onclick = () => { open = open === id ? null : id; renderWeek(); renderSess(); };
-    box.appendChild(it);
-    if (open === id) box.appendChild(editEl(list, i));
+  cur = null; $("v-list").classList.remove("hidden"); $("v-case").classList.add("hidden"); window.scrollTo(0, 0);
+  const box = $("case-list"); box.innerHTML = "";
+  CASES.forEach((K, i) => {
+    const s = status(K.id), b = document.createElement("button");
+    b.type = "button"; b.className = "case " + s;
+    b.innerHTML = `<span class="num">${s === "done" ? "✓" : i + 1}</span><span class="txt"><b>${esc(K.title)}</b><span>${esc(K.covers)}</span></span><span class="st">${ST[s]}</span>`;
+    b.onclick = () => openCase(K.id); box.appendChild(b);
   });
-  return box;
+  const s = ownStatus(), b = document.createElement("button");
+  b.type = "button"; b.className = "case own " + s;
+  b.innerHTML = `<span class="num">${s === "done" ? "✓" : "5"}</span><span class="txt"><b>Now your gym</b><span>The same thinking, applied to an athlete or class you coach</span></span><span class="st">${ST[s]}</span>`;
+  b.onclick = () => openOwn(); box.appendChild(b);
 }
-function editEl(list, i) {
-  const x = list[i], e = document.createElement("div"); e.className = "edit";
-  const f = (label, el, wide) => { const l = document.createElement("label"); if (wide) l.className = "wide"; l.append(label, el); e.appendChild(l); return el; };
-  const tx = (k) => { const el = document.createElement("input"); el.type = "text"; el.value = x[k] || ""; el.oninput = () => { x[k] = el.value; changed(); }; return el; };
-  const nb = (k) => { const el = document.createElement("input"); el.type = "number"; el.min = 0; el.value = x[k] ?? ""; el.oninput = () => { x[k] = num(el.value); changed(); }; return el; };
-  const sel = (opts, k, after) => { const el = document.createElement("select"); el.innerHTML = opts.map(([v, t]) => `<option value="${v}">${t}</option>`).join(""); el.value = x[k]; el.onchange = () => { x[k] = el.value; if (after) after(); changed(); }; return el; };
-  f("Movement", tx("name"), true);
-  f("Type", sel(MOD.map(([v, t]) => [v, t]), "modality", () => { x.pattern = PAT[x.modality][0][0]; renderWeek(); renderSess(); }));
-  { const el = sel([], "pattern"), list = PAT[x.modality] || PAT.gymnastics;
-    if (list[0][2]) { el.innerHTML = Object.entries(GROUPS).map(([g, gt]) => { const o = list.filter((q) => q[2] === g); return o.length ? `<optgroup label="${gt}">${o.map(([v, t]) => `<option value="${v}">${t}</option>`).join("")}</optgroup>` : ""; }).join(""); }
-    else el.innerHTML = list.map(([v, t]) => `<option value="${v}">${t}</option>`).join("");
-    el.value = x.pattern; f(x.modality === "gymnastics" ? "Skill" : "Pattern", el); }
-  // the numbers: sets, reps per set, hold and lowering seconds, load; time under tension worked out
-  const nums = document.createElement("div"); nums.className = "nums wide"; e.appendChild(nums);
-  const n = (label, k) => { const l = document.createElement("label"), el = nb(k); el.addEventListener("input", upd); l.append(label, el); nums.appendChild(l); return el; };
-  const tutBox = document.createElement("div"); tutBox.className = "tutbox";
-  function upd() { const t = tot(x); tutBox.innerHTML = `<span>Time under tension</span><b>${t.tut} s</b><small>${t.held ? t.held + " s held" : ""}${t.held && t.ecc ? " · " : ""}${t.ecc ? t.ecc + " s lowering" : ""}${!t.held && !t.ecc ? "add a hold or a lowering time" : ""}${t.reps ? " · " + t.reps + " reps" : ""}</small>`; }
-  n("Sets", "sets"); n("Reps per set", "reps"); n("Hold (s each)", "hold_s"); n("Lowering (s per rep)", "ecc_s"); n("Load (kg)", "load_kg");
-  if (x.modality === "monostructural") { n("Metres", "metres"); n("Calories", "calories"); }
-  nums.appendChild(tutBox); upd();
-  f("Intensity", sel(INT, "intensity")); f("Scheme as written", tx("scheme"));
-  const acts = document.createElement("div"); acts.className = "acts";
-  const del = document.createElement("button"); del.type = "button"; del.className = "link"; del.textContent = "Delete"; del.onclick = () => { list.splice(i, 1); open = null; renderWeek(); renderSess(); changed(); };
-  const ok = document.createElement("button"); ok.type = "button"; ok.className = "btn small"; ok.textContent = "Done"; ok.onclick = () => { open = null; renderWeek(); renderSess(); };
-  acts.append(del, ok); e.appendChild(acts);
-  return e;
+$("b-back").onclick = async () => { if (timer) await save(); list(); };
+
+// ---------- one case ----------
+const area = (key, val, ph, h = 90) => `<textarea data-k="${key}" style="min-height:${h}px" placeholder="${esc(ph)}">${esc(val)}</textarea>`;
+const chips = (used, ro) => `<div class="chips${ro ? " ro" : ""}">${PARTS.map(([k, t]) => (ro && !used.includes(k)) ? "" : `<button type="button" data-p="${k}" class="${used.includes(k) ? "on" : ""}">${esc(t)}</button>`).join("")}</div>`;
+const mine = (t) => `<p class="mine${String(t || "").trim() ? "" : " empty"}">${String(t || "").trim() ? esc(t) : "(left empty)"}</p>`;
+function caseHead(K, i) {
+  return `<p class="kicker">Case ${i + 1} of ${CASES.length} · ${esc(K.covers)}</p><h1>${esc(K.title)}</h1>
+    <div class="panel"><div class="who"><span class="av">${esc(K.av)}</span><p>${esc(K.who)}</p></div>
+      <label class="f" style="margin-top:0">${esc(K.planTitle)}</label>
+      <table class="plan">${K.plan.map(([d, t]) => `<tr><th>${esc(d)}</th><td>${esc(t)}</td></tr>`).join("")}</table>
+      ${K.planNote ? `<p class="plannote">${esc(K.planNote)}</p>` : ""}</div>`;
 }
-function renderWeek() {
-  const box = $("days"); box.innerHTML = "";
-  cur.week.forEach((D, i) => {
-    const d = document.createElement("div"); d.className = "day";
-    d.innerHTML = `<h3><span>${WEEKDAYS[i]}</span><span class="note">${D.items.length ? D.items.length + " movement" + (D.items.length > 1 ? "s" : "") : "rest"}</span></h3>`;
-    d.appendChild(itemsEl(D.items, "w" + i));
-    const add = document.createElement("button"); add.type = "button"; add.className = "link addit noprint"; add.textContent = "+ Add a movement";
-    add.onclick = () => { D.items.push(clean({ name: "", modality: "gymnastics", pattern: "kippu", intensity: "moderate" })); open = "w" + i + ":" + (D.items.length - 1); renderWeek(); changed(); };
-    d.appendChild(quickEl(D.items, "moderate", "Type a movement and press Enter, e.g. 21-15-9 pull-ups", renderWeek));
-    d.appendChild(add); box.appendChild(d);
-  });
+function bindInputs(root, obj, after) {
+  root.querySelectorAll("textarea[data-k]").forEach((t) => { t.oninput = () => { obj[t.dataset.k] = t.value; changed(); if (after) after(); }; });
+  root.querySelectorAll(".chips:not(.ro) button[data-p]").forEach((b) => { b.onclick = () => {
+    const k = b.dataset.p; obj.used = obj.used || []; const i = obj.used.indexOf(k);
+    if (i >= 0) obj.used.splice(i, 1); else obj.used.push(k); b.classList.toggle("on", i < 0); changed(); if (after) after(); }; });
+}
+function navRow(i) {
+  const prev = i > 0 ? `<button class="btn ghost small" type="button" data-go="${CASES[i - 1].id}">← Case ${i}</button>` : "<span></span>";
+  const next = i < CASES.length - 1 ? `<button class="btn ghost small" type="button" data-go="${CASES[i + 1].id}">Case ${i + 2} →</button>` : `<button class="btn ghost small" type="button" data-go="own">Now your gym →</button>`;
+  return `<div class="nav2 noprint">${prev}${next}</div>`;
+}
+function openCase(id) {
+  cur = id; const i = CASES.findIndex((K) => K.id === id), K = CASES[i], C = caseOf(id);
+  $("v-list").classList.add("hidden"); $("v-case").classList.remove("hidden"); window.scrollTo(0, 0);
+  const body = $("case-body");
+  if (!C.revealed) {
+    body.innerHTML = caseHead(K, i) + `
+      <div class="panel"><h2><span class="n">1</span>What do you notice?</h2>
+        <p class="sub">The risks, the rules it breaks, and anything that does not fit the athlete or the goal. Where there are numbers, work them out.</p>
+        ${area("notice", C.notice, "What stands out to you, and why it matters")}</div>
+      <div class="panel"><h2><span class="n">2</span>What would you programme instead?</h2>
+        <p class="sub">Be specific: the drills, sets, reps or seconds, the day, and where it sits in the session.</p>
+        ${area("plan", C.plan, "Your version of the plan", 110)}</div>
+      <div class="panel"><h2><span class="n">3</span>Which parts of the unit did you use?</h2>
+        <p class="sub">Choose all that apply, then say why they matter here.</p>
+        ${chips(C.used || [], false)}
+        <label class="f">Why these</label>
+        ${area("why", C.why, "How each one shaped your answer", 80)}</div>
+      <div class="panel noprint"><p class="sub" style="margin-top:0">When you open Nathan's answer, what you wrote above is kept as it is, so you can compare it honestly.</p>
+        <button class="btn" id="b-reveal" type="button">Save and see Nathan's answer</button><p class="err" id="reveal-err"></p></div>` + navRow(i);
+    bindInputs(body, C, () => { $("reveal-err").textContent = ""; });
+    $("b-reveal").onclick = async () => {
+      const miss = [];
+      if (!filled(C.notice)) miss.push("what you notice"); if (!filled(C.plan)) miss.push("what you would programme");
+      if (!(C.used || []).length) miss.push("the parts of the unit you used"); if (!filled(C.why)) miss.push("why");
+      if (miss.length) { $("reveal-err").textContent = "Write a little more first: " + miss.join(", ") + "."; return; }
+      C.revealed = new Date().toISOString(); await save(); openCase(id);
+    };
+  } else {
+    body.innerHTML = caseHead(K, i) + `
+      <div class="panel"><h2><span class="n">1</span>Your answer</h2><p class="sub">Written before you opened Nathan's.</p>
+        <label class="f">What you noticed</label>${mine(C.notice)}
+        <label class="f">What you would programme instead</label>${mine(C.plan)}
+        <label class="f">The parts of the unit you used</label>${chips(C.used || [], true)}${mine(C.why)}</div>
+      <div class="ans"><h3>Nathan's answer</h3><ul>${K.answer.map((a) => `<li>${esc(a)}</li>`).join("")}</ul><p class="fix"><b>What he would programme:</b> ${esc(K.fix)}</p></div>
+      <div class="panel"><h2><span class="n">2</span>Compare</h2>
+        <p class="sub">What did you see that matches? What did you miss or see differently, and why do you think that was?</p>
+        ${area("compare", C.compare, "Your comparison")}
+        <label class="f">What would you change in your plan now?</label>
+        ${area("change", C.change, "Your plan, improved", 80)}</div>` + navRow(i);
+    bindInputs(body, C);
+  }
+  body.querySelectorAll("[data-go]").forEach((b) => { b.onclick = async () => { if (timer) await save(); b.dataset.go === "own" ? openOwn() : openCase(b.dataset.go); }; });
 }
 
-// ---------- 3. the accessory sessions ----------
-function renderSess() {
-  $("nsess").innerHTML = "";
-  [1, 2, 3].forEach((n) => { const b = document.createElement("button"); b.type = "button"; b.textContent = n + (n === 1 ? " session" : " sessions") + " a week"; b.classList.toggle("on", cur.n === n); b.onclick = () => { cur.n = n; renderSess(); changed(); }; $("nsess").appendChild(b); });
-  // the same session each time, or a different one each time (Nathan, 19 Oct: "we should be able to have session 1-2-3 the
-  // same, or all different")
-  $("same").innerHTML = ""; $("same").classList.toggle("hidden", cur.n < 2);
-  [[true, "The same session each time"], [false, "Different sessions"]].forEach(([v, t]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.classList.toggle("on", !!cur.same === v);
-    b.onclick = () => { cur.same = v; open = null; renderSess(); changed(); }; $("same").appendChild(b); });
-  const box = $("sessbox"); box.innerHTML = "";
-  for (let s = 0; s < cur.n; s++) {
-    const S = cur.sess[s], el = document.createElement("div"); el.className = "sess";
-    const top = document.createElement("div"); top.className = "top"; top.innerHTML = `<b>Session ${s + 1}</b>`;
-    const dy = document.createElement("select"); dy.innerHTML = WEEKDAYS.map((d, i) => `<option value="${i}">${d}</option>`).join(""); dy.value = S.day; dy.onchange = () => { S.day = +dy.value; changed(); };
-    const wh = document.createElement("select"); wh.innerHTML = WHERE.map(([k, t]) => `<option value="${k}">${t}</option>`).join(""); wh.value = S.where; wh.onchange = () => { S.where = wh.value; renderSess(); changed(); };
-    top.append(dy, wh);
-    if (S.where === "own") { const g = document.createElement("input"); g.type = "number"; g.min = 0; g.max = 24; g.step = 0.5; g.style.width = "80px"; g.value = S.gap ?? ""; g.placeholder = "hours"; g.oninput = () => { S.gap = num(g.value); changed(); };
-      const l = document.createElement("span"); l.className = "note"; l.textContent = "hours from the class"; top.append(g, l); }
-    el.appendChild(top);
-    if (cur.same && s > 0) { const p = document.createElement("p"); p.className = "note"; p.style.margin = "4px 0 0"; p.textContent = "The same drills as session 1."; el.appendChild(p);
-      const ld = document.createElement("p"); ld.className = "load"; ld.id = "sload-" + s; el.appendChild(ld); box.appendChild(el); continue; }
-    el.appendChild(itemsEl(S.items, "s" + s));
-    const row = document.createElement("div"); row.className = "row noprint"; row.style.marginTop = "8px";
-    const add = document.createElement("button"); add.type = "button"; add.className = "link"; add.textContent = "+ Add a drill";
-    add.onclick = () => { S.items.push(clean({ name: "", modality: "gymnastics", pattern: "hang", intensity: "low", part: "accessory" })); open = "s" + s + ":" + (S.items.length - 1); renderSess(); changed(); };
-    const rd = document.createElement("button"); rd.type = "button"; rd.className = "link"; rd.textContent = "Read it from a screenshot";
-    const rbox = document.createElement("div"); rbox.className = "hidden"; rbox.style.marginTop = "10px";
-    rd.onclick = () => { rbox.classList.toggle("hidden"); if (!rbox.innerHTML) reader(rbox, "accessory", s); };
-    el.appendChild(quickEl(S.items, "low", "Type a drill and press Enter, e.g. 3x20s chin over bar hold, 4x8 seconds eccentric handstand push-up, 3x25 v-ups", renderSess));
-    row.append(add, rd); el.append(row, rbox);
-    const ld = document.createElement("p"); ld.className = "load"; ld.id = "sload-" + s; el.appendChild(ld);
-    box.appendChild(el);
-  }
-  summarise();
+// ---------- now your gym ----------
+function openOwn() {
+  cur = "own"; const O = doc.own; O.used = O.used || [];
+  $("v-list").classList.add("hidden"); $("v-case").classList.remove("hidden"); window.scrollTo(0, 0);
+  const body = $("case-body");
+  body.innerHTML = `<p class="kicker">Now your gym</p><h1>Your own athlete or class</h1>
+    <p class="lede">Do what you did in the cases, for someone you coach. Then coach it for a few weeks and come back to finish the last box.</p>
+    <div class="panel"><h2><span class="n">1</span>The athlete or class</h2>
+      <p class="sub">Who they are, their training history and goal, and what they are doing now. No names needed.</p>
+      ${area("who", O.who, "Who, their goal, and their current programme", 110)}</div>
+    <div class="panel"><h2><span class="n">2</span>What do you notice?</h2>${area("notice", O.notice, "The risks, the rules, the numbers")}</div>
+    <div class="panel"><h2><span class="n">3</span>What will you programme?</h2>${area("plan", O.plan, "The drills, sets, reps or seconds, the days, and where it sits", 110)}
+      <label class="f">The parts of the unit you used</label>${chips(O.used, false)}${area("why", O.why, "Why these", 80)}</div>
+    <div class="panel"><h2><span class="n">4</span>After coaching it</h2>
+      <p class="sub">After a few weeks: what changed for your athletes, what you would keep, and what you will change next.</p>
+      ${area("after", O.after, "What happened", 100)}</div>
+    <div class="nav2 noprint"><button class="btn ghost small" type="button" data-go="${CASES[CASES.length - 1].id}">← Case ${CASES.length}</button><span></span></div>`;
+  bindInputs(body, O);
+  body.querySelector("[data-go]").onclick = async () => { if (timer) await save(); openCase(CASES[CASES.length - 1].id); };
 }
-const sessLoad = (S) => S.items.reduce((o, x) => { const t = tot(x); o.iso += t.held; o.ecc += t.ecc; o.reps += t.reps; return o; }, { iso: 0, ecc: 0, reps: 0 });
 
-// ---------- 2 and 4: the summaries ----------
-function tally(lists) {
-  // lists: [{ day, items }]
-  const T = { mod: {}, pat: {}, tut: 0, ecc: 0 };
-  for (const [m] of MOD) T.mod[m] = { reps: 0, kg: 0, metres: 0, cal: 0, secs: 0, days: new Set(), high: new Set() };
-  for (const { day, items } of lists) for (const x of items) {
-    const M = T.mod[x.modality] || T.mod.gymnastics, key = x.modality + ":" + x.pattern;
-    const P = (T.pat[key] = T.pat[key] || { m: x.modality, p: x.pattern, reps: 0, kg: 0, metres: 0, cal: 0, held: 0, ecc: 0, days: new Set(), high: new Set(), cells: {} });
-    const t = tot(x), r = t.reps; M.reps += r; P.reps += r; M.kg += r * (x.load_kg || 0); P.kg += r * (x.load_kg || 0);
-    M.metres += x.metres || 0; P.metres += x.metres || 0; M.cal += x.calories || 0; P.cal += x.calories || 0; M.secs += x.seconds || 0;
-    P.held += t.held; P.ecc += t.ecc; T.tut += t.tut; T.ecc += t.ecc;
-    M.days.add(day); P.days.add(day); if (x.intensity === "high") { M.high.add(day); P.high.add(day); }
-    const rank = { low: 1, moderate: 2, high: 3 }[x.intensity] || 2; P.cells[day] = Math.max(P.cells[day] || 0, rank);
-  }
-  return T;
-}
-function jointTally(lists) {
-  const J = Object.fromEntries(JOINTS.map(([j]) => [j, { reps: 0, held: 0, ecc: 0, days: new Set(), high: new Set(), cyc: new Set() }]));
-  for (const { day, items } of lists) for (const x of items) { const t = tot(x), cyc = x.modality === "monostructural";
-    for (const j of jointsOf(x)) { const o = J[j]; if (!o) continue;
-      if (cyc) { o.cyc.add(day); continue; }
-      o.reps += t.reps; o.held += t.held; o.ecc += t.ecc; o.days.add(day); if (x.intensity === "high") o.high.add(day); } }
-  return J;
-}
-function jointTable(J, A) {
-  const max = Math.max(1, ...JOINTS.map(([j]) => J[j].reps));
-  return `<h3 style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin:24px 0 0">Joint volume</h3><p class="note" style="margin:4px 0 0">How much flexion and extension each joint takes through the week: the reps that move it, the seconds it is held and lowered, the days it is trained and how many of those are hard. Cyclical work (running, rowing, the bike) is counted in days.</p>
-    <table class="sum"><thead><tr><th>Joint</th><th>Flexion–extension reps</th><th></th><th>Held (s)</th><th>Lowering (s)</th><th>Days</th><th>High-intensity days</th><th>+ cyclical days</th></tr></thead><tbody>${
-    JOINTS.map(([j, t]) => { const o = J[j], a = A && A[j]; const days = o.days.size;
-      return `<tr><td>${t}</td><td>${k(o.reps)}${a && a.reps ? ` <span class="note">(${k(a.reps)} accessory)</span>` : ""}</td><td style="width:90px"><div class="bar2"><i style="width:${Math.round(100 * o.reps / max)}%;background:var(--accent)"></i></div></td><td>${o.held || "–"}</td><td>${o.ecc || "–"}</td><td class="${days >= 5 ? "warn" : ""}">${days}</td><td class="${o.high.size >= 3 ? "warn" : ""}">${o.high.size}</td><td>${[...o.cyc].filter((d) => !o.days.has(d)).length || "–"}</td></tr>`; }).join("")}</tbody></table>`;
-}
-const k = (v) => (v >= 10000 ? Math.round(v / 1000) + "k" : Math.round(v).toLocaleString("en-GB"));
-function cards(T, extra = "") {
-  const g = T.mod.gymnastics, w = T.mod.weightlifting, m = T.mod.monostructural;
-  return `<div class="stat g"><span>Gymnastics</span><strong>${k(g.reps)} reps</strong><small>${g.days.size} day${g.days.size === 1 ? "" : "s"} · ${g.high.size} at high intensity</small></div>
-    <div class="stat w"><span>Weightlifting</span><strong>${k(w.reps)} reps</strong><small>${w.days.size} day${w.days.size === 1 ? "" : "s"} · ${w.high.size} high</small></div>
-    <div class="stat m"><span>Metabolic conditioning</span><strong>${m.metres ? k(m.metres) + " m" : m.cal ? k(m.cal) + " cal" : m.secs ? Math.round(m.secs / 60) + " min" : "0"}</strong><small>${[m.metres && m.cal ? k(m.cal) + " cal" : null, m.secs && (m.metres || m.cal) ? Math.round(m.secs / 60) + " min" : null, m.days.size + " day" + (m.days.size === 1 ? "" : "s"), m.high.size + " high"].filter(Boolean).join(" · ")}</small></div>${extra}`;
-}
-function table(T, acc) {
-  const rows = MOD.map(([m, mt]) => { const ps = Object.values(T.pat).filter((P) => P.m === m); if (!ps.length) return "";
-    return `<tr class="grp"><th colspan="6" style="color:var(--${modOf(m)[2]})">${mt}</th></tr>` + ps.sort((a, b) => b.reps + b.metres - a.reps - a.metres).map((P) => {
-      const vol = [P.reps ? k(P.reps) + " reps" : null, P.metres ? k(P.metres) + " m" : null, P.cal ? k(P.cal) + " cal" : null, P.held ? P.held + " s held" : null, P.ecc ? P.ecc + " s lowering" : null].filter(Boolean).join(" · ") || "–";
-      const a = acc && acc.pat[m + ":" + P.p];
-      return `<tr><td>${esc(patName(m, P.p))}</td><td>${vol}</td><td class="${P.days.size >= 5 ? "warn" : ""}">${P.days.size}</td><td class="${P.high.size >= 3 ? "warn" : ""}">${P.high.size}</td>${acc ? `<td>${a ? [a.reps ? a.reps + " reps" : null, a.held ? a.held + " s held" : null, a.ecc ? a.ecc + " s lowering" : null].filter(Boolean).join(" · ") || "–" : "–"}</td>` : ""}</tr>`; }).join("");
-  }).join("");
-  return rows ? `<table class="sum"><thead><tr><th>Pattern</th><th>Volume</th><th>Days</th><th>High-intensity days</th>${acc ? "<th>Of which accessory</th>" : ""}</tr></thead><tbody>${rows}</tbody></table>` : `<p class="note" style="margin-top:14px">Nothing in the week yet: read it in at the top, or add it by hand.</p>`;
-}
-function summarise() {
-  if (!cur) return;
-  const gymLists = cur.week.map((D, i) => ({ day: i, items: D.items })), active = cur.sess.slice(0, cur.n).map((S, s) => (cur.same && s > 0 ? { ...S, items: cur.sess[0].items } : S));
-  const accLists = active.map((S) => ({ day: S.day, items: S.items }));
-  const G = tally(gymLists), A = tally(accLists), ALL = tally([...gymLists, ...accLists]);
-  // 2. the gym's week
-  $("gymcards").innerHTML = cards(G);
-  $("gymtable").innerHTML = table(G);
-  $("gymjoints").innerHTML = doc && cur.week.some((D) => D.items.length) ? jointTable(jointTally(gymLists)) : "";
-  const pats = Object.values(G.pat).filter((P) => P.m === "gymnastics" || P.m === "weightlifting").map((P) => [P.m, P.p]);
-  for (const S of active) for (const x of S.items) if (!pats.some(([m, p]) => m === x.modality && p === x.pattern)) pats.push([x.modality, x.pattern]);
-  const grid = $("grid"); grid.innerHTML = pats.length ? '<span></span>' + WEEKDAYS.map((d) => `<span class="h">${d.slice(0, 3)}</span>`).join("") : "";
-  for (const [m, p] of pats) { grid.insertAdjacentHTML("beforeend", `<span class="r" style="color:var(--${modOf(m)[2]})">${esc(patName(m, p))}</span>`);
-    WEEKDAYS.forEach((_, i) => { const r = (G.pat[m + ":" + p] || { cells: {} }).cells[i], a = active.some((S) => S.day === i && S.items.some((x) => x.modality === m && x.pattern === p));
-      grid.insertAdjacentHTML("beforeend", `<span class="c ${r === 3 ? "high" : r === 2 ? "moderate" : r === 1 ? "low" : ""}">${a ? "<i>A</i>" : ""}</span>`); }); }
-  // 3. each session's load
-  active.forEach((S, s) => { const el = $("sload-" + s); if (!el) return; const l = sessLoad(S);
-    el.innerHTML = `This session: <b class="${l.iso > ISO_TARGET * 1.25 ? "bad" : l.iso > ISO_TARGET ? "warn" : ""}">${l.iso} s held</b> (target about ${ISO_TARGET} s) · <b class="${l.ecc > ECC_LIMIT ? "bad" : ""}">${l.ecc} s lowering</b> (no more than ${ECC_LIMIT} s) · <b>${l.reps}</b> reps · <b>${l.iso + l.ecc} s</b> time under tension`; });
-  // 4. the whole week
-  $("allcards").innerHTML = cards(ALL, `<div class="stat a"><span>Time under tension</span><strong>${ALL.tut} s</strong><small>${A.tut} s from my accessory sessions · ${ALL.ecc} s of it eccentric</small></div>`);
-  $("alltable").innerHTML = table(ALL, A);
-  $("alljoints").innerHTML = cur.week.some((D) => D.items.length) || accLists.some((l) => l.items.length) ? jointTable(jointTally([...gymLists, ...accLists]), jointTally(accLists)) : "";
-  const F = [], add = (cls, head, text) => F.push(`<div class="flag ${cls}"><b>${esc(head)}</b>${esc(text)}</div>`);
-  active.forEach((S, s) => { const l = sessLoad(S), dn = WEEKDAYS[S.day];
-    if (l.ecc > ECC_LIMIT) add("bad", `Session ${s + 1} (${dn}): ${l.ecc} s of eccentric loading`, `Past the ${ECC_LIMIT} s limit for purposeful eccentric loading in one session: the risk of rhabdomyolysis. Cut the sets, the reps or the seconds of each lowering.`);
-    if (l.iso > ISO_TARGET * 1.25) add("bad", `Session ${s + 1} (${dn}): ${l.iso} s held`, `Well past the ${ISO_TARGET} s isometric training target. Long holds raise blood pressure: know your athletes, and treat high blood pressure as a red flag.`);
-    else if (l.iso > ISO_TARGET) add("", `Session ${s + 1} (${dn}): ${l.iso} s held`, `A little past the ${ISO_TARGET} s isometric training target: check the shape holds with mastery through all of it.`);
-    if (S.where === "after") add("", `Session ${s + 1} (${dn}) comes after the main element`, "Programming rule 4: train gymnastics first, before the central nervous system fatigue of the main element. If it must come after, keep it to position work.");
-    if (S.where === "own" && (S.gap == null || S.gap < GAP)) add(S.gap == null ? "" : "bad", `Session ${s + 1} (${dn}) is its own session`, S.gap == null ? `How many hours is it from the class? Leave at least ${GAP} hours between concurrent training sessions.` : `${S.gap} hours from the class: leave at least ${GAP} hours between concurrent sessions, or put it in the class (a CrossFit® programme is one workout a day).`);
-    // (by group: a strict pull-up accessory on a day of high-intensity kipping pull-ups is still pulling)
-    const hit = new Set(); for (const x of S.items) { { const t = tot(x); if (!(t.reps || t.ecc || t.held > 30)) continue; }
-      for (const g of groupsOf(x.modality, x.pattern)) if (cur.week[S.day].items.some((y) => y.intensity === "high" && y.modality === x.modality && groupsOf(y.modality, y.pattern).includes(g))) hit.add(x.modality === "gymnastics" ? (GROUPS[g] || g).toLowerCase() : patName(x.modality, x.pattern).toLowerCase()); }
-    for (const p of hit) add("", `Session ${s + 1} (${dn}): ${p} work on a high-intensity ${p} day`, "The gym's workout already loads this pattern hard today. Move the loading to another day, or keep today's work to position and perfection.");
-  });
-  if (cur.n > 1) { const ds = active.map((S) => S.day); if (new Set(ds).size < ds.length) add("", "Two accessory sessions on the same day", "Spread them through the week: frequent exposure is most effective (programming rule 2)."); }
-  const gymOn = cur.week.some((D) => D.items.length);
-  const have = new Set(); for (const P of Object.values(ALL.pat)) if (P.m === "gymnastics") groupsOf("gymnastics", P.p).forEach((g) => have.add(g));
-  // (legs are left out: the squats and lunges cover them)
-  if (gymOn) for (const [p, t] of [["pull", "Pull"], ["push", "Push"], ["midline", "Midline"], ["inversion", "Inversion"]]) if (!have.has(p)) add("", `No ${t.toLowerCase()} work in the week`, "A gap your accessory sessions could fill? Frequent exposure is most effective.");
-  if (!active.some((S) => S.items.some((x) => x.name))) add("", "No accessory drills yet", "Add the drills for each session in section 3, by hand or from a screenshot.");
-  if (!F.length && (gymOn || active.some((S) => S.items.length))) add("ok", "Within the limits and the rules", `Each session stays within the ${ECC_LIMIT} s eccentric limit and near the ${ISO_TARGET} s isometric target, and fits around the gym's week. Now coach it, and judge it by your athletes' shapes, not the numbers.`);
-  $("flags").innerHTML = F.join("");
-}
+// ---------- the PDF: every case, the learner's answers, and Nathan's where opened ----------
+$("b-pdf").onclick = async () => {
+  await save();
+  const p = (t) => `<p>${String(t || "").trim() ? esc(t) : "—"}</p>`, used = (u) => p((u || []).map((k) => (PARTS.find((x) => x[0] === k) || [, k])[1]).join(" · "));
+  let h = `<h1>Programming case studies</h1><p>The Gymnastics Course · Lesson 17 · ${esc(session.user.email)} · ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>`;
+  CASES.forEach((K, i) => { const C = doc.cases[K.id] || {};
+    h += `<div class="pc"><h2>Case ${i + 1}: ${esc(K.title)}</h2><p>${esc(K.who)}</p><p>${K.plan.map(([d, t]) => esc(d) + ": " + esc(t)).join("\n")}</p>
+      <h3>What I noticed</h3>${p(C.notice)}<h3>What I would programme instead</h3>${p(C.plan)}<h3>The parts of the unit I used</h3>${used(C.used)}${p(C.why)}`;
+    if (C.revealed) h += `<h3>Nathan's answer</h3><ul>${K.answer.map((a) => `<li>${esc(a)}</li>`).join("")}</ul><p>${esc(K.fix)}</p><h3>My comparison</h3>${p(C.compare)}<h3>What I would change now</h3>${p(C.change)}`;
+    h += "</div>"; });
+  const O = doc.own;
+  h += `<div class="pc"><h2>My own athlete or class</h2><h3>The athlete or class</h3>${p(O.who)}<h3>What I noticed</h3>${p(O.notice)}<h3>What I programmed</h3>${p(O.plan)}<h3>The parts of the unit I used</h3>${used(O.used)}${p(O.why)}<h3>After coaching it</h3>${p(O.after)}</div>`;
+  $("printout").innerHTML = h; window.print();
+};
 boot();
 </script>
 </body>
