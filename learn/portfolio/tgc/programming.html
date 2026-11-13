@@ -55,6 +55,9 @@
   table.plan{width:100%;border-collapse:collapse;font-size:14.5px;margin:4px 0 6px}
   table.plan th,table.plan td{border-top:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top;line-height:1.5}
   table.plan th{width:110px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .ask{border:1px solid var(--accent);border-left:6px solid var(--accent);background:var(--panel2);padding:18px 22px;margin:0 0 20px}
+  .ask span{display:block;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+  .ask p{margin:0;font-size:clamp(18px,2.2vw,22px);font-weight:700;line-height:1.4}
   .plannote{font-size:14px;color:var(--muted);margin:8px 0 0;line-height:1.5}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
   .chips button{font:inherit;font-size:13px;padding:7px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
@@ -163,7 +166,7 @@ const PARTS = [
 ];
 
 const CASES = [
-  { id: "class", title: "The class programme", covers: "Rules 1 to 4, frequency and intensity", av: "GYM",
+  { id: "class", ask: "The head coach wants members building strict pulling and starting to go upside down. Review the week: what would you change, and why?", title: "The class programme", covers: "Rules 1 to 4, frequency and intensity", av: "GYM",
     who: "A gym runs classes six days a week. The head coach asks you to look at next week's plan, because members keep stalling on pull-ups and nobody can hold a handstand.",
     planTitle: "Next week's classes",
     plan: [["Mon", "Back squat 5 × 5. Workout: 21-15-9 thrusters and kipping pull-ups. Then 5 × 5 strict pull-ups."],
@@ -180,7 +183,7 @@ const CASES = [
       "Rule 3: there is no standardised gymnastics warm-up. It is the easiest fix, and it also gives the daily exposure of Rule 2.",
       "Rule 1: any gymnastics added must be a supplement that does not take away the day's main element."],
     fix: "A standardised gymnastics warm-up every day (hollow, arch, hang, support and inversion positions). Strict and eccentric pulling and inversion development placed before the main element, as a short supplement. One of the kipping days swapped for development work." },
-  { id: "beginner", title: "The keen beginner", covers: "Eccentric loading, rhabdomyolysis and the 125 second limit", av: "SM",
+  { id: "beginner", ask: "Is this plan right for Sam? Review it, and write the plan you would give Sam instead.", title: "The keen beginner", covers: "Eccentric loading, rhabdomyolysis and the 125 second limit", av: "SM",
     who: "Sam, 38, works in an office and joined the gym 6 weeks ago. Sam has never done a pull-up, wants one by the summer, and comes to 3 classes a week.",
     planTitle: "The coach's plan, after class, 3 times a week",
     plan: [["1", "10 × 10 jumping pull-ups with a 5 second lowering."], ["2", "3 × 30 second hang in hollow."]],
@@ -191,7 +194,7 @@ const CASES = [
       "The hang is fine: 90 seconds held sits within the 120 second isometric target.",
       "It comes after class, when Sam is already fatigued (Rule 4)."],
     fix: "A small dose: for example 5 sets of 3 lowerings at 5 seconds (75 seconds), before the main element. Short, frequent exposure on most days (Rule 2) rather than three big sessions, and a simple linear progression towards mastery of the position." },
-  { id: "redflag", title: "The red flag", covers: "Blood pressure, isometric holds and inversion", av: "LM",
+  { id: "redflag", ask: "Should the coach go ahead with this plan for Linda? Review it, and say what you would do instead.", title: "The red flag", covers: "Blood pressure, isometric holds and inversion", av: "LM",
     who: "Linda, 54, has trained for 2 years. In conversation she mentions her doctor said her blood pressure is \"a bit high\", but she has not had it checked since. She wants to learn a handstand.",
     planTitle: "The coach's plan, 3 times a week",
     plan: [["1", "5 × 30 second headstand holds."], ["2", "5 × 30 second wall handstand holds."]],
@@ -201,7 +204,7 @@ const CASES = [
       "Long isometric holds and being upside down both raise blood pressure, more so if the athlete holds their breath. This plan is 300 seconds of inverted isometric work in one session, well past the 120 second target.",
       "The goal is fine. The timing and the dose are the problem."],
     fix: "Ask Linda to have her blood pressure checked and get her doctor's clearance before inversion work. Meanwhile, build the handstand without inverting (hollow, support, wrist preparation) with short holds and steady breathing, and keep the session within the 120 second isometric target." },
-  { id: "twice", title: "Twice a day", covers: "Concurrent training, 6 hours between sessions and Rule 4", av: "JK",
+  { id: "twice", ask: "Review Jordan's training day. What would you change, and why?", title: "Twice a day", covers: "Concurrent training, 6 hours between sessions and Rule 4", av: "JK",
     who: "Jordan, 26, is a competitive athlete who trains before work, four days a week.",
     planTitle: "Jordan's training day",
     plan: [["07:00", "High-intensity workout: rowing, wall balls and burpees."], ["09:00", "Gymnastics strength: strict ring muscle-up transitions and strict handstand push-ups."]],
@@ -290,7 +293,8 @@ function caseHead(K, i) {
     <div class="panel"><div class="who"><span class="av">${esc(K.av)}</span><p>${esc(K.who)}</p></div>
       <label class="f" style="margin-top:0">${esc(K.planTitle)}</label>
       <table class="plan">${K.plan.map(([d, t]) => `<tr><th>${esc(d)}</th><td>${esc(t)}</td></tr>`).join("")}</table>
-      ${K.planNote ? `<p class="plannote">${esc(K.planNote)}</p>` : ""}</div>`;
+      ${K.planNote ? `<p class="plannote">${esc(K.planNote)}</p>` : ""}</div>
+    <div class="ask"><span>The question</span><p>${esc(K.ask)}</p></div>`;
 }
 function bindInputs(root, obj, after) {
   root.querySelectorAll("textarea[data-k]").forEach((t) => { t.oninput = () => { obj[t.dataset.k] = t.value; changed(); if (after) after(); }; });
@@ -374,7 +378,7 @@ $("b-pdf").onclick = async () => {
   const p = (t) => `<p>${String(t || "").trim() ? esc(t) : "—"}</p>`, used = (u) => p((u || []).map((k) => (PARTS.find((x) => x[0] === k) || [, k])[1]).join(" · "));
   let h = `<h1>Programming case studies</h1><p>The Gymnastics Course · Lesson 17 · ${esc(session.user.email)} · ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>`;
   CASES.forEach((K, i) => { const C = doc.cases[K.id] || {};
-    h += `<div class="pc"><h2>Case ${i + 1}: ${esc(K.title)}</h2><p>${esc(K.who)}</p><p>${K.plan.map(([d, t]) => esc(d) + ": " + esc(t)).join("\n")}</p>
+    h += `<div class="pc"><h2>Case ${i + 1}: ${esc(K.title)}</h2><p><b>${esc(K.ask)}</b></p><p>${esc(K.who)}</p><p>${K.plan.map(([d, t]) => esc(d) + ": " + esc(t)).join("\n")}</p>
       <h3>What I noticed</h3>${p(C.notice)}<h3>What I would programme instead</h3>${p(C.plan)}<h3>The parts of the unit I used</h3>${used(C.used)}${p(C.why)}`;
     if (C.revealed) h += `<h3>Nathan's answer</h3><ul>${K.answer.map((a) => `<li>${esc(a)}</li>`).join("")}</ul><p>${esc(K.fix)}</p><h3>My comparison</h3>${p(C.compare)}<h3>What I would change now</h3>${p(C.change)}`;
     h += "</div>"; });

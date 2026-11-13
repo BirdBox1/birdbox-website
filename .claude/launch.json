@@ -4,8 +4,47 @@
     {
       "name": "static",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8765"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8765"
+      ],
       "port": 8765
+    },
+    {
+      "name": "train-test",
+      "runtimeExecutable": "/Users/nathanbird/Developer/birdbox-train/node_modules/.bin/vite",
+      "runtimeArgs": [
+        "/Users/nathanbird/Developer/birdbox-train",
+        "--port",
+        "5199",
+        "--strictPort"
+      ],
+      "port": 5199
+    },
+    {
+      "name": "zar-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8766",
+        "--directory",
+        "/Users/nathanbird/Developer/birdbox-website-zar"
+      ],
+      "port": 8766
+    },
+    {
+      "name": "scratch-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8767",
+        "--directory",
+        "/private/tmp/claude-501/-Users-nathanbird-Developer-birdbox-website/4618ddfd-e9d1-4571-be1b-299ecca25c8a/scratchpad/harness"
+      ],
+      "port": 8767
     }
   ]
 }
