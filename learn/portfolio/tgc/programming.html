@@ -48,6 +48,8 @@
   .case .st{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);flex:none}
   .case.done .st{color:var(--good)} .case.going .st{color:var(--accent)}
   .case.own{border-style:dashed}
+  .case .cic{width:46px;height:46px;background:rgba(224,85,90,.15);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+  .case{border-left:4px solid var(--line)} .case.going{border-left-color:var(--accent)} .case.done{border-left-color:var(--good)}
   /* one case */
   .who{display:flex;gap:14px;align-items:flex-start;margin:0 0 16px}
   .who .av{width:46px;height:46px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
@@ -63,9 +65,19 @@
   .facts span{display:block;font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
   .facts b{font-size:15px;line-height:1.4}
   .story p{font-size:17px;line-height:1.7;margin:0 0 14px;max-width:70ch}
-  .intro{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:0 0 20px}
-  .intro .panel{margin:0} .intro h2{margin-bottom:8px} .intro p{font-size:15px;line-height:1.6;color:var(--muted);margin:0 0 8px}
-  .how{margin:0;padding-left:22px} .how li{font-size:15.5px;line-height:1.6;margin:0 0 8px}
+  .intro{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:0 0 8px}
+  .intro .panel{margin:0} .tile{border-top:4px solid var(--accent)}
+  .tile .ico{width:48px;height:48px;border-radius:50%;background:rgba(224,85,90,.15);color:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+  .intro h2{margin-bottom:10px} .intro p{font-size:15.5px;line-height:1.6;color:var(--muted);margin:0 0 14px} .intro p b{color:var(--ink)}
+  .tags{display:flex;flex-wrap:wrap;gap:6px} .tags span{font-size:12.5px;font-weight:700;padding:5px 10px;background:var(--panel2);border:1px solid var(--line);color:var(--ink)}
+  .gets{list-style:none;margin:0;padding:0} .gets li{display:flex;gap:10px;align-items:flex-start;font-size:15.5px;line-height:1.5;margin:0 0 12px}
+  .gets svg{color:var(--good);flex:none;margin-top:2px}
+  .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .step{background:var(--panel);border:1px solid var(--line);padding:16px 14px;position:relative}
+  .step .sn{display:inline-flex;width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;align-items:center;justify-content:center;margin-bottom:10px}
+  .step b{display:block;font-size:15px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .step p{margin:0;font-size:14px;line-height:1.5;color:var(--muted)}
+  .step:nth-child(4){border-color:var(--good)} .step:nth-child(4) .sn{background:var(--good);color:#0d0b0b}
   .plannote{font-size:14px;color:var(--muted);margin:8px 0 0;line-height:1.5}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
   .chips button{font:inherit;font-size:13px;padding:7px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line);cursor:pointer}
@@ -86,7 +98,7 @@
   .score{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:15px} .score b{font-size:20px;margin-right:6px}
   .nav2{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px}
   #printout{display:none}
-  @media(max-width:640px){.panel{padding:18px} table.plan th{width:70px}}
+  @media(max-width:640px){.panel{padding:18px} table.plan th{width:70px} .steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
   @media print{ body{background:#fff;color:#000} .bar,.noprint,#eye{display:none!important} #printout{display:block!important}
     #printout h2{font-size:18px;margin:24px 0 6px} #printout h3{font-size:13px;letter-spacing:.1em;text-transform:uppercase;margin:14px 0 4px}
     #printout p,#printout li{font-size:13px;line-height:1.5;white-space:pre-wrap} #printout .pc{page-break-inside:avoid;border-top:1px solid #ccc;padding-top:6px} }
@@ -134,24 +146,19 @@
       <h1>Programming case studies</h1>
       <p class="lede">Four real-world programmes, each with a problem in it. Your job is to spot it, fix it, and explain why, using what you learned in this unit.</p>
       <div class="intro">
-        <div class="panel"><h2>Why case studies</h2>
-          <p>Knowing the programming rules is the start. The skill is seeing when a real programme breaks them, for a real person, and knowing what to do about it.</p>
-          <p>Each case is the kind of situation coaches meet every week: a class programme, a keen beginner, a health concern, an athlete training twice a day.</p></div>
-        <div class="panel"><h2>What you get from it</h2>
-          <p>Practice applying the risks, rules and programming aspects before it matters with your own athletes.</p>
-          <p>A straight comparison of your thinking with Nathan's, so you can see what you would have missed.</p>
-          <p>A record in your portfolio of how you programme, which you can download as a PDF.</p></div>
+        <div class="panel tile"><div class="ico"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/></svg></div><h2>Why case studies</h2>
+          <p>Knowing the rules is the start. <b>The skill is seeing when a real programme breaks them</b>, for a real person, and knowing what to do about it.</p>
+          <div class="tags"><span>Class programme</span><span>Keen beginner</span><span>Health concern</span><span>Twice a day</span></div></div>
+        <div class="panel tile"><div class="ico"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div><h2>What you get from it</h2>
+          <ul class="gets">
+            <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg><span>Practice using the risks, rules and programming aspects</span></li>
+            <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg><span>Your thinking side by side with Nathan's</span></li>
+            <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg><span>A record of how you programme, as a PDF</span></li>
+          </ul></div>
       </div>
-      <div class="panel"><h2>How to do it</h2>
-        <ol class="how">
-          <li><b>Read the question first</b>, then the case in full, including the plan.</li>
-          <li><b>Write what you notice.</b> The risks, the rules it breaks, and anything that does not fit the person or the goal. Where there are numbers, work them out.</li>
-          <li><b>Write what you would programme instead</b>, and choose the parts of the unit you used and why.</li>
-          <li><b>Open Nathan's answer.</b> It opens once you have written yours, and your answer is then kept as it is, so the comparison is honest.</li>
-          <li><b>Check yourself.</b> For each of Nathan's key points, mark whether you got it, partly got it, or missed it, then reflect on what you missed.</li>
-          <li><b>Finish with your own gym</b>, applying the same thinking to an athlete or class you coach.</li>
-        </ol>
-        <p class="note" style="margin:6px 0 0">Allow about 20 minutes a case. Do them in any order: everything saves as you go.</p></div>
+      <h2 style="margin:28px 0 12px">How to do it</h2>
+      <div class="steps"><div class="step"><span class="sn">1</span><b>Read</b><p>The question first, then the case in full.</p></div><div class="step"><span class="sn">2</span><b>Notice</b><p>The risks, the rules it breaks, and the numbers.</p></div><div class="step"><span class="sn">3</span><b>Programme</b><p>Your plan, and the parts of the unit you used.</p></div><div class="step"><span class="sn">4</span><b>Open</b><p>Nathan's answer unlocks. Yours is kept as written.</p></div><div class="step"><span class="sn">5</span><b>Check</b><p>Got it, partly or missed, then reflect.</p></div><div class="step"><span class="sn">6</span><b>Apply</b><p>The same thinking for your own gym.</p></div></div>
+      <p class="note" style="margin:10px 0 0">About 20 minutes a case, in any order. Everything saves as you go.</p>
       <h2 style="margin:28px 0 12px">The cases</h2>
       <div id="case-list"></div>
       <div class="row noprint" style="margin-top:18px">
@@ -200,7 +207,7 @@ const PARTS = [
 ];
 
 const CASES = [
-  { id: "class", facts: [["Gym", "A busy community gym"], ["Members", "Adults, mixed ability"], ["Classes", "6 days a week, 60 minutes"], ["Goal", "Strict pull-ups and first handstands"]], story: ["You have just started coaching at a busy community gym. Most members are adults who train three or four times a week in mixed-ability classes of 60 minutes.", "Over the last few months the head coach has noticed that members keep stalling on their pull-ups. Many can kip, but few can do a strict pull-up. Nobody in the gym can hold a handstand, and members keep asking for it.", "The head coach writes the programme, and has asked you to look over next week's classes before they go up on the whiteboard."], ask: "The head coach wants members building strict pulling and starting to go upside down. Review the week: what would you change, and why?", title: "The class programme", covers: "Rules 1 to 4, frequency and intensity", av: "GYM",
+  { id: "class", icon: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>', facts: [["Gym", "A busy community gym"], ["Members", "Adults, mixed ability"], ["Classes", "6 days a week, 60 minutes"], ["Goal", "Strict pull-ups and first handstands"]], story: ["You have just started coaching at a busy community gym. Most members are adults who train three or four times a week in mixed-ability classes of 60 minutes.", "Over the last few months the head coach has noticed that members keep stalling on their pull-ups. Many can kip, but few can do a strict pull-up. Nobody in the gym can hold a handstand, and members keep asking for it.", "The head coach writes the programme, and has asked you to look over next week's classes before they go up on the whiteboard."], ask: "The head coach wants members building strict pulling and starting to go upside down. Review the week: what would you change, and why?", title: "The class programme", covers: "Rules 1 to 4, frequency and intensity", av: "GYM",
     who: "A gym runs classes six days a week. The head coach asks you to look at next week's plan, because members keep stalling on pull-ups and nobody can hold a handstand.",
     planTitle: "Next week's classes",
     plan: [["Mon", "Back squat 5 × 5. Workout: 21-15-9 thrusters and kipping pull-ups. Then 5 × 5 strict pull-ups."],
@@ -217,7 +224,7 @@ const CASES = [
       "Rule 3: there is no standardised gymnastics warm-up. It is the easiest fix, and it also gives the daily exposure of Rule 2.",
       "Rule 1: any gymnastics added must be a supplement that does not take away the day's main element."],
     fix: "A standardised gymnastics warm-up every day (hollow, arch, hang, support and inversion positions). Strict and eccentric pulling and inversion development placed before the main element, as a short supplement. One of the kipping days swapped for development work." },
-  { id: "beginner", facts: [["Athlete", "Sam, 38"], ["Job", "Office worker, sitting most of the day"], ["Training", "6 weeks, 3 classes a week"], ["Goal", "A first strict pull-up by the summer"]], story: ["Sam has spent most of the last ten years at a desk, and did no regular exercise before joining the gym six weeks ago. Sam is keen, never misses a class, and has told the coaches that the big goal is a first pull-up by the summer.", "To help, a coach has written Sam an extra programme to do after class, three times a week. Sam is excited and plans to start it on Monday."], ask: "Is this plan right for Sam? Review it, and write the plan you would give Sam instead.", title: "The keen beginner", covers: "Eccentric loading, rhabdomyolysis and the 125 second limit", av: "SM",
+  { id: "beginner", icon: '<circle cx="12" cy="6" r="3"/><path d="M5 22v-3a7 7 0 0 1 14 0v3"/>', facts: [["Athlete", "Sam, 38"], ["Job", "Office worker, sitting most of the day"], ["Training", "6 weeks, 3 classes a week"], ["Goal", "A first strict pull-up by the summer"]], story: ["Sam has spent most of the last ten years at a desk, and did no regular exercise before joining the gym six weeks ago. Sam is keen, never misses a class, and has told the coaches that the big goal is a first pull-up by the summer.", "To help, a coach has written Sam an extra programme to do after class, three times a week. Sam is excited and plans to start it on Monday."], ask: "Is this plan right for Sam? Review it, and write the plan you would give Sam instead.", title: "The keen beginner", covers: "Eccentric loading, rhabdomyolysis and the 125 second limit", av: "SM",
     who: "Sam, 38, works in an office and joined the gym 6 weeks ago. Sam has never done a pull-up, wants one by the summer, and comes to 3 classes a week.",
     planTitle: "The coach's plan, after class, 3 times a week",
     plan: [["1", "10 × 10 jumping pull-ups with a 5 second lowering."], ["2", "3 × 30 second hang in hollow."]],
@@ -228,7 +235,7 @@ const CASES = [
       "The hang is fine: 90 seconds held sits within the 120 second isometric target.",
       "It comes after class, when Sam is already fatigued (Rule 4)."],
     fix: "A small dose: for example 5 sets of 3 lowerings at 5 seconds (75 seconds), before the main element. Short, frequent exposure on most days (Rule 2) rather than three big sessions, and a simple linear progression towards mastery of the position." },
-  { id: "redflag", facts: [["Athlete", "Linda, 54"], ["Training", "2 years, 3 classes a week"], ["Health", "Told her blood pressure is \"a bit high\""], ["Goal", "Her first handstand"]], story: ["Linda has trained at the gym for two years. She moves well, she is consistent, and she has recently set her heart on learning a handstand.", "While chatting before class, she mentions that at her last check-up her doctor said her blood pressure was \"a bit high\". That was a while ago, and she has not had it checked since.", "Her coach has written her a handstand plan to do three times a week."], ask: "Should the coach go ahead with this plan for Linda? Review it, and say what you would do instead.", title: "The red flag", covers: "Blood pressure, isometric holds and inversion", av: "LM",
+  { id: "redflag", icon: '<path d="M5 22V3M5 4h12l-2 4 2 4H5"/>', facts: [["Athlete", "Linda, 54"], ["Training", "2 years, 3 classes a week"], ["Health", "Told her blood pressure is \"a bit high\""], ["Goal", "Her first handstand"]], story: ["Linda has trained at the gym for two years. She moves well, she is consistent, and she has recently set her heart on learning a handstand.", "While chatting before class, she mentions that at her last check-up her doctor said her blood pressure was \"a bit high\". That was a while ago, and she has not had it checked since.", "Her coach has written her a handstand plan to do three times a week."], ask: "Should the coach go ahead with this plan for Linda? Review it, and say what you would do instead.", title: "The red flag", covers: "Blood pressure, isometric holds and inversion", av: "LM",
     who: "Linda, 54, has trained for 2 years. In conversation she mentions her doctor said her blood pressure is \"a bit high\", but she has not had it checked since. She wants to learn a handstand.",
     planTitle: "The coach's plan, 3 times a week",
     plan: [["1", "5 × 30 second headstand holds."], ["2", "5 × 30 second wall handstand holds."]],
@@ -238,7 +245,7 @@ const CASES = [
       "Long isometric holds and being upside down both raise blood pressure, more so if the athlete holds their breath. This plan is 300 seconds of inverted isometric work in one session, well past the 120 second target.",
       "The goal is fine. The timing and the dose are the problem."],
     fix: "Ask Linda to have her blood pressure checked and get her doctor's clearance before inversion work. Meanwhile, build the handstand without inverting (hollow, support, wrist preparation) with short holds and steady breathing, and keep the session within the 120 second isometric target." },
-  { id: "twice", facts: [["Athlete", "Jordan, 26"], ["Level", "Competitive, a competition in 4 months"], ["Training", "4 mornings a week, before work"], ["Goal", "Strict ring muscle-ups and strict handstand push-ups"]], story: ["Jordan is a competitive athlete preparing for a competition in four months. Jordan works nine to five, so all of the training happens in the morning before work.", "To fit everything in, Jordan has split each training morning into two sessions, with breakfast and a short break in between."], ask: "Review Jordan's training day. What would you change, and why?", title: "Twice a day", covers: "Concurrent training, 6 hours between sessions and Rule 4", av: "JK",
+  { id: "twice", icon: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', facts: [["Athlete", "Jordan, 26"], ["Level", "Competitive, a competition in 4 months"], ["Training", "4 mornings a week, before work"], ["Goal", "Strict ring muscle-ups and strict handstand push-ups"]], story: ["Jordan is a competitive athlete preparing for a competition in four months. Jordan works nine to five, so all of the training happens in the morning before work.", "To fit everything in, Jordan has split each training morning into two sessions, with breakfast and a short break in between."], ask: "Review Jordan's training day. What would you change, and why?", title: "Twice a day", covers: "Concurrent training, 6 hours between sessions and Rule 4", av: "JK",
     who: "Jordan, 26, is a competitive athlete who trains before work, four days a week.",
     planTitle: "Jordan's training day",
     plan: [["07:00", "High-intensity workout: rowing, wall balls and burpees."], ["09:00", "Gymnastics strength: strict ring muscle-up transitions and strict handstand push-ups."]],
@@ -312,12 +319,12 @@ function list() {
   CASES.forEach((K, i) => {
     const s = status(K.id), b = document.createElement("button");
     b.type = "button"; b.className = "case " + s;
-    b.innerHTML = `<span class="num">${s === "done" ? "✓" : i + 1}</span><span class="txt"><b>${esc(K.title)}</b><span>${esc(K.covers)}</span></span><span class="st">${s === "done" ? scoreText(K, doc.cases[K.id]) + " key points" : ST[s]}</span>`;
+    b.innerHTML = `<span class="num">${s === "done" ? "✓" : i + 1}</span><span class="cic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${K.icon}</svg></span><span class="txt"><b>${esc(K.title)}</b><span>${esc(K.covers)}</span></span><span class="st">${s === "done" ? scoreText(K, doc.cases[K.id]) + " key points" : ST[s]}</span>`;
     b.onclick = () => openCase(K.id); box.appendChild(b);
   });
   const s = ownStatus(), b = document.createElement("button");
   b.type = "button"; b.className = "case own " + s;
-  b.innerHTML = `<span class="num">${s === "done" ? "✓" : "5"}</span><span class="txt"><b>Now your gym</b><span>The same thinking, applied to an athlete or class you coach</span></span><span class="st">${ST[s]}</span>`;
+  b.innerHTML = `<span class="num">${s === "done" ? "✓" : "5"}</span><span class="cic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v10H3z"/><path d="M9 21v-6h6v6"/></svg></span><span class="txt"><b>Now your gym</b><span>The same thinking, applied to an athlete or class you coach</span></span><span class="st">${ST[s]}</span>`;
   b.onclick = () => openOwn(); box.appendChild(b);
 }
 $("b-back").onclick = async () => { if (timer) await save(); list(); };
