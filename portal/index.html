@@ -10456,17 +10456,30 @@ function wireCertificates() {
       : "Generating and sending — this can take a moment…";
 
     try {
-      const { data: { session } } = await db.auth.getSession();
-      if (!session) throw new Error("Your session has expired — sign in again.");
-
-      const res = await fetch("/.netlify/functions/certificates-send", {
+      // A page left open for an hour holds a sign-in that has run out,
+      // and the server answered "Not signed in" (Barney, 15 Nov 2026).
+      // Renew it when it is close to running out, and once more if the
+      // server still refuses it.
+      const freshToken = async (force) => {
+        let { data: { session } } = await db.auth.getSession();
+        const soon = session && session.expires_at && session.expires_at * 1000 < Date.now() + 120000;
+        if (force || !session || soon) {
+          const r = await db.auth.refreshSession();
+          session = r.data && r.data.session;
+        }
+        if (!session) throw new Error("Your session has expired — sign in again.");
+        return session.access_token;
+      };
+      const send = async (token) => fetch("/.netlify/functions/certificates-send", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Bearer " + session.access_token,
+          Authorization: "Bearer " + token,
         },
         body: JSON.stringify({ courseId: currentCourse.id }),
       });
+      let res = await send(await freshToken(false));
+      if (res.status === 401) res = await send(await freshToken(true));
             const raw = await res.text();
       let out = null;
       try { out = JSON.parse(raw); } catch (e) { out = null; }
@@ -10497,6 +10510,10 @@ function wireCertificates() {
         msg.className = "msg";
         msg.textContent =
           `${out.sent} sent, ${out.remaining} to go — keep this open…`;
+        // The button was greyed out for this round, and a greyed-out
+        // button ignores a click, so the next round never started and the
+        // send stopped part way (Nathan, Bern, 15 Nov 2026).
+        $("cert-go").disabled = false;
         setTimeout(() => { $("cert-go").click(); }, 800);
         return;
       }
