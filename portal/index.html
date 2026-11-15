@@ -10421,10 +10421,25 @@ function openCertDialog(course) {
 // Which round of a batched send we are on. Zero means the coach has
 // just pressed the button themselves.
 let certRound = 0;
+// How many went out across every round of this send, for the final line
+let certSentTotal = 0;
+
+// After a send, the page is redrawn from the course as it is now, not as
+// it was loaded: it kept saying "not submitted" until a manual refresh
+// (Nathan, 15 Nov 2026: staff would be confused).
+async function reopenCourseFresh() {
+  try {
+    const { data: fresh } = await db.from("courses").select("*").eq("id", currentCourse.id).single();
+    if (fresh) Object.assign(currentCourse, fresh);
+  } catch (e) { /* show what we have */ }
+  $("certwrap").classList.add("hidden");
+  openCourse(currentCourse);
+}
 
 function wireCertificates() {
   $("cert-open").onclick = () => {
     certRound = 0;
+    certSentTotal = 0;
     if (currentCourse) openCertDialog(currentCourse);
   };
   $("cert-close").onclick = () => { $("certwrap").classList.add("hidden"); };
@@ -10494,10 +10509,7 @@ function wireCertificates() {
           "Still sending. This can take a minute on a full course — " +
           "close this and reopen the course to see how far it got. " +
           "Do not press send again.";
-        setTimeout(() => {
-          $("certwrap").classList.add("hidden");
-          openCourse(currentCourse);
-        }, 3000);
+        setTimeout(reopenCourseFresh, 3000);
         return;
       }
 
@@ -10506,10 +10518,11 @@ function wireCertificates() {
       // More to do than one call could finish in the time Netlify
       // allows. Anyone already done is skipped, so going round again
       // can never send to the same person twice.
+      certSentTotal += out.sent || 0;
       if (out.remaining) {
         msg.className = "msg";
         msg.textContent =
-          `${out.sent} sent, ${out.remaining} to go — keep this open…`;
+          `${certSentTotal} sent, ${out.remaining} to go — keep this open…`;
         // The button was greyed out for this round, and a greyed-out
         // button ignores a click, so the next round never started and the
         // send stopped part way (Nathan, Bern, 15 Nov 2026).
@@ -10524,13 +10537,10 @@ function wireCertificates() {
         ? `Seminar marked complete for ${out.attended} participant` +
           `${out.attended === 1 ? "" : "s"}.`
         : out.failed
-          ? `${out.sent} sent, ${out.failed} failed: ${(out.failures || []).join(", ")}.`
-          : `${out.sent} certificate${out.sent === 1 ? "" : "s"} sent.`;
+          ? `${certSentTotal} sent, ${out.failed} failed: ${(out.failures || []).join(", ")}.`
+          : `All done: ${certSentTotal} certificate${certSentTotal === 1 ? "" : "s"} sent and the seminar is submitted.`;
 
-      setTimeout(() => {
-        $("certwrap").classList.add("hidden");
-        openCourse(currentCourse);
-      }, out.failed ? 4000 : 1800);
+      setTimeout(reopenCourseFresh, out.failed ? 4000 : 2500);
     } catch (err) {
       msg.className = "msg err";
       msg.textContent = err.message;
