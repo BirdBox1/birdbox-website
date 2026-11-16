@@ -61,9 +61,9 @@
     { href: "/trainer-directory", text: "Trainer Directory" },
     { href: "/birdbox-team/", text: "Meet the Team" },
     { href: "/about", text: "About" },
-    // Where people who have bought an online course log in. Shown as an
-    // outlined button so returning students can find it on every page.
-    { href: "/learn/", text: "Student Login", button: true }
+    // BirdBox Learn: online courses, certificates, mentorship, receipts and
+    // invoices. Shown as an outlined button so people can find it on every page.
+    { href: "/learn/", text: "Log in", button: true }
   ];
   // "/tcc/level-1/" and "/tcc/level-1" are the same page. Trailing slashes
   // are stripped so the active check does not depend on how the visitor
