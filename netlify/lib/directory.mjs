@@ -291,10 +291,10 @@ export function certificateSavedNote(brand) {
     text:
 `YOUR CERTIFICATE IS SAVED IN BIRDBOX LEARN
 
-You can download it again any time from your BirdBox Learn account. Log in with this email address under Student Login:
+You can download it again any time from your BirdBox Learn account. Log in with this email address using Log in at the top of our website:
 ${link}`,
     html: `<p style="margin:26px 0 8px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;color:#16181b">Your certificate is saved in BirdBox Learn</p>
-<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#16181b">You can download it again any time from your BirdBox Learn account. Log in with this email address under Student Login.</p>
+<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#16181b">You can download it again any time from your BirdBox Learn account. Log in with this email address using Log in at the top of our website.</p>
 <p style="margin:0 0 16px"><a href="${link}" style="display:inline-block;background:#ffffff;color:${b.bg === "#F1A509" ? "#16181B" : b.bg};text-decoration:none;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:13px;padding:11px 20px;border:2px solid ${b.bg}">Open my certificates</a></p>`,
   };
 }

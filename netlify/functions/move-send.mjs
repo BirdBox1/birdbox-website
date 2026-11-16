@@ -286,7 +286,7 @@ function write(o) {
             ? `As Barney said, you get the new app <b>free until ${dayLong(o.free_until)}</b>, in place of your CoachRx free trial.`
             : `You have already paid CoachRx up to <b>${dayLong(o.free_until)}</b>, so the new app is yours free until then.`,
           // no risk in adding the card (Nathan, 7 Nov 2026)
-          `<b>Not sure yet? Add your card anyway.</b> If you decide not to continue, cancel in BirdBox Learn (Student Login on our website) any time before ${day(o.free_until)} and nothing is ever taken.`,
+          `<b>Not sure yet? Add your card anyway.</b> If you decide not to continue, cancel in BirdBox Learn (Log in at the top of our website) any time before ${day(o.free_until)} and nothing is ever taken.`,
           `If you carry on, your first payment is ${price} on ${day(o.free_until)}, then on ${monthly}.`,
           trial
             ? "Your CoachRx trial ends without any payment, so nothing is taken there. You will never be charged twice."
