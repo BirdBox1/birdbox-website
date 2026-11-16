@@ -3,7 +3,9 @@
 // The in-person side of a learner's BirdBox Learn account.
 // (Authorization: Bearer <the learner's token>)
 //
-// GET                        -> { live: [...], earlier: [...] }
+// GET                        -> { upcoming: [...], live: [...], earlier: [...] }
+//   upcoming: seminars and workshops they are booked on that have not
+//            happened yet (Nathan, 16 Nov 2026), with the course manual
 //   live:    seminars and workshops they attended, with a certificate
 //   earlier: older courses verified for their Trainer Directory listing
 //            (before our records began), shown without a download
@@ -46,9 +48,37 @@ export default async (req) => {
           brand: k.brand, level, kind,
           title: qualTitle({ brand: k.brand, level, kind, focus: k.workshop_focus }),
           place: [k.city, k.country].filter(Boolean).join(", ") || null,
+          manual: manualFor(k.brand, level, kind),
         });
       }
       live.sort((a, b) => String(b.awarded_on).localeCompare(String(a.awarded_on)));
+    }
+
+    // Booked and still to come: an active, unrefunded seat on a course
+    // that is not cancelled, not yet completed, and not long over.
+    const upcoming = [];
+    if (regIds.length) {
+      const since = new Date(Date.now() - 2 * 86400000).toISOString();
+      const { data: rows } = await db.from("registrations")
+        .select("id, status, payment_status, archived_at, courses!registrations_course_id_fkey(id, slug, brand, type, level, title, workshop_focus, city, country, venue_name, starts_at, ends_at, timezone, status, cancelled_at, completed_at)")
+        .in("id", regIds).eq("status", "active");
+      for (const r of rows || []) {
+        const k = r.courses;
+        if (!k || r.archived_at || r.payment_status === "refunded") continue;
+        if (k.cancelled_at || k.status === "cancelled" || k.completed_at) continue;
+        if (String(k.ends_at || k.starts_at || "") < since) continue;
+        const level = String(k.level || "").replace(/\D/g, "") || null;
+        const kind = k.type === "workshop" ? "workshop" : "seminar";
+        upcoming.push({
+          id: r.id, brand: k.brand, level, kind,
+          title: qualTitle({ brand: k.brand, level, kind, focus: k.workshop_focus }),
+          starts_at: k.starts_at, ends_at: k.ends_at, timezone: k.timezone,
+          place: [k.venue_name, k.city, k.country].filter(Boolean).join(", ") || null,
+          deposit_only: r.payment_status === "deposit_paid",
+          manual: manualFor(k.brand, level, kind),
+        });
+      }
+      upcoming.sort((a, b) => String(a.starts_at).localeCompare(String(b.starts_at)));
     }
 
     // Older courses verified on their directory listing.
@@ -59,15 +89,24 @@ export default async (req) => {
         .select("brand, level, kind, course_month, location").eq("profile_id", prof.id).not("verified_at", "is", null);
       for (const p of past || []) {
         if (p.kind === "online") continue;
-        earlier.push({ brand: p.brand, level: p.level, kind: p.kind, title: qualTitle(p), date: p.course_month, place: p.location });
+        const level = String(p.level || "").replace(/\D/g, "") || null;
+        earlier.push({ brand: p.brand, level: p.level, kind: p.kind, title: qualTitle(p), date: p.course_month, place: p.location,
+          manual: manualFor(p.brand, level, p.kind === "workshop" ? "workshop" : "seminar") });
       }
     }
-    return json({ live, earlier });
+    return json({ upcoming, live, earlier });
   } catch (err) {
     console.error("learn-live-courses:", err.message || err);
     return json({ error: "Your live courses could not be loaded." }, 500);
   }
 };
+
+// The participant manual (/manuals/<brand>-l<level>/), which exists for
+// TGC and TCC Level 1 seminars only, as in the booking email.
+function manualFor(brand, level, kind) {
+  const b = String(brand || "").toLowerCase();
+  return kind === "seminar" && level === "1" && (b === "tgc" || b === "tcc") ? `/manuals/${b}-l1/` : null;
+}
 
 async function emailsFor(user) {
   const set = new Set([String(user.email || "").toLowerCase()]);

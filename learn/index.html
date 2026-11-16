@@ -99,10 +99,21 @@
   .dir p{margin:0;font-size:14px;line-height:1.5;color:var(--muted)}
   .dir .btn{margin-left:auto;flex:none}
   @media (max-width:640px){.dir{flex-wrap:wrap}.dir .btn{margin-left:0;width:100%}}
-  body[data-view="family"] #dir,body[data-view="family"] #live,body[data-view="family"] #next,body[data-view="family"] #disc{display:none!important}
-  .disc{margin-top:18px;max-width:760px}
-  .disc p{margin:0 0 8px;font-size:15px;line-height:1.6;color:var(--ink)}
-  .disc a{color:var(--ink);font-weight:800;margin-left:6px}
+  body[data-view="family"] #dir,body[data-view="family"] #soon,body[data-view="family"] #live,body[data-view="family"] #next,body[data-view="family"] #disc{display:none!important}
+  .disc{margin-top:34px}
+  .disc h2{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 14px}
+  .offers{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .offer{display:grid;grid-template-columns:52px minmax(0,1fr);gap:14px 16px;align-items:start;background:var(--panel);border:1px solid var(--line);
+    border-top:4px solid var(--c,#4FA8DE);padding:18px}
+  .offer img{width:52px;height:52px;object-fit:contain}
+  .offer .pct{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;background:var(--c,#4FA8DE);color:#fff;padding:3px 8px;margin-bottom:6px}
+  .offer h3{font-size:16px;margin:0 0 4px}
+  .offer p{margin:0;font-size:14px;line-height:1.5;color:var(--muted)}
+  .offer .btn{grid-column:1/-1;justify-self:start;background:var(--c,#4FA8DE);border-color:var(--c,#4FA8DE);color:var(--on,#fff)}
+  .offer .btn:hover{background:transparent;color:var(--ink)}
+  .offer .msg{grid-column:1/-1;margin:0}
+  .lc .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+  .lc .when{display:block;font-size:13px;color:var(--ink);margin-top:2px}
   .live,.next{margin-top:34px}
   .live h2,.next h2{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 4px}
   .live .sub{color:var(--muted);font-size:14px;margin:0 0 14px}
@@ -114,7 +125,7 @@
   .lc .tag{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:2px 0}
   .lc small{font-size:13px;color:var(--muted)}
   .lc .msg{grid-column:2/-1;margin:0}
-  @media (max-width:640px){.lc{grid-template-columns:40px minmax(0,1fr)}.lc img{width:40px;height:40px}.lc .btn{grid-column:1/-1}}
+  @media (max-width:640px){.lc{grid-template-columns:40px minmax(0,1fr)}.lc img{width:40px;height:40px}.lc .btn,.lc .acts,.lc>small{grid-column:1/-1}.lc .acts{justify-content:flex-start}}
   .next-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
   .nx{display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c);padding:18px;text-decoration:none;color:var(--ink)}
   .nx:hover{border-color:var(--t)}
@@ -374,14 +385,19 @@
       </div>
     </div>
     <div id="courses" class="levels hidden"></div>
-    <div id="disc" class="disc hidden"></div>
-
+    <section id="soon" class="live hidden">
+      <h2>My upcoming seminars</h2>
+      <p class="sub">Seminars and workshops you are booked on. Your course manual is ready to read before the day.</p>
+      <div id="soon-list"></div>
+    </section>
 
     <section id="live" class="live hidden">
-      <h2>My live courses</h2>
-      <p class="sub">Seminars and workshops you have completed in person. Download your certificate any time.</p>
+      <h2>My completed live seminars</h2>
+      <p class="sub">Seminars and workshops you have completed in person. Download your certificate, or open the course manual, any time.</p>
       <div id="live-list"></div>
     </section>
+
+    <section id="disc" class="disc hidden"></section>
 
     <section id="next" class="next hidden">
       <h2>Your next step</h2>
@@ -1216,13 +1232,21 @@ function nearCard(c) {
 // In-person seminars and workshops, with their certificates. These come
 // from the course registrations, not from BirdBox Learn enrolments.
 async function showLive(session, ownedOnline, finishedOnline) {
-  let d = { live: [], earlier: [] };
+  let d = { upcoming: [], live: [], earlier: [] };
   try {
     const r = await fetch("/.netlify/functions/learn-live-courses", { headers: { Authorization: "Bearer " + session.access_token } });
     if (r.ok) d = await r.json();
   } catch (e) {}
   const fmt = (x) => x ? new Date(String(x).length === 7 ? x + "-01" : x).toLocaleDateString("en-GB", { month: "long", year: "numeric" }) : "";
-  const row = (c, cert) => {
+  // manual: on the My courses tab, the course manual button (TGC and TCC
+  // Level 1 seminars), where "Verified by BirdBox" used to sit alone
+  const manualBtn = (c) => {
+    const a = document.createElement("a");
+    a.className = "btn ghost small"; a.href = c.manual; a.target = "_blank"; a.rel = "noopener";
+    a.textContent = "Course manual";
+    return a;
+  };
+  const row = (c, cert, withManual) => {
     const b = BRAND[c.brand] || BRAND.birdbox;
     const el = document.createElement("div");
     el.className = "lc";
@@ -1234,7 +1258,9 @@ async function showLive(session, ownedOnline, finishedOnline) {
     txt.appendChild(t);
     if (c.brand === "tcc") { const g = document.createElement("span"); g.className = "tag"; g.textContent = "Formerly BirdBox Coaching Development"; txt.appendChild(g); }
     const m = document.createElement("small");
-    m.textContent = [c.kind === "workshop" ? "Workshop" : "Live seminar", fmt(c.awarded_on || c.date), c.place].filter(Boolean).join(" · ");
+    const manual = withManual && c.manual;
+    m.textContent = [c.kind === "workshop" ? "Workshop" : "Live seminar", fmt(c.awarded_on || c.date), c.place,
+      !cert && manual ? "Verified by BirdBox" : null].filter(Boolean).join(" · ");
     txt.appendChild(m);
     el.append(img, txt);
     if (cert) {
@@ -1242,16 +1268,60 @@ async function showLive(session, ownedOnline, finishedOnline) {
       btn.type = "button"; btn.className = "btn small"; btn.textContent = "Download certificate";
       const msg = document.createElement("div"); msg.className = "msg";
       btn.onclick = () => fetchLiveCert(c.id, btn, msg);
-      el.append(btn, msg);
+      if (manual) {
+        const acts = document.createElement("div"); acts.className = "acts";
+        acts.append(manualBtn(c), btn);
+        el.append(acts, msg);
+      } else el.append(btn, msg);
+    } else if (manual) {
+      el.appendChild(manualBtn(c));
     } else {
       const s = document.createElement("small"); s.textContent = "Verified by BirdBox"; el.appendChild(s);
     }
     return el;
   };
+  // booked, still to come: the dates and the manual
+  const when = (c) => {
+    const o = { day: "numeric", month: "long", year: "numeric", timeZone: c.timezone || undefined };
+    const a = c.starts_at ? new Date(c.starts_at) : null, z = c.ends_at ? new Date(c.ends_at) : null;
+    if (!a) return "";
+    let t;
+    try { t = a.toLocaleDateString("en-GB", o); } catch (e) { delete o.timeZone; t = a.toLocaleDateString("en-GB", o); }
+    if (z) {
+      let e2;
+      try { e2 = z.toLocaleDateString("en-GB", o); } catch (e) { delete o.timeZone; e2 = z.toLocaleDateString("en-GB", o); }
+      if (e2 !== t) {
+        const [d1, m1, y1] = t.split(" "), [, m2, y2] = e2.split(" ");
+        t = y1 !== y2 ? t + " – " + e2 : m1 !== m2 ? d1 + " " + m1 + " – " + e2 : d1 + "–" + e2;
+      }
+    }
+    return t;
+  };
+  const soonRow = (c) => {
+    const b = BRAND[c.brand] || BRAND.birdbox;
+    const el = document.createElement("div");
+    el.className = "lc"; el.style.setProperty("--c", b.c);
+    const img = document.createElement("img"); img.src = b.mark; img.alt = "";
+    img.onerror = () => { img.onerror = null; img.src = "/brand/birdBox.png"; };
+    const txt = document.createElement("div");
+    const t = document.createElement("b"); t.textContent = c.title;
+    const w = document.createElement("span"); w.className = "when"; w.textContent = when(c);
+    const m = document.createElement("small");
+    m.textContent = [c.kind === "workshop" ? "Workshop" : "Live seminar", c.place,
+      c.deposit_only ? "Deposit paid, balance due before the seminar" : null].filter(Boolean).join(" · ");
+    txt.append(t, w, m);
+    el.append(img, txt);
+    if (c.manual) el.appendChild(manualBtn(c));
+    else { const s = document.createElement("small"); s.textContent = "Booked"; el.appendChild(s); }
+    return el;
+  };
+  const soon = $("soon-list"); soon.innerHTML = "";
+  (d.upcoming || []).forEach((c) => soon.appendChild(soonRow(c)));
+  $("soon").classList.toggle("hidden", !(d.upcoming || []).length);
   const box = $("live-list"); box.innerHTML = "";
   renderCerts(finishedOnline, d.live, d.earlier, row);
-  d.live.forEach((c) => box.appendChild(row(c, true)));
-  d.earlier.forEach((c) => box.appendChild(row(c, false)));
+  d.live.forEach((c) => box.appendChild(row(c, true, true)));
+  d.earlier.forEach((c) => box.appendChild(row(c, false, true)));
   $("live").classList.toggle("hidden", !(d.live.length || d.earlier.length));
   showNext(ownedOnline, finishedOnline, [...d.live, ...d.earlier]);
 }
@@ -1371,28 +1441,47 @@ function showDiscounts(d, shown) {
       if (h) h.textContent = "As on your BirdBox certificate. Not right? Write to info@birdboxcoaching.com and we will change it.";
     });
   }
+  // One card per offer, in the course's colour (Nathan, 16 Nov 2026)
+  const grid = document.createElement("div"); grid.className = "offers";
   for (const x of d.discounts || []) {
     if (shown && shown.has(x.kind + ":" + x.brand)) continue;
     const c = DISC_COURSE[x.brand] || x.brand.toUpperCase();
+    const b = BRAND[x.brand] || BRAND.birdbox;
+    const card = document.createElement("div"); card.className = "offer";
+    card.style.setProperty("--c", b.c); card.style.setProperty("--on", b.on);
+    const img = document.createElement("img"); img.src = b.mark; img.alt = "";
+    img.onerror = () => { img.onerror = null; img.src = "/brand/birdBox.png"; };
+    const txt = document.createElement("div");
+    const pct = document.createElement("span"); pct.className = "pct"; pct.textContent = `${d.percent}% off`;
+    const h = document.createElement("h3");
+    h.textContent = x.kind === "seminar" ? `${c} Level 1 live seminar` : `${c} Level 1 Online`;
     const p = document.createElement("p");
     p.textContent = x.kind === "seminar"
-      ? `As a ${c} Level 1 Online student, you get ${d.percent}% off a ${c} Level 1 live seminar.`
-      : `As you have done a ${c} Level 1 live seminar, you get ${d.percent}% off ${c} Level 1 Online.`;
-    const a = document.createElement("a"); a.href = "#"; a.textContent = "Use my discount →";
+      ? `You have ${c} Level 1 Online. Coach it in person with the ${c} team at a Level 1 seminar near you, for half the price.`
+      : `You have done the ${c} Level 1 live seminar. Go over it all again at your own pace online, for half the price.`;
+    txt.append(pct, h, p);
+    const a = document.createElement("a"); a.href = "#"; a.className = "btn small";
+    a.textContent = x.kind === "seminar" ? "Pick a seminar →" : "Get the online course →";
+    const msg = document.createElement("div"); msg.className = "msg";
+    const label = a.textContent;
     a.onclick = async (e) => {
       e.preventDefault();
-      a.textContent = "Opening…";
+      a.textContent = "Opening…"; msg.className = "msg"; msg.textContent = "";
       try {
         const r = await account("", { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: x.kind === "seminar" ? "seminar_pass" : "online_offer", brand: x.brand }) });
         if (r.pass) { try { sessionStorage.setItem("bb-learn-pass", r.pass); } catch (e2) {} }
         location.href = r.url;
-      } catch (err) { a.textContent = "Use my discount →"; p.appendChild(document.createTextNode(" " + err.message)); }
+      } catch (err) { a.textContent = label; msg.className = "msg err"; msg.textContent = err.message; }
     };
-    p.appendChild(a);
-    box.appendChild(p);
+    card.append(img, txt, a, msg);
+    grid.appendChild(card);
   }
-  box.classList.toggle("hidden", !box.children.length);
+  if (grid.children.length) {
+    const h2 = document.createElement("h2"); h2.textContent = "My offers";
+    box.append(h2, grid);
+  }
+  box.classList.toggle("hidden", !grid.children.length);
 }
 
 // ---------------- blog tab ----------------
