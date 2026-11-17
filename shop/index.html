@@ -173,6 +173,10 @@
   .bb-filter button[aria-pressed="true"] { background: #1A6FA8; border-color: #1A6FA8; color: #FFFFFF; }
   .bb-filter button:focus-visible { outline: 2px solid #1A6FA8; outline-offset: 2px; }
   .bb-filter__empty { text-align: center; font-size: 14px; color: #6B6466; margin: 6px 0 0; }
+  /* On a product page: hide the filters, and keep the main picture small
+     enough that the colour pictures underneath show without scrolling. */
+  .mrc-store:has(.ec-store__product-page) .bb-filter { display: none; }
+  .mrc-store .details-gallery__wrap { max-width: 420px; margin-left: auto; margin-right: auto; }
 
   .mrc-note {
     font-size: 13px; color: var(--muted); margin: 14px 0 0; line-height: 1.6;
