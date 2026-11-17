@@ -69,16 +69,26 @@ async function liveL1(email) {
   return (data || []).filter((r) => r.courses && r.courses.type === "live_seminar" && isL1(r.courses.level));
 }
 
-// Level 1 seminars from before our records, verified by the office on
-// their Trainer Directory listing
-async function verifiedLiveL1(user) {
-  if (!user?.id) return new Set();
+// Level 1 seminars from before our records: verified by the office on
+// their Trainer Directory listing, or a certificate we sent through
+// SimpleCert (Nathan, 17 Nov 2026)
+async function verifiedLiveL1(user, email) {
+  const out = new Set();
+  const e = String(email || "").trim().toLowerCase();
+  if (e) {
+    const { data: past } = await db.from("past_certificates").select("brand")
+      .eq("email", e).eq("kind", "seminar").eq("level", "1");
+    for (const p of past || []) out.add(String(p.brand || "").toLowerCase());
+  }
+  if (!user?.id) return out;
   const { data: prof } = await db.from("directory_profiles").select("id").eq("user_id", user.id).maybeSingle();
-  if (!prof) return new Set();
+  if (!prof) return out;
   const { data } = await db.from("directory_courses").select("brand, level, kind")
     .eq("profile_id", prof.id).not("verified_at", "is", null);
-  return new Set((data || []).filter((c) => c.kind !== "online" && c.kind !== "workshop" && isL1(c.level))
-    .map((c) => String(c.brand || "").toLowerCase()));
+  for (const c of data || []) {
+    if (c.kind !== "online" && c.kind !== "workshop" && isL1(c.level)) out.add(String(c.brand || "").toLowerCase());
+  }
+  return out;
 }
 
 const split = (name) => {
@@ -110,14 +120,15 @@ export async function lockedName(user, email) {
 
 // What they are owed, for the My courses tab
 export async function discountsFor(user, email) {
-  const [online, live, verified] = await Promise.all([onlineL1(email), liveL1(email), verifiedLiveL1(user)]);
+  const [online, live, verified] = await Promise.all([onlineL1(email), liveL1(email), verifiedLiveL1(user, email)]);
   const out = [];
   for (const b of BRANDS) {
     const lives = live.filter((r) => String(r.courses.brand).toLowerCase() === b);
     const active = lives.filter((r) => (r.status || "active") !== "cancelled");
     // online -> live: not yet booked a Level 1 seminar of this course, and
-    // no older Level 1 seminar verified on their directory listing either
-    // (Nathan, 16 Nov 2026: both bought already means no offer)
+    // no older Level 1 seminar verified on their directory listing or
+    // sent through SimpleCert either (Nathan, 16 Nov 2026: both bought
+    // already means no offer)
     if (online.has(b) && !active.length && !verified.has(b)) out.push({ kind: "seminar", brand: b });
     // live -> online: attended, and no online course yet
     const attended = active.find((r) => r.attended === true);
