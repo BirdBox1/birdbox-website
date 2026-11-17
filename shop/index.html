@@ -161,6 +161,19 @@
     order: 8; font-size: 13px; color: #6B6466; margin-top: 4px; text-align: center;
   }
 
+  /* Filter buttons above the products */
+  .bb-filter { display: grid; gap: 10px; margin: 0 0 20px; }
+  .bb-filter__row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .bb-filter button {
+    font: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+    padding: 8px 16px; border-radius: 999px; cursor: pointer;
+    border: 1px solid #D5D0D1; background: #FFFFFF; color: #14100F;
+  }
+  .bb-filter button:hover { border-color: #1A6FA8; color: #1A6FA8; }
+  .bb-filter button[aria-pressed="true"] { background: #1A6FA8; border-color: #1A6FA8; color: #FFFFFF; }
+  .bb-filter button:focus-visible { outline: 2px solid #1A6FA8; outline-offset: 2px; }
+  .bb-filter__empty { text-align: center; font-size: 14px; color: #6B6466; margin: 6px 0 0; }
+
   .mrc-note {
     font-size: 13px; color: var(--muted); margin: 14px 0 0; line-height: 1.6;
   }
@@ -260,6 +273,23 @@
 
   <!-- Ecwid storefront. Store ID 140532633. Was /merch/, which now redirects here. -->
   <section class="mrc-store" aria-label="BirdBox merchandise store">
+    <!-- Filter buttons. They show or hide products in the grid by name, so
+         every product name must start "TGC - " or "TCC - " and contain
+         "Hoodie" or "Sweatshirt" (anything else counts as a T-shirt). -->
+    <div class="bb-filter" role="group" aria-label="Filter products">
+      <div class="bb-filter__row" data-group="course">
+        <button type="button" data-value="" aria-pressed="true">All courses</button>
+        <button type="button" data-value="TGC" aria-pressed="false">TGC</button>
+        <button type="button" data-value="TCC" aria-pressed="false">TCC</button>
+      </div>
+      <div class="bb-filter__row" data-group="type">
+        <button type="button" data-value="" aria-pressed="true">Everything</button>
+        <button type="button" data-value="tee" aria-pressed="false">T-shirts</button>
+        <button type="button" data-value="hoodie" aria-pressed="false">Hoodies</button>
+        <button type="button" data-value="sweatshirt" aria-pressed="false">Sweatshirts</button>
+      </div>
+      <p class="bb-filter__empty" hidden>Nothing here yet. Try another filter.</p>
+    </div>
     <div id="my-store-140532633"></div>
     <div>
       <!-- Must run before script.js. Small product pictures fit 4 to a row on
@@ -288,7 +318,17 @@
             // TCC (Light has 3 colours, Bright 7)
             878417130: 11, 878396988: 2, 878405430: 7, 878417131: 3,   // BirdBox Eagle Tee
             878417132: 11, 878405431: 2, 878417133: 7, 878396989: 3,   // Course Logo Back Tee
-            878396990: 11, 878417135: 2, 878396991: 7, 878417134: 3    // Course Logo Front Tee
+            878396990: 11, 878417135: 2, 878396991: 7, 878417134: 3,   // Course Logo Front Tee
+            // Hoodies and sweatshirts: main 2, Black & Charcoal 2,
+            // TGC Light 3 / Bright 2, TCC Light 2 / Bright 3
+            878548739: 2, 878551185: 2, 878551186: 3, 878548952: 2,    // TGC Course Logo Front Hoodie
+            878551247: 2, 878577019: 2, 878579020: 3, 878579757: 2,    // TGC Course Logo Back Hoodie
+            878551202: 2, 878548742: 2, 878548975: 3, 878548744: 2,    // TGC Course Logo Front Sweatshirt
+            878579766: 2, 878577038: 2, 878579767: 3, 878579768: 2,    // TGC Course Logo Back Sweatshirt
+            878551197: 2, 878548713: 2, 878548725: 2, 878548959: 3,    // TCC Course Logo Front Hoodie
+            878577022: 2, 878579022: 2, 878577025: 2, 878577027: 3,    // TCC Course Logo Back Hoodie
+            878548977: 2, 878551210: 2, 878548746: 2, 878548747: 3,    // TCC Course Logo Front Sweatshirt
+            878579030: 2, 878579770: 2, 878577043: 2, 878577044: 3     // TCC Course Logo Back Sweatshirt
           };
           function label() {
             var cards = document.querySelectorAll('#my-store-140532633 .grid-product');
@@ -307,9 +347,46 @@
               anchor.parentNode.insertBefore(tag, anchor.nextSibling);
             }
           }
+          // Filters: hide grid cards whose name doesn't match the chosen
+          // course and type.
+          var want = { course: '', type: '' };
+          function kind(name) {
+            if (/hoodie/i.test(name)) return 'hoodie';
+            if (/sweatshirt/i.test(name)) return 'sweatshirt';
+            return 'tee';
+          }
+          function filter() {
+            var cards = document.querySelectorAll('#my-store-140532633 .grid-product');
+            var shown = 0;
+            for (var i = 0; i < cards.length; i++) {
+              var t = cards[i].querySelector('.grid-product__title-inner');
+              var name = t ? t.textContent.trim() : '';
+              var ok = (!want.course || name.indexOf(want.course + ' ') === 0) &&
+                       (!want.type || kind(name) === want.type);
+              cards[i].style.display = ok ? '' : 'none';
+              if (ok) shown++;
+            }
+            document.querySelector('.bb-filter__empty').hidden = !cards.length || shown > 0;
+          }
+          var rows = document.querySelectorAll('.bb-filter__row');
+          for (var r = 0; r < rows.length; r++) {
+            rows[r].addEventListener('click', function (e) {
+              var b = e.target.closest('button');
+              if (!b) return;
+              var btns = this.querySelectorAll('button');
+              for (var k = 0; k < btns.length; k++) btns[k].setAttribute('aria-pressed', btns[k] === b ? 'true' : 'false');
+              want[this.getAttribute('data-group')] = b.getAttribute('data-value');
+              // On a product page, go back to the product grid first.
+              if (!document.querySelector('#my-store-140532633 .grid-product') && window.Ecwid && Ecwid.openPage) {
+                Ecwid.openPage('category', { id: 0 });
+              }
+              filter();
+            });
+          }
           var store = document.getElementById('my-store-140532633');
-          new MutationObserver(label).observe(store, { childList: true, subtree: true });
+          new MutationObserver(function () { label(); filter(); }).observe(store, { childList: true, subtree: true });
           label();
+          filter();
         })();
       </script>
     </div>
