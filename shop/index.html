@@ -155,6 +155,11 @@
     min-height: 420px;
   }
   .mrc-store a { color: #1A6FA8; }
+  /* Ecwid lays each card out as a flex column with ordered parts
+     (picture 1, title 3, price 7), so the line needs an order after the price. */
+  .mrc-store .bb-colours {
+    order: 8; font-size: 13px; color: #6B6466; margin-top: 4px; text-align: center;
+  }
 
   .mrc-note {
     font-size: 13px; color: var(--muted); margin: 14px 0 0; line-height: 1.6;
@@ -269,6 +274,44 @@
       </script>
       <script data-cfasync="false" type="text/javascript" src="https://app.ecwid.com/script.js?140532633&data_platform=code&data_date=2026-08-10" charset="utf-8"></script>
       <script type="text/javascript"> xProductBrowser("categoriesPerRow=4","views=grid(20,4) list(60) table(60)","categoryView=grid","searchView=list","id=my-store-140532633");</script>
+      <!-- "Available in X colours" under each product in the grid. Ecwid has
+           no setting for this, so the counts live here, keyed by Ecwid
+           product ID. Add a line when a new multi-colour product goes live;
+           products not listed (single colour) show nothing. -->
+      <script type="text/javascript">
+        (function () {
+          var COLOURS = {
+            // TGC
+            878405389: 11, 878396981: 2, 878405420: 5, 878405421: 5,   // BirdBox Eagle Tee: main, Black & Charcoal, Bright, Light
+            878405425: 11, 878405424: 2, 878405423: 5, 878396982: 5,   // Course Logo Back Tee
+            878405427: 11, 878396985: 2, 878417127: 5, 878417126: 5,   // Course Logo Front Tee
+            // TCC (Light has 3 colours, Bright 7)
+            878417130: 11, 878396988: 2, 878405430: 7, 878417131: 3,   // BirdBox Eagle Tee
+            878417132: 11, 878405431: 2, 878417133: 7, 878396989: 3,   // Course Logo Back Tee
+            878396990: 11, 878417135: 2, 878396991: 7, 878417134: 3    // Course Logo Front Tee
+          };
+          function label() {
+            var cards = document.querySelectorAll('#my-store-140532633 .grid-product');
+            for (var i = 0; i < cards.length; i++) {
+              var card = cards[i];
+              if (card.querySelector('.bb-colours')) continue;
+              var link = card.querySelector('a[href*="/p/"]');
+              var m = link && link.getAttribute('href').match(/\/p\/(\d+)/);
+              var n = m && COLOURS[m[1]];
+              if (!n) continue;
+              var anchor = card.querySelector('.grid-product__price') || card.querySelector('.grid-product__title');
+              if (!anchor) continue;
+              var tag = document.createElement('div');
+              tag.className = 'bb-colours';
+              tag.textContent = 'Available in ' + n + ' colours';
+              anchor.parentNode.insertBefore(tag, anchor.nextSibling);
+            }
+          }
+          var store = document.getElementById('my-store-140532633');
+          new MutationObserver(label).observe(store, { childList: true, subtree: true });
+          label();
+        })();
+      </script>
     </div>
   </section>
 
