@@ -322,6 +322,41 @@
       </script>
       <script data-cfasync="false" type="text/javascript" src="https://app.ecwid.com/script.js?140532633&data_platform=code&data_date=2026-08-10" charset="utf-8"></script>
       <script type="text/javascript"> xProductBrowser("categoriesPerRow=4","views=grid(20,4) list(60) table(60)","categoryView=grid","searchView=list","id=my-store-140532633");</script>
+      <!-- Product page: show the chosen colour in the main picture. Ecwid only
+           does this when each variation has its own image, which Printful's
+           sync doesn't set, so the colour → picture map lives in
+           colour-pictures.js (re-generate it with scripts/shop-colour-pictures.py
+           after republishing products). -->
+      <script src="/shop/colour-pictures.js"></script>
+      <script type="text/javascript">
+        (function () {
+          var BASE = 'https://d2j6dbq0eux0bg.cloudfront.net/images/140532633/products/';
+          var current = null;
+          if (window.Ecwid && Ecwid.OnPageLoaded) {
+            Ecwid.OnPageLoaded.add(function (page) {
+              current = page && page.type === 'PRODUCT' ? page.productId : null;
+            });
+          }
+          function show(select) {
+            var map = current && window.BB_COLOUR_PICS && window.BB_COLOUR_PICS[current];
+            if (!map || select.selectedIndex < 0) return;
+            var file = map[select.options[select.selectedIndex].text.trim()];
+            var img = document.querySelector('#my-store-140532633 .details-gallery__picture');
+            if (!file || !img) return;
+            var url = BASE + current + '/' + file + '.jpg';
+            img.src = url;
+            img.srcset = url + ' 1x';
+          }
+          document.addEventListener('change', function (e) {
+            var s = e.target;
+            if (s && s.tagName === 'SELECT' && s.closest('#my-store-140532633 .product-details-module')) {
+              // Ecwid redraws after a choice, so set the picture once it has settled.
+              setTimeout(function () { show(s); }, 50);
+              setTimeout(function () { show(s); }, 400);
+            }
+          }, true);
+        })();
+      </script>
       <!-- "Available in X colours" under each product in the grid. Ecwid has
            no setting for this, so the counts live here, keyed by Ecwid
            product ID. Add a line when a new multi-colour product goes live;
