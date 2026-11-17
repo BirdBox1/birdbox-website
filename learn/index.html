@@ -1247,6 +1247,8 @@ async function showLive(session, ownedOnline, finishedOnline) {
     return a;
   };
   const row = (c, cert, withManual) => {
+    // a SimpleCert certificate we no longer have a copy of shows as verified
+    if (c.past && !c.has_pdf) cert = false;
     const b = BRAND[c.brand] || BRAND.birdbox;
     const el = document.createElement("div");
     el.className = "lc";
@@ -1259,7 +1261,7 @@ async function showLive(session, ownedOnline, finishedOnline) {
     if (c.brand === "tcc") { const g = document.createElement("span"); g.className = "tag"; g.textContent = "Formerly BirdBox Coaching Development"; txt.appendChild(g); }
     const m = document.createElement("small");
     const manual = withManual && c.manual;
-    m.textContent = [c.kind === "workshop" ? "Workshop" : "Live seminar", fmt(c.awarded_on || c.date), c.place,
+    m.textContent = [c.kind === "workshop" ? "Workshop" : c.kind === "online" ? "Online course" : "Live seminar", fmt(c.awarded_on || c.date), c.place,
       !cert && manual ? "Verified by BirdBox" : null].filter(Boolean).join(" · ");
     txt.appendChild(m);
     el.append(img, txt);
@@ -1267,7 +1269,7 @@ async function showLive(session, ownedOnline, finishedOnline) {
       const btn = document.createElement("button");
       btn.type = "button"; btn.className = "btn small"; btn.textContent = "Download certificate";
       const msg = document.createElement("div"); msg.className = "msg";
-      btn.onclick = () => fetchLiveCert(c.id, btn, msg);
+      btn.onclick = () => (c.past ? fetchPastCert(c.id, btn, msg) : fetchLiveCert(c.id, btn, msg));
       if (manual) {
         const acts = document.createElement("div"); acts.className = "acts";
         acts.append(manualBtn(c), btn);
@@ -1320,9 +1322,11 @@ async function showLive(session, ownedOnline, finishedOnline) {
   $("soon").classList.toggle("hidden", !(d.upcoming || []).length);
   const box = $("live-list"); box.innerHTML = "";
   renderCerts(finishedOnline, d.live, d.earlier, row);
-  d.live.forEach((c) => box.appendChild(row(c, true, true)));
+  // the old online course certificates are on the Certificates tab only
+  const liveOnly = d.live.filter((c) => c.kind !== "online");
+  liveOnly.forEach((c) => box.appendChild(row(c, true, true)));
   d.earlier.forEach((c) => box.appendChild(row(c, false, true)));
-  $("live").classList.toggle("hidden", !(d.live.length || d.earlier.length));
+  $("live").classList.toggle("hidden", !(liveOnly.length || d.earlier.length));
   showNext(ownedOnline, finishedOnline, [...d.live, ...d.earlier]);
 }
 
@@ -1344,6 +1348,27 @@ async function fetchLiveCert(id, btn, msg) {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
     msg.className = "msg ok"; msg.textContent = "Downloaded. Reference " + d.reference + ".";
+  } catch (e) { msg.className = "msg err"; msg.textContent = e.message; }
+  btn.disabled = false; btn.textContent = label;
+}
+
+// A certificate we sent through SimpleCert before BirdBox Learn: the PDF
+// they were sent, from a link that lasts a few minutes.
+async function fetchPastCert(id, btn, msg) {
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = "Fetching your certificate…"; msg.className = "msg"; msg.textContent = "";
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    const r = await fetch("/.netlify/functions/learn-live-courses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
+      body: JSON.stringify({ past_id: id }),
+    });
+    const d = await r.json();
+    if (!r.ok || !d.url) throw new Error(d.error || "Something went wrong.");
+    const a = document.createElement("a"); a.href = d.url; a.download = d.filename || "Certificate.pdf";
+    document.body.appendChild(a); a.click(); a.remove();
+    msg.className = "msg ok"; msg.textContent = "Downloaded.";
   } catch (e) { msg.className = "msg err"; msg.textContent = e.message; }
   btn.disabled = false; btn.textContent = label;
 }
