@@ -176,7 +176,9 @@
   /* On a product page: hide the filters, and keep the main picture small
      enough that the colour pictures underneath show without scrolling. */
   .mrc-store:has(.ec-store__product-page) .bb-filter { display: none; }
-  .mrc-store .details-gallery__wrap { max-width: 420px; margin-left: auto; margin-right: auto; }
+  /* Smaller main picture on product pages so the colour pictures underneath
+     show without scrolling. Ecwid's own rule wins without !important. */
+  .mrc-store .ec-size .details-gallery__wrap { max-width: 440px !important; margin-left: auto !important; margin-right: auto !important; }
 
   .mrc-note {
     font-size: 13px; color: var(--muted); margin: 14px 0 0; line-height: 1.6;
