@@ -300,6 +300,7 @@
         <button type="button" data-value="tee" aria-pressed="false">T-shirts</button>
         <button type="button" data-value="hoodie" aria-pressed="false">Hoodies</button>
         <button type="button" data-value="sweatshirt" aria-pressed="false">Sweatshirts</button>
+        <button type="button" data-value="hat" aria-pressed="false">Hats</button>
       </div>
       <p class="bb-filter__empty" hidden>Nothing here yet. Try another filter.</p>
     </div>
@@ -345,7 +346,9 @@
             878622403: 2, 878548713: 2, 878548725: 2, 878622404: 3,    // TCC Course Logo Front Hoodie
             878622405: 2, 878579022: 2, 878577025: 2, 878631582: 3,    // TCC Course Logo Back Hoodie
             878622406: 2, 878579811: 2, 878579072: 2, 878622408: 3,    // TCC Course Logo Front Sweatshirt
-            878622409: 2, 878579770: 2, 878577043: 2, 878622674: 3     // TCC Course Logo Back Sweatshirt
+            878622409: 2, 878579770: 2, 878577043: 2, 878622674: 3,    // TCC Course Logo Back Sweatshirt
+            // Trucker hats (TGC Cranberry is a single colour, so no label)
+            878671251: 3, 878622696: 6
           };
           function label() {
             var cards = document.querySelectorAll('#my-store-140532633 .grid-product');
@@ -370,6 +373,7 @@
           function kind(name) {
             if (/hoodie/i.test(name)) return 'hoodie';
             if (/sweatshirt/i.test(name)) return 'sweatshirt';
+            if (/\bhat\b|cap\b/i.test(name)) return 'hat';
             return 'tee';
           }
           function filter() {
