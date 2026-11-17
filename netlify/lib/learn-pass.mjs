@@ -91,6 +91,22 @@ async function verifiedLiveL1(user, email) {
   return out;
 }
 
+// Their most recent Level 1 seminar certificate per course, sent through
+// SimpleCert in the last five years: { tgc: id, tcc: id }
+export const PAST_OFFER_YEARS = 5;
+export async function recentPastL1(email) {
+  const e = String(email || "").trim().toLowerCase();
+  if (!e) return {};
+  const since = new Date();
+  since.setFullYear(since.getFullYear() - PAST_OFFER_YEARS);
+  const { data } = await db.from("past_certificates").select("id, brand, awarded_on")
+    .eq("email", e).eq("kind", "seminar").eq("level", "1")
+    .gte("awarded_on", since.toISOString().slice(0, 10)).order("awarded_on", { ascending: false });
+  const out = {};
+  for (const p of data || []) if (!out[p.brand]) out[p.brand] = p.id;
+  return out;
+}
+
 const split = (name) => {
   const n = String(name || "").replace(/\s+/g, " ").trim();
   const i = n.lastIndexOf(" ");
@@ -120,7 +136,7 @@ export async function lockedName(user, email) {
 
 // What they are owed, for the My courses tab
 export async function discountsFor(user, email) {
-  const [online, live, verified] = await Promise.all([onlineL1(email), liveL1(email), verifiedLiveL1(user, email)]);
+  const [online, live, verified, recent] = await Promise.all([onlineL1(email), liveL1(email), verifiedLiveL1(user, email), recentPastL1(email)]);
   const out = [];
   for (const b of BRANDS) {
     const lives = live.filter((r) => String(r.courses.brand).toLowerCase() === b);
@@ -133,6 +149,9 @@ export async function discountsFor(user, email) {
     // live -> online: attended, and no online course yet
     const attended = active.find((r) => r.attended === true);
     if (attended && !online.has(b)) out.push({ kind: "online", brand: b, registration_id: attended.id });
+    // or a Level 1 seminar certificate sent through SimpleCert in the last
+    // five years (Nathan, 17 Nov 2026)
+    else if (!attended && !online.has(b) && recent[b]) out.push({ kind: "online", brand: b, past_certificate_id: recent[b] });
   }
   return out;
 }

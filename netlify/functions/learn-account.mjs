@@ -423,17 +423,25 @@ async function onlineOffer(user, email, brand) {
   if (!BRANDS.includes(brand)) return json({ error: "That discount could not be found." }, 404);
   const mine = (await discountsFor(user, email)).find((d) => d.kind === "online" && d.brand === brand);
   if (!mine) return json({ error: "That discount could not be found." }, 404);
+  // from a seminar booked with us, or a SimpleCert certificate from the
+  // last five years (Nathan, 17 Nov 2026)
+  const col = mine.registration_id ? "registration_id" : "past_certificate_id";
+  const key = mine.registration_id || mine.past_certificate_id;
   let { data: offer } = await db.from("online_offers").select("id, token, redeemed_at")
-    .eq("registration_id", mine.registration_id).maybeSingle();
+    .eq(col, key).maybeSingle();
   if (offer?.redeemed_at) return json({ error: "You have already used this discount." }, 409);
   if (!offer) {
-    const { data: reg } = await db.from("registrations").select("course_id").eq("id", mine.registration_id).maybeSingle();
+    let courseId = null;
+    if (mine.registration_id) {
+      const { data: reg } = await db.from("registrations").select("course_id").eq("id", mine.registration_id).maybeSingle();
+      courseId = reg?.course_id || null;
+    }
     await db.from("online_offers").upsert({
-      token: randomBytes(18).toString("base64url"), registration_id: mine.registration_id,
-      course_id: reg?.course_id || null, brand, level: "1", discount_percent: PASS_PERCENT,
-    }, { onConflict: "registration_id", ignoreDuplicates: true });
+      token: randomBytes(18).toString("base64url"), [col]: key,
+      course_id: courseId, brand, level: "1", discount_percent: PASS_PERCENT,
+    }, { onConflict: col, ignoreDuplicates: true });
     ({ data: offer } = await db.from("online_offers").select("id, token, redeemed_at")
-      .eq("registration_id", mine.registration_id).maybeSingle());
+      .eq(col, key).maybeSingle());
   }
   if (!offer?.token) return json({ error: "Your link could not be made. Write to info@birdboxcoaching.com." }, 500);
   return json({ url: `/offer/?t=${offer.token}` });
