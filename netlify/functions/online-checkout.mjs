@@ -464,11 +464,29 @@ async function findOffer(token) {
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(t)) return null;
   const { data } = await supabase
     .from("online_offers")
-    .select("id, token, registration_id, brand, level, discount_percent, opened_at, redeemed_at, " +
-            "registrations ( first_name, last_name, email, attended, status, country, source )")
+    .select("id, token, registration_id, past_certificate_id, brand, level, discount_percent, opened_at, redeemed_at, " +
+            "registrations ( first_name, last_name, email, attended, status, country, source ), " +
+            "past_certificates ( participant_name, email, awarded_on )")
     .eq("token", t)
     .maybeSingle();
-  if (!data || !data.registrations) return null;
+  if (!data) return null;
+  // From a certificate we sent through SimpleCert (Nathan, 17 Nov 2026):
+  // they came, so they count as attended, for five years from the date
+  // on it. The rest of the checkout reads them like a registration.
+  if (!data.registrations && data.past_certificates) {
+    const p = data.past_certificates;
+    const since = new Date();
+    since.setFullYear(since.getFullYear() - 5);
+    if (String(p.awarded_on) < since.toISOString().slice(0, 10)) return null;
+    const n = String(p.participant_name || "").trim();
+    const i = n.lastIndexOf(" ");
+    data.registrations = {
+      first_name: i > 0 ? n.slice(0, i) : n, last_name: i > 0 ? n.slice(i + 1) : "",
+      email: p.email, attended: true, status: "active", country: null, source: "simplecert",
+    };
+    return data;
+  }
+  if (!data.registrations) return null;
   // Only somebody who actually turned up. A later "did not attend"
   // or a cancellation takes the offer away again.
   const r = data.registrations;
