@@ -178,6 +178,13 @@
   .mrc-store:has(.ec-store__product-page) .bb-filter { display: none; }
   /* Smaller main picture on product pages so the colour pictures underneath
      show without scrolling. Ecwid's own rule wins without !important. */
+  .mrc-store .ec-size .bb-fold { max-height: 6.8em !important; overflow: hidden !important; position: relative; }
+  .mrc-store .bb-fold::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2.6em; background: linear-gradient(rgba(255,255,255,0), #FFFFFF); pointer-events: none; }
+  .mrc-store .ec-size .bb-fold.bb-fold--open { max-height: none !important; }
+  .mrc-store .bb-fold.bb-fold--open::after { display: none; }
+  .mrc-store .bb-fold__btn { font: inherit; font-size: 14px; font-weight: 700; color: #1A6FA8; background: none; border: 0; padding: 6px 0; margin-top: 4px; cursor: pointer; }
+  .mrc-store .bb-fold__btn:hover { text-decoration: underline; }
+  .mrc-store .bb-fold__btn:focus-visible { outline: 2px solid #1A6FA8; outline-offset: 2px; }
   .mrc-store .ec-size .details-gallery__wrap { max-width: 440px !important; margin-left: auto !important; margin-right: auto !important; }
 
   .mrc-note {
@@ -393,10 +400,30 @@
               filter();
             });
           }
+          // Product page: show the first few lines of Product Details with a
+          // "Show more" button that opens the rest.
+          function fold() {
+            var d = document.querySelector('#my-store-140532633 .product-details__product-description');
+            if (!d || d.getAttribute('data-bb-fold')) return;
+            d.setAttribute('data-bb-fold', '1');
+            d.classList.add('bb-fold');
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'bb-fold__btn';
+            b.textContent = 'Show more';
+            b.setAttribute('aria-expanded', 'false');
+            b.addEventListener('click', function () {
+              var open = d.classList.toggle('bb-fold--open');
+              b.textContent = open ? 'Show less' : 'Show more';
+              b.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+            d.parentNode.insertBefore(b, d.nextSibling);
+          }
           var store = document.getElementById('my-store-140532633');
-          new MutationObserver(function () { label(); filter(); }).observe(store, { childList: true, subtree: true });
+          new MutationObserver(function () { label(); filter(); fold(); }).observe(store, { childList: true, subtree: true });
           label();
           filter();
+          fold();
         })();
       </script>
     </div>
