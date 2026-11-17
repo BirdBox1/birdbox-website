@@ -136,3 +136,11 @@ UNION ALL
     NULL::text AS course_title,
     'simplecert'::text AS source
    FROM past_certificates pc;
+
+-- When a certificate went to a different email from the one the person
+-- logs in with (a box address, an old address), the office moves it to
+-- their login and keeps where it was sent (Nathan, 17 Nov 2026). Moved
+-- one certificate at a time, never a whole address, as some addresses
+-- received more than one person's certificate.
+alter table public.past_certificates add column original_email text;
+comment on column public.past_certificates.original_email is 'The email SimpleCert sent it to, when the office has since moved it to the address the person logs in with (Nathan, 17 Nov 2026).';
