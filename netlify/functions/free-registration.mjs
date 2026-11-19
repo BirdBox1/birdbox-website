@@ -105,7 +105,7 @@ export default async (req) => {
       .from("registrations")
       .select("id, status")
       .eq("course_id", course.id)
-      .ilike("email", email)
+      .ilike("email", String(email).replace(/[%_\\]/g, "\\$&"))
       .maybeSingle();
 
     if (already && (already.status || "active") === "active") {

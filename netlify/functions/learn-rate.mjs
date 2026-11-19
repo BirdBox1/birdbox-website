@@ -72,7 +72,7 @@ export default async (req) => {
       const { error } = await db.from("learn_portfolio_invites")
         .update({ ratings, rater_name: name, submitted_at: new Date().toISOString() })
         .eq("id", found.inv.id).is("submitted_at", null);
-      if (error) return json({ ok: false, error: error.message }, 500);
+      if (error) { console.error("learn-rate save:", error.message); return json({ ok: false, error: "Something went wrong. Please try again." }, 500); }
       return json({ ok: true });
     }
 

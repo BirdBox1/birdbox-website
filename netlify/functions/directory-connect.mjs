@@ -31,7 +31,7 @@ const LINK_RE = /(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|io|co|ai|app|info
 async function myListing(user) {
   const email = String(user.email || "").toLowerCase();
   let { data: p } = await db.from("directory_profiles").select(PROFILE_FIELDS).eq("user_id", user.id).maybeSingle();
-  if (!p) ({ data: p } = await db.from("directory_profiles").select(PROFILE_FIELDS).ilike("email", email).limit(1).maybeSingle());
+  if (!p) ({ data: p } = await db.from("directory_profiles").select(PROFILE_FIELDS).ilike("email", String(email).replace(/[%_\\]/g, "\\$&")).limit(1).maybeSingle());
   if (!p || !p.visible || p.hidden_at) return null;
   const quals = (await qualificationsFor([p])).get(p.id);
   return statusOf(p, quals) === "live" ? p : null;

@@ -352,7 +352,7 @@ async function onCheckoutCompleted(session) {
       .from("abandoned_checkouts")
       .update({ recovered_at: new Date().toISOString() })
       .eq("course_id", meta.course_id)
-      .ilike("email", details.email)
+      .ilike("email", String(details.email).replace(/[%_\\]/g, "\\$&"))
       .is("recovered_at", null);
 
     if (recoverError) {
@@ -1645,7 +1645,7 @@ async function recordAbandoned(session, reason, fallbackEmail) {
     .from("registrations")
     .select("id, payment_status")
     .eq("course_id", meta.course_id)
-    .ilike("email", email)
+    .ilike("email", String(email).replace(/[%_\\]/g, "\\$&"))
     .eq("status", "active")
     .in("payment_status", ["paid_in_full", "deposit_paid"])
     .limit(1);
