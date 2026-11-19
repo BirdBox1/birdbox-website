@@ -553,25 +553,58 @@ async function moveStart(email, tier, context) {
 // and come back, and it is the normal price). The first 7 days are free:
 // card now, the first €35 on day 8. Open until offer_until, 30 days from
 // the email; after that it is gone and they see the normal prices. Not
-// shown to anyone already on a programming plan.
+// shown to anyone already on a paid programming plan.
+//
+// Anyone on the two-week free trial can now see it during the trial (a
+// trial is not a plan). A row with source "trial offer" is the same offer
+// made to a trialist (Nathan, 19 Nov 2026, Susanna Teran): no "welcome
+// back", and instead of 7 more free days the first €35 is taken the day
+// after their trial ends. Past members keep their 7 free days.
+const TRIAL_OFFER = "trial offer";
 const COMEBACK_CENTS = 3500, COMEBACK_FREE_DAYS = 7;
 async function comebackOffer(email) {
   const { data } = await train().from("comeback_offers").select("*").eq("email", email).maybeSingle();
   return data || null;
 }
 const dublinToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Dublin" });
+// a paid (or given) plan: the free trial does not count
 async function onPlan(user, email) {
   const a = await athleteOf(user, email);
   if (!a) return false;
   const { count } = await train().from("enrolments").select("id", { count: "exact", head: true })
-    .eq("athlete_id", a.id).in("status", ["consulting", "active", "past_due", "paused"]).lte("tier", 5);
+    .eq("athlete_id", a.id).in("status", ["consulting", "active", "past_due", "paused"]).lte("tier", 5)
+    .not("is_trial", "is", true);
   return (count || 0) > 0;
+}
+// the last day of their free trial (on now or ended), "YYYY-MM-DD", or null
+async function trialLastDay(user, email) {
+  const a = await athleteOf(user, email);
+  if (!a) return null;
+  const { data } = await train().from("enrolments").select("end_date")
+    .eq("athlete_id", a.id).eq("is_trial", true).not("end_date", "is", null)
+    .order("end_date", { ascending: false }).limit(1);
+  return data?.[0]?.end_date || null;
+}
+// when the first €35 is taken: the day after the trial (Stripe needs it at
+// least two days ahead, so a trial ending tomorrow or already over is
+// charged now: no extra free days), or day 8 for a past member
+function comebackFirstCharge(trialOffer, lastDay) {
+  if (trialOffer) {
+    if (!lastDay) return null;
+    const t = Math.floor(new Date(lastDay + "T12:00:00Z").getTime() / 1000) + 86400;
+    return t > Math.ceil(Date.now() / 1000) + 2 * 86400 + 3600 ? t : null;
+  }
+  return Math.floor(Date.now() / 1000) + COMEBACK_FREE_DAYS * 86400;
 }
 async function comebackView(user, email) {
   const o = await comebackOffer(email);
   if (!o || o.status !== "emailed" || !o.offer_until || o.offer_until < dublinToday()) return null;
   if (await onPlan(user, email)) return null;
-  return { first_name: o.first_name, deadline: o.offer_until, cents: COMEBACK_CENTS, normal_cents: 6000, free_days: COMEBACK_FREE_DAYS };
+  const trial = o.source === TRIAL_OFFER;
+  const trial_end = trial ? await trialLastDay(user, email) : null;
+  const first = trial ? comebackFirstCharge(true, trial_end) : null;
+  return { trial, first_name: o.first_name, deadline: o.offer_until, cents: COMEBACK_CENTS, normal_cents: 6000, free_days: COMEBACK_FREE_DAYS,
+    trial_end, first_charge: first ? new Date(first * 1000).toISOString().slice(0, 10) : null };
 }
 async function comebackStart(user, email, context) {
   const o = await comebackOffer(email);
@@ -582,7 +615,13 @@ async function comebackStart(user, email, context) {
   if (!product) return json({ error: "That plan is not on sale yet." }, 400);
   const country = String(context?.geo?.country?.code || "").toUpperCase();
   const meta = { app: "birdbox-train", kind: "programming", tier: "2", comeback_offer: o.id, country };
-  const first = new Date(Date.now() + COMEBACK_FREE_DAYS * 86400000).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+  const trial = o.source === TRIAL_OFFER;
+  const lastDay = trial ? await trialLastDay(user, email) : null;
+  const firstAt = comebackFirstCharge(trial, lastDay);
+  const first = firstAt ? new Date(firstAt * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "long" }) : null;
+  const note = !trial ? "Your first 7 days are free. Nothing is taken until " + first + "; cancel before then in BirdBox Learn and you pay nothing."
+    : first ? "Your free trial carries on. Nothing is taken until " + first + ", the day after it ends; cancel before then in BirdBox Learn and you pay nothing."
+    : "Your free trial is ending or has ended, so your first month starts today.";
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer_email: email,
@@ -591,9 +630,9 @@ async function comebackStart(user, email, context) {
     automatic_tax: { enabled: vatApplies(country) },
     line_items: [{ quantity: 1, price_data: { currency: "eur", product, unit_amount: COMEBACK_CENTS,
       tax_behavior: "inclusive", recurring: { interval: "month" } } }],
-    subscription_data: { metadata: meta, trial_period_days: COMEBACK_FREE_DAYS },
+    subscription_data: { metadata: meta, ...(firstAt ? { trial_end: firstAt } : {}) },
     metadata: meta,
-    custom_text: { submit: { message: "Your first 7 days are free. Nothing is taken until " + first + "; cancel before then in BirdBox Learn and you pay nothing." } },
+    custom_text: { submit: { message: note } },
     success_url: "https://www.birdboxcoaching.com/learn/?moved=1#programming",
     cancel_url: RETURN_URL,
   });
