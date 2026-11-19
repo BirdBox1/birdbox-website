@@ -123,7 +123,7 @@ async function isStaff(user) {
 async function athleteOf(user, email) {
   const { data: byId } = await train().from("athletes").select("id, email").eq("id", user.id).maybeSingle();
   if (byId) return byId;
-  const { data: byEmail } = await train().from("athletes").select("id, email").ilike("email", email).limit(1);
+  const { data: byEmail } = await train().from("athletes").select("id, email").ilike("email", String(email).replace(/[%_\\]/g, "\\$&")).limit(1);
   return byEmail?.[0] || null;
 }
 

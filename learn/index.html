@@ -738,7 +738,8 @@ $("login-form").addEventListener("submit", async (e) => {
 const params = new URLSearchParams(location.search);
 if (params.get("expired")) {
   $("expired-note").classList.remove("hidden");
-  if (params.get("email")) $("l-email").value = params.get("email");
+  const hashEmail = location.hash.startsWith("#e=") ? decodeURIComponent(location.hash.slice(3)) : "";
+  if (params.get("email") || hashEmail) $("l-email").value = params.get("email") || hashEmail;
 }
 if (params.get("welcome")) {
   $("welcome-note").classList.remove("hidden");
@@ -789,7 +790,7 @@ $("b-link").addEventListener("click", async () => {
 });
 // Back from the move checkout (?moved=1): you are in, now get the app (Nathan, 7 Nov 2026)
 if (params.get("moved")) $("moved-note").classList.remove("hidden");
-if (params.get("welcome") || params.get("expired") || params.get("move") || params.get("move_offer") || params.get("moved") || params.get("offer")) history.replaceState(null, "", "/learn/" + location.hash);
+if (params.get("welcome") || params.get("expired") || params.get("move") || params.get("move_offer") || params.get("moved") || params.get("offer")) history.replaceState(null, "", "/learn/" + (location.hash.startsWith("#e=") ? "" : location.hash));
 
 
 // "New here?" switches the form to email only: type it, get a login
@@ -868,7 +869,7 @@ async function boot() {
 
   const [{ data: isAdmin }, { data: enr }, { data: att }, { data: certs }] = await Promise.all([
     db.rpc("learn_is_admin"),
-    db.from("learn_enrolments").select("course_id, lw_completed_at, learn_courses(id, slug, title, brand, level, language, ceus, current_version, active)"),
+    db.from("learn_enrolments").select("course_id, lw_completed_at, learn_courses(id, slug, title, brand, level, language, ceus, ready, active)"),
     db.from("learn_attempts").select("course_id, completion_status, success_status, progress, score_scaled, completed_at, updated_at").eq("user_id", session.user.id),
     db.from("learn_certificates").select("course_id, reference").eq("user_id", session.user.id),
   ]);
@@ -879,7 +880,7 @@ async function boot() {
   const map = new Map();
   for (const e of enr || []) if (e.learn_courses && e.learn_courses.active) map.set(e.learn_courses.id, { ...e.learn_courses, admin: false, lwDone: e.lw_completed_at || null });
   if (isAdmin) {
-    const { data: all } = await db.from("learn_courses").select("id, slug, title, brand, level, language, ceus, current_version, active").eq("active", true);
+    const { data: all } = await db.from("learn_courses").select("id, slug, title, brand, level, language, ceus, ready, active").eq("active", true);
     for (const c of all || []) if (!map.has(c.id)) map.set(c.id, { ...c, admin: true });
   }
   const attempts = new Map((att || []).map((a) => [a.course_id, a]));
@@ -949,7 +950,7 @@ async function boot() {
 
     const st = document.createElement("div");
     st.className = "status" + (done ? " done" : "");
-    st.textContent = !c.current_version ? "Coming soon"
+    st.textContent = !c.ready ? "Coming soon"
       : liveDone ? (a.success_status === "passed" && a.score_scaled != null ? "Passed · " + Math.round(a.score_scaled * 100) + "%" : "Completed ✓")
       : done ? "Completed on BirdBox Academy ✓"
       : a ? "In progress" : "Not started";
@@ -963,8 +964,8 @@ async function boot() {
     const go = document.createElement("a");
     go.className = "btn";
     go.href = "/learn/player/?course=" + encodeURIComponent(c.slug);
-    go.textContent = !c.current_version ? "Not ready yet" : done ? "Review course" : a ? "Continue →" : "Start course →";
-    if (!c.current_version) { go.removeAttribute("href"); go.style.opacity = ".5"; }
+    go.textContent = !c.ready ? "Not ready yet" : done ? "Review course" : a ? "Continue →" : "Start course →";
+    if (!c.ready) { go.removeAttribute("href"); go.style.opacity = ".5"; }
 
     card.append(top, st, prog, go);
     const pf = portfolioFor(c);
@@ -975,7 +976,7 @@ async function boot() {
       pb.textContent = pf.own ? "Open my portfolio →" : "Open my portfolio (English) →";
       card.appendChild(pb);
     }
-    if (done && c.current_version) card.appendChild(certBlock(c, certByCourse.get(c.id), defaultName));
+    if (done && c.ready) card.appendChild(certBlock(c, certByCourse.get(c.id), defaultName));
     box.appendChild(card);
   }
   arrive();
@@ -1643,7 +1644,7 @@ let certInfo = new Map();
 let certName = "";
 function renderCerts(finishedOnline, live, earlier, liveRow) {
   const box = $("cert-list"); box.innerHTML = "";
-  for (const c of finishedOnline.filter((x) => x.current_version)) {
+  for (const c of finishedOnline.filter((x) => x.ready)) {
     const b = BRAND[String(c.brand || "").toLowerCase()] || BRAND.tcc;
     const el = document.createElement("div");
     el.className = "lc"; el.style.setProperty("--c", b.c);

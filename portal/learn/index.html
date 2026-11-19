@@ -363,10 +363,17 @@ async function start() {
 async function loadCourses() {
   const { data, error } = await db
     .from("learn_courses")
-    .select("id, slug, title, brand, level, language, ceus, active, current_version, learn_versions!learn_versions_course_id_fkey(id, status, file_count, total_bytes, created_at)")
+    .select("id, slug, title, brand, level, language, ceus, active, ready, learn_versions!learn_versions_course_id_fkey(id, status, file_count, total_bytes, created_at)")
     .order("brand").order("level").order("language");
   if (error) { $("courses").innerHTML = '<p class="msg err"></p>'; $("courses").firstChild.textContent = error.message; return; }
   courses = data || [];
+  // The live package id is no longer a readable column (19 Nov 2026):
+  // admins get it from learn_current_versions.
+  if (courses.length) {
+    const { data: cv } = await db.rpc("learn_current_versions", { ids: courses.map((c) => c.id) });
+    const byId = new Map((cv || []).map((x) => [x.course_id, x.version_id]));
+    for (const c of courses) c.current_version = byId.get(c.id) || null;
+  }
 
   const list = $("courses");
   list.innerHTML = "";

@@ -152,7 +152,7 @@ async function boot() {
   if (!slug) { note("No course picked", "This link is missing the course name."); return; }
 
   const { data: c } = await db.from("learn_courses")
-    .select("id, slug, title, current_version, active").eq("slug", slug).maybeSingle();
+    .select("id, slug, title, ready, active").eq("slug", slug).maybeSingle();
   if (!c || !c.active) { note("Course not found", "We could not find this course. Check the link, or write to info@birdboxcoaching.com."); return; }
   course = c;
   $("title").textContent = c.title;
@@ -167,9 +167,12 @@ async function boot() {
     return;
   }
 
-  if (!c.current_version) { note("Coming soon", "This course is not ready to play yet."); return; }
-  const { data: v } = await db.from("learn_versions").select("id, launch_path").eq("id", c.current_version).single();
-  version = v;
+  if (!c.ready) { note("Coming soon", "This course is not ready to play yet."); return; }
+  // The package id is only given to buyers, admins and all-access (19 Nov 2026)
+  const { data: vs } = await db.rpc("learn_current_versions", { ids: [c.id] });
+  const v = (vs || [])[0];
+  if (!v || !v.version_id || !v.launch_path) { note("Coming soon", "This course is not ready to play yet."); return; }
+  version = { id: v.version_id, launch_path: v.launch_path };
 
   const { data: a } = await db.from("learn_attempts")
     .select("cmi, completed_at, version_id").eq("user_id", session.user.id).eq("course_id", c.id).maybeSingle();

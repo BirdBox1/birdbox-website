@@ -28,7 +28,8 @@ export default async (req) => {
   const email = String(url.searchParams.get("e") || "").trim().toLowerCase();
   const x = parseInt(url.searchParams.get("x") || "0", 10);
   const sig = String(url.searchParams.get("s") || "");
-  const fallback = origin + "/learn/?expired=1&email=" + encodeURIComponent(email);
+  // The email rides after the #, so it never reaches server logs or other sites
+  const fallback = origin + "/learn/?expired=1#e=" + encodeURIComponent(email);
 
   try {
     if (!email || !x || !sig) return go(origin + "/learn/");

@@ -85,7 +85,7 @@ export default async () => {
       .from("registrations")
       .select("id")
       .eq("course_id", row.course_id)
-      .ilike("email", row.email)
+      .ilike("email", String(row.email).replace(/[%_\\]/g, "\\$&"))
       .eq("status", "active")
       .in("payment_status", ["paid_in_full", "deposit_paid"])
       .limit(1);

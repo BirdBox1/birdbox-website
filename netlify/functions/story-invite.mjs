@@ -80,7 +80,7 @@ async function invite({ email, fullName, role }, me) {
   const { data: existing } = await supabase
     .from("staff")
     .select("id, full_name, active")
-    .ilike("email", address)
+    .ilike("email", String(address).replace(/[%_\\]/g, "\\$&"))
     .maybeSingle();
 
   if (existing) {
