@@ -38,6 +38,9 @@
   .msg{font-size:14px;margin:12px 0 0;min-height:1em}
   .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
   .hidden{display:none!important}
+  /* logged out while the course is open (19 Nov 2026) */
+  .relog{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:24px;background:rgba(10,8,8,.82)}
+  .relog input[readonly]{color:var(--muted)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/scorm-again@3.4.4/dist/scorm2004.min.js"></script>
 <link rel="icon" href="/favicon-birdbox.ico" sizes="any">
@@ -79,6 +82,21 @@
 </div>
 
 <div id="stage" class="hidden"></div>
+
+<!-- Logged out while the course is open: log back in without leaving it -->
+<div id="relog" class="relog hidden" role="dialog" aria-modal="true" aria-labelledby="r-h">
+  <form class="card" id="relog-form">
+    <h1 id="r-h">You have been logged out</h1>
+    <p>Your progress since then has not been saved. Log in again and we will save your place straight away.</p>
+    <label for="r-email">Email</label>
+    <input id="r-email" type="email" readonly>
+    <label for="r-pass">Password</label>
+    <input id="r-pass" type="password" autocomplete="current-password">
+    <button id="r-go" type="submit">Log in and save</button>
+    <button id="r-link" type="button" class="ghost">Email me a login link instead</button>
+    <div id="r-msg" class="msg"></div>
+  </form>
+</div>
 
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/+esm";
@@ -136,6 +154,7 @@ $("l-link").addEventListener("click", async () => {
 // ---------------- load ----------------
 
 let session, course, version, attempt, api;
+let ownerId = null, lapsed = false;
 let started = false, starting = null;
 
 start();
@@ -179,6 +198,7 @@ async function boot() {
   attempt = a;
 
   started = true;
+  ownerId = session.user.id;
   launch();
 }
 
@@ -267,11 +287,29 @@ async function saveNow() {
   clearTimeout(timer);
   if (!api || !course) return;
   if (saving) { again = true; return; }
+  if (lapsed) return;
   saving = true;
   $("saved").className = "s";
   $("saved").textContent = "Saving…";
+  // Still logged in? A login can lapse while the course is open (logged
+  // out in another tab, or away too long): never save as nobody.
+  const live = await liveSession();
+  if (!live || live.user.id !== ownerId) {
+    saving = false; again = false;
+    if (live) { location.reload(); return; }   // now someone else: start again as them
+    showLapsed(); return;
+  }
+  session = live;
   const r = row();
-  const { error } = await db.from("learn_attempts").upsert(r, { onConflict: "user_id,course_id" });
+  let { error } = await db.from("learn_attempts").upsert(r, { onConflict: "user_id,course_id" });
+  if (error && isAuthError(error)) {
+    const fresh = await db.auth.refreshSession().then(({ data }) => data?.session, () => null);
+    if (fresh && fresh.user.id === ownerId) {
+      session = fresh;
+      ({ error } = await db.from("learn_attempts").upsert(row(), { onConflict: "user_id,course_id" }));
+    }
+    if (error && isAuthError(error)) { saving = false; again = false; showLapsed(); return; }
+  }
   saving = false;
   if (error) {
     $("saved").className = "s";
@@ -289,9 +327,64 @@ async function saveNow() {
   if (again) { again = false; saveNow(); }
 }
 
+async function liveSession() {
+  const { data: { session: s } } = await db.auth.getSession();
+  if (s) return s;
+  return db.auth.refreshSession().then(({ data }) => data?.session || null, () => null);
+}
+function isAuthError(e) {
+  return e && (e.code === "42501" || e.code === "PGRST301" || e.code === "PGRST303" || /jwt|row-level security/i.test(e.message || ""));
+}
+function showLapsed() {
+  if (lapsed || !started) return;
+  lapsed = true;
+  $("saved").className = "s";
+  $("saved").textContent = "Not saved — log in again";
+  $("r-email").value = (session && session.user && session.user.email) || "";
+  $("r-msg").textContent = ""; $("r-msg").className = "msg";
+  $("relog").classList.remove("hidden");
+  setTimeout(() => $("r-pass").focus(), 50);
+}
+function backIn(s) {
+  if (!lapsed || !s) return;
+  if (s.user.id !== ownerId) { location.reload(); return; }
+  lapsed = false;
+  session = s;
+  $("r-pass").value = "";
+  $("relog").classList.add("hidden");
+  saveNow();
+}
+$("relog-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("r-msg");
+  const password = $("r-pass").value;
+  if (!password) { msg.className = "msg err"; msg.textContent = "Type your password, or use the login link button."; return; }
+  $("r-go").disabled = true;
+  const { data, error } = await db.auth.signInWithPassword({ email: $("r-email").value, password });
+  $("r-go").disabled = false;
+  if (error || !data?.session) { msg.className = "msg err"; msg.textContent = "That password did not match. Try again, or use the login link button."; return; }
+  backIn(data.session);
+});
+$("r-link").addEventListener("click", async () => {
+  const msg = $("r-msg");
+  $("r-link").disabled = true;
+  let sent = false;
+  try {
+    const r = await fetch("/.netlify/functions/learn-access", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: $("r-email").value.toLowerCase(), next: location.pathname + location.search }),
+    });
+    sent = r.ok;
+  } catch (e) {}
+  $("r-link").disabled = false;
+  if (!sent) { msg.className = "msg err"; msg.textContent = "Something went wrong sending the link. Try again, or write to info@birdboxcoaching.com."; return; }
+  msg.className = "msg ok";
+  msg.textContent = "A login link is on its way. Tap it, then come back to this tab: we save your place as soon as you are logged in. Keep this tab open.";
+});
+
 // Last-chance save when the tab closes (supabase-js can't send keepalive requests).
 function beacon() {
-  if (!api || !course || !session) return;
+  if (!api || !course || !session || lapsed) return;
   try {
     fetch(SUPABASE_URL + "/rest/v1/learn_attempts?on_conflict=user_id,course_id", {
       method: "POST",
@@ -308,11 +401,20 @@ function beacon() {
 }
 window.addEventListener("pagehide", beacon);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") beacon(); });
-db.auth.onAuthStateChange((_e, s) => { if (s) session = s; if (!started && s) start(); });
+db.auth.onAuthStateChange((event, s) => {
+  if (started && event === "SIGNED_OUT") { showLapsed(); return; }
+  if (s && started && lapsed) { backIn(s); return; }
+  if (s && started && ownerId && s.user.id !== ownerId) { location.reload(); return; }
+  if (s) session = s;
+  if (!started && s) start();
+});
 
 $("exit").addEventListener("click", async () => {
   $("exit").disabled = true;
   await saveNow();
+  $("exit").disabled = false;
+  // logged out: keep them here so their place can still be saved
+  if (lapsed) { $("relog").classList.remove("hidden"); return; }
   location.href = "/learn/";
 });
 </script>
