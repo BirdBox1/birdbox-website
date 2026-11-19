@@ -736,7 +736,11 @@ async function changePlan(user, email, subId, tier) {
     await stripe.subscriptionSchedules.update(sched.id, {
       end_behavior: "release",
       phases: [
+        // still in their free days (a move or comeback offer): they stay
+        // free to the end. Without trial_end Stripe ended the free days and
+        // charged at once (Caroline Muhlemann, 18 Nov 2026)
         { items: [{ price: item.price.id, quantity: 1 }], start_date: sched.phases[0].start_date, end_date: end,
+          ...(s.status === "trialing" && s.trial_end ? { trial_end: s.trial_end } : {}),
           metadata: s.metadata || {} },
         { items: [{ price: price.price_id, quantity: 1 }], iterations: 1, proration_behavior: "none",
           metadata: { ...(s.metadata || {}), tier: String(tier) } },
