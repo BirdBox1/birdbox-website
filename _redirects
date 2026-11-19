@@ -8,6 +8,7 @@
 /sql/*                /404.html    404!
 /prompts/*            /404.html    404!
 /share-source/*       /404.html    404!
+/manual-src/*         /404.html    404!
 /brand/README.md      /404.html    404!
 /package.json         /404.html    404!
 /test-checkout.html   /404.html    404!

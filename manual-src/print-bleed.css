@@ -1,0 +1,10 @@
+/* Printed edition (Lulu Print API softback): Lulu's A4 interior with bleed is 216.41 x 303.28 mm
+   (8.52 x 11.94 in), i.e. 3.205 mm bleed left/right and 3.14 mm top/bottom.
+   Only page size and margins change; every margin grows by the bleed
+   so the text sits in exactly the same place on the trimmed page. */
+@page { size: 216.41mm 303.28mm; margin: 27.14mm 21.205mm 25.14mm 25.205mm; }
+@page :left  { margin-left: 21.205mm; margin-right: 25.205mm; }
+@page :right { margin-left: 25.205mm; margin-right: 21.205mm; }
+@page bare { margin: 0; }
+.cover { height: 303.28mm; }
+.cover .body { left: 25.205mm; right: 25.205mm; bottom: 29.14mm; }

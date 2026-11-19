@@ -1,0 +1,143 @@
+/* The Gymnastics Course: course colours and the parts only this manual uses.
+   Loaded after ../manual.css, so everything here wins over the shared (TCC blue) defaults. */
+:root {
+  --accent: #9e2029;      /* TGC red, from the TGC logo */
+  --accent-dark: #7e1820; /* red for small text, prints darker */
+  --tint: #f8eeee;
+  --course: "The Gymnastics Course";
+}
+
+/* Running heads in TGC red, and the small TGC logo in the outer bottom corner */
+@page :left {
+  @top-left { content: "The Gymnastics Course"; color: #7e1820; }
+  @bottom-left { content: "\00a0"; width: 16mm; background: url("img/tgc-logo-page.png") left 4mm / 13mm auto no-repeat; }
+}
+@page :right {
+  @top-right { content: "Seminar Guide"; color: #7e1820; }
+  @bottom-right { content: "\00a0"; width: 16mm; background: url("img/tgc-logo-page.png") right 4mm / 13mm auto no-repeat; }
+}
+@page :first { @bottom-left { content: none; } @bottom-right { content: none; } }
+@page bare { @bottom-left { content: none; } @bottom-right { content: none; } }
+@page titlep { @bottom-left { content: none; } @bottom-right { content: none; } }
+
+/* Cover: the TGC logo is taller than the TCC one */
+.cover .logo { width: 62mm; }
+html.web .cover .logo { width: 62mm; margin-bottom: 12mm; }
+html.web .cover .photo { background-position: center 60%; }
+.titlepage .tp-logo { width: 46mm; }
+
+/* Ruled write-in lines (used under each movement and at the end of sections) */
+.lines .ln { height: 8.5mm; border-bottom: 0.3mm solid #b9c3cd; }
+.notes-inline { margin-top: 6mm; }
+.notes-inline .lines .ln { height: 9.5mm; }
+
+/* Introduction and the photo pages */
+figure.team img { height: 88mm; object-fit: cover; }
+figure.fill-bottom { margin-top: 10mm; }
+figure.fill-bottom img { height: 92mm; width: 100%; object-fit: cover; }
+figure.quote-photo img { height: 70mm; width: 100%; object-fit: cover; }
+
+/* Our Mission: numbered, larger, like the TCC mission page */
+ol.mission-list { padding-left: 8mm; margin: 2mm 0 0; }
+ol.mission-list li { font-size: 13.5pt; line-height: 1.45; margin-bottom: 5mm; padding-left: 2mm; }
+ol.mission-list li::marker { font: 700 15pt var(--display); color: var(--accent); }
+
+/* Definitions */
+.terms p.term { margin-bottom: 2.6mm; }
+
+/* Methodology: text beside the pyramid */
+.pyr-split { display: grid; grid-template-columns: 1fr 72mm; gap: 7mm; align-items: center; }
+.pyr-split figure { margin: 0; }
+.pyr-split img { border-radius: 0; }
+
+/* Training rules */
+p.rule { font: 700 13.5pt/1.3 var(--body); margin: 0 0 3mm; }
+p.rule span { color: var(--accent-dark); font-style: italic; }
+p.rule + p:not(.rule) { margin-top: 5mm; }
+
+/* Movement development diagram */
+figure.mda { width: 92%; margin: 8mm auto 0; }
+figure.mda img { border-radius: 0; }
+
+/* Movement Progression Guide */
+h2.mv { margin-top: 6mm; }
+.ex { break-inside: avoid; margin: 0 0 6mm; }
+.ex h3 { font: 700 13pt/1.2 var(--display); text-transform: uppercase; letter-spacing: .02em; color: var(--accent-dark); margin: 0 0 2mm; }
+.ex ul.bullets, .ex ol.bullets { margin: 0 0 1mm; font-size: 11.5pt; }
+.ex ol.bullets { padding-left: 6mm; }
+.ex li { margin-bottom: 0.8mm; }
+.ex.side { display: grid; grid-template-columns: 46mm 1fr; gap: 6mm; align-items: start; }
+.ex.side figure { margin: 0; }
+.ex.side figure img { width: 100%; height: auto; border-radius: 1mm; }
+.ex.side.two { grid-template-columns: 70mm 1fr; }
+.ex.side.two figure.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5mm; }
+.ex.side .lines .ln { height: 8mm; }
+figure.strip { display: grid; gap: 1.5mm; margin: 0 0 3mm; }
+figure.strip img { width: 100%; height: auto; border-radius: 0.6mm; }
+figure.strip.n2 { grid-template-columns: repeat(2, 1fr); width: 52%; }
+figure.strip.n3 { grid-template-columns: repeat(3, 1fr); width: 78%; }
+figure.strip.n4 { grid-template-columns: repeat(4, 1fr); }
+figure.strip.n5 { grid-template-columns: repeat(5, 1fr); }
+
+/* Programming tables */
+p.tcap { font-weight: 600; margin: 5mm 0 2mm; }
+table.prog { width: 100%; border-collapse: collapse; font-size: 11pt; margin: 0 0 2mm; }
+table.prog th { background: var(--accent); color: #fff; font: 700 11pt var(--body); padding: 2.2mm 3mm; text-align: center; }
+table.prog th:first-child, table.prog td:first-child { text-align: left; font-weight: 700; width: 18%; }
+table.prog td { border: 0.25mm solid var(--rule); padding: 2mm 3mm; text-align: center; font-variant-numeric: tabular-nums; }
+table.prog tbody tr:nth-child(even) td { background: var(--tint); }
+table.prog td.note { font-style: italic; font-size: 10.5pt; line-height: 1.35; }
+p.foot { font-style: italic; font-size: 10.5pt; color: var(--muted); margin: 0 0 5mm; }
+.keep { break-inside: avoid; }
+
+/* ---- Layout tidy, round 1: keep photos with their text, two movements per page where they fit ---- */
+figure.team img { height: 70mm; }
+ol.mission-list li { font-size: 13pt; margin-bottom: 4mm; }
+figure.fill-bottom { margin-top: 8mm; }
+figure.fill-bottom img { height: 78mm; }
+#ch4 figure.fill-bottom img { height: 100mm; }
+figure.quote-photo img { height: 58mm; }
+blockquote.big { margin: 5mm 0 4mm; }
+figure.strip.n4 { width: 82%; }
+figure.strip.n3 { width: 66%; }
+figure.strip.n5 { width: 100%; }
+.ex { margin-bottom: 5mm; }
+.ex.strip .lines .ln, .ex.side .lines .ln { height: 7.5mm; }
+#ch4 figure.fill-bottom img { height: 74mm; }
+.pyr-split { grid-template-columns: 1fr 84mm; gap: 6mm; }
+figure.mda { width: 76%; margin-top: 5mm; }
+#ch4 figure.fill-bottom img { height: 64mm; } #ch4 figure.fill-bottom { margin-top: 6mm; }
+/* No running head on the title and contents pages */
+@page titlep:left { @top-left { content: none; } @bottom-left { content: none; } }
+@page titlep:right { @top-right { content: none; } @bottom-right { content: none; } }
+figure.team img { height: auto; object-fit: initial; }
+figure.team img { height: 70mm; width: 100%; object-fit: cover; object-position: center bottom; } /* taller: trims the sides, keeps the bottom */
+/* Introduction: team photo shows everyone, larger, by using narrower side margins on this one page
+   (as TCC page 3). Text keeps its normal width through padding. Page 4 is a left page. */
+@page tgcwide:left { margin-left: 8mm; margin-right: 8mm; }
+#ch1 { page: tgcwide; }
+#ch1 > header, #ch1 > p { padding-left: 10mm; padding-right: 14mm; }
+figure.team img { height: auto; width: 100%; object-fit: initial; }
+@page tgcwide:left {
+  @top-left { padding-left: 10mm; }
+  @bottom-left { width: 26mm; background-position: 10mm 4mm; }
+}
+#ch3 figure.fill-bottom { margin-top: 46mm; } /* page 7: banner photo with space above and below */
+/* Training rules page: rings photo sits under the quote as a banner, as in the old guide */
+#ch5 blockquote.big { margin: 4mm 0 4mm; padding: 3mm 6mm; }
+#ch5 figure.quote-photo { margin: 0; }
+#ch5 figure.quote-photo img { height: 46mm; max-height: none; object-position: center 35%; }
+#ch5 figure.quote-photo + * { break-before: page; } /* rules 3 and 4 start together on the next page */
+figure.mda { width: 100%; margin-top: 4mm; }
+figure.mda { width: 90%; margin: 2mm auto 0; }
+.ex h3 { margin-bottom: 3.5mm; } /* space between the movement name and its photos */
+/* Cover (download PDF): whiteboard photo across the top, logo and title in the middle,
+   hollow-rock photo across the bottom (Nathan, 19 Nov) */
+html.web .cover .photo { height: 70mm; background-position: center top; background-size: cover; }
+html.web .cover .photo2 { position: absolute; left: 0; right: 0; bottom: 0; height: 88mm; background-size: cover; background-position: center 55%; }
+html.web .cover .photo2::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2.2mm; background: var(--accent); }
+html.web .cover .body { top: 92mm; }
+html.web .cover .logo { width: 58mm; margin-bottom: 9mm; }
+.cover .photo2 { display: none; }
+html.web .cover .photo2 { display: block; }
+html.web .cover .photo { height: 72mm; background-position: center center; }

@@ -1,0 +1,23 @@
+# French edition: every place the built manual differs from the 2023 French guide (all applied in the preview).
+C = []
+def add(id, type, now, proposed, note, seek, show):
+    C.append(dict(id=id, type=type, now=now, proposed=proposed, note=note, seek=seek, show=show))
+
+add("f01", "crossfit", "Couverture : Le course de gymnastique (with the CrossFit badge)", "Couverture : The Gymnastics Course", "Same as your English decision; the old French title was also grammatically wrong (“le course”)", "THE GYMNASTICS COURSE", "THE GYMNASTICS COURSE")
+add("f02", "layout", "(new) Title page in French: “Manuel du participant”, “Édition 2026”, copyright lines", "Keep", "My translation of the English title page. Jeremy to check", "Manuel du participant", "Participant Manual")
+add("f03", "layout", "(new) Contents page titled “Sommaire”, chapters as “Chapitre 1–8”", "Keep", "Chapter names are the 2023 French headings", "Sommaire", "Contents")
+add("f04", "images", "Team photo caption", "Team Summit 2026 : Majorque, Espagne", "My translation of your caption", "Team Summit 2026", "2026 Team Summit")
+add("f05", "consistency", "Ce PDF … ce PDF", "Ce manuel … ce manuel", "Same as your English decision (PDF → manual)", "Ce manuel est un support", "This manual is a supporting")
+add("f06", "crossfit", "les différents points importants du séminaire CrossFit Gymnastics", "… du séminaire The Gymnastics Course", "Same as your English decision", "séminaire The Gymnastics Course", "The Gymnastics Course seminar")
+add("f07", "crossfit", "…d’évoluer au niveau des CrossFit Games ou de se classer dans le top 5 sur un évènement labélisé par CrossFit.", "…d’évoluer au plus haut niveau de son sport ou de se classer dans le top 5 d’une compétition nationale ou internationale.", "Same meaning as your English decision. My French, Jeremy to check", "au plus haut niveau", "competing at the highest level")
+add("f08", "consistency", "(birdbox coaching Development, 2020", "(BirdBox Coaching, 2020)", "Same as your English wording (the old one was also missing its closing bracket)", "BirdBox Coaching, 2020", "BirdBox Coaching, 2020")
+add("f09", "images", "Pyramid in English (CrossFit graphic)", "TGC-red pyramid with French labels: SPORT, HALTÉROPHILIE & LANCERS, CONDITIONNEMENT MÉTABOLIQUE, GYMNASTIQUE, NUTRITION", "Same redraw as English. Labels are my translation, Jeremy to check", "GYMNASTIQUE", "GYMNASTICS")
+add("f10", "crossfit", "En CrossFit nous effectuons des contractions concentriques quotidiennement.", "À l’entraînement nous effectuons des contractions concentriques quotidiennement.", "Same as your English decision", "nous effectuons des contractions", "We perform concentric contractions in training")
+add("f11", "images", "Movement development diagram in English", "Same clear flow chart as English, words in French", "Box words are my translation, using the guide's own terms (consigne verbale, contrainte, intervention). Jeremy to check", "APPROCHE DU DÉVELOPPEMENT", "MOVEMENT DEVELOPMENT APPROACH")
+add("f12", "punctuation", "Hollow avec une jambe tendue (One Leg Straight Hollow", "… (One Leg Straight Hollow)", "Missing closing bracket", "One Leg Straight Hollow", "One leg straight hollow")
+add("f13", "accuracy", "Push-up: 3rd and 4th points both say the elbows stay close to the ribs", "4th point: “Les poignets sont alignés avec les coudes”", "English 4th point is “Wrists are in line with elbows”; the French repeated the elbows line", "Les poignets sont alignés", "Wrists are in line with elbows")
+add("f14", "clarity", "Low ring pass-out (twice, same name)", "Low ring pass-out – bras sur les côtés / – bras devant", "Same as your English decision", "bras sur les côtés", "arm out wide")
+add("f15", "consistency", "Programming tables left in English (Week, Session, 3 sets at 40%, 2 sessions per week, reps)", "In French: Semaine, Séance, 3 séries à 40 %, 2 séances par semaine, répétitions", "The 2023 French guide never translated the tables", "Semaine", "Week")
+add("f16", "accuracy", "Semaines sept et huit : « nous avons réduit le volume et augmenté la fréquence »", "« nous avons augmenté la fréquence »", "Volume goes UP in weeks 7–8 (32 → 36 reps); English says only that frequency increased", "augmenté la fréquence", "increased the frequency")
+add("f17", "layout", "Heading “REGLES DE L’ENTRAINEMENT suite …”", "Removed: rules 3 and 4 follow straight on", "Same as your English decision", "Règle numéro 3", "Rule number 3")
+add("f18", "spelling", "DEFINITIONS ET TERMINOLOGIES / REGLES DE L’ENTRAINEMENT", "DÉFINITIONS ET TERMINOLOGIES / RÈGLES DE L’ENTRAÎNEMENT", "Accents on capital letters", "DÉFINITIONS ET TERMINOLOGIES", "DEFINITIONS")
