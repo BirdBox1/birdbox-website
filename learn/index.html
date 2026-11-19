@@ -911,7 +911,8 @@ async function boot() {
   });
   certName = defaultName;
   discountsP = account("?part=discounts").catch(() => ({ discounts: [] }));
-  showLive(session, owned, finished);
+  ownedCount = owned.length;
+  liveP = showLive(session, owned, finished).catch(() => null);
   if (!list.length) {
     box.outerHTML = '<div id="courses" class="empty"></div>';
     $("courses").innerHTML = "There are no online courses on <strong></strong> yet. Tap a course above to see what is available. If you bought an online course with a different email, log out and use that one. If you have only just paid, give it a couple of minutes and refresh.";
@@ -988,17 +989,31 @@ async function boot() {
 // offer, and anyone is asked for a password (Nathan, 7 Nov 2026)
 let arrived = false;
 let progPrefetch = null;
+let ownedCount = 0, liveP = null;
 function arrive() {
   if (arrived) return;
   arrived = true;
   if (MOVE_IN && !TABS.includes(location.hash.slice(1))) history.replaceState(null, "", "/learn/#programming");
   if (VIA_LINK || MOVE_IN) $("pw-note").classList.remove("hidden");
-  // Anyone with a CoachRx offer still to take opens on it, however they
-  // logged in (the link's ?move_offer=1 can be dropped on the way back)
+  // Which tab they open on (Nathan, 19 Nov 2026): an online course or a
+  // seminar (with or without anything else) opens My courses; otherwise
+  // mentorship opens Mentorship; otherwise programming opens Programming.
+  // Anyone with a CoachRx or welcome back offer still to take opens on it,
+  // however they logged in (the link's ?move_offer=1 can be dropped).
   if (!TABS.includes(location.hash.slice(1))) {
     progPrefetch = account("?part=programming");
-    progPrefetch.then((d) => {
-      if (((d?.move && !d.move.upgrades?.length) || d?.comeback) && !TABS.includes(location.hash.slice(1))) location.hash = "#programming";
+    const noHash = () => !location.hash || location.hash === "#";
+    const email = $("who-email").textContent || "";
+    const mentorP = db.from("learn_mentorships").select("id")
+      .ilike("email", email ? email.replace(/[%_\\]/g, "\\$&") : "-").limit(1)
+      .then(({ data }) => !!(data && data.length), () => false);
+    Promise.all([progPrefetch.catch(() => null), liveP || Promise.resolve(null), mentorP]).then(([d, live, mentor]) => {
+      if (((d?.move && !d.move.upgrades?.length) || d?.comeback) && !TABS.includes(location.hash.slice(1))) { location.hash = "#programming"; return; }
+      if (!noHash()) return;
+      const seminars = live && ((live.upcoming || []).length || (live.live || []).length || (live.earlier || []).length);
+      if (ownedCount || seminars) return;
+      if (mentor) { location.hash = "#mentorship"; return; }
+      if (d && ((d.plans || []).length || (d.blocks || []).length)) location.hash = "#programming";
     }).catch(() => {});
   }
 }
@@ -1329,6 +1344,7 @@ async function showLive(session, ownedOnline, finishedOnline) {
   d.earlier.forEach((c) => box.appendChild(row(c, false, true)));
   $("live").classList.toggle("hidden", !(liveOnly.length || d.earlier.length));
   showNext(ownedOnline, finishedOnline, [...d.live, ...d.earlier]);
+  return d;
 }
 
 async function fetchLiveCert(id, btn, msg) {
