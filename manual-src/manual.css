@@ -1,0 +1,425 @@
+/* BirdBox course manuals — shared print stylesheet.
+   One HTML source per manual is printed by Chrome into two PDFs:
+   - web:   A4 (210 x 297 mm), the PDF learners download
+   - print: A4 + Lulu bleed (216.41 x 303.28 mm), for the Lulu softback
+   The print build adds print-bleed.css, which only changes @page. */
+
+@font-face { font-family: "Barlow Condensed"; font-weight: 600; src: url("fonts/BarlowCondensed-SemiBold.ttf"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 700; src: url("fonts/BarlowCondensed-Bold.ttf"); }
+/* Fixed weights cut from the variable font (fontTools instancer): Chrome prints a variable font as
+   Type 3 glyphs, which printers (Bookvault) reject as an unembedded font. */
+@font-face { font-family: "Source Sans 3"; font-weight: 400; font-style: normal; src: url("fonts/SourceSans3-400.ttf"); }
+@font-face { font-family: "Source Sans 3"; font-weight: 600; font-style: normal; src: url("fonts/SourceSans3-600.ttf"); }
+@font-face { font-family: "Source Sans 3"; font-weight: 700; font-style: normal; src: url("fonts/SourceSans3-700.ttf"); }
+@font-face { font-family: "Source Sans 3"; font-weight: 400; font-style: italic; src: url("fonts/SourceSans3-Italic-400.ttf"); }
+@font-face { font-family: "Source Sans 3"; font-weight: 600; font-style: italic; src: url("fonts/SourceSans3-Italic-600.ttf"); }
+@font-face { font-family: "Source Sans 3"; font-weight: 700; font-style: italic; src: url("fonts/SourceSans3-Italic-700.ttf"); }
+
+:root {
+  --ink: #16191d;
+  --muted: #5d6670;
+  --rule: #d5dbe1;
+  --tint: #eef5fc;
+  --accent: #2b8de8;      /* TCC blue, from the TCC logo */
+  --accent-dark: #1867b3; /* blue for small text, prints darker */
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  --course: "The Coaches Course · Level 1";
+}
+
+/* Page geometry. Inner (spine) margin is wider for the hardback binding. */
+@page {
+  size: 210mm 297mm;
+  margin: 24mm 18mm 22mm 22mm;
+  @top-left { content: none; }
+  @bottom-center {
+    content: counter(page);
+    font: 600 9pt var(--body); color: #5d6670;
+    vertical-align: top; padding-top: 6mm;
+  }
+}
+@page :left {
+  margin-left: 18mm; margin-right: 22mm;
+
+  @top-left { content: "The Coaches Course · Level 1"; font: 600 8pt "Barlow Condensed", sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #1867b3; vertical-align: bottom; padding-bottom: 5mm; }
+}
+@page :right {
+  margin-left: 22mm; margin-right: 18mm;
+
+  @top-right { content: "Coaching Development Seminar"; font: 600 8pt "Barlow Condensed", sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #1867b3; vertical-align: bottom; padding-bottom: 5mm; }
+}
+@page :first { @top-left { content: none; } @top-right { content: none; } @bottom-center { content: none; } @bottom-left { content: none; } @bottom-right { content: none; } }
+@page bare { margin: 0; @top-left { content: none; } @top-right { content: none; } @bottom-center { content: none; } @bottom-left { content: none; } @bottom-right { content: none; } }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body {
+  margin: 0; color: var(--ink);
+  font: 400 12.5pt/1.5 var(--body);
+  hyphens: auto; text-rendering: optimizeLegibility;
+  font-feature-settings: "kern", "liga";
+}
+p { margin: 0 0 3.2mm; orphans: 3; widows: 3; }
+img { display: block; max-width: 100%; }
+
+/* Chapters always start on a new page */
+section.chapter { break-before: page; }
+section.chapter > header { margin: 0 0 7mm; }
+.chapter-no {
+  font: 700 11pt var(--display); letter-spacing: .14em; text-transform: uppercase;
+  color: var(--accent); margin: 0 0 1mm;
+}
+h1 {
+  string-set: chapter content(text);
+  font: 700 30pt/1.02 var(--display); text-transform: uppercase; letter-spacing: .005em;
+  margin: 0; text-wrap: balance;
+}
+h1::after { content: ""; display: block; width: 22mm; height: 1.4mm; background: var(--accent); margin-top: 4mm; }
+h2 { font: 700 15pt/1.15 var(--display); text-transform: uppercase; letter-spacing: .02em; margin: 7mm 0 2.5mm; break-after: avoid; }
+h3 { font: 700 11.5pt/1.25 var(--body); margin: 5mm 0 1.5mm; break-after: avoid; }
+
+/* Definitions box */
+.defs { background: var(--tint); border-left: 1.2mm solid var(--accent); padding: 4mm 5mm 1.5mm; margin: 5mm 0 6mm; break-inside: avoid; }
+.defs .label { font: 700 9pt var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--accent-dark); margin: 0 0 2mm; }
+.defs dt { font-weight: 700; color: var(--accent-dark); }
+.defs dd { margin: 0 0 3mm; }
+
+/* Pull quote */
+blockquote { margin: 6mm 0; padding: 0 0 0 6mm; border-left: 0.6mm solid var(--accent); font: italic 500 13pt/1.4 var(--body); color: var(--ink); break-inside: avoid; }
+blockquote cite { display: block; margin-top: 2mm; font: normal 600 9pt var(--body); color: var(--muted); }
+
+ul.bullets { margin: 0 0 4mm; padding-left: 5mm; }
+ul.bullets li { margin: 0 0 1.5mm; }
+ul.bullets li::marker { color: var(--accent); }
+
+/* Figures */
+figure { margin: 5mm 0 6mm; break-inside: avoid; }
+figure img { width: 100%; border-radius: 1mm; }
+figure.half { width: 62%; }
+figcaption { font: 400 8.5pt/1.35 var(--body); color: var(--muted); margin-top: 1.8mm; }
+.photo-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; margin: 0 0 6mm; break-inside: avoid; }
+
+/* Write-in tables (Likert, checksheets) */
+table.score { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 3mm 0 2mm; break-inside: avoid; }
+table.score th { background: var(--accent); color: #fff; font: 600 8.5pt var(--body); padding: 2mm; text-align: left; }
+table.score th.scale { text-align: center; }
+table.score td { border: 0.25mm solid var(--rule); height: 9mm; padding: 0; text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; }
+table.score td.word { width: 34%; }
+.table-note { font-size: 8.5pt; color: var(--muted); margin: 0 0 5mm; }
+
+/* Notes pages */
+.notes { break-before: page; }
+.notes .lines { height: 215mm; background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 8.6mm, var(--rule) 8.6mm, var(--rule) 8.85mm); }
+
+/* Cover */
+.cover { page: bare; height: 297mm; position: relative; background: #0d1014; color: #fff; break-after: page; overflow: hidden; }
+.cover .photo { position: absolute; inset: 0 0 auto 0; height: 168mm; background-size: cover; background-position: center 35%; }
+.cover .photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(13,16,20,0) 45%, #0d1014 94%); }
+.cover .body { position: absolute; left: 22mm; right: 22mm; bottom: 26mm; }
+.cover .logo { width: 92mm; margin-bottom: 14mm; }
+.cover .kicker { font: 700 12pt var(--display); letter-spacing: .2em; text-transform: uppercase; color: var(--accent); margin: 0 0 3mm; }
+.cover h1.title { string-set: none; font: 700 44pt/0.98 var(--display); text-transform: uppercase; margin: 0; }
+.cover h1.title::after { display: none; }
+.cover .sub { font: 400 12pt var(--body); color: #c7cdd4; margin-top: 5mm; }
+
+/* Light cover for the downloadable PDF (saves ink when printed at home).
+   The hardback keeps the dark cover. Chosen by the build: #web or #print. */
+html.web .cover { background: #fff; color: var(--ink); }
+html.web .cover .photo { height: 120mm; }
+html.web .cover .photo::after { display: none; }
+html.web .cover .photo::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2.2mm; background: var(--accent); z-index: 1; }
+html.web .cover .body { bottom: auto; top: 150mm; }
+html.web .cover .logo { width: 100mm; margin-bottom: 18mm; }
+html.web .cover .sub { color: var(--muted); }
+html .cover .logo.light { display: none; }
+html.web .cover .logo.dark { display: none; }
+html.web .cover .logo.light { display: block; }
+
+/* SVG diagrams take the page fonts */
+svg text { font-family: var(--body); }
+svg .d { font-family: var(--display); }
+
+/* ---- Components used by the full manuals ---- */
+p.note { color: var(--accent-dark); font-weight: 600; }
+p.term b { color: var(--accent-dark); }
+blockquote.big { font-size: 15pt; text-align: center; border: 0; padding: 4mm 8mm; background: var(--tint); }
+ol.stages { margin: 0 0 4mm; padding-left: 7mm; font-weight: 700; }
+ol.stages li { margin-bottom: 1mm; }
+ul.bullets.bold li { font-weight: 600; }
+figure.half { width: 62%; }
+figure.center { margin-left: auto; margin-right: auto; }
+figure.right { float: right; width: 45%; margin: 1mm 0 3mm 5mm; }
+figure.third.right { width: 33%; }
+section.chapter::after { content: ""; display: block; clear: both; }
+ul.ratios { list-style: none; padding: 0; margin: 4mm 0 2mm; display: grid; gap: 2mm; break-inside: avoid; }
+ul.ratios li { background: var(--ink); color: #fff; padding: 2.5mm 4mm; border-left: 1.5mm solid var(--accent); font-weight: 600; }
+.notes h2 { margin-top: 0; }
+
+/* Checksheets */
+.sheet { break-inside: avoid; margin: 0 0 8mm; }
+.sheet h3 { margin-top: 0; }
+.sheet-desc { font-style: italic; border: 0.25mm solid var(--rule); padding: 2mm 3mm; font-size: 9.5pt; }
+table.check td.aspect, table.rate td.aspect { text-align: left; color: var(--ink); font-style: italic; padding: 1mm 2mm; width: 34%; font-size: 9pt; }
+table.check td { height: 7mm; }
+table.check th.scale { display: table-cell; }
+table.check th.scale span:first-child { float: left; } table.check th.scale span:last-child { float: right; }
+.comments { border: 0.25mm solid var(--rule); border-top: 0; height: 34mm; padding: 2mm 3mm; font: 700 8.5pt var(--body); }
+table.rate td { height: 7mm; } table.rate td.aspect.r { text-align: right; font-style: normal; }
+table.rate th { text-align: center; } table.rate th:first-child { text-align: left; font-size: 11pt; }
+.se-box { border: 0.25mm solid var(--rule); padding: 2mm 3mm; font-weight: 600; height: 30mm; margin-bottom: 3mm; break-inside: avoid; }
+.se-box.tall { height: 70mm; }
+figure.cheat { break-before: page; margin: 0; }
+figure.cheat:first-of-type { break-before: auto; }
+ul.references { padding-left: 5mm; font-size: 9.5pt; }
+ul.references li { margin-bottom: 2mm; }
+
+/* Photos: cap the height so a photo rarely gets pushed onto a page of its own */
+figure > img[src*="photo"] { max-height: 125mm; width: 100%; margin: 0 auto; object-fit: cover; }
+figure.right > img, figure.third > img { max-height: none; width: 100%; }
+.photo-pair figure { margin: 0; }
+.photo-pair figure > img[src*="photo"] { height: 58mm; max-height: none; width: 100%; object-fit: cover; }
+
+/* The hardback cover is a separate wrap-around file, so the print interior starts at the Introduction */
+html.print .cover { display: none; }
+figure.short > img[src*="photo"] { height: 60mm; max-height: none; width: 100%; object-fit: cover; }
+figure.mindmap { width: 100%; margin: 2mm auto 0; }
+.keep { break-inside: avoid; }
+figure.h85 > img[src*="photo"] { height: 85mm; max-height: none; width: 100%; object-fit: cover; }
+figure.h70 > img[src*="photo"] { height: 72mm; max-height: none; width: 100%; object-fit: cover; }
+.photo-pair.three { grid-template-columns: 1fr 1fr 1fr; }
+.photo-pair.three figure > img[src*="photo"] { height: 72mm; }
+h2.newpage { break-before: page; margin-top: 0; }
+/* uncropped: column widths follow each photo's shape so both end up the same height */
+.photo-pair.tall { grid-template-columns: 1.5fr 1.643fr; }
+.photo-pair.tall figure > img[src*="photo"] { height: auto; width: 100%; object-fit: initial; }
+figure.fillrest > img[src*="photo"] { height: auto; max-height: none; width: 100%; object-fit: initial; }
+/* Our Mission: a feature page, larger and spaced to fill */
+.mission { margin-top: 10mm; }
+.mission h2 { font-size: 24pt; margin: 0 0 6mm; }
+.mission h2::after { content: ""; display: block; width: 18mm; height: 1.2mm; background: var(--accent); margin-top: 3mm; }
+.mission ul.bullets { padding-left: 6mm; }
+.mission ul.bullets li { font-size: 14pt; line-height: 1.45; margin-bottom: 6.5mm; }
+.mission ul.bullets li b { color: var(--accent-dark); }
+.mission.objectives { margin-top: 0; }
+.mission.objectives h2 { break-before: page; }
+.mission.objectives ul.bullets li { margin-bottom: 5mm; }
+/* Page 3 photos as large as the old page: run out into the side margins */
+/* Page 3: photos as large as the old page, via narrower side margins on this one page */
+@page wide { margin-left: 6mm; margin-right: 6mm; }
+.wide-page { page: wide; }
+.wide-page .mission { padding: 0 12mm 0 16mm; }
+.wide-page .photo-pair.tall { margin-top: 7mm; }
+figure.fillrest { margin-top: 12mm; }
+/* Spider diagrams on a page of their own, as in the old manual */
+.spider-page { break-before: page; break-after: page; }
+.spider-page h2 { margin-top: 0; }
+.spider-page figure { margin: 2mm auto 4mm; }
+.spider-page figure.half { width: 72%; }
+figure.quote-photo > img { height: 95mm; width: 100%; object-fit: cover; max-height: none; }
+figure.grid-fit { width: 100%; margin: 9mm auto 0; }
+/* Photo and its quote stay together on one page */
+.quote-pair { break-inside: avoid; }
+.quote-pair figure.quote-photo { margin-bottom: 3mm; }
+.quote-pair figure.quote-photo > img { height: 62mm; }
+.quote-pair blockquote.big { margin: 0 0 4mm; font-size: 13.5pt; padding: 3mm 6mm; }
+.quote-pair figure.quote-photo > img { object-position: center 20%; }
+.quote-pair figure.quote-photo > img { height: 74mm; object-position: center 40%; }
+p.style-item.first { break-before: page; }
+figure.drop { margin-top: 10mm; }
+/* Hierarchy steps: larger headings, same on every step */
+h3.step { font: 700 16pt/1.2 var(--display); text-transform: uppercase; letter-spacing: .02em; color: var(--accent-dark); margin: 7mm 0 2mm; }
+figure.pyramid { margin: 9mm auto 6mm; width: 96%; }
+p.fig-title { font: 700 15pt var(--display); letter-spacing: .12em; text-align: center; margin: 0 0 4mm; }
+figure.pyramid { margin: 10mm auto 8mm; width: 100%; }
+figure.pyramid { margin: 7mm auto 3mm; width: 86%; }
+h3.step.first-step { margin-top: 4mm; }
+/* Table header banners: larger and bolder */
+table.score th { font: 700 11pt var(--body); padding: 2.6mm 3mm; }
+figure.h85 > img[src*="photo"] { height: 76mm; }
+figure.cycle { margin: 9mm auto 8mm; width: 100%; }
+blockquote.big { font-weight: 700; }
+blockquote.big { hyphens: none; }
+figure.cycle { margin: 6mm auto 4mm; }
+/* Notes pages: real ruled lines */
+.notes .lines { height: auto; background: none; }
+.notes .lines .ln { height: 9.5mm; border-bottom: 0.3mm solid #b9c3cd; }
+.notes p { margin-bottom: 2mm; }
+figure.bottom-photo { margin-top: 16mm; }
+figure.bottom-photo > img[src*="photo"] { height: 78mm; max-height: none; width: 100%; object-fit: cover; object-position: center 40%; }
+figure.bottom-photo { margin-top: 30mm; }
+figure.bottom-photo > img[src*="photo"] { height: 96mm; object-position: center 45%; }
+figure.bottom-photo { margin-top: 46mm; }
+figure.bottom-photo > img[src*="photo"] { height: 104mm; }
+figure.wheels { margin-top: 12mm; }
+figure.bottom-photo { margin-top: 14mm; }
+figure.wheels { margin-top: 0; padding-top: 11mm; }
+figure.bottom-photo { margin-top: 17mm; }
+figure.bottom-photo > img[src*="photo"] { height: 110mm; }
+/* Psychosocial skills: both lists left, photo filling the right, centred */
+.skills-split { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 7mm; align-items: center; margin: 2mm 0 4mm; break-inside: avoid; }
+.skills-split figure { margin: 0; }
+.skills-split figure > img[src*="photo"] { height: 92mm; max-height: none; width: 100%; object-fit: cover; }
+/* The five transformational leadership components: each stands out as its own panel */
+ul.components { list-style: none; padding: 0; margin: 3mm 0 6mm; display: grid; gap: 3mm; }
+ul.components li { background: var(--tint); border-left: 1.4mm solid var(--accent); padding: 3mm 4.5mm; margin: 0; break-inside: avoid; }
+ul.components li b { display: block; font: 700 15pt/1.2 var(--display); text-transform: uppercase; letter-spacing: .03em; color: var(--accent-dark); margin-bottom: 1mm; }
+/* Charisma habits: photo beside text, alternating sides, as in the original layout */
+.habit { display: grid; grid-template-columns: 46% 1fr; gap: 6mm; align-items: center; margin: 0 0 7mm; break-inside: avoid; }
+.habit.right { grid-template-columns: 1fr 46%; }
+.habit.right figure { order: 2; }
+.habit figure { margin: 0; }
+.habit figure > img[src*="photo"] { height: 62mm; max-height: none; width: 100%; object-fit: cover; }
+.habit h3 { margin-top: 0; font: 700 14pt/1.2 var(--display); text-transform: uppercase; color: var(--accent-dark); }
+.habit p { margin: 0; font-size: 11.5pt; }
+.habit { margin-bottom: 9mm; }
+.habit figure > img[src*="photo"] { height: 70mm; }
+.notes.follow { break-before: auto; margin-top: 8mm; }
+.notes.follow .lines .ln:nth-child(n+16) { display: none; }
+.habit.std { grid-template-columns: 50% 1fr; margin-bottom: 5mm; }
+.habit.std p { font-size: 12.5pt; }
+.habit.std figure > img[src*="photo"] { height: 66mm; }
+figure.mmp { margin: 2mm auto 6mm; width: 92%; }
+figure.h75 > img[src*="photo"] { height: 82mm; max-height: none; width: 100%; object-fit: cover; }
+figure.mmp { margin-top: 6mm; }
+figure.h75 { margin-top: 6mm; }
+figure.h75 > img[src*="photo"] { height: 98mm; object-position: center 40%; }
+.mg svg { width: 86%; display: block; margin: 0 auto; }
+/* Ratios page: more breathing room, photo fills to the bottom */
+ul.ratios { margin-top: 8mm; gap: 4.5mm; }
+ul.ratios li { padding: 4.2mm 5mm; font-size: 13pt; }
+ul.ratios + p { margin-top: 5mm; font-weight: 600; }
+figure.ratio-photo { margin-top: 9mm; }
+figure.ratio-photo > img[src*="photo"] { height: 112mm; max-height: none; width: 100%; object-fit: cover; }
+ul.ratios { margin-top: 12mm; }
+figure.ratio-photo > img[src*="photo"] { height: 120mm; }
+figure.hma { margin: 6mm 0 12mm; }
+figure.hma + .defs { margin-top: 0; }
+figure.hma + .defs dd { margin-bottom: 4mm; }
+figure.hma { margin: 10mm 0 14mm; }
+figure.hma + .defs { padding: 6mm 6mm 3mm; }
+figure.hma + .defs dd { margin-bottom: 5mm; font-size: 13pt; }
+figure.hma + .defs dt { font-size: 14pt; }
+figure.fill-photo { margin-top: 10mm; }
+figure.fill-photo > img[src*="photo"] { height: 140mm; max-height: none; width: 100%; object-fit: cover; object-position: center 40%; }
+figure.fill-photo { margin-top: 12mm; }
+figure.fill-photo > img[src*="photo"] { height: 166mm; object-position: center 35%; }
+p.spread-top { margin-top: 10mm; }
+figure.fill-photo { margin-top: 16mm; }
+figure.fill-photo > img[src*="photo"] { height: auto; width: 100%; object-fit: initial; max-height: none; }
+p.spread-top { margin-top: 0; padding-top: 22mm; }
+figure.fill-photo { margin-top: 24mm; }
+.cogs svg { display: block; width: 72%; margin: 4mm auto 0; }
+.notes.follow-tall h2 { display: none; }
+.notes.follow-tall .lines .ln:nth-child(n+16) { display: block; }
+.notes.follow-tall .lines .ln:nth-child(n+19) { display: none; }
+.notes.follow-tall .lines .ln:nth-child(n+13) { display: none; }
+figure.sensory { width: 78%; margin: 6mm auto 8mm; }
+.sense-defs { display: grid; gap: 3mm; }
+.sense-defs p.term { background: var(--tint); border-left: 1.4mm solid var(--accent); padding: 3mm 4.5mm; margin: 0; break-inside: avoid; }
+.sense-defs p.term b { display: block; font: 700 14pt/1.2 var(--display); letter-spacing: .03em; margin-bottom: 1mm; }
+figure.sensory { width: 100%; }
+figure.p51 { margin-bottom: 0; }
+figure.p51 > img[src*="photo"] { height: 108mm; max-height: none; width: 100%; object-fit: cover; }
+figure.nocrop > img[src*="photo"] { height: auto; max-height: 150mm; width: auto; max-width: 100%; object-fit: contain; margin: 0 auto; }
+figure.stack { width: 82%; margin: 4mm auto 6mm; break-inside: avoid; }
+figure.stack img { display: block; width: 100%; height: auto; max-height: none; object-fit: initial; border-radius: 0; }
+figure.stack { width: 68%; margin: 2mm auto 5mm; }
+figure.stack img + img { margin-top: 0; }
+figure.seq { width: 100%; margin: 3mm 0 5mm; break-inside: avoid; }
+figure.seq img { display: block; width: 100%; height: auto; max-height: none; object-fit: initial; }
+figure.seq-bench { break-before: page; margin-top: 0; }
+figure.refl { margin: 6mm 0 8mm; }
+figure.refl { margin: 8mm 0 10mm; }
+figure.refl { margin: 16mm 0 18mm; }
+figure.refl { margin: 10mm 0 12mm; background: var(--tint); border-radius: 2mm; padding: 6mm 5mm 5mm; border-top: 1.4mm solid var(--accent); }
+figure.refl p.fig-title { margin-bottom: 5mm; }
+figure.secy { margin-top: 0; }
+figure.secy { margin: 6mm 0 12mm; }
+.notes.follow-end h2 { display: none; }
+.notes.follow-end .lines .ln:nth-child(n+16) { display: block; }
+.notes.follow-end .lines .ln:nth-child(n+21) { display: none; }
+/* Checksheets: two per page like the original, bolder table text */
+.sheet { margin: 0 0 6mm; }
+.sheet h3 { font: 700 14pt/1.2 var(--display); text-transform: uppercase; color: var(--accent-dark); margin: 0 0 1.5mm; }
+.sheet-desc { font-size: 9.5pt; padding: 1.6mm 3mm; margin-bottom: 2mm; }
+table.check { margin: 0; }
+table.check td { height: 6.4mm; font-weight: 700; color: var(--ink); font-size: 10pt; }
+table.check td.aspect { font-weight: 700; font-style: normal; font-size: 10pt; }
+table.check th { font-size: 10pt; padding: 1.6mm 2mm; }
+.comments { height: 24mm; font-size: 9pt; }
+.sheet-page { height: 246mm; display: flex; flex-direction: column; gap: 6mm; break-after: page; }
+.sheet-page.first { height: 214mm; }
+.sheet-page:last-child { break-after: auto; }
+.sheet-page .sheet { flex: 1; display: flex; flex-direction: column; margin: 0; }
+.sheet-page .comments { flex: 1; height: auto; min-height: 20mm; }
+/* Muscle cheat sheets rebuilt as text. To go back to the original screenshots,
+   swap these two display values (the old pages are kept in .cheat-legacy). */
+.cheat-legacy { display: none; }
+.cheat-new { display: block; }
+.anat { break-inside: avoid; margin: 0 0 9mm; }
+.anat + .anat { break-before: auto; }
+.anat h2 { font-size: 18pt; color: var(--accent-dark); margin: 0 0 3mm; }
+.anat-pics { display: flex; gap: 4mm; justify-content: center; margin: 0 0 4mm; }
+.anat-pics img { max-height: 78mm; width: auto; max-width: 100%; object-fit: contain; }
+.anat-pics.n2 img { max-height: 70mm; max-width: 49%; }
+table.anat-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; line-height: 1.3; }
+table.anat-table th { background: var(--accent); color: #fff; font: 700 10pt var(--body); text-align: left; padding: 2mm 2.4mm; }
+table.anat-table td { border: 0.25mm solid var(--rule); padding: 1.8mm 2.4mm; vertical-align: top; font-weight: 600; }
+table.anat-table td:first-child { font-weight: 700; color: var(--accent-dark); width: 20%; }
+table.anat-table tbody tr:nth-child(even) td { background: var(--tint); }
+table.anat-table { table-layout: fixed; }
+table.anat-table th:nth-child(1) { width: 21%; } table.anat-table th:nth-child(2) { width: 27%; } table.anat-table th:nth-child(3) { width: 25%; } table.anat-table th:nth-child(4) { width: 27%; }
+/* Cheat sheets: one muscle group per page (Arms shares with Anterior Upper), larger pictures and text to fill */
+.cheat-new .anat { break-before: page; margin: 0; }
+.cheat-new .anat:first-child { break-before: auto; }
+.cheat-new .anat:nth-child(7) { break-before: avoid; margin-top: 8mm; }
+.anat-pics img { max-height: 110mm; }
+.anat-pics.n2 img { max-height: 92mm; }
+.anat-pics.after { margin: 6mm 0 0; }
+.anat-pics.after img { width: 100%; max-height: none; }
+table.anat-table { font-size: 10.5pt; }
+table.anat-table td { padding: 2.4mm 2.6mm; }
+/* Cheat sheets: every group fits on its own page */
+.cheat-new .anat:nth-child(7) { break-before: page; margin-top: 0; }
+.anat-pics img { max-height: 84mm; }
+.anat-pics.n2 img { max-height: 76mm; }
+.anat-pics.after img { width: 86%; margin: 0 auto; }
+table.anat-table { font-size: 10pt; }
+table.anat-table td { padding: 1.9mm 2.4mm; }
+.cheat-new .anat:nth-child(3) .anat-pics img { max-height: 70mm; }
+.cheat-new .anat:nth-child(5) .anat-pics img { max-height: 62mm; }
+.cheat-new .anat:nth-child(8) .anat-pics img { max-height: 66mm; }
+.cheat-new .anat:nth-child(8) table.anat-table td { padding: 1.4mm 2.2mm; }
+.cheat-new .anat:nth-child(3) .anat-pics.n2 img { max-height: 62mm; max-width: 64%; }
+.cheat-new .anat:nth-child(3) .anat-pics.n2 img:first-child { max-width: 34%; }
+.cheat-new .anat:nth-child(3) .anat-pics { align-items: center; }
+ul.references { list-style: none; padding-left: 0; font-size: 10.5pt; }
+ul.references li { padding-left: 8mm; text-indent: -8mm; margin-bottom: 3mm; }
+/* Title page (page 2) */
+.titlepage { break-before: page; break-after: page; height: 246mm; display: flex; flex-direction: column; align-items: flex-start; padding-top: 40mm; }
+.titlepage .tp-logo { width: 70mm; margin-bottom: 14mm; }
+.titlepage .tp-kicker { font: 700 12pt var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--accent-dark); margin: 0 0 2mm; }
+.titlepage h1.tp-title { string-set: none; font: 700 34pt/1.02 var(--display); text-transform: uppercase; margin: 0; }
+.titlepage h1.tp-title::after { content: ""; display: block; width: 22mm; height: 1.4mm; background: var(--accent); margin-top: 4mm; }
+.titlepage .tp-sub { font-size: 15pt; color: var(--muted); margin-top: 4mm; }
+.titlepage .tp-foot { margin-top: auto; font-size: 9pt; color: var(--muted); }
+.titlepage .tp-foot p { margin: 0 0 3mm; }
+.titlepage { height: 236mm; padding-top: 30mm; box-sizing: border-box; page: titlep; }
+@page titlep { @top-left { content: none; } @top-right { content: none; } @bottom-center { content: none; } @bottom-left { content: none; } @bottom-right { content: none; } }
+.titlepage .tp-ceu { width: 26mm; margin-bottom: 5mm; }
+/* Contents page */
+.toc { break-before: page; break-after: page; page: titlep; }
+.toc h1.toc-h { string-set: none; font: 700 30pt var(--display); text-transform: uppercase; margin: 6mm 0 8mm; }
+.toc h1.toc-h::after { content: ""; display: block; width: 22mm; height: 1.4mm; background: var(--accent); margin-top: 4mm; }
+ol.toc-list { list-style: none; padding: 0; margin: 0; }
+ol.toc-list li { display: flex; align-items: baseline; gap: 3mm; padding: 1.7mm 0; border-bottom: 0.25mm solid var(--rule); font-size: 11pt; }
+.toc-n { width: 8mm; font: 700 11pt var(--display); color: var(--accent); }
+.toc-t { flex: 1; font-weight: 600; text-transform: none; }
+.toc-p { font-weight: 700; color: var(--accent-dark); font-variant-numeric: tabular-nums; }
+ol.toc-list li { padding: 1.25mm 0; font-size: 10.5pt; }
+.toc h1.toc-h { margin: 2mm 0 6mm; }
+/* Hardback interior: a half-title page stands in for the cover (printed separately),
+   so page numbers match the download PDF. Optional end blank keeps the page count even. */
+.halftitle, .endblank { display: none; }
+html.print .halftitle { display: flex; page: titlep; break-after: page; height: 240mm; align-items: center; justify-content: center; }
+html.print .halftitle p { font: 700 22pt var(--display); text-transform: uppercase; letter-spacing: .06em; color: var(--ink); }
+html.print.odd .endblank { display: block; page: titlep; break-before: page; height: 10mm; }
