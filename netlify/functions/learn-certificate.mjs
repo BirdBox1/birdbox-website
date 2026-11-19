@@ -18,6 +18,7 @@
 // from learn_courses, so the artwork carries no course-specific numbers
 // except the paragraph.
 
+import { allLessonsFinished } from "../lib/rise-progress.mjs";
 import { createClient } from "@supabase/supabase-js";
 import { directoryInvite } from "../lib/directory.mjs";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
@@ -84,12 +85,30 @@ export default async (req) => {
     // ---- a new one: have they passed? ---------------------------
     const { data: attempt } = await supabase
       .from("learn_attempts")
-      .select("completion_status, success_status, score_scaled, completed_at")
+      .select("completion_status, success_status, score_scaled, completed_at, version_id, cmi")
       .eq("user_id", user.id).eq("course_id", courseId).maybeSingle();
 
     let passed = attempt && (attempt.success_status === "passed" ||
       (attempt.success_status !== "failed" && attempt.completion_status === "completed"));
     let done = attempt;
+    // The pass is reported by the learner's browser, so check it ourselves
+    // too: every lesson finished, then the test (Nathan, 19 Nov 2026), as
+    // the course itself enforces.
+    if (passed) {
+      let check = null;
+      try {
+        const { data: cv } = await supabase.from("learn_courses").select("current_version").eq("id", courseId).maybeSingle();
+        const versionId = attempt.version_id || cv?.current_version;
+        check = versionId ? await allLessonsFinished(attempt.cmi?.suspend_data, versionId) : null;
+      } catch (e) {
+        console.error("learn-certificate lesson check:", e.message);
+        return json({ error: "We could not check your course progress just now. Try again in a minute, or write to " + OFFICE + "." }, 503);
+      }
+      if (!check || !check.ok) {
+        console.warn("learn-certificate: passed but lessons unfinished", user.id, courseId, check && check.finished + "/" + check.total);
+        passed = false;
+      }
+    }
     // Finished on the old BirdBox Academy (LearnWorlds) before the move: counts as passed.
     if (!passed) {
       const { data: lw } = await supabase.from("learn_enrolments")
@@ -97,7 +116,7 @@ export default async (req) => {
         .eq("course_id", courseId).eq("email", (user.email || "").toLowerCase()).not("lw_completed_at", "is", null).maybeSingle();
       if (lw) { passed = true; done = { completed_at: lw.lw_completed_at, score_scaled: lw.lw_score }; }
     }
-    if (!passed) return json({ error: "The certificate unlocks once you have passed the final test." }, 400);
+    if (!passed) return json({ error: "The certificate unlocks once every lesson is finished and you have passed the final test. If you have done both, write to " + OFFICE + " and we will check." }, 400);
 
     const name = String(body.name || "").replace(/\s+/g, " ").trim();
     if (name.length < 3 || name.length > 80) {
