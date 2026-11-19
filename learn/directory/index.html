@@ -85,9 +85,9 @@
 <body>
 
 <div class="lbar">
-  <a href="/learn/"><img src="/brand/birdBox.png" alt="BirdBox Coaching"></a>
+  <a href="/learn/#directory"><img src="/brand/birdBox.png" alt="BirdBox Coaching"></a>
   <span class="name">BirdBox Learn</span>
-  <a class="back" href="/learn/">&larr; My courses</a>
+  <a class="back" href="/learn/#directory">&larr; BirdBox Learn</a>
 </div>
 
 <main class="bb-wrap">
@@ -257,7 +257,7 @@ $("l-link").onclick = async () => {
   } catch (err) {}
   $("l-link").disabled = false;
   if (!ok) return say("l-msg", "Something went wrong. Try again, or write to info@birdboxcoaching.com.", "err");
-  say("l-msg", "A login link is on its way to " + email + ". Check your inbox (and junk folder) and tap the link. Once you are in, you can set a password in My courses.", "ok");
+  say("l-msg", "A login link is on its way to " + email + ". Check your inbox (and junk folder) and tap the link. Once you are in, you can set a password.", "ok");
 };
 $("logout").onclick = async () => { await db.auth.signOut(); location.reload(); };
 
