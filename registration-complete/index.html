@@ -133,6 +133,7 @@
     <div id="learnwrap">
       <h2>Your BirdBox Learn account</h2>
       <p id="learnline">Your learner area is on our website. Here you will see your registration for this course and the receipts for your payments.</p>
+      <p id="onlineline" class="hidden"></p>
       <p>Tap <strong>Go to BirdBox Learn</strong> in your confirmation email to be logged straight in, no password needed. Or open it now and log in with the email you booked with.</p>
       <a class="btn" href="/learn/">Open BirdBox Learn</a>
     </div>
@@ -208,6 +209,13 @@ async function load() {
     }
 
     if (data.hoodie) $("hoodiewrap").classList.remove("hidden");
+    if (data.supportingOnline) {
+      $("learnline").textContent = "Your learner area is on our website. Here you will see your registration for this course, your supporting online course and the receipts for your payments.";
+      const ol = $("onlineline");
+      ol.innerHTML = "<strong>Your supporting online course:</strong> ";
+      ol.append(data.supportingOnline + " is included in your course price. You will find it in BirdBox Learn under My courses.");
+      ol.classList.remove("hidden");
+    }
     if (data.manualUrl) $("learnline").textContent = "Your learner area is on our website. Here you will see your registration for this course, the course manual and the receipts for your payments.";
     if (data.manualUrl) {
       $("manuallink").href = data.manualUrl;
