@@ -176,6 +176,8 @@
   /* Basket: Ecwid hides the item pictures when the shop is narrow (phones,
      small windows). Show a small picture of each item there too (Nathan, 20 Nov 2026). */
   .ec-size.ec-size--s:not(.ec-size--m) .ec-store .ec-cart__products .ec-cart-item__image { display: block !important; }
+  .bb-size { display: block; margin: 8px 0 0; font-size: 14px; color: #6B6466; }
+  .bb-size select { font: inherit; font-size: 14px; margin-left: 6px; padding: 4px 8px; border: 1px solid #C9C3C5; background: #fff; color: #14100F; }
   /* learner seminar tee added from BirdBox Learn */
   .bb-tee-note { border: 2px solid #4FA8DE; background: #EEF7FD; color: #14100F; padding: 14px 16px; margin: 0 0 18px; font-size: 15px; line-height: 1.5; }
   .bb-tee-note p { margin: 0 0 10px; }
@@ -392,6 +394,73 @@
             }
           }
           if (window.Ecwid && Ecwid.OnAPILoaded) Ecwid.OnAPILoaded.add(add);
+        })();
+      </script>
+      <!-- Basket: a size picker on each learner seminar tee, so a wrong size
+           can be fixed without going back to BirdBox Learn (Nathan, 20 Nov
+           2026). Each tee is limited to one per order, so changing size swaps
+           the line: remove it, then add the new size (old size put back if
+           that fails). -->
+      <script type="text/javascript">
+        (function () {
+          var L = window.BB_LEARNER_TEES;
+          if (!L || !window.Ecwid || !Ecwid.OnPageLoaded) return;
+          var known = {};
+          for (var k in L.tees) known[L.tees[k].id] = true;
+          var busy = false;
+          function decorate() {
+            var els = document.querySelectorAll('#my-store-140532633 .ec-cart-item');
+            if (!els.length || busy) return;
+            Ecwid.Cart.get(function (cart) {
+              for (var i = 0; i < els.length; i++) {
+                var el = els[i];
+                var a = el.querySelector('a[href*="/p/"]');
+                var m = a && a.getAttribute('href').match(/\/p\/(\d+)/);
+                var id = m && Number(m[1]);
+                if (!id || !known[id] || el.querySelector('.bb-size')) continue;
+                var line = null;
+                for (var j = 0; j < cart.items.length; j++) if (cart.items[j].product.id === id) line = cart.items[j];
+                if (!line) continue;
+                var cur = (line.options && line.options.Size) || '';
+                var box = document.createElement('label');
+                box.className = 'bb-size';
+                box.appendChild(document.createTextNode('Change size '));
+                var sel = document.createElement('select');
+                L.sizes.forEach(function (z) {
+                  var o = document.createElement('option'); o.value = o.textContent = z;
+                  if (z === cur) o.selected = true;
+                  sel.appendChild(o);
+                });
+                (function (id, cur, sel) {
+                  sel.addEventListener('change', function () { swap(id, cur, sel.value, sel); });
+                })(id, cur, sel);
+                box.appendChild(sel);
+                var host = el.querySelector('.ec-cart-item__wrap-primary') || el;
+                host.appendChild(box);
+              }
+            });
+          }
+          function swap(id, from, to, sel) {
+            if (busy || from === to) return;
+            busy = true; sel.disabled = true;
+            Ecwid.Cart.get(function (cart) {
+              var idx = -1;
+              for (var j = 0; j < cart.items.length; j++) if (cart.items[j].product.id === id) idx = j;
+              if (idx < 0) { busy = false; return; }
+              Ecwid.Cart.removeProduct(idx, function () {
+                Ecwid.Cart.addProduct({ id: id, quantity: 1, options: { Size: to }, callback: function (ok) {
+                  if (ok) { busy = false; return; }
+                  // put the old size back
+                  Ecwid.Cart.addProduct({ id: id, quantity: 1, options: { Size: from }, callback: function () {
+                    busy = false;
+                    alert('Sorry, we could not change the size just now. Please try again.');
+                  } });
+                } });
+              });
+            });
+          }
+          Ecwid.OnPageLoaded.add(function (p) { if (p && p.type === 'CART') setTimeout(decorate, 300); });
+          if (Ecwid.OnCartChanged) Ecwid.OnCartChanged.add(function () { setTimeout(decorate, 600); });
         })();
       </script>
       <script type="text/javascript">
