@@ -61,12 +61,12 @@ export default async (req, context) => {
       const part = q.get("part");
       // all at once rather than one after another: the tab was slow (Nathan, 7 Nov 2026)
       if (part === "programming") {
-        const [mine, staff, shop, trial_ok, move, comeback] = await Promise.all([
+        const [mine, staff, shop, trial_ok, move, comeback, one_to_one] = await Promise.all([
           programming(user, email), isStaff(user),
           athleteOf(user, email).then((a) => shopFor(context, a, String(q.get("country") || "").toUpperCase())),
-          trialOk(user, email), moveOfferView(email), comebackView(user, email),
+          trialOk(user, email), moveOfferView(email), comebackView(user, email), oneToOneView(email),
         ]);
-        return json({ ...mine, staff, shop, trial_ok, move, comeback: move ? null : comeback });
+        return json({ ...mine, staff, shop, trial_ok, move, comeback: move ? null : comeback, one_to_one });
       }
       if (part === "receipts") return json({ receipts: await receipts(email) });
       // a directory-only login (no BirdBox record yet) sees only their listing
@@ -595,6 +595,26 @@ function comebackFirstCharge(trialOffer, lastDay) {
     return t > Math.ceil(Date.now() / 1000) + 2 * 86400 + 3600 ? t : null;
   }
   return Math.floor(Date.now() / 1000) + COMEBACK_FREE_DAYS * 86400;
+}
+// A 1:1 place a coach has accepted after the call (Nathan, 20 Nov 2026):
+// the Accept email sends them here, they make their login, and start from
+// their own account. The payment link is the application's own (7 days,
+// their email only); the checkout comes back to Learn when they have paid.
+const PAY_URL = "https://app.birdboxcoaching.com/.netlify/functions/checkout?pay=";
+async function oneToOneView(email) {
+  if (!email) return null;
+  const { data } = await train().from("applications")
+    .select("tier, brand, first_name, coach_id, pay_code, pay_expires_at, status, accepted_at")
+    .ilike("email", email.replace(/[%_\\]/g, "\\$&")).in("status", ["accepted", "paid"])
+    .order("accepted_at", { ascending: false }).limit(1);
+  const a = data?.[0];
+  if (!a || a.status !== "accepted" || !a.pay_code) return null;
+  const { data: coach } = a.coach_id
+    ? await db.from("staff").select("full_name").eq("id", a.coach_id).maybeSingle() : { data: null };
+  const expired = !a.pay_expires_at || new Date(a.pay_expires_at) < new Date();
+  return { tier: a.tier, brand: a.brand || "tgc", name: TIER[a.tier] || "One-to-one coaching",
+    first_name: a.first_name || null, coach: coach?.full_name || null,
+    until: a.pay_expires_at, expired, url: expired ? null : PAY_URL + encodeURIComponent(a.pay_code) };
 }
 async function comebackView(user, email) {
   const o = await comebackOffer(email);

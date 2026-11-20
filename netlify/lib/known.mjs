@@ -35,6 +35,9 @@ export async function knownToBirdBox(email) {
     // moving over from CoachRx (Nathan, 1 Nov 2026)
     () => has(db.schema("train").from("move_offers").select("id", head).eq("email", email)
       .in("status", ["ready", "emailed", "moved"])),
+    // a 1:1 place a coach has accepted, to start in Learn (Nathan, 20 Nov 2026)
+    () => has(db.schema("train").from("applications").select("id", head).ilike("email", like)
+      .in("status", ["accepted", "paid"])),
     // a past member with a come-back offer (Nathan, 7 Nov 2026)
     () => has(db.schema("train").from("comeback_offers").select("id", head).eq("email", email)
       .in("status", ["emailed", "joined"])),
