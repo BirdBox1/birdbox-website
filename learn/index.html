@@ -103,7 +103,8 @@
   /* the free hoodie card (Nathan, 20 Nov 2026) */
   .hood{background:var(--panel);border:1px solid var(--accent);padding:20px 22px;margin:0 0 28px;max-width:760px;line-height:1.55}
   .hood h2{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 6px}
-  .hood .opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:14px 0}
+  .hood .opts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  @media (max-width:640px){.hood .opts{grid-template-columns:repeat(2,1fr)}}
   .hood .opt{background:var(--panel2);border:2px solid transparent;padding:8px;cursor:pointer;text-align:left;color:var(--ink);font:inherit;font-size:14px}
   .hood .opt.on{border-color:var(--accent)}
   .hood .opt img{width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block;margin-bottom:6px}
