@@ -173,6 +173,9 @@
   .bb-filter button[aria-pressed="true"] { background: #1A6FA8; border-color: #1A6FA8; color: #FFFFFF; }
   .bb-filter button:focus-visible { outline: 2px solid #1A6FA8; outline-offset: 2px; }
   .bb-filter__empty { text-align: center; font-size: 14px; color: #6B6466; margin: 6px 0 0; }
+  /* Basket: Ecwid hides the item pictures when the shop is narrow (phones,
+     small windows). Show a small picture of each item there too (Nathan, 20 Nov 2026). */
+  .ec-size.ec-size--s:not(.ec-size--m) .ec-store .ec-cart__products .ec-cart-item__image { display: block !important; }
   /* learner seminar tee added from BirdBox Learn */
   .bb-tee-note { border: 2px solid #4FA8DE; background: #EEF7FD; color: #14100F; padding: 14px 16px; margin: 0 0 18px; font-size: 15px; line-height: 1.5; }
   .bb-tee-note p { margin: 0 0 10px; }
