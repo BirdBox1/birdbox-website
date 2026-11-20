@@ -4260,7 +4260,7 @@ async function openCourse(course) {
   box.innerHTML = '<p class="empty">Loading…</p>';
 
   const { data, error } = await db.from("registrations")
-    .select("id, first_name, last_name, email, phone, country, created_at, payment_status, attended, certificate_sent_at, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name, learnworlds_language, learnworlds_status, learnworlds_user_id, learnworlds_enrolled_at, learnworlds_error, attendance_marked_at, attendance_marked_by, invoice_id, payment_overdue_at, payment_overdue_note, stripe_session_id, retro_invoice_number")
+    .select("id, first_name, last_name, email, phone, country, created_at, payment_status, attended, certificate_sent_at, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name, learnworlds_language, learnworlds_status, learnworlds_user_id, learnworlds_enrolled_at, learnworlds_error, attendance_marked_at, attendance_marked_by, invoice_id, payment_overdue_at, payment_overdue_note, stripe_session_id, retro_invoice_number, prereq_answer")
     .eq("course_id", course.id)
     .order("last_name", { ascending: true });
 
@@ -4380,6 +4380,12 @@ async function openCourse(course) {
       addPill("payment overdue — no entry", "bad");
     }
     if (!r.waiver_signed_at) addPill("no waiver", "warn");
+    // The Level 1 check for TGC Level 2 (Nathan, 20 Nov 2026)
+    if (r.prereq_answer && /^Level 1 to check/.test(r.prereq_answer)) {
+      addPill("Level 1 to check", "warn");
+      flags.lastChild.title = r.prereq_answer;
+    } else if (r.prereq_answer === "Level 1 found in our records") addPill("Level 1 ✓", "on");
+    else if (r.prereq_answer && /: not yet$/.test(r.prereq_answer)) addPill("prerequisite: not yet", "warn");
 
     // The discount code this person registered with, shown next to the
     // name so coaches/admin can see it at a glance. Blank for transfers
