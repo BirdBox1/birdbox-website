@@ -96,7 +96,7 @@ export async function bookingEarnsHoodie(email, courseId) {
 // with the same names that are not in the shop, so only these are offered.
 // Add a new hoodie here when one goes on sale.
 const SHOP_HOODIE_PICTURES = {
-  "878548948": {"Navy Blazer": ["6418380880", "6418380886"], "Team Royal": ["6418400357", "6418407570"], "Forest Green": ["6418407576", "6418400360"]},
+  "878548948": {"Navy Blazer": ["6418380880", "6418380886"], "Team Royal": ["6418400357", "6418407570"], "Forest Green": ["6418400360", "6418407576"]},
   "878551185": {"Black": ["6418380892", "6418407588"], "Charcoal Heather": ["6418400375", "6418407594"]},
   "878551186": {"Carbon Grey": ["6418380910", "6418380916"], "Bone": ["6418380907", "6418380922"], "White": ["6418400386", "6418407626"]},
   "878548952": {"Team Red": ["6418400408", "6418407638"], "Dusty Rose": ["6418380943", "6418400414"]},
