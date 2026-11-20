@@ -23,7 +23,7 @@ export async function learnerHistory(email, { exceptCourseId } = {}) {
   const [enrolments, regs, pastCerts, pastAtt, athletes] = await Promise.all([
     safe(db.from("learn_enrolments").select("learn_courses(brand, level, title)").ilike("email", like)),
     safe(db.from("registrations").select("course_id, status, courses!registrations_course_id_fkey(brand, level, type, city, starts_at)").ilike("email", like).neq("status", "cancelled")),
-    safe(db.from("past_certificates").select("brand, level, awarded_on").ilike("email", like)),
+    safe(db.from("past_certificates").select("brand, level, kind, awarded_on").ilike("email", like)),
     safe(db.from("past_attendees").select("brand, level, event_date, place, status").ilike("email", like)),
     safe(db.schema("train").from("athletes").select("id").ilike("email", like).limit(5)),
   ]);
@@ -62,7 +62,16 @@ export async function learnerHistory(email, { exceptCourseId } = {}) {
     if (String(r.courses.starts_at || "") > new Date().toISOString()) continue;   // only ones already done
     add(r.courses.brand, r.courses.level, r.courses.type === "workshop", r.courses.city, r.courses.starts_at);
   }
-  for (const c of pastCerts) add(c.brand, c.level === "advanced" ? "" : c.level, false, null, c.awarded_on);
+  for (const c of pastCerts) {
+    // an old SimpleCert certificate for an online course is an online course, not a seminar
+    if (c.kind === "online") {
+      const label = `${NAME[c.brand] || "BirdBox"}${level(c.level)} online course`;
+      if (!out.online.includes(label)) out.online.push(label);
+      out.onlineKeys.push(c.brand + level(c.level));
+      continue;
+    }
+    add(c.brand, c.level === "advanced" ? "" : c.level, false, null, c.awarded_on);
+  }
   for (const a of pastAtt) if (a.status === "Completed") add(a.brand, a.level, false, a.place, a.event_date);
   out.seminars = seminars.sort((a, b) => b.when.localeCompare(a.when));
 
