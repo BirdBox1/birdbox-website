@@ -26,6 +26,7 @@
 // T-shirts and gift cards alike. Nothing here changes a course, a plan or a
 // payment; "portal" only opens Stripe's own page for one of their plans.
 
+import { shopOrders, shopInvoice } from "../lib/shop-orders.mjs";
 import Stripe from "stripe";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { randomBytes } from "node:crypto";
@@ -68,7 +69,11 @@ export default async (req, context) => {
         ]);
         return json({ ...mine, staff, shop, trial_ok, move, comeback: move ? null : comeback, one_to_one });
       }
-      if (part === "receipts") return json({ receipts: await receipts(email) });
+      if (part === "receipts") {
+        // course payments (Stripe) and shop orders (Ecwid), newest first
+        const [paid, shop] = await Promise.all([receipts(email), shopOrders(email)]);
+        return json({ receipts: [...paid, ...shop].sort((a, b) => b.date.localeCompare(a.date)) });
+      }
       // a directory-only login (no BirdBox record yet) sees only their listing
       if (part === "me") return json({ known: (await isStaff(user)) || (await knownToBirdBox(email)) });
       if (part === "discounts") {
@@ -90,6 +95,7 @@ export default async (req, context) => {
       if (body.action === "move_upgrade") return moveUpgrade(user, email, Number(body.tier));
       if (body.action === "comeback_start") return comebackStart(user, email, context);
       if (body.action === "invoice") return invoice(email, body);
+      if (body.action === "shop_invoice") { const r = await shopInvoice(email, body.order); return json(r, r.error ? 404 : 200); }
       if (body.action === "seminar_pass") return seminarPass(user, email, String(body.brand || ""));
       if (body.action === "online_offer") return onlineOffer(user, email, String(body.brand || ""));
       return json({ error: "Unknown action" }, 400);
