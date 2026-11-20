@@ -110,6 +110,23 @@ const LMS_URL = "https://www.birdboxacademy.com";
 
 const CURRENCIES = ["EUR", "GBP", "USD", "AUD", "CAD"];
 
+// BLACK FRIDAY (Nathan, 20 Nov 2026): 30% off the TGC and TCC online
+// courses, 27-30 November 2026, Irish time (= UTC in November). Taken
+// off by itself on the buy box, no code. Never on top of the 50% seminar
+// offer (that path uses its own price). A gift card still pays towards
+// the sale price.
+const SALE = {
+  from: Date.parse("2026-11-27T00:00:00Z"),
+  to: Date.parse("2026-11-30T23:59:59Z"),
+  percent: 30,
+  brands: ["tgc", "tcc"],
+  key: "black_friday_2026",
+};
+export function saleFor(brand, now = Date.now()) {
+  return SALE.brands.includes(String(brand || "").toLowerCase()) && now >= SALE.from && now <= SALE.to ? SALE : null;
+}
+const salePrice = (cents, sale) => (sale ? Math.round(cents * (100 - sale.percent) / 100) : cents);
+
 // Europe pays in euro, the UK in pounds, Australia in AUD, Canada in
 // CAD. Everyone else — the US and the rest of the world — in USD.
 const EURO_COUNTRIES = new Set([
@@ -195,7 +212,10 @@ async function offer(req, context) {
   const level = digits(url.searchParams.get("level"));
   if (!brand || !level) return json({ error: "Missing brand or level" }, 400);
 
-  const { prices, products } = await loadOffer(brand, level);
+  const { prices: full, products } = await loadOffer(brand, level);
+  const sale = saleFor(brand);
+  const prices = {};
+  for (const k in full) prices[k] = salePrice(full[k], sale);
 
   let country = null;
   try { country = context?.geo?.country?.code || null; } catch (e) { country = null; }
@@ -216,6 +236,7 @@ async function offer(req, context) {
     months: PLAN_CHOICES,
     country,
     vat,
+    sale: sale ? { percent: sale.percent, ends: new Date(sale.to).toISOString(), was: full } : null,
   }, 200, { "Cache-Control": "no-store" });
 }
 
@@ -293,8 +314,10 @@ async function checkout(req, body) {
   const product = products.find((p) => p.language === language) || (products.length === 1 ? products[0] : null);
   if (!product) return json({ error: "Choose a language" }, 400);
 
-  const price = prices[currency];
-  if (!price) return json({ error: `This course is not on sale in ${currency}` }, 400);
+  const sale = saleFor(brand);
+  const fullPrice = prices[currency];
+  if (!fullPrice) return json({ error: `This course is not on sale in ${currency}` }, 400);
+  const price = salePrice(fullPrice, sale);
 
   // The rate for the buyer's country, or none.
   const vatRow = (await vatList()).find((v) => v.code === country) || null;
@@ -335,6 +358,8 @@ async function checkout(req, body) {
     gift_card_id: gift ? gift.card.id : "",
     gift_cents: gift ? String(gift.covered) : "",
     gift_code: gift ? gift.card.code : "",
+    sale: sale ? sale.key : "",
+    full_price_cents: sale ? String(fullPrice) : "",
   };
 
   const lineItem = {
@@ -343,7 +368,7 @@ async function checkout(req, body) {
       currency: currency.toLowerCase(),
       unit_amount: option === "plan" ? each : price,
       product_data: {
-        name: option === "plan" ? `${name} — ${months} monthly payments` : name,
+        name: (option === "plan" ? `${name} — ${months} monthly payments` : name) + (sale ? ` (Black Friday ${sale.percent}% off)` : ""),
         description: stripeWords(product.language).description,
       },
     },
@@ -438,8 +463,9 @@ async function checkGift(body) {
     const { prices } = await loadOffer(o.brand, o.level);
     price = prices[currency] ? discounted(prices[currency], o.discount_percent) : null;
   } else {
-    const { prices } = await loadOffer(String(body.brand || "").toLowerCase(), digits(body.level));
-    price = prices[currency];
+    const b = String(body.brand || "").toLowerCase();
+    const { prices } = await loadOffer(b, digits(body.level));
+    price = prices[currency] ? salePrice(prices[currency], saleFor(b)) : null;
   }
   if (!price) return json({ error: `This course is not on sale in ${currency}` }, 400);
   const vatRow = (await vatList()).find((v) => v.code === country) || null;
