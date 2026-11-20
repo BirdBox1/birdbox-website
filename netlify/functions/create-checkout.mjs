@@ -34,6 +34,7 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { priceWithDiscount, priceWithPass } from "./validate-discount.mjs";
 import { withLocalPrice } from "../lib/local-price.mjs";
+import { needsLevel1, readPrereqToken } from "../lib/prereq.mjs";
 
 // Bump this whenever the wording at /agreements/ changes.
 const WAIVER_VERSION = "2026-08-v1";
@@ -148,7 +149,19 @@ export default async (req) => {
       ? await languagesFor(course)
       : [];
 
-    const prerequisite = languages.length ? null : await prerequisiteFor(course);
+    // TGC Level 2 needs TGC Level 1 (Nathan, 20 Nov 2026): the booking page
+    // has already checked their email (prereq-check). We lock that email
+    // in and record what we found, so nothing needs asking at Stripe.
+    let prereq = null;
+    if (needsLevel1(course)) {
+      prereq = readPrereqToken(body.prereq, course.slug);
+      if (!prereq) return json({ error: "Please enter your email above first, so we can check your Level 1." }, 400);
+      const answer = String(body.prereq_answer || "").trim().slice(0, 400);
+      if (!prereq.found && !answer) return json({ error: "Please tell us where and when you did Level 1." }, 400);
+      prereq.answer = answer;
+    }
+
+    const prerequisite = languages.length || prereq ? null : await prerequisiteFor(course);
 
     // ---- VAT for the venue's country ---------------------------
     const vat = await vatForCourse(course);
@@ -408,6 +421,9 @@ export default async (req) => {
         gift_vat_country: gift ? (course.country || "").trim().toUpperCase() : "",
         gift_vat_percent: gift ? String(vat ? vat.percent : 0) : "",
         prerequisite: prerequisite || "",
+        // the Level 1 check on the booking page (TGC Level 2)
+        prereq_checked: prereq ? (prereq.found ? "found" : "not_found") : "",
+        prereq_answer: prereq && !prereq.found ? prereq.answer : "",
 
         // The webhook reads this to decide whether to enrol anyone in
         // LearnWorlds. Blank means no free online course.
@@ -432,6 +448,8 @@ export default async (req) => {
 
     // their own email, which Stripe then shows but does not let them change
     if (locked) session.customer_email = locked.email;
+    // the email they checked their Level 1 with
+    else if (prereq) session.customer_email = prereq.email;
 
     // ---- the invoice -------------------------------------------
     // Created automatically for every venue country except those on
