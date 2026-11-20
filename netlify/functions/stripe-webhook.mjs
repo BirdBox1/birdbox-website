@@ -33,7 +33,7 @@ import { isOnlineInvoice, onOnlineInvoicePaid, onOnlineInvoiceOverdue } from "./
 import { isOnlineSale, onOnlineSaleCompleted, onlinePlanMeta, onOnlinePlanFailed } from "./online-checkout.mjs";
 import { isGiftSale, onGiftSaleCompleted, redeemCard } from "../lib/gift-cards.mjs";
 import { bookingEarnsHoodie } from "../lib/hoodie.mjs";
-import { learnerHistory, historyLine } from "../lib/learner-history.mjs";
+import { learnerHistory, welcomeBack } from "../lib/learner-history.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -1817,13 +1817,13 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
     // already know BirdBox Learn from an online course, programming or
     // another seminar (Nathan, 20 Nov 2026).
     const history = await learnerHistory(email, { exceptCourseId: courseId }).catch(() => ({ any: false }));
-    const knownFrom = history.any ? historyLine(history) : "";
+    const welcome = history.any ? welcomeBack(history, course) : "";
     const LEARN_LINK = learnStartLink(email);
     const learnIntro = "BirdBox Learn is your learner area on our website. Your " + (isWorkshop ? "workshop" : "seminar") +
       (manualUrl ? " and its course manual are" : " is") + " already there, and after the course your certificate will be too.";
     const appNote = history.programming ? " It is the same login as the BirdBox Coaching app." : "";
     const learnHow = history.any
-      ? "Welcome back. We know you from " + knownFrom + ", so everything is in one account under " + email + ". Tap the button to go straight in." + appNote
+      ? "Everything is in one account under " + email + ". Tap the button to go straight in." + appNote
       : "This is your first course with us. Tap the button and you are logged straight in, no password needed. A box at the top lets you choose a password, so next time you log in with " + email + " and that password.";
     const learnOther = "Used a different email with us before? Reply to this email and we will join your accounts up.";
 
@@ -1862,6 +1862,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       isWorkshop || courseDays.length ? null : "Arrival " + checkIn + " on day one. " + dayStart + " to " + dayEnd + " each day, with a one-hour lunch break around 12:30.",
       "",
       "YOUR BIRDBOX LEARN ACCOUNT",
+      welcome || null,
       learnIntro,
       learnHow,
       LEARN_LINK,
@@ -1933,9 +1934,10 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
     : `<p style="margin:0;">Arrival <strong>${esc(checkIn)}</strong> on day one. ${esc(dayStart)} to ${esc(dayEnd)} each day, with a one-hour lunch break around 12:30.</p>`}
 
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Your BirdBox Learn account</h3>
+  ${welcome ? `<p style="margin:0 0 10px;"><strong>${esc(welcome)}</strong></p>` : ""}
   <p style="margin:0 0 10px;">${esc(learnIntro)}</p>
   <p style="margin:0 0 12px;">${history.any
-    ? `Welcome back. We know you from ${esc(knownFrom)}, so everything is in one account under <strong>${esc(email)}</strong>. Tap the button to go straight in.${esc(appNote)}`
+    ? `Everything is in one account under <strong>${esc(email)}</strong>. Tap the button to go straight in.${esc(appNote)}`
     : `This is your first course with us. Tap the button and you are logged straight in, no password needed. A box at the top lets you choose a password, so next time you log in with <strong>${esc(email)}</strong> and that password.`}</p>
   <p style="margin:0;">
     <a href="${LEARN_LINK}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Go to BirdBox Learn</a>
