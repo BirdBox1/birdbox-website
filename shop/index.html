@@ -173,6 +173,10 @@
   .bb-filter button[aria-pressed="true"] { background: #1A6FA8; border-color: #1A6FA8; color: #FFFFFF; }
   .bb-filter button:focus-visible { outline: 2px solid #1A6FA8; outline-offset: 2px; }
   .bb-filter__empty { text-align: center; font-size: 14px; color: #6B6466; margin: 6px 0 0; }
+  /* learner seminar tee added from BirdBox Learn */
+  .bb-tee-note { border: 2px solid #4FA8DE; background: #EEF7FD; color: #14100F; padding: 14px 16px; margin: 0 0 18px; font-size: 15px; line-height: 1.5; }
+  .bb-tee-note p { margin: 0 0 10px; }
+  .bb-tee-note button { font: inherit; font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; background: #4FA8DE; color: #14100F; border: 0; padding: 10px 16px; cursor: pointer; }
   /* On a product page: hide the filters, and keep the main picture small
      enough that the colour pictures underneath show without scrolling. */
   .mrc-store:has(.ec-store__product-page) .bb-filter { display: none; }
@@ -328,6 +332,50 @@
            colour-pictures.js (re-generate it with scripts/shop-colour-pictures.py
            after republishing products). -->
       <script src="/shop/colour-pictures.js"></script>
+      <script src="/shop/learner-tees.js"></script>
+      <!-- A learner's private seminar tee, sent here from BirdBox Learn as
+           /shop/?tee=<Ecwid id>&size=<size>: put it in the basket and say so,
+           so they can add anything else and get one delivery. Only tees in
+           learner-tees.js are accepted. -->
+      <script type="text/javascript">
+        (function () {
+          var q = new URLSearchParams(location.search);
+          var id = Number(q.get('tee')), size = q.get('size');
+          var L = window.BB_LEARNER_TEES;
+          if (!id || !L) return;
+          var tee = null;
+          for (var k in L.tees) if (L.tees[k].id === id) tee = L.tees[k];
+          // tidy the address so a reload doesn't add a second one
+          try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
+          if (!tee || L.sizes.indexOf(size) < 0) return;
+          var note = document.createElement('div');
+          note.className = 'bb-tee-note';
+          note.setAttribute('role', 'status');
+          note.textContent = 'Adding your seminar tee to your basket…';
+          var store = document.getElementById('my-store-140532633');
+          store.parentNode.insertBefore(note, store);
+          var done = false;
+          function add() {
+            if (done || !window.Ecwid || !Ecwid.Cart) return;
+            done = true;
+            Ecwid.Cart.addProduct({ id: id, quantity: 1, options: { Size: size }, callback: function (ok) {
+              note.textContent = '';
+              var p = document.createElement('p');
+              p.textContent = ok
+                ? 'Your seminar tee (size ' + size + ') is in your basket. Add anything else you like from the shop: it all comes in one delivery.'
+                : 'We could not add your seminar tee just now. Please go back to BirdBox Learn and try again.';
+              note.appendChild(p);
+              if (ok) {
+                var b = document.createElement('button');
+                b.type = 'button'; b.textContent = 'Go to basket';
+                b.addEventListener('click', function () { Ecwid.openPage('cart'); });
+                note.appendChild(b);
+              }
+            } });
+          }
+          if (window.Ecwid && Ecwid.OnAPILoaded) Ecwid.OnAPILoaded.add(add);
+        })();
+      </script>
       <script type="text/javascript">
         (function () {
           var BASE = 'https://d2j6dbq0eux0bg.cloudfront.net/images/140532633/products/';
@@ -417,7 +465,9 @@
             for (var i = 0; i < cards.length; i++) {
               var t = cards[i].querySelector('.grid-product__title-inner');
               var name = t ? t.textContent.trim() : '';
-              var ok = (!want.course || name.indexOf(want.course + ' ') === 0) &&
+              // private learner tees are sold only through BirdBox Learn
+              var priv = window.BB_LEARNER_TEES && BB_LEARNER_TEES.isPrivate(name);
+              var ok = !priv && (!want.course || name.indexOf(want.course + ' ') === 0) &&
                        (!want.type || kind(name) === want.type);
               cards[i].style.display = ok ? '' : 'none';
               if (ok) shown++;
