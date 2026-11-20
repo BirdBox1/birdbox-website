@@ -42,7 +42,17 @@ const GRAPH = "https://graph.facebook.com/v21.0";
 // from the training app (6 Nov 2026, Nathan: act fast to let them in)
 // "call_recording": a weekly call recording still not published to the
 // Premium chat, from the training app's call-publish-reminder (10 Nov 2026)
-const SEND_KINDS = ["message", "allocation", "cancelled", "invoice_paid", "health", "call_recording"];
+// "community": a member posted or replied in a community chat, to the
+// coaches who asked for it (Barney, 20 Nov 2026); never at night, see QUIET
+const SEND_KINDS = ["message", "allocation", "cancelled", "invoice_paid", "health", "call_recording", "community"];
+
+// Kinds that wait for the morning: between 22:00 and 07:00 Irish time they
+// stay queued and go at 07:00 (the email has already gone, silently).
+const QUIET = new Set(["community"]);
+const quietNow = () => {
+  const h = Number(new Date().toLocaleString("en-GB", { timeZone: "Europe/Dublin", hour: "2-digit", hour12: false }));
+  return h >= 22 || h < 7;
+};
 
 // Netlify stops waiting at 26 seconds. Twenty messages at roughly a third of
 // a second each leaves comfortable room; the rest go on the next run, a
@@ -73,12 +83,13 @@ export default async (request) => {
   // Only rows for staff who have actually opted in. whatsapp_enabled starts
   // false for everybody: Meta requires opt-in even for your own team, and a
   // coach who has not given a number cannot be messaged anyway.
+  const kinds = quietNow() ? SEND_KINDS.filter((k) => !QUIET.has(k)) : SEND_KINDS;
   const { data: rows, error } = await db
     .from("notifications")
     .select("id, staff_id, kind, body, staff:staff_id ( full_name, whatsapp_number, whatsapp_enabled )")
     .is("whatsapp_sent_at", null)
     .is("whatsapp_error", null)
-    .in("kind", SEND_KINDS)
+    .in("kind", kinds)
     .gte("created_at", cutoff)
     .order("created_at", { ascending: true })
     .limit(BATCH);
