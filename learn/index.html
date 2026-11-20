@@ -134,6 +134,14 @@
   .sm-pin__go{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff!important;padding:7px 14px;text-decoration:none}
   .tee .one{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;margin-top:14px}
   .tee .one + .one{border-top:1px solid var(--line);padding-top:18px}
+  /* two side by side (Nathan, 20 Nov 2026) */
+  .tee .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 32px}
+  .tee .grid .one{border-top:0;padding-top:0}
+  .tee .grid .sizes{gap:6px}
+  .tee .grid .sizes button{min-width:44px;padding:8px 6px}
+  .tee .grid .one:nth-child(n+3){border-top:1px solid var(--line);padding-top:18px}
+  .tee .list + .one{border-top:1px solid var(--line);padding-top:18px}
+  @media (max-width:820px){.tee .grid{grid-template-columns:1fr}.tee .grid .one:nth-child(n+2){border-top:1px solid var(--line);padding-top:18px}}
   .tee .one .pic{width:200px;max-width:100%}
   .tee .one img{width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block;cursor:pointer}
   .tee .flip{display:flex;gap:6px;margin-top:6px}
@@ -209,6 +217,11 @@
   .plan dt{font-weight:700}
   .plan dd{margin:0}
   .plan .btns{display:flex;gap:10px;flex-wrap:wrap}
+  /* their plan and the app side by side (Nathan, 20 Nov 2026) */
+  .prow{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px;margin-bottom:14px}
+  .prow > .plan{max-width:none;margin:0}
+  .prow > .plan.app{display:flex;flex-direction:column}
+  @media (max-width:820px){.prow{grid-template-columns:1fr}}
   .plan .btn.main{background:var(--c,#85151A);border-color:var(--c,#85151A);color:var(--on,#fff)}
   .plan .btn.main:hover{background:transparent;color:var(--ink)}
   .rc{display:grid;grid-template-columns:150px minmax(0,1fr) auto auto;gap:16px;align-items:center;background:var(--panel);
@@ -1440,9 +1453,12 @@ function showAthleteTee(d) {
   // everyone (Nathan, 20 Nov 2026)
   const order = [...new Set([...mine.filter((b) => ["tgc", "tec", "twc"].includes(b)), "birdbox"])];
   const NAME = { tgc: "TGC Athlete", tec: "TEC Athlete", twc: "TWC Athlete", birdbox: "BirdBox Athlete" };
-  const list = order.filter((k) => L.tees["athlete-" + k]).map((k) => ({ key: "athlete-" + k, tee: L.tees["athlete-" + k], label: NAME[k] }));
+  // the tees, then the hoodies (Nathan, 20 Nov 2026)
+  const list = [];
+  for (const [kind, word] of [["athlete-", "Tee"], ["athlete-hoodie-", "Hoodie"]])
+    for (const k of order) { const t = L.tees[kind + k]; if (t && t.img) list.push({ key: kind + k, tee: t, label: NAME[k] + " " + word }); }
   teeOffer($("athtee"), list, {
-    one: "Your BirdBox Athlete tee", many: "BirdBox Athlete tees",
+    one: "Your BirdBox Athlete kit", many: "BirdBox Athlete kit",
     intro: "Only for BirdBox programming athletes. Pick a size for any you want; you can add more, or more sizes, in the basket. Printed when you order and posted to you.",
   });
 }
@@ -1484,14 +1500,18 @@ function teeOffer(box, list, words) {
     const picked = list.filter((it) => chosen.has(it.key));
     const n = picked.length, total = picked.reduce((a, it) => a + it.tee.price, 0);
     if (!n) {
-      go.textContent = list.length > 1 ? "Choose a size for each tee you want" : "Choose a size";
+      go.textContent = list.length > 1 ? "Choose a size for each " + (list.some((it) => it.tee.hoodie) ? "item" : "tee") + " you want" : "Choose a size";
       go.removeAttribute("href"); go.setAttribute("aria-disabled", "true"); go.style.opacity = ".5"; go.style.pointerEvents = "none";
       return;
     }
     go.href = "/shop/?tees=" + picked.map((it) => it.tee.id + ":" + encodeURIComponent(chosen.get(it.key))).join(",");
-    go.textContent = (n > 1 ? "Add " + n + " tees to basket" : list.length > 1 ? "Add 1 tee to basket" : "Add to basket") + " · " + L.euro(total);
+    const word = picked.some((it) => it.tee.hoodie) ? "items" : "tees";
+    go.textContent = (n > 1 ? "Add " + n + " " + word + " to basket" : list.length > 1 ? "Add 1 " + (picked[0].tee.hoodie ? "hoodie" : "tee") + " to basket" : "Add to basket") + " · " + L.euro(total);
     go.removeAttribute("aria-disabled"); go.style.opacity = ""; go.style.pointerEvents = "";
   };
+  // more than one: two to a row (Nathan, 20 Nov 2026)
+  const grid = document.createElement("div"); grid.className = list.length > 1 ? "list grid" : "list";
+  box.appendChild(grid);
   for (const it of list) {
     const one = document.createElement("div"); one.className = "one";
     // back and front (Nathan, 20 Nov 2026): hover or tap the picture, or use the two buttons
@@ -1519,7 +1539,7 @@ function teeOffer(box, list, words) {
     const info = document.createElement("div"); info.className = "info";
     const t = document.createElement("b"); t.textContent = it.label + (it.year ? " · Class of " + it.year : "");
     const s = document.createElement("small"); s.style.display = "block"; s.style.color = "var(--muted)";
-    s.textContent = it.tee.shirt + " · " + (it.tee.desc || "BirdBox eagle on the front, course logo on the back");
+    s.textContent = it.tee.shirt + " · " + (it.tee.desc || "BirdBox eagle on the front, course logo on the back") + (it.tee.hoodie ? ". Runs small: order a size up." : "");
     const pr = document.createElement("p"); pr.className = "price";
     const was = document.createElement("s"); was.textContent = L.euro(L.was);
     const off = document.createElement("em"); off.textContent = (it.tee.off || Math.round((1 - it.tee.price / L.was) * 100)) + "% off for learners";
@@ -1527,7 +1547,7 @@ function teeOffer(box, list, words) {
     else pr.append(document.createTextNode(L.euro(it.tee.price)));
     const st = document.createElement("p"); st.className = "step"; st.textContent = "Size";
     const sizes = document.createElement("div"); sizes.className = "sizes";
-    for (const z of L.sizes) {
+    for (const z of (it.tee.sizes || L.sizes)) {
       const b = document.createElement("button"); b.type = "button"; b.textContent = z;
       b.onclick = () => {
         // tap the chosen size again to leave this tee out
@@ -1539,7 +1559,7 @@ function teeOffer(box, list, words) {
     }
     info.append(t, s, pr, st, sizes);
     one.append(pic, info);
-    box.appendChild(one);
+    grid.appendChild(one);
   }
   const bar = document.createElement("div"); bar.className = "one"; bar.style.display = "block";
   const fine = document.createElement("p"); fine.className = "fine";
@@ -2576,6 +2596,8 @@ function currencyLine(shop) {
 
 async function loadProgramming() {
   let box = $("prog-list");
+  // the kit may sit inside the list (under their plan): take it out before the list is redrawn
+  { const kit = $("athtee"); if (kit && box.contains(kit)) box.after(kit); }
   let d;
   // the check at login already fetched it: use that rather than ask twice
   const pre = !chosenCountry ? progPrefetch : null; progPrefetch = null;
@@ -2706,6 +2728,7 @@ async function loadProgramming() {
   let current = ["tgc", "tcc", "tec", "twc"].includes(first) ? first : "tgc";
   const bar = document.createElement("div"); bar.className = "ctabs"; bar.setAttribute("role", "tablist");
   const panel = document.createElement("div");
+  const kit = $("athtee"); // held here: it leaves the page while the panel is redrawn
   const draw = () => {
     bar.querySelectorAll("button").forEach((b) => {
       const on = b.dataset.course === current;
@@ -2723,11 +2746,20 @@ async function loadProgramming() {
     if (mine.length || myBlocks.length) {
       const h = document.createElement("h2"); h.className = "mine"; h.textContent = "Your " + current.toUpperCase() + " programming";
       panel.appendChild(h);
-      const keep = box; box = panel;
+      // their plan(s) on the left, the app box beside them (Nathan, 20 Nov 2026)
+      const row = document.createElement("div"); row.className = "prow";
+      const left = document.createElement("div"); left.style.cssText = "display:flex;flex-direction:column;gap:14px";
+      const keep = box; box = left;
       mine.forEach((x) => card(x, x.trial ? "Free trial" : "Programming plan"));
       myBlocks.forEach((x) => card(x, "Block"));
       box = keep;
-      panel.appendChild(appBox());
+      left.querySelectorAll(".plan").forEach((p) => { p.style.maxWidth = "none"; p.style.margin = "0"; });
+      const ab = appBox(); ab.classList.add("app");
+      row.append(left, ab);
+      panel.appendChild(row);
+      // athletes already training: their kit straight under their plan,
+      // above the plans on sale (Nathan, 21 Nov 2026)
+      panel.appendChild(kit);
     } else if ((d.move || d.comeback) && current === "tgc") panel.appendChild(appBox());
     // the currency sits with the plans on sale, under their own plan (Nathan, 7 Nov 2026)
     if ((PROGRAMMING_ON_SALE || d.staff) && d.shop) panel.appendChild(currencyLine(d.shop));
@@ -2738,6 +2770,8 @@ async function loadProgramming() {
       e2.textContent = co.coming_soon ? "Coming soon" : "You have no " + current.toUpperCase() + " programming with BirdBox yet.";
       panel.appendChild(e2);
     }
+    // on a course they do not train on, the kit goes back to the foot of the page
+    if (kit.parentNode !== panel) $("prog-list").after(kit);
   };
   for (const c of ["tgc", "tcc", "tec", "twc"]) {
     // the course logo, not its letters (Nathan, 7 Nov 2026)

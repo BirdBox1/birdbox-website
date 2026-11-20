@@ -352,16 +352,19 @@
           // tidy the address so a reload doesn't add them again
           try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
           var known = {};
-          for (var k in L.tees) known[L.tees[k].id] = true;
+          for (var k in L.tees) known[L.tees[k].id] = L.tees[k].sizes || L.sizes;
           var items = raw.split(',').map(function (x) {
             var p = x.split(':'); return { id: Number(p[0]), size: decodeURIComponent(p[1] || '') };
-          }).filter(function (it) { return known[it.id] && L.sizes.indexOf(it.size) >= 0; }).slice(0, 6);
+          }).filter(function (it) { return known[it.id] && known[it.id].indexOf(it.size) >= 0; }).slice(0, 8);
           if (!items.length) return;
           var many = items.length > 1;
           var note = document.createElement('div');
           note.className = 'bb-tee-note';
           note.setAttribute('role', 'status');
-          note.textContent = many ? 'Adding your tees to your basket…' : 'Adding your tee to your basket…';
+          var hood = {}; for (var k2 in L.tees) if (L.tees[k2].hoodie) hood[L.tees[k2].id] = true;
+          var anyHood = items.some(function (it) { return hood[it.id]; });
+          var one = anyHood ? (many ? 'items' : 'hoodie') : (many ? 'tees' : 'tee');
+          note.textContent = 'Adding your ' + one + ' to your basket…';
           var store = document.getElementById('my-store-140532633');
           store.parentNode.insertBefore(note, store);
           var done = false;
@@ -379,11 +382,11 @@
               var p = document.createElement('p');
               var sizes = items.map(function (it) { return it.size; }).join(' and ');
               p.textContent = added === items.length
-                ? (many ? 'Your ' + added + ' tees (sizes ' + sizes + ') are in your basket.' : 'Your tee (size ' + sizes + ') is in your basket.') +
+                ? (many ? 'Your ' + added + ' ' + one + ' (sizes ' + sizes + ') are in your basket.' : 'Your ' + one + ' (size ' + sizes + ') is in your basket.') +
                   ' Add anything else you like from the shop: it all comes in one delivery.'
                 : added
-                  ? 'We added ' + added + ' of your ' + items.length + ' tees. Please go back to BirdBox Learn to add the other one.'
-                  : 'We could not add your tee just now. Please go back to BirdBox Learn and try again.';
+                  ? 'We added ' + added + ' of your ' + items.length + ' ' + one + '. Please go back to BirdBox Learn to add the other one.'
+                  : 'We could not add your ' + one + ' just now. Please go back to BirdBox Learn and try again.';
               note.appendChild(p);
               if (added) {
                 var b = document.createElement('button');
