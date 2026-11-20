@@ -48,7 +48,9 @@ window.BB_LEARNER_TEES = {
   picture: function (t, side) {
     return "https://d2j6dbq0eux0bg.cloudfront.net/images/140532633/products/" + t.id + "/" + (side === "front" && t.front ? t.front : t.img) + ".jpg";
   },
+  // private tees, kept out of the shop grid: seminar, online course and
+  // BirdBox Athlete (programming clients, 20 Nov 2026)
   isPrivate: function (name) {
-    return /\b(Seminar|Online) Tee\b/i.test(String(name || ""));
+    return /\b(Seminar|Online|Athlete) Tee\b/i.test(String(name || ""));
   }
 };
