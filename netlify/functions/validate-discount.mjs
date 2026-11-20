@@ -33,7 +33,7 @@ export default async (req) => {
   try {
     // code: a discount code or a gift card. gift: a gift card used as
     // well as a discount code (an early-bird code and a card together).
-    const { slug, code, gift, pass } = await req.json();
+    const { slug, code, gift, gift2, pass } = await req.json();
     if (!slug || (!code && !gift && !pass)) return json({ ok: false, error: "Missing details" }, 400);
 
     // starts_at is required: codes with a relative expiry (early bird)
@@ -60,7 +60,7 @@ export default async (req) => {
         locked: { first: r.pass.first, last: r.pass.last, email: r.pass.email } });
     }
 
-    const result = await priceWithDiscount(course, code, gift);
+    const result = await priceWithDiscount(course, code, gift, gift2);
     if (result.error) return json({ ok: false, error: result.error }, 200);
 
     return json({
@@ -83,6 +83,13 @@ export default async (req) => {
         balance_after_cents: result.gift.balanceAfter,
         currency: result.gift.currency,
       } : null,
+      // a second gift card (e.g. a Christmas bonus card), paying after the first
+      gift2: result.gift2 ? {
+        code: result.gift2.code,
+        covered_cents: result.gift2.shown ?? result.gift2.covered,
+        balance_after_cents: result.gift2.balanceAfter,
+        currency: result.gift2.currency,
+      } : null,
     });
   } catch (err) {
     console.error("validate-discount failed:", err);
@@ -97,7 +104,30 @@ export default async (req) => {
 // on top of a discount code. Then the code comes off first and the card
 // pays towards what is left (with VAT), so an early-bird code and a gift
 // card work on the same booking.
-export async function priceWithDiscount(course, code, giftCode) {
+// giftCode2: a second gift card (Nathan, 21 Nov 2026: a gift card and a
+// Christmas bonus card on one booking). It pays towards what is left
+// after the code and the first card. Never the same card twice.
+export async function priceWithDiscount(course, code, giftCode, giftCode2) {
+  const one = await priceWithDiscountOne(course, code, giftCode);
+  const g2 = String(giftCode2 || "").trim();
+  if (one.error || !g2) return one;
+  if (!one.gift) return { error: "Add your first gift card before a second one." };
+  const norm = (c) => String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (norm(g2) === norm(one.gift.code)) return { error: "That gift card is already applied." };
+  if (one.free) return { error: "Your first gift card already covers the whole price, so there is nothing for a second one to pay." };
+  const two = await priceWithGiftCard(course, g2, one.total);
+  if (two.error) return two;
+  return {
+    ...one,
+    discount: course.price_cents - two.total,
+    total: two.total,
+    deposit: two.deposit,
+    free: two.free,
+    gift2: two.gift,
+  };
+}
+
+async function priceWithDiscountOne(course, code, giftCode) {
   let clean = String(code || "").trim();
   let gift = String(giftCode || "").trim();
   if (looksLikeGift(clean) && !gift) { gift = clean; clean = ""; }
