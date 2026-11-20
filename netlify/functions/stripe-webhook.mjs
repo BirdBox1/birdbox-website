@@ -32,6 +32,8 @@ import { addPlace } from "./invoice-admin.mjs";
 import { isOnlineInvoice, onOnlineInvoicePaid, onOnlineInvoiceOverdue } from "./online-invoice.mjs";
 import { isOnlineSale, onOnlineSaleCompleted, onlinePlanMeta, onOnlinePlanFailed } from "./online-checkout.mjs";
 import { isGiftSale, onGiftSaleCompleted, redeemCard } from "../lib/gift-cards.mjs";
+import { bookingEarnsHoodie } from "../lib/hoodie.mjs";
+import { learnerHistory, welcomeBack } from "../lib/learner-history.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -1790,6 +1792,60 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       ? "Your deposit is paid. The remaining balance will be charged automatically to the same card 14 days before the course."
       : null;
 
+    // Day by day, as the days read at the venue (Nathan, 20 Nov 2026):
+    // arrival 30 minutes before the start on day one (08:30) and 15
+    // minutes before on the other days (08:45), the same hours
+    // each day, an hour for lunch around 12:30.
+    const dayStart = startClock || "09:00";
+    const dayEnd = endClock || "17:00";
+    const before = (hhmm, mins) => {
+      const [h, m] = String(hhmm).split(":").map(Number);
+      const t = (h * 60 + m - mins + 1440) % 1440;
+      return String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
+    };
+    const arrivalOn = (i) => before(dayStart, i === 0 ? 30 : 15);
+    const checkIn = arrivalOn(0);
+    const courseDays = (() => {
+      if (!course.starts_at) return [];
+      const tz = course.timezone || "UTC";
+      const label = (d) => new Date(d).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: tz });
+      const days = [];
+      const end = new Date(course.ends_at || course.starts_at).getTime();
+      for (let t = new Date(course.starts_at).getTime(); t <= end + 3600000 && days.length < 5; t += 86400000) {
+        const l = label(t); if (!days.includes(l)) days.push(l);
+      }
+      return days;
+    })();
+
+    // Their learner area. One signed link logs them straight in (and sets
+    // up the account the first time). What we say depends on whether they
+    // already know BirdBox Learn from an online course, programming or
+    // another seminar (Nathan, 20 Nov 2026).
+    const history = await learnerHistory(email, { exceptCourseId: courseId }).catch(() => ({ any: false }));
+    const welcome = history.any ? welcomeBack(history, course) : "";
+    const LEARN_LINK = learnStartLink(email);
+    // Nathan's wording, 20 Nov 2026
+    const learnIntro = "Your learner area is on our website. Tap the button below, or click Log in at the top of our website, to go to BirdBox Learn. " +
+      "Here you will see your registration for this course" + (manualUrl ? ", the course manual" : "") + " and the receipts for your payments.";
+    const appNote = history.programming ? " It is the same login as the BirdBox Coaching app." : "";
+    const learnHow = history.any
+      ? "Everything is in one account under " + email + ". Tap the button to go straight in." + appNote
+      : "This is your first course with us. Tap the button and you are logged straight in, no password needed. A box at the top lets you choose a password, so next time you log in with " + email + " and that password.";
+    const learnOther = "Used a different email with us before? Reply to this email and we will join your accounts up.";
+
+    // The free hoodie with a live seminar booked 27 Nov - 30 Dec 2026
+    // (Nathan, 20 Nov 2026): they choose it in BirdBox Learn.
+    const hoodie = !isWorkshop && await bookingEarnsHoodie(email, courseId);
+    // A signed link: it sets up their BirdBox Learn account the first time
+    // and logs them straight in, so there is no password to find.
+    const HOODIE_URL = hoodie ? learnStartLink(email) : null;
+
+    // Their lead coach, by name when one is assigned (Nathan, 20 Nov 2026)
+    const { data: leads } = await supabase.from("course_staff")
+      .select("staff(full_name)").eq("course_id", courseId).eq("role", "lead_coach").limit(1);
+    const leadName = leads?.[0]?.staff?.full_name || null;
+    const leadLine = (leadName ? "Your lead coach, " + leadName + "," : "Your lead coach") + " will be in touch with you before the course.";
+
     const subject = "You're registered — " + courseName +
       (place ? ", " + place : "") + ", " + dates;
 
@@ -1807,8 +1863,16 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       isWorkshop ? (course.workshop_focus || course.title || "") : null,
       isWorkshop ? "" : null,
       isWorkshop ? "ON THE DAY" : "COURSE SCHEDULE",
-      isWorkshop ? workshopSchedule : "9:00am to 5:00pm each day, with a one-hour lunch break.",
-      isWorkshop ? null : "Please arrive at 8:30am on day one to check in.",
+      isWorkshop ? workshopSchedule : null,
+      ...(isWorkshop ? [] : courseDays.map((d, i) => d + ": " + "arrival " + arrivalOn(i) + ", " + dayStart + " to " + dayEnd + ", with a one-hour lunch break around 12:30")),
+      isWorkshop || courseDays.length ? null : "Arrival " + checkIn + " on day one. " + dayStart + " to " + dayEnd + " each day, with a one-hour lunch break around 12:30.",
+      "",
+      "YOUR BIRDBOX LEARN ACCOUNT",
+      welcome || null,
+      learnIntro,
+      learnHow,
+      LEARN_LINK,
+      learnOther,
       "",
       manualUrl ? "READING MATERIAL" : null,
       manualUrl ? manualUrl : null,
@@ -1823,11 +1887,21 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       onlineOk && !onSite ? "In the academy it is listed as BirdBox Coaching Development Level " + levelDigits + " — this is the same course." : null,
       onlineOk && !onSite ? LMS_URL : null,
       onlineOk ? "" : null,
+      hoodie ? "YOUR FREE HOODIE" : null,
+      hoodie ? "This booking comes with a free hoodie from our shop, delivered to you at no cost." : null,
+      hoodie ? "1. Open the link below. It logs you straight into BirdBox Learn, no password needed." : null,
+      hoodie ? "2. Your free hoodie is at the top of My courses. Choose the style, colour and size." : null,
+      hoodie ? "3. Add the address to send it to and press Claim my free hoodie." : null,
+      hoodie ? HOODIE_URL : null,
+      hoodie ? "It is printed to order, so allow 2 to 3 weeks for delivery. Log in with " + email + " if you go to birdboxcoaching.com/learn yourself." : null,
+      hoodie ? "" : null,
       "WHAT TO BRING",
       ...bring.map((b) => "- " + b),
       "",
       balanceNote,
       balanceNote ? "" : null,
+      leadLine,
+      "",
       "Any questions, just reply to this email or contact " + REPLY_TO + ".",
       "",
       "BirdBox Coaching Limited",
@@ -1854,8 +1928,27 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">${isWorkshop ? "On the day" : "Course schedule"}</h3>
   ${isWorkshop
     ? `<p style="margin:0;">${esc(workshopSchedule)}</p>`
-    : `<p style="margin:0;">9:00am to 5:00pm each day, with a one-hour lunch break.<br>
-     Please arrive at <strong>8:30am on day one</strong> to check in.</p>`}
+    : courseDays.length
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:15px;">
+      ${courseDays.map((d, i) => `<tr>
+        <td style="padding:8px 12px 8px 0;border-top:1px solid #e6e6e6;vertical-align:top;white-space:nowrap;"><strong>${esc(d)}</strong></td>
+        <td style="padding:8px 0;border-top:1px solid #e6e6e6;vertical-align:top;">
+          Arrival <strong>${esc(arrivalOn(i))}</strong><br>${esc(dayStart)} to ${esc(dayEnd)}<br>
+          <span style="color:#666;">One-hour lunch break around 12:30</span>
+        </td></tr>`).join("")}
+    </table>`
+    : `<p style="margin:0;">Arrival <strong>${esc(checkIn)}</strong> on day one. ${esc(dayStart)} to ${esc(dayEnd)} each day, with a one-hour lunch break around 12:30.</p>`}
+
+  <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Your BirdBox Learn account</h3>
+  ${welcome ? `<p style="margin:0 0 10px;"><strong>${esc(welcome)}</strong></p>` : ""}
+  <p style="margin:0 0 10px;">${esc(learnIntro)}</p>
+  <p style="margin:0 0 12px;">${history.any
+    ? `Everything is in one account under <strong>${esc(email)}</strong>. Tap the button to go straight in.${esc(appNote)}`
+    : `This is your first course with us. Tap the button and you are logged straight in, no password needed. A box at the top lets you choose a password, so next time you log in with <strong>${esc(email)}</strong> and that password.`}</p>
+  <p style="margin:0;">
+    <a href="${LEARN_LINK}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Go to BirdBox Learn</a>
+  </p>
+  <p style="color:#666;font-size:14px;margin:10px 0 0;">${esc(learnOther)}</p>
 
   ${manualUrl ? `
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Reading material</h3>
@@ -1883,6 +1976,20 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
   <p style="color:#666;font-size:14px;margin:10px 0 0;">In the academy it is listed as <strong>BirdBox Coaching Development Level ${esc(levelDigits)}</strong> — this is the same course.</p>
   ` : ""}
 
+  ${hoodie ? `
+  <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Your free hoodie</h3>
+  <p style="margin:0 0 10px;">This booking comes with a free hoodie from our shop, delivered to you at no cost.</p>
+  <ol style="margin:0 0 14px;padding-left:20px;">
+    <li style="margin-bottom:4px;">Tap the button below. It logs you straight into BirdBox Learn, no password needed.</li>
+    <li style="margin-bottom:4px;">Your free hoodie is at the top of <strong>My courses</strong>. Choose the style, colour and size.</li>
+    <li>Add the address to send it to and press <strong>Claim my free hoodie</strong>.</li>
+  </ol>
+  <p style="margin:0;">
+    <a href="${HOODIE_URL}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Choose my free hoodie</a>
+  </p>
+  <p style="color:#666;font-size:14px;margin:10px 0 0;">It is printed to order, so allow 2 to 3 weeks for delivery. If you go to birdboxcoaching.com/learn yourself, log in with ${esc(email)}.</p>
+  ` : ""}
+
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">What to bring</h3>
   <ul style="margin:0;padding-left:20px;">
     ${bring.map((b) => `<li style="margin-bottom:4px;">${esc(b)}</li>`).join("")}
@@ -1890,7 +1997,8 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
 
   ${balanceNote ? `<p style="background:#f4f4f4;border-radius:5px;padding:12px 14px;margin:24px 0 0;font-size:15px;">${esc(balanceNote)}</p>` : ""}
 
-  <p style="margin:28px 0 0;">Any questions, just reply to this email or contact
+  <p style="margin:28px 0 0;">${esc(leadLine)}</p>
+  <p style="margin:12px 0 0;">Any questions, just reply to this email or contact
     <a href="mailto:${REPLY_TO}" style="color:${accent};">${REPLY_TO}</a>.</p>
 
   <p style="color:#888;font-size:13px;margin-top:32px;border-top:1px solid #e0e0e0;padding-top:16px;">

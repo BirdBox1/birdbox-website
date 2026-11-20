@@ -11,6 +11,7 @@
 // makes a fresh one-time Supabase login link, so it keeps working even if
 // an email scanner opened it first. Expired, altered, or no course on that
 // email -> the normal /learn/ page, which offers a login link by email.
+// A seminar or workshop booking counts as well as an online course.
 
 import { createClient } from "@supabase/supabase-js";
 import crypto from "node:crypto";
@@ -37,8 +38,14 @@ export default async (req) => {
     const ok = want.length === sig.length && crypto.timingSafeEqual(Buffer.from(want), Buffer.from(sig));
     if (!ok || x < Date.now() / 1000) return go(fallback);
 
-    const { data: enr } = await db.from("learn_enrolments").select("id").eq("email", email).limit(1);
-    if (!enr || !enr.length) return go(fallback);
+    // An online course, or a seminar or workshop booking (the seminar
+    // confirmation sends this link too: Nathan, 20 Nov 2026).
+    const like = email.replace(/[%_\\]/g, "\\$&");
+    const [{ data: enr }, { data: reg }] = await Promise.all([
+      db.from("learn_enrolments").select("id").eq("email", email).limit(1),
+      db.from("registrations").select("id").ilike("email", like).eq("status", "active").limit(1),
+    ]);
+    if (!enr?.length && !reg?.length) return go(fallback);
 
     const { error: cErr } = await db.auth.admin.createUser({ email, email_confirm: true });
     if (cErr && !/already|registered|exists/i.test(cErr.message || "")) console.error("learn-start createUser:", cErr.message);
