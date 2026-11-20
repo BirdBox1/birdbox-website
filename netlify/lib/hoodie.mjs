@@ -156,7 +156,7 @@ export async function hoodieCatalogue() {
 export async function hoodieVariant(id) {
   const list = await hoodieCatalogue();
   for (const g of list) for (const c of g.colours) for (const s of c.sizes) {
-    if (String(s.id) === String(id)) return { id: s.id, product: s.product, colour: c.colour, size: s.size };
+    if (String(s.id) === String(id)) return { id: s.id, product: s.product, colour: c.colour, size: s.size, brand: g.brand };
   }
   return null;
 }

@@ -1752,14 +1752,14 @@ async function showHoodie() {
     (open.length > 1 ? " You have " + open.length + " seminar bookings with a hoodie; this is the first." : "");
   box.append(intro);
 
-  if (d.shop_error || !(d.hoodies || []).length) {
+  if (d.shop_error || !(d.hoodies || []).some((g) => g.brand === booking.brand)) {
     const m = document.createElement("p"); m.className = "msg err";
     m.textContent = d.shop_error || "The hoodies could not be loaded just now. Please try again later.";
     box.append(m); return;
   }
 
-  // their own course's hoodies first
-  const hoodies = [...d.hoodies].sort((a, b) => (b.brand === booking.brand) - (a.brand === booking.brand));
+  // only their own course's hoodies: TGC for TGC, TCC for TCC (Nathan, 20 Nov 2026)
+  const hoodies = d.hoodies.filter((g) => g.brand === booking.brand);
   let pick = { g: null, c: null, v: null };
 
   const s1 = document.createElement("p"); s1.className = "step"; s1.textContent = "1. Choose your hoodie";

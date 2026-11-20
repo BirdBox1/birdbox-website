@@ -49,6 +49,8 @@ export default async (req) => {
 
     const variant = await hoodieVariant(body.variant_id);
     if (!variant) return json({ error: "Please choose a hoodie, colour and size." }, 400);
+    // a TGC booking gets a TGC hoodie, a TCC booking a TCC hoodie (Nathan, 20 Nov 2026)
+    if (variant.brand !== booking.brand) return json({ error: "Please choose one of the " + booking.brand.toUpperCase() + " hoodies." }, 400);
 
     const r = body.recipient || {};
     const recipient = {
