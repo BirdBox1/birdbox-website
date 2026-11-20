@@ -1794,7 +1794,9 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
     // The free hoodie with a live seminar booked 27 Nov - 30 Dec 2026
     // (Nathan, 20 Nov 2026): they choose it in BirdBox Learn.
     const hoodie = !isWorkshop && await bookingEarnsHoodie(email, courseId);
-    const HOODIE_URL = onSite ? START_URL : LEARN_URL;
+    // A signed link: it sets up their BirdBox Learn account the first time
+    // and logs them straight in, so there is no password to find.
+    const HOODIE_URL = hoodie ? learnStartLink(email) : null;
 
     const subject = "You're registered — " + courseName +
       (place ? ", " + place : "") + ", " + dates;
@@ -1830,8 +1832,12 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       onlineOk && !onSite ? LMS_URL : null,
       onlineOk ? "" : null,
       hoodie ? "YOUR FREE HOODIE" : null,
-      hoodie ? "This booking comes with a free hoodie from our shop, delivered to you at no cost. Choose your style, colour and size in your BirdBox Learn account:" : null,
+      hoodie ? "This booking comes with a free hoodie from our shop, delivered to you at no cost." : null,
+      hoodie ? "1. Open the link below. It logs you straight into BirdBox Learn (the first time, it sets up your account)." : null,
+      hoodie ? "2. Your free hoodie is at the top of My courses. Choose the style, colour and size." : null,
+      hoodie ? "3. Add the address to send it to and press Claim my free hoodie." : null,
       hoodie ? HOODIE_URL : null,
+      hoodie ? "It is printed to order, so allow 2 to 3 weeks for delivery. Log in with " + email + " if you go to birdboxcoaching.com/learn yourself." : null,
       hoodie ? "" : null,
       "WHAT TO BRING",
       ...bring.map((b) => "- " + b),
@@ -1895,10 +1901,16 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
 
   ${hoodie ? `
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Your free hoodie</h3>
-  <p style="margin:0 0 12px;">This booking comes with a free hoodie from our shop, delivered to you at no cost. Choose your style, colour and size in your BirdBox Learn account.</p>
+  <p style="margin:0 0 10px;">This booking comes with a free hoodie from our shop, delivered to you at no cost.</p>
+  <ol style="margin:0 0 14px;padding-left:20px;">
+    <li style="margin-bottom:4px;">Tap the button below. It logs you straight into BirdBox Learn (the first time, it sets up your account).</li>
+    <li style="margin-bottom:4px;">Your free hoodie is at the top of <strong>My courses</strong>. Choose the style, colour and size.</li>
+    <li>Add the address to send it to and press <strong>Claim my free hoodie</strong>.</li>
+  </ol>
   <p style="margin:0;">
     <a href="${HOODIE_URL}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Choose my free hoodie</a>
   </p>
+  <p style="color:#666;font-size:14px;margin:10px 0 0;">It is printed to order, so allow 2 to 3 weeks for delivery. If you go to birdboxcoaching.com/learn yourself, log in with ${esc(email)}.</p>
   ` : ""}
 
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">What to bring</h3>
