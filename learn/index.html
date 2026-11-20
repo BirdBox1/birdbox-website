@@ -115,6 +115,18 @@
   .hood .sw button.on{border-color:var(--accent)}
   .hood .pics{display:flex;gap:10px;margin:8px 0;max-width:460px}
   .hood .pics figure{margin:0;flex:1}
+  .hood.tee{margin-top:28px}
+  .tee .one{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;margin-top:14px}
+  .tee .one + .one{border-top:1px solid var(--line);padding-top:18px}
+  .tee .one img{width:200px;max-width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block}
+  .tee .one .info{flex:1;min-width:220px}
+  .tee .price{font-size:22px;font-weight:800;margin:6px 0 0}
+  .tee .price s{color:var(--muted);font-weight:400;font-size:17px;margin-right:6px}
+  .tee .price em{font-style:normal;font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;margin-left:8px}
+  .tee .sizes{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+  .tee .sizes button{background:var(--panel2);color:var(--ink);border:2px solid var(--line);min-width:52px;padding:8px 10px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+  .tee .sizes button.on{border-color:var(--accent)}
+  .tee .fine{font-size:13px;color:var(--muted);margin:10px 0 0}
   .hood .pics img{width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block}
   .hood .pics figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:4px;text-transform:uppercase;letter-spacing:.1em}
   .hood label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
@@ -404,6 +416,8 @@
       <p class="sub" id="soon-sub">Seminars and workshops you are booked on.</p>
       <div id="soon-list"></div>
     </section>
+    <!-- private seminar tee, only for people booked on a seminar (Nathan, 20 Nov 2026) -->
+    <section id="semtee" class="hood tee hidden"></section>
 
     <section id="live" class="live hidden">
       <h2>My completed live seminars</h2>
@@ -567,6 +581,7 @@
 
 </main>
 
+<script src="/shop/learner-tees.js"></script>
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/+esm";
 import { renderArticle } from "/blog/article.js";
@@ -1298,6 +1313,67 @@ function nearCard(c) {
 
 // ---------------- live courses ----------------
 
+// The private "Class of" seminar tee (Nathan, 20 Nov 2026): for each TGC or
+// TCC Level 1 / Level 2 seminar they are booked on (not workshops), the tee
+// for that course and the year the seminar takes place, at 25% off. "Add to
+// basket" goes to the shop with the tee and size, so it can go out with
+// anything else from the shop in one delivery. Tees and prices live in
+// /shop/learner-tees.js.
+function showSeminarTee(upcoming) {
+  const box = $("semtee"); box.innerHTML = "";
+  const L = window.BB_LEARNER_TEES;
+  const NAME = { tgc: "TGC", tcc: "TCC" };
+  const seen = new Set(), list = [];
+  for (const c of upcoming) {
+    if (!L || c.kind !== "seminar" || !NAME[c.brand] || !["1", "2"].includes(String(c.level))) continue;
+    const year = String(c.starts_at || "").slice(0, 4);
+    const key = c.brand + "-" + c.level + "-" + year;
+    if (seen.has(key) || !L.tees[key]) continue;
+    seen.add(key);
+    list.push({ key, tee: L.tees[key], label: NAME[c.brand] + " Level " + c.level, year });
+  }
+  box.classList.toggle("hidden", !list.length);
+  if (!list.length) return;
+  const h = document.createElement("h2"); h.textContent = list.length > 1 ? "Your seminar tees" : "Your seminar tee";
+  const p = document.createElement("p"); p.style.margin = "0";
+  p.textContent = "Only for people booked on a seminar, made for your year. Printed when you order and posted to you.";
+  box.append(h, p);
+  for (const it of list) {
+    const one = document.createElement("div"); one.className = "one";
+    const img = document.createElement("img"); img.alt = it.label + " Class of " + it.year + " tee, back"; img.loading = "lazy";
+    img.src = L.picture(it.tee);
+    const info = document.createElement("div"); info.className = "info";
+    const t = document.createElement("b"); t.textContent = it.label + " · Class of " + it.year;
+    const s = document.createElement("small"); s.style.display = "block"; s.style.color = "var(--muted)";
+    s.textContent = it.tee.shirt + " · BirdBox eagle on the front, course logo on the back";
+    const pr = document.createElement("p"); pr.className = "price";
+    const was = document.createElement("s"); was.textContent = "€" + L.was;
+    const off = document.createElement("em"); off.textContent = (it.tee.off || Math.round((1 - it.tee.price / L.was) * 100)) + "% off for learners";
+    pr.append(was, document.createTextNode("€" + it.tee.price), off);
+    const st = document.createElement("p"); st.className = "step"; st.textContent = "Size";
+    const sizes = document.createElement("div"); sizes.className = "sizes";
+    let size = "";
+    const go = document.createElement("a"); go.className = "btn"; go.textContent = "Choose a size";
+    go.setAttribute("aria-disabled", "true"); go.style.opacity = ".5"; go.style.pointerEvents = "none";
+    for (const z of L.sizes) {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = z;
+      b.onclick = () => {
+        size = z;
+        sizes.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+        go.href = "/shop/?tee=" + it.tee.id + "&size=" + encodeURIComponent(z);
+        go.textContent = "Add to basket · €" + it.tee.price;
+        go.removeAttribute("aria-disabled"); go.style.opacity = ""; go.style.pointerEvents = "";
+      };
+      sizes.appendChild(b);
+    }
+    const fine = document.createElement("p"); fine.className = "fine";
+    fine.textContent = "You can add anything else from the shop and it all comes in one delivery. Prices include VAT; postage is added at checkout.";
+    info.append(t, s, pr, st, sizes, go, fine);
+    one.append(img, info);
+    box.appendChild(one);
+  }
+}
+
 // In-person seminars and workshops, with their certificates. These come
 // from the course registrations, not from BirdBox Learn enrolments.
 async function showLive(session, ownedOnline, finishedOnline) {
@@ -1398,6 +1474,7 @@ async function showLive(session, ownedOnline, finishedOnline) {
   // only Level 1 seminars have a course manual, so only say so when one does (Nathan, 20 Nov 2026)
   $("soon-sub").textContent = "Seminars and workshops you are booked on." +
     ((d.upcoming || []).some((u) => u.manual) ? " Your course manual is ready to read before the day." : "");
+  showSeminarTee(d.upcoming || []);
   $("live-sub").textContent = "Seminars and workshops you have completed in person. Download your certificate" +
     ((d.live || []).some((u) => u.manual) ? ", or open the course manual," : "") + " any time.";
   const box = $("live-list"); box.innerHTML = "";
