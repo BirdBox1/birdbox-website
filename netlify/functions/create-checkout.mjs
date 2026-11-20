@@ -308,7 +308,7 @@ export default async (req) => {
         key: "lwlanguage",
         label: {
           type: "custom",
-          custom: clip("Language for your free online course"),
+          custom: clip("Language for your supporting online course"),
         },
         type: "dropdown",
         optional: false,
