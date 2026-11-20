@@ -1871,6 +1871,13 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       ? "Everything is in one account under " + email + ". Tap the button to go straight in." + appNote
       : "This is your first course with us. Tap the button and you are logged straight in, no password needed. A box at the top lets you choose a password, so next time you log in with " + email + " and that password.";
     const learnOther = "Used a different email with us before? Reply to this email and we will join your accounts up.";
+    // The supporting online course (TCC Level 2), folded into the Learn
+    // section: it is already in their account. "Supporting", not "free":
+    // it is included in their course price (Nathan, 20 Nov 2026).
+    const onlineInLearn = online && online.status === "enrolled" && online.onSite
+      ? brand.name + (levelDigits ? " Level " + levelDigits : "") + " online course" + (online.label ? " (" + online.label + ")" : "") +
+        " is included in your course price. It is already in your BirdBox Learn account under My courses."
+      : "";
 
     // The free hoodie with a live seminar booked 27 Nov - 30 Dec 2026
     // (Nathan, 20 Nov 2026): they choose it in BirdBox Learn.
@@ -1911,6 +1918,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       "YOUR BIRDBOX LEARN ACCOUNT",
       welcome || null,
       learnIntro,
+      onlineInLearn ? "Your supporting online course: " + onlineInLearn : null,
       learnHow,
       LEARN_LINK,
       learnOther,
@@ -1919,15 +1927,13 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       manualUrl ? manualUrl : null,
       manualUrl ? "Choose your language on that page." : null,
       manualUrl ? "" : null,
-      onlineOk ? "YOUR FREE ONLINE COURSE" : null,
-      onlineOk ? "Included with this " + (isWorkshop ? "workshop" : "seminar") + " at no extra cost" +
+      onlineOk && !onSite ? "YOUR SUPPORTING ONLINE COURSE" : null,
+      onlineOk && !onSite ? "Included in your course price" +
         (onlineName ? " (" + onlineName + ")" : "") + "." : null,
-      onlineOk && onSite ? "It is on our website. Tap the link below — the first time, it sets up your account and logs you straight in. The course is waiting under My courses." : null,
-      onlineOk && onSite ? START_URL : null,
       onlineOk && !onSite ? "You will receive two separate emails from BirdBox Academy: one to set your password, and one confirming your access." : null,
       onlineOk && !onSite ? "In the academy it is listed as BirdBox Coaching Development Level " + levelDigits + " — this is the same course." : null,
       onlineOk && !onSite ? LMS_URL : null,
-      onlineOk ? "" : null,
+      onlineOk && !onSite ? "" : null,
       hoodie ? "YOUR FREE HOODIE" : null,
       hoodie ? "This booking comes with a free hoodie from our shop, delivered to you at no cost." : null,
       hoodie ? "1. Open the link below. It logs you straight into BirdBox Learn, no password needed." : null,
@@ -1984,6 +1990,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Your BirdBox Learn account</h3>
   ${welcome ? `<p style="margin:0 0 10px;"><strong>${esc(welcome)}</strong></p>` : ""}
   <p style="margin:0 0 10px;">${esc(learnIntro)}</p>
+  ${onlineInLearn ? `<p style="margin:0 0 10px;"><strong>Your supporting online course:</strong> ${esc(onlineInLearn)}</p>` : ""}
   <p style="margin:0 0 12px;">${history.any
     ? `Everything is in one account under <strong>${esc(email)}</strong>. Tap the button to go straight in.${esc(appNote)}`
     : `This is your first course with us. Tap the button and you are logged straight in, no password needed. A box at the top lets you choose a password, so next time you log in with <strong>${esc(email)}</strong> and that password.`}</p>
@@ -2001,17 +2008,9 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
   <p style="color:#666;font-size:14px;margin:10px 0 0;">Choose your language on that page. Digital is fine, or print it if you prefer.</p>
   ` : ""}
 
-  ${onlineOk && onSite ? `
-  <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Your free online course</h3>
-  <p style="margin:0 0 12px;">Included with this ${isWorkshop ? "workshop" : "seminar"} at no extra cost${onlineName ? ` (${esc(onlineName)})` : ""}. It is on our website: tap the button — the first time, it sets up your account and logs you straight in. The course is waiting under My courses.</p>
-  <p style="margin:0;">
-    <a href="${START_URL}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Go to my online course</a>
-  </p>
-  ` : ""}
-
   ${onlineOk && !onSite ? `
-  <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Your free online course</h3>
-  <p style="margin:0 0 12px;">Included with this ${isWorkshop ? "workshop" : "seminar"} at no extra cost${onlineName ? ` (${esc(onlineName)})` : ""}. You will receive two more emails from BirdBox Academy — one to set your password, and one confirming your access.</p>
+  <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Your supporting online course</h3>
+  <p style="margin:0 0 12px;">Included in your course price${onlineName ? ` (${esc(onlineName)})` : ""}. You will receive two more emails from BirdBox Academy — one to set your password, and one confirming your access.</p>
   <p style="margin:0;">
     <a href="${LMS_URL}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Go to BirdBox Academy</a>
   </p>

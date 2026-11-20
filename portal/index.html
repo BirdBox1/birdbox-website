@@ -1458,7 +1458,7 @@
         </div>
       </div>
       <div class="field hidden" id="pm-online-wrap">
-        <label for="pm-online">Free online course <span class="hint">this seminar includes one</span></label>
+        <label for="pm-online">Supporting online course <span class="hint">set automatically: every TCC Level 2, nothing else</span></label>
         <select id="pm-online">
           <option value="">Do not give online access</option>
         </select>
@@ -5544,7 +5544,7 @@ async function askAndGrant(reg, btn) {
     .map((l, i) => `${i + 1}. ${l.label || langLabel(l.language)}`)
     .join("\n");
   const pick = window.prompt(
-    `Give ${reg.first_name} ${reg.last_name} free access to the online course.\n\n` +
+    `Give ${reg.first_name} ${reg.last_name} access to the supporting online course.\n\n` +
     `Which language?\n\n${lines}\n\nType the number:`
   );
   if (!pick) return;
