@@ -1793,13 +1793,18 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       : null;
 
     // Day by day, as the days read at the venue (Nathan, 20 Nov 2026):
-    // arrival 15 minutes before the start on day one (08:45), the same hours
+    // arrival 30 minutes before the start on day one (08:30) and 15
+    // minutes before on the other days (08:45), the same hours
     // each day, an hour for lunch around 12:30.
     const dayStart = startClock || "09:00";
     const dayEnd = endClock || "17:00";
-    const checkIn = course.starts_at
-      ? clock(new Date(new Date(course.starts_at).getTime() - 15 * 60000).toISOString())
-      : "08:45";
+    const before = (hhmm, mins) => {
+      const [h, m] = String(hhmm).split(":").map(Number);
+      const t = (h * 60 + m - mins + 1440) % 1440;
+      return String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
+    };
+    const arrivalOn = (i) => before(dayStart, i === 0 ? 30 : 15);
+    const checkIn = arrivalOn(0);
     const courseDays = (() => {
       if (!course.starts_at) return [];
       const tz = course.timezone || "UTC";
@@ -1858,7 +1863,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       isWorkshop ? "" : null,
       isWorkshop ? "ON THE DAY" : "COURSE SCHEDULE",
       isWorkshop ? workshopSchedule : null,
-      ...(isWorkshop ? [] : courseDays.map((d, i) => d + ": " + (i === 0 ? "arrival " + checkIn + ", " : "") + dayStart + " to " + dayEnd + ", with a one-hour lunch break around 12:30")),
+      ...(isWorkshop ? [] : courseDays.map((d, i) => d + ": " + "arrival " + arrivalOn(i) + ", " + dayStart + " to " + dayEnd + ", with a one-hour lunch break around 12:30")),
       isWorkshop || courseDays.length ? null : "Arrival " + checkIn + " on day one. " + dayStart + " to " + dayEnd + " each day, with a one-hour lunch break around 12:30.",
       "",
       "YOUR BIRDBOX LEARN ACCOUNT",
@@ -1927,7 +1932,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       ${courseDays.map((d, i) => `<tr>
         <td style="padding:8px 12px 8px 0;border-top:1px solid #e6e6e6;vertical-align:top;white-space:nowrap;"><strong>${esc(d)}</strong></td>
         <td style="padding:8px 0;border-top:1px solid #e6e6e6;vertical-align:top;">
-          ${i === 0 ? `Arrival <strong>${esc(checkIn)}</strong><br>` : ""}${esc(dayStart)} to ${esc(dayEnd)}<br>
+          Arrival <strong>${esc(arrivalOn(i))}</strong><br>${esc(dayStart)} to ${esc(dayEnd)}<br>
           <span style="color:#666;">One-hour lunch break around 12:30</span>
         </td></tr>`).join("")}
     </table>`
