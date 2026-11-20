@@ -2596,6 +2596,8 @@ function currencyLine(shop) {
 
 async function loadProgramming() {
   let box = $("prog-list");
+  // the kit may sit inside the list (under their plan): take it out before the list is redrawn
+  { const kit = $("athtee"); if (kit && box.contains(kit)) box.after(kit); }
   let d;
   // the check at login already fetched it: use that rather than ask twice
   const pre = !chosenCountry ? progPrefetch : null; progPrefetch = null;
@@ -2726,6 +2728,7 @@ async function loadProgramming() {
   let current = ["tgc", "tcc", "tec", "twc"].includes(first) ? first : "tgc";
   const bar = document.createElement("div"); bar.className = "ctabs"; bar.setAttribute("role", "tablist");
   const panel = document.createElement("div");
+  const kit = $("athtee"); // held here: it leaves the page while the panel is redrawn
   const draw = () => {
     bar.querySelectorAll("button").forEach((b) => {
       const on = b.dataset.course === current;
@@ -2754,6 +2757,9 @@ async function loadProgramming() {
       const ab = appBox(); ab.classList.add("app");
       row.append(left, ab);
       panel.appendChild(row);
+      // athletes already training: their kit straight under their plan,
+      // above the plans on sale (Nathan, 21 Nov 2026)
+      panel.appendChild(kit);
     } else if ((d.move || d.comeback) && current === "tgc") panel.appendChild(appBox());
     // the currency sits with the plans on sale, under their own plan (Nathan, 7 Nov 2026)
     if ((PROGRAMMING_ON_SALE || d.staff) && d.shop) panel.appendChild(currencyLine(d.shop));
@@ -2764,6 +2770,8 @@ async function loadProgramming() {
       e2.textContent = co.coming_soon ? "Coming soon" : "You have no " + current.toUpperCase() + " programming with BirdBox yet.";
       panel.appendChild(e2);
     }
+    // on a course they do not train on, the kit goes back to the foot of the page
+    if (kit.parentNode !== panel) $("prog-list").after(kit);
   };
   for (const c of ["tgc", "tcc", "tec", "twc"]) {
     // the course logo, not its letters (Nathan, 7 Nov 2026)
