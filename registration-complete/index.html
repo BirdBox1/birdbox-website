@@ -126,8 +126,14 @@
 
     <div id="hoodiewrap" class="hidden">
       <h2>Your free hoodie</h2>
-      <p>This booking comes with a free hoodie from our shop, delivered to you at no cost. Tap <strong>Choose my free hoodie</strong> in your confirmation email: it logs you straight into BirdBox Learn, where you pick the style, colour and size and add your address.</p>
-      <p>Already have a BirdBox Learn login? You can go there now and log in with the email you booked with.</p>
+      <p>This booking comes with a free hoodie from our shop, delivered to you at no cost. Choose your style, colour and size in BirdBox Learn: it is at the top of My courses.</p>
+    </div>
+
+    <!-- Every seminar booking is pointed to BirdBox Learn (Nathan, 20 Nov 2026) -->
+    <div id="learnwrap">
+      <h2>Your BirdBox Learn account</h2>
+      <p id="learnline">Your learner area is on our website. Here you will see your registration for this course and the receipts for your payments.</p>
+      <p>Tap <strong>Go to BirdBox Learn</strong> in your confirmation email to be logged straight in, no password needed. Or open it now and log in with the email you booked with.</p>
       <a class="btn" href="/learn/">Open BirdBox Learn</a>
     </div>
 
@@ -202,6 +208,7 @@ async function load() {
     }
 
     if (data.hoodie) $("hoodiewrap").classList.remove("hidden");
+    if (data.manualUrl) $("learnline").textContent = "Your learner area is on our website. Here you will see your registration for this course, the course manual and the receipts for your payments.";
     if (data.manualUrl) {
       $("manuallink").href = data.manualUrl;
       $("manualwrap").classList.remove("hidden");
