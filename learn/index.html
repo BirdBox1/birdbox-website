@@ -521,6 +521,8 @@
         <p style="margin:0"><a class="btn main small" href="https://app.birdboxcoaching.com/get-app.html">Get the app →</a></p>
       </div>
       <div id="prog-list"><p class="sub">Loading…</p></div>
+      <!-- BirdBox Athlete tees, only for people with programming (Nathan, 20 Nov 2026) -->
+      <section id="athtee" class="hood tee hidden"></section>
     </div>
 
     <div class="pane hidden" id="t-blog">
@@ -1425,6 +1427,25 @@ function showPastTee(live, earlier, upcoming) {
   });
 }
 
+// BirdBox Athlete tees (Nathan, 20 Nov 2026): for anyone with a programming
+// plan (not a free trial on its own) or a block. All four, their own
+// course first. Fixed €39, buy as many as they like.
+function showAthleteTee(d) {
+  const L = window.BB_LEARNER_TEES;
+  const plans = (d && d.plans) || [], blocks = (d && d.blocks) || [];
+  const on = plans.some((x) => !x.trial) || blocks.length > 0;
+  if (!L || !on) { teeOffer($("athtee"), [], {}); return; }
+  const mine = [...plans.filter((x) => !x.trial), ...blocks].map((x) => String(x.brand || "").toLowerCase());
+  const keyOf = (b) => b === "tcc" ? "birdbox" : b;
+  const order = [...new Set([...mine.map(keyOf), "tgc", "tec", "twc", "birdbox"])];
+  const NAME = { tgc: "TGC Athlete", tec: "TEC Athlete", twc: "TWC Athlete", birdbox: "BirdBox Athlete" };
+  const list = order.filter((k) => L.tees["athlete-" + k]).map((k) => ({ key: "athlete-" + k, tee: L.tees["athlete-" + k], label: NAME[k] }));
+  teeOffer($("athtee"), list, {
+    one: "Your BirdBox Athlete tee", many: "BirdBox Athlete tees",
+    intro: "Only for BirdBox programming athletes. Pick a size for any you want; you can add more, or more sizes, in the basket. Printed when you order and posted to you.",
+  });
+}
+
 function showSeminarTee(upcoming) {
   const L = window.BB_LEARNER_TEES;
   const NAME = { tgc: "TGC", tcc: "TCC" };
@@ -1479,7 +1500,7 @@ function teeOffer(box, list, words) {
     const flip = document.createElement("div"); flip.className = "flip";
     const sides = {};
     const side = (k) => {
-      img.src = L.picture(it.tee, k); img.alt = it.label + " Class of " + it.year + " tee, " + k;
+      img.src = L.picture(it.tee, k); img.alt = it.label + (it.year ? " Class of " + it.year : "") + " tee, " + k;
       for (const x in sides) sides[x].classList.toggle("on", x === k);
       pic.dataset.side = k;
     };
@@ -1487,19 +1508,22 @@ function teeOffer(box, list, words) {
       const b = document.createElement("button"); b.type = "button"; b.textContent = k === "back" ? "Back" : "Front";
       b.onclick = () => side(k); sides[k] = b; flip.appendChild(b);
     }
+    // the main picture first (the back on Class of tees, the front on Athlete tees); hover shows the other side
+    const first = it.tee.back ? "front" : "back", other = first === "back" ? "front" : "back";
     img.onpointerup = (e) => { if (e.pointerType !== "mouse") side(pic.dataset.side === "front" ? "back" : "front"); };
-    img.onpointerenter = (e) => { if (e.pointerType === "mouse") side("front"); };
-    img.onpointerleave = (e) => { if (e.pointerType === "mouse") side("back"); };
-    side("back");
+    img.onpointerenter = (e) => { if (e.pointerType === "mouse") side(other); };
+    img.onpointerleave = (e) => { if (e.pointerType === "mouse") side(first); };
+    side(first);
     pic.append(img, flip);
     const info = document.createElement("div"); info.className = "info";
-    const t = document.createElement("b"); t.textContent = it.label + " · Class of " + it.year;
+    const t = document.createElement("b"); t.textContent = it.label + (it.year ? " · Class of " + it.year : "");
     const s = document.createElement("small"); s.style.display = "block"; s.style.color = "var(--muted)";
-    s.textContent = it.tee.shirt + " · BirdBox eagle on the front, course logo on the back";
+    s.textContent = it.tee.shirt + " · " + (it.tee.desc || "BirdBox eagle on the front, course logo on the back");
     const pr = document.createElement("p"); pr.className = "price";
     const was = document.createElement("s"); was.textContent = L.euro(L.was);
     const off = document.createElement("em"); off.textContent = (it.tee.off || Math.round((1 - it.tee.price / L.was) * 100)) + "% off for learners";
-    pr.append(was, document.createTextNode(L.euro(it.tee.price)), off);
+    if (it.tee.off) pr.append(was, document.createTextNode(L.euro(it.tee.price)), off);
+    else pr.append(document.createTextNode(L.euro(it.tee.price)));
     const st = document.createElement("p"); st.className = "step"; st.textContent = "Size";
     const sizes = document.createElement("div"); sizes.className = "sizes";
     for (const z of L.sizes) {
@@ -2728,6 +2752,7 @@ async function loadProgramming() {
   box.append(panel);
   draw();
   shopCountry = (d.shop && d.shop.country) || "";
+  showAthleteTee(d);
 }
 let shopCountry = "";
 

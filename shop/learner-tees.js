@@ -36,6 +36,12 @@ window.BB_LEARNER_TEES = {
     "tcc-1-2023": { id: 879168259, price: 31.2, off: 20, shirt: "White Fleck triblend", img: "6433828011", front: "6433828019" },
     "tcc-1-2024": { id: 879084834, price: 31.2, off: 20, shirt: "White Fleck triblend", img: "6433564699", front: "6433821827" },
     "tcc-1-2025": { id: 879168260, price: 31.2, off: 20, shirt: "White Fleck triblend", img: "6433828027", front: "6433564707" },
+    // BirdBox Athlete tees (20 Nov 2026): programming clients only, fixed €39, no
+    // purchase limit. Main picture = the design on the front; back = neck logo.
+    "athlete-tgc": { id: 879168281, price: 39, shirt: "Charcoal-Black triblend", img: "6433821997", back: "6434180545", multi: true, desc: "gymnast on rings on the front, TGC logo at the back of the neck" },
+    "athlete-tec": { id: 879168282, price: 39, shirt: "Charcoal-Black triblend", img: "6434269753", back: "6434269761", multi: true, desc: "runner on the front, TEC logo at the back of the neck" },
+    "athlete-twc": { id: 879168283, price: 39, shirt: "Charcoal-Black triblend", img: "6433879689", back: "6434180551", multi: true, desc: "lifter on the front, TWC logo at the back of the neck" },
+    "athlete-birdbox": { id: 879168284, price: 39, shirt: "Charcoal-Black triblend", img: "6434180555", back: "6434180563", multi: true, desc: "BirdBox eagle on the front, TCC logo at the back of the neck" },
     // online course tees: TGC / TCC Level 1 online, the year they enrolled
     "tgc-online-2026": { id: 879084798, price: 29, off: 25, shirt: "Red triblend", img: "6433410381", front: "6433410389" },
     "tgc-online-2027": { id: 879084799, price: 29, off: 25, shirt: "Red triblend", img: "6433410599", front: "6433411117" },
@@ -45,8 +51,10 @@ window.BB_LEARNER_TEES = {
   // t.img is the back (the main picture), t.front the BirdBox eagle side
   // "€29", "€31.20"
   euro: function (n) { return "€" + (Math.round(n * 100) % 100 ? n.toFixed(2) : String(Math.round(n))); },
+  // t.img is the main picture; t.front / t.back the other side where there is one
   picture: function (t, side) {
-    return "https://d2j6dbq0eux0bg.cloudfront.net/images/140532633/products/" + t.id + "/" + (side === "front" && t.front ? t.front : t.img) + ".jpg";
+    var i = side === "front" && t.front ? t.front : side === "back" && t.back ? t.back : t.img;
+    return "https://d2j6dbq0eux0bg.cloudfront.net/images/140532633/products/" + t.id + "/" + i + ".jpg";
   },
   // private tees, kept out of the shop grid: seminar, online course and
   // BirdBox Athlete (programming clients, 20 Nov 2026)
