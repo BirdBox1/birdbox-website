@@ -334,7 +334,7 @@ async function checkout(req, body) {
   // buyer gets the whole value of the card.
   let gift = null;
   if (body.code) {
-    gift = await giftFor(body.code, currency, price, vatRow);
+    gift = await giftsFor(body.code, body.code2, currency, price, vatRow);
     if (gift.error) return json({ error: gift.error }, 409);
     if (option === "plan" && gift.free) return json({ error: "Your gift card covers the whole course. Choose Pay in full." }, 400);
   }
@@ -360,6 +360,9 @@ async function checkout(req, body) {
     gift_card_id: gift ? gift.card.id : "",
     gift_cents: gift ? String(gift.covered) : "",
     gift_code: gift ? gift.card.code : "",
+    gift2_card_id: gift && gift.second ? gift.second.card.id : "",
+    gift2_cents: gift && gift.second ? String(gift.second.covered) : "",
+    gift2_code: gift && gift.second ? gift.second.card.code : "",
     sale: sale ? sale.key : "",
     full_price_cents: sale ? String(fullPrice) : "",
   };
@@ -451,6 +454,22 @@ async function giftFor(code, currency, price, vatRow) {
   return { card: found.card, ...a };
 }
 
+// Up to two gift cards (Nathan, 21 Nov 2026: a gift card and a Christmas
+// bonus card on one course). The second pays towards what the first
+// leaves; the result reads like one card (covered, remainingNet,
+// discountNet, free) with the second card's share in .second.
+async function giftsFor(code, code2, currency, price, vatRow) {
+  const one = await giftFor(code, currency, price, vatRow);
+  if (one.error || !code2) return { ...one, second: null };
+  const norm = (c) => String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (norm(code2) === norm(one.card.code)) return { error: "That gift card is already applied" };
+  if (one.free) return { error: "Your first gift card already covers the whole course" };
+  const two = await giftFor(code2, currency, one.remainingNet, vatRow);
+  if (two.error) return two;
+  return { ...one, remainingNet: two.remainingNet, discountNet: price - two.remainingNet, free: two.free,
+    second: { card: two.card, covered: two.covered, balanceAfter: two.balanceAfter } };
+}
+
 // POST { check_gift: true, code, brand, level, currency, country }
 //   or { check_gift: true, code, offer: TOKEN, currency, country }
 // What a gift card would pay, for the buy box (or the seminar offer
@@ -471,7 +490,8 @@ async function checkGift(body) {
   }
   if (!price) return json({ error: `This course is not on sale in ${currency}` }, 400);
   const vatRow = (await vatList()).find((v) => v.code === country) || null;
-  const gift = await giftFor(body.code, currency, price, vatRow);
+  const gift = body.offer ? await giftFor(body.code, currency, price, vatRow)
+    : await giftsFor(body.code, body.code2, currency, price, vatRow);
   if (gift.error) return json({ ok: false, error: gift.error });
   return json({
     ok: true,
@@ -480,6 +500,7 @@ async function checkGift(body) {
     remaining_net_cents: gift.remainingNet,
     balance_after_cents: gift.balanceAfter,
     free: gift.free,
+    second: gift.second ? { code: gift.second.card.code, covered_cents: gift.second.covered, balance_after_cents: gift.second.balanceAfter } : null,
   });
 }
 
@@ -861,6 +882,16 @@ export async function onOnlineSaleCompleted(session) {
       vatPercent: meta.vat_percent,
     });
   }
+  if (paid && meta.gift2_card_id) {
+    await redeemCard({
+      cardId: meta.gift2_card_id,
+      cents: Number(meta.gift2_cents || 0),
+      session: full.id,
+      usedFor: "online " + (meta.label || meta.lw_course_id),
+      vatCountry: meta.country,
+      vatPercent: meta.vat_percent,
+    });
+  }
   if (row.learnworlds_status === "enrolled") return;
 
   if (!paid) {
@@ -915,7 +946,8 @@ export async function onOnlineSaleCompleted(session) {
   const how = (row.option === "plan"
     ? `first of ${row.months} monthly payments`
     : "paid in full") + (row.offer_id ? ", seminar rate" : "") +
-    (meta.gift_code ? `, gift card ${meta.gift_code} paid ${(Number(meta.gift_cents) / 100).toFixed(2)}` : "");
+    (meta.gift_code ? `, gift card ${meta.gift_code} paid ${(Number(meta.gift_cents) / 100).toFixed(2)}` : "") +
+    (meta.gift2_code ? `, gift card ${meta.gift2_code} paid ${(Number(meta.gift2_cents) / 100).toFixed(2)}` : "");
 
   if (result.status !== "enrolled") {
     await alert("Online course SOLD but NOT enrolled",

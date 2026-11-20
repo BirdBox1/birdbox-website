@@ -368,6 +368,18 @@ async function onCheckoutCompleted(session) {
       vatPercent: meta.gift_vat_percent,
     });
   }
+  if (meta.gift2_card_id) {
+    // a second gift card on the same booking (e.g. a Christmas bonus card)
+    await redeemCard({
+      cardId: meta.gift2_card_id,
+      cents: Number(meta.gift2_cents || 0),
+      session: full.id,
+      usedFor: "seminar " + (meta.course_slug || meta.course_id),
+      registrationId: registration.id,
+      vatCountry: meta.gift_vat_country,
+      vatPercent: meta.gift_vat_percent,
+    });
+  }
   // A discount code (on its own, or with a gift card) is counted as
   // used. A gift card on its own carries its own code in discount_code
   // and has no discount_codes row to count.

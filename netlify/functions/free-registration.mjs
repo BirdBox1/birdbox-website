@@ -40,6 +40,7 @@ export default async (req) => {
     const code = String(body.code || "").trim();
     // A gift card used as well as a discount code.
     const giftCode = String(body.gift || "").trim();
+    const giftCode2 = String(body.gift2 || "").trim();
     const firstName = String(body.firstName || "").trim();
     const lastName = String(body.lastName || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
@@ -73,7 +74,7 @@ export default async (req) => {
     }
 
     // ---- the code, checked here and not taken on trust ---------
-    const priced = await priceWithDiscount(course, code, giftCode);
+    const priced = await priceWithDiscount(course, code, giftCode, giftCode2);
     if (priced.error) return json({ error: priced.error }, 409);
 
     // Someone could send any code they like to this endpoint. Only a
@@ -118,6 +119,7 @@ export default async (req) => {
     // Taken off the card BEFORE the place is written, so the same card
     // cannot be spent twice at once. Put back if the place fails.
     const gift = priced.gift || null;
+    const gift2 = priced.gift2 || null;
     const giftKey = gift ? "free:" + crypto.randomUUID() : null;
     if (gift) {
       const vat = await seminarVat(course);
@@ -128,6 +130,17 @@ export default async (req) => {
       });
       if (left === null) {
         return json({ error: "That gift card could not be used. Please try again, or email " + OFFICE + "." }, 409);
+      }
+      if (gift2) {
+        const left2 = await redeemCard({
+          cardId: gift2.id, cents: gift2.covered, session: giftKey,
+          usedFor: "seminar " + course.slug,
+          vatCountry: vat.country, vatPercent: vat.percent,
+        });
+        if (left2 === null) {
+          await giveBack(gift, giftKey);
+          return json({ error: "The second gift card could not be used. Please try again, or email " + OFFICE + "." }, 409);
+        }
       }
     }
 
@@ -153,7 +166,7 @@ export default async (req) => {
         // and, worse, reported it as the course being full.
         source: "manual",
         source_note: gift && priced.row.code !== gift.code ? `Code ${priced.row.code}, rest paid by gift card ${gift.code}`
-          : gift ? `Paid by gift card ${gift.code}` : `Free place, code ${priced.row.code}` +
+          : gift ? `Paid by gift card ${gift.code}` + (gift2 ? ` and ${gift2.code}` : "") : `Free place, code ${priced.row.code}` +
           (priced.row.label ? ` — ${priced.row.label}` : ""),
       })
       .select("id")
@@ -162,6 +175,7 @@ export default async (req) => {
     if (rErr) {
       console.error("Free registration failed", { slug, email, error: rErr });
       if (gift) await giveBack(gift, giftKey);
+      if (gift2) await giveBack(gift2, giftKey);
 
       // A check constraint could be the capacity trigger or something
       // else entirely, so only say "full" when the seats agree. Saying

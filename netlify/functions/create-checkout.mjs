@@ -95,6 +95,8 @@ export default async (req) => {
     const code = body.code ? String(body.code).trim() : null;
     // A gift card used as well as a discount code (code holds the code).
     const giftCode = body.gift ? String(body.gift).trim() : null;
+    // A second gift card on the same booking (e.g. a Christmas bonus card)
+    const giftCode2 = body.gift2 ? String(body.gift2).trim() : null;
     // A Level 1 Online student's pass from BirdBox Learn: 50%, in their
     // own name and email, which cannot be changed at checkout
     const passToken = body.pass ? String(body.pass) : null;
@@ -170,7 +172,7 @@ export default async (req) => {
     let full = course.price_cents;
     let discountCents = 0;
     let appliedCode = null;
-    let gift = null;
+    let gift = null; let gift2 = null;
     let deposit = course.deposit_cents || Math.round(full * DEPOSIT_RATE);
 
     let codeOff = 0;
@@ -185,13 +187,14 @@ export default async (req) => {
       codeOff = priced.discount;
       locked = priced.pass;
     } else if (code || giftCode) {
-      const priced = await priceWithDiscount(course, code, giftCode);
+      const priced = await priceWithDiscount(course, code, giftCode, giftCode2);
       if (priced.error) return json({ error: priced.error }, 409);
       full = priced.total;
       discountCents = priced.discount;
       deposit = priced.deposit;
       appliedCode = priced.row.code;
       gift = priced.gift || null;
+      gift2 = priced.gift2 || null;
       codeOff = priced.codeDiscount || 0;
       // Nothing left to pay goes through free-registration, never
       // Stripe, which cannot take a zero payment.
@@ -420,6 +423,9 @@ export default async (req) => {
         // The VAT inside what the card paid, for the gift card VAT report.
         gift_vat_country: gift ? (course.country || "").trim().toUpperCase() : "",
         gift_vat_percent: gift ? String(vat ? vat.percent : 0) : "",
+        gift2_card_id: gift2 ? gift2.id : "",
+        gift2_code: gift2 ? gift2.code : "",
+        gift2_cents: gift2 ? String(gift2.covered) : "",
         prerequisite: prerequisite || "",
         // the Level 1 check on the booking page (TGC Level 2)
         prereq_checked: prereq ? (prereq.found ? "found" : "not_found") : "",

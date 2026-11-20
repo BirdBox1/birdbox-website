@@ -23,7 +23,7 @@
   var level = box.getAttribute("data-level");
   var API = "/.netlify/functions/online-checkout";
   var SYMBOL = { EUR: "€", GBP: "£", USD: "US$", AUD: "A$", CAD: "C$" };
-  var state = { offer: null, currency: null, language: null, option: "full", months: null, country: "", giftCode: "", gift: null, giftOpen: false, giftErr: "" };
+  var state = { offer: null, currency: null, language: null, option: "full", months: null, country: "", giftCode: "", gift: null, giftOpen: false, giftErr: "", giftCode2: "", giftOpen2: false };
 
   // Each language named, and described, in its own words.
   var LANG_NAME = { en: "English", es: "Español", fr: "Français", it: "Italiano", de: "Deutsch", pt: "Português" };
@@ -282,8 +282,12 @@
     // everything leaves Pay in full only.
     var g = state.gift;
     var base = g ? g.remaining_net_cents : price;
-    var giftNote = g ? "Gift card " + g.code + " pays " + money(g.covered_cents, state.currency) + (rate > 0 ? " including VAT" : "") +
-      (g.balance_after_cents > 0 ? ". " + money(g.balance_after_cents, state.currency) + " stays on the card." : ".") : "";
+    // one or two gift cards (the second, e.g. a Christmas bonus card, pays after the first)
+    var g2 = g && g.second;
+    var giftNote = g ? (g2 ? "Gift cards " + g.code + " and " + g2.code + " pay " : "Gift card " + g.code + " pays ") +
+      money(g.covered_cents + (g2 ? g2.covered_cents : 0), state.currency) + (rate > 0 ? " including VAT" : "") +
+      (g.balance_after_cents > 0 ? ". " + money(g.balance_after_cents, state.currency) + " stays on " + g.code : "") +
+      (g2 && g2.balance_after_cents > 0 ? ". " + money(g2.balance_after_cents, state.currency) + " stays on " + g2.code : "") + "." : "";
     if (g && g.free) state.option = "full";
 
     option("full", w.full, money(base, state.currency), g && g.free ? "" : vatNote, g ? giftNote : w.fullNote);
@@ -348,13 +352,34 @@
     wrap.style.marginTop = "4px";
     if (state.gift) {
       var p = el("p", "ob-small");
-      p.appendChild(document.createTextNode("Gift card " + state.gift.code + " applied. "));
+      var two = state.gift.second;
+      p.appendChild(document.createTextNode((two ? "Gift cards " + state.gift.code + " and " + two.code : "Gift card " + state.gift.code) + " applied. "));
       var rm = el("a", null, "Remove");
       rm.href = "#";
       rm.style.color = "var(--accentText)";
-      rm.onclick = function (e) { e.preventDefault(); state.gift = null; state.giftCode = ""; render(); };
+      rm.onclick = function (e) { e.preventDefault(); state.gift = null; state.giftCode = ""; state.giftCode2 = ""; state.giftOpen2 = false; render(); };
       p.appendChild(rm);
       wrap.appendChild(p);
+      // room for a second card (Nathan, 21 Nov 2026), unless the first covers it all
+      if (!two && !state.gift.free) {
+        if (!state.giftOpen2) {
+          var t2 = el("a", null, "Have another gift card?");
+          t2.href = "#"; t2.style.color = "var(--accentText)"; t2.style.fontWeight = "700";
+          t2.onclick = function (e) { e.preventDefault(); state.giftOpen2 = true; render(); var i2 = document.getElementById("ob-gift2"); if (i2) i2.focus(); };
+          var tp2 = el("p", "ob-small"); tp2.appendChild(t2); wrap.appendChild(tp2);
+        } else {
+          var line2 = el("div"); line2.style.display = "flex"; line2.style.gap = "8px"; line2.style.marginTop = "8px";
+          var inp2 = el("input"); inp2.id = "ob-gift2"; inp2.type = "text"; inp2.autocomplete = "off";
+          inp2.setAttribute("autocapitalize", "characters"); inp2.spellcheck = false;
+          inp2.placeholder = "GIFT-XXXX-XXXX"; inp2.value = state.giftCode2; inp2.style.flex = "1";
+          inp2.setAttribute("aria-label", "Second gift card code");
+          var ap2 = el("button", "tcc-cta", "Apply"); ap2.type = "button"; ap2.style.width = "auto"; ap2.style.padding = "0 18px";
+          ap2.onclick = function () { state.giftCode2 = inp2.value.trim(); checkGift(); };
+          inp2.onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); ap2.onclick(); } };
+          line2.appendChild(inp2); line2.appendChild(ap2); wrap.appendChild(line2);
+        }
+        if (state.giftErr) wrap.appendChild(el("p", "ob-err", state.giftErr));
+      }
       return wrap;
     }
     if (!state.giftOpen) {
@@ -404,11 +429,12 @@
     fetch(API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ check_gift: true, code: state.giftCode, brand: brand, level: level, currency: state.currency, country: state.country }),
+      body: JSON.stringify({ check_gift: true, code: state.giftCode, code2: state.giftCode2 || undefined, brand: brand, level: level, currency: state.currency, country: state.country }),
     })
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (d && d.ok) { state.gift = d; state.giftErr = ""; }
+        if (d && d.ok) { state.gift = d; state.giftErr = ""; state.giftOpen2 = false; }
+        else if (state.giftCode2) { state.giftCode2 = ""; state.giftErr = (d && d.error) || "That gift card code isn't recognised"; }
         else { state.gift = null; state.giftErr = (d && d.error) || "That gift card code isn't recognised"; }
         render();
       })
@@ -451,6 +477,7 @@
         months: state.months,
         country: state.country,
         code: state.gift ? state.gift.code : undefined,
+        code2: state.gift && state.gift.second ? state.gift.second.code : undefined,
         return_path: location.pathname,
       }),
     })

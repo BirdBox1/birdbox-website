@@ -535,6 +535,8 @@ const LOCAL_DISCOUNT = { ZAR: 31 };
 function promoLabel(after) {
   const local = state.course && state.course.local_discount_percent;
   if (after === "both") return "Remove codes";
+  // a gift card on, room for a second (Nathan, 21 Nov 2026)
+  if (after === "gift2") return "Have another gift card?";
   if (after === "gift") return local ? "Have a course credit too?" : "Have a discount code too?";
   if (after === "code") return "Have a gift card too?";
   return local ? "Have a gift card or course credit?" : "Have a discount code or gift card?";
@@ -570,6 +572,7 @@ const state = {
   needsL1: false,   // TGC Level 2: Level 1 must be checked first
   prereq: null,     // { token, found } once checked
   giftCode: null,   // the gift card applied, if any
+  giftCode2: null,  // a second gift card (e.g. a Christmas bonus card), if any
   codeOff: 0,       // what the discount code takes off (before VAT)
   total: 0,
   deposit: 0,
@@ -905,7 +908,7 @@ function renderBuyBox() {
       local ? local + "% off to allow for the exchange rate. This is the lowest price for this seminar" : null,
       state.pass ? "Level 1 Online student — " + money(state.codeOff) + " off" : null,
       state.code ? state.code + " applied — " + money(state.codeOff) + " off" : null,
-      state.giftCode ? "Gift card " + state.giftCode + " applied" : null,
+      state.giftCode ? "Gift card " + state.giftCode + (state.giftCode2 ? " and " + state.giftCode2 : "") + " applied" : null,
     ].filter(Boolean).join(" · ");
     $("price").append(saved);
   }
@@ -1089,7 +1092,7 @@ function renderFreeForm() {
     <p class="said" id="f-said"></p>`;
 
   box.querySelector(".lead").textContent =
-    `${[state.code, state.giftCode].filter(Boolean).join(" and ")} ${state.code && state.giftCode ? "cover" : "covers"} the full price, so there is nothing to pay. ` +
+    `${[state.code, state.giftCode, state.giftCode2].filter(Boolean).join(" and ")} ${[state.code, state.giftCode, state.giftCode2].filter(Boolean).length > 1 ? "cover" : "covers"} the full price, so there is nothing to pay. ` +
     "We just need to know who is coming.";
 
   $("options").append(box);
@@ -1134,6 +1137,7 @@ function renderFreeForm() {
           slug: state.course.slug,
           code: state.code || undefined,
           gift: state.giftCode || undefined,
+          gift2: state.giftCode2 || undefined,
           firstName: first,
           lastName: last,
           email,
@@ -1174,7 +1178,7 @@ function renderFreeForm() {
 
 function wirePromo() {
   $("promotoggle").addEventListener("click", () => {
-    if (state.code && state.giftCode) { clearCodes(); return; }
+    if (allCodesOn()) { clearCodes(); return; }
     $("promorow").classList.toggle("hidden");
     $("promoinput").focus();
   });
@@ -1183,6 +1187,18 @@ function wirePromo() {
   $("promoinput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") applyCode();
   });
+}
+
+// Every slot used: a discount code (where codes are allowed) and two gift
+// cards, or nothing left to pay. Then the button removes them all.
+function allCodesOn() {
+  const local = state.course && state.course.local_discount_percent;
+  return !!(state.giftCode && (state.free || (state.giftCode2 && (state.code || local))));
+}
+function promoLabelNow() {
+  if (allCodesOn()) return "Remove codes";
+  if (state.giftCode && !state.giftCode2 && !state.free) return state.code || (state.course && state.course.local_discount_percent) ? promoLabel("gift2") : "Have a discount code or another gift card?";
+  return promoLabel(state.code && state.giftCode ? "both" : state.giftCode ? "gift" : state.code ? "code" : undefined);
 }
 
 // One box for both: a discount code (early bird, group...) and a gift
@@ -1203,9 +1219,12 @@ async function applyCode() {
     const res = await fetch("/.netlify/functions/validate-discount", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      // a gift card when one is already on goes in as the second card
       body: JSON.stringify(isGift
-        ? { slug: state.course.slug, code: state.code || undefined, gift: entered }
-        : { slug: state.course.slug, code: entered, gift: state.giftCode || undefined }),
+        ? (state.giftCode
+          ? { slug: state.course.slug, code: state.code || undefined, gift: state.giftCode, gift2: entered }
+          : { slug: state.course.slug, code: state.code || undefined, gift: entered })
+        : { slug: state.course.slug, code: entered, gift: state.giftCode || undefined, gift2: state.giftCode2 || undefined }),
     });
     const data = await res.json();
 
@@ -1216,9 +1235,11 @@ async function applyCode() {
       return;
     }
 
-    if (isGift) state.giftCode = data.gift ? data.gift.code : entered.toUpperCase();
+    if (isGift && state.giftCode) state.giftCode2 = data.gift2 ? data.gift2.code : entered.toUpperCase();
+    else if (isGift) state.giftCode = data.gift ? data.gift.code : entered.toUpperCase();
     else state.code = data.code;
     state.gift = data.gift || null;
+    state.gift2 = data.gift2 || null;
     state.codeOff = data.code_discount_cents || 0;
     state.discount = data.discount_cents;
     state.total = data.total_cents;
@@ -1234,11 +1255,12 @@ async function applyCode() {
       state.code ? (data.label ? data.label + " — " : state.code + " — ") + state.money(state.codeOff) + " off" : null,
       data.gift ? "Gift card pays " + state.money(data.gift.covered_cents) +
         (data.gift.balance_after_cents > 0 ? ", " + cardMoney(data.gift.balance_after_cents, data.gift.currency) + " stays on the card" : "") : null,
+      data.gift2 ? "Second gift card pays " + state.money(data.gift2.covered_cents) +
+        (data.gift2.balance_after_cents > 0 ? ", " + cardMoney(data.gift2.balance_after_cents, data.gift2.currency) + " stays on the card" : "") : null,
     ].filter(Boolean).join(". ");
     input.value = "";
     $("promorow").classList.add("hidden");
-    $("promotoggle").textContent = promoLabel(state.code && state.giftCode ? "both"
-      : state.giftCode ? "gift" : "code");
+    $("promotoggle").textContent = promoLabelNow();
     renderBuyBox();
   } catch (e) {
     msg.className = "promo-msg err";
@@ -1262,7 +1284,7 @@ async function applyLearnPass() {
     });
     const data = await res.json();
     if (!data.ok) return;   // another course, or out of date: the normal price
-    state.pass = pass; state.code = null; state.giftCode = null; state.gift = null;
+    state.pass = pass; state.code = null; state.giftCode = null; state.giftCode2 = null; state.gift = null;
     state.codeOff = data.code_discount_cents; state.discount = data.discount_cents;
     state.total = data.total_cents;
     state.deposit = state.course.type === "workshop" ? data.total_cents : data.deposit_cents;
@@ -1287,7 +1309,7 @@ function cardMoney(cents, currency) {
 
 // "Remove codes": back to the full price.
 function clearCodes() {
-  state.code = null; state.giftCode = null; state.gift = null; state.codeOff = 0;
+  state.code = null; state.giftCode = null; state.giftCode2 = null; state.gift = null; state.gift2 = null; state.codeOff = 0;
   state.discount = 0; state.free = false;
   state.total = state.course.price_cents;
   state.deposit = state.course.type === "workshop" ? state.total
@@ -1430,7 +1452,7 @@ async function checkout(slug, option, btn, months) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(Object.assign(state.pass
         ? { slug: slug, option: option, months: months || undefined, pass: state.pass }
-        : { slug: slug, option: option, months: months || undefined, code: state.code || undefined, gift: state.giftCode || undefined },
+        : { slug: slug, option: option, months: months || undefined, code: state.code || undefined, gift: state.giftCode || undefined, gift2: state.giftCode2 || undefined },
         state.prereq ? { prereq: state.prereq.token, prereq_answer: $("l1answer").value.trim() || undefined } : {})),
     });
     const data = await res.json();
