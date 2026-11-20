@@ -333,45 +333,60 @@
            after republishing products). -->
       <script src="/shop/colour-pictures.js"></script>
       <script src="/shop/learner-tees.js"></script>
-      <!-- A learner's private seminar tee, sent here from BirdBox Learn as
-           /shop/?tee=<Ecwid id>&size=<size>: put it in the basket and say so,
+      <!-- A learner's private seminar tees, sent here from BirdBox Learn as
+           /shop/?tees=<Ecwid id>:<size>,...: put them in the basket and say so,
            so they can add anything else and get one delivery. Only tees in
            learner-tees.js are accepted. -->
       <script type="text/javascript">
         (function () {
+          // ?tees=<id>:<size>,<id>:<size> (one or more), or the older ?tee=<id>&size=<size>
           var q = new URLSearchParams(location.search);
-          var id = Number(q.get('tee')), size = q.get('size');
           var L = window.BB_LEARNER_TEES;
-          if (!id || !L) return;
-          var tee = null;
-          for (var k in L.tees) if (L.tees[k].id === id) tee = L.tees[k];
-          // tidy the address so a reload doesn't add a second one
+          var raw = q.get('tees') || (q.get('tee') ? q.get('tee') + ':' + (q.get('size') || '') : '');
+          if (!raw || !L) return;
+          // tidy the address so a reload doesn't add them again
           try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
-          if (!tee || L.sizes.indexOf(size) < 0) return;
+          var known = {};
+          for (var k in L.tees) known[L.tees[k].id] = true;
+          var items = raw.split(',').map(function (x) {
+            var p = x.split(':'); return { id: Number(p[0]), size: decodeURIComponent(p[1] || '') };
+          }).filter(function (it) { return known[it.id] && L.sizes.indexOf(it.size) >= 0; }).slice(0, 6);
+          if (!items.length) return;
+          var many = items.length > 1;
           var note = document.createElement('div');
           note.className = 'bb-tee-note';
           note.setAttribute('role', 'status');
-          note.textContent = 'Adding your seminar tee to your basket…';
+          note.textContent = many ? 'Adding your seminar tees to your basket…' : 'Adding your seminar tee to your basket…';
           var store = document.getElementById('my-store-140532633');
           store.parentNode.insertBefore(note, store);
           var done = false;
           function add() {
             if (done || !window.Ecwid || !Ecwid.Cart) return;
             done = true;
-            Ecwid.Cart.addProduct({ id: id, quantity: 1, options: { Size: size }, callback: function (ok) {
+            var added = 0, i = 0;
+            (function next() {
+              if (i >= items.length) return finish();
+              var it = items[i++];
+              Ecwid.Cart.addProduct({ id: it.id, quantity: 1, options: { Size: it.size }, callback: function (ok) { if (ok) added++; next(); } });
+            })();
+            function finish() {
               note.textContent = '';
               var p = document.createElement('p');
-              p.textContent = ok
-                ? 'Your seminar tee (size ' + size + ') is in your basket. Add anything else you like from the shop: it all comes in one delivery.'
-                : 'We could not add your seminar tee just now. Please go back to BirdBox Learn and try again.';
+              var sizes = items.map(function (it) { return it.size; }).join(' and ');
+              p.textContent = added === items.length
+                ? (many ? 'Your ' + added + ' seminar tees (sizes ' + sizes + ') are in your basket.' : 'Your seminar tee (size ' + sizes + ') is in your basket.') +
+                  ' Add anything else you like from the shop: it all comes in one delivery.'
+                : added
+                  ? 'We added ' + added + ' of your ' + items.length + ' seminar tees. Please go back to BirdBox Learn to add the other one.'
+                  : 'We could not add your seminar tee just now. Please go back to BirdBox Learn and try again.';
               note.appendChild(p);
-              if (ok) {
+              if (added) {
                 var b = document.createElement('button');
                 b.type = 'button'; b.textContent = 'Go to basket';
                 b.addEventListener('click', function () { Ecwid.openPage('cart'); });
                 note.appendChild(b);
               }
-            } });
+            }
           }
           if (window.Ecwid && Ecwid.OnAPILoaded) Ecwid.OnAPILoaded.add(add);
         })();
