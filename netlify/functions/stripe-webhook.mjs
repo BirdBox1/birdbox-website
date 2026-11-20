@@ -1834,6 +1834,12 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
     // and logs them straight in, so there is no password to find.
     const HOODIE_URL = hoodie ? learnStartLink(email) : null;
 
+    // Their lead coach, by name when one is assigned (Nathan, 20 Nov 2026)
+    const { data: leads } = await supabase.from("course_staff")
+      .select("staff(full_name)").eq("course_id", courseId).eq("role", "lead_coach").limit(1);
+    const leadName = leads?.[0]?.staff?.full_name || null;
+    const leadLine = (leadName ? "Your lead coach, " + leadName + "," : "Your lead coach") + " will be in touch with you before the course.";
+
     const subject = "You're registered — " + courseName +
       (place ? ", " + place : "") + ", " + dates;
 
@@ -1887,6 +1893,8 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       "",
       balanceNote,
       balanceNote ? "" : null,
+      leadLine,
+      "",
       "Any questions, just reply to this email or contact " + REPLY_TO + ".",
       "",
       "BirdBox Coaching Limited",
@@ -1981,7 +1989,8 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
 
   ${balanceNote ? `<p style="background:#f4f4f4;border-radius:5px;padding:12px 14px;margin:24px 0 0;font-size:15px;">${esc(balanceNote)}</p>` : ""}
 
-  <p style="margin:28px 0 0;">Any questions, just reply to this email or contact
+  <p style="margin:28px 0 0;">${esc(leadLine)}</p>
+  <p style="margin:12px 0 0;">Any questions, just reply to this email or contact
     <a href="mailto:${REPLY_TO}" style="color:${accent};">${REPLY_TO}</a>.</p>
 
   <p style="color:#888;font-size:13px;margin-top:32px;border-top:1px solid #e0e0e0;padding-top:16px;">
