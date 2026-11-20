@@ -476,11 +476,33 @@
             var map = current && window.BB_COLOUR_PICS && window.BB_COLOUR_PICS[current];
             if (!map || select.selectedIndex < 0) return;
             var file = map[select.options[select.selectedIndex].text.trim()];
+            if (!file) return;
             var img = document.querySelector('#my-store-140532633 .details-gallery__picture');
-            if (!file || !img) return;
-            var url = BASE + current + '/' + file + '.jpg';
-            img.src = url;
-            img.srcset = url + ' 1x';
+            if (img) {
+              var url = BASE + current + '/' + file + '.jpg';
+              img.src = url;
+              img.srcset = url + ' 1x';
+              return;
+            }
+            // Phones: Ecwid shows the pictures as a swipeable row instead of
+            // one main picture (Nathan, 20 Nov 2026), so slide the row to the
+            // chosen colour. Each picture has a run of ids (one per size); the
+            // map holds one of them, the row another a few apart.
+            var row = document.querySelector('#my-store-140532633 .details-gallery__thumbs');
+            if (!row) return;
+            var want = Number(file), best = null, bestGap = 99;
+            var slides = row.querySelectorAll('.details-gallery__thumb');
+            for (var i = 0; i < slides.length; i++) {
+              var styles = '';
+              var bgs = slides[i].querySelectorAll('[style*="background-image"]');
+              for (var b = 0; b < bgs.length; b++) styles += bgs[b].getAttribute('style') + ' ';
+              var re = new RegExp('/products/' + current + '/(\\d+)\\.', 'g'), m;
+              while ((m = re.exec(styles))) {
+                var gap = want - Number(m[1]);
+                if (gap >= -1 && gap <= 4 && Math.abs(gap) < bestGap) { best = slides[i]; bestGap = Math.abs(gap); }
+              }
+            }
+            if (best) row.scrollTo({ left: best.offsetLeft - row.firstElementChild.offsetLeft, behavior: 'smooth' });
           }
           document.addEventListener('change', function (e) {
             var s = e.target;
