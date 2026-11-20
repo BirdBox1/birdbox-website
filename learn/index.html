@@ -134,6 +134,14 @@
   .sm-pin__go{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff!important;padding:7px 14px;text-decoration:none}
   .tee .one{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;margin-top:14px}
   .tee .one + .one{border-top:1px solid var(--line);padding-top:18px}
+  /* two side by side (Nathan, 20 Nov 2026) */
+  .tee .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 32px}
+  .tee .grid .one{border-top:0;padding-top:0}
+  .tee .grid .sizes{gap:6px}
+  .tee .grid .sizes button{min-width:44px;padding:8px 6px}
+  .tee .grid .one:nth-child(n+3){border-top:1px solid var(--line);padding-top:18px}
+  .tee .list + .one{border-top:1px solid var(--line);padding-top:18px}
+  @media (max-width:820px){.tee .grid{grid-template-columns:1fr}.tee .grid .one:nth-child(n+2){border-top:1px solid var(--line);padding-top:18px}}
   .tee .one .pic{width:200px;max-width:100%}
   .tee .one img{width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block;cursor:pointer}
   .tee .flip{display:flex;gap:6px;margin-top:6px}
@@ -1501,6 +1509,9 @@ function teeOffer(box, list, words) {
     go.textContent = (n > 1 ? "Add " + n + " " + word + " to basket" : list.length > 1 ? "Add 1 " + (picked[0].tee.hoodie ? "hoodie" : "tee") + " to basket" : "Add to basket") + " · " + L.euro(total);
     go.removeAttribute("aria-disabled"); go.style.opacity = ""; go.style.pointerEvents = "";
   };
+  // more than one: two to a row (Nathan, 20 Nov 2026)
+  const grid = document.createElement("div"); grid.className = list.length > 1 ? "list grid" : "list";
+  box.appendChild(grid);
   for (const it of list) {
     const one = document.createElement("div"); one.className = "one";
     // back and front (Nathan, 20 Nov 2026): hover or tap the picture, or use the two buttons
@@ -1548,7 +1559,7 @@ function teeOffer(box, list, words) {
     }
     info.append(t, s, pr, st, sizes);
     one.append(pic, info);
-    box.appendChild(one);
+    grid.appendChild(one);
   }
   const bar = document.createElement("div"); bar.className = "one"; bar.style.display = "block";
   const fine = document.createElement("p"); fine.className = "fine";
