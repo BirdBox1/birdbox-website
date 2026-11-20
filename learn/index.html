@@ -134,7 +134,11 @@
   .sm-pin__go{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff!important;padding:7px 14px;text-decoration:none}
   .tee .one{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;margin-top:14px}
   .tee .one + .one{border-top:1px solid var(--line);padding-top:18px}
-  .tee .one img{width:200px;max-width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block}
+  .tee .one .pic{width:200px;max-width:100%}
+  .tee .one img{width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block;cursor:pointer}
+  .tee .flip{display:flex;gap:6px;margin-top:6px}
+  .tee .flip button{flex:1;background:var(--panel2);color:var(--muted);border:1px solid var(--line);padding:5px 0;font:inherit;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+  .tee .flip button.on{color:var(--ink);border-color:var(--accent)}
   .tee .one .info{flex:1;min-width:220px}
   .tee .price{font-size:22px;font-weight:800;margin:6px 0 0}
   .tee .price s{color:var(--muted);font-weight:400;font-size:17px;margin-right:6px}
@@ -1441,8 +1445,26 @@ function teeOffer(box, list, words) {
   };
   for (const it of list) {
     const one = document.createElement("div"); one.className = "one";
-    const img = document.createElement("img"); img.alt = it.label + " Class of " + it.year + " tee, back"; img.loading = "lazy";
-    img.src = L.picture(it.tee);
+    // back and front (Nathan, 20 Nov 2026): hover or tap the picture, or use the two buttons
+    const pic = document.createElement("div"); pic.className = "pic";
+    const img = document.createElement("img"); img.loading = "lazy";
+    new Image().src = L.picture(it.tee, "front");
+    const flip = document.createElement("div"); flip.className = "flip";
+    const sides = {};
+    const side = (k) => {
+      img.src = L.picture(it.tee, k); img.alt = it.label + " Class of " + it.year + " tee, " + k;
+      for (const x in sides) sides[x].classList.toggle("on", x === k);
+      pic.dataset.side = k;
+    };
+    for (const k of ["back", "front"]) {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = k === "back" ? "Back" : "Front";
+      b.onclick = () => side(k); sides[k] = b; flip.appendChild(b);
+    }
+    img.onpointerup = (e) => { if (e.pointerType !== "mouse") side(pic.dataset.side === "front" ? "back" : "front"); };
+    img.onpointerenter = (e) => { if (e.pointerType === "mouse") side("front"); };
+    img.onpointerleave = (e) => { if (e.pointerType === "mouse") side("back"); };
+    side("back");
+    pic.append(img, flip);
     const info = document.createElement("div"); info.className = "info";
     const t = document.createElement("b"); t.textContent = it.label + " · Class of " + it.year;
     const s = document.createElement("small"); s.style.display = "block"; s.style.color = "var(--muted)";
@@ -1464,7 +1486,7 @@ function teeOffer(box, list, words) {
       sizes.appendChild(b);
     }
     info.append(t, s, pr, st, sizes);
-    one.append(img, info);
+    one.append(pic, info);
     box.appendChild(one);
   }
   const bar = document.createElement("div"); bar.className = "one"; bar.style.display = "block";
