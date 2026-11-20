@@ -1907,7 +1907,7 @@ const TRIAL_FOR = "tgc";
 // (4 and 5, by application), then the course's blocks. Their own tier
 // says "Your plan"; someone on one-to-one sees the blog plans for
 // information only. A course with nothing on sale says Coming soon.
-function courseView(co, mine, preview, trialOk) {
+function courseView(co, mine, preview, trialOk, waiting) {
   const wrap = document.createElement("div"); wrap.className = "shop";
   const el = (tag, cls, txt) => { const x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; };
   const button = (label, onclick) => {
@@ -1931,8 +1931,12 @@ function courseView(co, mine, preview, trialOk) {
   const info = COURSE[co.brand] || { name: co.brand.toUpperCase() + " programming", text: "" };
   const blog = mine.find((x) => x.tier <= 3 && !x.trial);
   const oneToOne = mine.find((x) => x.tier >= 4);
+  // a 1:1 place waiting at the top (Nathan, 20 Nov 2026): no free trial and
+  // no tiers 1 to 3 on this course until they have paid for it, and no
+  // Apply on one-to-one; after paying the page is as it is for any member
+  const place = waiting && waiting.brand === co.brand ? waiting : null;
 
-  if (co.plans.length) {
+  if (co.plans.length && !place) {
     wrap.appendChild(el("h2", null, info.name));
     wrap.appendChild(el("p", "sub", (info.text ? info.text + " " : "") + "Monthly, VAT included, cancel any time."));
     const grid = el("div", "tiers");
@@ -1968,12 +1972,16 @@ function courseView(co, mine, preview, trialOk) {
     const g3 = el("div", "tiers");
     for (const t of co.one_to_one) {
       const yours = oneToOne && oneToOne.tier === t.tier;
+      const held = place && place.tier === t.tier;
       // already on one-to-one: a change of tier is a talk with their coach
       const c = card("Tier " + t.tier, t.name, t.amount != null ? money(t.amount, t.currency) : "",
         "per month, VAT included", t.includes,
-        yours || oneToOne ? null : button("Apply →", () => { location.href = co.apply_url; }),
-        oneToOne && !yours ? "Talk to your coach about changing your plan." : null);
+        yours || oneToOne || place ? null : button("Apply →", () => { location.href = co.apply_url; }),
+        held ? "Start it with the button at the top of this page."
+          : place ? "Talk to your coach if you would like this one instead."
+          : oneToOne && !yours ? "Talk to your coach about changing your plan." : null);
       if (yours) { c.classList.add("yours"); c.insertBefore(el("span", "badge", "Your plan"), c.firstChild); }
+      if (held) { c.classList.add("yours"); c.insertBefore(el("span", "badge", "Your place"), c.firstChild); }
       g3.appendChild(c);
     }
     wrap.appendChild(g3);
@@ -2418,7 +2426,8 @@ async function loadProgramming() {
     } else if ((d.move || d.comeback) && current === "tgc") panel.appendChild(appBox());
     // the currency sits with the plans on sale, under their own plan (Nathan, 7 Nov 2026)
     if ((PROGRAMMING_ON_SALE || d.staff) && d.shop) panel.appendChild(currencyLine(d.shop));
-    if (PROGRAMMING_ON_SALE || d.staff) panel.appendChild(courseView(co, mine, !PROGRAMMING_ON_SALE, PROGRAMMING_ON_SALE ? d.trial_ok : true));
+    const waiting = d.one_to_one && !d.one_to_one.paid && !params.get("started") ? d.one_to_one : null;
+    if (PROGRAMMING_ON_SALE || d.staff) panel.appendChild(courseView(co, mine, !PROGRAMMING_ON_SALE, PROGRAMMING_ON_SALE ? d.trial_ok : true, waiting));
     else if (!mine.length && !myBlocks.length) {
       const e2 = document.createElement("div"); e2.className = "empty"; e2.style.color = "var(--ink)";
       e2.textContent = co.coming_soon ? "Coming soon" : "You have no " + current.toUpperCase() + " programming with BirdBox yet.";
