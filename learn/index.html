@@ -422,6 +422,11 @@
       <p class="kicker">BirdBox Learn</p>
       <h1>Programming</h1>
       <p class="sub">Your programming plan and blocks. You train in the BirdBox Coaching app; change your plan, your card or cancel here.</p>
+      <div id="started-note" class="box hidden" style="background:var(--panel);border:1px solid var(--accent);padding:18px 20px;margin:0 0 24px;max-width:640px;line-height:1.6">
+        <strong>You are in. Your one-to-one coaching has started.</strong> Your receipt is on its way, and your coach will have your first week of programming in the app within 24 hours.
+        <p style="margin:12px 0 6px"><strong>Now get the app:</strong> download BirdBox Coaching and sign in with this same email and password. Answer the health questions first, so your coach has everything they need.</p>
+        <p style="margin:0"><a class="btn main small" href="https://app.birdboxcoaching.com/get-app.html">Get the app →</a></p>
+      </div>
       <div id="moved-note" class="box hidden" style="background:var(--panel);border:1px solid var(--accent);padding:18px 20px;margin:0 0 24px;max-width:640px;line-height:1.6">
         <strong>You are in. Your plan is set up.</strong> Nothing is taken until the date on your plan below.
         <p style="margin:12px 0 6px"><strong>Now get the app:</strong> download BirdBox Coaching and sign in with this same email. Your programming is waiting there.</p>
@@ -790,7 +795,9 @@ $("b-link").addEventListener("click", async () => {
 });
 // Back from the move checkout (?moved=1): you are in, now get the app (Nathan, 7 Nov 2026)
 if (params.get("moved")) $("moved-note").classList.remove("hidden");
-if (params.get("welcome") || params.get("expired") || params.get("move") || params.get("move_offer") || params.get("moved") || params.get("offer")) history.replaceState(null, "", "/learn/" + (location.hash.startsWith("#e=") ? "" : location.hash));
+// back from paying for 1:1 (Nathan, 20 Nov 2026)
+if (params.get("started")) $("started-note").classList.remove("hidden");
+if (params.get("started") || params.get("welcome") || params.get("expired") || params.get("move") || params.get("move_offer") || params.get("moved") || params.get("offer")) history.replaceState(null, "", "/learn/" + (location.hash.startsWith("#e=") ? "" : location.hash));
 
 
 // "New here?" switches the form to email only: type it, get a login
@@ -1008,7 +1015,7 @@ function arrive() {
       .ilike("email", email ? email.replace(/[%_\\]/g, "\\$&") : "-").limit(1)
       .then(({ data }) => !!(data && data.length), () => false);
     Promise.all([progPrefetch.catch(() => null), liveP || Promise.resolve(null), mentorP]).then(([d, live, mentor]) => {
-      if (((d?.move && !d.move.upgrades?.length) || d?.comeback) && !TABS.includes(location.hash.slice(1))) { location.hash = "#programming"; return; }
+      if (((d?.move && !d.move.upgrades?.length) || d?.comeback || d?.one_to_one) && !TABS.includes(location.hash.slice(1))) { location.hash = "#programming"; return; }
       if (!noHash()) return;
       const seminars = live && ((live.upcoming || []).length || (live.live || []).length || (live.earlier || []).length);
       if (ownedCount || seminars) return;
@@ -1917,6 +1924,38 @@ function moveCard(m) {
 // A past member's come-back offer (Nathan, 7 Nov 2026): Gymnastics +
 // Community for the Gymnastics price, €35 a month for as long as they keep
 // it, the first 7 days free, open until their deadline.
+// A 1:1 place their coach accepted after the call (Nathan, 20 Nov 2026):
+// the Accept email brings them here to make their login and start. The
+// price is the one on sale in their currency; the button is their own
+// payment link, which comes back here with ?started=1.
+function oneToOneCard(m, shop) {
+  const el = (tag, cls, txt) => { const x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; };
+  const c = el("div", "plan movecard"); c.style.setProperty("--c", (BRAND[m.brand] || BRAND.tgc).c);
+  const first = (m.first_name || "").trim().split(/\s+/)[0];
+  const coach = (m.coach || "").trim().split(/\s+/)[0] || "your coach";
+  const course = ((shop && shop.courses) || []).find((x) => x.brand === m.brand);
+  const t = course && course.one_to_one.find((x) => x.tier === m.tier);
+  const price = t && t.amount != null ? money(t.amount, t.currency) : null;
+  // the name it has on the sales page and in the emails
+  m = { ...m, name: (t && t.name) || m.name };
+  c.append(el("p", "k", "Your one-to-one coaching"),
+    el("h3", null, (first ? first + ", y" : "Y") + "our place with " + coach + " is ready"));
+  if (m.expired) {
+    c.appendChild(el("p", "sub", "The time to start " + m.name + " ended on " + day(m.until)
+      + ". Reply to " + coach + "'s email, or write to info@birdboxcoaching.com, and we'll open it again for you."));
+    return c;
+  }
+  c.appendChild(el("p", "sub", m.name + (price ? " is " + price + " a month, VAT included" : " is monthly")
+    + ". Cancel any time here in BirdBox Learn."));
+  c.appendChild(el("p", "sub", "Start now and " + coach + " will have your first week of programming in the app within 24 hours. "
+    + "Your place is held for you until " + day(m.until) + "."));
+  const btns = el("div", "btns");
+  const b = el("a", "btn main", "Start " + m.name + (price ? ": " + price + " a month" : "") + " →");
+  b.href = m.url;
+  btns.appendChild(b);
+  c.append(btns, el("p", "sub", "You pay by card on the next page. Your receipt comes by email, then you sign in to the app with this same email and password."));
+  return c;
+}
 function comebackCard(m) {
   const el = (tag, cls, txt) => { const x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; };
   const c = el("div", "plan movecard"); c.style.setProperty("--c", BRAND.tgc.c);
@@ -2142,6 +2181,7 @@ async function loadProgramming() {
       '<div class="btns"><a class="btn main" style="color:#0C1116" href="https://app.birdboxcoaching.com">Open the coach portal →</a></div>';
     box.appendChild(s2);
   }
+  if (d.one_to_one) box.appendChild(oneToOneCard(d.one_to_one, d.shop));
   if (d.move) box.appendChild(moveCard(d.move));
   else if (d.comeback) box.appendChild(comebackCard(d.comeback));
   // the app, for anyone training with us or about to (Nathan, 1 Nov 2026)
