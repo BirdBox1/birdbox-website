@@ -1428,16 +1428,17 @@ function showPastTee(live, earlier, upcoming) {
 }
 
 // BirdBox Athlete tees (Nathan, 20 Nov 2026): for anyone with a programming
-// plan (not a free trial on its own) or a block. All four, their own
-// course first. Fixed €39, buy as many as they like.
+// plan (not a free trial on its own) or a block: the tee of each course they
+// train with, and the BirdBox one for everyone. Fixed €39, buy as many as they like.
 function showAthleteTee(d) {
   const L = window.BB_LEARNER_TEES;
   const plans = (d && d.plans) || [], blocks = (d && d.blocks) || [];
   const on = plans.some((x) => !x.trial) || blocks.length > 0;
   if (!L || !on) { teeOffer($("athtee"), [], {}); return; }
   const mine = [...plans.filter((x) => !x.trial), ...blocks].map((x) => String(x.brand || "").toLowerCase());
-  const keyOf = (b) => b === "tcc" ? "birdbox" : b;
-  const order = [...new Set([...mine.map(keyOf), "tgc", "tec", "twc", "birdbox"])];
+  // their own course's tee (TGC, TEC, TWC), plus the BirdBox (TCC) tee for
+  // everyone (Nathan, 20 Nov 2026)
+  const order = [...new Set([...mine.filter((b) => ["tgc", "tec", "twc"].includes(b)), "birdbox"])];
   const NAME = { tgc: "TGC Athlete", tec: "TEC Athlete", twc: "TWC Athlete", birdbox: "BirdBox Athlete" };
   const list = order.filter((k) => L.tees["athlete-" + k]).map((k) => ({ key: "athlete-" + k, tee: L.tees["athlete-" + k], label: NAME[k] }));
   teeOffer($("athtee"), list, {
