@@ -26,6 +26,7 @@
 // back on their own. Most of them do come back when asked.
 
 import Stripe from "stripe";
+import { readFile } from "node:fs/promises";
 import { createClient } from "@supabase/supabase-js";
 import { grantOnlineCourse, learnStartLink } from "./learnworlds.mjs";
 import { addPlace } from "./invoice-admin.mjs";
@@ -57,6 +58,28 @@ const LMS_URL = "https://www.birdboxacademy.com";
 
 // Must match the BRAND table in c/index.html. The email is branded
 // to the course, not to whichever brand was written first.
+// The course logo at the top of the confirmation (Nathan, 20 Nov 2026),
+// attached to the email (cid:logo) so it shows even where a mail app holds
+// back pictures from websites. Files are bundled with the functions
+// (netlify.toml included_files = brand/email/**).
+// the full course name logos, as on the website tees (Nathan, 20 Nov 2026)
+const CONFIRM_LOGO = { tgc: "tgc-full-logo.png", tcc: "tcc-full-logo.png" };
+const confirmLogoCache = {};
+async function confirmLogo(brandKey) {
+  const file = CONFIRM_LOGO[brandKey];
+  if (!file) return null;
+  if (!(file in confirmLogoCache)) {
+    try {
+      const buf = await readFile(`brand/email/${file}`);
+      confirmLogoCache[file] = { filename: file, content: buf.toString("base64"), content_id: "logo" };
+    } catch (err) {
+      console.error("Could not read confirmation logo", file, err.message);
+      confirmLogoCache[file] = null;
+    }
+  }
+  return confirmLogoCache[file];
+}
+
 const BRAND = {
   tcc: { name: "The Coaches Course",       colour: "#2f7fd0" },
   tgc: { name: "The Gymnastics Course",    colour: "#9e2029" },
@@ -1862,6 +1885,8 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
     const leadName = leads?.[0]?.staff?.full_name || null;
     const leadLine = (leadName ? "Your lead coach, " + leadName + "," : "Your lead coach") + " will be in touch with you before the course.";
 
+    const logo = await confirmLogo(brandKey);
+
     const subject = "You're registered — " + courseName +
       (place ? ", " + place : "") + ", " + dates;
 
@@ -1926,6 +1951,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
 
     const html = `
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#1a1a1a;max-width:560px;margin:0 auto;padding:8px 4px;">
+  ${logo ? `<p style="margin:0 0 22px;"><img src="cid:logo" alt="${esc(brand.name)}" width="240" style="width:240px;max-width:100%;height:auto;display:block;border:0;"></p>` : ""}
   <p>Hi ${esc(firstName)},</p>
   <p>Thank you for registering. Your confirmation is below.</p>
 
@@ -2035,6 +2061,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
         subject: subject,
         text: text,
         html: html,
+        ...(logo ? { attachments: [logo] } : {}),
       }),
     });
 
