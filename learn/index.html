@@ -113,7 +113,10 @@
   .hood .sw button{background:var(--panel2);color:var(--ink);border:2px solid var(--line);padding:5px;font:inherit;font-size:12px;line-height:1.3;cursor:pointer;text-align:center}
   .hood .sw button img{width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block;margin-bottom:4px}
   .hood .sw button.on{border-color:var(--accent)}
-  .hood .pic{width:220px;max-width:100%;background:#fff;display:block;margin:8px 0}
+  .hood .pics{display:flex;gap:10px;margin:8px 0;max-width:460px}
+  .hood .pics figure{margin:0;flex:1}
+  .hood .pics img{width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block}
+  .hood .pics figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:4px;text-transform:uppercase;letter-spacing:.1em}
   .hood label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
   .hood input,.hood select{width:100%;max-width:420px;font:inherit;font-size:16px;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
   .hood .row2{display:flex;gap:10px;max-width:420px}.hood .row2>div{flex:1}
@@ -1767,7 +1770,9 @@ async function showHoodie() {
   const s1 = document.createElement("p"); s1.className = "step"; s1.textContent = "1. Choose your hoodie";
   const opts = document.createElement("div"); opts.className = "opts";
   const s2 = document.createElement("p"); s2.className = "step hidden"; s2.textContent = "2. Choose your colour and size";
-  const pic = document.createElement("img"); pic.className = "pic hidden"; pic.alt = "";
+  // the chosen colour, front and back side by side
+  const pic = document.createElement("div"); pic.className = "pics hidden";
+  pic.innerHTML = '<figure><img alt=""><figcaption>Front</figcaption></figure><figure><img alt=""><figcaption>Back</figcaption></figure>';
   const sw = document.createElement("div"); sw.className = "sw";
   const sizeL = document.createElement("label"); sizeL.textContent = "Size"; sizeL.className = "hidden";
   const size = document.createElement("select"); size.className = "hidden";
@@ -1777,7 +1782,10 @@ async function showHoodie() {
   function chooseColour(c) {
     pick.c = c; pick.v = null;
     [...sw.children].forEach((x) => x.classList.toggle("on", x.dataset.c === c.colour));
-    pic.src = c.image || ""; pic.classList.toggle("hidden", !c.image);
+    const [fr, bk] = pic.querySelectorAll("figure");
+    fr.querySelector("img").src = c.image || ""; fr.classList.toggle("hidden", !c.image);
+    bk.querySelector("img").src = c.back || ""; bk.classList.toggle("hidden", !c.back);
+    pic.classList.toggle("hidden", !c.image && !c.back);
     size.innerHTML = '<option value="">Choose a size</option>' + c.sizes.map((s) => '<option value="' + s.id + '">' + s.size + "</option>").join("");
     sizeL.classList.remove("hidden"); size.classList.remove("hidden");
   }

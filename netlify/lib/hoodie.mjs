@@ -90,14 +90,32 @@ export async function bookingEarnsHoodie(email, courseId) {
 
 // ---- the hoodies on offer -----------------------------------------------
 
-// The Ecwid product ids of the hoodies in the shop (as in shop/index.html).
+// The hoodies in the shop, by Ecwid product id, with the shop's own front
+// and back picture of each colour ([front, back] Ecwid image ids, 800 px).
+// Sorted 20 Nov 2026 and checked by eye. Printful also holds older copies
+// with the same names that are not in the shop, so only these are offered.
 // Add a new hoodie here when one goes on sale.
-const SHOP_HOODIES = new Set([
-  "878548739", "878551185", "878551186", "878548952",   // TGC Course Logo Front Hoodie (+ Black & Charcoal, Light, Bright)
-  "878551247", "878577019", "878579020", "878579757",   // TGC Course Logo Back Hoodie
-  "878622403", "878548713", "878548725", "878622404",   // TCC Course Logo Front Hoodie
-  "878622405", "878579022", "878577025", "878631582",   // TCC Course Logo Back Hoodie
-]);
+const SHOP_HOODIE_PICTURES = {
+  "878548948": {"Navy Blazer": ["6418380880", "6418380886"], "Team Royal": ["6418400357", "6418407570"], "Forest Green": ["6418407576", "6418400360"]},
+  "878551185": {"Black": ["6418380892", "6418407588"], "Charcoal Heather": ["6418400375", "6418407594"]},
+  "878551186": {"Carbon Grey": ["6418380910", "6418380916"], "Bone": ["6418380907", "6418380922"], "White": ["6418400386", "6418407626"]},
+  "878548952": {"Team Red": ["6418400408", "6418407638"], "Dusty Rose": ["6418380943", "6418400414"]},
+  "878551247": {"Navy Blazer": ["6418858444", "6418926052"], "Team Royal": ["6418970266", "6418926049"]},
+  "878577019": {"Black": ["6418858450", "6418926061"], "Charcoal Heather": ["6418926064", "6418970272"]},
+  "878579020": {"Carbon Grey": ["6418970290", "6418858456"], "Bone": ["6418970284", "6418926076"], "White": ["6418858462", "6418926073"]},
+  "878579757": {"Team Red": ["6418858471", "6418926090"], "Dusty Rose": ["6418858480", "6418858474"]},
+  "878622403": {"Navy Blazer": ["6420739604", "6420739610"], "Team Royal": ["6420737943", "6420739616"]},
+  "878548713": {"Black": ["6418407704", "6418400484"], "Charcoal Heather": ["6418407701", "6418407710"]},
+  "878548725": {"Bone": ["6418407740", "6418570808"], "White": ["6418590011", "6418590026"]},
+  "878622404": {"Team Red": ["6420739622", "6420737426"], "Dusty Rose": ["6420737953", "6420737432"], "Carbon Grey": ["6420737420", "6420737438"]},
+  "878622405": {"Navy Blazer": ["6420737956", "6420739631"], "Team Royal": ["6420739634", "6420737444"]},
+  "878579022": {"Black": ["6418970308", "6418970314"], "Charcoal Heather": ["6419022010", "6418970305"]},
+  "878577025": {"Bone": ["6419022016", "6418926123"], "White": ["6418970320", "6418970326"]},
+  "878631582": {"Team Red": ["6420739661", "6420737462"], "Dusty Rose": ["6420737480", "6420737468"], "Carbon Grey": ["6420737968", "6420737474"]}
+};
+const SHOP_HOODIES = new Set(Object.keys(SHOP_HOODIE_PICTURES));
+const shopPicture = (ecwidId, imageId) =>
+  `https://d2j6dbq0eux0bg.cloudfront.net/images/140532633/products/${ecwidId}/${imageId}.jpg`;
 
 // Every hoodie in the Printful store, grouped as the shop shows them:
 // course (TGC/TCC) x logo (front/back), with every colour and size from the
@@ -134,7 +152,13 @@ export async function hoodieCatalogue() {
       if (v.availability_status && !/active/i.test(v.availability_status)) continue;
       const colour = v.color || (v.product?.name || "").split("/").slice(-2, -1)[0]?.trim() || "Colour";
       const preview = (v.files || []).find((f) => f.type === "preview");
-      if (!g.colours.has(colour)) g.colours.set(colour, { colour, image: preview?.preview_url || preview?.thumbnail_url || v.product?.image || d.sync_product.thumbnail_url, sizes: [] });
+      const pics = SHOP_HOODIE_PICTURES[String(d.sync_product.external_id)]?.[colour];
+      if (!g.colours.has(colour)) g.colours.set(colour, {
+        colour,
+        image: pics ? shopPicture(d.sync_product.external_id, pics[0]) : (preview?.preview_url || preview?.thumbnail_url || v.product?.image || d.sync_product.thumbnail_url),
+        back: pics ? shopPicture(d.sync_product.external_id, pics[1]) : null,
+        sizes: [],
+      });
       g.colours.get(colour).sizes.push({ size: v.size || "One size", id: v.id, product: name });
     }
   }
