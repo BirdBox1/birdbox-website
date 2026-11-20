@@ -2353,7 +2353,20 @@ async function loadProgramming() {
       '<div class="btns"><a class="btn main" style="color:#0C1116" href="https://app.birdboxcoaching.com">Open the coach portal →</a></div>';
     box.appendChild(s2);
   }
-  if (d.one_to_one) box.appendChild(oneToOneCard(d.one_to_one, d.shop));
+  // the "You are in" note: straight back from paying, then for 36 hours
+  // after (Nathan, 20 Nov 2026). Just back from paying, the Start card is
+  // left out even if Stripe has not told us yet, so it never asks again.
+  // It also goes once they tap its Get the app (on this device): it has done its job.
+  let gotApp = false;
+  try { gotApp = Date.now() - Number(localStorage.getItem("bb-got-app") || 0) < 36 * 3600 * 1000; } catch {}
+  const justPaid = (params.get("started") || (d.one_to_one && d.one_to_one.paid)) && !gotApp;
+  $("started-note").classList.toggle("hidden", !justPaid);
+  const noteApp = $("started-note").querySelector("a.btn");
+  if (noteApp) noteApp.onclick = () => {
+    try { localStorage.setItem("bb-got-app", String(Date.now())); } catch {}
+    setTimeout(() => $("started-note").classList.add("hidden"), 300);
+  };
+  if (d.one_to_one && !d.one_to_one.paid && !params.get("started")) box.appendChild(oneToOneCard(d.one_to_one, d.shop));
   if (d.move) box.appendChild(moveCard(d.move));
   else if (d.comeback) box.appendChild(comebackCard(d.comeback));
   // the app, for anyone training with us or about to (Nathan, 1 Nov 2026)
