@@ -1951,7 +1951,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
 
     const html = `
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#1a1a1a;max-width:560px;margin:0 auto;padding:8px 4px;">
-  ${logo ? `<p style="margin:0 0 22px;"><img src="cid:logo" alt="${esc(brand.name)}" width="240" style="width:240px;max-width:100%;height:auto;display:block;border:0;"></p>` : ""}
+  ${logo ? `<p style="margin:0 0 22px;text-align:center;" align="center"><img src="cid:logo" alt="${esc(brand.name)}" width="240" style="width:240px;max-width:100%;height:auto;display:block;margin:0 auto;border:0;"></p>` : ""}
   <p>Hi ${esc(firstName)},</p>
   <p>Thank you for registering. Your confirmation is below.</p>
 
