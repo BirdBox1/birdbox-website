@@ -32,6 +32,7 @@ import { addPlace } from "./invoice-admin.mjs";
 import { isOnlineInvoice, onOnlineInvoicePaid, onOnlineInvoiceOverdue } from "./online-invoice.mjs";
 import { isOnlineSale, onOnlineSaleCompleted, onlinePlanMeta, onOnlinePlanFailed } from "./online-checkout.mjs";
 import { isGiftSale, onGiftSaleCompleted, redeemCard } from "../lib/gift-cards.mjs";
+import { bookingEarnsHoodie } from "../lib/hoodie.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -1790,6 +1791,11 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       ? "Your deposit is paid. The remaining balance will be charged automatically to the same card 14 days before the course."
       : null;
 
+    // The free hoodie with a live seminar booked 27 Nov - 30 Dec 2026
+    // (Nathan, 20 Nov 2026): they choose it in BirdBox Learn.
+    const hoodie = !isWorkshop && await bookingEarnsHoodie(email, courseId);
+    const HOODIE_URL = onSite ? START_URL : LEARN_URL;
+
     const subject = "You're registered — " + courseName +
       (place ? ", " + place : "") + ", " + dates;
 
@@ -1823,6 +1829,10 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       onlineOk && !onSite ? "In the academy it is listed as BirdBox Coaching Development Level " + levelDigits + " — this is the same course." : null,
       onlineOk && !onSite ? LMS_URL : null,
       onlineOk ? "" : null,
+      hoodie ? "YOUR FREE HOODIE" : null,
+      hoodie ? "This booking comes with a free hoodie from our shop, delivered to you at no cost. Choose your style, colour and size in your BirdBox Learn account:" : null,
+      hoodie ? HOODIE_URL : null,
+      hoodie ? "" : null,
       "WHAT TO BRING",
       ...bring.map((b) => "- " + b),
       "",
@@ -1881,6 +1891,14 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
     <a href="${LMS_URL}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Go to BirdBox Academy</a>
   </p>
   <p style="color:#666;font-size:14px;margin:10px 0 0;">In the academy it is listed as <strong>BirdBox Coaching Development Level ${esc(levelDigits)}</strong> — this is the same course.</p>
+  ` : ""}
+
+  ${hoodie ? `
+  <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Your free hoodie</h3>
+  <p style="margin:0 0 12px;">This booking comes with a free hoodie from our shop, delivered to you at no cost. Choose your style, colour and size in your BirdBox Learn account.</p>
+  <p style="margin:0;">
+    <a href="${HOODIE_URL}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Choose my free hoodie</a>
+  </p>
   ` : ""}
 
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">What to bring</h3>

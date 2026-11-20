@@ -100,6 +100,21 @@
   .dir .btn{margin-left:auto;flex:none}
   @media (max-width:640px){.dir{flex-wrap:wrap}.dir .btn{margin-left:0;width:100%}}
   body[data-view="family"] #dir,body[data-view="family"] #soon,body[data-view="family"] #live,body[data-view="family"] #next,body[data-view="family"] #disc{display:none!important}
+  /* the free hoodie card (Nathan, 20 Nov 2026) */
+  .hood{background:var(--panel);border:1px solid var(--accent);padding:20px 22px;margin:0 0 28px;max-width:760px;line-height:1.55}
+  .hood h2{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 6px}
+  .hood .opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:14px 0}
+  .hood .opt{background:var(--panel2);border:2px solid transparent;padding:8px;cursor:pointer;text-align:left;color:var(--ink);font:inherit;font-size:14px}
+  .hood .opt.on{border-color:var(--accent)}
+  .hood .opt img{width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block;margin-bottom:6px}
+  .hood .sw{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .hood .sw button{background:var(--panel2);color:var(--ink);border:2px solid var(--line);padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+  .hood .sw button.on{border-color:var(--accent)}
+  .hood .pic{width:220px;max-width:100%;background:#fff;display:block;margin:8px 0}
+  .hood label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  .hood input,.hood select{width:100%;max-width:420px;font:inherit;font-size:16px;padding:10px 12px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .hood .row2{display:flex;gap:10px;max-width:420px}.hood .row2>div{flex:1}
+  .hood .step{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:22px 0 4px}
   .disc{margin-top:34px}
   .disc h2{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 14px}
   .offers{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
@@ -373,6 +388,7 @@
     <div id="welcome-note" class="box hidden" style="background:var(--panel);border:1px solid var(--accent);padding:18px 20px;margin:0 0 24px;max-width:640px;line-height:1.6">
       <strong>Welcome — your account is set up.</strong> Your course is below. <a href="#account">Set a password now</a> so you can log in any time without waiting for an email.
     </div>
+    <section id="hoodie" class="hood hidden"></section>
     <p class="lede">Pick up where you left off. Your progress saves as you go, on any device.</p>
     <div id="brands" class="brands"></div>
     <div id="brandhead" class="brandhead hidden"><a href="#">← All my courses</a><h2 id="brand-title"></h2></div>
@@ -911,6 +927,7 @@ async function boot() {
   });
   certName = defaultName;
   discountsP = account("?part=discounts").catch(() => ({ discounts: [] }));
+  showHoodie().catch(() => null);
   ownedCount = owned.length;
   liveP = showLive(session, owned, finished).catch(() => null);
   if (!list.length) {
@@ -1691,6 +1708,146 @@ const APP_LINK = /iPhone|iPad|iPod/.test(navigator.userAgent) ? "https://apps.ap
   : "https://app.birdboxcoaching.com";
 const day = (d) => d ? new Date(String(d).length === 10 ? d + "T12:00:00" : d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "";
 const money = (cents, cur) => new Intl.NumberFormat("en-IE", { style: "currency", currency: String(cur || "eur").toUpperCase() }).format((cents || 0) / 100);
+
+// ---- the free hoodie (Nathan, 20 Nov 2026) --------------------------------
+// A live seminar booked 27 Nov - 30 Dec 2026 comes with a free hoodie from
+// the shop. They pick it here and it is ordered from Printful at once.
+async function hoodieApi(opts = {}) {
+  const { data: { session } } = await db.auth.getSession();
+  const r = await fetch("/.netlify/functions/learn-hoodie", {
+    ...opts, headers: { ...(opts.headers || {}), "Content-Type": "application/json", Authorization: "Bearer " + (session ? session.access_token : "") },
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || "Something went wrong.");
+  return d;
+}
+
+const COUNTRY_CODES = "IE GB ES FR DE IT PT NL BE LU AT CH DK SE NO FI IS PL CZ SK HU SI HR RO BG GR CY MT EE LV LT US CA MX BR AR CL CO PE UY AU NZ JP KR SG HK TW TH MY PH ID IN AE SA QA KW BH OM IL TR ZA EG MA".split(" ");
+
+async function showHoodie() {
+  const box = $("hoodie");
+  const d = await hoodieApi();
+  const open = (d.bookings || []).filter((b) => !b.claim);
+  const done = (d.bookings || []).filter((b) => b.claim);
+  if (!open.length && !done.length) return;
+  box.classList.remove("hidden");
+  box.innerHTML = "";
+  const h = document.createElement("h2");
+  h.textContent = open.length ? "Your free hoodie" : "Your free hoodie is ordered";
+  box.append(h);
+
+  for (const b of done) {
+    const p = document.createElement("p");
+    p.style.margin = "4px 0";
+    p.textContent = "✓ " + b.course + ": " + [b.claim.product_name, b.claim.colour, b.claim.size].filter(Boolean).join(" · ") + ". Printed to order, so allow 2 to 3 weeks.";
+    box.append(p);
+  }
+  if (!open.length) return;
+
+  const booking = open[0];
+  const intro = document.createElement("p");
+  intro.style.margin = "0";
+  intro.textContent = "Thank you for booking " + booking.course + ". It comes with a free hoodie from our shop, delivered to you at no cost. Choose yours below." +
+    (open.length > 1 ? " You have " + open.length + " seminar bookings with a hoodie; this is the first." : "");
+  box.append(intro);
+
+  if (d.shop_error || !(d.hoodies || []).length) {
+    const m = document.createElement("p"); m.className = "msg err";
+    m.textContent = d.shop_error || "The hoodies could not be loaded just now. Please try again later.";
+    box.append(m); return;
+  }
+
+  // their own course's hoodies first
+  const hoodies = [...d.hoodies].sort((a, b) => (b.brand === booking.brand) - (a.brand === booking.brand));
+  let pick = { g: null, c: null, v: null };
+
+  const s1 = document.createElement("p"); s1.className = "step"; s1.textContent = "1. Choose your hoodie";
+  const opts = document.createElement("div"); opts.className = "opts";
+  const s2 = document.createElement("p"); s2.className = "step hidden"; s2.textContent = "2. Colour and size";
+  const pic = document.createElement("img"); pic.className = "pic hidden"; pic.alt = "";
+  const sw = document.createElement("div"); sw.className = "sw";
+  const sizeL = document.createElement("label"); sizeL.textContent = "Size"; sizeL.className = "hidden";
+  const size = document.createElement("select"); size.className = "hidden";
+  const s3 = document.createElement("p"); s3.className = "step hidden"; s3.textContent = "3. Where should we send it?";
+  const form = document.createElement("form"); form.className = "hidden";
+
+  function chooseColour(c) {
+    pick.c = c; pick.v = null;
+    [...sw.children].forEach((x) => x.classList.toggle("on", x.dataset.c === c.colour));
+    pic.src = c.image || ""; pic.classList.toggle("hidden", !c.image);
+    size.innerHTML = '<option value="">Choose a size</option>' + c.sizes.map((s) => '<option value="' + s.id + '">' + s.size + "</option>").join("");
+    sizeL.classList.remove("hidden"); size.classList.remove("hidden");
+  }
+  function chooseGroup(g, el) {
+    pick = { g, c: null, v: null };
+    [...opts.children].forEach((x) => x.classList.toggle("on", x === el));
+    s2.classList.remove("hidden");
+    sw.innerHTML = "";
+    for (const c of g.colours) {
+      const bt = document.createElement("button"); bt.type = "button"; bt.textContent = c.colour; bt.dataset.c = c.colour;
+      bt.onclick = () => chooseColour(c);
+      sw.append(bt);
+    }
+    chooseColour(g.colours[0]);
+  }
+  for (const g of hoodies) {
+    const bt = document.createElement("button"); bt.type = "button"; bt.className = "opt";
+    const im = document.createElement("img"); im.alt = ""; im.src = g.colours[0].image || "";
+    const t = document.createElement("div"); t.textContent = g.name.replace(/^(\w+) - /, "$1 · ");
+    bt.append(im, t);
+    bt.onclick = () => chooseGroup(g, bt);
+    opts.append(bt);
+  }
+  size.onchange = () => {
+    pick.v = size.value || null;
+    s3.classList.toggle("hidden", !pick.v); form.classList.toggle("hidden", !pick.v);
+  };
+
+  const names = (() => { try { return new Intl.DisplayNames(["en"], { type: "region" }); } catch { return { of: (c) => c }; } })();
+  const countries = COUNTRY_CODES.map((c) => [c, names.of(c)]).sort((a, b) => a[1].localeCompare(b[1]));
+  const field = (id, label, opt) => '<label for="hd-' + id + '">' + label + (opt ? " (optional)" : "") + '</label><input id="hd-' + id + '" ' + (opt ? "" : "required ") + 'autocomplete="' + ({ name: "name", a1: "address-line1", a2: "address-line2", city: "address-level2", state: "address-level1", zip: "postal-code", phone: "tel" }[id]) + '">';
+  form.innerHTML = field("name", "Full name") + field("a1", "Address") + field("a2", "Address line 2", true) +
+    '<div class="row2"><div>' + field("city", "Town or city") + '</div><div>' + field("zip", "Postcode") + "</div></div>" +
+    '<label for="hd-country">Country</label><select id="hd-country" required><option value="">Choose…</option>' +
+    countries.map(([c, n]) => '<option value="' + c + '">' + n + "</option>").join("") + '<option value="other">Somewhere else</option></select>' +
+    '<div id="hd-state-w" class="hidden">' + field("state", "State or province code (e.g. CA, NSW)") + "</div>" +
+    field("phone", "Phone, for the courier", true) +
+    '<p style="margin:18px 0 0"><button class="btn main" type="submit" id="hd-go">Claim my free hoodie</button></p><div class="msg" id="hd-msg"></div>';
+  box.append(s1, opts, s2, pic, sw, sizeL, size, s3, form);
+  form.querySelector("#hd-name").value = booking.name || "";
+  const country = form.querySelector("#hd-country");
+  country.onchange = () => {
+    const needs = ["US", "CA", "AU", "JP"].includes(country.value);
+    form.querySelector("#hd-state-w").classList.toggle("hidden", !needs);
+    form.querySelector("#hd-state").required = needs;
+    if (country.value === "other") {
+      form.querySelector("#hd-msg").className = "msg err";
+      form.querySelector("#hd-msg").textContent = "Please write to info@birdboxcoaching.com with your address and we will arrange it.";
+    } else form.querySelector("#hd-msg").textContent = "";
+  };
+  form.querySelector("#hd-state").required = false;
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const msg = form.querySelector("#hd-msg"), go = form.querySelector("#hd-go");
+    const v = (id) => form.querySelector("#hd-" + id).value.trim();
+    if (!pick.v) { msg.className = "msg err"; msg.textContent = "Please choose a size."; return; }
+    if (!country.value || country.value === "other") { msg.className = "msg err"; msg.textContent = "Please choose your country."; return; }
+    const sizeText = size.options[size.selectedIndex].textContent;
+    if (!confirm("Order " + pick.g.name + ", " + pick.c.colour + ", size " + sizeText + "?\n\nIt is printed to order, so it cannot be changed afterwards.")) return;
+    go.disabled = true; msg.className = "msg"; msg.textContent = "Ordering…";
+    try {
+      await hoodieApi({ method: "POST", body: JSON.stringify({
+        registration_id: booking.registration_id, variant_id: pick.v,
+        recipient: { name: v("name"), address1: v("a1"), address2: v("a2"), city: v("city"), zip: v("zip"), state_code: v("state"), country_code: country.value, phone: v("phone") },
+      }) });
+      await showHoodie();
+      $("hoodie").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      go.disabled = false; msg.className = "msg err"; msg.textContent = err.message;
+    }
+  };
+}
 
 async function account(path, opts = {}) {
   const { data: { session } } = await db.auth.getSession();

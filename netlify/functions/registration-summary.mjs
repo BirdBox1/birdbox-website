@@ -10,6 +10,7 @@
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { hoodieOfferOn } from "../lib/hoodie.mjs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -116,6 +117,8 @@ export default async (req) => {
         : null,
       manualUrl,
       emailedTo: maskEmail(details.email),
+      // the free hoodie with a live seminar booked 27 Nov - 30 Dec 2026 (Nathan, 20 Nov 2026)
+      hoodie: !isWorkshop && hoodieOfferOn() && session.payment_status === "paid",
     });
   } catch (err) {
     console.error("registration-summary failed:", err);

@@ -124,6 +124,12 @@
     <h2>What happens next</h2>
     <p id="emailline">A confirmation email is on its way with everything you need for the day.</p>
 
+    <div id="hoodiewrap" class="hidden">
+      <h2>Your free hoodie</h2>
+      <p>This booking comes with a free hoodie from our shop, delivered to you at no cost. Choose your style, colour and size in your BirdBox Learn account. The link is in your confirmation email too.</p>
+      <a class="btn" href="/learn/">Choose my free hoodie</a>
+    </div>
+
     <div id="manualwrap" class="hidden">
       <h2>Your course manual</h2>
       <p>Have a read before you arrive — it is available in several languages.</p>
@@ -194,6 +200,7 @@ async function load() {
         " with everything you need for the day.";
     }
 
+    if (data.hoodie) $("hoodiewrap").classList.remove("hidden");
     if (data.manualUrl) {
       $("manuallink").href = data.manualUrl;
       $("manualwrap").classList.remove("hidden");
