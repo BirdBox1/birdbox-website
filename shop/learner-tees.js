@@ -15,22 +15,23 @@ window.BB_LEARNER_TEES = {
   sizes: ["S", "M", "L", "XL", "2XL"],
   was: 39,
   tees: {
-    "tgc-1-2026": { id: 879045686, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432752989" },
-    "tgc-1-2027": { id: 879045687, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432866751" },
-    "tgc-2-2026": { id: 879083004, price: 29, off: 25, shirt: "Mauve triblend", img: "6432745495" },
-    "tgc-2-2027": { id: 879045688, price: 29, off: 25, shirt: "Mauve triblend", img: "6432860767" },
-    "tcc-1-2026": { id: 879045711, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432926573" },
-    "tcc-1-2027": { id: 879045712, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432926579" },
-    "tcc-2-2026": { id: 879045713, price: 29, off: 25, shirt: "Charcoal-Black triblend", img: "6432898177" },
-    "tcc-2-2027": { id: 879084761, price: 29, off: 25, shirt: "Charcoal-Black triblend", img: "6432924825" },
+    "tgc-1-2026": { id: 879045686, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432752989", front: "6432752997" },
+    "tgc-1-2027": { id: 879045687, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432866751", front: "6432745491" },
+    "tgc-2-2026": { id: 879083004, price: 29, off: 25, shirt: "Mauve triblend", img: "6432745495", front: "6432868253" },
+    "tgc-2-2027": { id: 879045688, price: 29, off: 25, shirt: "Mauve triblend", img: "6432860767", front: "6432866759" },
+    "tcc-1-2026": { id: 879045711, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432926573", front: "6432898173" },
+    "tcc-1-2027": { id: 879045712, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432926579", front: "6432926587" },
+    "tcc-2-2026": { id: 879045713, price: 29, off: 25, shirt: "Charcoal-Black triblend", img: "6432898177", front: "6432926593" },
+    "tcc-2-2027": { id: 879084761, price: 29, off: 25, shirt: "Charcoal-Black triblend", img: "6432924825", front: "6432924833" },
     // online course tees: TGC / TCC Level 1 online, the year they enrolled
-    "tgc-online-2026": { id: 879084798, price: 29, off: 25, shirt: "Red triblend", img: "6433410381" },
-    "tgc-online-2027": { id: 879084799, price: 29, off: 25, shirt: "Red triblend", img: "6433410599" },
-    "tcc-online-2026": { id: 879045738, price: 29, off: 25, shirt: "True Royal triblend", img: "6433410605" },
-    "tcc-online-2027": { id: 879109273, price: 29, off: 25, shirt: "True Royal triblend", img: "6433410429" }
+    "tgc-online-2026": { id: 879084798, price: 29, off: 25, shirt: "Red triblend", img: "6433410381", front: "6433410389" },
+    "tgc-online-2027": { id: 879084799, price: 29, off: 25, shirt: "Red triblend", img: "6433410599", front: "6433411117" },
+    "tcc-online-2026": { id: 879045738, price: 29, off: 25, shirt: "True Royal triblend", img: "6433410605", front: "6433411123" },
+    "tcc-online-2027": { id: 879109273, price: 29, off: 25, shirt: "True Royal triblend", img: "6433410429", front: "6433410437" }
   },
-  picture: function (t) {
-    return "https://d2j6dbq0eux0bg.cloudfront.net/images/140532633/products/" + t.id + "/" + t.img + ".jpg";
+  // t.img is the back (the main picture), t.front the BirdBox eagle side
+  picture: function (t, side) {
+    return "https://d2j6dbq0eux0bg.cloudfront.net/images/140532633/products/" + t.id + "/" + (side === "front" && t.front ? t.front : t.img) + ".jpg";
   },
   isPrivate: function (name) {
     return /\b(Seminar|Online) Tee\b/i.test(String(name || ""));
