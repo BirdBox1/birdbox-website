@@ -116,6 +116,22 @@
   .hood .pics{display:flex;gap:10px;margin:8px 0;max-width:460px}
   .hood .pics figure{margin:0;flex:1}
   .hood.tee{margin-top:28px;max-width:none}
+  /* the seminar map, as on /seminars/ */
+  .sm-map-wrap{border:1px solid var(--line);background:var(--panel);padding:4px;margin-top:14px}
+  #sm-map{height:420px;width:100%;background:#101215}
+  @media (max-width:620px){#sm-map{height:320px}}
+  .sm-map-note{font-size:13px;color:var(--muted);margin:10px 0 0}
+  .sm-key{display:flex;flex-wrap:wrap;gap:8px 20px;margin:12px 0 0;padding:0;list-style:none}
+  .sm-key li{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.04em;color:#B7B1B3}
+  .sm-key i{width:12px;height:12px;border-radius:50%;border:2px solid #F2EFEF;flex:0 0 auto}
+  .bb-world{fill:#1c2126;stroke:#333a42;stroke-width:.6}
+  .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#1C1719;color:var(--ink);border:1px solid var(--line)}
+  .leaflet-popup-content{margin:12px 14px;font-family:inherit}
+  .sm-pin__what{font-size:15px;font-weight:800;margin-bottom:2px}
+  .sm-pin__where,.sm-pin__when{font-size:13px;color:#C9C4C5;margin-bottom:2px}
+  .sm-pin__when{margin-bottom:8px}
+  .sm-pin__off{font-size:12px;font-weight:800;letter-spacing:.04em;color:#F2EFEF;margin:-4px 0 8px}
+  .sm-pin__go{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff!important;padding:7px 14px;text-decoration:none}
   .tee .one{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;margin-top:14px}
   .tee .one + .one{border-top:1px solid var(--line);padding-top:18px}
   .tee .one img{width:200px;max-width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block}
@@ -427,11 +443,19 @@
       <p class="sub" id="live-sub">Seminars and workshops you have completed in person. Download your certificate any time.</p>
       <div id="live-list"></div>
     </section>
-    <p id="sem-empty" class="sub hidden">You are not booked on a seminar or workshop yet. <a href="/seminars/">See upcoming seminars →</a></p>
     <!-- the same "Your next step" ideas as Online courses (Nathan, 20 Nov 2026) -->
     <section id="next-sem" class="next hidden">
       <h2>Your next step</h2>
       <div id="next-list-sem" class="next-grid"></div>
+    </section>
+    <!-- nothing booked: every upcoming seminar and workshop on the map (Nathan, 20 Nov 2026) -->
+    <section id="sem-empty" class="live hidden">
+      <h2>Find a seminar</h2>
+      <p class="sub">You are not booked on a seminar or workshop yet. Here is every upcoming date across our courses. Select a pin for the dates and to register.</p>
+      <div class="sm-map-wrap"><div id="sm-map"></div></div>
+      <p class="sm-map-note" id="sm-map-note">Loading locations…</p>
+      <ul class="sm-key" id="sm-key"></ul>
+      <p class="sub" style="margin-top:14px"><a href="/seminars/">See every date as a list →</a></p>
     </section>
     </div>
 
@@ -733,6 +757,13 @@ let tccPeople = false;
 document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("#tabs a")) tabChosen = true; });
 const TABS = ["seminars", "programming", "blog", "certificates", "receipts", "directory", "mentorship", "account"];
 const loaded = {};
+// The seminar map can only be drawn once its tab is on screen (a hidden map
+// has no size), so it waits for My seminars to open.
+let semMapP = null, semMapRun = null;
+function whenShown(tab, fn) {
+  if (!$("t-" + tab).classList.contains("hidden")) return fn();
+  return new Promise((ok) => { semMapRun = () => ok(fn()); });
+}
 function showTab(tab) {
   document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("hidden", p.id !== "t-" + tab));
   document.querySelectorAll("#tabs a").forEach((a) => a.classList.toggle("on", a.dataset.tab === tab));
@@ -744,6 +775,7 @@ function showTab(tab) {
     const l = on.getBoundingClientRect().left - nav.getBoundingClientRect().left + nav.scrollLeft;
     if (l < nav.scrollLeft || l + on.offsetWidth > nav.scrollLeft + nav.clientWidth) nav.scrollLeft = Math.max(0, l - 20);
   }
+  if (tab === "seminars" && semMapRun) { const f = semMapRun; semMapRun = null; setTimeout(f, 0); }
   if (tab === "programming" && !loaded.programming) loaded.programming = loadProgramming();
   if (tab === "receipts" && !loaded.receipts) loaded.receipts = loadReceipts();
   if (tab === "mentorship" && !loaded.mentorship) loaded.mentorship = loadMentorship();
@@ -1450,8 +1482,22 @@ async function showLive(session, ownedOnline, finishedOnline) {
     if (r.ok) d = await r.json();
   } catch (e) {}
   // My seminars: say so when there is nothing in it (Nathan, 20 Nov 2026)
-  const anySeminar = (d.upcoming || []).length + (d.live || []).filter((c) => c.kind !== "online").length + (d.earlier || []).length > 0;
-  $("sem-empty").classList.toggle("hidden", anySeminar);
+  // nothing booked: show every upcoming seminar on the map (Nathan, 20 Nov 2026)
+  const noneBooked = !(d.upcoming || []).length;
+  $("sem-empty").classList.toggle("hidden", !noneBooked);
+  if (noneBooked) semMapP = semMapP || import("/learn/seminar-map.js")
+    .then(async (m) => {
+      // an online student's 50% off a Level 1 seminar, on the map's pins too
+      const disc = await discountsP.catch(() => ({}));
+      const brands = new Set(((disc && disc.discounts) || []).filter((x) => x.kind === "seminar").map((x) => x.brand));
+      const offer = brands.size ? { brands, percent: disc.percent || 50, pass: async (brand) => {
+        const r = await account("", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "seminar_pass", brand }) });
+        if (r.pass) sessionStorage.setItem("bb-learn-pass", r.pass);
+      } } : null;
+      return whenShown("seminars", () => m.seminarMap(db, $("sm-map"), $("sm-map-note"), $("sm-key"), offer));
+    })
+    .catch(() => { $("sm-map-note").innerHTML = 'The map could not load. <a href="/seminars/">See upcoming seminars →</a>'; });
   // the TCC portfolio box: only for someone with something TCC
   if ((d.upcoming || []).concat(d.live || []).some((c) => c.brand === "tcc")) tccPeople = true;
   if (!tccPeople) $("tcc-pf").classList.add("hidden");
