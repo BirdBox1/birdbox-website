@@ -1440,7 +1440,7 @@ function showAthleteTee(d) {
   // everyone (Nathan, 20 Nov 2026)
   const order = [...new Set([...mine.filter((b) => ["tgc", "tec", "twc"].includes(b)), "birdbox"])];
   const NAME = { tgc: "TGC Athlete", tec: "TEC Athlete", twc: "TWC Athlete", birdbox: "BirdBox Athlete" };
-  // the tees, then the hoodies (Nathan, 20 Nov 2026); one only shows once its picture is in
+  // the tees, then the hoodies (Nathan, 20 Nov 2026)
   const list = [];
   for (const [kind, word] of [["athlete-", "Tee"], ["athlete-hoodie-", "Hoodie"]])
     for (const k of order) { const t = L.tees[kind + k]; if (t && t.img) list.push({ key: kind + k, tee: t, label: NAME[k] + " " + word }); }
