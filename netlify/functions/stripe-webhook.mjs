@@ -1823,8 +1823,8 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       (manualUrl ? " and its course manual are" : " is") + " already there, and after the course your certificate will be too.";
     const appNote = history.programming ? " It is the same login as the BirdBox Coaching app." : "";
     const learnHow = history.any
-      ? "Welcome back. We know you from " + knownFrom + ", so everything is in one account under " + email + ": log in at birdboxcoaching.com/learn, or tap the button to go straight in." + appNote
-      : "This is your first course with us. Tap the button and you are logged straight in, no password needed. A box at the top lets you choose a password; from then on, log in at birdboxcoaching.com/learn with " + email + " and that password.";
+      ? "Welcome back. We know you from " + knownFrom + ", so everything is in one account under " + email + ". Tap the button to go straight in." + appNote
+      : "This is your first course with us. Tap the button and you are logged straight in, no password needed. A box at the top lets you choose a password, so next time you log in with " + email + " and that password.";
     const learnOther = "Used a different email with us before? Reply to this email and we will join your accounts up.";
 
     // The free hoodie with a live seminar booked 27 Nov - 30 Dec 2026
@@ -1927,8 +1927,8 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Your BirdBox Learn account</h3>
   <p style="margin:0 0 10px;">${esc(learnIntro)}</p>
   <p style="margin:0 0 12px;">${history.any
-    ? `Welcome back. We know you from ${esc(knownFrom)}, so everything is in one account under <strong>${esc(email)}</strong>: log in at <a href="https://birdboxcoaching.com/learn/" style="color:${accent};">birdboxcoaching.com/learn</a>, or tap the button to go straight in.${esc(appNote)}`
-    : `This is your first course with us. Tap the button and you are logged straight in, no password needed. A box at the top lets you choose a password; from then on, log in at <a href="https://birdboxcoaching.com/learn/" style="color:${accent};">birdboxcoaching.com/learn</a> with <strong>${esc(email)}</strong> and that password.`}</p>
+    ? `Welcome back. We know you from ${esc(knownFrom)}, so everything is in one account under <strong>${esc(email)}</strong>. Tap the button to go straight in.${esc(appNote)}`
+    : `This is your first course with us. Tap the button and you are logged straight in, no password needed. A box at the top lets you choose a password, so next time you log in with <strong>${esc(email)}</strong> and that password.`}</p>
   <p style="margin:0;">
     <a href="${LEARN_LINK}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Go to BirdBox Learn</a>
   </p>
