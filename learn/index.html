@@ -145,6 +145,18 @@
   .tee .one .pic{width:200px;max-width:100%}
   .tee .one img{width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block;cursor:pointer}
   .tee .flip{display:flex;gap:6px;margin-top:6px}
+  /* click a picture to see it big (Nathan, 21 Nov 2026) */
+  .tee .one .pic{position:relative}
+  .tee .one img{cursor:zoom-in}
+  .tee .zoom{position:absolute;top:6px;right:6px;width:28px;height:28px;border:0;border-radius:50%;background:rgba(12,17,22,.75);color:#fff;font-size:15px;line-height:28px;text-align:center;cursor:zoom-in;padding:0}
+  .teebig{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}
+  .teebig.hidden{display:none}
+  .teebig img{max-width:min(92vw,900px);max-height:calc(100vh - 140px);width:auto;height:auto;background:#fff;display:block}
+  .teebig .cap{color:#fff;font-weight:700;font-size:15px;text-align:center}
+  .teebig .row{display:flex;gap:8px}
+  .teebig .row button{background:#1c1819;color:#B7B1B3;border:1px solid #3a3335;padding:8px 22px;font:inherit;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+  .teebig .row button.on{color:#fff;border-color:var(--accent)}
+  .teebig .x{position:absolute;top:12px;right:16px;background:none;border:0;color:#fff;font-size:34px;line-height:1;cursor:pointer}
   .tee .flip button{flex:1;background:var(--panel2);color:var(--muted);border:1px solid var(--line);padding:5px 0;font:inherit;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
   .tee .flip button.on{color:var(--ink);border-color:var(--accent)}
   .tee .one .info{flex:1;min-width:220px}
@@ -1486,6 +1498,31 @@ function showSeminarTee(upcoming) {
 
 // One private tee offer: a card per tee with sizes, and one button that puts
 // every tee they picked a size for in the shop basket.
+// one shared big view for every tee picture, with back and front
+function teeBig(it, start) {
+  const L = window.BB_LEARNER_TEES;
+  let el = document.getElementById("teebig");
+  if (!el) {
+    el = document.createElement("div"); el.id = "teebig"; el.className = "teebig hidden";
+    el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
+    el.innerHTML = '<button type="button" class="x" aria-label="Close">×</button><img alt=""><p class="cap"></p><div class="row"><button type="button" data-k="back">Back</button><button type="button" data-k="front">Front</button></div>';
+    const close = () => el.classList.add("hidden");
+    el.onclick = (e) => { if (e.target === el || e.target.classList.contains("x")) close(); };
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+    document.body.appendChild(el);
+  }
+  const img = el.querySelector("img");
+  const show = (k) => {
+    img.src = L.picture(it.tee, k); img.alt = it.label + ", " + k;
+    el.querySelectorAll(".row button").forEach((b) => b.classList.toggle("on", b.dataset.k === k));
+  };
+  el.querySelectorAll(".row button").forEach((b) => { b.onclick = () => show(b.dataset.k); });
+  el.querySelector(".cap").textContent = it.label + (it.year ? " · Class of " + it.year : "");
+  show(start || "front");
+  el.classList.remove("hidden");
+  el.querySelector(".x").focus();
+}
+
 function teeOffer(box, list, words) {
   const L = window.BB_LEARNER_TEES;
   box.innerHTML = "";
@@ -1534,11 +1571,15 @@ function teeOffer(box, list, words) {
     }
     // the main picture first (the back on Class of tees, the front on Athlete tees); hover shows the other side
     const first = it.tee.back ? "front" : "back", other = first === "back" ? "front" : "back";
-    img.onpointerup = (e) => { if (e.pointerType !== "mouse") side(pic.dataset.side === "front" ? "back" : "front"); };
+    // click or tap: the picture big, on the side showing (Nathan, 21 Nov 2026)
+    const big = () => teeBig(it, pic.dataset.side);
+    img.onclick = big;
+    const zoom = document.createElement("button"); zoom.type = "button"; zoom.className = "zoom"; zoom.textContent = "⤢";
+    zoom.setAttribute("aria-label", "See " + it.label + " bigger"); zoom.onclick = big;
     img.onpointerenter = (e) => { if (e.pointerType === "mouse") side(other); };
     img.onpointerleave = (e) => { if (e.pointerType === "mouse") side(first); };
     side(first);
-    pic.append(img, flip);
+    pic.append(img, zoom, flip);
     const info = document.createElement("div"); info.className = "info";
     const t = document.createElement("b"); t.textContent = it.label + (it.year ? " · Class of " + it.year : "");
     const s = document.createElement("small"); s.style.display = "block"; s.style.color = "var(--muted)";
