@@ -406,7 +406,8 @@
           var L = window.BB_LEARNER_TEES;
           if (!L || !window.Ecwid || !Ecwid.OnPageLoaded) return;
           var known = {};
-          for (var k in L.tees) known[L.tees[k].id] = true;
+          // not the Athlete tees: any number, any sizes, so the normal basket controls
+          for (var k in L.tees) if (!L.tees[k].multi) known[L.tees[k].id] = true;
           var busy = false;
           function decorate() {
             var els = document.querySelectorAll('#my-store-140532633 .ec-cart-item');
