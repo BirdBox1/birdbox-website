@@ -21,6 +21,12 @@ const NEEDS_STATE = new Set(["US", "CA", "AU", "JP"]);
 export default async (req) => {
   // the hoodies on offer, as in the public shop (no login needed; used to check the Printful link)
   if (req.method === "GET" && new URL(req.url).searchParams.get("catalogue") === "1") {
+    if (new URL(req.url).searchParams.get("raw") === "1") {
+      const r = await fetch("https://api.printful.com/sync/products?limit=100", { headers: { Authorization: "Bearer " + process.env.PRINTFUL_API_KEY } }).then((x) => x.json());
+      const p = (r.result || []).find((x) => x.name === "TCC - Course Logo Front Hoodie");
+      const d = await fetch("https://api.printful.com/sync/products/" + p.id, { headers: { Authorization: "Bearer " + process.env.PRINTFUL_API_KEY } }).then((x) => x.json());
+      return json({ product: p, variants: d.result.sync_variants.map((v) => ({ id: v.id, external_id: v.external_id, name: v.name, synced: v.synced, ignored: v.is_ignored, avail: v.availability_status, color: v.color, size: v.size, variant_id: v.variant_id, retail: v.retail_price, files: (v.files || []).map((f) => f.type + ":" + f.id) })) });
+    }
     try { return json({ hoodies: await hoodieCatalogue() }); }
     catch (e) { return json({ error: e.message }, 502); }
   }
