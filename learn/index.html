@@ -109,7 +109,9 @@
   .hood .opt.on{border-color:var(--accent)}
   .hood .opt img{width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block;margin-bottom:6px}
   .hood .sw{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
-  .hood .sw button{background:var(--panel2);color:var(--ink);border:2px solid var(--line);padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+  .hood .sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .hood .sw button{background:var(--panel2);color:var(--ink);border:2px solid var(--line);padding:5px;font:inherit;font-size:12px;line-height:1.3;cursor:pointer;text-align:center}
+  .hood .sw button img{width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block;margin-bottom:4px}
   .hood .sw button.on{border-color:var(--accent)}
   .hood .pic{width:220px;max-width:100%;background:#fff;display:block;margin:8px 0}
   .hood label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
@@ -1764,7 +1766,7 @@ async function showHoodie() {
 
   const s1 = document.createElement("p"); s1.className = "step"; s1.textContent = "1. Choose your hoodie";
   const opts = document.createElement("div"); opts.className = "opts";
-  const s2 = document.createElement("p"); s2.className = "step hidden"; s2.textContent = "2. Colour and size";
+  const s2 = document.createElement("p"); s2.className = "step hidden"; s2.textContent = "2. Choose your colour and size";
   const pic = document.createElement("img"); pic.className = "pic hidden"; pic.alt = "";
   const sw = document.createElement("div"); sw.className = "sw";
   const sizeL = document.createElement("label"); sizeL.textContent = "Size"; sizeL.className = "hidden";
@@ -1785,7 +1787,11 @@ async function showHoodie() {
     s2.classList.remove("hidden");
     sw.innerHTML = "";
     for (const c of g.colours) {
-      const bt = document.createElement("button"); bt.type = "button"; bt.textContent = c.colour; bt.dataset.c = c.colour;
+      // each colour as its own picture, so they can see it before choosing
+      const bt = document.createElement("button"); bt.type = "button"; bt.dataset.c = c.colour; bt.title = c.colour;
+      const im = document.createElement("img"); im.alt = ""; im.loading = "lazy"; im.src = c.image || "";
+      const nm = document.createElement("span"); nm.textContent = c.colour;
+      bt.append(im, nm);
       bt.onclick = () => chooseColour(c);
       sw.append(bt);
     }
