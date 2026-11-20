@@ -115,7 +115,7 @@
   .hood .sw button.on{border-color:var(--accent)}
   .hood .pics{display:flex;gap:10px;margin:8px 0;max-width:460px}
   .hood .pics figure{margin:0;flex:1}
-  .hood.tee{margin-top:28px}
+  .hood.tee{margin-top:28px;max-width:none}
   .tee .one{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;margin-top:14px}
   .tee .one + .one{border-top:1px solid var(--line);padding-top:18px}
   .tee .one img{width:200px;max-width:100%;aspect-ratio:1;object-fit:cover;background:#fff;display:block}
@@ -173,7 +173,7 @@
   .tabs{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
     border-bottom:1px solid var(--line);margin:0 0 30px}
   .tabs::-webkit-scrollbar{display:none}
-  .tabs a{flex:none;padding:12px 14px 11px;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  .tabs a{flex:none;padding:12px 12px 11px;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
     color:var(--ink);text-decoration:none;border-bottom:3px solid transparent;white-space:nowrap}
   .tabs a:hover{border-bottom-color:#6A6466}
   .tabs a.on{border-bottom-color:var(--accent)}
@@ -428,6 +428,11 @@
       <div id="live-list"></div>
     </section>
     <p id="sem-empty" class="sub hidden">You are not booked on a seminar or workshop yet. <a href="/seminars/">See upcoming seminars →</a></p>
+    <!-- the same "Your next step" ideas as Online courses (Nathan, 20 Nov 2026) -->
+    <section id="next-sem" class="next hidden">
+      <h2>Your next step</h2>
+      <div id="next-list-sem" class="next-grid"></div>
+    </section>
     </div>
 
     <div class="pane" id="t-courses">
@@ -733,7 +738,12 @@ function showTab(tab) {
   document.querySelectorAll("#tabs a").forEach((a) => a.classList.toggle("on", a.dataset.tab === tab));
   // on a phone the row slides sideways: keep the open tab in view
   const on = document.querySelector("#tabs a.on");
-  if (on) on.parentNode.scrollLeft = Math.max(0, on.offsetLeft - 20);
+  // (only when it is cut off, so on a wide screen the row stays put)
+  if (on) {
+    const nav = on.parentNode;
+    const l = on.getBoundingClientRect().left - nav.getBoundingClientRect().left + nav.scrollLeft;
+    if (l < nav.scrollLeft || l + on.offsetWidth > nav.scrollLeft + nav.clientWidth) nav.scrollLeft = Math.max(0, l - 20);
+  }
   if (tab === "programming" && !loaded.programming) loaded.programming = loadProgramming();
   if (tab === "receipts" && !loaded.receipts) loaded.receipts = loadReceipts();
   if (tab === "mentorship" && !loaded.mentorship) loaded.mentorship = loadMentorship();
@@ -1635,7 +1645,9 @@ async function showNext(ownedOnline, finishedOnline, liveList) {
       href: "#", go: "Pick a seminar →", offer: { kind: "seminar", brand: b } });
   }
   if (fam.has("tgc")) ideas.push({ b: "tgc", k: "The Gymnastics Course", h: "Workshops", p: "Focused sessions on one skill at a time, for coaches and athletes.", href: "/tgc/workshops/", go: "Find one →" });
-  const list = $("next-list"); list.innerHTML = "";
+  // shown on both My seminars and Online courses
+  for (const id of ["next-list", "next-list-sem"]) {
+  const list = $(id); list.innerHTML = "";
   for (const i of ideas.slice(0, 3)) {
     const b = BRAND[i.b] || BRAND.tcc;
     const a = document.createElement("a");
@@ -1649,7 +1661,9 @@ async function showNext(ownedOnline, finishedOnline, liveList) {
     a.append(k, h, p, g);
     list.appendChild(a);
   }
+  }
   $("next").classList.toggle("hidden", !ideas.length);
+  $("next-sem").classList.toggle("hidden", !ideas.length);
   // the quiet discount lines, less what a card above already offers
   showDiscounts(disc, new Set(ideas.slice(0, 3).filter((i) => i.offer).map((i) => i.offer.kind + ":" + i.offer.brand)));
 }
