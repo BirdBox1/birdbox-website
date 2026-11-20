@@ -195,6 +195,9 @@
     border:1px solid var(--line);padding:14px 18px;margin-bottom:8px;font-size:15px}
   .rc .d{font-weight:700}
   .rc .w small{display:block;font-size:13px;margin-top:2px}
+  .rc .rc-pics{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .rc .rc-pics img{width:44px;height:44px;object-fit:cover;background:#fff;display:block}
+  .rc > .msg{grid-column:1/-1;margin:0}
   .rc .a{font-weight:800;white-space:nowrap;text-align:right}
   .rc .l{display:flex;gap:8px}
   @media (max-width:640px){.rc{grid-template-columns:minmax(0,1fr) auto}.rc .d{grid-column:1/-1}.rc .l{grid-column:1/-1}}
@@ -2625,6 +2628,31 @@ async function loadReceipts() {
     const l = document.createElement("span"); l.className = "l";
     const inv = document.createElement("button"); inv.type = "button"; inv.className = "btn small"; inv.textContent = "Invoice";
     l.appendChild(inv);
+    // a shop order (Ecwid): small pictures of what was bought, and Ecwid's own VAT invoice
+    if (r.shop) {
+      if ((r.items || []).some((i) => i.picture)) {
+        const pics = document.createElement("span"); pics.className = "rc-pics";
+        for (const i of r.items) if (i.picture) { const im = document.createElement("img"); im.src = i.picture; im.alt = ""; im.loading = "lazy"; pics.appendChild(im); }
+        w.appendChild(pics);
+      }
+      const msg = document.createElement("small"); msg.className = "msg";
+      inv.onclick = async () => {
+        inv.disabled = true; inv.textContent = "Getting invoice…"; msg.textContent = "";
+        try {
+          const d = await account("", { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "shop_invoice", order: r.order }) });
+          const bytes = Uint8Array.from(atob(d.pdf), (ch) => ch.charCodeAt(0));
+          const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+          const a = document.createElement("a"); a.href = url; a.download = d.filename || "BirdBox shop order.pdf";
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+        } catch (x) { msg.className = "msg err"; msg.textContent = x.message; }
+        inv.disabled = false; inv.textContent = "Invoice";
+      };
+      el.append(dt, w, a, l, msg);
+      box.appendChild(el);
+      continue;
+    }
     if (r.receipt) { const i = document.createElement("a"); i.className = "btn ghost small"; i.href = r.receipt; i.target = "_blank"; i.rel = "noopener"; i.textContent = "Receipt"; l.appendChild(i); }
     el.append(dt, w, a, l, invoiceForm(r, inv));
     box.appendChild(el);
