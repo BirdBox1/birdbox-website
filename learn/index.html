@@ -449,6 +449,8 @@
       <!-- re-attending a live seminar is 50% off (Nathan, 20 Nov 2026); not online courses, they keep access -->
       <p class="sub" style="margin-top:14px">Want to do a seminar again? You can re-attend a live seminar you have already done for 50% off. Write to <a href="mailto:info@birdboxcoaching.com?subject=Re-attending%20a%20seminar">info@birdboxcoaching.com</a> with the seminar you would like and we will set it up.</p>
     </section>
+    <!-- the "Class of" tee for the year of a Level 1 or Level 2 seminar they have done (Nathan, 20 Nov 2026) -->
+    <section id="pasttee" class="hood tee hidden"></section>
     <!-- the same "Your next step" ideas as Online courses (Nathan, 20 Nov 2026) -->
     <section id="next-sem" class="next hidden">
       <h2>Your next step</h2>
@@ -1398,6 +1400,31 @@ function showOnlineTee(enr) {
   });
 }
 
+// The "Class of" tee for past learners (Nathan, 20 Nov 2026): one for each
+// TGC or TCC seminar they have done, for the year on their certificate, if
+// that tee exists (Level 1 from 2019, Level 2 from 2026; not online courses,
+// workshops or the old TGC Advanced). Past years are 20% off, this year 25%.
+// A tee already offered for an upcoming seminar is not offered twice.
+function showPastTee(live, earlier, upcoming) {
+  const L = window.BB_LEARNER_TEES;
+  const NAME = { tgc: "TGC", tcc: "TCC" };
+  const soon = new Set(upcoming.map((c) => c.brand + "-" + c.level + "-" + String(c.starts_at || "").slice(0, 4)));
+  const seen = new Set(), list = [];
+  for (const c of [...live, ...earlier]) {
+    if (!L || c.kind !== "seminar" || !NAME[c.brand] || !["1", "2"].includes(String(c.level))) continue;
+    const year = String(c.awarded_on || c.date || "").slice(0, 4);
+    const key = c.brand + "-" + c.level + "-" + year;
+    if (seen.has(key) || soon.has(key) || !L.tees[key]) continue;
+    seen.add(key);
+    list.push({ key, tee: L.tees[key], label: NAME[c.brand] + " Level " + c.level, year });
+  }
+  list.sort((a, b) => b.year.localeCompare(a.year));
+  teeOffer($("pasttee"), list, {
+    one: "Your Class of " + (list[0] ? list[0].year : "") + " tee", many: "Your Class of tees",
+    intro: "Made for the year you did your seminar, only for people who did it. Printed when you order and posted to you.",
+  });
+}
+
 function showSeminarTee(upcoming) {
   const L = window.BB_LEARNER_TEES;
   const NAME = { tgc: "TGC", tcc: "TCC" };
@@ -1440,7 +1467,7 @@ function teeOffer(box, list, words) {
       return;
     }
     go.href = "/shop/?tees=" + picked.map((it) => it.tee.id + ":" + encodeURIComponent(chosen.get(it.key))).join(",");
-    go.textContent = (n > 1 ? "Add " + n + " tees to basket" : list.length > 1 ? "Add 1 tee to basket" : "Add to basket") + " · €" + total;
+    go.textContent = (n > 1 ? "Add " + n + " tees to basket" : list.length > 1 ? "Add 1 tee to basket" : "Add to basket") + " · " + L.euro(total);
     go.removeAttribute("aria-disabled"); go.style.opacity = ""; go.style.pointerEvents = "";
   };
   for (const it of list) {
@@ -1470,9 +1497,9 @@ function teeOffer(box, list, words) {
     const s = document.createElement("small"); s.style.display = "block"; s.style.color = "var(--muted)";
     s.textContent = it.tee.shirt + " · BirdBox eagle on the front, course logo on the back";
     const pr = document.createElement("p"); pr.className = "price";
-    const was = document.createElement("s"); was.textContent = "€" + L.was;
+    const was = document.createElement("s"); was.textContent = L.euro(L.was);
     const off = document.createElement("em"); off.textContent = (it.tee.off || Math.round((1 - it.tee.price / L.was) * 100)) + "% off for learners";
-    pr.append(was, document.createTextNode("€" + it.tee.price), off);
+    pr.append(was, document.createTextNode(L.euro(it.tee.price)), off);
     const st = document.createElement("p"); st.className = "step"; st.textContent = "Size";
     const sizes = document.createElement("div"); sizes.className = "sizes";
     for (const z of L.sizes) {
@@ -1612,6 +1639,7 @@ async function showLive(session, ownedOnline, finishedOnline) {
   $("soon-sub").textContent = "Seminars and workshops you are booked on." +
     ((d.upcoming || []).some((u) => u.manual) ? " Your course manual is ready to read before the day." : "");
   showSeminarTee(d.upcoming || []);
+  showPastTee(d.live || [], d.earlier || [], d.upcoming || []);
   $("live-sub").textContent = "Seminars and workshops you have completed in person. Download your certificate" +
     ((d.live || []).some((u) => u.manual) ? ", or open the course manual," : "") + " any time.";
   const box = $("live-list"); box.innerHTML = "";
