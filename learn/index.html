@@ -409,13 +409,13 @@
     <div id="courses" class="levels hidden"></div>
     <section id="soon" class="live hidden">
       <h2>My upcoming seminars</h2>
-      <p class="sub">Seminars and workshops you are booked on. Your course manual is ready to read before the day.</p>
+      <p class="sub" id="soon-sub">Seminars and workshops you are booked on.</p>
       <div id="soon-list"></div>
     </section>
 
     <section id="live" class="live hidden">
       <h2>My completed live seminars</h2>
-      <p class="sub">Seminars and workshops you have completed in person. Download your certificate, or open the course manual, any time.</p>
+      <p class="sub" id="live-sub">Seminars and workshops you have completed in person. Download your certificate any time.</p>
       <div id="live-list"></div>
     </section>
 
@@ -1366,6 +1366,11 @@ async function showLive(session, ownedOnline, finishedOnline) {
   const soon = $("soon-list"); soon.innerHTML = "";
   (d.upcoming || []).forEach((c) => soon.appendChild(soonRow(c)));
   $("soon").classList.toggle("hidden", !(d.upcoming || []).length);
+  // only Level 1 seminars have a course manual, so only say so when one does (Nathan, 20 Nov 2026)
+  $("soon-sub").textContent = "Seminars and workshops you are booked on." +
+    ((d.upcoming || []).some((u) => u.manual) ? " Your course manual is ready to read before the day." : "");
+  $("live-sub").textContent = "Seminars and workshops you have completed in person. Download your certificate" +
+    ((d.live || []).some((u) => u.manual) ? ", or open the course manual," : "") + " any time.";
   const box = $("live-list"); box.innerHTML = "";
   renderCerts(finishedOnline, d.live, d.earlier, row);
   // the old online course certificates are on the Certificates tab only
