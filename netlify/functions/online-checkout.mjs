@@ -120,10 +120,12 @@ const SALE = {
   to: Date.parse("2026-11-30T23:59:59Z"),
   percent: 30,
   brands: ["tgc", "tcc"],
+  levels: ["1"], // Level 1 online only (Nathan, 21 Nov 2026)
   key: "black_friday_2026",
 };
-export function saleFor(brand, now = Date.now()) {
-  return SALE.brands.includes(String(brand || "").toLowerCase()) && now >= SALE.from && now <= SALE.to ? SALE : null;
+export function saleFor(brand, level, now = Date.now()) {
+  return SALE.brands.includes(String(brand || "").toLowerCase()) && SALE.levels.includes(digits(level))
+    && now >= SALE.from && now <= SALE.to ? SALE : null;
 }
 const salePrice = (cents, sale) => (sale ? Math.round(cents * (100 - sale.percent) / 100) : cents);
 
@@ -213,7 +215,7 @@ async function offer(req, context) {
   if (!brand || !level) return json({ error: "Missing brand or level" }, 400);
 
   const { prices: full, products } = await loadOffer(brand, level);
-  const sale = saleFor(brand);
+  const sale = saleFor(brand, level);
   const prices = {};
   for (const k in full) prices[k] = salePrice(full[k], sale);
 
@@ -314,7 +316,7 @@ async function checkout(req, body) {
   const product = products.find((p) => p.language === language) || (products.length === 1 ? products[0] : null);
   if (!product) return json({ error: "Choose a language" }, 400);
 
-  const sale = saleFor(brand);
+  const sale = saleFor(brand, level);
   const fullPrice = prices[currency];
   if (!fullPrice) return json({ error: `This course is not on sale in ${currency}` }, 400);
   const price = salePrice(fullPrice, sale);
@@ -465,7 +467,7 @@ async function checkGift(body) {
   } else {
     const b = String(body.brand || "").toLowerCase();
     const { prices } = await loadOffer(b, digits(body.level));
-    price = prices[currency] ? salePrice(prices[currency], saleFor(b)) : null;
+    price = prices[currency] ? salePrice(prices[currency], saleFor(b, body.level)) : null;
   }
   if (!price) return json({ error: `This course is not on sale in ${currency}` }, 400);
   const vatRow = (await vatList()).find((v) => v.code === country) || null;
