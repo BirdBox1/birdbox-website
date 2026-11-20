@@ -1876,7 +1876,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
     // it is included in their course price (Nathan, 20 Nov 2026).
     const onlineInLearn = online && online.status === "enrolled" && online.onSite
       ? brand.name + (levelDigits ? " Level " + levelDigits : "") + " online course" + (online.label ? " (" + online.label + ")" : "") +
-        " is included in your course price. It is already in your BirdBox Learn account under My courses."
+        " is included in your course price. It is already in your BirdBox Learn account under Online courses."
       : "";
 
     // The free hoodie with a live seminar booked 27 Nov - 30 Dec 2026
@@ -1918,7 +1918,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       // The free hoodie (bookings 27 Nov - 30 Dec 2026), straight after the
       // schedule so the offer is seen; Learn explains logging in (Nathan, 20 Nov 2026)
       hoodie ? "YOUR FREE HOODIE" : null,
-      hoodie ? "This booking comes with a free hoodie from our shop, delivered to you at no cost. Choose your style, colour and size in BirdBox Learn: it is at the top of My courses." : null,
+      hoodie ? "This booking comes with a free hoodie from our shop, delivered to you at no cost. Choose your style, colour and size in BirdBox Learn: it is at the top of My seminars." : null,
       hoodie ? HOODIE_URL : null,
       hoodie ? "It is printed to order, so allow 2 to 3 weeks for delivery." : null,
       hoodie ? "" : null,
@@ -1988,7 +1988,7 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
 
   ${hoodie ? `
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Your free hoodie</h3>
-  <p style="margin:0 0 12px;">This booking comes with a free hoodie from our shop, delivered to you at no cost. Choose your style, colour and size in BirdBox Learn: it is at the top of <strong>My courses</strong>.</p>
+  <p style="margin:0 0 12px;">This booking comes with a free hoodie from our shop, delivered to you at no cost. Choose your style, colour and size in BirdBox Learn: it is at the top of <strong>My seminars</strong>.</p>
   <p style="margin:0;">
     <a href="${HOODIE_URL}" style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:5px;">Choose my free hoodie</a>
   </p>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>My courses — BirdBox Learn</title>
+<title>BirdBox Learn</title>
 <meta name="robots" content="noindex, nofollow">
 <style>
   :root { --paper:#14100F; --panel:#1C1719; --panel2:#2B2628; --ink:#F2EFEF; --muted:#B7B1B3;
@@ -378,8 +378,12 @@
       <p style="margin:12px 0 0"><input id="pw-new" type="password" autocomplete="new-password" placeholder="New password (8+ characters)" style="max-width:280px"> <button class="btn main small" id="pw-go" type="button">Save password</button> <button class="btn ghost small" id="pw-skip" type="button">Not now</button></p>
       <div class="msg" id="pw-msg"></div>
     </div>
+    <div id="welcome-note" class="box hidden" style="background:var(--panel);border:1px solid var(--accent);padding:18px 20px;margin:0 0 24px;max-width:640px;line-height:1.6">
+      <strong>Welcome — your account is set up.</strong> Everything you booked is below. <a href="#account">Set a password now</a> so you can log in any time without waiting for an email.
+    </div>
     <nav class="tabs" id="tabs">
-      <a href="#" data-tab="courses">My courses</a>
+      <a href="#seminars" data-tab="seminars">My seminars</a>
+      <a href="#courses" data-tab="courses">Online courses</a>
       <a href="#mentorship" data-tab="mentorship">Mentorship</a>
       <a href="#programming" data-tab="programming">Programming</a>
       <a href="#blog" data-tab="blog">Blog</a>
@@ -388,13 +392,30 @@
       <a href="#receipts" data-tab="receipts">Receipts</a>
     </nav>
 
+    <!-- My seminars: live seminars and workshops, separate from the online
+         courses (Nathan, 20 Nov 2026). A seminar booker opens here. -->
+    <div class="pane hidden" id="t-seminars">
+    <p class="kicker">BirdBox Learn</p>
+    <h1>My seminars</h1>
+    <p class="lede">Your seminars and workshops, with everything you need for the day.</p>
+    <section id="hoodie" class="hood hidden"></section>
+    <section id="soon" class="live hidden">
+      <h2>My upcoming seminars</h2>
+      <p class="sub" id="soon-sub">Seminars and workshops you are booked on.</p>
+      <div id="soon-list"></div>
+    </section>
+
+    <section id="live" class="live hidden">
+      <h2>My completed live seminars</h2>
+      <p class="sub" id="live-sub">Seminars and workshops you have completed in person. Download your certificate any time.</p>
+      <div id="live-list"></div>
+    </section>
+    <p id="sem-empty" class="sub hidden">You are not booked on a seminar or workshop yet. <a href="/seminars/">See upcoming seminars →</a></p>
+    </div>
+
     <div class="pane" id="t-courses">
     <p class="kicker">BirdBox Learn</p>
-    <h1>My courses</h1>
-    <div id="welcome-note" class="box hidden" style="background:var(--panel);border:1px solid var(--accent);padding:18px 20px;margin:0 0 24px;max-width:640px;line-height:1.6">
-      <strong>Welcome — your account is set up.</strong> Your course is below. <a href="#account">Set a password now</a> so you can log in any time without waiting for an email.
-    </div>
-    <section id="hoodie" class="hood hidden"></section>
+    <h1>Online courses</h1>
     <p class="lede">Pick up where you left off. Your progress saves as you go, on any device.</p>
     <div id="brands" class="brands"></div>
     <div id="brandhead" class="brandhead hidden"><a href="#">← All my courses</a><h2 id="brand-title"></h2></div>
@@ -407,17 +428,6 @@
       </div>
     </div>
     <div id="courses" class="levels hidden"></div>
-    <section id="soon" class="live hidden">
-      <h2>My upcoming seminars</h2>
-      <p class="sub" id="soon-sub">Seminars and workshops you are booked on.</p>
-      <div id="soon-list"></div>
-    </section>
-
-    <section id="live" class="live hidden">
-      <h2>My completed live seminars</h2>
-      <p class="sub" id="live-sub">Seminars and workshops you have completed in person. Download your certificate any time.</p>
-      <div id="live-list"></div>
-    </section>
 
     <section id="disc" class="disc hidden"></section>
 
@@ -692,7 +702,11 @@ function makeDraggable(card, grid, key) {
 // One page per part (Nathan, 1 Nov 2026). Each tab has its own address,
 // so emails and the app can link straight to /learn/#receipts. Anything
 // else in the address (a course family like #tgc) is the My courses tab.
-const TABS = ["programming", "blog", "certificates", "receipts", "directory", "mentorship", "account"];
+// set once they tap a tab themselves, so the page never jumps away from it
+let tabChosen = false;
+let tccPeople = false;
+document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("#tabs a")) tabChosen = true; });
+const TABS = ["seminars", "programming", "blog", "certificates", "receipts", "directory", "mentorship", "account"];
 const loaded = {};
 function showTab(tab) {
   document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("hidden", p.id !== "t-" + tab));
@@ -927,6 +941,8 @@ async function boot() {
   // portfolio button, so a box only shows when no card carries that portfolio.
   const cardPf = new Set(list.map((c) => portfolioFor(c) && String(c.brand || "").toLowerCase()).filter(Boolean));
   $("tcc-pf").classList.toggle("hidden", cardPf.has("tcc"));
+  // the TCC portfolio box is only for someone with a TCC course (online or seminar, checked in showLive)
+  tccPeople = list.some((c) => String(c.brand || "").toLowerCase() === "tcc") && !cardPf.has("tcc");
   $("tec-pf").classList.toggle("hidden", cardPf.has("tec") || !list.some((c) => String(c.brand || "").toLowerCase() === "tec"));
 
   renderFamilies(list);
@@ -1040,7 +1056,14 @@ function arrive() {
     Promise.all([progPrefetch.catch(() => null), liveP || Promise.resolve(null), mentorP]).then(([d, live, mentor]) => {
       if (((d?.move && !d.move.upgrades?.length) || d?.comeback || d?.one_to_one) && !TABS.includes(location.hash.slice(1))) { location.hash = "#programming"; return; }
       if (!noHash()) return;
-      const seminars = live && ((live.upcoming || []).length || (live.live || []).length || (live.earlier || []).length);
+      const seminars = live && ((live.upcoming || []).length || (live.live || []).filter((c) => c.kind !== "online").length || (live.earlier || []).length);
+      // My seminars for a seminar coming up, or seminars and no online course;
+      // otherwise Online courses (Nathan, 20 Nov 2026)
+      if (seminars && !tabChosen && ((live.upcoming || []).length || !ownedCount)) {
+        showTab("seminars"); document.body.dataset.view = "home";
+        try { history.replaceState(null, "", "#seminars"); } catch (e) {}
+        return;
+      }
       if (ownedCount || seminars) return;
       if (mentor) { location.hash = "#mentorship"; return; }
       if (d && ((d.plans || []).length || (d.blocks || []).length)) location.hash = "#programming";
@@ -1283,6 +1306,12 @@ async function showLive(session, ownedOnline, finishedOnline) {
     const r = await fetch("/.netlify/functions/learn-live-courses", { headers: { Authorization: "Bearer " + session.access_token } });
     if (r.ok) d = await r.json();
   } catch (e) {}
+  // My seminars: say so when there is nothing in it (Nathan, 20 Nov 2026)
+  const anySeminar = (d.upcoming || []).length + (d.live || []).filter((c) => c.kind !== "online").length + (d.earlier || []).length > 0;
+  $("sem-empty").classList.toggle("hidden", anySeminar);
+  // the TCC portfolio box: only for someone with something TCC
+  if ((d.upcoming || []).concat(d.live || []).some((c) => c.brand === "tcc")) tccPeople = true;
+  if (!tccPeople) $("tcc-pf").classList.add("hidden");
   const fmt = (x) => x ? new Date(String(x).length === 7 ? x + "-01" : x).toLocaleDateString("en-GB", { month: "long", year: "numeric" }) : "";
   // manual: on the My courses tab, the course manual button (TGC and TCC
   // Level 1 seminars), where "Verified by BirdBox" used to sit alone
