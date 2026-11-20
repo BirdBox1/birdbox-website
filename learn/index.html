@@ -1338,6 +1338,22 @@ function showSeminarTee(upcoming) {
   const p = document.createElement("p"); p.style.margin = "0";
   p.textContent = "Only for people booked on a seminar, made for your year. Printed when you order and posted to you.";
   box.append(h, p);
+  // one button adds every tee they picked a size for (Nathan, 20 Nov 2026:
+  // with two tees, a button each would take them to the shop with only one)
+  const chosen = new Map();
+  const go = document.createElement("a"); go.className = "btn";
+  const update = () => {
+    const picked = list.filter((it) => chosen.has(it.key));
+    const n = picked.length, total = picked.reduce((a, it) => a + it.tee.price, 0);
+    if (!n) {
+      go.textContent = list.length > 1 ? "Choose a size for each tee you want" : "Choose a size";
+      go.removeAttribute("href"); go.setAttribute("aria-disabled", "true"); go.style.opacity = ".5"; go.style.pointerEvents = "none";
+      return;
+    }
+    go.href = "/shop/?tees=" + picked.map((it) => it.tee.id + ":" + encodeURIComponent(chosen.get(it.key))).join(",");
+    go.textContent = (n > 1 ? "Add " + n + " tees to basket" : list.length > 1 ? "Add 1 tee to basket" : "Add to basket") + " · €" + total;
+    go.removeAttribute("aria-disabled"); go.style.opacity = ""; go.style.pointerEvents = "";
+  };
   for (const it of list) {
     const one = document.createElement("div"); one.className = "one";
     const img = document.createElement("img"); img.alt = it.label + " Class of " + it.year + " tee, back"; img.loading = "lazy";
@@ -1352,26 +1368,26 @@ function showSeminarTee(upcoming) {
     pr.append(was, document.createTextNode("€" + it.tee.price), off);
     const st = document.createElement("p"); st.className = "step"; st.textContent = "Size";
     const sizes = document.createElement("div"); sizes.className = "sizes";
-    let size = "";
-    const go = document.createElement("a"); go.className = "btn"; go.textContent = "Choose a size";
-    go.setAttribute("aria-disabled", "true"); go.style.opacity = ".5"; go.style.pointerEvents = "none";
     for (const z of L.sizes) {
       const b = document.createElement("button"); b.type = "button"; b.textContent = z;
       b.onclick = () => {
-        size = z;
-        sizes.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
-        go.href = "/shop/?tee=" + it.tee.id + "&size=" + encodeURIComponent(z);
-        go.textContent = "Add to basket · €" + it.tee.price;
-        go.removeAttribute("aria-disabled"); go.style.opacity = ""; go.style.pointerEvents = "";
+        // tap the chosen size again to leave this tee out
+        if (chosen.get(it.key) === z) chosen.delete(it.key); else chosen.set(it.key, z);
+        sizes.querySelectorAll("button").forEach((x) => x.classList.toggle("on", chosen.get(it.key) === x.textContent));
+        update();
       };
       sizes.appendChild(b);
     }
-    const fine = document.createElement("p"); fine.className = "fine";
-    fine.textContent = "You can add anything else from the shop and it all comes in one delivery. Prices include VAT; postage is added at checkout.";
-    info.append(t, s, pr, st, sizes, go, fine);
+    info.append(t, s, pr, st, sizes);
     one.append(img, info);
     box.appendChild(one);
   }
+  const bar = document.createElement("div"); bar.className = "one"; bar.style.display = "block";
+  const fine = document.createElement("p"); fine.className = "fine";
+  fine.textContent = "You can add anything else from the shop and it all comes in one delivery. Prices include VAT; postage is added at checkout.";
+  bar.append(go, fine);
+  box.appendChild(bar);
+  update();
 }
 
 // In-person seminars and workshops, with their certificates. These come
