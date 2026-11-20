@@ -604,10 +604,15 @@ const PAY_URL = "https://app.birdboxcoaching.com/.netlify/functions/checkout?pay
 async function oneToOneView(email) {
   if (!email) return null;
   const { data } = await train().from("applications")
-    .select("tier, brand, first_name, coach_id, pay_code, pay_expires_at, status, accepted_at")
+    .select("tier, brand, first_name, coach_id, pay_code, pay_expires_at, status, accepted_at, paid_at")
     .ilike("email", email.replace(/[%_\\]/g, "\\$&")).in("status", ["accepted", "paid"])
     .order("accepted_at", { ascending: false }).limit(1);
   const a = data?.[0];
+  // paid in the last 36 hours: the "You are in" note stays on Programming
+  // that long, then goes (Nathan, 20 Nov 2026)
+  if (a?.status === "paid" && a.paid_at && Date.now() - new Date(a.paid_at).getTime() < 36 * 3600 * 1000) {
+    return { paid: true, started_at: a.paid_at, brand: a.brand || "tgc" };
+  }
   if (!a || a.status !== "accepted" || !a.pay_code) return null;
   const { data: coach } = a.coach_id
     ? await db.from("staff").select("full_name").eq("id", a.coach_id).maybeSingle() : { data: null };
