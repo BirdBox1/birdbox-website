@@ -99,7 +99,7 @@ export async function hoodieCatalogue() {
 
   const products = [];
   for (let offset = 0; ; offset += 100) {
-    const page = await printful(`/store/products?limit=100&offset=${offset}`);
+    const page = await printful(`/sync/products?limit=100&offset=${offset}`);
     products.push(...(page.result || []));
     if (!page.paging || offset + 100 >= page.paging.total) break;
   }
@@ -107,7 +107,7 @@ export async function hoodieCatalogue() {
 
   const details = [];
   for (let i = 0; i < hoodies.length; i += 6) {
-    details.push(...await Promise.all(hoodies.slice(i, i + 6).map((p) => printful(`/store/products/${p.id}`).then((d) => d.result))));
+    details.push(...await Promise.all(hoodies.slice(i, i + 6).map((p) => printful(`/sync/products/${p.id}`).then((d) => d.result))));
   }
 
   const groups = new Map();
