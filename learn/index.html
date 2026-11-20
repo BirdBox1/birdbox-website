@@ -1572,7 +1572,8 @@ function teeOffer(box, list, words) {
     // the main picture first (the back on Class of tees, the front on Athlete tees); hover shows the other side
     const first = it.tee.back ? "front" : "back", other = first === "back" ? "front" : "back";
     // click or tap: the picture big, on the side showing (Nathan, 21 Nov 2026)
-    const big = () => teeBig(it, pic.dataset.side);
+    // always the front first, whatever the hover is showing (Nathan, 21 Nov 2026)
+    const big = () => teeBig(it, "front");
     img.onclick = big;
     const zoom = document.createElement("button"); zoom.type = "button"; zoom.className = "zoom"; zoom.textContent = "⤢";
     zoom.setAttribute("aria-label", "See " + it.label + " bigger"); zoom.onclick = big;
