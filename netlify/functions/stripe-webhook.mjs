@@ -1815,8 +1815,9 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
       isWorkshop ? (course.workshop_focus || course.title || "") : null,
       isWorkshop ? "" : null,
       isWorkshop ? "ON THE DAY" : "COURSE SCHEDULE",
-      isWorkshop ? workshopSchedule : "9:00am to 5:00pm each day, with a one-hour lunch break.",
-      isWorkshop ? null : "Please arrive at 8:30am on day one to check in.",
+      // arrival first, then the day (Nathan, 20 Nov 2026)
+      isWorkshop ? workshopSchedule : "Please arrive at 8:30am on day one to check in.",
+      isWorkshop ? null : "9:00am to 5:00pm each day, with a one-hour lunch break around 12:30.",
       "",
       manualUrl ? "READING MATERIAL" : null,
       manualUrl ? manualUrl : null,
@@ -1870,8 +1871,8 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">${isWorkshop ? "On the day" : "Course schedule"}</h3>
   ${isWorkshop
     ? `<p style="margin:0;">${esc(workshopSchedule)}</p>`
-    : `<p style="margin:0;">9:00am to 5:00pm each day, with a one-hour lunch break.<br>
-     Please arrive at <strong>8:30am on day one</strong> to check in.</p>`}
+    : `<p style="margin:0;">Please arrive at <strong>8:30am on day one</strong> to check in.<br>
+     9:00am to 5:00pm each day, with a one-hour lunch break around 12:30.</p>`}
 
   ${manualUrl ? `
   <h3 style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin:28px 0 8px;">Reading material</h3>
