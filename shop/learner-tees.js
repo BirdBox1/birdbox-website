@@ -23,6 +23,19 @@ window.BB_LEARNER_TEES = {
     "tcc-1-2027": { id: 879045712, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432926579", front: "6432926587" },
     "tcc-2-2026": { id: 879045713, price: 29, off: 25, shirt: "Charcoal-Black triblend", img: "6432898177", front: "6432926593" },
     "tcc-2-2027": { id: 879084761, price: 29, off: 25, shirt: "Charcoal-Black triblend", img: "6432924825", front: "6432924833" },
+    // past years for past learners, Level 1 only (Nathan, 20 Nov 2026): 20% off.
+    // No 2023 TGC (CrossFit licence that year); no past Level 2 tees.
+    "tgc-1-2019": { id: 879168255, price: 31.2, off: 20, shirt: "White Fleck triblend", img: "6433586223", front: "6433528991" },
+    "tgc-1-2020": { id: 879084831, price: 31.2, off: 20, shirt: "White Fleck triblend", img: "6433586229", front: "6433528997" },
+    "tgc-1-2021": { id: 879109282, price: 31.2, off: 20, shirt: "White Fleck triblend", img: "6433821763", front: "6433564661" },
+    "tgc-1-2022": { id: 879109283, price: 31.2, off: 20, shirt: "White Fleck triblend", img: "6433821769", front: "6433586243" },
+    "tgc-1-2024": { id: 879168257, price: 31.2, off: 20, shirt: "White Fleck triblend", img: "6433821775", front: "6433564673" },
+    "tgc-1-2025": { id: 879109284, price: 31.2, off: 20, shirt: "White Fleck triblend", img: "6433828005", front: "6433564685" },
+    "tcc-1-2021": { id: 879168258, price: 31.2, off: 20, shirt: "White Fleck triblend", img: "6433821807", front: "6433564691" },
+    "tcc-1-2022": { id: 879084833, price: 31.2, off: 20, shirt: "White Fleck triblend", img: "6433821813", front: "6433821821" },
+    "tcc-1-2023": { id: 879168259, price: 31.2, off: 20, shirt: "White Fleck triblend", img: "6433828011", front: "6433828019" },
+    "tcc-1-2024": { id: 879084834, price: 31.2, off: 20, shirt: "White Fleck triblend", img: "6433564699", front: "6433821827" },
+    "tcc-1-2025": { id: 879168260, price: 31.2, off: 20, shirt: "White Fleck triblend", img: "6433828027", front: "6433564707" },
     // online course tees: TGC / TCC Level 1 online, the year they enrolled
     "tgc-online-2026": { id: 879084798, price: 29, off: 25, shirt: "Red triblend", img: "6433410381", front: "6433410389" },
     "tgc-online-2027": { id: 879084799, price: 29, off: 25, shirt: "Red triblend", img: "6433410599", front: "6433411117" },
@@ -30,6 +43,8 @@ window.BB_LEARNER_TEES = {
     "tcc-online-2027": { id: 879109273, price: 29, off: 25, shirt: "True Royal triblend", img: "6433410429", front: "6433410437" }
   },
   // t.img is the back (the main picture), t.front the BirdBox eagle side
+  // "€29", "€31.20"
+  euro: function (n) { return "€" + (Math.round(n * 100) % 100 ? n.toFixed(2) : String(Math.round(n))); },
   picture: function (t, side) {
     return "https://d2j6dbq0eux0bg.cloudfront.net/images/140532633/products/" + t.id + "/" + (side === "front" && t.front ? t.front : t.img) + ".jpg";
   },
