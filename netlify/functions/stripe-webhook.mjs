@@ -261,6 +261,11 @@ async function onCheckoutCompleted(session) {
       discount_code: discountCode,
       discount_cents: discountCents,
       learnworlds_language: onlineLanguage,
+      // The Level 1 check (TGC Level 2, Nathan 20 Nov 2026), or the old
+      // yes/no question at Stripe on other courses with a prerequisite.
+      prereq_answer: meta.prereq_checked === "found" ? "Level 1 found in our records"
+        : meta.prereq_checked === "not_found" ? "Level 1 to check — they said: " + (meta.prereq_answer || "(nothing)")
+        : choice("prereq") ? "Said they had completed " + (meta.prerequisite || "the prerequisite") + ": " + (choice("prereq") === "yes" ? "yes" : "not yet") : null,
     })
     .select("id")
     .single();
@@ -292,6 +297,17 @@ async function onCheckoutCompleted(session) {
       `This probably needs a refund.`
     );
     return;
+  }
+
+  // Level 1 not in our records: tell the office so it is checked
+  if (meta.prereq_checked === "not_found") {
+    await alert(
+      "Level 1 to check: " + firstName + " " + lastName,
+      `${firstName} ${lastName} (${meta.locked_email || details.email}) booked ${meta.course_slug}, ` +
+      `which needs Level 1 first. We could not find their Level 1 under this email.\n\n` +
+      `They said: ${meta.prereq_answer || "(nothing)"}\n\n` +
+      `It shows as "Level 1 to check" on the course page in the portal.`
+    );
   }
 
   const intent =

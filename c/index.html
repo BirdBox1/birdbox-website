@@ -187,6 +187,16 @@
   .promo-msg.ok { color: var(--good); }
   .promo-msg.err { color: var(--bad); }
 
+  /* TGC Level 2: check their Level 1 before the payment buttons (Nathan, 20 Nov 2026) */
+  .l1check { margin-top: 1.15rem; border: 1px solid var(--rule); border-radius: 5px; padding: 0.9rem; }
+  .l1check b { display: block; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brandcolour, var(--ink)); margin-bottom: 0.35rem; }
+  .l1check p { font-size: 0.9rem; line-height: 1.5; margin: 0 0 0.6rem; }
+  .l1check .promo-row { margin-top: 0; }
+  .l1check .promo-row input { text-transform: none; }
+  .l1check label { display: block; font-size: 0.88rem; margin: 0.8rem 0 0.35rem; }
+  .l1check #l1answer { width: 100%; box-sizing: border-box; font: inherit; font-size: 0.98rem; background: rgba(0,0,0,0.35); color: var(--ink); border: 1px solid var(--rule); border-radius: 5px; padding: 0.7rem 0.85rem; }
+  .options.locked { opacity: 0.35; pointer-events: none; }
+
   .seats { font-size: 0.9rem; color: var(--warn); font-weight: 600; margin: 0.9rem 0 0; }
 
   /* Shown once a course has finished. It replaces the price and the
@@ -374,6 +384,20 @@
         <span id="prereqtext"></span>
       </div>
 
+      <div class="l1check hidden" id="l1check">
+        <b>Done TGC Level 1?</b>
+        <p>Level 2 follows on from Level 1. Enter the email you used for Level 1 and we will check your record.</p>
+        <div class="promo-row">
+          <input id="l1email" type="email" autocomplete="email" placeholder="Your email" aria-label="Your email">
+          <button id="l1go" type="button">Check</button>
+        </div>
+        <p class="promo-msg" id="l1msg"></p>
+        <div id="l1ask" class="hidden">
+          <label for="l1answer">Where and when did you do TGC Level 1?</label>
+          <input id="l1answer" type="text" maxlength="300" placeholder="e.g. CrossFit Madrid, May 2024">
+        </div>
+      </div>
+
       <div class="options" id="options"></div>
 
       <div class="promo" id="promo">
@@ -538,6 +562,8 @@ const state = {
   klarnaOk: false,
   code: null,       // the discount code applied, if any
   pass: null,       // a BirdBox Learn pass (Level 1 Online student's 50%), if any
+  needsL1: false,   // TGC Level 2: Level 1 must be checked first
+  prereq: null,     // { token, found } once checked
   giftCode: null,   // the gift card applied, if any
   codeOff: 0,       // what the discount code takes off (before VAT)
   total: 0,
@@ -612,6 +638,13 @@ async function load() {
   // it, while the name and movements typed per workshop win.
   const tpl = await loadTemplate(course);
   const isWorkshop = course.type === "workshop";
+  // TGC Level 2 needs TGC Level 1: check their email first (Nathan, 20 Nov 2026)
+  if (course.brand === "tgc" && course.type === "live_seminar" && String(course.level || "").replace(/\D/g, "") === "2") {
+    state.needsL1 = true;
+    $("l1check").classList.remove("hidden");
+    $("options").classList.add("locked");
+  }
+
   // the free hoodie with a live seminar booked 27 Nov - 30 Dec 2026, Irish time (Nathan, 20 Nov 2026)
   const nowMs = Date.now();
   if (course.type === "live_seminar" && nowMs >= Date.parse("2026-11-27T00:00:00Z") && nowMs <= Date.parse("2026-12-30T23:59:59Z")) {
@@ -1370,6 +1403,12 @@ function formatDates(c) {
 
 async function checkout(slug, option, btn, months) {
   const msg = $("msg");
+  if (state.needsL1 && (!state.prereq || (!state.prereq.found && !$("l1answer").value.trim()))) {
+    msg.className = "msg err";
+    msg.textContent = !state.prereq ? "Please enter your email above first, so we can check your Level 1." : "Please tell us where and when you did TGC Level 1.";
+    (state.prereq ? $("l1answer") : $("l1email")).focus();
+    return;
+  }
   const buttons = document.querySelectorAll(".opt, .planrow .go, .planrow select");
   buttons.forEach((b) => (b.disabled = true));
   const label = btn.querySelector(".label");
@@ -1381,9 +1420,10 @@ async function checkout(slug, option, btn, months) {
     const res = await fetch("/.netlify/functions/create-checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(state.pass
+      body: JSON.stringify(Object.assign(state.pass
         ? { slug: slug, option: option, months: months || undefined, pass: state.pass }
-        : { slug: slug, option: option, months: months || undefined, code: state.code || undefined, gift: state.giftCode || undefined }),
+        : { slug: slug, option: option, months: months || undefined, code: state.code || undefined, gift: state.giftCode || undefined },
+        state.prereq ? { prereq: state.prereq.token, prereq_answer: $("l1answer").value.trim() || undefined } : {})),
     });
     const data = await res.json();
     if (data.url) { location.href = data.url; return; }
@@ -1396,6 +1436,43 @@ async function checkout(slug, option, btn, months) {
   label.textContent = original;
   buttons.forEach((b) => (b.disabled = false));
 }
+
+// ---- the Level 1 check (TGC Level 2) -------------------------
+async function checkLevel1() {
+  const email = $("l1email").value.trim();
+  const m = $("l1msg");
+  state.prereq = null;
+  $("l1ask").classList.add("hidden");
+  $("options").classList.add("locked");
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { m.className = "promo-msg err"; m.textContent = "Please enter a valid email address."; return; }
+  m.className = "promo-msg"; m.textContent = "Checking…";
+  try {
+    const res = await fetch("/.netlify/functions/prereq-check", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: state.course.slug, email }),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.token) { m.className = "promo-msg err"; m.textContent = d.error || "Could not check just now. Please try again."; return; }
+    state.prereq = { token: d.token, found: d.found };
+    $("options").classList.remove("locked");
+    if (d.found) {
+      m.className = "promo-msg ok";
+      m.textContent = "✓ TGC Level 1 found on your record. Choose how to pay below; this email will be used for your booking.";
+    } else {
+      m.className = "promo-msg";
+      m.textContent = "We could not find TGC Level 1 under this email. Tell us where and when you did it and you can still book; we will check it.";
+      $("l1ask").classList.remove("hidden");
+      $("l1answer").focus();
+    }
+  } catch (e) {
+    m.className = "promo-msg err"; m.textContent = "Could not check just now. Please try again.";
+  }
+}
+$("l1go").addEventListener("click", checkLevel1);
+$("l1email").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); checkLevel1(); } });
+$("l1email").addEventListener("input", () => {
+  if (state.prereq) { state.prereq = null; $("options").classList.add("locked"); $("l1msg").textContent = ""; $("l1ask").classList.add("hidden"); }
+});
 
 function notFound() {
   // keep a wrong or old course address out of Google (8 Nov 2026)
