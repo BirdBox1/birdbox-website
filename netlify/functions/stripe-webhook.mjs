@@ -1824,8 +1824,9 @@ export async function sendConfirmation({ courseId, email, firstName, option, bal
     const history = await learnerHistory(email, { exceptCourseId: courseId }).catch(() => ({ any: false }));
     const welcome = history.any ? welcomeBack(history, course) : "";
     const LEARN_LINK = learnStartLink(email);
-    const learnIntro = "BirdBox Learn is your learner area on our website. Your " + (isWorkshop ? "workshop" : "seminar") +
-      (manualUrl ? " and its course manual are" : " is") + " already there, and after the course your certificate will be too.";
+    // Nathan's wording, 20 Nov 2026
+    const learnIntro = "Your learner area is on our website. Tap the button below, or click Log in at the top of our website, to go to BirdBox Learn. " +
+      "Here you will see your registration for this course" + (manualUrl ? ", the course manual" : "") + " and the receipts for your payments.";
     const appNote = history.programming ? " It is the same login as the BirdBox Coaching app." : "";
     const learnHow = history.any
       ? "Everything is in one account under " + email + ". Tap the button to go straight in." + appNote
