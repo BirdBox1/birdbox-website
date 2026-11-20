@@ -1487,7 +1487,7 @@ function teeOffer(box, list, words) {
     const picked = list.filter((it) => chosen.has(it.key));
     const n = picked.length, total = picked.reduce((a, it) => a + it.tee.price, 0);
     if (!n) {
-      go.textContent = list.length > 1 ? "Choose a size for each tee you want" : "Choose a size";
+      go.textContent = list.length > 1 ? "Choose a size for each " + (list.some((it) => it.tee.hoodie) ? "item" : "tee") + " you want" : "Choose a size";
       go.removeAttribute("href"); go.setAttribute("aria-disabled", "true"); go.style.opacity = ".5"; go.style.pointerEvents = "none";
       return;
     }
