@@ -945,7 +945,7 @@ async function sendWelcome({ email, first, label, isNew, onSite }) {
       "",
       learnStartLink(email),
       "",
-      "The course is waiting under My courses. Once you are in, set a password so you can log in any time.",
+      "The course is waiting under Online courses. Once you are in, set a password so you can log in any time.",
       `Later, log in at ${LEARN_URL} with this email address: ${email}`,
       "",
       "Any problems getting in, just reply to this email.",

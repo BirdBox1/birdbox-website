@@ -126,7 +126,7 @@
 
     <div id="hoodiewrap" class="hidden">
       <h2>Your free hoodie</h2>
-      <p>This booking comes with a free hoodie from our shop, delivered to you at no cost. Choose your style, colour and size in BirdBox Learn: it is at the top of My courses.</p>
+      <p>This booking comes with a free hoodie from our shop, delivered to you at no cost. Choose your style, colour and size in BirdBox Learn: it is at the top of My seminars.</p>
     </div>
 
     <!-- Every seminar booking is pointed to BirdBox Learn (Nathan, 20 Nov 2026) -->
@@ -213,7 +213,7 @@ async function load() {
       $("learnline").textContent = "Your learner area is on our website. Here you will see your registration for this course, your supporting online course and the receipts for your payments.";
       const ol = $("onlineline");
       ol.innerHTML = "<strong>Your supporting online course:</strong> ";
-      ol.append(data.supportingOnline + " is included in your course price. You will find it in BirdBox Learn under My courses.");
+      ol.append(data.supportingOnline + " is included in your course price. You will find it in BirdBox Learn under Online courses.");
       ol.classList.remove("hidden");
     }
     if (data.manualUrl) $("learnline").textContent = "Your learner area is on our website. Here you will see your registration for this course, the course manual and the receipts for your payments.";

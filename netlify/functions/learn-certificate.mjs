@@ -294,7 +294,7 @@ ${again ? `Here is your certificate for ${title} again.` : `Congratulations — 
 
 Your certificate is attached. Your reference is ${cert.reference}${course.ceus ? `, and the course is worth ${Number(course.ceus)} CEUs` : ""}.
 
-You can download it again any time from My courses:
+You can download it again any time from BirdBox Learn:
 ${SITE_URL}/learn/
 
 Thank you for learning with us.
@@ -308,7 +308,7 @@ BirdBox Coaching`;
 <p>Hi ${esc(first)},</p>
 <p><strong>${again ? `Here is your certificate for ${esc(title)} again.` : `Congratulations — you have completed ${esc(title)}.`}</strong></p>
 <p>Your certificate is attached. Your reference is <strong>${esc(cert.reference)}</strong>${course.ceus ? `, and the course is worth ${Number(course.ceus)} CEUs` : ""}.</p>
-<p>You can download it again any time from <a href="${SITE_URL}/learn/">My courses</a>.</p>
+<p>You can download it again any time from <a href="${SITE_URL}/learn/">BirdBox Learn</a>.</p>
 <p>Thank you for learning with us.</p>
 ${invite.html}
 <p>BirdBox Coaching</p>
