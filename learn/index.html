@@ -209,6 +209,11 @@
   .plan dt{font-weight:700}
   .plan dd{margin:0}
   .plan .btns{display:flex;gap:10px;flex-wrap:wrap}
+  /* their plan and the app side by side (Nathan, 20 Nov 2026) */
+  .prow{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px;margin-bottom:14px}
+  .prow > .plan{max-width:none;margin:0}
+  .prow > .plan.app{display:flex;flex-direction:column}
+  @media (max-width:820px){.prow{grid-template-columns:1fr}}
   .plan .btn.main{background:var(--c,#85151A);border-color:var(--c,#85151A);color:var(--on,#fff)}
   .plan .btn.main:hover{background:transparent;color:var(--ink)}
   .rc{display:grid;grid-template-columns:150px minmax(0,1fr) auto auto;gap:16px;align-items:center;background:var(--panel);
@@ -2727,11 +2732,17 @@ async function loadProgramming() {
     if (mine.length || myBlocks.length) {
       const h = document.createElement("h2"); h.className = "mine"; h.textContent = "Your " + current.toUpperCase() + " programming";
       panel.appendChild(h);
-      const keep = box; box = panel;
+      // their plan(s) on the left, the app box beside them (Nathan, 20 Nov 2026)
+      const row = document.createElement("div"); row.className = "prow";
+      const left = document.createElement("div"); left.style.cssText = "display:flex;flex-direction:column;gap:14px";
+      const keep = box; box = left;
       mine.forEach((x) => card(x, x.trial ? "Free trial" : "Programming plan"));
       myBlocks.forEach((x) => card(x, "Block"));
       box = keep;
-      panel.appendChild(appBox());
+      left.querySelectorAll(".plan").forEach((p) => { p.style.maxWidth = "none"; p.style.margin = "0"; });
+      const ab = appBox(); ab.classList.add("app");
+      row.append(left, ab);
+      panel.appendChild(row);
     } else if ((d.move || d.comeback) && current === "tgc") panel.appendChild(appBox());
     // the currency sits with the plans on sale, under their own plan (Nathan, 7 Nov 2026)
     if ((PROGRAMMING_ON_SALE || d.staff) && d.shop) panel.appendChild(currencyLine(d.shop));
