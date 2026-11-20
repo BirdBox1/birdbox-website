@@ -90,6 +90,15 @@ export async function bookingEarnsHoodie(email, courseId) {
 
 // ---- the hoodies on offer -----------------------------------------------
 
+// The Ecwid product ids of the hoodies in the shop (as in shop/index.html).
+// Add a new hoodie here when one goes on sale.
+const SHOP_HOODIES = new Set([
+  "878548739", "878551185", "878551186", "878548952",   // TGC Course Logo Front Hoodie (+ Black & Charcoal, Light, Bright)
+  "878551247", "878577019", "878579020", "878579757",   // TGC Course Logo Back Hoodie
+  "878622403", "878548713", "878548725", "878622404",   // TCC Course Logo Front Hoodie
+  "878622405", "878579022", "878577025", "878631582",   // TCC Course Logo Back Hoodie
+]);
+
 // Every hoodie in the Printful store, grouped as the shop shows them:
 // course (TGC/TCC) x logo (front/back), with every colour and size from the
 // colour sets ("Light Colours", "Bright Colours"...). Kept for 30 minutes.
@@ -103,7 +112,9 @@ export async function hoodieCatalogue() {
     products.push(...(page.result || []));
     if (!page.paging || offset + 100 >= page.paging.total) break;
   }
-  const hoodies = products.filter((p) => /hoodie/i.test(p.name) && !p.is_ignored);
+  // Only the hoodies the shop sells: Printful also holds older copies with
+  // the same names that are not in Ecwid (Nathan, 20 Nov 2026).
+  const hoodies = products.filter((p) => /hoodie/i.test(p.name) && !p.is_ignored && SHOP_HOODIES.has(String(p.external_id)));
 
   const details = [];
   for (let i = 0; i < hoodies.length; i += 6) {
