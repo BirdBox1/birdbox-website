@@ -40,6 +40,28 @@ export function giftLimits(currency) {
   return { presets: GIFT_PRESETS.map((p) => p * k), min: GIFT_MIN * k, max: GIFT_MAX * k };
 }
 export const GIFT_MONTHS = 24;                 // how long a card lasts
+
+// BLACK FRIDAY / CHRISTMAS BONUS (Nathan, 20 Nov 2026): a gift card of
+// 100 or more (rand x10) bought 27 Nov - 20 Dec 2026, Irish time, earns the
+// BUYER a bonus card worth 25% of it, at most 125 (rand x10). The bonus
+// card can only be spent 1 Jan - 31 Mar 2027 (Irish time). It is free
+// value, so it is not a sale: the VAT report in the portal leaves bonus
+// cards out of "cards sold" and out of the VAT due when they are spent.
+export const BONUS = {
+  from: Date.parse("2026-11-27T00:00:00Z"),
+  to: Date.parse("2026-12-20T23:59:59Z"),
+  percent: 25, min: 100, max: 125,
+  validFrom: "2027-01-01T00:00:00Z",
+  expires: "2027-03-31T22:59:59Z", // 23:59 Irish summer time
+};
+export function bonusOn(at = Date.now()) { return at >= BONUS.from && at <= BONUS.to; }
+// the bonus a card of `cents` earns, in cents (0 for none)
+export function bonusFor(cents, currency, at = Date.now()) {
+  if (!bonusOn(at)) return 0;
+  const k = GIFT_SCALE[String(currency || "").toUpperCase()] || 1;
+  if (!(cents >= BONUS.min * k * 100)) return 0;
+  return Math.min(Math.round(cents * BONUS.percent / 100), BONUS.max * k * 100);
+}
 export const MESSAGE_MAX = 400;
 
 // Stripe will not take a card payment under one unit of the currency,
@@ -93,6 +115,7 @@ export async function findCard(code, currency) {
   if (!card) return { error: "That gift card code isn't recognised" };
   if (card.status !== "active") return { error: "That gift card is no longer active" };
   if (new Date(card.expires_at) < new Date()) return { error: "That gift card expired on " + niceDate(card.expires_at) };
+  if (card.valid_from && new Date(card.valid_from) > new Date()) return { error: "That bonus card can be used from " + niceDate(card.valid_from) };
   if (card.balance_cents <= 0) return { error: "That gift card has been used up" };
   if (currency && card.currency !== String(currency).toUpperCase()) {
     return { error: `That gift card is in ${card.currency}, and this is priced in ${String(currency).toUpperCase()}`, card };
@@ -245,6 +268,55 @@ export async function onGiftSaleCompleted(session) {
       (card.recipient_email ? `Goes to ${card.recipient_email}` + (card.send_on && card.send_on > today ? ` on ${niceDate(card.send_on)}` : " now") + ".\n" : "The buyer is passing it on themselves.\n") +
       `Expires ${niceDate(card.expires_at)}.\nCard: ${cardUrl(card)}`,
   });
+  await issueBonus(card, (session.created || 0) * 1000 || Date.now());
+}
+
+// The Black Friday / Christmas bonus card for the buyer (see BONUS).
+// Made once per card: bonus_of is unique, so a second try does nothing.
+async function issueBonus(card, at) {
+  const cents = bonusFor(card.amount_cents, card.currency, at);
+  if (!cents || !card.buyer_email) return;
+  const row = {
+    kind: "bonus", bonus_of: card.id,
+    code: newCode(), token: newToken(),
+    amount_cents: cents, balance_cents: cents, currency: card.currency,
+    valid_from: BONUS.validFrom, expires_at: BONUS.expires,
+    buyer_name: card.buyer_name, buyer_email: card.buyer_email,
+    stripe_customer_id: card.stripe_customer_id || null,
+  };
+  let bonus = null;
+  for (let i = 0; i < 3 && !bonus; i++) {
+    const { data, error } = await db.from("gift_cards").insert(row).select().single();
+    if (!error) { bonus = data; break; }
+    if (error.code === "23505" && /bonus_of/.test(error.message)) return;
+    if (error.code !== "23505") { console.error("bonus card", error); return; }
+    row.code = newCode(); row.token = newToken();
+  }
+  if (!bonus) return;
+  await sendBonusEmail(bonus, card);
+  await sendMail({
+    to: OFFICE,
+    subject: `[BirdBox] Bonus card issued — ${money(bonus.amount_cents, bonus.currency)}`,
+    text: `${card.buyer_name || card.buyer_email} earned a ${money(bonus.amount_cents, bonus.currency)} bonus card with their ${money(card.amount_cents, card.currency)} gift card.\n\n` +
+      `Code: ${bonus.code}\nUse it ${niceDate(bonus.valid_from)} – ${niceDate(bonus.expires_at)}.\nCard: ${cardUrl(bonus)}`,
+  });
+}
+
+export async function sendBonusEmail(bonus, card) {
+  const first = (bonus.buyer_name || "").split(" ")[0] || "there";
+  const when = `${niceDate(bonus.valid_from)} to ${niceDate(bonus.expires_at)}`;
+  const html = emailShell(`
+<p>Hi ${esc(first)},</p>
+<p>Thank you for buying a ${esc(money(card.amount_cents, card.currency))} gift card. As it is our Christmas offer, here is a <b>${esc(money(bonus.amount_cents, bonus.currency))} bonus card</b> for you, on us.</p>
+${cardBlock(bonus)}
+<p>${button(cardUrl(bonus), "Open your bonus card")}</p>
+<p style="font-size:14px;color:#4a4e54">You can use it from ${esc(when)}. ${esc(howToUse(bonus))}</p>`);
+  const text = [
+    `Hi ${first},`, "",
+    `Thank you for buying a ${money(card.amount_cents, card.currency)} gift card. As it is our Christmas offer, here is a ${money(bonus.amount_cents, bonus.currency)} bonus card for you, on us.`, "",
+    `Code: ${bonus.code}`, `Use it: ${when}`, "", `Your bonus card: ${cardUrl(bonus)}`, "", howToUse(bonus),
+  ].join("\n");
+  await sendMail({ to: bonus.buyer_email, subject: `Your ${money(bonus.amount_cents, bonus.currency)} BirdBox bonus card`, html, text });
 }
 
 export function cardUrl(card) {
@@ -267,6 +339,7 @@ ${inner}
 // with fixed sizes, because email clients ignore most CSS layout.
 function cardBlock(card) {
   const W = 300, H = 189, BAR = 13;
+  const isBonus = card.kind === "bonus";
   const bar = (c, h) => `<tr><td style="background:${c};height:${h}px;font-size:0;line-height:0">&nbsp;</td></tr>`;
   return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:22px 0;border-collapse:separate">
 <tr><td style="background:#F3EFE8;padding:24px 10px;border-radius:10px" align="center">
@@ -276,7 +349,7 @@ function cardBlock(card) {
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
 <tr>
 <td height="92" style="height:92px;padding:16px 0 0 18px;vertical-align:top"><img src="${SITE_URL}/brand/birdBox-silver.png" alt="BirdBox" width="52" style="display:block;width:52px;height:auto"></td>
-<td style="padding:18px 16px 0 0;vertical-align:top;text-align:right;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#9aa1a9">Gift card</td>
+<td style="padding:18px 16px 0 0;vertical-align:top;text-align:right;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#9aa1a9">${isBonus ? "Bonus card" : "Gift card"}</td>
 </tr>
 <tr><td colspan="2" style="padding:4px 18px 0">
 <div style="font-size:38px;font-weight:800;line-height:1;color:#c9a24a">${esc(money(card.amount_cents, card.currency))}</div>
@@ -287,9 +360,9 @@ function cardBlock(card) {
 <td width="${BAR}" style="width:${BAR}px;padding:0;vertical-align:top"><table role="presentation" cellpadding="0" cellspacing="0" width="${BAR}">${bar("#85151A", 47)}${bar("#298DE9", 47)}${bar("#10502C", 47)}${bar("#F1A509", 48)}</table></td>
 </tr></table>
 <table role="presentation" cellpadding="0" cellspacing="0" width="${W}" style="width:${W}px;margin-top:16px"><tr>
-<td style="font-size:12px;color:#6b6f75;text-align:left">Code</td><td style="font-size:12px;color:#6b6f75;text-align:right">Valid until</td></tr><tr>
+<td style="font-size:12px;color:#6b6f75;text-align:left">Code</td><td style="font-size:12px;color:#6b6f75;text-align:right">${card.valid_from ? "Use it" : "Valid until"}</td></tr><tr>
 <td style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px;font-weight:700;letter-spacing:.04em;color:#16181b;text-align:left">${esc(card.code)}</td>
-<td style="font-size:14px;color:#16181b;text-align:right">${esc(niceDate(card.expires_at))}</td></tr></table>
+<td style="font-size:14px;color:#16181b;text-align:right">${esc(card.valid_from ? niceDate(card.valid_from) + " – " + niceDate(card.expires_at) : niceDate(card.expires_at))}</td></tr></table>
 </td></tr></table>`;
 }
 

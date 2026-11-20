@@ -253,10 +253,10 @@ async function load() {
 
   const [u, s, o] = await Promise.all([
     db.from("gift_card_redemptions")
-      .select("created_at, cents, currency, vat_country, vat_percent, vat_cents, used_for, gift_cards(code, currency)")
+      .select("created_at, cents, currency, vat_country, vat_percent, vat_cents, used_for, gift_cards(code, currency, kind)")
       .gte("created_at", start).lt("created_at", end).order("created_at"),
     db.from("gift_cards")
-      .select("created_at, code, amount_cents, balance_cents, currency, buyer_name, buyer_email, recipient_name, expires_at, status")
+      .select("created_at, code, amount_cents, balance_cents, currency, buyer_name, buyer_email, recipient_name, expires_at, status, kind")
       .gte("created_at", start).lt("created_at", end).order("created_at"),
     db.from("gift_cards")
       .select("created_at, code, amount_cents, balance_cents, currency, buyer_name, recipient_name, expires_at, status")
@@ -266,8 +266,13 @@ async function load() {
   if (err) { $("tiles").innerHTML = ""; $("used").innerHTML = '<p class="none">Could not load: ' + esc(err.message) + "</p>"; return; }
 
   const now = Date.now();
-  data.used = (u.data || []).map((r) => ({ ...r, currency: r.currency || r.gift_cards?.currency, code: r.gift_cards?.code }));
-  data.sold = s.data || [];
+  const allUsed = (u.data || []).map((r) => ({ ...r, currency: r.currency || r.gift_cards?.currency, code: r.gift_cards?.code, kind: r.gift_cards?.kind }));
+  // Christmas bonus cards (Nov 2026) are free value, not a sale: no money in,
+  // and spending one is a discount, so no VAT is due on it. Kept apart.
+  data.used = allUsed.filter((r) => r.kind !== "bonus");
+  data.bonusUsed = allUsed.filter((r) => r.kind === "bonus");
+  data.sold = (s.data || []).filter((c) => c.kind !== "bonus");
+  data.bonusIssued = (s.data || []).filter((c) => c.kind === "bonus");
   data.open = (o.data || []).filter((c) => Date.parse(c.expires_at) > now);
   data.expired = (o.data || []).filter((c) => Date.parse(c.expires_at) <= now);
   render();
@@ -288,6 +293,8 @@ function render() {
     tile("Cards sold", lines(sumBy(data.sold, "currency", "amount_cents")), data.sold.length + " card" + (data.sold.length === 1 ? "" : "s") + " · no VAT"),
     tile("Spent with cards", lines(sumBy(data.used, "currency", "cents")), data.used.length + " use" + (data.used.length === 1 ? "" : "s") + " · VAT included"),
     tile("VAT inside that", lines(vatByCur), "Due on this period's returns"),
+    ...(data.bonusIssued.length || data.bonusUsed.length ? [tile("Christmas bonus cards", lines(sumBy(data.bonusIssued, "currency", "amount_cents")),
+      data.bonusIssued.length + " given · " + (data.bonusUsed.length ? lines(sumBy(data.bonusUsed, "currency", "cents")).replace(/<br>/g, ", ") + " spent" : "none spent") + " · no VAT, free value")] : []),
     tile("Still on cards today", lines(sumBy(data.open, "currency", "balance_cents")), data.open.length + " live card" + (data.open.length === 1 ? "" : "s")),
   ].join("");
 
