@@ -173,7 +173,7 @@
     var gc = el("div", "gc");
     var top = el("div", "top");
     var logo = img("/brand/birdBox-silver.png", "BirdBox"); logo.className = "logo";
-    var brand = el("div", "brand", "Gift card");
+    var brand = el("div", "brand", d.bonus ? "Bonus card" : "Gift card");
     top.appendChild(logo); top.appendChild(brand);
     var amt = money(d.amount_cents, d.currency);
     gc.appendChild(top);
@@ -214,11 +214,11 @@
   function panelUse(d) {
     var p = el("div", "panel use");
     var a = el("div");
-    a.appendChild(el("div", "k", "Your gift card code"));
+    a.appendChild(el("div", "k", d.bonus ? "Your bonus card code" : "Your gift card code"));
     a.appendChild(el("div", "code", d.code));
     var meta = el("div", "meta");
     meta.appendChild(el("span", null, "Value " + money(d.amount_cents, d.currency)));
-    meta.appendChild(el("span", null, "Valid until " + date(d.expires_at, true)));
+    meta.appendChild(el("span", null, d.valid_from ? "Use it " + date(d.valid_from, true) + " – " + date(d.expires_at, true) : "Valid until " + date(d.expires_at, true)));
     a.appendChild(meta);
     p.appendChild(a);
     var ol = el("ol");

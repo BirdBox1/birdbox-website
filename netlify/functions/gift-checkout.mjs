@@ -21,6 +21,7 @@ import Stripe from "stripe";
 import { json } from "../lib/directory.mjs";
 import {
   GIFT_CURRENCIES, GIFT_PRESETS, GIFT_MIN, GIFT_MAX, GIFT_SCALE, giftLimits, GIFT_MONTHS, MESSAGE_MAX, money,
+  BONUS, bonusOn, bonusFor,
 } from "../lib/gift-cards.mjs";
 import { currencyForCountry } from "./online-checkout.mjs";
 
@@ -46,6 +47,9 @@ export default async (req, context) => {
       scale: GIFT_SCALE,
       months: GIFT_MONTHS,
       message_max: MESSAGE_MAX,
+      // the Christmas bonus card, while it runs (27 Nov - 20 Dec 2026)
+      bonus: bonusOn() ? { percent: BONUS.percent, min: BONUS.min, max: BONUS.max, ends: new Date(BONUS.to).toISOString(),
+        valid_from: BONUS.validFrom, expires: BONUS.expires } : null,
     });
   }
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -98,7 +102,8 @@ export default async (req, context) => {
           unit_amount: cents,
           product_data: {
             name: name + who,
-            description: `Spend it on any BirdBox seminar or online course priced in ${currency}. Valid for ${GIFT_MONTHS} months. The code is emailed as soon as you have paid.`,
+            description: `Spend it on any BirdBox seminar or online course priced in ${currency}. Valid for ${GIFT_MONTHS} months. The code is emailed as soon as you have paid.` +
+              (bonusFor(cents, currency) ? ` Christmas offer: you also get a ${money(bonusFor(cents, currency), currency)} bonus card for yourself, to use 1 January - 31 March 2027.` : ""),
           },
         },
       }],

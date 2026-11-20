@@ -104,6 +104,10 @@
   .custom { margin-top: 10px; display: none; }
   .custom.show { display: block; }
   .hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+  /* Christmas bonus (27 Nov - 20 Dec 2026) */
+  .bonus { background: var(--accent); color: #fff; font-weight: 700; font-size: 16px; line-height: 1.45; padding: 14px 16px; margin: 0 0 22px; }
+  .bonus b { font-weight: 800; }
+  .bonusnow { color: var(--accentText); font-weight: 700; font-size: 14px; margin: 10px 0 0; }
   .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .seg button { font: inherit; font-size: 15px; color: var(--ink); background: var(--panel); border: 1px solid #3a3436; border-radius: 8px; padding: 12px; cursor: pointer; text-align: left; }
   .seg button b { display: block; }
@@ -132,6 +136,7 @@
 
 <main class="wrap" id="shop">
   <div>
+    <div class="bonus hide" id="bonus"></div>
     <p class="kicker">Gift cards</p>
     <h1>Give someone their next course</h1>
     <p class="lead">A BirdBox Coaching gift card can be spent on any seminar or online course from The Gymnastics Course or The Coaches Course. We email it on the day you choose, and you get a version to print too.</p>
@@ -160,6 +165,7 @@
         <select id="currency" aria-label="Currency"></select>
       </div>
       <div class="amounts" id="amounts"></div>
+      <p class="bonusnow hide" id="bonusNow"></p>
       <div class="custom" id="customWrap">
         <label for="custom">Your amount</label>
         <input id="custom" type="number" inputmode="numeric" min="50" step="1">
@@ -240,7 +246,31 @@
   }
   function amount() { return st.custom ? parseInt($("custom").value, 10) : st.amount; }
 
+  // the Christmas bonus card for the buyer, while it runs
+  function bonusOf(a) {
+    var b = cfg.bonus; if (!b || !(a > 0)) return 0;
+    var k = (cfg.scale && cfg.scale[$("currency").value]) || 1;
+    if (a < b.min * k) return 0;
+    return Math.min(Math.round(a * b.percent) / 100, b.max * k);
+  }
+  function paintBonus() {
+    var b = cfg.bonus;
+    $("bonus").classList.toggle("hide", !b);
+    $("bonusNow").classList.toggle("hide", !b);
+    if (!b) return;
+    var k = (cfg.scale && cfg.scale[$("currency").value]) || 1;
+    var ends = new Date(b.ends).toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "Europe/Dublin" });
+    $("bonus").innerHTML = "<b>Christmas offer:</b> buy a gift card of " + sym() + (b.min * k).toLocaleString("en-GB") +
+      " or more by " + ends + " and get a bonus card worth " + b.percent + "% of it for yourself (up to " + sym() + (b.max * k).toLocaleString("en-GB") +
+      "), to use from 1 January to 31 March 2027.";
+    var x = bonusOf(amount());
+    $("bonusNow").textContent = x > 0
+      ? "+ " + sym() + (x % 1 ? x.toFixed(2) : x.toLocaleString("en-GB")) + " bonus card for you, to use 1 January – 31 March 2027"
+      : "Choose " + sym() + (b.min * k).toLocaleString("en-GB") + " or more for a bonus card for yourself.";
+  }
+
   function paintCard() {
+    paintBonus();
     var a = amount();
     $("cardAmt").textContent = sym() + (a > 0 ? a.toLocaleString("en-GB") : "—");
     var to = $("recipientName").value.trim(), from = $("fromName").value.trim();
