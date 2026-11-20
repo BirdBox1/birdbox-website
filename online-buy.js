@@ -52,6 +52,8 @@
       already: "Already enrolled? ", mine: "Go to My courses \u2192", lwLogin: "Log in to BirdBox Academy \u2192",
       needCountry: "Choose where you are based first.",
       retry: " Please try again, or email info@birdboxcoaching.com.",
+      sale: function (p, end) { return "Black Friday: " + p + "% off, until " + end + "."; },
+      was: "was ",
     },
     es: {
       lang: "Elige el idioma del curso", course: "Tu curso", cur: "Elige tu moneda",
@@ -67,6 +69,8 @@
       already: "\u00bfYa est\u00e1s inscrito? ", mine: "Ir a Mis cursos \u2192", lwLogin: "Entrar en BirdBox Academy \u2192",
       needCountry: "Primero elige d\u00f3nde resides.",
       retry: " Vuelve a intentarlo o escribe a info@birdboxcoaching.com.",
+      sale: function (p, end) { return "Black Friday: " + p + "% de descuento, hasta el " + end + "."; },
+      was: "antes ",
     },
   };
   function W() { return WORDS[state.language] || WORDS.en; }
@@ -134,6 +138,9 @@
     ".ob-go[disabled]{opacity:.6;cursor:wait}",
     ".ob-small{font-size:14px;line-height:1.6;color:var(--muted);margin:14px 0 0}",
     ".ob-err{color:#F0797D;font-size:14px;margin:12px 0 0}",
+    ".ob-sale{background:var(--tcc);color:#0C1116;font-weight:800;font-size:17px;letter-spacing:.02em;padding:12px 16px;margin:0 0 22px}",
+    ".ob-was{font-size:15px;font-weight:600;color:#B7B1B3;margin-top:2px}",
+    ".ob-was s{color:#B7B1B3}",
     "@media(min-width:1001px){.ob-tiles{grid-template-columns:repeat(4,1fr)!important}}",
   ].join("\n");
   document.head.appendChild(css);
@@ -156,6 +163,13 @@
     box.innerHTML = "";
 
     var w = W();
+    // Black Friday (27-30 Nov 2026): the sale says so at the top, and Pay
+    // in full shows the old price struck through
+    if (o.sale) {
+      var endTxt = "";
+      try { endTxt = new Date(o.sale.ends).toLocaleDateString(state.language === "es" ? "es-ES" : "en-GB", { day: "numeric", month: "long", timeZone: "Europe/Dublin" }); } catch (e) {}
+      box.appendChild(el("div", "ob-sale", (w.sale || WORDS.en.sale)(o.sale.percent, endTxt)));
+    }
     var currencies = Object.keys(o.prices);
     if (!currencies.length || !o.languages.length) {
       box.appendChild(el("p", "ob-small", "Online enrolment is opening soon. Email info@birdboxcoaching.com and we will get you started."));
@@ -273,6 +287,11 @@
     if (g && g.free) state.option = "full";
 
     option("full", w.full, money(base, state.currency), g && g.free ? "" : vatNote, g ? giftNote : w.fullNote);
+    if (o.sale && o.sale.was && o.sale.was[state.currency] && !g) {
+      var wasEl = el("div", "ob-was", w.was || WORDS.en.was);
+      wasEl.appendChild(el("s", null, money(o.sale.was[state.currency], state.currency)));
+      var fullOpt = opts.lastChild; fullOpt.insertBefore(wasEl, fullOpt.children[2]);
+    }
 
     if (!(g && g.free)) {
     var eachLeft = Math.round(base / state.months);
