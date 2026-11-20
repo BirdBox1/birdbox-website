@@ -1446,12 +1446,15 @@ function showPastTee(live, earlier, upcoming) {
 function showAthleteTee(d) {
   const L = window.BB_LEARNER_TEES;
   const plans = (d && d.plans) || [], blocks = (d && d.blocks) || [];
-  const on = plans.some((x) => !x.trial) || blocks.length > 0;
+  // staff can order any of the athlete kit (Nathan, 21 Nov 2026)
+  const staff = !!(d && d.staff);
+  const on = staff || plans.some((x) => !x.trial) || blocks.length > 0;
   if (!L || !on) { teeOffer($("athtee"), [], {}); return; }
   const mine = [...plans.filter((x) => !x.trial), ...blocks].map((x) => String(x.brand || "").toLowerCase());
   // their own course's tee (TGC, TEC, TWC), plus the BirdBox (TCC) tee for
   // everyone (Nathan, 20 Nov 2026)
-  const order = [...new Set([...mine.filter((b) => ["tgc", "tec", "twc"].includes(b)), "birdbox"])];
+  const order = staff ? ["tgc", "tec", "twc", "birdbox"]
+    : [...new Set([...mine.filter((b) => ["tgc", "tec", "twc"].includes(b)), "birdbox"])];
   const NAME = { tgc: "TGC Athlete", tec: "TEC Athlete", twc: "TWC Athlete", birdbox: "BirdBox Athlete" };
   // the tees, then the hoodies (Nathan, 20 Nov 2026)
   const list = [];
@@ -1459,7 +1462,7 @@ function showAthleteTee(d) {
     for (const k of order) { const t = L.tees[kind + k]; if (t && t.img) list.push({ key: kind + k, tee: t, label: NAME[k] + " " + word }); }
   teeOffer($("athtee"), list, {
     one: "Your BirdBox Athlete kit", many: "BirdBox Athlete kit",
-    intro: "Only for BirdBox programming athletes. Pick a size for any you want; you can add more, or more sizes, in the basket. Printed when you order and posted to you.",
+    intro: (staff ? "As BirdBox staff you can order any of the athlete kit. " : "Only for BirdBox programming athletes. ") + "Pick a size for any you want; you can add more, or more sizes, in the basket. Printed when you order and posted to you.",
   });
 }
 
