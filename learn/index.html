@@ -1440,9 +1440,12 @@ function showAthleteTee(d) {
   // everyone (Nathan, 20 Nov 2026)
   const order = [...new Set([...mine.filter((b) => ["tgc", "tec", "twc"].includes(b)), "birdbox"])];
   const NAME = { tgc: "TGC Athlete", tec: "TEC Athlete", twc: "TWC Athlete", birdbox: "BirdBox Athlete" };
-  const list = order.filter((k) => L.tees["athlete-" + k]).map((k) => ({ key: "athlete-" + k, tee: L.tees["athlete-" + k], label: NAME[k] }));
+  // the tees, then the hoodies (Nathan, 20 Nov 2026); one only shows once its picture is in
+  const list = [];
+  for (const [kind, word] of [["athlete-", "Tee"], ["athlete-hoodie-", "Hoodie"]])
+    for (const k of order) { const t = L.tees[kind + k]; if (t && t.img) list.push({ key: kind + k, tee: t, label: NAME[k] + " " + word }); }
   teeOffer($("athtee"), list, {
-    one: "Your BirdBox Athlete tee", many: "BirdBox Athlete tees",
+    one: "Your BirdBox Athlete kit", many: "BirdBox Athlete kit",
     intro: "Only for BirdBox programming athletes. Pick a size for any you want; you can add more, or more sizes, in the basket. Printed when you order and posted to you.",
   });
 }
@@ -1489,7 +1492,8 @@ function teeOffer(box, list, words) {
       return;
     }
     go.href = "/shop/?tees=" + picked.map((it) => it.tee.id + ":" + encodeURIComponent(chosen.get(it.key))).join(",");
-    go.textContent = (n > 1 ? "Add " + n + " tees to basket" : list.length > 1 ? "Add 1 tee to basket" : "Add to basket") + " · " + L.euro(total);
+    const word = picked.some((it) => it.tee.hoodie) ? "items" : "tees";
+    go.textContent = (n > 1 ? "Add " + n + " " + word + " to basket" : list.length > 1 ? "Add 1 " + (picked[0].tee.hoodie ? "hoodie" : "tee") + " to basket" : "Add to basket") + " · " + L.euro(total);
     go.removeAttribute("aria-disabled"); go.style.opacity = ""; go.style.pointerEvents = "";
   };
   for (const it of list) {
@@ -1519,7 +1523,7 @@ function teeOffer(box, list, words) {
     const info = document.createElement("div"); info.className = "info";
     const t = document.createElement("b"); t.textContent = it.label + (it.year ? " · Class of " + it.year : "");
     const s = document.createElement("small"); s.style.display = "block"; s.style.color = "var(--muted)";
-    s.textContent = it.tee.shirt + " · " + (it.tee.desc || "BirdBox eagle on the front, course logo on the back");
+    s.textContent = it.tee.shirt + " · " + (it.tee.desc || "BirdBox eagle on the front, course logo on the back") + (it.tee.hoodie ? ". Runs small: order a size up." : "");
     const pr = document.createElement("p"); pr.className = "price";
     const was = document.createElement("s"); was.textContent = L.euro(L.was);
     const off = document.createElement("em"); off.textContent = (it.tee.off || Math.round((1 - it.tee.price / L.was) * 100)) + "% off for learners";
@@ -1527,7 +1531,7 @@ function teeOffer(box, list, words) {
     else pr.append(document.createTextNode(L.euro(it.tee.price)));
     const st = document.createElement("p"); st.className = "step"; st.textContent = "Size";
     const sizes = document.createElement("div"); sizes.className = "sizes";
-    for (const z of L.sizes) {
+    for (const z of (it.tee.sizes || L.sizes)) {
       const b = document.createElement("button"); b.type = "button"; b.textContent = z;
       b.onclick = () => {
         // tap the chosen size again to leave this tee out
