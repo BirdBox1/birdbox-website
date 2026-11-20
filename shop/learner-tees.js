@@ -18,10 +18,10 @@ window.BB_LEARNER_TEES = {
     "tgc-1-2027": { id: 879045687, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432866751" },
     "tgc-2-2026": { id: 879083004, price: 29, off: 25, shirt: "Mauve triblend", img: "6432745495" },
     "tgc-2-2027": { id: 879045688, price: 29, off: 25, shirt: "Mauve triblend", img: "6432860767" },
-    "tcc-1-2026": { id: 879083005, price: 29, off: 25, shirt: "Athletic Grey triblend", img: "6432868257" },
-    "tcc-1-2027": { id: 879045462, price: 29, off: 25, shirt: "Athletic Grey triblend", img: "6432866769" },
-    "tcc-2-2026": { id: 879083007, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432860791" },
-    "tcc-2-2027": { id: 879045463, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432868287" }
+    "tcc-1-2026": { id: 879045711, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432926573" },
+    "tcc-1-2027": { id: 879045712, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432926579" },
+    "tcc-2-2026": { id: 879045713, price: 29, off: 25, shirt: "Charcoal-Black triblend", img: "6432898177" },
+    "tcc-2-2027": { id: 879084761, price: 29, off: 25, shirt: "Charcoal-Black triblend", img: "6432924825" }
   },
   picture: function (t) {
     return "https://d2j6dbq0eux0bg.cloudfront.net/images/140532633/products/" + t.id + "/" + t.img + ".jpg";
