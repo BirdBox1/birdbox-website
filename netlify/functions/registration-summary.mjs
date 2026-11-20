@@ -47,7 +47,7 @@ export default async (req) => {
 
     const { data: course } = await supabase
       .from("courses")
-      .select("brand, level, type, title, venue_name, address, city, country, starts_at, ends_at, timezone")
+      .select("brand, level, type, title, venue_name, address, city, country, starts_at, ends_at, timezone, grants_online_course")
       .eq("id", meta.course_id)
       .single();
 
@@ -119,6 +119,10 @@ export default async (req) => {
       emailedTo: maskEmail(details.email),
       // the free hoodie with a live seminar booked 27 Nov - 30 Dec 2026 (Nathan, 20 Nov 2026)
       hoodie: !isWorkshop && hoodieOfferOn() && session.payment_status === "paid",
+      // TCC Level 2: the supporting online course, included in the price (Nathan, 20 Nov 2026)
+      supportingOnline: course.grants_online_course
+        ? (brand.name + (levelDigits ? " Level " + levelDigits : "") + " online course")
+        : null,
     });
   } catch (err) {
     console.error("registration-summary failed:", err);
