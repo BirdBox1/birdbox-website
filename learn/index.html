@@ -99,7 +99,7 @@
   .dir p{margin:0;font-size:14px;line-height:1.5;color:var(--muted)}
   .dir .btn{margin-left:auto;flex:none}
   @media (max-width:640px){.dir{flex-wrap:wrap}.dir .btn{margin-left:0;width:100%}}
-  body[data-view="family"] #dir,body[data-view="family"] #soon,body[data-view="family"] #live,body[data-view="family"] #next,body[data-view="family"] #disc{display:none!important}
+  body[data-view="family"] #dir,body[data-view="family"] #soon,body[data-view="family"] #live,body[data-view="family"] #next,body[data-view="family"] #disc,body[data-view="family"] #onltee{display:none!important}
   /* the free hoodie card (Nathan, 20 Nov 2026) */
   .hood{background:var(--panel);border:1px solid var(--accent);padding:20px 22px;margin:0 0 28px;max-width:760px;line-height:1.55}
   .hood h2{font-size:20px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 6px}
@@ -445,6 +445,8 @@
       </div>
     </div>
     <div id="courses" class="levels hidden"></div>
+    <!-- private online course tee, only for people who bought TGC or TCC Level 1 online through BirdBox Learn (Nathan, 20 Nov 2026) -->
+    <section id="onltee" class="hood tee hidden"></section>
 
     <section id="disc" class="disc hidden"></section>
 
@@ -930,7 +932,7 @@ async function boot() {
 
   const [{ data: isAdmin }, { data: enr }, { data: att }, { data: certs }] = await Promise.all([
     db.rpc("learn_is_admin"),
-    db.from("learn_enrolments").select("course_id, lw_completed_at, learn_courses(id, slug, title, brand, level, language, ceus, ready, active)"),
+    db.from("learn_enrolments").select("course_id, lw_completed_at, source, created_at, learn_courses(id, slug, title, brand, level, language, ceus, ready, active)"),
     db.from("learn_attempts").select("course_id, completion_status, success_status, progress, score_scaled, completed_at, updated_at").eq("user_id", session.user.id),
     db.from("learn_certificates").select("course_id, reference").eq("user_id", session.user.id),
   ]);
@@ -939,6 +941,7 @@ async function boot() {
   const defaultName = (session.user.user_metadata && (session.user.user_metadata.full_name || session.user.user_metadata.name)) || "";
 
   const map = new Map();
+  showOnlineTee(enr || []);
   for (const e of enr || []) if (e.learn_courses && e.learn_courses.active) map.set(e.learn_courses.id, { ...e.learn_courses, admin: false, lwDone: e.lw_completed_at || null });
   if (isAdmin) {
     const { data: all } = await db.from("learn_courses").select("id, slug, title, brand, level, language, ceus, ready, active").eq("active", true);
@@ -1322,8 +1325,32 @@ function nearCard(c) {
 // basket" goes to the shop with the tee and size, so it can go out with
 // anything else from the shop in one delivery. Tees and prices live in
 // /shop/learner-tees.js.
+// The private "Class of" online course tee (Nathan, 20 Nov 2026): TGC or TCC
+// Level 1 online, for people who bought it through BirdBox Learn (paid on the
+// website or by invoice), not LearnWorlds imports, staff "all courses" access
+// or TCC Level 2 (that one comes with a seminar). The year is the year they
+// enrolled. Same 25% off and basket link as the seminar tee.
+function showOnlineTee(enr) {
+  const L = window.BB_LEARNER_TEES;
+  const NAME = { tgc: "TGC", tcc: "TCC" };
+  const seen = new Set(), list = [];
+  for (const e of enr) {
+    const c = e.learn_courses;
+    if (!L || !c || !NAME[c.brand] || String(c.level) !== "1") continue;
+    if (!/^(Bought on birdboxcoaching\.com|Paid by invoice)/i.test(String(e.source || ""))) continue;
+    const year = String(e.created_at || "").slice(0, 4);
+    const key = c.brand + "-online-" + year;
+    if (seen.has(key) || !L.tees[key]) continue;
+    seen.add(key);
+    list.push({ key, tee: L.tees[key], label: NAME[c.brand] + " Online", year });
+  }
+  teeOffer($("onltee"), list, {
+    one: "Your online course tee", many: "Your online course tees",
+    intro: "Only for people on our online courses, made for your year. Printed when you order and posted to you.",
+  });
+}
+
 function showSeminarTee(upcoming) {
-  const box = $("semtee"); box.innerHTML = "";
   const L = window.BB_LEARNER_TEES;
   const NAME = { tgc: "TGC", tcc: "TCC" };
   const seen = new Set(), list = [];
@@ -1335,11 +1362,22 @@ function showSeminarTee(upcoming) {
     seen.add(key);
     list.push({ key, tee: L.tees[key], label: NAME[c.brand] + " Level " + c.level, year });
   }
+  teeOffer($("semtee"), list, {
+    one: "Your seminar tee", many: "Your seminar tees",
+    intro: "Only for people booked on a seminar, made for your year. Printed when you order and posted to you.",
+  });
+}
+
+// One private tee offer: a card per tee with sizes, and one button that puts
+// every tee they picked a size for in the shop basket.
+function teeOffer(box, list, words) {
+  const L = window.BB_LEARNER_TEES;
+  box.innerHTML = "";
   box.classList.toggle("hidden", !list.length);
   if (!list.length) return;
-  const h = document.createElement("h2"); h.textContent = list.length > 1 ? "Your seminar tees" : "Your seminar tee";
+  const h = document.createElement("h2"); h.textContent = list.length > 1 ? words.many : words.one;
   const p = document.createElement("p"); p.style.margin = "0";
-  p.textContent = "Only for people booked on a seminar, made for your year. Printed when you order and posted to you.";
+  p.textContent = words.intro;
   box.append(h, p);
   // one button adds every tee they picked a size for (Nathan, 20 Nov 2026:
   // with two tees, a button each would take them to the shop with only one)

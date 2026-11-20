@@ -5,7 +5,8 @@
 // which puts the tee in the Ecwid basket so it can go out with anything else
 // from the shop in one delivery.
 //
-// Key: brand-level-year, the year being the year the seminar takes place.
+// Key: brand-level-year, the year being the year the seminar takes place;
+// online course tees are brand-online-year, the year they enrolled.
 // Price: €39 shop price, learners pay €29 (25% off) for this year and later;
 // past years are €31.20 (20% off, for past learners; not built yet).
 // Each January: last year's tees move to €31.20 and a new year is added
@@ -21,7 +22,12 @@ window.BB_LEARNER_TEES = {
     "tcc-1-2026": { id: 879045711, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432926573" },
     "tcc-1-2027": { id: 879045712, price: 29, off: 25, shirt: "White Fleck triblend", img: "6432926579" },
     "tcc-2-2026": { id: 879045713, price: 29, off: 25, shirt: "Charcoal-Black triblend", img: "6432898177" },
-    "tcc-2-2027": { id: 879084761, price: 29, off: 25, shirt: "Charcoal-Black triblend", img: "6432924825" }
+    "tcc-2-2027": { id: 879084761, price: 29, off: 25, shirt: "Charcoal-Black triblend", img: "6432924825" },
+    // online course tees: TGC / TCC Level 1 online, the year they enrolled
+    "tgc-online-2026": { id: 879084798, price: 29, off: 25, shirt: "Red triblend", img: "6433410381" },
+    "tgc-online-2027": { id: 879084799, price: 29, off: 25, shirt: "Red triblend", img: "6433410599" },
+    "tcc-online-2026": { id: 879045738, price: 29, off: 25, shirt: "True Royal triblend", img: "6433410605" },
+    "tcc-online-2027": { id: 879109273, price: 29, off: 25, shirt: "True Royal triblend", img: "6433410429" }
   },
   picture: function (t) {
     return "https://d2j6dbq0eux0bg.cloudfront.net/images/140532633/products/" + t.id + "/" + t.img + ".jpg";

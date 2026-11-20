@@ -338,7 +338,7 @@
            after republishing products). -->
       <script src="/shop/colour-pictures.js"></script>
       <script src="/shop/learner-tees.js"></script>
-      <!-- A learner's private seminar tees, sent here from BirdBox Learn as
+      <!-- A learner's private seminar and online course tees, sent here from BirdBox Learn as
            /shop/?tees=<Ecwid id>:<size>,...: put them in the basket and say so,
            so they can add anything else and get one delivery. Only tees in
            learner-tees.js are accepted. -->
@@ -361,7 +361,7 @@
           var note = document.createElement('div');
           note.className = 'bb-tee-note';
           note.setAttribute('role', 'status');
-          note.textContent = many ? 'Adding your seminar tees to your basket…' : 'Adding your seminar tee to your basket…';
+          note.textContent = many ? 'Adding your tees to your basket…' : 'Adding your tee to your basket…';
           var store = document.getElementById('my-store-140532633');
           store.parentNode.insertBefore(note, store);
           var done = false;
@@ -379,11 +379,11 @@
               var p = document.createElement('p');
               var sizes = items.map(function (it) { return it.size; }).join(' and ');
               p.textContent = added === items.length
-                ? (many ? 'Your ' + added + ' seminar tees (sizes ' + sizes + ') are in your basket.' : 'Your seminar tee (size ' + sizes + ') is in your basket.') +
+                ? (many ? 'Your ' + added + ' tees (sizes ' + sizes + ') are in your basket.' : 'Your tee (size ' + sizes + ') is in your basket.') +
                   ' Add anything else you like from the shop: it all comes in one delivery.'
                 : added
-                  ? 'We added ' + added + ' of your ' + items.length + ' seminar tees. Please go back to BirdBox Learn to add the other one.'
-                  : 'We could not add your seminar tee just now. Please go back to BirdBox Learn and try again.';
+                  ? 'We added ' + added + ' of your ' + items.length + ' tees. Please go back to BirdBox Learn to add the other one.'
+                  : 'We could not add your tee just now. Please go back to BirdBox Learn and try again.';
               note.appendChild(p);
               if (added) {
                 var b = document.createElement('button');
