@@ -108,7 +108,7 @@ async function manual(key) {
   const pic = `${brand}-${level}`;
   return {
     title: `${name} Participant Manual — BirdBox Coaching`,
-    description: `The ${BRAND[brand]} Level ${level.slice(1)} participant manual, to read online.` + (langs ? ` In ${langs}.` : ""),
+    description: `${BRAND[brand]} Level ${level.slice(1)} participant manual, to read online.` + (langs ? ` In ${langs}.` : ""),
     image: `${SITE}/share/${MANUAL_PICTURES.has(pic) ? "manual-" + pic : "seminar-" + (brand === "tgc" || brand === "tcc" ? brand : "birdbox")}.jpg`,
   };
 }
