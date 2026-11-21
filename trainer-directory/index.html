@@ -389,6 +389,8 @@ $("list").addEventListener("mouseleave", () => hot(null));
 function setupMap() {
   if (!window.L) return;
   map = L.map("map", { scrollWheelZoom: false, worldCopyJump: true, zoomControl: true }).setView([30, 0], 2);
+  // Esri tiles need their credit, so it stays; only Leaflet's flag link goes.
+  map.attributionControl.setPrefix(false);
   // Esri's dark grey basemap: free with attribution, no key needed.
   const esri = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/";
   L.tileLayer(esri + "World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {

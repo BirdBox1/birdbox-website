@@ -87,10 +87,13 @@ export async function seminarMap(db, mapEl, noteEl, keyEl, offer) {
   if (!placed.length) { noteEl.textContent = "No dates scheduled just now. New ones are added regularly."; return; }
 
   const L = window.L;
-  const map = L.map(mapEl, { scrollWheelZoom: false, minZoom: 1, maxZoom: 7, worldCopyJump: true }).setView([25, 10], 2);
+  const map = L.map(mapEl, {
+    // No credit box: Leaflet (BSD) and Natural Earth (public domain) do not
+    // require one on the page (Nathan, 21 Nov 2026).
+    attributionControl: false, scrollWheelZoom: false, minZoom: 1, maxZoom: 7, worldCopyJump: true }).setView([25, 10], 2);
   fetch("/world.json").then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((geo) => {
     L.geoJSON(geo, { className: "bb-world", style: { fillOpacity: 1 }, interactive: false }).addTo(map);
-    map.attributionControl.addAttribution('Boundaries <a href="https://www.naturalearthdata.com/">Natural Earth</a>');
+    map.attributionControl && map.attributionControl.addAttribution('Boundaries <a href="https://www.naturalearthdata.com/">Natural Earth</a>');
   }).catch(() => {});
 
   const spots = new Map(), bounds = [];
