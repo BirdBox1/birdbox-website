@@ -1470,8 +1470,13 @@ function showAthleteTee(d) {
   const NAME = { tgc: "TGC Athlete", tec: "TEC Athlete", twc: "TWC Athlete", birdbox: "BirdBox Athlete" };
   // the tees, then the hoodies (Nathan, 20 Nov 2026)
   const list = [];
+  // TGC also has a women's design (21 Nov 2026), straight after the TGC one
   for (const [kind, word] of [["athlete-", "Tee"], ["athlete-hoodie-", "Hoodie"]])
-    for (const k of order) { const t = L.tees[kind + k]; if (t && t.img) list.push({ key: kind + k, tee: t, label: NAME[k] + " " + word }); }
+    for (const k of order) {
+      for (const [key, label] of [[kind + k, NAME[k] + " " + word], [kind + k + "-women", NAME[k] + " " + word + " · Women's design"]]) {
+        const t = L.tees[key]; if (t && t.img) list.push({ key, tee: t, label });
+      }
+    }
   teeOffer($("athtee"), list, {
     one: "Your BirdBox Athlete kit", many: "BirdBox Athlete kit",
     intro: (staff ? "As BirdBox staff you can order any of the athlete kit. " : "Only for BirdBox programming athletes. ") + "Pick a size for any you want; you can add more, or more sizes, in the basket. Printed when you order and posted to you.",
