@@ -39,11 +39,14 @@ window.BB_LEARNER_TEES = {
     // BirdBox Athlete tees (20 Nov 2026): programming clients only, fixed €39, no
     // purchase limit. Main picture = the design on the front; back = neck logo.
     "athlete-tgc": { id: 879168281, price: 39, shirt: "Charcoal-Black triblend", img: "6433821997", back: "6434180545", multi: true, desc: "gymnast on rings on the front, TGC logo at the back of the neck" },
+    // the women's TGC design (Michaela + Nathan, 21 Nov 2026), TGC athletes only
+    "athlete-tgc-women": { id: 879216561, price: 39, shirt: "Charcoal-Black triblend", img: "6435772121", back: "6435772131", multi: true, desc: "women's design: gymnast on rings with the red ring round ATHLETE on the front, TGC logo at the back of the neck" },
     "athlete-tec": { id: 879168282, price: 39, shirt: "Charcoal-Black triblend", img: "6434269753", back: "6434269761", multi: true, desc: "runner on the front, TEC logo at the back of the neck" },
     "athlete-twc": { id: 879168283, price: 39, shirt: "Charcoal-Black triblend", img: "6433879689", back: "6434180551", multi: true, desc: "lifter on the front, TWC logo at the back of the neck" },
     "athlete-birdbox": { id: 879168284, price: 39, shirt: "Charcoal-Black triblend", img: "6434180555", back: "6434180563", multi: true, desc: "BirdBox eagle on the front, TCC logo at the back of the neck" },
     // BirdBox Athlete hoodies (20 Nov 2026): Cotton Heritage M2580, €65, S–3XL, runs small
     "athlete-hoodie-tgc": { id: 879168293, price: 65, shirt: "Charcoal Heather hoodie", img: "6434269869", back: "6434332559", multi: true, hoodie: true, sizes: ["S","M","L","XL","2XL","3XL"], desc: "gymnast on rings on the front, TGC logo on the back under the hood" },
+    "athlete-hoodie-tgc-women": { id: 879168498, price: 65, shirt: "Charcoal Heather hoodie", img: "6435772133", back: "6435772143", multi: true, hoodie: true, sizes: ["S","M","L","XL","2XL","3XL"], desc: "women's design: gymnast on rings with the red ring round ATHLETE on the front, TGC logo on the back under the hood" },
     "athlete-hoodie-tec": { id: 879191508, price: 65, shirt: "Charcoal Heather hoodie", img: "6434390775", back: "6434269881", multi: true, hoodie: true, sizes: ["S","M","L","XL","2XL","3XL"], desc: "runner on the front, TEC logo on the back under the hood" },
     "athlete-hoodie-twc": { id: 879191509, price: 65, shirt: "Charcoal Heather hoodie", img: "6434180709", back: "6434390783", multi: true, hoodie: true, sizes: ["S","M","L","XL","2XL","3XL"], desc: "lifter on the front, TWC logo on the back under the hood" },
     "athlete-hoodie-birdbox": { id: 879109311, price: 65, shirt: "Charcoal Heather hoodie", img: "6434332571", back: "6434269887", multi: true, hoodie: true, sizes: ["S","M","L","XL","2XL","3XL"], desc: "BirdBox eagle on the front, TCC logo on the back under the hood" },
