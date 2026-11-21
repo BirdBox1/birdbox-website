@@ -51,6 +51,7 @@ export default async (request, context) => {
     if (parts[0] === "c" && parts[1]) { meta = await seminar(parts[1]); missing = !meta; }
     else if (parts[0] === "blog" && parts[1] && parts[1] !== "index.html") meta = await post(parts[1]);
     else if (parts[0] === "trainer-directory" && parts[1] === "coach" && parts[2]) meta = await coach(parts[2], url.origin);
+    else if (parts[0] === "manuals" && parts[1]) meta = await manual(parts[1]);
   } catch (err) {
     console.error("share-meta lookup failed", url.pathname, err && err.message);
   }
@@ -88,6 +89,28 @@ function tags(m) {
     m.ld ? `<script type="application/ld+json">${ld(withUrl(m.ld, m.url))}</script>` : "",
     "",
   ].join("\n");
+}
+
+// A participant manual, /manuals/tgc-l1/ (Nathan, 21 Nov 2026): the course
+// picture for a link preview, and the languages it can be read in.
+const MANUAL_PICTURES = new Set(["tgc-l1", "tcc-l1"]);
+async function manual(key) {
+  const m = /^(tgc|tcc|tec|twc)-(l\d)$/i.exec(key || "");
+  if (!m) return null;
+  const brand = m[1].toLowerCase(), level = m[2].toLowerCase();
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/manuals?brand=eq.${brand}&level=eq.${level}&active=eq.true&select=label,sort_order&order=sort_order.asc`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+  });
+  const rows = r.ok ? await r.json() : [];
+  if (!rows || !rows.length) return null;
+  const name = `${brand.toUpperCase()} Level ${level.slice(1)}`;
+  const langs = rows.map((x) => x.label).filter(Boolean).join(", ");
+  const pic = `${brand}-${level}`;
+  return {
+    title: `${name} Participant Manual — BirdBox Coaching`,
+    description: `The ${BRAND[brand]} Level ${level.slice(1)} participant manual, to read online.` + (langs ? ` In ${langs}.` : ""),
+    image: `${SITE}/share/${MANUAL_PICTURES.has(pic) ? "manual-" + pic : "seminar-" + (brand === "tgc" || brand === "tcc" ? brand : "birdbox")}.jpg`,
+  };
 }
 
 async function rest(path) {
@@ -236,4 +259,4 @@ function esc(s) {
   return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-export const config = { path: ["/c/*", "/blog/*", "/trainer-directory/coach/*"] };
+export const config = { path: ["/c/*", "/blog/*", "/trainer-directory/coach/*", "/manuals/*"] };

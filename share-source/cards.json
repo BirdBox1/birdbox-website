@@ -38,5 +38,7 @@
   {"file": "seminar-tgc", "page": null, "brand": "tgc", "photo": "tgc/level-1/hero-tgc-l1.jpeg", "kick": "The Gymnastics Course", "title": "Live seminar", "sub": ""},
   {"file": "seminar-tcc", "page": null, "brand": "tcc", "photo": "tcc/level-1/NG-6445.jpg", "kick": "The Coaches Course", "title": "Live seminar", "sub": ""},
   {"file": "seminar-birdbox", "page": null, "brand": "birdbox", "photo": "brand/NG-7332.jpg", "kick": "BirdBox Coaching", "title": "Live seminar", "sub": ""},
-  {"file": "coach", "page": null, "brand": "directory", "photo": "trainer-directory/hero-directory.jpeg", "kick": "Trainer Directory", "title": "A BirdBox-trained coach", "sub": ""}
+  {"file": "coach", "page": null, "brand": "directory", "photo": "trainer-directory/hero-directory.jpeg", "kick": "Trainer Directory", "title": "A BirdBox-trained coach", "sub": ""},
+  {"file": "manual-tgc-l1", "page": null, "brand": "tgc", "photo": "tgc/level-1/hero-tgc-l1.jpeg", "kick": "The Gymnastics Course", "title": "Level 1 participant manual", "sub": "Read it online, in your language."},
+  {"file": "manual-tcc-l1", "page": null, "brand": "tcc", "photo": "tcc/level-1/NG-6445.jpg", "kick": "The Coaches Course", "title": "Level 1 participant manual", "sub": "Read it online, in your language."}
 ]
