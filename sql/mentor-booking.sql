@@ -79,6 +79,12 @@ alter table public.mentor_availability enable row level security;
 alter table public.mentor_time_off     enable row level security;
 alter table public.mentor_bookings     enable row level security;
 
+-- And no browser role holds any rights on them at all.
+revoke all on public.mentor_settings, public.mentor_availability, public.mentor_time_off, public.mentor_bookings from anon, authenticated;
+
+-- APPLIED 22 Nov 2026 with Nathan's yes (migrations mentor_booking and
+-- mentor_booking_revoke_browser).
+
 -- To undo (nothing else depends on these yet):
 --   drop table public.mentor_bookings, public.mentor_time_off,
 --              public.mentor_availability, public.mentor_settings;
