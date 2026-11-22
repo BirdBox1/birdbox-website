@@ -7,14 +7,16 @@ const initials = (n) => n.split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperC
 const avColour = (id) => ["#2f7fd0","#b0418f","#d1632b","#2f8f6b","#6a5acd","#8a6d1f","#c0392b","#1f7a8c"][[...id].reduce((a,c)=>a+c.charCodeAt(0),0)%8];
 const av = (m, size) => `<span class="av" style="background:${avColour(m.id)}${size?`;width:${size}px;height:${size}px`:""}">${initials(m.name)}</span>`;
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-const DATES = [24,25,26,27,28,29,30];
+const DATES = [23,24,25,26,27,28,29];
 const fmt = (min) => `${String(Math.floor(min/60)).padStart(2,"0")}:${String(min%60).padStart(2,"0")}`;
 
 let ME = "nathan";
 const isAdmin = () => MENTORS[ME].admin;
 const mine = () => MENTEES.filter(m => m.mentor === ME);
 const menteeById = (id) => MENTEES.find(m => m.id === id);
-const nextCall = (m) => { const b = BOOKINGS.filter(b=>b.mentee===m.id).sort((a,b)=>a.day-b.day||a.start-b.start)[0]; return b ? `${DAYS[b.day]} ${DATES[b.day]} Nov · ${fmt(b.start)}` : null; };
+// b.day = days from Mon 23 Nov (the example week); b.date is set for calls booked further ahead.
+const callLabel = (b) => { if (b.date) { const [y,mo,d]=b.date.split("-").map(Number); const dt=new Date(Date.UTC(y,mo-1,d)); return `${dt.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",timeZone:"UTC"}).replace(",","")} · ${fmt(b.start)}`; } return `${DAYS[b.day]} ${DATES[b.day]} Nov · ${fmt(b.start)}`; };
+const nextCall = (m) => { const b = BOOKINGS.filter(b=>b.mentee===m.id).sort((a,b)=>a.day-b.day||a.start-b.start)[0]; return b ? callLabel(b) : null; };
 const videosFor = (m) => VIDEOS.filter(v => v.mentee === m.id);
 function flags(m){
   const f=[];
@@ -66,8 +68,9 @@ ROUTES.today = (el) => {
   if(typeof GUIDES!=="undefined") GUIDES.filter(g=>g.status==="submitted"&&ms.some(m=>m.id===g.owner)).forEach(g=>{const m=menteeById(g.owner);todo.push({ic:"☷",bg:"#efeafc",fg:"#6a3fd6",t:`Review ${m.name.split(" ")[0]}'s lesson guide`,s:`${esc(g.title)} · sent ${g.sent}`,go:`mentee/${m.id}/guides`,m})});
   ms.filter(m=>m.unread).forEach(m=>todo.push({ic:"✉",bg:"var(--accent-soft)",fg:"#1d5fa3",t:`Reply to ${m.name.split(" ")[0]}`,s:`${m.unread} unread`,go:`messages/${m.id}`,m}));
   ms.filter(m=>!m.path.some(p=>p.status==="now")).forEach(m=>todo.push({ic:"☰",bg:"var(--rule2)",fg:"var(--muted)",t:`Set ${m.name.split(" ")[0]}'s next focus`,s:"Nothing assigned this week",go:`mentee/${m.id}/path`,m}));
-  ms.filter(m=>!nextCall(m)).forEach(m=>todo.push({ic:"▦",bg:"var(--warn-soft)",fg:"var(--warn)",t:`${m.name.split(" ")[0]} hasn't booked a call`,s:"Send a nudge or book for them",go:`mentee/${m.id}`,m}));
+  ms.filter(m=>!nextCall(m)&&!m.stage).forEach(m=>todo.push({ic:"▦",bg:"var(--warn-soft)",fg:"var(--warn)",t:`${m.name.split(" ")[0]} hasn't booked a call`,s:"Send a nudge or book for them",go:`mentee/${m.id}`,m}));
   ms.filter(m=>m.pay==="failed").forEach(m=>todo.push({ic:"€",bg:"var(--bad-soft)",fg:"var(--bad)",t:`${m.name.split(" ")[0]}'s payment failed`,s:"Stripe is retrying. Nothing for you to do unless they ask.",go:`mentee/${m.id}`,m}));
+  (window.TODO_HOOKS||[]).forEach((f)=>f(todo, ms));
   const done = ms.flatMap(m=>m.path.filter(p=>p.status==="done"&&p.reflection).map(p=>({m,p}))).slice(0,3);
   el.innerHTML = `<div class="page">
     <div class="ph"><div><div class="eyebrow">${TODAY_LABEL}</div><h1>Morning, ${esc(MENTORS[ME].short)}</h1><p>${today.length} call${today.length===1?"":"s"} today · ${todo.length} thing${todo.length===1?"":"s"} to do · ${ms.length} of ${MENTORS[ME].cap} places filled</p></div>
@@ -314,7 +317,7 @@ function openPal(){ $("pal").classList.remove("hidden"); $("pal-in").value=""; p
 function closePal(){ $("pal").classList.add("hidden"); }
 function palRender(){
   const q=$("pal-in").value.toLowerCase();
-  const pages=[["Today","today"],["My mentees","mentees"],["Review studio","review"],["Calendar & availability","calendar"],["Messages","messages"],["Topic bank","topics"],...(isAdmin()?[["Admin: Overview","a-overview"],["Admin: Allocate mentees","a-allocate"],["Admin: Mentors","a-mentors"],["Admin: Payouts","a-payouts"],["Admin: Content requests","a-content"]]:[])];
+  const pages=[["Today","today"],["My mentees","mentees"],["Review studio","review"],["Calendar & availability","calendar"],["Messages","messages"],["Topic bank","topics"],...(isAdmin()?[["Admin: Overview","a-overview"],["Admin: New mentees","a-allocate"],["Admin: Mentors","a-mentors"],["Admin: Payouts","a-payouts"],["Admin: Content requests","a-content"]]:[])];
   const ms=(isAdmin()?MENTEES.filter(m=>m.mentor):mine()).map(m=>[m.name,"mentee/"+m.id,"Mentee"]);
   const tp=Object.entries(BANK).flatMap(([k,b])=>b.rows.map(r=>[r[0],"topics",b.label,k]));
   palItems=[...ms,...pages.map(p=>[p[0],p[1],"Page"]),...tp].filter(x=>!q||x[0].toLowerCase().includes(q)).slice(0,12);

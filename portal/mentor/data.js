@@ -1,5 +1,5 @@
 // Example data for the mentor portal test version (21 Nov 2026). Nothing real.
-const TODAY_LABEL = "Mon 24 Nov";
+const TODAY_LABEL = "Mon 23 Nov";
 
 const MENTORS = {
   nathan:   {name:"Nathan Bird", short:"Nathan",  admin:true,  courses:["tcc","tgc"], cap:5, colour:"#2f7fd0"},
@@ -44,12 +44,16 @@ let MENTEES = [
   {id:"priya", name:"Priya Shah",     brand:"tgc", mentor:"barney",   cycle:2, week:2, joined:"13 Oct", pay:"paid",   gym:"The Yard, London",
    goal:"Handstand progressions for her masters class", plan:"", planSent:true, unread:0, path:[], notes:"", events:[]},
   {id:"tom",   name:"Tom Gallagher",  brand:"tcc", mentor:null,       cycle:1, week:1, joined:"today",  pay:"paid",   gym:"Galway CrossFit",
-   goal:"", plan:"", planSent:false, unread:0, path:[], notes:"", events:[], level1:"TCC Level 1 · Dublin · Mar 2025"},
+   goal:"", plan:"", planSent:false, unread:0, path:[], notes:"", events:[["today","Paid €280 · TCC Essentials","good"]], level1:"TCC Level 1 · Dublin · Mar 2025",
+   stage:"paid", paidOn:"today", amount:280, tz:"Europe/Dublin", email:"tom.gallagher@example.com",
+   signup:{why:"I coach the evening classes and want to get better at managing big groups and giving feedback that sticks.", times:"Weekday mornings before 9", experience:"3 years coaching, CF-L1, TCC L1"}},
   {id:"ines",  name:"Inês Duarte",    brand:"tgc", mentor:null,       cycle:1, week:1, joined:"yesterday", pay:"paid", gym:"Alfama Fitness, Lisbon",
-   goal:"", plan:"", planSent:false, unread:0, path:[], notes:"", events:[], level1:null, level1Note:"Says: TGC L1 Lisbon, June 2024 (not found under this email)"},
+   goal:"", plan:"", planSent:false, unread:0, path:[], notes:"", events:[["yesterday","Paid €240 · TGC Essentials","good"]], level1:null, level1Note:"Says: TGC L1 Lisbon, June 2024 (not found under this email)",
+   stage:"paid", paidOn:"yesterday", amount:240, tz:"Europe/Lisbon", email:"ines.duarte@example.com",
+   signup:{why:"I want to run a proper gymnastics class at my box and coach the kip safely.", times:"Evenings after 6pm", experience:"5 years coaching, TGC L1"}},
 ];
 
-// Bookings this week (day 0 = Mon 24 Nov). start in minutes from midnight.
+// Bookings this week (day 0 = Mon 23 Nov). start in minutes from midnight.
 let BOOKINGS = [
   {mentor:"nathan", mentee:"sam",   day:0, start:7*60+30, len:30, kind:"wk"},
   {mentor:"nathan", mentee:"aoife", day:0, start:12*60,   len:30, kind:"wk"},

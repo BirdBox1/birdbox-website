@@ -379,6 +379,7 @@ html:not(.gated) #gate{display:none}
 .app.compact .portals{grid-template-columns:1fr;margin:0 6px 8px}
 .app.compact .portals a{font-size:0;padding:7px 0}
 .app.compact .portals a::before{font-size:13px;content:attr(data-ic)}
+.lbtnx{background:#2f7fd0;color:#fff;border:0;border-radius:6px;padding:9px 14px;font-weight:600;font-size:13px}.lbtnx.gh{background:transparent;border:1px solid #332d2b;color:#ece8e4}
 </style>
 </head>
 <body>
@@ -401,7 +402,7 @@ html:not(.gated) #gate{display:none}
     <nav class="nav admin" id="nav-admin">
       <div class="lab">⚙ Admin only</div>
       <a href="#a-overview" data-r="a-overview"><span class="ic">◎</span>Overview</a>
-      <a href="#a-allocate" data-r="a-allocate"><span class="ic">⇄</span>Allocate mentees<span class="ct hot" id="ct-alloc"></span></a>
+      <a href="#a-allocate" data-r="a-allocate"><span class="ic">⇄</span>New mentees<span class="ct hot" id="ct-alloc"></span></a>
       <a href="#a-mentors" data-r="a-mentors"><span class="ic">♟</span>Mentors</a>
       <a href="#a-payouts" data-r="a-payouts"><span class="ic">€</span>Payouts</a>
       <a href="#a-content" data-r="a-content"><span class="ic">✎</span>Content requests<span class="ct" id="ct-content"></span></a>
@@ -417,12 +418,13 @@ html:not(.gated) #gate{display:none}
 <div id="pal" class="pal-bg hidden"><div class="pal"><input id="pal-in" placeholder="Jump to a mentee, page or topic…"><div class="res" id="pal-res"></div></div></div>
 
 <script type="module" src="calendar.js?v=3"></script>
+<script type="module" src="intake.js?v=2"></script>
 <script type="module" src="gate.js?v=1"></script>
 <script src="topics.js?v=1"></script>
 <script src="lg-library.js?v=1"></script>
 <script src="lesson-guide.js?v=1"></script>
-<script src="data.js?v=1"></script>
-<script src="app.js?v=1"></script>
+<script src="data.js?v=3"></script>
+<script src="app.js?v=3"></script>
 <script src="studio.js?v=1"></script>
 </body>
 </html>
