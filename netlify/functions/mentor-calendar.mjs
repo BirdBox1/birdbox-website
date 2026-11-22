@@ -77,8 +77,10 @@ export default async (req) => {
     if (req.method !== "POST") return json({ error: "Use GET or POST" }, 405);
     const body = await req.json().catch(() => ({}));
     const mentor = body.mentor || me.id;
-    const { data: mentorRow } = await db.from("staff").select("id").eq("id", mentor).maybeSingle();
-    if (!mentorRow) return json({ error: "Unknown mentor" }, 400);
+    if (mentor !== me.id) { // only look the mentor up when acting for someone else
+      const { data: mentorRow } = await db.from("staff").select("id").eq("id", mentor).maybeSingle();
+      if (!mentorRow) return json({ error: "Unknown mentor" }, 400);
+    }
 
     if (body.action === "save_availability") {
       const blocks = (Array.isArray(body.blocks) ? body.blocks : []).slice(0, 200)

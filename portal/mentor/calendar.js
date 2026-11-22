@@ -48,7 +48,7 @@ async function mock(method, body = {}, q = {}) {
   const x = body;
   if (x.action === "save_availability") { M.avail = x.blocks; return { ok: true }; }
   if (x.action === "save_settings") { Object.assign(M.settings, x.settings); return { ok: true }; }
-  if (x.action === "add_time_off") { M.off.push({ id: M.seq++, starts_on: x.starts_on, ends_on: x.ends_on || x.starts_on, reason: x.reason }); return { ok: true }; }
+  if (x.action === "add_time_off") { const id = M.seq++; M.off.push({ id, starts_on: x.starts_on, ends_on: x.ends_on || x.starts_on, reason: x.reason }); return { ok: true, id }; }
   if (x.action === "remove_time_off") { M.off = M.off.filter((o) => o.id !== x.id); return { ok: true }; }
   if (x.action === "book") {
     const len = x.kind === "opening" ? settings.opening_minutes : settings.weekly_minutes; const s = Date.parse(x.starts_at), e = s + len * 60000;
@@ -73,11 +73,50 @@ const whenLabel = (iso, tz) => { const z = S.utcToZoned(Date.parse(iso), tz); re
 
 async function load(keepScroll) {
   const q = { from: C.from || "", days: 7 }; if (C.mentor) q.mentor = C.mentor;
-  C.data = await api("GET", null, q);
+  C.data = await api("GET", null, q); C.edit = false;
   C.mentor = C.data.mentor; C.from = C.data.from;
   C.cells = S.blocksToCells(C.data.availability, FIRST, SLOT);
   draw(keepScroll);
 }
+
+// ---------- instant updates, saved in the background ----------
+// The page changes the moment you act; the server catches up quietly.
+function recompute() {
+  const d = C.data;
+  d.availability = S.cellsToBlocks(C.cells, FIRST, SLOT);
+  const seen = new Set(), books = [...d.bookings, ...d.upcoming].filter((b) => !seen.has(b.id) && seen.add(b.id));
+  const args = { settings: d.settings, availability: d.availability, timeOff: d.timeOff, bookings: books };
+  d.slots = { weekly: S.openSlots({ ...args, kind: "weekly", days: 14 }).slice(0, 40), opening: S.openSlots({ ...args, kind: "opening", days: 14 }).slice(0, 40) };
+}
+function status(t) { const st = document.getElementById("cal-save"); if (st) { st.textContent = t; st.style.opacity = 1; if (/✓/.test(t)) setTimeout(() => { if (st.textContent === t) st.style.opacity = .5; }, 1500); } }
+// Editing is deliberate (Nathan, 22 Nov): press "Edit availability", change times and days off,
+// then Save once. Nothing changes by accident.
+function startEdit() { C.edit = true; C.origCells = new Set(C.cells); C.origOff = C.data.timeOff.map((o) => ({ ...o })); draw(true); }
+function dirty() {
+  if (!C.edit) return false;
+  if (C.cells.size !== C.origCells.size || [...C.cells].some((k) => !C.origCells.has(k))) return true;
+  const a = C.data.timeOff.map((o) => o.starts_on + o.ends_on).sort().join(), b = C.origOff.map((o) => o.starts_on + o.ends_on).sort().join();
+  return a !== b;
+}
+function cancelEdit() { C.cells = C.origCells; C.data.timeOff = C.origOff; C.edit = false; recompute(); draw(true); }
+async function saveEdit() {
+  const d = C.data, btn = document.getElementById("ed-save"); if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+  try {
+    const cellsChanged = C.cells.size !== C.origCells.size || [...C.cells].some((k) => !C.origCells.has(k));
+    const jobs = [];
+    if (cellsChanged) jobs.push(api("POST", { action: "save_availability", mentor: d.mentor, blocks: S.cellsToBlocks(C.cells, FIRST, SLOT) }));
+    const now = new Set(d.timeOff.map((o) => o.starts_on + "|" + o.ends_on));
+    C.origOff.filter((o) => !now.has(o.starts_on + "|" + o.ends_on)).forEach((o) => jobs.push(api("POST", { action: "remove_time_off", mentor: d.mentor, id: o.id })));
+    const was = new Set(C.origOff.map((o) => o.starts_on + "|" + o.ends_on));
+    d.timeOff.filter((o) => !was.has(o.starts_on + "|" + o.ends_on)).forEach((o) => jobs.push(api("POST", { action: "add_time_off", mentor: d.mentor, starts_on: o.starts_on, ends_on: o.ends_on }).then((r) => { o.id = r.id; })));
+    await Promise.all(jobs);
+    C.edit = false; recompute(); draw(true); status("Availability saved ✓");
+  } catch (e) { toast("Not saved: " + e.message); if (btn) { btn.disabled = false; btn.textContent = "Save availability"; } }
+}
+// don't lose unsaved changes by moving away
+function leaveOk() { return !dirty() || confirm("You have unsaved availability changes. Leave without saving?"); }
+window.addEventListener("beforeunload", (e) => { if (dirty()) { e.preventDefault(); e.returnValue = ""; } });
+window.addEventListener("hashchange", () => { if (C.edit && !location.hash.startsWith("#calendar")) { if (dirty() && !confirm("You have unsaved availability changes. Leave without saving?")) { history.back(); return; } C.edit = false; } });
 
 // ---------- page ----------
 ROUTES.calendar = async (el) => {
@@ -93,7 +132,7 @@ function draw(keepScroll) {
   const off = (date) => d.timeOff.find((o) => date >= o.starts_on && date <= o.ends_on);
   const books = d.bookings.filter((b) => b.status !== "cancelled").map((b) => ({ ...b, z: S.utcToZoned(Date.parse(b.starts_at), tz), len: (Date.parse(b.ends_at) - Date.parse(b.starts_at)) / 60000 }));
   const hours = C.cells.size * SLOT / 60;
-  let grid = `<div class="hd"></div>` + dates.map((dt, i) => { const o = off(dt); return `<div class="hd ${dt === today ? "today" : ""}" data-day="${dt}" title="${o ? "Day off. Click to make it bookable again" : "Click to take this day off"}" style="cursor:pointer">${DOW[i]}<small>${dateLabel(dt)}${o ? " · off" : ""}</small></div>`; }).join("");
+  let grid = `<div class="hd"></div>` + dates.map((dt, i) => { const o = off(dt); return `<div class="hd ${dt === today ? "today" : ""}" ${C.edit ? `data-day="${dt}" title="${o ? "Day off. Tap to make it bookable again" : "Tap to take this day off"}" style="cursor:pointer"` : ""}>${DOW[i]}<small>${dateLabel(dt)}${o ? " · off" : ""}</small></div>`; }).join("");
   for (let r = 0; r < SLOTS; r++) {
     const t = FIRST + r * SLOT;
     grid += `<div class="t">${t % 60 === 0 ? fmtMin(t) : ""}</div>`;
@@ -105,13 +144,14 @@ function draw(keepScroll) {
   }
   const sel = (key, opts, unit) => `<select class="in" style="width:120px" data-set="${key}">${opts.map((v) => `<option value="${v}" ${+s[key] === v ? "selected" : ""}>${v} ${unit}</option>`).join("")}</select>`;
   el.innerHTML = `<div class="page">
-    <div class="ph"><div><h1>Calendar &amp; availability <span class="chip good" style="vertical-align:4px">Saved for real</span></h1><p>Drag across the grid to open times for booking; drag over open times to close them. Click a day to take it off. Times shown in ${esc(tz)}.</p></div>
+    <div class="ph"><div><h1>Calendar &amp; availability <span class="chip good" style="vertical-align:4px">Saved for real</span></h1><p>${C.edit ? "Tap or drag to open times; tap or drag over open times to close them. Tap a day's name to take it off. Then save." : "Your bookable times for mentees. Press Edit availability to change them."} Times shown in ${esc(tz)}.</p></div>
       <div class="row wrap">${d.mentors.length > 1 ? `<select class="in" style="width:auto" id="cal-mentor">${d.mentors.map((m) => `<option value="${m.id}" ${m.id === d.mentor ? "selected" : ""}>${esc(m.name)}${m.id === d.me.id ? " (me)" : ""}</option>`).join("")}</select>` : ""}
         <div class="seg"><button id="cal-prev">‹</button><button class="${d.from === S.mondayOf(today) ? "on" : ""}" id="cal-now">This week</button><button id="cal-next">›</button></div>
-        <button class="btn pri" id="cal-book">＋ Book a call</button></div></div>
+        ${C.edit ? "" : `<button class="btn" id="cal-edit">✎ Edit availability</button>`}<button class="btn pri" id="cal-book">＋ Book a call</button></div></div>
+    ${C.edit ? `<div class="card pad row between wrap" style="margin-bottom:12px;background:#fff8e6;border-color:#f0d58a"><div><b>Editing availability</b> <span class="small muted" id="ed-note">${dirty() ? "Unsaved changes" : "No changes yet"}</span></div><div class="row"><button class="btn" id="ed-cancel">Cancel</button><button class="btn pri" id="ed-save">Save availability</button></div></div>` : ""}
     <div class="cal-wrap">
-      <div class="card"><div class="pad row between wrap" style="padding:10px 14px;border-bottom:1px solid var(--rule)"><div class="legend"><span><i style="background:#e7f1fb;border:1px solid #9cc4ec"></i>Open to book</span><span><i style="background:var(--accent)"></i>Weekly call</span><span><i style="background:var(--good)"></i>Opening call</span><span><i style="background:#ebe8e2"></i>Day off</span></div><span class="small muted" id="cal-status">${hours} h open a week · ${books.filter((b) => b.status === "booked").length} booked this week</span></div>
-        <div class="calscroll"><div class="cal" id="cal">${grid}</div></div></div>
+      <div class="card"><div class="pad row between wrap" style="padding:10px 14px;border-bottom:1px solid var(--rule)"><div class="legend"><span><i style="background:#e7f1fb;border:1px solid #9cc4ec"></i>Open to book</span><span><i style="background:var(--accent)"></i>Weekly call</span><span><i style="background:var(--good)"></i>Opening call</span><span><i style="background:#ebe8e2"></i>Day off</span></div><span class="small muted"><span id="cal-status">${hours} h open a week · ${books.filter((b) => b.status === "booked").length} booked this week</span> <b id="cal-save" style="color:var(--good);margin-left:6px;transition:opacity .4s"></b></span></div>
+        <div class="calscroll"><div class="cal ${C.edit ? "editing" : "viewing"}" id="cal">${grid}</div></div></div>
       <div class="stack" style="gap:16px">
         <div class="card pad"><h2 class="sec">Upcoming calls</h2>${d.upcoming.length ? `<div class="stack" style="gap:6px">${d.upcoming.slice(0, 8).map((b) => `<div class="row between" style="cursor:pointer" data-b="${b.id}"><div><b style="font-size:13px">${esc(b.mentee_name)}</b><div class="small muted">${whenLabel(b.starts_at, tz)} · ${b.kind === "opening" ? "opening, 60 min" : "weekly"}</div></div><span class="muted">›</span></div>`).join("")}</div>` : `<p class="small muted" style="margin:0">No calls booked yet.</p>`}</div>
         <div class="card pad"><h2 class="sec">Booking rules</h2><div class="stack" style="gap:10px">
@@ -124,7 +164,7 @@ function draw(keepScroll) {
           <span class="small muted">Mentees always see times in their own time zone.</span></div></div>
         <div class="card pad"><h2 class="sec">What a mentee sees</h2>
           <div class="seg" style="margin-bottom:8px"><button class="${C.kind !== "opening" ? "on" : ""}" data-kind="weekly">Weekly (${s.weekly_minutes} min)</button><button class="${C.kind === "opening" ? "on" : ""}" data-kind="opening">Opening (${s.opening_minutes} min)</button></div>
-          <div class="bookprev">${(d.slots[C.kind === "opening" ? "opening" : "weekly"] || []).slice(0, 12).map((x) => `<button data-slot="${x.starts_at}">${whenLabel(x.starts_at, tz).replace(/ · /, " ")}</button>`).join("") || `<span class="small muted">No open times in the next two weeks. Paint some on the grid.</span>`}</div>
+          <div class="bookprev">${(d.slots[C.kind === "opening" ? "opening" : "weekly"] || []).slice(0, 12).map((x) => `<button data-slot="${x.starts_at}">${whenLabel(x.starts_at, tz).replace(/ · /, " ")}</button>`).join("") || `<span class="small muted">No open times in the next two weeks. Press Edit availability to add some.</span>`}</div>
           <p class="small muted" style="margin:8px 0 0">Click one to book it for a mentee.</p></div>
       </div></div></div>`;
   if (scroll != null) el.querySelector(".calscroll").scrollTop = scroll; else { const sc = el.querySelector(".calscroll"); if (sc) sc.scrollTop = 18 * 2; }
@@ -133,32 +173,39 @@ function draw(keepScroll) {
 
 function wire() {
   const el = document.getElementById("main"), d = C.data, cal = document.getElementById("cal");
-  document.getElementById("cal-prev").onclick = () => { C.from = S.addDays(C.from, -7); load(); };
-  document.getElementById("cal-next").onclick = () => { C.from = S.addDays(C.from, 7); load(); };
-  document.getElementById("cal-now").onclick = () => { C.from = null; load(); };
-  const ms = document.getElementById("cal-mentor"); if (ms) ms.onchange = () => { C.mentor = ms.value; C.from = null; load(); };
+  // the weekly pattern is the same every week, so moving week keeps your edit open
+  const shift = (from) => { if (C.edit) { C.from = from; const keep = { cells: C.cells, oc: C.origCells, oo: C.origOff, off: C.data.timeOff }; load().then(() => { C.edit = true; C.cells = keep.cells; C.origCells = keep.oc; C.origOff = keep.oo; const ids = new Set(C.data.timeOff.map((o) => o.starts_on + o.ends_on)); keep.off.forEach((o) => { if (!ids.has(o.starts_on + o.ends_on)) C.data.timeOff.push(o); }); recompute(); draw(true); }); } else { C.from = from; load(); } };
+  document.getElementById("cal-prev").onclick = () => shift(S.addDays(C.from, -7));
+  document.getElementById("cal-next").onclick = () => shift(S.addDays(C.from, 7));
+  document.getElementById("cal-now").onclick = () => shift(null);
+  const ms = document.getElementById("cal-mentor"); if (ms) ms.onchange = () => { if (!leaveOk()) { ms.value = d.mentor; return; } C.edit = false; C.mentor = ms.value; C.from = null; load(); };
   document.getElementById("cal-book").onclick = () => bookDialog();
+  const eb = document.getElementById("cal-edit"); if (eb) eb.onclick = startEdit;
+  const ec = document.getElementById("ed-cancel"); if (ec) ec.onclick = cancelEdit;
+  const es = document.getElementById("ed-save"); if (es) es.onclick = saveEdit;
   el.querySelectorAll("[data-kind]").forEach((b) => b.onclick = () => { C.kind = b.dataset.kind; draw(true); });
   el.querySelectorAll("[data-slot]").forEach((b) => b.onclick = () => bookDialog({ starts_at: b.dataset.slot, kind: C.kind === "opening" ? "opening" : "weekly" }));
   el.querySelectorAll("[data-b]").forEach((b) => b.onclick = (e) => { e.stopPropagation(); callDialog(b.dataset.b); });
   el.querySelectorAll("[data-set]").forEach((x) => x.onchange = async () => {
-    try { await api("POST", { action: "save_settings", mentor: d.mentor, settings: { [x.dataset.set]: x.dataset.set === "tz" ? x.value : +x.value } }); toast("Saved"); await load(true); } catch (e) { toast(e.message); }
+    const key = x.dataset.set, val = key === "tz" ? x.value : +x.value;
+    d.settings[key] = val; recompute(); draw(true); status("Saving…");
+    try { await api("POST", { action: "save_settings", mentor: d.mentor, settings: { [key]: val } }); status("Saved ✓"); if (key === "tz") await load(true); }
+    catch (e) { toast("Not saved: " + e.message); await load(true); }
   });
-  el.querySelectorAll("[data-day]").forEach((h) => h.onclick = async () => {
+  el.querySelectorAll("[data-day]").forEach((h) => h.onclick = () => {
     const date = h.dataset.day, o = d.timeOff.find((t) => date >= t.starts_on && date <= t.ends_on);
-    try { if (o) await api("POST", { action: "remove_time_off", mentor: d.mentor, id: o.id }); else await api("POST", { action: "add_time_off", mentor: d.mentor, starts_on: date, ends_on: date }); toast(o ? "Day is bookable again" : "Day taken off"); await load(true); } catch (e) { toast(e.message); }
+    if (o) d.timeOff = d.timeOff.filter((t) => t !== o); else d.timeOff.push({ id: null, starts_on: date, ends_on: date });
+    recompute(); draw(true);
   });
   // painting: drag fills the whole rectangle, saved when you let go
   const fill = (k) => { const [d0, s0] = C.anchor.split("-").map(Number), [d1, s1] = k.split("-").map(Number);
     for (let a = Math.min(d0, d1); a <= Math.max(d0, d1); a++) for (let b = Math.min(s0, s1); b <= Math.max(s0, s1); b++) { const kk = `${a}-${b}`; if (C.paint === "add") C.cells.add(kk); else C.cells.delete(kk); const c = cal.querySelector(`[data-k="${kk}"]`); if (c) c.classList.toggle("av", C.paint === "add"); } };
-  cal.addEventListener("mousedown", (e) => { const c = e.target.closest(".c"); if (!c || e.target.closest(".ev")) return; C.anchor = c.dataset.k; C.paint = C.cells.has(C.anchor) ? "del" : "add"; fill(C.anchor); e.preventDefault(); });
+  cal.addEventListener("mousedown", (e) => { if (!C.edit) return; const c = e.target.closest(".c"); if (!c || e.target.closest(".ev")) return; C.anchor = c.dataset.k; C.paint = C.cells.has(C.anchor) ? "del" : "add"; fill(C.anchor); e.preventDefault(); });
   cal.addEventListener("mousemove", (e) => { if (!C.paint) return; const c = e.target.closest(".c"); if (c && c.dataset.k) fill(c.dataset.k); });
 }
-window.addEventListener("mouseup", async () => {
+window.addEventListener("mouseup", () => {
   if (!C.paint) return; C.paint = null;
-  const st = document.getElementById("cal-status"); if (st) st.textContent = "Saving…";
-  try { await api("POST", { action: "save_availability", mentor: C.data.mentor, blocks: S.cellsToBlocks(C.cells, FIRST, SLOT) }); await load(true); toast("Availability saved"); }
-  catch (e) { toast(e.message); }
+  recompute(); draw(true); // saved only when you press Save
 });
 
 // ---------- dialogs ----------

@@ -148,7 +148,9 @@ tr.click{cursor:pointer} tr.click:hover td{background:#faf9f7}
 .cal .hd small{display:block;color:var(--muted);font-weight:400}
 .cal .hd.today{color:var(--accent)}
 .cal .t{color:var(--muted);text-align:right;padding-right:6px;height:18px;transform:translateY(-6px);font-variant-numeric:tabular-nums}
-.cal .c{height:18px;border-left:1px solid var(--rule2);position:relative;cursor:crosshair}
+.cal .c{height:18px;border-left:1px solid var(--rule2);position:relative;cursor:default}
+.cal.editing .c{cursor:crosshair}
+.cal.editing{outline:2px solid #f0d58a;outline-offset:-2px}
 .cal .c.hr{border-top:1px solid var(--rule2)}
 .cal .c.av{background:#e7f1fb;width:auto;height:18px;border-radius:0}
 .cal .c.av.top{border-top:2px solid #9cc4ec}
@@ -414,7 +416,7 @@ html:not(.gated) #gate{display:none}
 </div>
 <div id="pal" class="pal-bg hidden"><div class="pal"><input id="pal-in" placeholder="Jump to a mentee, page or topic…"><div class="res" id="pal-res"></div></div></div>
 
-<script type="module" src="calendar.js?v=1"></script>
+<script type="module" src="calendar.js?v=3"></script>
 <script type="module" src="gate.js?v=1"></script>
 <script src="topics.js?v=1"></script>
 <script src="lg-library.js?v=1"></script>
