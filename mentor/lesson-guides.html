@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en" class="gated">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Lesson Guides</title>
+<style>
+:root{--bg:#141110;--card:#1d1918;--line:#332d2b;--fg:#ece8e4;--mut:#9a928c;--blue:#2f7fd0;--tcc:#298DE9;--tgc:#E0555A}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button{font:inherit;cursor:pointer;color:inherit}
+input,select,textarea{font:inherit;color:inherit}
+.hidden{display:none!important}
+.strip{background:#ffd84d;color:#16181b;font-size:12px;text-align:center;padding:4px 10px}
+.strip a{color:#16181b;font-weight:600}
+.bar{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-bottom:1px solid var(--line);gap:10px;flex-wrap:wrap}
+.bar .brand{display:flex;gap:10px;align-items:center;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--mut)}
+.bar .brand img{height:26px}
+.crumb{font-size:13px;color:var(--mut)} .crumb b{color:var(--fg)}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 80px}
+h1{font-size:26px;margin:0;letter-spacing:.02em;text-transform:uppercase}
+.sub{color:var(--mut);margin:4px 0 0}
+.btn{background:var(--blue);color:#fff;border:0;border-radius:6px;padding:10px 16px;font-weight:600;font-size:14px;display:inline-flex;gap:8px;align-items:center}
+.btn.gh{background:transparent;border:1px solid var(--line);color:var(--fg)}
+.btn.sm{padding:6px 11px;font-size:13px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+.invite{background:linear-gradient(90deg,#1b2433,#1d1918);border:1px solid #2f7fd0;border-radius:10px;padding:14px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:20px 0}
+.invite .ic{font-size:26px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin-top:12px}
+.gcard{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;transition:border-color .15s}
+.gcard:hover{border-color:#5a514c}
+.gcard .top{padding:12px 14px;display:flex;flex-direction:column;gap:2px;flex:1}
+.gcard .top b{font-size:16px}
+.gcard .top span{font-size:12px;color:var(--mut)}
+.gcard .mini{background:#fff;padding:6px 8px}
+.gcard .foot{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-top:1px solid var(--line);font-size:12px}
+.pill{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:10px}
+.pill.draft{background:#2a2422;color:var(--mut)} .pill.submitted{background:rgba(47,127,208,.2);color:#8cbcf0} .pill.reviewed{background:rgba(47,163,107,.2);color:#7fd6a8} .pill.example{background:rgba(212,138,42,.18);color:#f0b86a}
+.sec-h{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);margin:28px 0 0;font-weight:600}
+.newcard{border:2px dashed #4a423e;border-radius:10px;display:grid;place-items:center;text-align:center;padding:24px;cursor:pointer;color:var(--mut);min-height:180px}
+.newcard:hover{border-color:var(--blue);color:var(--fg)}
+.newcard b{display:block;font-size:17px;color:var(--fg)}
+/* modal */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:50;display:flex;justify-content:center;align-items:flex-start;padding:5vh 16px;overflow-y:auto}
+.modal{background:#1d1918;border:1px solid var(--line);border-radius:12px;width:min(720px,100%);padding:22px;display:flex;flex-direction:column;gap:16px}
+.modal h2{margin:0;font-size:20px}
+.step{display:flex;flex-direction:column;gap:8px}
+.step>b{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+.step>b i{font-style:normal;display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--blue);color:#fff;margin-right:6px;font-size:11px;letter-spacing:0}
+.in{width:100%;background:#110e0d;border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.in:focus{outline:0;border-color:var(--blue)}
+.tpls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tpl span{display:block;line-height:1.35}
+@media (max-width:600px){.tpls{grid-template-columns:1fr}}
+.tpl{background:#110e0d;border:1px solid var(--line);border-radius:8px;padding:10px 12px;text-align:left}
+.tpl b{display:block}
+.tpl span{font-size:12px;color:var(--mut)}
+.tpl.on{border-color:var(--blue);background:#16202d}
+.mv{display:flex;flex-wrap:wrap;gap:6px}
+.mv button{background:#110e0d;border:1px solid var(--line);border-radius:16px;padding:5px 12px;font-size:13px}
+.mv button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.chk{display:flex;gap:8px;align-items:center;font-size:13px;color:#d6d0ca}
+.chk input{accent-color:var(--blue);width:16px;height:16px}
+/* editor */
+.tool{position:sticky;top:0;z-index:20;background:rgba(20,17,16,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tool .t{font-weight:700;font-size:16px;flex:1;min-width:150px}
+.tool .saved{font-size:12px;color:var(--mut)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{background:transparent;border:0;padding:7px 12px;font-size:13px;color:var(--mut)}
+.seg button.on{background:#ece8e4;color:#16181b;font-weight:600}
+.sheet{max-width:1180px;margin:20px auto;padding:0 16px}
+.mnotes{max-width:1180px;margin:16px auto 0;padding:0 16px}
+.mnotes .box{background:#2a2212;border:1px solid #5a4a1a;border-radius:8px;padding:12px 14px;color:#f0cf8a;font-size:14px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#ece8e4;color:#16181b;padding:10px 16px;border-radius:8px;font-size:14px;z-index:90;font-weight:600}
+#printhost{position:absolute;left:-10000px;top:0;width:1100px}
+
+html.gated body>*:not(#gate){display:none!important}
+#gate{position:fixed;inset:0;display:grid;place-items:center;background:#0d0e10;color:#fff;z-index:300}
+html:not(.gated) #gate{display:none}
+#gate .gbox{text-align:center;max-width:380px;padding:24px;display:flex;flex-direction:column;gap:10px;align-items:center}
+#gate p{color:#aab2ba;margin:0}#gate .gbtn{background:#2f7fd0;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:600}
+</style>
+</head>
+<body>
+<div id="gate" class="hidden"></div>
+<div class="strip">PREVIEW of the mentee side · admins only · saved only in this browser · <a href="/mentor/">‹ Mentor portal</a></div>
+<div class="bar"><div class="brand"><img src="/brand/birdbox-mark.png" alt="">BirdBox Learn</div><div class="crumb">Mentorship › <b>Lesson guides</b></div>
+  <div class="row"><select id="who" class="in" style="width:auto;padding:5px 8px;font-size:13px"><option value="sam">Signed in as Sam Rivera (TCC)</option><option value="aoife">Signed in as Aoife Byrne (TGC)</option></select></div></div>
+<div id="app"></div>
+<div id="printhost" class="lg-print"></div>
+
+<script type="module" src="gate.js?v=1"></script>
+<script src="lg-library.js?v=1"></script>
+<script src="lesson-guide.js?v=1"></script>
+<script>
+const $=(id)=>document.getElementById(id);
+const esc=(s)=>String(s??"").replace(/[&<>"']/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(t){const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),2400)}
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const USERS={sam:{name:"Sam Rivera",brand:"tcc",mentor:"Nathan"},aoife:{name:"Aoife Byrne",brand:"tgc",mentor:"Nathan"}};
+let who="sam";
+const K=()=>"lg-guides-"+who, KP=()=>"lg-profile-"+who;
+let guides, profile;
+function load(){ guides=store.get(K(),null); profile=store.get(KP(),null);
+  if(!profile) profile={...LG.PROFILE_DEFAULT, name:USERS[who].name, brand:USERS[who].brand, philosophy: who==="sam"?"Every athlete leaves feeling seen, safer and a little better than when they came in.":""};
+  if(!guides){ guides=[]; if(who==="sam"){ const g=LG.quickBuild({wod:"Warm-up and back squat, 6am class",template:"strength",moves:["Back squat"],profile}); g.status="submitted"; g.updated="19 Nov"; g.date="2026-11-19"; guides.push(g);} }
+}
+const save=()=>{store.set(K(),guides);store.set(KP(),profile);const s=$("saved");if(s){s.textContent="Saved just now"}};
+$("who").onchange=()=>{who=$("who").value;load();list()};
+
+// ---------- list ----------
+function miniSVG(g){return LG.timelineSVG(g)}
+function list(){
+  const B=LG.BRANDS[profile.brand];
+  $("app").innerHTML=`<div class="wrap">
+    <div class="row between"><div><h1>Lesson guides</h1><p class="sub">Plan a session on one page. Save it, copy it, send it to your mentor, print it.</p></div>
+      <div class="row"><button class="btn gh" id="prof">My profile</button><button class="btn" id="new1">＋ New guide</button></div></div>
+    ${who==="sam"?`<div class="invite"><span class="ic">✉</span><div style="flex:1;min-width:220px"><b>${esc(USERS[who].mentor)} asked for a lesson guide before your next coaching video</b><div class="sub" style="margin:0">Plan the session, send it, then film it. Due Thu 27 Nov.</div></div><button class="btn sm" id="new2">Start it now</button></div>`:""}
+    <div class="sec-h">Your guides · ${guides.length}</div>
+    <div class="grid"><div class="newcard" id="new3"><div><b>＋ New guide</b>About 3 minutes: pick the session type and the movements, and it fills in the rest for you to adjust.</div></div>
+      ${guides.map(g=>`<div class="gcard" data-id="${g.id}"><div class="mini">${miniSVG(g)}</div><div class="top"><b>${esc(g.title)}</b><span>${esc(LG.BRANDS[g.brand]?.short||"")} · ${g.length} min · ${g.timeline.length} parts</span></div><div class="foot"><span class="pill ${g.status}">${g.status==="submitted"?"Sent to mentor":g.status==="reviewed"?"Reviewed":"Draft"}</span><span style="color:var(--mut)">${esc(g.updated||"")}</span></div></div>`).join("")}</div>
+    <div class="sec-h">BirdBox examples (TCC Level 2)</div>
+    <div class="grid">${Object.values(LG.EXAMPLES).map(g=>`<div class="gcard" data-ex="${g.id}"><div class="mini">${miniSVG(g)}</div><div class="top"><b>${esc(g.title)}</b><span>Open to read, or copy and adapt</span></div><div class="foot"><span class="pill example">Example</span><span></span></div></div>`).join("")}</div>
+  </div>`;
+  ["new1","new2","new3"].forEach(id=>$(id)&&($(id).onclick=()=>quick()));
+  $("prof").onclick=profileModal;
+  document.querySelectorAll("[data-id]").forEach(c=>c.onclick=()=>editor(guides.find(g=>g.id===c.dataset.id)));
+  document.querySelectorAll("[data-ex]").forEach(c=>c.onclick=()=>editor(Object.values(LG.EXAMPLES).find(g=>g.id===c.dataset.ex),{example:true}));
+}
+
+// ---------- 3-minute quick build ----------
+function quick(){
+  let tpl="strength", moves=[], q="", cat="", custom=[];
+  const last=guides[0];
+  const CATS=LG_LIB.CATS;
+  const bg=document.createElement("div"); bg.className="mbg";
+  const draw=(keepFocus)=>{
+    const ql=q.toLowerCase();
+    const groups=Object.entries(CATS).map(([c,list])=>[c,list.map(x=>x[0]).filter(n=>(!ql||n.toLowerCase().includes(ql))&&(!cat||c===cat||ql))]).filter(([c,l])=>l.length);
+    bg.innerHTML=`<div class="modal" style="width:min(820px,100%)"><div class="row between"><h2>New lesson guide</h2><button class="btn gh sm" id="qx">✕</button></div>
+    <div class="step"><b><i>1</i>The workout</b><input class="in" id="qw" placeholder="e.g. 5x5 Back Squat, or type a benchmark: Fran, Diane, Murph…" value="${esc(bg.dataset.w||"")}"><div id="qbench" style="font-size:12px;color:#8cbcf0"></div></div>
+    <div class="step"><b><i>2</i>Type of session</b><div class="tpls">${Object.entries(LG.TEMPLATES).map(([k,t])=>`<button class="tpl ${k===tpl?"on":""}" data-t="${k}"><b>${t.name}</b><span>${t.desc}</span></button>`).join("")}</div></div>
+    <div class="step"><b><i>3</i>Movements in the session ${moves.length?`<span style="text-transform:none;letter-spacing:0;color:var(--fg)">· ${moves.length} chosen</span>`:""}</b>
+      ${moves.length?`<div class="mv">${moves.map(m=>`<button class="on" data-m="${esc(m)}">${esc(m)} ✕</button>`).join("")}</div>`:""}
+      <div class="row" style="gap:8px"><input class="in" id="qs" style="flex:1;min-width:200px" placeholder="Search ${Object.values(CATS).flat().length} movements, e.g. handstand, lunge, row" value="${esc(q)}">
+        <button class="btn gh sm" id="qadd" title="Add a movement that isn't listed">＋ My own</button></div>
+      <div class="mv" style="gap:5px">${["",...Object.keys(CATS)].map(c=>`<button class="${c===cat?"on":""}" data-cat="${esc(c)}" style="font-size:12px;padding:3px 10px">${c||"All"}</button>`).join("")}</div>
+      <div style="max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:8px">
+        ${groups.map(([c,l])=>`<div><div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);margin-bottom:4px">${c}</div><div class="mv">${l.map(m=>`<button class="${moves.includes(m)?"on":""}" data-m="${esc(m)}">${esc(m)}</button>`).join("")}</div></div>`).join("")||`<span style="color:var(--mut);font-size:13px">Nothing found. Use “＋ My own” to add it.</span>`}
+      </div>
+      <span style="font-size:12px;color:var(--mut)">These fill in the injury areas, interventions, exercises, metaphors and scaling. You can change any of it after.</span></div>
+    ${last?`<label class="chk"><input type="checkbox" id="qlast" checked> Keep my athlete and leadership words from “${esc(last.title)}”</label>`:""}
+    <label class="chk"><input type="checkbox" checked disabled> Coaching definition and philosophy come from your profile</label>
+    <div class="row" style="justify-content:flex-end"><button class="btn gh" id="qblank">Start blank</button><button class="btn" id="qgo">Build my guide ›</button></div></div>`;
+    $("qx").onclick=()=>bg.remove();
+    const bench=()=>{const k=($("qw").value||"").trim().toLowerCase().split(/[\s:]/)[0];const b=LG_LIB.BENCH[k];$("qbench").innerHTML=b&&!moves.length?`Looks like <b>${esc(b[0])}</b>. <a href="#" id="qbuse" style="color:#8cbcf0">Fill in its movements</a>`:"";const u=$("qbuse");if(u)u.onclick=(e)=>{e.preventDefault();bg.dataset.w=b[0];tpl=b[1];moves=[...b[2]];draw()}};
+    $("qw").oninput=(e)=>{bg.dataset.w=e.target.value;bench()}; bench();
+    bg.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{tpl=b.dataset.t;draw()});
+    bg.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{const m=b.dataset.m;moves=moves.includes(m)?moves.filter(x=>x!==m):[...moves,m];draw()});
+    bg.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{cat=b.dataset.cat;draw()});
+    const qs=$("qs"); qs.oninput=()=>{q=qs.value;const p=qs.selectionStart;draw(true);const n=$("qs");n.focus();n.setSelectionRange(p,p)};
+    qs.onkeydown=(e)=>{if(e.key==="Enter"){const first=bg.querySelector("[data-m]:not(.on)");if(first)first.click()}};
+    $("qadd").onclick=()=>{const n=prompt("Movement name",q);if(!n)return;const name=n.trim();if(!LG.MOVES[name]){LG.MOVES[name]={areas:[],pre:[],ex:[],met:{},scale:""};(CATS["My movements"]=CATS["My movements"]||[]).push([name,"",""]);}moves=[...new Set([...moves,name])];q="";draw()};
+    const make=(blank)=>{const g=LG.quickBuild({wod:blank?"":($("qw").value.trim()), template:tpl, moves:blank?[]:moves, profile, from:(!blank&&$("qlast")?.checked)?last:null}); g.updated="today"; guides.unshift(g); save(); bg.remove(); editor(g); toast(blank?"Blank guide ready":"Guide built. Read it through and adjust anything.");};
+    $("qgo").onclick=()=>{ if(!moves.length&&!$("qw").value.trim()){toast("Name the workout or pick a movement");return} make(false) };
+    $("qblank").onclick=()=>make(true);
+  };
+  document.body.append(bg); draw(); setTimeout(()=>$("qw")&&$("qw").focus(),0);
+}
+
+// ---------- profile ----------
+function profileModal(){
+  const bg=document.createElement("div"); bg.className="mbg";
+  bg.innerHTML=`<div class="modal"><div class="row between"><h2>My profile</h2><button class="btn gh sm" id="px">✕</button></div>
+    <p class="sub" style="margin:0">Written once. Every new guide copies these in, so you never type them again.</p>
+    <div class="step"><b>Name</b><input class="in" id="pn" value="${esc(profile.name)}"></div>
+    <div class="step"><b>Course branding</b><select class="in" id="pb">${Object.entries(LG.BRANDS).map(([k,b])=>`<option value="${k}" ${profile.brand===k?"selected":""}>${b.short} · ${b.name}</option>`).join("")}</select></div>
+    <div class="step"><b>Coaching definition</b><textarea class="in" id="pd" rows="3">${esc(profile.definition)}</textarea></div>
+    <div class="step"><b>Coaching philosophy</b><textarea class="in" id="pp" rows="3" placeholder="What you believe coaching is for">${esc(profile.philosophy)}</textarea></div>
+    <label class="chk"><input type="checkbox" id="pall" checked> Also update my draft guides</label>
+    <div class="row" style="justify-content:flex-end"><button class="btn" id="psave">Save</button></div></div>`;
+  document.body.append(bg);
+  $("px").onclick=()=>bg.remove();
+  $("psave").onclick=()=>{ Object.assign(profile,{name:$("pn").value,brand:$("pb").value,definition:$("pd").value,philosophy:$("pp").value});
+    if($("pall").checked) guides.filter(g=>g.status==="draft").forEach(g=>{g.definition=profile.definition;g.philosophy=profile.philosophy;g.coach=profile.name});
+    save(); bg.remove(); toast("Profile saved"); list(); };
+}
+
+// ---------- editor ----------
+let mode="edit";
+function editor(g,opt={}){
+  const ex=!!opt.example; mode= ex ? "view" : (g.status==="submitted"?"view":"edit");
+  window.scrollTo(0,0);
+  const draw=()=>{
+    $("app").innerHTML=`<div class="tool"><button class="btn gh sm" id="back">‹ Guides</button><span class="t">${esc(g.title)}</span><span class="saved" id="saved">${ex?"BirdBox example":"Saved"}</span>
+      ${ex?"":`<div class="seg"><button class="${mode==="edit"?"on":""}" data-mode="edit">Edit</button><button class="${mode==="view"?"on":""}" data-mode="view">Preview</button></div>`}
+      <button class="btn gh sm" id="dup">⧉ ${ex?"Copy and adapt":"Duplicate"}</button><button class="btn gh sm" id="pdf">⤓ Download PDF</button>
+      ${ex?"":g.status==="submitted"?`<span class="pill submitted">Sent to ${esc(USERS[who].mentor)}</span>`:`<button class="btn sm" id="send">Send to ${esc(USERS[who].mentor)} ›</button>`}</div>
+      ${g.status==="reviewed"&&g.notes&&Object.values(g.notes).some(Boolean)?`<div class="mnotes"><div class="box"><b>${esc(USERS[who].mentor)} has left notes on your guide.</b> They're in yellow on each section below.</div></div>`:""}
+      ${g.status==="submitted"&&!ex?`<div class="mnotes"><div class="box" style="background:#16202d;border-color:#2f7fd0;color:#cfe2f7">Sent to ${esc(USERS[who].mentor)}. You can still change it: press Edit.</div></div>`:""}
+      <div class="sheet" id="sheet"></div>`;
+    LG.renderGuide($("sheet"), g, {edit:mode==="edit", profileHint:true, notes:"view", onChange:()=>{g.updated="today";save()}});
+    $("back").onclick=list;
+    document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{mode=b.dataset.mode;draw()});
+    $("dup").onclick=()=>{const c=LG.clone(g);c.id=LG.uid();c.example=false;c.status="draft";c.title=(ex?"":"Copy of ")+g.title;c.wod=c.wod;c.updated="today";c.notes={};c.coach=profile.name;c.brand=profile.brand;c.definition=profile.definition;c.philosophy=profile.philosophy;c.date=new Date().toISOString().slice(0,10);guides.unshift(c);save();editor(c);toast(ex?"Copied into your guides with your profile. Make it yours.":"Duplicated")};
+    $("pdf").onclick=()=>printGuide(g);
+    $("send")&&($("send").onclick=()=>{g.status="submitted";g.updated="today";save();draw();toast(`Sent to ${USERS[who].mentor}. They'll review it before you coach.`)});
+  };
+  draw();
+}
+function printGuide(g){ LG.renderGuide($("printhost"), g, {print:true, notes:"view"}); const imgs=[...$("printhost").querySelectorAll("img")]; Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r}))).then(()=>{document.title=(g.title||"Lesson guide")+" · lesson guide";document.body.classList.add("lg-printing");window.print();document.body.classList.remove("lg-printing");document.title="Lesson Guides"}); }
+
+load();
+// ?print=<example id or guide id> renders that guide straight into the print area (used for PDF links and tests)
+const pq=new URLSearchParams(location.search).get("print");
+if(pq){ const g=Object.values(LG.EXAMPLES).find(x=>x.id===pq)||guides.find(x=>x.id===pq); if(g){ LG.renderGuide($("printhost"), g, {print:true}); document.body.classList.add("lg-printing"); } }
+list();
+</script>
+</body>
+</html>

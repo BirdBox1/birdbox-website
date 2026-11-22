@@ -87,6 +87,22 @@ function addToMainMenu() {
     openTrain(a);
   });
   panel.prepend(a);
+  addMentorLink(a);
+}
+
+// The mentor portal is being built (22 Nov 2026): only admins see the link.
+async function addMentorLink(after) {
+  if (document.getElementById("mentorlink")) return;
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) return;
+  const { data: staff } = await db.from("staff").select("role").eq("id", session.user.id).maybeSingle();
+  if (!staff || staff.role !== "admin") return;
+  const m = document.createElement("a");
+  m.id = "mentorlink";
+  m.className = "linkbtn";
+  m.href = "/mentor/";
+  m.textContent = "Mentor portal (being built)";
+  after.after(m);
 }
 
 consumeSwitch();

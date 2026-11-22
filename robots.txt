@@ -3,6 +3,7 @@ User-agent: *
 Allow: /
 Disallow: /portal/
 Disallow: /learn/
+Disallow: /mentor/
 Disallow: /registration-complete/
 Disallow: /invoice-names/
 Disallow: /unsubscribed/
