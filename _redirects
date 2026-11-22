@@ -1,3 +1,7 @@
+# Mentor portal moved inside /portal/ so the installed portal app keeps it (22 Nov 2026)
+/mentor        /portal/mentor/        301
+/mentor/*      /portal/mentor/:splat  301
+
 # Files that are part of the project but not the website (Nathan, 8 Nov
 # 2026). The whole folder is published, so without these anyone could read
 # the back-end code, the AI feedback manuals and the SQL. The functions still

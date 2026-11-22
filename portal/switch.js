@@ -100,7 +100,7 @@ async function addMentorLink(after) {
   const m = document.createElement("a");
   m.id = "mentorlink";
   m.className = "linkbtn";
-  m.href = "/mentor/";
+  m.href = "/portal/mentor/";
   m.textContent = "Mentor portal (being built)";
   after.after(m);
 }

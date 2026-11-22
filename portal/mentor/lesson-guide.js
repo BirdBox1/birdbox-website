@@ -7,9 +7,9 @@ const ROOT = (document.currentScript && document.currentScript.src.replace(/[^/]
 
 // ---------- brands ----------
 const BRANDS = {
-  tcc:{name:"The Coaches Course", short:"TCC", logo:"../brand/tcc-mark.png", accent:"#298DE9"},
-  tgc:{name:"The Gymnastics Course", short:"TGC", logo:"../brand/tgc-mark.png", accent:"#E0555A"},
-  birdbox:{name:"BirdBox Coaching", short:"BirdBox", logo:"../brand/birdbox-mark.png", accent:"#2f7fd0"},
+  tcc:{name:"The Coaches Course", short:"TCC", logo:"/brand/tcc-mark.png", accent:"#298DE9"},
+  tgc:{name:"The Gymnastics Course", short:"TGC", logo:"/brand/tgc-mark.png", accent:"#E0555A"},
+  birdbox:{name:"BirdBox Coaching", short:"BirdBox", logo:"/brand/birdbox-mark.png", accent:"#2f7fd0"},
 };
 const STYLES = {auto:{name:"Autocratic",col:"#14b8a6"}, demo:{name:"Democratic",col:"#e8505b"}, alt:{name:"Alternative",col:"#f2b50f"}};
 
@@ -241,7 +241,7 @@ function renderGuide(el, g, opt={}){
   const exPool=[...new Set(Object.values(MOVES).flatMap(m=>m.ex))], prePool=[...new Set(Object.values(MOVES).flatMap(m=>m.pre))];
   const sec=(n,title,c,inner,key)=>`<div class="sec" style="--c:${c}"><h3><span class="n">${n}</span>${title}</h3>${inner}${note(key)}</div>`;
   el.innerHTML = `<div class="lgs ${opt.stack?"stack":""} ${opt.print?"print":""}" style="--acc:${B.accent}">
-    <div class="hd"><img src="${ROOT}${B.logo}" alt="${B.short}">
+    <div class="hd"><img src="${B.logo}" alt="${B.short}">
       <div><div class="k">One-page lesson guide${E?` · <select data-p="brand">${Object.entries(BRANDS).map(([k,b])=>`<option value="${k}" ${g.brand===k?"selected":""}>${b.short}</option>`).join("")}</select>`:""}</div>
         <div class="wod">${E?`<input type="text" data-p="wod" value="${esc(g.wod)}" placeholder="WOD, e.g. 5x5 Back Squat">`:esc(g.wod||g.title)}</div></div>
       <div class="rt">Coach <b>${E?`<input type="text" data-p="coach" value="${esc(g.coach)}" style="width:120px">`:esc(g.coach||"—")}</b><br>${E?`<input type="text" data-p="date" value="${esc(g.date||"")}" style="width:100px">`:esc(g.date||"")} · ${E?`<select data-p="length" data-num="1">${[30,45,60,75,90].map(n=>`<option ${g.length==n?"selected":""}>${n}</option>`).join("")}</select>`:g.length} min</div></div>

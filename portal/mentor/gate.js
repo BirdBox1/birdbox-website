@@ -1,4 +1,7 @@
-// mentor/gate.js
+// portal/mentor/gate.js
+//
+// Lives under /portal/ so it opens inside the installed portal app (whose
+// scope is /portal/) instead of throwing out to the browser.
 //
 // The mentor portal is being built (Nathan, 22 Nov 2026). Until it opens,
 // only admins (staff.role = "admin": Nathan and Michaela) can get in.

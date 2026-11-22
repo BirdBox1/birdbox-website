@@ -20,7 +20,7 @@ const db = createClient(
 const LINKS = [
   { href: "#train",               label: "Programming portal \u2197", train: true },
   // Being built (22 Nov 2026): admins only until it opens.
-  { href: "/mentor/",             label: "Mentor portal (being built)", admin: true },
+  { href: "/portal/mentor/",             label: "Mentor portal (being built)", admin: true },
   { href: "/portal/?view=messages", label: "Messages" },
   { href: "/portal/blog/",        label: "Blog" },
   { href: "/portal/",             label: "All courses" },
