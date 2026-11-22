@@ -48,7 +48,7 @@ async function mock(method, body = {}, q = {}) {
   const x = body;
   if (x.action === "save_availability") { M.avail = x.blocks; return { ok: true }; }
   if (x.action === "save_settings") { Object.assign(M.settings, x.settings); return { ok: true }; }
-  if (x.action === "add_time_off") { M.off.push({ id: M.seq++, starts_on: x.starts_on, ends_on: x.ends_on || x.starts_on, reason: x.reason }); return { ok: true }; }
+  if (x.action === "add_time_off") { const id = M.seq++; M.off.push({ id, starts_on: x.starts_on, ends_on: x.ends_on || x.starts_on, reason: x.reason }); return { ok: true, id }; }
   if (x.action === "remove_time_off") { M.off = M.off.filter((o) => o.id !== x.id); return { ok: true }; }
   if (x.action === "book") {
     const len = x.kind === "opening" ? settings.opening_minutes : settings.weekly_minutes; const s = Date.parse(x.starts_at), e = s + len * 60000;
@@ -77,6 +77,25 @@ async function load(keepScroll) {
   C.mentor = C.data.mentor; C.from = C.data.from;
   C.cells = S.blocksToCells(C.data.availability, FIRST, SLOT);
   draw(keepScroll);
+}
+
+// ---------- instant updates, saved in the background ----------
+// The page changes the moment you act; the server catches up quietly.
+function recompute() {
+  const d = C.data;
+  d.availability = S.cellsToBlocks(C.cells, FIRST, SLOT);
+  const seen = new Set(), books = [...d.bookings, ...d.upcoming].filter((b) => !seen.has(b.id) && seen.add(b.id));
+  const args = { settings: d.settings, availability: d.availability, timeOff: d.timeOff, bookings: books };
+  d.slots = { weekly: S.openSlots({ ...args, kind: "weekly", days: 14 }).slice(0, 40), opening: S.openSlots({ ...args, kind: "opening", days: 14 }).slice(0, 40) };
+}
+function status(t) { const st = document.getElementById("cal-save"); if (st) { st.textContent = t; st.style.opacity = 1; if (/✓/.test(t)) setTimeout(() => { if (st.textContent === t) st.style.opacity = .5; }, 1500); } }
+let saving = false, again = false;
+async function saveAvail() {
+  if (saving) { again = true; return; }
+  saving = true; status("Saving…");
+  try { await api("POST", { action: "save_availability", mentor: C.data.mentor, blocks: S.cellsToBlocks(C.cells, FIRST, SLOT) }); status("Saved ✓"); }
+  catch (e) { toast("Not saved: " + e.message); await load(true); }
+  finally { saving = false; if (again) { again = false; saveAvail(); } }
 }
 
 // ---------- page ----------
@@ -110,7 +129,7 @@ function draw(keepScroll) {
         <div class="seg"><button id="cal-prev">‹</button><button class="${d.from === S.mondayOf(today) ? "on" : ""}" id="cal-now">This week</button><button id="cal-next">›</button></div>
         <button class="btn pri" id="cal-book">＋ Book a call</button></div></div>
     <div class="cal-wrap">
-      <div class="card"><div class="pad row between wrap" style="padding:10px 14px;border-bottom:1px solid var(--rule)"><div class="legend"><span><i style="background:#e7f1fb;border:1px solid #9cc4ec"></i>Open to book</span><span><i style="background:var(--accent)"></i>Weekly call</span><span><i style="background:var(--good)"></i>Opening call</span><span><i style="background:#ebe8e2"></i>Day off</span></div><span class="small muted" id="cal-status">${hours} h open a week · ${books.filter((b) => b.status === "booked").length} booked this week</span></div>
+      <div class="card"><div class="pad row between wrap" style="padding:10px 14px;border-bottom:1px solid var(--rule)"><div class="legend"><span><i style="background:#e7f1fb;border:1px solid #9cc4ec"></i>Open to book</span><span><i style="background:var(--accent)"></i>Weekly call</span><span><i style="background:var(--good)"></i>Opening call</span><span><i style="background:#ebe8e2"></i>Day off</span></div><span class="small muted"><span id="cal-status">${hours} h open a week · ${books.filter((b) => b.status === "booked").length} booked this week</span> <b id="cal-save" style="color:var(--good);margin-left:6px;transition:opacity .4s"></b></span></div>
         <div class="calscroll"><div class="cal" id="cal">${grid}</div></div></div>
       <div class="stack" style="gap:16px">
         <div class="card pad"><h2 class="sec">Upcoming calls</h2>${d.upcoming.length ? `<div class="stack" style="gap:6px">${d.upcoming.slice(0, 8).map((b) => `<div class="row between" style="cursor:pointer" data-b="${b.id}"><div><b style="font-size:13px">${esc(b.mentee_name)}</b><div class="small muted">${whenLabel(b.starts_at, tz)} · ${b.kind === "opening" ? "opening, 60 min" : "weekly"}</div></div><span class="muted">›</span></div>`).join("")}</div>` : `<p class="small muted" style="margin:0">No calls booked yet.</p>`}</div>
@@ -142,11 +161,21 @@ function wire() {
   el.querySelectorAll("[data-slot]").forEach((b) => b.onclick = () => bookDialog({ starts_at: b.dataset.slot, kind: C.kind === "opening" ? "opening" : "weekly" }));
   el.querySelectorAll("[data-b]").forEach((b) => b.onclick = (e) => { e.stopPropagation(); callDialog(b.dataset.b); });
   el.querySelectorAll("[data-set]").forEach((x) => x.onchange = async () => {
-    try { await api("POST", { action: "save_settings", mentor: d.mentor, settings: { [x.dataset.set]: x.dataset.set === "tz" ? x.value : +x.value } }); toast("Saved"); await load(true); } catch (e) { toast(e.message); }
+    const key = x.dataset.set, val = key === "tz" ? x.value : +x.value;
+    d.settings[key] = val; recompute(); draw(true); status("Saving…");
+    try { await api("POST", { action: "save_settings", mentor: d.mentor, settings: { [key]: val } }); status("Saved ✓"); if (key === "tz") await load(true); }
+    catch (e) { toast("Not saved: " + e.message); await load(true); }
   });
   el.querySelectorAll("[data-day]").forEach((h) => h.onclick = async () => {
     const date = h.dataset.day, o = d.timeOff.find((t) => date >= t.starts_on && date <= t.ends_on);
-    try { if (o) await api("POST", { action: "remove_time_off", mentor: d.mentor, id: o.id }); else await api("POST", { action: "add_time_off", mentor: d.mentor, starts_on: date, ends_on: date }); toast(o ? "Day is bookable again" : "Day taken off"); await load(true); } catch (e) { toast(e.message); }
+    let temp = null;
+    if (o) d.timeOff = d.timeOff.filter((t) => t !== o); else { temp = { id: null, starts_on: date, ends_on: date }; d.timeOff.push(temp); }
+    recompute(); draw(true); status("Saving…");
+    try {
+      if (o) await api("POST", { action: "remove_time_off", mentor: d.mentor, id: o.id });
+      else { const r = await api("POST", { action: "add_time_off", mentor: d.mentor, starts_on: date, ends_on: date }); temp.id = r.id; }
+      status(o ? "Day bookable again ✓" : "Day off saved ✓");
+    } catch (e) { toast("Not saved: " + e.message); await load(true); }
   });
   // painting: drag fills the whole rectangle, saved when you let go
   const fill = (k) => { const [d0, s0] = C.anchor.split("-").map(Number), [d1, s1] = k.split("-").map(Number);
@@ -154,11 +183,9 @@ function wire() {
   cal.addEventListener("mousedown", (e) => { const c = e.target.closest(".c"); if (!c || e.target.closest(".ev")) return; C.anchor = c.dataset.k; C.paint = C.cells.has(C.anchor) ? "del" : "add"; fill(C.anchor); e.preventDefault(); });
   cal.addEventListener("mousemove", (e) => { if (!C.paint) return; const c = e.target.closest(".c"); if (c && c.dataset.k) fill(c.dataset.k); });
 }
-window.addEventListener("mouseup", async () => {
+window.addEventListener("mouseup", () => {
   if (!C.paint) return; C.paint = null;
-  const st = document.getElementById("cal-status"); if (st) st.textContent = "Saving…";
-  try { await api("POST", { action: "save_availability", mentor: C.data.mentor, blocks: S.cellsToBlocks(C.cells, FIRST, SLOT) }); await load(true); toast("Availability saved"); }
-  catch (e) { toast(e.message); }
+  recompute(); draw(true); saveAvail();
 });
 
 // ---------- dialogs ----------
