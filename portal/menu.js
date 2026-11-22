@@ -19,6 +19,8 @@ const db = createClient(
 // so it is reached with ?view= and the portal opens straight onto it.
 const LINKS = [
   { href: "#train",               label: "Programming portal \u2197", train: true },
+  // Being built (22 Nov 2026): admins only until it opens.
+  { href: "/mentor/",             label: "Mentor portal (being built)", admin: true },
   { href: "/portal/?view=messages", label: "Messages" },
   { href: "/portal/blog/",        label: "Blog" },
   { href: "/portal/",             label: "All courses" },
