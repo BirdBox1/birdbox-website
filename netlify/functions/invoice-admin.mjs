@@ -208,6 +208,9 @@ async function createAndSend(b, me) {
       vat_country: vatCountry || null,
       vat_rate: vatRate,
       reverse_charge: reverse,
+      // Military / police discount: the coach checks ID on the day
+      // (a trigger flags each registration made from this invoice).
+      military: b.military === true,
       places,
       unit_price_cents: unitCents,
       currency,
@@ -775,6 +778,9 @@ async function createPlan(b, me) {
       vat_country: vatCountry || null,
       vat_rate: vatRate,
       reverse_charge: reverse,
+      // Military / police discount: the coach checks ID on the day
+      // (a trigger flags each registration made from this invoice).
+      military: b.military === true,
       places,
       unit_price_cents: unitCents,
       currency,

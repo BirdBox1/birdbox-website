@@ -2334,6 +2334,7 @@
         </select>
       </div>
     </div>
+    <label class="pm-check"><input type="checkbox" id="gi-mil"> Military / police discount — the coach checks their ID on the day</label>
 
     <div class="field">
       <label for="gi-mode">Payment</label>
@@ -4260,7 +4261,7 @@ async function openCourse(course) {
   box.innerHTML = '<p class="empty">Loading…</p>';
 
   const { data, error } = await db.from("registrations")
-    .select("id, first_name, last_name, email, phone, country, created_at, payment_status, attended, certificate_sent_at, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name, learnworlds_language, learnworlds_status, learnworlds_user_id, learnworlds_enrolled_at, learnworlds_error, attendance_marked_at, attendance_marked_by, invoice_id, payment_overdue_at, payment_overdue_note, stripe_session_id, retro_invoice_number, prereq_answer")
+    .select("id, first_name, last_name, email, phone, country, created_at, payment_status, attended, certificate_sent_at, waiver_signed_at, amount_paid_cents, currency, discount_code, discount_cents, military_id_check, photo_path, photo_taken_at, status, source, source_note, waiver_signature, waiver_version, waiver_signed_name, learnworlds_language, learnworlds_status, learnworlds_user_id, learnworlds_enrolled_at, learnworlds_error, attendance_marked_at, attendance_marked_by, invoice_id, payment_overdue_at, payment_overdue_note, stripe_session_id, retro_invoice_number, prereq_answer")
     .eq("course_id", course.id)
     .order("last_name", { ascending: true });
 
@@ -4391,6 +4392,13 @@ async function openCourse(course) {
     // name so coaches/admin can see it at a glance. Blank for transfers
     // (e.g. RegFox imports) that carry no code.
     if (r.discount_code) addPill("code: " + r.discount_code, "code");
+
+    // Military / police discount: we trust them when they book, and the
+    // coach checks their ID on the day (Nathan, 23 Nov 2026).
+    if (r.military_id_check) {
+      addPill("check military ID", "warn");
+      flags.lastChild.title = "Booked with the military / police discount — check their military or police ID at registration.";
+    }
 
     // Whether the lead coach has introduced themselves yet. Visible to
     // the coach and to admin, so an outstanding one cannot hide.
@@ -11115,6 +11123,7 @@ async function openInvoiceForm(course) {
   $("gi-count").onchange = giSummary;
   giMode();
   $("gi-disctype").value = "pct";
+  $("gi-mil").checked = false;
   $("gi-amtopt").textContent = `${course.currency || "EUR"} off the total (excl. VAT)`;
   $("gi-places").value = "1";
   // The course list does not carry the price, so ask for it.
@@ -11307,6 +11316,7 @@ async function giSend() {
       places: $("gi-places").value,
       discount_percent: isPct && dval > 0 ? dval : 0,
       discount_amount: !isPct && dval > 0 ? dval : 0,
+      military: $("gi-mil").checked,
     });
     msg.className = plan && !r.emailed ? "msg err" : "msg ok";
     msg.textContent = plan
