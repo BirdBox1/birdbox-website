@@ -470,7 +470,10 @@ async function onlineOffer(user, email, brand) {
 // so their link shows the normal prices. Moved before it, they keep it.
 const MOVE_T2 = 3500, NORMAL_T3 = 12000, T1_STANDARD = 3500;
 export const MOVE_DEADLINE = "2026-11-22";
-const moveOpen = () => new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Dublin" }) <= MOVE_DEADLINE;
+// one person can be given a later date in move_offers.open_until (Azad
+// Faudzi wrote on 23 Nov, the day after it closed: Nathan honoured it)
+const moveDeadline = (o) => (o?.open_until && o.open_until > MOVE_DEADLINE ? o.open_until : MOVE_DEADLINE);
+const moveOpen = (o) => new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Dublin" }) <= moveDeadline(o);
 // Ireland included: programming is taxed for Irish buyers too (Kristine, 4 Nov 2026)
 const EU_VAT = ["AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU",
   "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE"];
@@ -491,7 +494,7 @@ async function moveOfferView(email) {
   const today = new Date().toISOString().slice(0, 10);
   const window = o.status === "moved" && o.upgrade_until && o.upgrade_until >= today && upgradesAllowed(o);
   if (o.status === "moved" && !window) return null;
-  if (o.status !== "moved" && !moveOpen()) return null;
+  if (o.status !== "moved" && !moveOpen(o)) return null;
   const upgrades = window ? [
     ...(o.moved_tier < 2 ? [{ tier: 2, cents: MOVE_T2 }] : []),
     // only when it is below the normal €120
@@ -501,7 +504,7 @@ async function moveOfferView(email) {
   // instead of the offer (Nathan's test, 7 Nov 2026)
   if (o.status === "moved" && !upgrades.length) return null;
   return {
-    status: o.status, offer: o.offer, first_name: o.first_name, deadline: MOVE_DEADLINE,
+    status: o.status, offer: o.offer, first_name: o.first_name, deadline: moveDeadline(o),
     free: o.offer === "free",
     // the standard offer is Tier 2 only; the others Tier 1 at their price
     tier1_cents: o.offer === "t2_offer" || o.offer === "free" ? null : o.price_cents,
@@ -525,7 +528,7 @@ async function tierProduct(tier) {
 async function moveStart(email, tier, context) {
   const o = await moveOffer(email);
   if (!o || !["ready", "emailed"].includes(o.status)) return json({ error: "That offer could not be found. Write to info@birdboxcoaching.com and we'll sort it." }, 404);
-  if (!moveOpen()) return json({ error: "Your transfer offer ended on 22 November. The plans below are open to you at the normal prices." }, 400);
+  if (!moveOpen(o)) return json({ error: "Your transfer offer ended on 22 November. The plans below are open to you at the normal prices." }, 400);
   if (o.offer === "free" || tier !== (o.offer === "t2_offer" ? 2 : 1)) return json({ error: "That offer is not available." }, 400);
   const product = await tierProduct(tier);
   if (!product) return json({ error: "That plan is not on sale yet." }, 400);
@@ -684,7 +687,7 @@ async function moveTrial(email) {
 async function moveFree(user, email) {
   const o = await moveOffer(email);
   if (!o || o.offer !== "free" || !["ready", "emailed"].includes(o.status)) return json({ error: "That offer could not be found. Write to info@birdboxcoaching.com and we'll sort it." }, 404);
-  if (!moveOpen()) return json({ error: "Your transfer offer ended on 22 November. Write to info@birdboxcoaching.com and we'll sort it." }, 400);
+  if (!moveOpen(o)) return json({ error: "Your transfer offer ended on 22 November. Write to info@birdboxcoaching.com and we'll sort it." }, 400);
   const { data: p } = await train().from("stripe_prices").select("track_id")
     .eq("tier", 1).eq("active", true).not("track_id", "is", null).limit(1).maybeSingle();
   if (!p?.track_id) return json({ error: "That plan could not be found. Write to info@birdboxcoaching.com." }, 500);
