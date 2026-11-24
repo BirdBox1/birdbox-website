@@ -69,7 +69,7 @@ export default async (request) => {
 
     const { data: course, error: cErr } = await supabase
       .from("courses")
-      .select("id, brand, type, title, slug, starts_at, timezone, host_name, host_email, currency")
+      .select("id, brand, type, title, slug, starts_at, timezone, host_name, host_email, host2_name, host2_email, currency")
       .eq("id", courseId)
       .single();
 
@@ -141,15 +141,18 @@ export default async (request) => {
 
     // Deduplicated and lowercased, because the same person appearing
     // twice in a cc list looks careless to a host.
+    // The second host contact, if there is one, gets it as well.
+    const hostTo = [course.host_email, course.host2_email]
+      .map((e) => String(e || "").trim()).filter((e) => e.includes("@"));
     const cc = [...new Set(
       [...MEDIA_EMAILS, OFFICE, ...coachEmails]
         .map((e) => String(e).trim().toLowerCase())
-        .filter((e) => e && e !== String(course.host_email).trim().toLowerCase())
+        .filter((e) => e && !hostTo.map((h) => h.toLowerCase()).includes(e))
     )];
 
     // ---- send it ----------------------------------------------
     const sent = await send({
-      to: course.host_email,
+      to: hostTo,
       cc,
       subject,
       text: body + `\n\n${me.full_name}\nBirdBox Coaching\n${SITE_URL}`,
@@ -178,7 +181,7 @@ export default async (request) => {
 
     return json({
       sent: true,
-      sentTo: course.host_email,
+      sentTo: hostTo.join(", "),
       copied: cc.length,
       coaches: coachEmails.length,
       codes: made.length,
@@ -394,7 +397,7 @@ async function send({ to, cc, subject, text, brand, isWorkshop }) {
       headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
       body: JSON.stringify({
         from: `BirdBox Coaching <${FROM}>`,
-        to: [to],
+        to: Array.isArray(to) ? to : [to],
         cc: (cc || []).filter(Boolean),
         reply_to: OFFICE,
         subject,

@@ -43,7 +43,7 @@ export default async (request) => {
   // Live/published seminars still in the future that have a host email.
   const { data: courses, error } = await supabase
     .from("courses")
-    .select("id, title, slug, city, country, venue_name, starts_at, ends_at, timezone, host_name, host_email, status, archived, type")
+    .select("id, title, slug, city, country, venue_name, starts_at, ends_at, timezone, host_name, host_email, host2_email, status, archived, type")
     .not("host_email", "is", null)
     .eq("status", "published")
     .eq("archived", false)
@@ -89,6 +89,7 @@ export default async (request) => {
       if (!cc.some((x) => x.toLowerCase() === a.toLowerCase())) cc.push(a);
     };
     addCc(PA);
+    addCc(c.host2_email);
     addCc(leadEmail[c.id]);
 
     const record = { course: c.title, city: c.city, host: c.host_name, to, cc, dates, link };

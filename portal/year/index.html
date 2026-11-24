@@ -534,7 +534,7 @@ async function loadAll() {
     db.from("staff").select("id, full_name, role").eq("active", true).order("full_name"),
     db.from("coach_profiles").select("staff_id, target_min, target_max, is_reserve_only, display_order"),
     db.from("courses")
-      .select("id, title, brand, level, city, country, venue_name, starts_at, timezone, status, archived, capacity, slug, host_name, host_email, host_spots, prepaid_spots, type")
+      .select("id, title, brand, level, city, country, venue_name, starts_at, timezone, status, archived, capacity, slug, host_name, host_email, host2_name, host2_email, host_spots, prepaid_spots, type")
       .eq("archived", false).gte("starts_at", from).lt("starts_at", to),
     // The host columns are read here because the panel below shows them.
     // They were missing, so every plan looked as though it had no host.
@@ -1103,6 +1103,11 @@ function openSheet(kind, id) {
       html += fact("Host", esc(c.host_name));
       html += fact("Host email", c.host_email
         ? `<a href="mailto:${esc(c.host_email)}">${esc(c.host_email)}</a>` : "");
+      if (c.host2_name || c.host2_email) {
+        html += fact("Second host", esc(c.host2_name || ""));
+        html += fact("Second host email", c.host2_email
+          ? `<a href="mailto:${esc(c.host2_email)}">${esc(c.host2_email)}</a>` : "");
+      }
       html += fact("Host spots", c.host_spots != null
         ? `${c.host_spots} free${c.prepaid_spots ? ", " + c.prepaid_spots + " prepaid" : ""}` : "");
     }
@@ -1448,7 +1453,7 @@ function openHostCompose(courseId) {
 
   $("c-h").textContent = "Email the host";
   $("c-who").textContent =
-    `${c.host_name ? c.host_name + " — " : ""}${c.host_email} · ${c.title}`;
+    `${c.host_name ? c.host_name + " — " : ""}${c.host_email}${c.host2_email ? " and " + c.host2_email : ""} · ${c.title}`;
   $("c-note").textContent =
     "Sends from your own address with info@ copied, so a reply comes back " +
     "to you. It is recorded against the course.";
@@ -1481,7 +1486,7 @@ $("c-send").addEventListener("click", async () => {
   if (!body) { msg.className = "msg err"; msg.textContent = "There is nothing to send."; return; }
 
   if (!window.confirm(
-    `Send this to ${hostCourse.host_email}?\n\nIt cannot be unsent.`
+    `Send this to ${hostCourse.host_email}${hostCourse.host2_email ? " and " + hostCourse.host2_email : ""}?\n\nIt cannot be unsent.`
   )) return;
 
   $("c-send").disabled = true;
