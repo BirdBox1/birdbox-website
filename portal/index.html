@@ -1769,6 +1769,17 @@
 
         <div class="grid2">
           <div class="field">
+            <label for="f-host2name">Second host contact <span class="hint">optional</span></label>
+            <input id="f-host2name" type="text" placeholder="Leave empty if there is only one">
+          </div>
+          <div class="field">
+            <label for="f-host2email">Second host email <span class="hint">gets every host email too</span></label>
+            <input id="f-host2email" type="email" placeholder="second@thegym.com">
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
             <label for="f-hostspots">Free host spots <span class="hint">usually 2</span></label>
             <input id="f-hostspots" type="number" min="0" max="4" value="2">
           </div>
@@ -3615,7 +3626,7 @@ async function loadCourses() {
   alertBox.innerHTML = "";
   list.innerHTML = '<p class="empty">Loading…</p>';
 
-  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, currency, status, slug, archived, grants_online_course, completed_at, issues_certificate, host_name, host_email, host_spots, prepaid_spots, created_at";
+  const cols = "id, brand, type, level, title, city, country, starts_at, ends_at, timezone, capacity, currency, status, slug, archived, grants_online_course, completed_at, issues_certificate, host_name, host_email, host2_name, host2_email, host_spots, prepaid_spots, created_at";
 
   let all = [];
     if (isAdmin() || isSupport()) {
@@ -5260,6 +5271,7 @@ function fillForm(c) {
   set("f-summary", c.summary); set("f-description", c.description);
   set("f-venue", c.venue_name); set("f-address", c.address);
   set("f-hostname", c.host_name); set("f-hostemail", c.host_email);
+  set("f-host2name", c.host2_name); set("f-host2email", c.host2_email);
   set("f-hostspots", c.host_spots == null ? 2 : c.host_spots);
   set("f-prepaid", c.prepaid_spots || 0);
   set("f-city", c.city); set("f-country", (c.country || "").toUpperCase());
@@ -6288,7 +6300,7 @@ function wireHostEmail() {
     }
 
     if (!window.confirm(
-      `Send this to ${hostCourse.host_email}?\n\n` +
+      `Send this to ${hostList(hostCourse)}?\n\n` +
       "The codes are created at the same time and will work immediately."
     )) return;
 
@@ -6338,6 +6350,12 @@ function wireHostEmail() {
   };
 }
 
+// Both host addresses, for the "goes to" lines: the second host gets
+// every host email too.
+function hostList(c) {
+  return [c.host_email, c.host2_email].filter(Boolean).join(" and ");
+}
+
 // Says whether it has gone out already, so nobody sends it twice.
 async function showHostBar(course) {
   const state = $("host-state");
@@ -6360,8 +6378,8 @@ async function showHostBar(course) {
   $("host-open").textContent = alreadySent ? "Host email sent" : "Send the host email";
 
   state.textContent = alreadySent
-    ? `Sent ${fmtWhen(data[0].sent_at)} to ${course.host_email}. Sending again creates new codes.`
-    : `Goes to ${course.host_email}, with the media team copied in.`;
+    ? `Sent ${fmtWhen(data[0].sent_at)} to ${hostList(course)}. Sending again creates new codes.`
+    : `Goes to ${hostList(course)}, with the media team copied in.`;
 }
 
 /* ---------- the host gym, for everyone on the course ---------- */
@@ -6377,7 +6395,7 @@ async function showHostCard(course) {
   card.classList.add("hidden");
   hostCardFor = course.id;
   const { data: c } = await db.from("courses")
-    .select("id, venue_name, address, city, country, host_name, host_email")
+    .select("id, venue_name, address, city, country, host_name, host_email, host2_name, host2_email")
     .eq("id", course.id).maybeSingle();
   if (!c || hostCardFor !== course.id) return;
   if (!c.venue_name && !c.host_name && !c.host_email && !c.address) return;
@@ -6405,6 +6423,16 @@ async function showHostCard(course) {
     e.textContent = " · " + c.host_email;
     h.append(e);
   }
+  if (c.host2_name || c.host2_email) {
+    h.append(document.createElement("br"));
+    h.append(document.createTextNode(c.host2_name || "—"));
+    if (c.host2_email) {
+      const e2 = document.createElement("span");
+      e2.className = "whenline";
+      e2.textContent = " · " + c.host2_email;
+      h.append(e2);
+    }
+  }
 
   // The lead coach is the gym's one point of contact (the same rule
   // the server keeps), so the button is theirs and the admin's.
@@ -6419,7 +6447,7 @@ let hnCourse = null;
 
 function openHostNote(course, c) {
   hnCourse = course;
-  $("hn-sub").textContent = `To ${c.host_name ? c.host_name + " — " : ""}${c.host_email}` +
+  $("hn-sub").textContent = `To ${c.host_name ? c.host_name + " — " : ""}${c.host_email}${c.host2_email ? " and " + (c.host2_name ? c.host2_name + " — " : "") + c.host2_email : ""}` +
     `${c.venue_name ? " (" + c.venue_name + ")" : ""}. From you, with info@ copied.`;
   $("hn-subject").value = "";
   $("hn-body").value = "";
@@ -12498,6 +12526,8 @@ async function saveCourse() {
       admin_notes: $("f-adminnotes").value.trim() || null,
       host_name: $("f-hostname").value.trim() || null,
       host_email: $("f-hostemail").value.trim().toLowerCase() || null,
+      host2_name: $("f-host2name").value.trim() || null,
+      host2_email: $("f-host2email").value.trim().toLowerCase() || null,
       host_spots: parseInt($("f-hostspots").value, 10) || 0,
       prepaid_spots: parseInt($("f-prepaid").value, 10) || 0,
       issues_certificate: issuesCertificate(brand, type, level),
@@ -12590,7 +12620,7 @@ $("copylink").addEventListener("click", async () => {
 $("another").addEventListener("click", () => {
   ["f-summary","f-description","f-workshop","f-movements","f-venue","f-address",
    "f-city","f-country","f-state","f-date","f-enddate","f-price","f-deposit",
-   "f-slug","f-adminnotes","f-hostname","f-hostemail"]
+   "f-slug","f-adminnotes","f-hostname","f-hostemail","f-host2name","f-host2email"]
     .forEach((id) => { $(id).value = ""; });
   $("wrap-state").classList.add("hidden");
   $("f-image").value = "";

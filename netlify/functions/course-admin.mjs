@@ -11,6 +11,7 @@
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { sendConfirmation, recordInstalmentPaid } from "./stripe-webhook.mjs";
+import { secondHost } from "./course-email-send.mjs";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -74,7 +75,7 @@ async function reschedule({ courseId, startsAt, endsAt }, me) {
 
   const { data: course, error: cErr } = await supabase
     .from("courses")
-    .select("id, brand, title, city, country, venue_name, address, starts_at, ends_at, timezone, slug, host_name, host_email")
+    .select("id, brand, title, city, country, venue_name, address, starts_at, ends_at, timezone, slug, host_name, host_email, host2_email")
     .eq("id", courseId)
     .single();
 
@@ -211,6 +212,7 @@ ${SITE_URL}/portal/`,
   if (course.host_email) {
     hostEmailed = await send({
       to: course.host_email,
+      cc: secondHost(course),
       subject: `A change of date for ${course.title}`,
       text:
 `Hi ${(course.host_name || "there").split(" ")[0]},
@@ -426,7 +428,7 @@ async function cancel({ courseId, reason }, me) {
 
   const { data: course } = await supabase
     .from("courses")
-    .select("id, brand, title, starts_at, timezone, city, cancelled_at, host_name, host_email")
+    .select("id, brand, title, starts_at, timezone, city, cancelled_at, host_name, host_email, host2_email")
     .eq("id", courseId)
     .maybeSingle();
 
@@ -566,6 +568,7 @@ ${SITE_URL}/portal/`,
   if (course.host_email) {
     hostEmailed = await send({
       to: course.host_email,
+      cc: secondHost(course),
       subject: `${course.title} has been cancelled`,
       text:
 `Hi ${(course.host_name || "there").split(" ")[0]},
@@ -1233,7 +1236,7 @@ async function logEmail({ courseId, registrationId, kind, subject, body }) {
   if (error) console.error("Could not record the", kind, "email:", error.message);
 }
 
-async function send({ to, subject, text, brand }) {
+async function send({ to, cc = [], subject, text, brand }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) { console.warn("No Resend key; nothing sent to", to); return false; }
 
@@ -1244,6 +1247,7 @@ async function send({ to, subject, text, brand }) {
       body: JSON.stringify({
         from: `BirdBox Coaching <${FROM}>`,
         to: [to],
+        ...(cc.length ? { cc } : {}),
         reply_to: OFFICE,
         subject,
         text,

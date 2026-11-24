@@ -115,7 +115,7 @@ export default async (req) => {
 
     const { data: course } = await supabase
       .from("courses")
-      .select("id, brand, type, level, title, city, country, starts_at, host_name, host_email")
+      .select("id, brand, type, level, title, city, country, starts_at, host_name, host_email, host2_email")
       .eq("id", email.course_id)
       .single();
 
@@ -138,6 +138,8 @@ export default async (req) => {
 
       const result = await sendEmail({
         to: course.host_email,
+        // the second host contact, if there is one, is copied in
+        cc: secondHost(course),
         sender,
         subject,
         text,
@@ -158,7 +160,7 @@ export default async (req) => {
 
       return json({
         ok: true, sent: 1, failed: 0, problems: [],
-        sentTo: course.host_email, sentAs: sender.from,
+        sentTo: [course.host_email, ...secondHost(course)].join(", "), sentAs: sender.from,
       });
     }
 
@@ -657,6 +659,12 @@ async function logoAttachment(file) {
 
 // html: an email already laid out by the caller (the CoachRx move email,
 // 7 Nov 2026), sent as it is instead of the course template
+// A seminar can have a second host contact; they get every host email.
+export function secondHost(course) {
+  const a = String(course.host2_email || "").trim();
+  return a.includes("@") && a.toLowerCase() !== String(course.host_email || "").trim().toLowerCase() ? [a] : [];
+}
+
 export async function sendEmail({ to, sender, subject, text, html = null, brand, offerUrl = null, rich = false, copyOffice = true, cc = [] }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
