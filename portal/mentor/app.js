@@ -343,8 +343,10 @@ document.addEventListener("keydown",(e)=>{
 window.addEventListener("mentor-ready", (e) => {
   const n = String(e.detail?.full_name || "").toLowerCase();
   ME = n.startsWith("michaela") ? "michaela" : n.startsWith("barney") ? "barney" : "nathan";
-  MENTORS.barney.admin = true; // Barney is on the build team, so he sees the admin pages too
-  $("as").querySelector('option[value="barney"]').textContent = "Barney · build team";
+  // Only admins see everything (Nathan, 25 Nov). Anyone else (Barney, on the build team)
+  // sees only their own mentees and pay, and can't switch to someone else's view.
+  if (e.detail?.role === "admin") MENTORS[ME].admin = true; // the real Michaela sees everything too
+  if (e.detail?.role !== "admin") { $("as").disabled = true; [...$("as").options].forEach((o) => { if (o.value !== ME) o.remove(); }); }
   $("as").value = ME;
   route();
 });
