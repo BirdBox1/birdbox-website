@@ -62,7 +62,7 @@ export default async (req) => {
 
     // Sent through SimpleCert, before BirdBox Learn
     const { data: past } = await db.from("past_certificates")
-      .select("id, brand, level, kind, awarded_on, pdf_path").in("email", emails);
+      .select("id, brand, level, kind, awarded_on, pdf_path").in("email", emails).is("revoked_at", null);
     for (const p of past || []) {
       const level = p.level === "advanced" ? null : p.level;
       live.push({
@@ -183,7 +183,7 @@ async function download(certificateId, regs) {
 async function downloadPast(id, emails) {
   if (!/^[0-9a-f-]{36}$/.test(id)) return json({ error: "No certificate given." }, 400);
   const { data: p } = await db.from("past_certificates")
-    .select("email, participant_name, brand, pdf_path").eq("id", id).maybeSingle();
+    .select("email, participant_name, brand, pdf_path").eq("id", id).is("revoked_at", null).maybeSingle();
   if (!p || !emails.includes(p.email)) return json({ error: "That certificate is not on your account." }, 404);
   if (!p.pdf_path) return json({ error: "We no longer have a copy of this one. Write to info@birdboxcoaching.com and we will send you a new one." }, 404);
   const filename = `${p.brand === "tgc" ? "TGC" : "BirdBox"} certificate - ${p.participant_name || "Participant"}.pdf`;

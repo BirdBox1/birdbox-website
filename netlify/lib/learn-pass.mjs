@@ -77,7 +77,7 @@ async function verifiedLiveL1(user, email) {
   const e = String(email || "").trim().toLowerCase();
   if (e) {
     const { data: past } = await db.from("past_certificates").select("brand")
-      .eq("email", e).eq("kind", "seminar").eq("level", "1");
+      .eq("email", e).eq("kind", "seminar").eq("level", "1").is("revoked_at", null);
     for (const p of past || []) out.add(String(p.brand || "").toLowerCase());
   }
   if (!user?.id) return out;
@@ -100,7 +100,7 @@ export async function recentPastL1(email) {
   const since = new Date();
   since.setFullYear(since.getFullYear() - PAST_OFFER_YEARS);
   const { data } = await db.from("past_certificates").select("id, brand, awarded_on")
-    .eq("email", e).eq("kind", "seminar").eq("level", "1")
+    .eq("email", e).eq("kind", "seminar").eq("level", "1").is("revoked_at", null)
     .gte("awarded_on", since.toISOString().slice(0, 10)).order("awarded_on", { ascending: false });
   const out = {};
   for (const p of data || []) if (!out[p.brand]) out[p.brand] = p.id;

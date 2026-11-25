@@ -38,8 +38,8 @@ export async function level1Record(email, brand) {
   const [regs, past, att, enrol, lcerts] = await Promise.all([
     db.from("registrations").select("attended, courses!registrations_course_id_fkey(brand, level, type, city, starts_at)")
       .ilike("email", like).neq("status", "cancelled").then((r) => r.data || []),
-    db.from("past_certificates").select("level, awarded_on").ilike("email", like).eq("brand", b).then((r) => r.data || []),
-    db.from("past_attendees").select("level, event_date, place, status").ilike("email", like).eq("brand", b).then((r) => r.data || []),
+    db.from("past_certificates").select("level, awarded_on").ilike("email", like).eq("brand", b).is("revoked_at", null).then((r) => r.data || []),
+    db.from("past_attendees").select("level, event_date, place, status").ilike("email", like).eq("brand", b).is("revoked_at", null).then((r) => r.data || []),
     db.from("learn_enrolments").select("lw_completed_at, course_id, learn_courses(brand, level)").ilike("email", like).then((r) => r.data || []),
     db.from("learn_certificates").select("course_id, learn_courses(brand, level)").ilike("email", like).then((r) => r.data || []),
   ]);

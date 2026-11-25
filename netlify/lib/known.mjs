@@ -27,8 +27,8 @@ export async function knownToBirdBox(email) {
     // mentorship, and seminars from before our own records (SimpleCert,
     // RegFox) count too (Nathan, 19 Nov 2026)
     () => has(db.from("learn_mentorships").select("id", head).ilike("email", like)),
-    () => has(db.from("past_certificates").select("id", head).ilike("email", like)),
-    () => has(db.from("past_attendees").select("id", head).ilike("email", like)),
+    () => has(db.from("past_certificates").select("id", head).ilike("email", like).is("revoked_at", null)),
+    () => has(db.from("past_attendees").select("id", head).ilike("email", like).is("revoked_at", null)),
     // a listing the office made, or one of their own the office approved
     () => has(db.from("directory_profiles").select("id", head).ilike("email", like).neq("source", "self")),
     () => has(db.from("directory_profiles").select("id", head).ilike("email", like).not("approved_at", "is", null)),
