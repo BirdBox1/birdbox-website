@@ -2,15 +2,14 @@
 //
 // GET -> { mentors: [{ id, name, region, photo, founder }] }
 //
-// The mentors shown on /mentorship/ and in the pre-registration form
-// (Nathan, 25 Nov 2026): every active member of staff can mentor except
-// support staff (Sarah and Nico). Read from the staff list, so new staff
-// appear by themselves. Public: only names, a region and a photo, which
-// the team page already shows.
+// The mentor team for /mentorship/ and the pre-registration form: the
+// coaches in portal/mentor/mentor-team.js (staff poll + Jessica, 25 Nov 2026),
+// as long as they are still active staff. Region comes from their staff
+// country. Public: name, region and their team-page photo only.
 
 import { db, json } from "../lib/directory.mjs";
+import { MENTOR_TEAM } from "../../portal/mentor/mentor-team.js";
 
-const NATHAN = "ac2157f5-5b2a-4a67-a243-e044ce808ca8";
 const REGION = (c) => {
   if (!c) return "";
   if (["US", "CA", "MX", "BR", "AR", "CL", "CO", "PE", "UY"].includes(c)) return "Americas";
@@ -22,18 +21,14 @@ const REGION = (c) => {
 
 export default async () => {
   try {
-    const { data, error } = await db.from("staff")
-      .select("id, full_name, role, country, photo_path").eq("active", true).neq("role", "support").order("full_name");
+    const { data, error } = await db.from("staff").select("id, country, active").in("id", MENTOR_TEAM.map((m) => m.id));
     if (error) throw error;
-    const paths = data.map((s) => s.photo_path).filter(Boolean);
-    const signed = paths.length ? (await db.storage.from("staff-photos").createSignedUrls(paths, 60 * 60 * 26)).data || [] : [];
-    const url = Object.fromEntries(signed.filter((x) => x.signedUrl).map((x) => [x.path, x.signedUrl]));
-    // Nathan first, then everyone else by name
-    const mentors = data.map((s) => ({ id: s.id, name: s.full_name, region: REGION(s.country), photo: url[s.photo_path] || null, founder: s.id === NATHAN }))
-      .sort((a, b) => (b.founder - a.founder) || a.name.localeCompare(b.name));
-    return json({ mentors }, 200, "public, max-age=3600");
+    const byId = Object.fromEntries((data || []).map((s) => [s.id, s]));
+    const mentors = MENTOR_TEAM.filter((m) => byId[m.id]?.active)
+      .map((m) => ({ id: m.id, name: m.name, founder: !!m.founder, region: REGION(byId[m.id].country), photo: `/birdbox-team/${m.photo}.jpeg` }));
+    return json({ mentors }, 200, "public, max-age=600");
   } catch (err) {
     console.error("mentorship-mentors", err);
-    return json({ mentors: [] }, 200, "no-store");
+    return json({ mentors: MENTOR_TEAM.map((m) => ({ id: m.id, name: m.name, founder: !!m.founder, region: "", photo: `/birdbox-team/${m.photo}.jpeg` })) }, 200, "no-store");
   }
 };

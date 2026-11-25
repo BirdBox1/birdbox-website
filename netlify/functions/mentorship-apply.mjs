@@ -16,6 +16,7 @@
 
 import { db, json } from "../lib/directory.mjs";
 import { stripe, KIND, taxIdFor, viesCheck } from "../lib/mentorship-apply.mjs";
+import { MENTOR_TEAM } from "../../portal/mentor/mentor-team.js";
 
 const clean = (v, n = 200) => String(v ?? "").trim().slice(0, n);
 const list = (v, n = 12) => (Array.isArray(v) ? v.map((x) => clean(x, 60)).filter(Boolean).slice(0, n) : []);
@@ -47,7 +48,7 @@ export default async (req) => {
       }
     }
 
-    const pref = UUID.test(String(b.preferred_mentor || "")) ? b.preferred_mentor : null;
+    const pref = UUID.test(String(b.preferred_mentor || "")) && MENTOR_TEAM.some((m) => m.id === b.preferred_mentor) ? b.preferred_mentor : null;
     const answers = {
       role: clean(b.role, 60), years: clean(b.years, 20), gym: clean(b.gym, 160),
       help: list(b.help), why: clean(b.why, 1500), quals: clean(b.quals, 300),

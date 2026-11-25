@@ -125,9 +125,15 @@ const f = $("#f"); let step = 1; const chosen = { help: [], times: [], mentor: "
 document.querySelectorAll("[data-chips]").forEach((el) => { const key = el.dataset.chips; el.innerHTML = (key === "help" ? HELP : TIMES).map((x) => `<button type="button" data-v="${x}">${x}</button>`).join("");
   el.onclick = (e) => { const b = e.target.closest("button"); if (!b) return; b.classList.toggle("on"); const v = b.dataset.v; chosen[key] = chosen[key].includes(v) ? chosen[key].filter((x) => x !== v) : [...chosen[key], v]; }; });
 function drawMentors() { $("#mentors").innerHTML = MENTORS.map(([k, n, d, img]) => `<button type="button" data-m="${k}" class="${k === chosen.mentor ? "on" : ""}">${img ? `<img src="${esc(img)}" alt="">` : `<span style="width:36px;height:36px;border-radius:50%;background:#2a2422;display:grid;place-items:center;flex:none">${k ? esc(n[0]) : "★"}</span>`}<span>${esc(n)}<small>${esc(d)}</small></span></button>`).join(""); }
-fetch("/.netlify/functions/mentorship-mentors").then((r) => r.json()).then(({ mentors }) => {
-  MENTORS = [MENTORS[0], ...(mentors || []).map((m) => [m.id, m.name, (m.founder ? "Founder · €85 a week" : "") + (m.founder && m.region ? " · " : "") + (m.region || ""), m.photo || ""])];
+// The mentor team (portal/mentor/mentor-team.js), with regions from the staff list when available.
+import("/portal/mentor/mentor-team.js").then(({ MENTOR_TEAM }) => {
+  MENTORS = [MENTORS[0], ...MENTOR_TEAM.map((m) => [m.id, m.name, m.founder ? "Founder · €85 a week" : "", `/birdbox-team/${m.photo}.jpeg`])];
   drawMentors();
+  return fetch("/.netlify/functions/mentorship-mentors").then((r) => r.json()).then(({ mentors }) => {
+    const reg = Object.fromEntries((mentors || []).map((m) => [m.id, m.region]));
+    MENTORS = MENTORS.map((x) => x[0] && reg[x[0]] ? [x[0], x[1], [x[2], reg[x[0]]].filter(Boolean).join(" · "), x[3]] : x);
+    drawMentors();
+  });
 }).catch(() => {});
 drawMentors();
 $("#mentors").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; chosen.mentor = b.dataset.m; document.querySelectorAll("#mentors button").forEach((x) => x.classList.toggle("on", x === b)); };
