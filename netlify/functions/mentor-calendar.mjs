@@ -41,11 +41,13 @@ export default async (req) => {
   const me = await whoIs(req);
   if (!me) return json({ error: "Please sign in again." }, 401);
   if (!canUseMentor(me)) return json({ error: "The mentor portal isn't open yet." }, 403);
+  // Only admins can look after someone else's calendar; everyone else only their own.
+  const isAdmin = me.role === "admin";
 
   const url = new URL(req.url);
   try {
     if (req.method === "GET") {
-      const mentor = url.searchParams.get("mentor") || me.id;
+      const mentor = isAdmin ? (url.searchParams.get("mentor") || me.id) : me.id;
       const settings = await settingsFor(mentor);
       const today = utcToZoned(Date.now(), settings.tz).date;
       const from = /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get("from") || "") ? url.searchParams.get("from") : mondayOf(today);
@@ -65,13 +67,13 @@ export default async (req) => {
       const bookings = books.data || [];
       const slotArgs = { settings, availability: avail.data || [], timeOff: off.data || [], bookings };
       return json({
-        me: { id: me.id, name: me.full_name, admin: true },
+        me: { id: me.id, name: me.full_name, admin: isAdmin },
         mentor, from, days,
-        mentors: (mentors.data || []).map((s) => ({ id: s.id, name: s.full_name, admin: s.role === "admin" })),
+        mentors: isAdmin ? (mentors.data || []).map((s) => ({ id: s.id, name: s.full_name, admin: s.role === "admin" })) : [{ id: me.id, name: me.full_name, admin: false }],
         settings, availability: avail.data || [], timeOff: off.data || [],
         bookings: bookings.filter((b) => Date.parse(b.starts_at) >= fromMs && Date.parse(b.starts_at) < toMs),
         upcoming: bookings.filter((b) => b.status === "booked" && Date.parse(b.ends_at) > Date.now()).slice(0, 20),
-        mentees: (mentees.data || []).map((m) => ({ id: m.id, name: [m.first_name, m.last_name].filter(Boolean).join(" ") || m.email, email: m.email, brand: m.brand, mentor_id: m.mentor_id })),
+        mentees: (mentees.data || []).filter((m) => isAdmin || m.mentor_id === me.id).map((m) => ({ id: m.id, name: [m.first_name, m.last_name].filter(Boolean).join(" ") || m.email, email: m.email, brand: m.brand, mentor_id: m.mentor_id })),
         slots: { weekly: openSlots({ ...slotArgs, kind: "weekly", days: 14 }).slice(0, 40), opening: openSlots({ ...slotArgs, kind: "opening", days: 14 }).slice(0, 40) },
       });
     }
@@ -79,6 +81,7 @@ export default async (req) => {
     if (req.method !== "POST") return json({ error: "Use GET or POST" }, 405);
     const body = await req.json().catch(() => ({}));
     const mentor = body.mentor || me.id;
+    if (mentor !== me.id && !isAdmin) return json({ error: "You can only change your own calendar." }, 403);
     if (mentor !== me.id) { // only look the mentor up when acting for someone else
       const { data: mentorRow } = await db.from("staff").select("id").eq("id", mentor).maybeSingle();
       if (!mentorRow) return json({ error: "Unknown mentor" }, 400);
