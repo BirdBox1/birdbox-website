@@ -6,7 +6,8 @@
 // seminar portal or programming tables.
 //
 // While the mentor portal is being built, only admins (Nathan and
-// Michaela) can use it. An admin can look after any mentor's calendar.
+// Michaela) and the build team (Barney) can use it: see portal/mentor/access.js.
+// They can look after any mentor's calendar.
 //
 // GET  ?mentor=<staff id>&from=YYYY-MM-DD&days=7
 //   -> { me, mentor, mentors, settings, availability, timeOff, bookings, mentees, slots }
@@ -18,6 +19,7 @@
 //   update_booking    { id, status?, starts_at?, record?, transcribe?, cancel_reason? }
 
 import { db, json, userFrom } from "../lib/directory.mjs";
+import { canUseMentor } from "../../portal/mentor/access.js";
 import { openSlots, clashes, DEFAULT_SETTINGS, zonedToUtc, mondayOf, addDays, utcToZoned } from "../../portal/mentor/slots.js";
 
 async function whoIs(req) {
@@ -38,7 +40,7 @@ const int = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0))
 export default async (req) => {
   const me = await whoIs(req);
   if (!me) return json({ error: "Please sign in again." }, 401);
-  if (me.role !== "admin") return json({ error: "The mentor portal isn't open yet." }, 403);
+  if (!canUseMentor(me)) return json({ error: "The mentor portal isn't open yet." }, 403);
 
   const url = new URL(req.url);
   try {

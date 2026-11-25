@@ -20,7 +20,7 @@ const db = createClient(
 const LINKS = [
   { href: "#train",               label: "Programming portal \u2197", train: true },
   // Being built (22 Nov 2026): admins only until it opens.
-  { href: "/portal/mentor/",             label: "Mentor portal (being built)", admin: true },
+  { href: "/portal/mentor/",             label: "Mentor portal (being built)", mentor: true },
   { href: "/portal/?view=messages", label: "Messages" },
   { href: "/portal/blog/",        label: "Blog" },
   { href: "/portal/",             label: "All courses" },
@@ -142,6 +142,7 @@ function build() {
     a.href = l.href;
     a.textContent = l.label;
     if (l.admin) a.dataset.admin = "1";
+    if (l.mentor) a.dataset.mentor = "1";
     // Signs the coach straight into the programming portal — see
     // /portal/switch.js.
     if (l.train) {
@@ -188,8 +189,10 @@ function build() {
   db.auth.getSession().then(async ({ data: { session } }) => {
     if (!session) return;
     const { data: staff } = await db.from("staff")
-      .select("full_name, role").eq("id", session.user.id).maybeSingle();
-    if (!staff) return;
+      .select("id, full_name, role, active").eq("id", session.user.id).maybeSingle();
+    if (!staff) { panel.querySelectorAll('[data-mentor="1"]').forEach((a) => a.remove()); return; }
+    const { canUseMentor } = await import("/portal/mentor/access.js");
+    if (!canUseMentor(staff)) panel.querySelectorAll('[data-mentor="1"]').forEach((a) => a.remove());
     who.textContent = staff.full_name;
     if (staff.role !== "admin") {
       panel.querySelectorAll('[data-admin="1"]').forEach((a) => a.remove());

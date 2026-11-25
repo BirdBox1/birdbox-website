@@ -4,7 +4,7 @@
 // scope is /portal/) instead of throwing out to the browser.
 //
 // The mentor portal is being built (Nathan, 22 Nov 2026). Until it opens,
-// only admins (staff.role = "admin": Nathan and Michaela) can get in.
+// only admins (Nathan and Michaela) and the build team (Barney) can get in: see access.js.
 // It uses the same sign-in as the seminars portal: same site, same
 // Supabase session, so there is no second login.
 //
@@ -17,6 +17,7 @@
 
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/+esm";
 import "/portal/switch.js";
+import { canUseMentor } from "./access.js";
 
 const db = createClient(
   "https://yvdmazpxtpuvidlcifnq.supabase.co",
@@ -49,8 +50,8 @@ function open(staff) {
     return;
   }
   const { data: staff } = await db.from("staff")
-    .select("full_name, role, active").eq("id", session.user.id).maybeSingle();
-  if (!staff || staff.active === false || staff.role !== "admin") {
+    .select("id, full_name, role, active").eq("id", session.user.id).maybeSingle();
+  if (!canUseMentor(staff)) {
     shut("Not open yet", "The mentor portal is still being built. It will appear in your portal menu when it opens.",
       `<a class="gbtn" href="/portal/">Back to the portal</a>`);
     return;
