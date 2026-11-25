@@ -25,6 +25,7 @@
 // function offers them a hand an hour later if they have not come
 // back on their own. Most of them do come back when asked.
 
+import { isMentorshipApply, onMentorshipCardSaved } from "../lib/mentorship-apply.mjs";
 import Stripe from "stripe";
 import { readFile } from "node:fs/promises";
 import { createClient } from "@supabase/supabase-js";
@@ -139,6 +140,8 @@ export default async (req) => {
         // A payment-plan deposit page left unpaid is not an abandoned
         // booking — the payer can open their plan link again.
         if (event.data.object.metadata?.kind === "plan_deposit") break;
+        // A mentorship pre-registration left before saving a card is not a booking.
+        if (isMentorshipApply(event.data.object)) break;
         await onCheckoutAbandoned(event.data.object);
         break;
       case "payment_intent.payment_failed":
@@ -184,6 +187,13 @@ async function onBalanceDebtPlan(session) {
 // a purchase completed
 // ---------------------------------------------------------------
 async function onCheckoutCompleted(session) {
+  // BirdBox Mentorship pre-registration: a card saved, nothing charged
+  // (mode "setup"). Lives in netlify/lib/mentorship-apply.mjs.
+  if (isMentorshipApply(session)) {
+    await onMentorshipCardSaved(session);
+    return;
+  }
+
   // A gift card bought on /gift/: issue it and email it. It creates
   // no registration. Lives in netlify/lib/gift-cards.mjs.
   if (isGiftSale(session)) {
