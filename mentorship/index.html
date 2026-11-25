@@ -41,10 +41,13 @@
   .hero .start { display:inline-flex; gap:10px; align-items:center; background:rgba(47,127,208,.14); border:1px solid rgba(47,127,208,.45); color:#cfe2f7; border-radius:30px; padding:6px 14px; font-size:14px; font-weight:600; }
   .hero .cta { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-top: 6px; }
   .hero .small { font-size: 13px; color: var(--muted); margin-top: 14px; }
-  .faces { display:grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  .faces img { width:100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; filter: grayscale(.15); border:1px solid var(--line); }
-  .faces img:nth-child(even) { transform: translateY(18px); }
-  @media (max-width: 860px) { .hero .wrap { grid-template-columns: 1fr; } .faces { grid-template-columns: repeat(7, 1fr); } .faces img:nth-child(even) { transform:none; } }
+  .mosaic { display:grid; grid-template-columns: 1.25fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; height: 440px; }
+  .mosaic img { width:100%; height:100%; object-fit: cover; border-radius: 14px; border:1px solid var(--line); }
+  .mosaic .big { grid-row: 1 / 3; }
+  .strip { display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 0 30px; }
+  .strip img { width:100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; border:1px solid var(--line); }
+  @media (max-width: 560px) { .strip { grid-template-columns: 1fr 1fr; } .strip img:nth-child(3) { display:none; } }
+  @media (max-width: 860px) { .hero .wrap { grid-template-columns: 1fr; } .mosaic { height: 300px; } }
 
   /* steps */
   .h2 { font-size: clamp(28px, 4vw, 40px); margin: 10px 0 12px; }
@@ -111,9 +114,10 @@
       <div class="cta"><a class="btn" href="/mentorship/apply/">Pre-register for January ›</a><a class="btn ghost" href="#how">How it works</a></div>
       <p class="small">Nothing to pay to pre-register. Your card holds your place.</p>
     </div>
-    <div class="faces" aria-hidden="true">
-      <img src="/birdbox-team/nathan-bird.jpeg" alt=""><img src="/birdbox-team/michaela-dotterweich.jpeg" alt=""><img src="/birdbox-team/barney-linssen.jpeg" alt=""><img src="/birdbox-team/mel-zinggrebe.jpeg" alt="">
-      <img src="/birdbox-team/dane-leavy.jpeg" alt=""><img src="/birdbox-team/luis-vela.jpeg" alt=""><img src="/birdbox-team/marcus-grimalt.jpeg" alt="">
+    <div class="mosaic" aria-hidden="true">
+      <img class="big" src="/mentorship/img/ng6962.jpg" alt="">
+      <img src="/mentorship/img/ng7173.jpg" alt="">
+      <img src="/mentorship/img/ng6767.jpg" alt="">
     </div>
   </div>
 </header>
@@ -137,6 +141,7 @@
     <div class="eyebrow">Every 4 weeks</div>
     <h2 class="h2">What you get</h2>
     <p class="intro">Real time with an experienced coach, and the tools to see your own coaching clearly.</p>
+    <div class="strip" aria-hidden="true"><img src="/mentorship/img/ng6929.jpg" alt="" loading="lazy"><img src="/mentorship/img/ng6905.jpg" alt="" loading="lazy"><img src="/mentorship/img/ng6953.jpg" alt="" loading="lazy"></div>
     <div class="get">
       <div class="card"><div class="ic">☎</div><h3>A weekly 1-2-1 call</h3><p>30 minutes every week with your mentor: what's working, what's next, and how to get there.</p></div>
       <div class="card"><div class="ic">▶</div><h3>Feedback on your coaching</h3><p>Send a video of you coaching every two weeks. Your mentor marks the key moments, draws on the frame and talks you through it.</p></div>
