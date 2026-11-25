@@ -342,7 +342,9 @@ document.addEventListener("keydown",(e)=>{
 // Starts once gate.js says an admin is signed in. The signed-in person picks the starting "view as".
 window.addEventListener("mentor-ready", (e) => {
   const n = String(e.detail?.full_name || "").toLowerCase();
-  ME = n.startsWith("michaela") ? "michaela" : "nathan";
+  ME = n.startsWith("michaela") ? "michaela" : n.startsWith("barney") ? "barney" : "nathan";
+  MENTORS.barney.admin = true; // Barney is on the build team, so he sees the admin pages too
+  $("as").querySelector('option[value="barney"]').textContent = "Barney · build team";
   $("as").value = ME;
   route();
 });

@@ -19,6 +19,8 @@ const db = createClient(
   "sb_publishable_GOrQSPEuHhbKLQMgqsATvg_rKpro7uZ"
 );
 
+import { canUseMentor } from "/portal/mentor/access.js";
+
 const LABEL = "Programming portal ↗";
 
 // ---------- arriving from the programming portal ----------
@@ -90,13 +92,13 @@ function addToMainMenu() {
   addMentorLink(a);
 }
 
-// The mentor portal is being built (22 Nov 2026): only admins see the link.
+// The mentor portal is being built: only admins and the build team see the link (access.js).
 async function addMentorLink(after) {
   if (document.getElementById("mentorlink")) return;
   const { data: { session } } = await db.auth.getSession();
   if (!session) return;
-  const { data: staff } = await db.from("staff").select("role").eq("id", session.user.id).maybeSingle();
-  if (!staff || staff.role !== "admin") return;
+  const { data: staff } = await db.from("staff").select("id, role, active").eq("id", session.user.id).maybeSingle();
+  if (!canUseMentor(staff)) return;
   const m = document.createElement("a");
   m.id = "mentorlink";
   m.className = "linkbtn";
