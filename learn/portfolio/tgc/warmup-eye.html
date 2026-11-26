@@ -21,7 +21,7 @@
   .btn:hover{background:transparent;color:var(--accent)}
   .btn.ghost{background:none;color:var(--ink);border-color:#6A6466}
   .btn.small{font-size:11px;padding:7px 12px}
-  .wrap{max-width:900px;margin:0 auto;padding:36px 20px 64px}
+  .wrap{max-width:1120px;margin:0 auto;padding:36px 20px 64px}
   .kicker{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
   .kicker a{color:inherit;text-decoration:none}
   h1{font-size:clamp(26px,4vw,38px);line-height:1.05;font-weight:800;text-transform:uppercase;margin:0 0 10px}
@@ -69,11 +69,20 @@
   .obs .del{flex:none;font:inherit;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:none;color:var(--muted);border:1px solid #6A6466;padding:6px 10px;cursor:pointer}
   .obs .del:hover{color:var(--bad);border-color:var(--bad)}
   .obs span{font-size:13px;color:var(--muted)}
-  .fault{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:10px;align-items:start;border-top:1px solid var(--line);padding:12px 0}
+  .fault{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border-top:1px solid var(--line);padding:12px 0}
   .fault:first-child{border-top:none}
   .fault .t b{display:block;font-size:15px}
   .fault .t small{display:block;color:var(--muted);font-size:13px;line-height:1.45;margin-top:2px}
-  .fault input[type=number]{width:100%;font:inherit;font-size:15px;padding:8px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+  .tally{display:flex;align-items:center;gap:6px}
+  .tally .minus{font:inherit;font-size:18px;font-weight:800;width:34px;height:40px;background:none;color:var(--muted);border:1px solid var(--line);cursor:pointer}
+  .tally .minus:hover{color:var(--ink);border-color:#6A6466}
+  .tally .n{min-width:30px;text-align:center;font-size:20px;font-weight:800}
+  .tally .n.zero{color:#6A6466}
+  .tally .plus{font:inherit;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;height:40px;padding:0 14px;background:var(--accent);color:#fff;border:1px solid var(--accent);cursor:pointer;white-space:nowrap}
+  .tally .plus:active{transform:scale(.96)}
+  .fault.seen{background:rgba(224,85,90,.06)}
+  @media(max-width:640px){.fault{grid-template-columns:minmax(0,1fr);gap:8px;padding:10px 0}.tally{justify-content:flex-end}.tally .plus{flex:1;max-width:200px}}
+  .fault .add{grid-column:1 / -1;justify-self:start;font:inherit;font-size:12px;color:var(--muted);background:none;border:none;padding:0;cursor:pointer;text-decoration:underline}
   .fault textarea{grid-column:1 / -1;min-height:44px}
   .tags{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0}
   .tags label{display:flex;gap:6px;align-items:center;font-size:14px;border:1px solid var(--line);padding:6px 10px;cursor:pointer;background:var(--paper)}
@@ -86,9 +95,10 @@
   .vwork{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;align-items:start}
   .vwork>*{min-width:0}
   .vwork.has{gap:18px}
-  @media(min-width:900px){.vwork.has{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}.vwork.has.wide{grid-template-columns:minmax(0,1fr)}}
-  .vwork.wide .vplayer video{max-height:56vh}
-  .vwork.wide .vplayer iframe{max-height:56vh;max-width:calc(56vh * 16 / 9);margin:0 auto}
+  /* Computer: the video stays on the left while the faults sit beside it, so the two never overlap. */
+  @media(min-width:900px){.vwork.has{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}.vwork.has .vplayer{top:12px}}
+  /* Phone: the video stays small at the top; room underneath so the last faults scroll clear of it. */
+  @media(max-width:899px){.vwork.has #o-faults{padding-bottom:calc(34vh + 24px)}}
   .vplayer iframe.portrait{aspect-ratio:9/16;width:auto;height:min(70vh,640px);max-width:100%;margin:0 auto}
   .vplayer{position:sticky;top:0;z-index:6;background:var(--panel);padding:6px 0 8px}
   .vplayer .screen{background:#000;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
@@ -175,7 +185,7 @@
       </div>
       <div class="panel">
         <h2>2. The faults I saw</h2>
-        <p class="sub">Watch your video and, for each fault, write how many athletes showed it and what you noticed. Leave it at 0 if you did not see it.</p>
+        <p class="sub">Play your video and tap “+ Seen it” every time you spot a fault. Use − if you tap by mistake. Add a note on anything you want to remember.</p>
         <div class="vwork" id="o-work"><div class="vplayer hidden" id="o-player"></div><div id="o-faults"></div></div>
       </div>
 
@@ -417,12 +427,18 @@ function edit(o) {
     const r = document.createElement("div"); r.className = "fault";
     r.innerHTML = '<div class="t"><b></b><small></small></div>';
     r.querySelector("b").textContent = t; r.querySelector("small").textContent = sub;
-    const w = document.createElement("div"); const lb = document.createElement("label"); lb.className = "f"; lb.style.margin = "0 0 4px"; lb.textContent = "Athletes";
-    const n = document.createElement("input"); n.type = "number"; n.min = 0; n.value = o.n[k] || 0;
-    n.oninput = () => { o.n[k] = Math.max(0, +n.value || 0); ta.classList.toggle("hidden", !o.n[k] && !o.note[k]); changed(); };
-    w.append(lb, n);
-    const ta = document.createElement("textarea"); ta.value = o.note[k] || ""; ta.placeholder = "What did you notice?"; ta.classList.toggle("hidden", !o.n[k] && !o.note[k]);
+    // Tap "+ Seen it" each time you spot the fault while the video plays; − takes one off.
+    const w = document.createElement("div"); w.className = "tally";
+    const minus = document.createElement("button"); minus.type = "button"; minus.className = "minus"; minus.textContent = "−"; minus.setAttribute("aria-label", "Take one off: " + t);
+    const n = document.createElement("span"); n.className = "n";
+    const plus = document.createElement("button"); plus.type = "button"; plus.className = "plus"; plus.textContent = "+ Seen it"; plus.setAttribute("aria-label", "Seen it: " + t);
+    w.append(minus, n, plus);
+    const ta = document.createElement("textarea"); ta.value = o.note[k] || ""; ta.placeholder = "What did you notice? (optional)";
     ta.oninput = () => { o.note[k] = ta.value; changed(); };
+    const draw = () => { const c = o.n[k] || 0; n.textContent = c; n.classList.toggle("zero", !c); r.classList.toggle("seen", c > 0); ta.classList.toggle("hidden", !c && !o.note[k]); };
+    plus.onclick = () => { o.n[k] = (o.n[k] || 0) + 1; draw(); changed(); };
+    minus.onclick = () => { o.n[k] = Math.max(0, (o.n[k] || 0) - 1); draw(); changed(); };
+    draw();
     r.append(w, ta); box.appendChild(r);
   }
   player(o);
