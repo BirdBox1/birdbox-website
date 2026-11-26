@@ -95,12 +95,28 @@
   .vwork{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;align-items:start}
   .vwork>*{min-width:0}
   .vwork.has{gap:18px}
-  /* Computer: the video stays on the left while the faults sit beside it, so the two never overlap. */
-  @media(min-width:900px){.vwork.has{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}.vwork.has .vplayer{top:12px}}
-  /* Phone: the video stays small at the top; room underneath so the last faults scroll clear of it. */
-  @media(max-width:899px){.vwork.has #o-faults{padding-bottom:calc(34vh + 24px)}}
+  /* Video on top, as large as the screen allows while leaving room for all the fault tiles underneath. */
+  .vwork.has .vplayer video{max-height:calc(100vh - 300px);min-height:200px}
+  .vwork.has .vplayer iframe{max-height:calc(100vh - 300px);max-width:calc((100vh - 300px) * 16 / 9);margin:0 auto}
+  @media(max-width:640px){.vwork.has .vplayer video,.vwork.has .vplayer iframe{max-height:48vh}}
+  .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  @media(max-width:899px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .tile{position:relative;display:flex;border:1px solid var(--line);background:var(--paper)}
+  .tile.seen{border-color:var(--accent);background:rgba(224,85,90,.1)}
+  .tile .hit{flex:1;min-width:0;display:flex;align-items:center;gap:10px;font:inherit;text-align:left;background:none;color:var(--ink);border:none;padding:10px 6px 10px 12px;cursor:pointer;min-height:58px}
+  .tile .hit:active{background:rgba(224,85,90,.18)}
+  .tile .hit b{flex:1;font-size:13.5px;line-height:1.25}
+  .tile .hit span{font-size:24px;font-weight:800;min-width:26px;text-align:right}
+  .tile:not(.seen) .hit span{color:#6A6466}
+  .tile .minus{flex:none;width:32px;font:inherit;font-size:17px;font-weight:800;background:none;color:var(--muted);border:none;border-left:1px solid var(--line);cursor:pointer}
+  .tile .minus:hover{color:var(--ink)}
+  @media(max-width:640px){.tiles{gap:6px}.tile .hit{min-height:42px;padding:6px 4px 6px 9px;gap:6px}.tile .hit b{font-size:12px}.tile .hit span{font-size:17px;min-width:18px}.tile .minus{width:26px;font-size:15px}}
+  .notes{margin-top:14px}
+  .notes .nt{margin:10px 0 0}
+  .notes .nt label{display:block;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 5px}
+  .notes textarea{min-height:44px}
   .vplayer iframe.portrait{aspect-ratio:9/16;width:auto;height:min(70vh,640px);max-width:100%;margin:0 auto}
-  .vplayer{position:sticky;top:0;z-index:6;background:var(--panel);padding:6px 0 8px}
+  .vplayer{background:var(--panel);padding:0 0 10px}
   .vplayer .screen{background:#000;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
   .vplayer video{display:block;width:100%;max-height:70vh;object-fit:contain;background:#000}
   .vplayer iframe{display:block;width:100%;aspect-ratio:16/9;border:0;background:#000}
@@ -185,8 +201,9 @@
       </div>
       <div class="panel">
         <h2>2. The faults I saw</h2>
-        <p class="sub">Play your video and tap “+ Seen it” every time you spot a fault. Use − if you tap by mistake. Add a note on anything you want to remember.</p>
-        <div class="vwork" id="o-work"><div class="vplayer hidden" id="o-player"></div><div id="o-faults"></div></div>
+        <p class="sub">Play your video and tap a fault every time you see it. Use − if you tap by mistake. A note box appears below for each fault you tap.</p>
+        <div class="vwork" id="o-work"><div class="vplayer hidden" id="o-player"></div><div class="tiles" id="o-faults"></div></div>
+        <div class="notes" id="o-notes"></div>
       </div>
 
       <div class="panel">
@@ -422,24 +439,23 @@ function edit(o) {
     const el = $(id); el.value = o[k] || ""; el.oninput = el.onchange = () => { o[k] = el.value; changed(); };
   }
   tags("o-type", TYPES, o.type); tags("o-where", WHERE, o.where); tags("o-resp", RESP, o.resp);
-  const box = $("o-faults"); box.innerHTML = "";
+  // Tap a tile each time you see that fault while the video plays; − takes one off. All seven fit under the video.
+  const box = $("o-faults"), notes = $("o-notes"); box.innerHTML = ""; notes.innerHTML = "";
   for (const [k, t, sub] of FAULTS) {
-    const r = document.createElement("div"); r.className = "fault";
-    r.innerHTML = '<div class="t"><b></b><small></small></div>';
-    r.querySelector("b").textContent = t; r.querySelector("small").textContent = sub;
-    // Tap "+ Seen it" each time you spot the fault while the video plays; − takes one off.
-    const w = document.createElement("div"); w.className = "tally";
+    const tile = document.createElement("div"); tile.className = "tile"; tile.title = sub;
+    const hit = document.createElement("button"); hit.type = "button"; hit.className = "hit"; hit.setAttribute("aria-label", "Seen it: " + t);
+    const name = document.createElement("b"); name.textContent = t; const n = document.createElement("span"); hit.append(name, n);
     const minus = document.createElement("button"); minus.type = "button"; minus.className = "minus"; minus.textContent = "−"; minus.setAttribute("aria-label", "Take one off: " + t);
-    const n = document.createElement("span"); n.className = "n";
-    const plus = document.createElement("button"); plus.type = "button"; plus.className = "plus"; plus.textContent = "+ Seen it"; plus.setAttribute("aria-label", "Seen it: " + t);
-    w.append(minus, n, plus);
+    tile.append(hit, minus); box.appendChild(tile);
+    const nt = document.createElement("div"); nt.className = "nt";
+    const lb = document.createElement("label"); lb.textContent = t;
     const ta = document.createElement("textarea"); ta.value = o.note[k] || ""; ta.placeholder = "What did you notice? (optional)";
     ta.oninput = () => { o.note[k] = ta.value; changed(); };
-    const draw = () => { const c = o.n[k] || 0; n.textContent = c; n.classList.toggle("zero", !c); r.classList.toggle("seen", c > 0); ta.classList.toggle("hidden", !c && !o.note[k]); };
-    plus.onclick = () => { o.n[k] = (o.n[k] || 0) + 1; draw(); changed(); };
+    nt.append(lb, ta); notes.appendChild(nt);
+    const draw = () => { const c = o.n[k] || 0; n.textContent = c; tile.classList.toggle("seen", c > 0); nt.classList.toggle("hidden", !c && !o.note[k]); };
+    hit.onclick = () => { o.n[k] = (o.n[k] || 0) + 1; draw(); changed(); };
     minus.onclick = () => { o.n[k] = Math.max(0, (o.n[k] || 0) - 1); draw(); changed(); };
     draw();
-    r.append(w, ta); box.appendChild(r);
   }
   player(o);
   const sel = $("o-fault");
