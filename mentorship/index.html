@@ -73,10 +73,11 @@
   .mentor img { width:100%; aspect-ratio: 1; object-fit: cover; display:block; }
   .mentor div { padding: 12px 14px; }
   .mentor b { display:block; }
-  .mentor span { font-size: 13px; color: var(--muted); }
+  .mentor span { font-size: 13px; color: var(--muted); display:block; }
+  .mentor span.mp { color: #cfe2f7; margin-top: 2px; }
 
   /* price */
-  .prices { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; align-items: stretch; }
+  .prices { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; }
   .price { background: var(--panel); border:1px solid var(--line); border-radius: 14px; padding: 24px; display:flex; flex-direction:column; gap: 8px; }
   .price.main { border-color: var(--blue); background: linear-gradient(180deg, rgba(47,127,208,.14), var(--panel)); }
   .price .k { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
@@ -161,8 +162,7 @@
     <p class="intro">Prices include VAT. A business with an EU VAT number can add it when pre-registering, and invoices show it.</p>
     <div class="prices">
       <div class="price"><div class="k">Discovery call</div><div class="v">€150</div><p>60 to 90 minutes with your mentor, plus your written Discovery Report. Charged only once your call is booked.</p></div>
-      <div class="price main"><div class="k">Mentorship</div><div class="v">€70 <small>a week</small></div><p>Paid every 4 weeks. Cancel any time from your BirdBox account.</p><ul><li>Weekly 30-minute call</li><li>Video feedback every two weeks</li><li>Messaging with your mentor</li><li>Learning picked for you</li></ul></div>
-      <div class="price"><div class="k">With Nathan</div><div class="v">€85 <small>a week</small></div><p>Mentorship with BirdBox founder Nathan Bird. Paid every 4 weeks. Very limited places.</p></div>
+      <div class="price main"><div class="k">Mentorship</div><div class="v"><small>from</small> €70 <small>a week</small></div><p>Paid every 4 weeks. Cancel any time from your BirdBox account.</p><ul><li>Price depends on your mentor: see each mentor below</li><li>Weekly 30-minute call</li><li>Video feedback every two weeks</li><li>Messaging with your mentor</li><li>Learning picked for you</li></ul></div>
     </div>
   </div>
 </section>
@@ -192,12 +192,15 @@
 
 <script type="module">
 // The mentor team (portal/mentor/mentor-team.js): staff poll + Jessica.
-import { MENTOR_TEAM } from "/portal/mentor/mentor-team.js";
+import { MENTOR_TEAM } from "/portal/mentor/mentor-team.js?v=2";
 const esc = (t) => String(t || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 document.getElementById("faces").innerHTML = MENTOR_TEAM.slice(0, 8).map((m) => `<img src="/birdbox-team/${m.photo}.jpeg" alt="">`).join("");
-document.getElementById("mentors").innerHTML = MENTOR_TEAM.map((m) => `<div class="mentor"><img src="/birdbox-team/${m.photo}.jpeg" alt="${esc(m.name)}" loading="lazy"><div><b>${esc(m.name)}</b><span id="r-${m.id}">${m.founder ? "Founder" : "Coach"}</span></div></div>`).join("");
+document.getElementById("mentors").innerHTML = MENTOR_TEAM.map((m) => `<div class="mentor"><img src="/birdbox-team/${m.photo}.jpeg" alt="${esc(m.name)}" loading="lazy"><div><b>${esc(m.name)}</b><span id="r-${m.id}">${m.founder ? "Founder" : "Coach"}</span><span class="mp" id="p-${m.id}">€${m.price || 70} a week</span></div></div>`).join("");
 // regions, from the staff list
-fetch("/.netlify/functions/mentorship-mentors").then((r) => r.json()).then(({ mentors }) => (mentors || []).forEach((m) => { const el = document.getElementById("r-" + m.id); if (el && m.region) el.textContent += " · " + m.region; })).catch(() => {});
+fetch("/.netlify/functions/mentorship-mentors").then((r) => r.json()).then(({ mentors }) => (mentors || []).forEach((m) => {
+  const el = document.getElementById("r-" + m.id); if (el && m.region) el.textContent += " · " + m.region;
+  const p = document.getElementById("p-" + m.id); if (p) p.textContent = `€${m.price} a week · ` + (m.placesLeft > 0 ? `${m.placesLeft} place${m.placesLeft === 1 ? "" : "s"} left` : "full");
+})).catch(() => {});
 </script>
 <footer class="bb-footer">&copy; BirdBox Coaching Ltd <a href="/portal/">Staff Login</a></footer>
 <script src="/nav.js"></script>

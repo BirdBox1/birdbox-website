@@ -8,7 +8,7 @@
 // country. Public: name, region and their team-page photo only.
 
 import { db, json } from "../lib/directory.mjs";
-import { MENTOR_TEAM } from "../../portal/mentor/mentor-team.js";
+import { MENTOR_TEAM, priceOf, placesOf } from "../../portal/mentor/mentor-team.js";
 
 const REGION = (c) => {
   if (!c) return "";
@@ -20,15 +20,21 @@ const REGION = (c) => {
 };
 
 export default async () => {
+  // Places left update as mentees are allocated, so keep the cache short.
   try {
     const { data, error } = await db.from("staff").select("id, country, active").in("id", MENTOR_TEAM.map((m) => m.id));
     if (error) throw error;
     const byId = Object.fromEntries((data || []).map((s) => [s.id, s]));
+    // Places taken = mentees already allocated to them (not withdrawn or declined).
+    const taken = {};
+    const { data: apps } = await db.from("mentor_applications").select("mentor_id").not("mentor_id", "is", null).not("status", "in", "(withdrawn,declined,pending_card)");
+    (apps || []).forEach((a) => { taken[a.mentor_id] = (taken[a.mentor_id] || 0) + 1; });
     const mentors = MENTOR_TEAM.filter((m) => byId[m.id]?.active)
-      .map((m) => ({ id: m.id, name: m.name, founder: !!m.founder, region: REGION(byId[m.id].country), photo: `/birdbox-team/${m.photo}.jpeg` }));
-    return json({ mentors }, 200, "public, max-age=600");
+      .map((m) => ({ id: m.id, name: m.name, founder: !!m.founder, region: REGION(byId[m.id].country), photo: `/birdbox-team/${m.photo}.jpeg`,
+        price: priceOf(m), placesLeft: Math.max(0, placesOf(m) - (taken[m.id] || 0)) }));
+    return json({ mentors }, 200, "public, max-age=60");
   } catch (err) {
     console.error("mentorship-mentors", err);
-    return json({ mentors: MENTOR_TEAM.map((m) => ({ id: m.id, name: m.name, founder: !!m.founder, region: "", photo: `/birdbox-team/${m.photo}.jpeg` })) }, 200, "no-store");
+    return json({ mentors: MENTOR_TEAM.map((m) => ({ id: m.id, name: m.name, founder: !!m.founder, region: "", photo: `/birdbox-team/${m.photo}.jpeg`, price: priceOf(m), placesLeft: placesOf(m) })) }, 200, "no-store");
   }
 };

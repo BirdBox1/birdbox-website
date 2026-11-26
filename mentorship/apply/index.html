@@ -36,6 +36,9 @@
   .chips { display:flex; flex-wrap:wrap; gap:8px; }
   .chips button { background:var(--field); border:1px solid var(--line); color:var(--ink); border-radius:20px; padding:7px 13px; font:inherit; font-size:14px; cursor:pointer; }
   .chips button.on { background:var(--blue); border-color:var(--blue); color:#fff; }
+  .pick { display:flex; gap:12px; align-items:center; background:var(--field); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .pick img { width:52px; height:52px; border-radius:50%; object-fit:cover; flex:none; }
+  .pick b { display:block; } .pick span { font-size:13px; color:var(--muted); }
   .mentors { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; }
   .mentors button { background:var(--field); border:1px solid var(--line); color:var(--ink); border-radius:10px; padding:8px; font:inherit; cursor:pointer; display:flex; gap:8px; align-items:center; text-align:left; }
   .mentors button img { width:36px; height:36px; border-radius:50%; object-fit:cover; flex:none; }
@@ -88,8 +91,10 @@
     <!-- 3 -->
     <div class="card hidden" data-step="3">
       <h2>Your mentor and times</h2>
-      <p class="hint">Pick a preferred mentor if you have one. We'll do our best; if their places are full we'll pair you with someone in a time zone that suits you.</p>
-      <div class="mentors" id="mentors"></div>
+      <p class="hint">Pick a preferred mentor if you have one. We'll do our best; if their places fill up we'll pair you with someone in a time zone that suits you.</p>
+      <label class="f"><b>Preferred mentor</b>
+        <select id="mentorsel"><option value="">No preference: best match for me</option></select></label>
+      <div class="pick hidden" id="mentorpick"><img id="mpimg" alt=""><div><b id="mpname"></b><span id="mpline"></span></div></div>
       <div class="f"><b style="font-size:14px">Best times for calls</b> <span style="font-size:13px;color:var(--muted)">In your time zone. Pick any</span>
         <div class="chips" data-chips="times">${TIMES}</div></div>
       <label class="f"><b>How did you hear about us?</b> <i>optional</i><select name="heard"><option value="">Choose…</option><option>BirdBox course or seminar</option><option>Instagram</option><option>A BirdBox coach</option><option>A friend or colleague</option><option>Search</option><option>Other</option></select></label>
@@ -115,8 +120,6 @@
 <script>
 const HELP = ["Leading group classes","Feedback and cueing","Gymnastics","Programming","Leading a coaching team","Running my gym","Confidence","Communication","Something else"];
 const TIMES = ["Early mornings","Mornings","Lunchtimes","Afternoons","Evenings","Weekends"];
-// [id, name, line under the name, photo url]; filled from the live staff list below.
-let MENTORS = [["","No preference","Best match for you",""]];
 const COUNTRIES = [["IE","Ireland"],["GB","United Kingdom"],["AT","Austria"],["BE","Belgium"],["BG","Bulgaria"],["HR","Croatia"],["CY","Cyprus"],["CZ","Czechia"],["DK","Denmark"],["EE","Estonia"],["FI","Finland"],["FR","France"],["DE","Germany"],["GR","Greece"],["HU","Hungary"],["IT","Italy"],["LV","Latvia"],["LT","Lithuania"],["LU","Luxembourg"],["MT","Malta"],["NL","Netherlands"],["PL","Poland"],["PT","Portugal"],["RO","Romania"],["SK","Slovakia"],["SI","Slovenia"],["ES","Spain"],["SE","Sweden"],["NO","Norway"],["CH","Switzerland"],["IS","Iceland"],["US","United States"],["CA","Canada"],["MX","Mexico"],["BR","Brazil"],["AR","Argentina"],["CL","Chile"],["CO","Colombia"],["AU","Australia"],["NZ","New Zealand"],["ZA","South Africa"],["AE","United Arab Emirates"],["SA","Saudi Arabia"],["QA","Qatar"],["IL","Israel"],["TR","Turkey"],["IN","India"],["SG","Singapore"],["HK","Hong Kong"],["JP","Japan"],["KR","South Korea"],["TW","Taiwan"],["CN","China"],["PH","Philippines"],["TH","Thailand"],["MY","Malaysia"],["ID","Indonesia"]];
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -124,19 +127,25 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const f = $("#f"); let step = 1; const chosen = { help: [], times: [], mentor: "" };
 document.querySelectorAll("[data-chips]").forEach((el) => { const key = el.dataset.chips; el.innerHTML = (key === "help" ? HELP : TIMES).map((x) => `<button type="button" data-v="${x}">${x}</button>`).join("");
   el.onclick = (e) => { const b = e.target.closest("button"); if (!b) return; b.classList.toggle("on"); const v = b.dataset.v; chosen[key] = chosen[key].includes(v) ? chosen[key].filter((x) => x !== v) : [...chosen[key], v]; }; });
-function drawMentors() { $("#mentors").innerHTML = MENTORS.map(([k, n, d, img]) => `<button type="button" data-m="${k}" class="${k === chosen.mentor ? "on" : ""}">${img ? `<img src="${esc(img)}" alt="">` : `<span style="width:36px;height:36px;border-radius:50%;background:#2a2422;display:grid;place-items:center;flex:none">${k ? esc(n[0]) : "★"}</span>`}<span>${esc(n)}<small>${esc(d)}</small></span></button>`).join(""); }
-// The mentor team (portal/mentor/mentor-team.js), with regions from the staff list when available.
-import("/portal/mentor/mentor-team.js").then(({ MENTOR_TEAM }) => {
-  MENTORS = [MENTORS[0], ...MENTOR_TEAM.map((m) => [m.id, m.name, m.founder ? "Founder · €85 a week" : "", `/birdbox-team/${m.photo}.jpeg`])];
+// Preferred mentor: the mentor team, with each mentor's price and places left.
+let MENTORS = [];
+const lineFor = (m) => `€${m.price || 70} a week · ` + (m.placesLeft === 0 ? "full" : m.placesLeft != null ? `${m.placesLeft} place${m.placesLeft === 1 ? "" : "s"} left` : "places available") + (m.region ? ` · ${m.region}` : "");
+function drawMentors() {
+  const sel = $("#mentorsel"), keep = chosen.mentor;
+  sel.innerHTML = `<option value="">No preference: best match for me</option>` + MENTORS.map((m) => `<option value="${m.id}" ${m.placesLeft === 0 ? "disabled" : ""} ${m.id === keep ? "selected" : ""}>${esc(m.name)} — ${esc(lineFor(m))}</option>`).join("");
+  showPick();
+}
+function showPick() {
+  const m = MENTORS.find((x) => x.id === chosen.mentor);
+  $("#mentorpick").classList.toggle("hidden", !m);
+  if (m) { $("#mpimg").src = m.photo; $("#mpname").textContent = m.name; $("#mpline").textContent = lineFor(m); }
+}
+$("#mentorsel").onchange = (e) => { chosen.mentor = e.target.value; showPick(); };
+import("/portal/mentor/mentor-team.js?v=2").then(({ MENTOR_TEAM }) => {
+  MENTORS = MENTOR_TEAM.map((m) => ({ id: m.id, name: m.name, price: m.price || 70, photo: `/birdbox-team/${m.photo}.jpeg`, placesLeft: null }));
   drawMentors();
-  return fetch("/.netlify/functions/mentorship-mentors").then((r) => r.json()).then(({ mentors }) => {
-    const reg = Object.fromEntries((mentors || []).map((m) => [m.id, m.region]));
-    MENTORS = MENTORS.map((x) => x[0] && reg[x[0]] ? [x[0], x[1], [x[2], reg[x[0]]].filter(Boolean).join(" · "), x[3]] : x);
-    drawMentors();
-  });
+  return fetch("/.netlify/functions/mentorship-mentors").then((r) => r.json()).then(({ mentors }) => { if (mentors && mentors.length) { MENTORS = mentors; drawMentors(); } });
 }).catch(() => {});
-drawMentors();
-$("#mentors").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; chosen.mentor = b.dataset.m; document.querySelectorAll("#mentors button").forEach((x) => x.classList.toggle("on", x === b)); };
 $("#country").innerHTML = `<option value="">Choose…</option>` + COUNTRIES.map(([code, name]) => `<option value="${code}">${name}</option>`).join("");
 const here = Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Dublin";
 const zones = (Intl.supportedValuesOf ? Intl.supportedValuesOf("timeZone") : [here]);
@@ -157,7 +166,7 @@ function show() {
   document.querySelectorAll("#bar span").forEach((s, i) => s.classList.toggle("on", i < step));
   $("#back").style.visibility = step === 1 ? "hidden" : "visible";
   $("#next").textContent = step === 4 ? "Save my card and pre-register ›" : "Next ›";
-  if (step === 4) { const d = data(); const m = MENTORS.find((x) => x[0] === d.preferred_mentor); $("#sum").innerHTML = `<dt>Name</dt><dd>${esc(d.first_name)} ${esc(d.last_name)}</dd><dt>Email</dt><dd>${esc(d.email)}</dd><dt>Mentor</dt><dd>${esc(m ? m[1] : "No preference")}</dd><dt>Starts</dt><dd>Monday 4 January 2027</dd><dt>Today</dt><dd><b>Nothing charged</b></dd>`; }
+  if (step === 4) { const d = data(); const m = MENTORS.find((x) => x.id === d.preferred_mentor); $("#sum").innerHTML = `<dt>Name</dt><dd>${esc(d.first_name)} ${esc(d.last_name)}</dd><dt>Email</dt><dd>${esc(d.email)}</dd><dt>Mentor</dt><dd>${esc(m ? m.name + " (€" + (m.price || 70) + " a week)" : "No preference")}</dd><dt>Starts</dt><dd>Monday 4 January 2027</dd><dt>Today</dt><dd><b>Nothing charged</b></dd>`; }
   $("#err").textContent = ""; window.scrollTo({ top: 0, behavior: "smooth" });
 }
 $("#back").onclick = () => { if (step > 1) { step--; show(); } };
