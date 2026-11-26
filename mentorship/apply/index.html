@@ -129,7 +129,7 @@ document.querySelectorAll("[data-chips]").forEach((el) => { const key = el.datas
   el.onclick = (e) => { const b = e.target.closest("button"); if (!b) return; b.classList.toggle("on"); const v = b.dataset.v; chosen[key] = chosen[key].includes(v) ? chosen[key].filter((x) => x !== v) : [...chosen[key], v]; }; });
 // Preferred mentor: the mentor team, with each mentor's price and places left.
 let MENTORS = [];
-const lineFor = (m) => `€${m.price || 70} a week · ` + (m.placesLeft === 0 ? "full" : m.placesLeft != null ? `${m.placesLeft} place${m.placesLeft === 1 ? "" : "s"} left` : "places available") + (m.region ? ` · ${m.region}` : "");
+const lineFor = (m) => `€${m.price || 70} a week · ` + (m.placesLeft === 0 ? "no places yet" : m.placesLeft != null ? `${m.placesLeft} place${m.placesLeft === 1 ? "" : "s"} left` : "places available") + (m.region ? ` · ${m.region}` : "");
 function drawMentors() {
   const sel = $("#mentorsel"), keep = chosen.mentor;
   sel.innerHTML = `<option value="">No preference: best match for me</option>` + MENTORS.map((m) => `<option value="${m.id}" ${m.placesLeft === 0 ? "disabled" : ""} ${m.id === keep ? "selected" : ""}>${esc(m.name)} — ${esc(lineFor(m))}</option>`).join("");
@@ -141,7 +141,7 @@ function showPick() {
   if (m) { $("#mpimg").src = m.photo; $("#mpname").textContent = m.name; $("#mpline").textContent = lineFor(m); }
 }
 $("#mentorsel").onchange = (e) => { chosen.mentor = e.target.value; showPick(); };
-import("/portal/mentor/mentor-team.js?v=2").then(({ MENTOR_TEAM }) => {
+import("/portal/mentor/mentor-team.js?v=3").then(({ MENTOR_TEAM }) => {
   MENTORS = MENTOR_TEAM.map((m) => ({ id: m.id, name: m.name, price: m.price || 70, photo: `/birdbox-team/${m.photo}.jpeg`, placesLeft: null }));
   drawMentors();
   return fetch("/.netlify/functions/mentorship-mentors").then((r) => r.json()).then(({ mentors }) => { if (mentors && mentors.length) { MENTORS = mentors; drawMentors(); } });

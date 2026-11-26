@@ -160,6 +160,7 @@ function draw(keepScroll) {
           <label class="row between"><span>Gap between calls</span>${sel("buffer_minutes", [0, 5, 10, 15, 30], "min")}</label>
           <label class="row between"><span>Least notice</span>${sel("notice_hours", [2, 6, 12, 24, 48], "hours")}</label>
           <label class="row between"><span>Most calls a day</span>${sel("max_per_day", [2, 3, 4, 5, 6, 8], "")}</label>
+          <label class="row between"><span><b>Mentees I can take</b><br><span class="small muted">Shown to coaches as places left</span></span>${sel("places", [0, 1, 2, 3, 4, 5, 6, 8, 10], "")}</label>
           <label class="row between"><span>Time zone</span><select class="in" style="width:170px" data-set="tz">${(TZS.includes(tz) ? TZS : [tz, ...TZS]).map((z) => `<option ${z === tz ? "selected" : ""}>${z}</option>`).join("")}</select></label>
           <span class="small muted">Mentees always see times in their own time zone.</span></div></div>
         <div class="card pad"><h2 class="sec">What a mentee sees</h2>

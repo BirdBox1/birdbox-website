@@ -192,14 +192,14 @@
 
 <script type="module">
 // The mentor team (portal/mentor/mentor-team.js): staff poll + Jessica.
-import { MENTOR_TEAM } from "/portal/mentor/mentor-team.js?v=2";
+import { MENTOR_TEAM } from "/portal/mentor/mentor-team.js?v=3";
 const esc = (t) => String(t || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 document.getElementById("faces").innerHTML = MENTOR_TEAM.slice(0, 8).map((m) => `<img src="/birdbox-team/${m.photo}.jpeg" alt="">`).join("");
 document.getElementById("mentors").innerHTML = MENTOR_TEAM.map((m) => `<div class="mentor"><img src="/birdbox-team/${m.photo}.jpeg" alt="${esc(m.name)}" loading="lazy"><div><b>${esc(m.name)}</b><span id="r-${m.id}">${m.founder ? "Founder" : "Coach"}</span><span class="mp" id="p-${m.id}">€${m.price || 70} a week</span></div></div>`).join("");
 // regions, from the staff list
 fetch("/.netlify/functions/mentorship-mentors").then((r) => r.json()).then(({ mentors }) => (mentors || []).forEach((m) => {
   const el = document.getElementById("r-" + m.id); if (el && m.region) el.textContent += " · " + m.region;
-  const p = document.getElementById("p-" + m.id); if (p) p.textContent = `€${m.price} a week · ` + (m.placesLeft > 0 ? `${m.placesLeft} place${m.placesLeft === 1 ? "" : "s"} left` : "full");
+  const p = document.getElementById("p-" + m.id); if (p) p.textContent = `€${m.price} a week · ` + (m.placesLeft > 0 ? `${m.placesLeft} place${m.placesLeft === 1 ? "" : "s"} left` : "no places yet");
 })).catch(() => {});
 </script>
 <footer class="bb-footer">&copy; BirdBox Coaching Ltd <a href="/portal/">Staff Login</a></footer>

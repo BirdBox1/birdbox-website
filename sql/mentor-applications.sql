@@ -41,5 +41,11 @@ create index if not exists mentor_applications_status on public.mentor_applicati
 alter table public.mentor_applications enable row level security;
 revoke all on public.mentor_applications from anon, authenticated;
 
+-- How many mentees each mentor can take (Nathan, 26 Nov): set by the mentor
+-- in their calendar page; 0 until they set it. Shown as "places left" on the
+-- sales page and in the pre-registration drop-down.
+alter table public.mentor_settings add column if not exists places integer not null default 0 check (places between 0 and 20);
+
 -- To undo (nothing else depends on it yet):
 --   drop table public.mentor_applications;
+--   alter table public.mentor_settings drop column places;

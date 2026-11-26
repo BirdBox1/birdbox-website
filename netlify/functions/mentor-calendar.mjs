@@ -106,6 +106,7 @@ export default async (req) => {
       if (s.buffer_minutes != null) row.buffer_minutes = int(s.buffer_minutes, 0, 60);
       if (s.notice_hours != null) row.notice_hours = int(s.notice_hours, 0, 168);
       if (s.max_per_day != null) row.max_per_day = int(s.max_per_day, 1, 12);
+      if (s.places != null) row.places = int(s.places, 0, 20);
       const r = await db.from("mentor_settings").upsert(row, { onConflict: "staff_id" });
       if (r.error) throw r.error;
       return json({ ok: true });

@@ -5,15 +5,14 @@
 // Jessica, who asked to mentor. Add or remove a line to change the team;
 // the sales page, the pre-registration form and the server all use this.
 // photo = their picture on the public team page (/birdbox-team/).
-// price = € a week (staff €70, Nathan €85: decided 25 Nov). places = how many
-// mentees they take for January (5 each, Nathan 3: to confirm with Nathan).
+// price = € a week (staff €70, Nathan €85: decided 25 Nov). How many mentees
+// each mentor takes is NOT here: they set it in their calendar page (places).
 
-export const DEFAULT_PRICE = 70, DEFAULT_PLACES = 5;
+export const DEFAULT_PRICE = 70;
 export const priceOf = (m) => m.price || DEFAULT_PRICE;
-export const placesOf = (m) => m.places || DEFAULT_PLACES;
 
 export const MENTOR_TEAM = [
-  { id: "ac2157f5-5b2a-4a67-a243-e044ce808ca8", name: "Nathan Bird",          photo: "nathan-bird",          founder: true, price: 85, places: 3 },
+  { id: "ac2157f5-5b2a-4a67-a243-e044ce808ca8", name: "Nathan Bird",          photo: "nathan-bird",          founder: true, price: 85 },
   { id: "68d7ed37-16f3-4e5d-be8b-654e9621197a", name: "Michaela Dotterweich", photo: "michaela-dotterweich" },
   { id: "e0cb29c8-fe63-4028-aac7-47258536b98a", name: "Barney Linssen",       photo: "barney-linssen" },
   { id: "96082817-8341-434d-8c67-bc6c60ca68b1", name: "Mel Zinggrebe",        photo: "mel-zinggrebe" },
