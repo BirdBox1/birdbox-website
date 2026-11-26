@@ -74,7 +74,8 @@
       <label class="f"><b>Email *</b><input type="email" name="email" autocomplete="email" required><i>We'll use this for your BirdBox account. If you already have one, use the same email.</i></label>
       <div class="two"><label class="f"><b>Country *</b><select name="country" required id="country"></select></label><label class="f"><b>Time zone where you coach</b><select name="tz" id="tz"></select></label></div>
       <p class="box hidden" id="tznote" style="margin:0"></p>
-      <label class="f"><b>Phone or WhatsApp</b> <i>optional</i><input type="tel" name="phone" autocomplete="tel"></label>
+      <div class="f"><b style="font-size:14px">Phone or WhatsApp</b> <i style="font-size:14px">optional</i>
+        <div style="display:grid;grid-template-columns:130px 1fr;gap:8px"><select id="dial" aria-label="Country code"></select><input type="tel" id="phonenum" autocomplete="tel-national" placeholder="Number"></div></div>
     </div>
 
     <!-- 2 -->
@@ -164,6 +165,11 @@ const ZONES = { IE:["Europe/Dublin"], GB:["Europe/London"], AT:["Europe/Vienna"]
   US:["America/New_York","America/Chicago","America/Denver","America/Phoenix","America/Los_Angeles","America/Anchorage","Pacific/Honolulu"], CA:["America/St_Johns","America/Halifax","America/Toronto","America/Winnipeg","America/Edmonton","America/Vancouver"], MX:["America/Mexico_City","America/Cancun","America/Tijuana","America/Monterrey"], BR:["America/Sao_Paulo","America/Manaus","America/Recife"], AR:["America/Argentina/Buenos_Aires"], CL:["America/Santiago"], CO:["America/Bogota"],
   AU:["Australia/Sydney","Australia/Melbourne","Australia/Brisbane","Australia/Adelaide","Australia/Perth","Australia/Hobart","Australia/Darwin"], NZ:["Pacific/Auckland"], ZA:["Africa/Johannesburg"], AE:["Asia/Dubai"], SA:["Asia/Riyadh"], QA:["Asia/Qatar"], IL:["Asia/Jerusalem"], TR:["Europe/Istanbul"], IN:["Asia/Kolkata"], SG:["Asia/Singapore"], HK:["Asia/Hong_Kong"], JP:["Asia/Tokyo"], KR:["Asia/Seoul"], TW:["Asia/Taipei"], CN:["Asia/Shanghai"], PH:["Asia/Manila"], TH:["Asia/Bangkok"], MY:["Asia/Kuala_Lumpur"], ID:["Asia/Jakarta","Asia/Makassar","Asia/Jayapura"] };
 const pretty = (z) => z.replace(/_/g, " ");
+// Dialling codes, set from their country (they can change it).
+const DIAL = { IE:"353",GB:"44",AT:"43",BE:"32",BG:"359",HR:"385",CY:"357",CZ:"420",DK:"45",EE:"372",FI:"358",FR:"33",DE:"49",GR:"30",HU:"36",IT:"39",LV:"371",LT:"370",LU:"352",MT:"356",NL:"31",PL:"48",PT:"351",RO:"40",SK:"421",SI:"386",ES:"34",SE:"46",NO:"47",CH:"41",IS:"354",US:"1",CA:"1",MX:"52",BR:"55",AR:"54",CL:"56",CO:"57",AU:"61",NZ:"64",ZA:"27",AE:"971",SA:"966",QA:"974",IL:"972",TR:"90",IN:"91",SG:"65",HK:"852",JP:"81",KR:"82",TW:"886",CN:"86",PH:"63",TH:"66",MY:"60",ID:"62" };
+$("#dial").innerHTML = `<option value="">Code</option>` + COUNTRIES.map(([c, n]) => `<option value="${DIAL[c]}" data-c="${c}">${n.length > 12 ? c : n} +${DIAL[c]}</option>`).join("");
+const setDial = () => { const c = $("#country").value; if (!c || !DIAL[c]) return; const o = [...$("#dial").options].find((x) => x.dataset.c === c); if (o) $("#dial").value = o.value, o.selected = true; };
+$("#country").addEventListener("change", setDial);
 $("#country").onchange = () => {
   const list = ZONES[$("#country").value]; const note = $("#tznote");
   if (!list) { note.classList.add("hidden"); return; }
@@ -178,7 +184,11 @@ $("#country").onchange = () => {
 };
 $("#business").onchange = (e) => $("#bizbox").classList.toggle("hidden", !e.target.checked);
 
-function data() { const d = Object.fromEntries(new FormData(f)); d.help = chosen.help; d.times = chosen.times; d.preferred_mentor = chosen.mentor; d.business = !!$("#business").checked; d.agree_record = !!f.agree_record.checked; d.agree_card = !!f.agree_card.checked; return d; }
+function data() { const d = Object.fromEntries(new FormData(f));
+  // drop the leading 0 people type before a local number (Italy keeps it)
+  let num = String($("#phonenum").value || "").replace(/[^\d]/g, "");
+  if ($("#dial").value !== "39") num = num.replace(/^0+/, "");
+  d.phone = num ? ($("#dial").value ? `+${$("#dial").value} ${num}` : num) : ""; d.help = chosen.help; d.times = chosen.times; d.preferred_mentor = chosen.mentor; d.business = !!$("#business").checked; d.agree_record = !!f.agree_record.checked; d.agree_card = !!f.agree_card.checked; return d; }
 function check(n) {
   const d = data(); const need = { 1: [["first_name","your first name"],["last_name","your last name"],["email","your email"],["country","your country"]], 2: [["role","your role"],["years","how long you've coached"]] }[n] || [];
   for (const [k, l] of need) if (!String(d[k] || "").trim()) return `Please add ${l}.`;
