@@ -91,10 +91,11 @@
     <!-- 3 -->
     <div class="card hidden" data-step="3">
       <h2>Your mentor and times</h2>
-      <p class="hint">Pick a preferred mentor if you have one. We'll do our best; if their places fill up we'll pair you with someone in a time zone that suits you.</p>
-      <label class="f"><b>Preferred mentor</b>
+      <p class="hint" id="mentorhint">Tell us when you can do calls, and pick a preferred mentor if you have one.</p>
+      <p class="box hidden" id="nomentors" style="margin:0"><b>We'll match you with your mentor.</b> We pair you with the right coach for you, in a time zone that works.</p>
+      <div id="mentorbox" class="hidden" style="display:flex;flex-direction:column;gap:12px"><label class="f"><b>Preferred mentor</b>
         <select id="mentorsel"><option value="">No preference: best match for me</option></select></label>
-      <div class="pick hidden" id="mentorpick"><img id="mpimg" alt=""><div><b id="mpname"></b><span id="mpline"></span></div></div>
+      <div class="pick hidden" id="mentorpick"><img id="mpimg" alt=""><div><b id="mpname"></b><span id="mpline"></span></div></div></div>
       <div class="f"><b style="font-size:14px">Best times for calls</b> <span style="font-size:13px;color:var(--muted)">In your time zone. Pick any</span>
         <div class="chips" data-chips="times">${TIMES}</div></div>
       <label class="f"><b>How did you hear about us?</b> <i>optional</i><select name="heard"><option value="">Choose…</option><option>BirdBox course or seminar</option><option>Instagram</option><option>A BirdBox coach</option><option>A friend or colleague</option><option>Search</option><option>Other</option></select></label>
@@ -129,10 +130,16 @@ document.querySelectorAll("[data-chips]").forEach((el) => { const key = el.datas
   el.onclick = (e) => { const b = e.target.closest("button"); if (!b) return; b.classList.toggle("on"); const v = b.dataset.v; chosen[key] = chosen[key].includes(v) ? chosen[key].filter((x) => x !== v) : [...chosen[key], v]; }; });
 // Preferred mentor: the mentor team, with each mentor's price and places left.
 let MENTORS = [];
-const lineFor = (m) => `€${m.price || 70} a week · ` + (m.placesLeft === 0 ? "no places yet" : m.placesLeft != null ? `${m.placesLeft} place${m.placesLeft === 1 ? "" : "s"} left` : "places available") + (m.region ? ` · ${m.region}` : "");
+const lineFor = (m) => `€${m.price || 70} a week · ${m.placesLeft} place${m.placesLeft === 1 ? "" : "s"} left` + (m.region ? ` · ${m.region}` : "");
+// Only mentors with places left are offered. If nobody has places yet,
+// no names are shown at all: we match them ourselves (Nathan, 26 Nov).
 function drawMentors() {
-  const sel = $("#mentorsel"), keep = chosen.mentor;
-  sel.innerHTML = `<option value="">No preference: best match for me</option>` + MENTORS.map((m) => `<option value="${m.id}" ${m.placesLeft === 0 ? "disabled" : ""} ${m.id === keep ? "selected" : ""}>${esc(m.name)} — ${esc(lineFor(m))}</option>`).join("");
+  const open = MENTORS.filter((m) => m.placesLeft > 0);
+  if (!open.some((m) => m.id === chosen.mentor)) chosen.mentor = "";
+  $("#mentorbox").classList.toggle("hidden", !open.length);
+  $("#nomentors").classList.toggle("hidden", !!open.length);
+  $("#mentorhint").textContent = open.length ? "Tell us when you can do calls, and pick a preferred mentor if you have one." : "Tell us when you can do calls.";
+  $("#mentorsel").innerHTML = `<option value="">No preference: best match for me</option>` + open.map((m) => `<option value="${m.id}" ${m.id === chosen.mentor ? "selected" : ""}>${esc(m.name)} — ${esc(lineFor(m))}</option>`).join("");
   showPick();
 }
 function showPick() {
@@ -142,7 +149,7 @@ function showPick() {
 }
 $("#mentorsel").onchange = (e) => { chosen.mentor = e.target.value; showPick(); };
 import("/portal/mentor/mentor-team.js?v=3").then(({ MENTOR_TEAM }) => {
-  MENTORS = MENTOR_TEAM.map((m) => ({ id: m.id, name: m.name, price: m.price || 70, photo: `/birdbox-team/${m.photo}.jpeg`, placesLeft: null }));
+  MENTORS = MENTOR_TEAM.map((m) => ({ id: m.id, name: m.name, price: m.price || 70, photo: `/birdbox-team/${m.photo}.jpeg`, placesLeft: 0 }));
   drawMentors();
   return fetch("/.netlify/functions/mentorship-mentors").then((r) => r.json()).then(({ mentors }) => { if (mentors && mentors.length) { MENTORS = mentors; drawMentors(); } });
 }).catch(() => {});

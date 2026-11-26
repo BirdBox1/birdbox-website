@@ -199,7 +199,7 @@ document.getElementById("mentors").innerHTML = MENTOR_TEAM.map((m) => `<div clas
 // regions, from the staff list
 fetch("/.netlify/functions/mentorship-mentors").then((r) => r.json()).then(({ mentors }) => (mentors || []).forEach((m) => {
   const el = document.getElementById("r-" + m.id); if (el && m.region) el.textContent += " · " + m.region;
-  const p = document.getElementById("p-" + m.id); if (p) p.textContent = `€${m.price} a week · ` + (m.placesLeft > 0 ? `${m.placesLeft} place${m.placesLeft === 1 ? "" : "s"} left` : "no places yet");
+  const p = document.getElementById("p-" + m.id); if (p) p.textContent = `€${m.price} a week` + (m.placesLeft > 0 ? " · " : "") + (m.placesLeft > 0 ? `${m.placesLeft} place${m.placesLeft === 1 ? "" : "s"} left` : "");
 })).catch(() => {});
 </script>
 <footer class="bb-footer">&copy; BirdBox Coaching Ltd <a href="/portal/">Staff Login</a></footer>
