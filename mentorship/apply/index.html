@@ -72,7 +72,8 @@
       <h2>About you</h2>
       <div class="two"><label class="f"><b>First name *</b><input type="text" name="first_name" autocomplete="given-name" required></label><label class="f"><b>Last name *</b><input type="text" name="last_name" autocomplete="family-name" required></label></div>
       <label class="f"><b>Email *</b><input type="email" name="email" autocomplete="email" required><i>We'll use this for your BirdBox account. If you already have one, use the same email.</i></label>
-      <div class="two"><label class="f"><b>Country *</b><select name="country" required id="country"></select></label><label class="f"><b>Your time zone</b><select name="tz" id="tz"></select></label></div>
+      <div class="two"><label class="f"><b>Country *</b><select name="country" required id="country"></select></label><label class="f"><b>Time zone where you coach</b><select name="tz" id="tz"></select></label></div>
+      <p class="box hidden" id="tznote" style="margin:0"></p>
       <label class="f"><b>Phone or WhatsApp</b> <i>optional</i><input type="tel" name="phone" autocomplete="tel"></label>
     </div>
 
@@ -157,6 +158,24 @@ $("#country").innerHTML = `<option value="">Choose…</option>` + COUNTRIES.map(
 const here = Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Dublin";
 const zones = (Intl.supportedValuesOf ? Intl.supportedValuesOf("timeZone") : [here]);
 $("#tz").innerHTML = (zones.includes(here) ? zones : [here, ...zones]).map((z) => `<option ${z === here ? "selected" : ""}>${z}</option>`).join("");
+// Time zone follows the country they coach in, not where their device is
+// today (e.g. on holiday). Countries with more than one zone list theirs.
+const ZONES = { IE:["Europe/Dublin"], GB:["Europe/London"], AT:["Europe/Vienna"], BE:["Europe/Brussels"], BG:["Europe/Sofia"], HR:["Europe/Zagreb"], CY:["Asia/Nicosia"], CZ:["Europe/Prague"], DK:["Europe/Copenhagen"], EE:["Europe/Tallinn"], FI:["Europe/Helsinki"], FR:["Europe/Paris"], DE:["Europe/Berlin"], GR:["Europe/Athens"], HU:["Europe/Budapest"], IT:["Europe/Rome"], LV:["Europe/Riga"], LT:["Europe/Vilnius"], LU:["Europe/Luxembourg"], MT:["Europe/Malta"], NL:["Europe/Amsterdam"], PL:["Europe/Warsaw"], PT:["Europe/Lisbon","Atlantic/Azores","Atlantic/Madeira"], RO:["Europe/Bucharest"], SK:["Europe/Bratislava"], SI:["Europe/Ljubljana"], ES:["Europe/Madrid","Atlantic/Canary"], SE:["Europe/Stockholm"], NO:["Europe/Oslo"], CH:["Europe/Zurich"], IS:["Atlantic/Reykjavik"],
+  US:["America/New_York","America/Chicago","America/Denver","America/Phoenix","America/Los_Angeles","America/Anchorage","Pacific/Honolulu"], CA:["America/St_Johns","America/Halifax","America/Toronto","America/Winnipeg","America/Edmonton","America/Vancouver"], MX:["America/Mexico_City","America/Cancun","America/Tijuana","America/Monterrey"], BR:["America/Sao_Paulo","America/Manaus","America/Recife"], AR:["America/Argentina/Buenos_Aires"], CL:["America/Santiago"], CO:["America/Bogota"],
+  AU:["Australia/Sydney","Australia/Melbourne","Australia/Brisbane","Australia/Adelaide","Australia/Perth","Australia/Hobart","Australia/Darwin"], NZ:["Pacific/Auckland"], ZA:["Africa/Johannesburg"], AE:["Asia/Dubai"], SA:["Asia/Riyadh"], QA:["Asia/Qatar"], IL:["Asia/Jerusalem"], TR:["Europe/Istanbul"], IN:["Asia/Kolkata"], SG:["Asia/Singapore"], HK:["Asia/Hong_Kong"], JP:["Asia/Tokyo"], KR:["Asia/Seoul"], TW:["Asia/Taipei"], CN:["Asia/Shanghai"], PH:["Asia/Manila"], TH:["Asia/Bangkok"], MY:["Asia/Kuala_Lumpur"], ID:["Asia/Jakarta","Asia/Makassar","Asia/Jayapura"] };
+const pretty = (z) => z.replace(/_/g, " ");
+$("#country").onchange = () => {
+  const list = ZONES[$("#country").value]; const note = $("#tznote");
+  if (!list) { note.classList.add("hidden"); return; }
+  const tzSel = $("#tz");
+  if (list.includes(here)) { tzSel.value = here; note.classList.add("hidden"); return; }
+  tzSel.value = list[0];
+  note.innerHTML = list.length === 1
+    ? `Your device is set to <b>${pretty(here)}</b>, so we've used <b>${pretty(list[0])}</b> for where you coach. Change it if that's not right.`
+    : `Your device is set to <b>${pretty(here)}</b>. Pick the time zone where you coach: ${list.map((z) => `<a href="#" data-z="${z}">${pretty(z)}</a>`).join(" · ")}`;
+  note.classList.remove("hidden");
+  note.querySelectorAll("[data-z]").forEach((a) => a.onclick = (e) => { e.preventDefault(); tzSel.value = a.dataset.z; note.classList.add("hidden"); });
+};
 $("#business").onchange = (e) => $("#bizbox").classList.toggle("hidden", !e.target.checked);
 
 function data() { const d = Object.fromEntries(new FormData(f)); d.help = chosen.help; d.times = chosen.times; d.preferred_mentor = chosen.mentor; d.business = !!$("#business").checked; d.agree_record = !!f.agree_record.checked; d.agree_card = !!f.agree_card.checked; return d; }
