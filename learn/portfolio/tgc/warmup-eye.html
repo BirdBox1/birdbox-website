@@ -96,6 +96,22 @@
   .vplayer iframe{display:block;width:100%;aspect-ratio:16/9;border:0;background:#000}
   .vplayer .empty{color:var(--muted);font-size:14px;padding:22px 16px;text-align:center;line-height:1.6}
   @media(max-width:899px){.vplayer video{max-height:34vh}.vplayer iframe{max-height:34vh}}
+  .steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 24px;padding:0;list-style:none}
+  .steps li{border:1px solid var(--line);background:var(--panel);padding:12px}
+  .steps li.now{border-color:var(--accent)}
+  .steps b{display:block;font-size:22px;line-height:1;color:var(--accent);margin-bottom:6px}
+  .steps span{display:block;font-size:14px;font-weight:800}
+  .steps small{display:block;font-size:12.5px;color:var(--muted);line-height:1.4;margin-top:3px}
+  @media(max-width:640px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .drop{border:2px dashed #6A6466;padding:28px 16px;text-align:center;transition:border-color .15s,background .15s}
+  .drop.over{border-color:var(--accent);background:rgba(224,85,90,.08)}
+  .drop .ic{font-size:30px;line-height:1;color:var(--accent)}
+  .drop p{margin:8px 0 14px;font-size:15px}
+  .drop .or{font-size:13px;color:var(--muted);margin:16px 0 8px}
+  .drop input[type=text]{max-width:520px;margin:0 auto;display:block;font-size:14px}
+  .drop .note{font-size:12.5px;color:var(--muted);margin:12px 0 0;line-height:1.5}
+  .drop.has{border-style:solid;border-color:var(--good);padding:16px}
+  .drop.has p{margin:0 0 10px}
 </style>
 <link rel="icon" href="/favicon-tgc.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-tgc-32.png">
@@ -136,8 +152,13 @@
   <section id="eye" class="hidden">
     <p class="kicker"><a href="index.html">← My portfolio</a> · The Gymnastics Course · Lesson 4 · Warming Up</p>
     <h1>Warm-up coaches eye</h1>
-    <p class="lede">A warm-up gives you an assessment of every athlete without being invasive. Run a PVC pipe warm-up or your standardised gymnastics warm-up, record the faults you see, then follow one athlete: where will that fault show up in their gymnastics, and what will you do about it?</p>
-
+    <p class="lede">Film one of your warm-ups, watch it back here, and practise spotting the faults from this lesson.</p>
+    <ol class="steps">
+      <li class="now"><b>1</b><span>Film a warm-up</span><small>On your phone, side-on, 1–2 minutes is plenty</small></li>
+      <li><b>2</b><span>Add it here</span><small>It stays on your device and is not uploaded</small></li>
+      <li><b>3</b><span>Count the faults</span><small>Watch it back and tally each fault</small></li>
+      <li><b>4</b><span>Follow one athlete</span><small>Choose a cue, a constraint or an intervention</small></li>
+    </ol>
     <div id="list-view">
       <div class="panel">
         <div class="row" style="margin:0 0 14px"><button class="btn" id="b-new" type="button">+ New observation</button><span class="state" id="count"></span></div>
@@ -148,22 +169,13 @@
     <div id="edit-view" class="hidden">
       <div class="row noprint" style="margin:0 0 14px"><button class="btn ghost small" id="b-all" type="button">← All my observations</button></div>
 
-      <div class="panel">
-        <h2>1. The session</h2>
-        <div class="g2">
-          <div><label class="f" for="o-date">Date</label><input type="date" id="o-date" style="max-width:none"></div>
-          <div><label class="f" for="o-group">Class or group</label><input type="text" id="o-group" placeholder="e.g. 6pm class, 12 athletes"></div>
-        </div>
-        <label class="f">Warm-up I watched</label>
-        <div class="tags" id="o-type"></div>
-        <label class="f" for="o-stand">Where I stood to watch, and why</label>
-        <input type="text" id="o-stand" placeholder="e.g. Side of the room for crab walks, to see hip and shoulder extension">
-      </div>
-
-      <div class="panel">
-        <h2>2. Faults I saw</h2>
-        <p class="sub">For each fault, write how many athletes showed it, and what you noticed. Leave it at 0 if you did not see it. If you filmed the warm-up, add the video and watch it as you go (optional).</p>
+      <div class="panel noprint">
+        <h2>1. Add your warm-up video</h2>
         <div id="o-vsrc"></div>
+      </div>
+      <div class="panel">
+        <h2>2. The faults I saw</h2>
+        <p class="sub">Watch your video and, for each fault, write how many athletes showed it and what you noticed. Leave it at 0 if you did not see it.</p>
         <div class="vwork" id="o-work"><div class="vplayer hidden" id="o-player"></div><div id="o-faults"></div></div>
       </div>
 
@@ -184,6 +196,18 @@
         <textarea id="o-plan" placeholder="e.g. Constraint: PVC press with the back against the wall so the head cannot push forward. Then thoracic mobility before overhead work for two weeks."></textarea>
         <label class="f" for="o-after">What happened next (add this after you have followed it up)</label>
         <textarea id="o-after"></textarea>
+      </div>
+
+      <div class="panel">
+        <h2>4. About the session</h2>
+        <div class="g2">
+          <div><label class="f" for="o-date">Date</label><input type="date" id="o-date" style="max-width:none"></div>
+          <div><label class="f" for="o-group">Class or group</label><input type="text" id="o-group" placeholder="e.g. 6pm class, 12 athletes"></div>
+        </div>
+        <label class="f">Warm-up I watched</label>
+        <div class="tags" id="o-type"></div>
+        <label class="f" for="o-stand">Where I stood to watch, and why</label>
+        <input type="text" id="o-stand" placeholder="e.g. Side of the room for crab walks, to see hip and shoulder extension">
       </div>
 
       <div class="row noprint">
@@ -266,22 +290,36 @@ function player(o) {
     }
     box.appendChild(screen);
   }
-  const src = $("o-vsrc"); src.innerHTML = ""; src.className = "vsrc noprint";
-  const pick = document.createElement("label"); pick.className = "btn ghost small"; pick.textContent = loc ? "Choose a different video" : "Add a video from my device";
+  // Step 1 · a big drop area so it is obvious the task starts with a video. Nothing is uploaded.
+  const src = $("o-vsrc"); src.innerHTML = "";
+  const has = !!(loc || o.link);
+  const drop = document.createElement("div"); drop.className = "drop" + (has ? " has" : "");
+  const msg = document.createElement("p");
+  msg.textContent = loc ? "Playing “" + loc.name + "” from your device. Watch it in step 2 as you count the faults."
+    : o.link ? "Your video link is ready. Watch it in step 2 as you count the faults."
+    : o.file ? "Last time you used “" + o.file + "” from your device. Choose it again to watch it here."
+    : "Choose the video of your warm-up from your phone or computer, or drag it here.";
+  const pick = document.createElement("label"); pick.className = "btn" + (has ? " ghost small" : ""); pick.textContent = has ? "Choose a different video" : "Choose video";
   const file = document.createElement("input"); file.type = "file"; file.accept = "video/*"; file.hidden = true;
-  file.onchange = () => {
-    const f = file.files && file.files[0]; if (!f) return;
+  const useFile = (f) => {
+    if (!f) return;
     if (vLocal[o.id]) URL.revokeObjectURL(vLocal[o.id].url);
-    vLocal[o.id] = { url: URL.createObjectURL(f), name: f.name }; o.file = f.name; changed(); player(o);
+    vLocal[o.id] = { url: URL.createObjectURL(f), name: f.name }; o.file = f.name; o.link = ""; changed(); player(o);
   };
+  file.onchange = () => useFile(file.files && file.files[0]);
   pick.appendChild(file);
-  const link = document.createElement("input"); link.type = "text"; link.placeholder = "…or paste a link (YouTube, Vimeo, Google Drive, Dropbox)"; link.value = o.link || "";
+  drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
+  drop.ondragleave = () => drop.classList.remove("over");
+  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f && f.type.startsWith("video/")) useFile(f); };
+  const or = document.createElement("div"); or.className = "or"; or.textContent = "or paste a link";
+  const link = document.createElement("input"); link.type = "text"; link.placeholder = "YouTube (unlisted), Vimeo, Google Drive or Dropbox link"; link.value = o.link || "";
   link.onchange = () => { o.link = link.value.trim(); if (vLocal[o.id]) { URL.revokeObjectURL(vLocal[o.id].url); delete vLocal[o.id]; } changed(); player(o); };
-  const note = document.createElement("span"); note.className = "note";
-  note.textContent = loc ? "Playing “" + loc.name + "” from your device. It is not uploaded, so choose it again next time you open this observation."
-    : o.file && !o.link ? "Last time you used “" + o.file + "” from your device — choose it again to watch it here."
-    : "Optional. Videos chosen from your device stay on your device — nothing is uploaded.";
-  src.append(pick, link, note);
+  const note = document.createElement("div"); note.className = "note";
+  note.textContent = "Your video stays on your device and is never uploaded. No video? You can still fill this in from memory straight after the session.";
+  const ic = document.createElement("div"); ic.className = "ic"; ic.textContent = "▶";
+  if (has) drop.append(msg, pick, or, link);
+  else drop.append(ic, msg, pick, or, link, note);
+  src.appendChild(drop);
 }
 $("login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -334,7 +372,7 @@ function list() {
   $("list-view").classList.remove("hidden"); $("edit-view").classList.add("hidden");
   $("count").textContent = doc.obs.length ? doc.obs.length + (doc.obs.length === 1 ? " observation" : " observations") : "";
   const box = $("obs-list"); box.innerHTML = "";
-  if (!doc.obs.length) { box.innerHTML = '<p class="sub" style="margin:0">No observations yet. After your next warm-up, press “New observation”.</p>'; return; }
+  if (!doc.obs.length) { box.innerHTML = '<p class="sub" style="margin:0">No observations yet. Film your next warm-up, then press “New observation”.</p>'; return; }
   [...doc.obs].sort((a, b) => (b.date || "").localeCompare(a.date || "")).forEach((o) => {
     const seen = FAULTS.filter(([k]) => (o.n[k] || 0) > 0).map(([, t]) => t);
     const d = document.createElement("div"); d.className = "obs";
