@@ -81,7 +81,7 @@ async function welcomeEmail(app) {
     `What happens next:`,
     `1. We match you with your mentor.`,
     `2. Your mentor offers you times for your discovery call (60 to 90 minutes). The €150 fee is only taken once your call is booked.`,
-    `3. After the call you get your written Discovery Report, and if mentorship is the right fit we invite you to continue.`,
+    `3. You're enrolled: after the call you get your written Discovery Report, and your mentorship programme is set up in your BirdBox account, ready for January.`,
     `You can see all of this in your BirdBox account: ${link}`,
     `Any questions, just reply to this email.`,
     `BirdBox Coaching`,
@@ -91,7 +91,7 @@ async function welcomeEmail(app) {
     <p><b>You're pre-registered for BirdBox Mentorship</b>, starting Monday 4 January 2027.</p>
     <p style="background:#eef4fb;border-radius:8px;padding:10px 14px"><b>Nothing has been charged.</b> Your card is saved to hold your place.</p>
     <p><b>What happens next</b></p>
-    <ol style="padding-left:20px"><li>We match you with your mentor.</li><li>Your mentor offers you times for your discovery call (60 to 90 minutes). The €150 fee is only taken once your call is booked.</li><li>After the call you get your written Discovery Report, and if mentorship is the right fit we invite you to continue.</li></ol>
+    <ol style="padding-left:20px"><li>We match you with your mentor.</li><li>Your mentor offers you times for your discovery call (60 to 90 minutes). The €150 fee is only taken once your call is booked.</li><li>You're enrolled: after the call you get your written Discovery Report, and your mentorship programme is set up in your BirdBox account, ready for January.</li></ol>
     <p><a href="${esc(link)}" style="display:inline-block;background:#2f7fd0;color:#fff;text-decoration:none;font-weight:700;padding:11px 18px;border-radius:7px">Open my BirdBox account</a></p>
     <p>Any questions, just reply to this email.</p><p>BirdBox Coaching</p></div>`;
   return sendMail({ to: app.email, subject: "You're pre-registered for BirdBox Mentorship", text, html });
