@@ -418,6 +418,7 @@ const $ = (id) => document.getElementById(id);
 let me = null;
 let isAdmin = false;
 let staff = [];
+let formerStaff = [];   // coaches no longer on the team, for their past seminars
 let profiles = new Map();
 let courses = [];
 let courseStaff = new Map();
@@ -530,12 +531,18 @@ async function loadAll() {
   const from = firstOf(new Date(year, startM - 1, 1));
   const to   = firstOf(new Date(year, startM + spanM + 1, 1));
 
+  // Every course in the window, archived or not. A course is archived once
+  // it has run, and the planner is also the record of what was held and who
+  // taught it, so those stay on it (Nathan, 27 Nov 2026: past seminars
+  // vanished the moment a course was finished). Cancelled ones are dropped
+  // below: only courses that ran are kept.
+  // Coaches who have left are read too, so their past seminars keep a row.
   const [st, pr, co, pl, un] = await Promise.all([
-    db.from("staff").select("id, full_name, role").eq("active", true).order("full_name"),
+    db.from("staff").select("id, full_name, role, active").order("full_name"),
     db.from("coach_profiles").select("staff_id, target_min, target_max, is_reserve_only, display_order"),
     db.from("courses")
-      .select("id, title, brand, level, city, country, venue_name, starts_at, timezone, status, archived, capacity, slug, host_name, host_email, host2_name, host2_email, host_spots, prepaid_spots, type")
-      .eq("archived", false).gte("starts_at", from).lt("starts_at", to),
+      .select("id, title, brand, level, city, country, venue_name, starts_at, ends_at, timezone, status, archived, cancelled_at, capacity, slug, host_name, host_email, host2_name, host2_email, host_spots, prepaid_spots, type")
+      .gte("starts_at", from).lt("starts_at", to),
     // The host columns are read here because the panel below shows them.
     // They were missing, so every plan looked as though it had no host.
     db.from("planned_seminars")
@@ -544,9 +551,12 @@ async function loadAll() {
     db.from("coach_unavailability").select("staff_id, starts_on, note, source"),
   ]);
 
-  staff = (st.data || []).filter(s => s.role !== "support");
+  const team = (st.data || []).filter(s => s.role !== "support");
+  staff = team.filter(s => s.active);
+  formerStaff = team.filter(s => !s.active);
   plans = pl.data || [];
-  courses = (co.data || []).filter(c => c.status !== "cancelled");
+  // the ones that ran stay; cancelled ones never ran, so they are left off
+  courses = (co.data || []).filter(c => courseState(c) !== "cancelled");
 
   profiles = new Map();
   for (const p of pr.data || []) profiles.set(p.staff_id, p);
@@ -625,6 +635,17 @@ function courseWeekend(c) {
   return iso(saturdayOf(new Date(y, m-1, d)));
 }
 
+// Where a course stands, in words: held (it has run), cancelled, draft or
+// on sale. Held and cancelled courses stay on the planner as the record.
+function courseState(c) {
+  if (c.status === "cancelled" || c.cancelled_at) return "cancelled";
+  if (c.status === "complete") return "held";
+  const last = c.ends_at || c.starts_at;
+  if (last && new Date(last) < new Date() && c.status !== "draft") return "held";
+  return c.status === "draft" ? "draft" : "onsale";
+}
+const STATE_WORD = { held: "held", cancelled: "cancelled", draft: "draft", onsale: "on sale" };
+
 function items() {
   const brand = $("brand").value;
   const q = $("q").value.trim().toLowerCase();
@@ -634,13 +655,14 @@ function items() {
     if (brand && c.brand !== brand) continue;
     const team = (courseStaff.get(c.id) || []);
     const names = team.map(t => {
-      const s = staff.find(x => x.id === t.staff_id);
+      const s = staff.find(x => x.id === t.staff_id)
+             || formerStaff.find(x => x.id === t.staff_id);
       return { id: t.staff_id, name: s ? s.full_name : "someone", role: t.role };
     });
     out.push({
       kind:"course", id:c.id, weekend:courseWeekend(c), brand:c.brand, level:c.level,
       type:c.type, workshop:c.type === "workshop", startsAt:c.starts_at,
-      timezone:c.timezone,
+      timezone:c.timezone, state:courseState(c),
       where:[c.city, c.venue_name].filter(Boolean).join(" — ") || c.title,
       title:c.title, status:c.status, team:names,
       hay:[c.city,c.venue_name,c.title,...names.map(n=>n.name)].join(" ").toLowerCase(),
@@ -713,9 +735,16 @@ function renderSchedule() {
   $("sched").innerHTML = html || '<div class="empty">Nothing in this range.</div>';
   wireSchedule();
 
-  const nc = all.filter(i => i.kind === "course").length;
-  const np = all.length - nc;
-  say(`${nc} on sale, ${np} planned in this view.`);
+  say(countsLine(all));
+}
+
+// "75 on sale, 12 held, 2 planned in this view."
+function countsLine(all, extra = "") {
+  const n = st => all.filter(i => i.kind === "course" && i.state === st).length;
+  const sale = n("onsale") + n("draft"), held = n("held");
+  const np = all.filter(i => i.kind !== "course").length;
+  return `${sale} on sale` + (held ? `, ${held} held` : "")
+    + `, ${np} planned in this view.` + extra;
 }
 
 // A workshop can run on any day, so the weekend heading it sits under
@@ -761,9 +790,9 @@ function semRow(i) {
         : '<span class="pill need">no coach</span>';
     }
   } else {
-    right += i.status === "draft"
-      ? '<span class="pill">draft</span>'
-      : '<span class="pill ink">on sale</span>';
+    right += i.state === "onsale"
+      ? '<span class="pill ink">on sale</span>'
+      : `<span class="pill">${STATE_WORD[i.state] || "draft"}</span>`;
     right += i.team.length
       ? i.team.map(t => `<span class="pill${t.role==="lead_coach"?" on":""}">${esc(t.name)}</span>`).join("")
       : '<span class="pill need">no coach</span>';
@@ -885,6 +914,13 @@ function renderGrid() {
   shown.forEach((s, idx) => {
     body += gridRow(s, cells.get(s.id), months, idx, shown.length);
   });
+  // Coaches who have left, only where they taught something in this view,
+  // so their seminars are not lost from the record.
+  for (const s of formerStaff) {
+    if (!cells.get(s.id)) continue;
+    body += gridRow({ ...s, full_name: s.full_name + " (left the team)" },
+                    cells.get(s.id), months, -1, 0, false, true);
+  }
   body += "</tbody>";
 
   $("gridwrap").innerHTML = `<table class="grid">${head}${body}</table>`;
@@ -930,10 +966,9 @@ function renderGrid() {
       renderGrid();
     }));
 
-  const nc = all.filter(i => i.kind === "course").length;
   const nw = all.filter(i => i.workshop).length;
-  say(`${nc} on sale, ${all.length - nc} planned in this view.` +
-      (nw ? ` ${nw} workshop${nw===1?"":"s"}, shown hollow with the day.` : ""));
+  say(countsLine(all,
+      nw ? ` ${nw} workshop${nw===1?"":"s"}, shown hollow with the day.` : ""));
 }
 
 // The two date rows and "No coach yet" stay at the top of the grid as it
@@ -949,13 +984,13 @@ function pinTop() {
   t.querySelectorAll("tr.unassigned > *").forEach(c => c.style.top = (h1 + h2) + "px");
 }
 
-function gridRow(person, row, months, idx, total, unassigned) {
+function gridRow(person, row, months, idx, total, unassigned, former) {
   const p = profiles.get(person.id);
 
   // How many seminars against target is Nathan's planning number, not
   // something the team needs on their screen.
   let target = "";
-  if (isAdmin) {
+  if (isAdmin && !former) {
     if (p && p.is_reserve_only) target = '<span class="tgt">reserve only</span>';
     else if (p && p.target_min != null) {
       const n = countYear(person.id);
@@ -966,7 +1001,7 @@ function gridRow(person, row, months, idx, total, unassigned) {
   }
 
   let tools = "";
-  if (!unassigned) {
+  if (!unassigned && !former) {
     tools = `<span class="rowtools">
       ${idx > 0 ? `<button data-move="${person.id}" data-dir="-1" title="Move up">▲</button>` : ""}
       ${idx >= 0 && idx < total-1 ? `<button data-move="${person.id}" data-dir="1" title="Move down">▼</button>` : ""}
@@ -992,9 +1027,10 @@ function gridRow(person, row, months, idx, total, unassigned) {
         const kind = (i.kind === "course" ? "" : (i.stage === "idea" ? " idea" : " plan"))
           + (i.workshop ? " wshop" : "");
         const mine = maySeeDetail(i);
+        const word = i.kind === "course" && STATE_WORD[i.state] ? " (" + STATE_WORD[i.state] + ")" : "";
         return `<span class="chip ${brandClass(i.brand)}${kind}${mine ? "" : " locked"}"
                  ${mine ? `data-open="${i.kind}:${i.id}"` : ""}
-                 title="${esc(tag + " — " + i.where)}">${esc(tag)}</span>`;
+                 title="${esc(tag + " — " + i.where + word)}">${esc(tag)}</span>`;
       }).join("");
     }
     tds += `<td class="${cls}">${inner}</td>`;
@@ -1011,6 +1047,7 @@ function countYear(staffId) {
   for (const c of courses) {
     if (new Date(c.starts_at).getFullYear() !== year) continue;
     if (c.type === "workshop") continue;   // targets are seminars
+    if (courseState(c) === "cancelled") continue;   // held ones count, cancelled do not
     if ((courseStaff.get(c.id)||[]).some(t => t.staff_id === staffId)) n++;
   }
   for (const p of plans) {
@@ -1089,7 +1126,8 @@ function openSheet(kind, id) {
       <p class="when">${c.type === "workshop"
           ? esc(exactDay(c.starts_at, c.timezone)) + " · workshop"
           : esc(weekendLabel(courseWeekend(c)))} · ${
-        c.status === "draft" ? "Draft, not on sale" : "On sale"}</p><dl class="facts">`;
+        { draft: "Draft, not on sale", held: "Held", cancelled: "Cancelled",
+          onsale: "On sale" }[courseState(c)]}</p><dl class="facts">`;
     html += fact("Where", esc([c.venue_name, c.city, c.country].filter(Boolean).join(", ")));
     html += fact("Course", esc((c.brand||"").toUpperCase() + " " + (c.level||"")));
     if (booked != null) {
