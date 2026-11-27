@@ -150,9 +150,21 @@ async function programming(user, email) {
     for (const s of data || []) coaches.set(s.id, s.full_name);
   }
 
+  // A 1:1 place waiting to be started and paid (Nathan, 27 Nov 2026:
+  // Anna-Lena). Her programme was set up ahead so her coach can write it,
+  // but until she pays it is not a plan she has: listed, it read "Given by
+  // BirdBox, no payments" above her Start card. Left off until she pays;
+  // the Start card shows it instead.
+  const { data: placeWaiting } = email ? await train().from("applications")
+    .select("tier, brand").ilike("email", email.replace(/[%_\\]/g, "\\$&"))
+    .eq("status", "accepted").not("pay_code", "is", null).limit(5) : { data: [] };
+  const waits = (e) => !e.stripe_subscription_id && !e.is_trial && (placeWaiting || []).some((w) =>
+    Number(w.tier) === e.tier && String(w.brand || "tgc").toLowerCase() === String(e.tracks?.brand || "tgc").toLowerCase());
+
   const plans = [];
   const blocks = [];
   for (const e of enr || []) {
+    if (waits(e)) continue;
     const base = {
       name: e.is_trial ? "Two-week free trial" : TIER[e.tier] || e.tracks?.name || "Programming",
       programme: e.tracks?.name || null,
