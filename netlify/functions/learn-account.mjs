@@ -613,14 +613,26 @@ const PAY_URL = "https://app.birdboxcoaching.com/.netlify/functions/checkout?pay
 async function oneToOneView(email) {
   if (!email) return null;
   const { data } = await train().from("applications")
-    .select("tier, brand, first_name, coach_id, pay_code, pay_expires_at, status, accepted_at, paid_at")
+    .select("tier, brand, first_name, coach_id, pay_code, pay_expires_at, status, accepted_at, paid_at, offer")
     .ilike("email", email.replace(/[%_\\]/g, "\\$&")).in("status", ["accepted", "paid"])
     .order("accepted_at", { ascending: false }).limit(1);
   const a = data?.[0];
   // paid in the last 36 hours: the "You are in" note stays on Programming
   // that long, then goes (Nathan, 20 Nov 2026)
+  // A place on its own terms (Nathan, 27 Nov 2026: Anna-Lena): its own
+  // monthly price, a set-up fee paid at the start, and the day the programme
+  // and the monthly payments begin. Set on the application by hand.
+  const o = a?.offer;
+  const own = o && Number.isInteger(Number(o.monthly_cents)) && Number(o.monthly_cents) >= 1000 ? {
+    monthly_cents: Number(o.monthly_cents),
+    setup_cents: Number(o.setup_cents) > 0 ? Number(o.setup_cents) : 0,
+    start_on: /^\d{4}-\d{2}-\d{2}$/.test(o.start_on || "")
+      && new Date(o.start_on + "T12:00:00Z") > new Date(Date.now() + 2 * 86400000) ? o.start_on : null,
+    currency: String(o.currency || "eur").toLowerCase()
+  } : null;
   if (a?.status === "paid" && a.paid_at && Date.now() - new Date(a.paid_at).getTime() < 36 * 3600 * 1000) {
-    return { paid: true, started_at: a.paid_at, brand: a.brand || "tgc" };
+    return { paid: true, started_at: a.paid_at, brand: a.brand || "tgc",
+      starts_on: o && /^\d{4}-\d{2}-\d{2}$/.test(o.start_on || "") && o.start_on > new Date().toISOString().slice(0, 10) ? o.start_on : null };
   }
   if (!a || a.status !== "accepted" || !a.pay_code) return null;
   const { data: coach } = a.coach_id
@@ -628,7 +640,7 @@ async function oneToOneView(email) {
   const expired = !a.pay_expires_at || new Date(a.pay_expires_at) < new Date();
   return { tier: a.tier, brand: a.brand || "tgc", name: TIER[a.tier] || "One-to-one coaching",
     first_name: a.first_name || null, coach: coach?.full_name || null,
-    until: a.pay_expires_at, expired, url: expired ? null : PAY_URL + encodeURIComponent(a.pay_code) };
+    until: a.pay_expires_at, expired, url: expired ? null : PAY_URL + encodeURIComponent(a.pay_code), own };
 }
 async function comebackView(user, email) {
   const o = await comebackOffer(email);

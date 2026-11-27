@@ -536,7 +536,7 @@
       <h1>Programming</h1>
       <p class="sub">Your programming plan and blocks. You train in the BirdBox Coaching app; change your plan, your card or cancel here.</p>
       <div id="started-note" class="box hidden" style="background:var(--panel);border:1px solid var(--accent);padding:18px 20px;margin:0 0 24px;max-width:640px;line-height:1.6">
-        <strong>You are in. Your one-to-one coaching has started.</strong> Your receipt is on its way, and your coach will have your first week of programming in the app within 24 hours.
+        <strong>You are in. Your one-to-one coaching has started.</strong> Your receipt is on its way, and <span id="started-first">your coach will have your first week of programming in the app within 24 hours.</span>
         <p style="margin:12px 0 6px"><strong>Now get the app:</strong> download BirdBox Coaching and sign in with this same email and password. Answer the health questions first, so your coach has everything they need.</p>
         <p style="margin:0"><a class="btn main small" href="https://app.birdboxcoaching.com/get-app.html">Get the app →</a></p>
       </div>
@@ -2500,12 +2500,32 @@ function oneToOneCard(m, shop) {
       + ". Reply to " + coach + "'s email, or write to info@birdboxcoaching.com, and we'll open it again for you."));
     return c;
   }
+  // A place on its own terms (Nathan, 27 Nov 2026: Anna-Lena): her own
+  // monthly price, a set-up fee paid when she starts, and the day the
+  // programme and the monthly payments begin.
+  const own = m.own;
+  const ownPrice = own ? money(own.monthly_cents, own.currency) : null;
+  const ownSetup = own && own.setup_cents ? money(own.setup_cents, own.currency) : null;
+  if (own) {
+    c.appendChild(el("p", "sub", m.name + " is " + ownPrice + " a month, VAT included"
+      + (own.start_on ? ", from " + day(own.start_on) : "")
+      + (ownSetup ? ", with a one-off set-up fee of " + ownSetup : "")
+      + ". Cancel any time here in BirdBox Learn."));
+    c.appendChild(el("p", "sub", (own.start_on
+        ? (ownSetup ? "Start now and you pay the " + ownSetup + " set-up fee today. " : "Start now and add your card. ")
+          + "Your programming and your monthly payments start on " + day(own.start_on) + ". "
+        : "Start now and " + coach + " will have your first week of programming in the app within 24 hours. ")
+      + "Your place is held for you until " + day(m.until) + "."));
+  } else {
   c.appendChild(el("p", "sub", m.name + (price ? " is " + price + " a month, VAT included" : " is monthly")
     + ". Cancel any time here in BirdBox Learn."));
   c.appendChild(el("p", "sub", "Start now and " + coach + " will have your first week of programming in the app within 24 hours. "
     + "Your place is held for you until " + day(m.until) + "."));
+  }
   const btns = el("div", "btns");
-  const b = el("a", "btn main", "Start " + m.name + (price ? ": " + price + " a month" : "") + " →");
+  const b = el("a", "btn main", "Start " + m.name + (own
+    ? (own.start_on && ownSetup ? ": " + ownSetup + " today" : ": " + ownPrice + " a month")
+    : (price ? ": " + price + " a month" : "")) + " →");
   b.href = m.url;
   btns.appendChild(b);
   c.append(btns, el("p", "sub", "You pay by card on the next page. Your receipt comes by email, then you sign in to the app with this same email and password."));
@@ -2746,6 +2766,11 @@ async function loadProgramming() {
   try { gotApp = Date.now() - Number(localStorage.getItem("bb-got-app") || 0) < 36 * 3600 * 1000; } catch {}
   const justPaid = (params.get("started") || (d.one_to_one && d.one_to_one.paid)) && !gotApp;
   $("started-note").classList.toggle("hidden", !justPaid);
+  // a place that starts on an agreed day says that day instead (Nathan, 27 Nov 2026)
+  if (d.one_to_one && d.one_to_one.starts_on) {
+    $("started-first").textContent = "your programming starts on " + day(d.one_to_one.starts_on)
+      + ", when your first month is taken.";
+  }
   const noteApp = $("started-note").querySelector("a.btn");
   if (noteApp) noteApp.onclick = () => {
     try { localStorage.setItem("bb-got-app", String(Date.now())); } catch {}
