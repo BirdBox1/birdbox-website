@@ -953,6 +953,9 @@
   }
 
   const map = L.map("l1-map", {
+    // No credit box: Leaflet (BSD) and Natural Earth (public domain) do not
+    // require one on the page (Nathan, 21 Nov 2026).
+    attributionControl: false,
     scrollWheelZoom: false,
     minZoom: 1,
     maxZoom: 7,
@@ -972,7 +975,7 @@
         style: { fillOpacity: 1 },
         interactive: false,
       }).addTo(map);
-      map.attributionControl.addAttribution(
+      map.attributionControl && map.attributionControl.addAttribution(
         'Boundaries <a href="https://www.naturalearthdata.com/">Natural Earth</a>'
       );
     })
