@@ -515,7 +515,7 @@ async function findOffer(token) {
     .from("online_offers")
     .select("id, token, registration_id, past_certificate_id, brand, level, discount_percent, opened_at, redeemed_at, " +
             "registrations ( first_name, last_name, email, attended, status, country, source ), " +
-            "past_certificates ( participant_name, email, awarded_on )")
+            "past_certificates ( participant_name, email, awarded_on, revoked_at )")
     .eq("token", t)
     .maybeSingle();
   if (!data) return null;
@@ -524,6 +524,7 @@ async function findOffer(token) {
   // on it. The rest of the checkout reads them like a registration.
   if (!data.registrations && data.past_certificates) {
     const p = data.past_certificates;
+    if (p.revoked_at) return null; // revoked (Nathan, 25 Nov 2026)
     const since = new Date();
     since.setFullYear(since.getFullYear() - 5);
     if (String(p.awarded_on) < since.toISOString().slice(0, 10)) return null;

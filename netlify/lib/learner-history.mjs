@@ -23,8 +23,8 @@ export async function learnerHistory(email, { exceptCourseId } = {}) {
   const [enrolments, regs, pastCerts, pastAtt, athletes] = await Promise.all([
     safe(db.from("learn_enrolments").select("learn_courses(brand, level, title)").ilike("email", like)),
     safe(db.from("registrations").select("course_id, status, courses!registrations_course_id_fkey(brand, level, type, city, starts_at)").ilike("email", like).neq("status", "cancelled")),
-    safe(db.from("past_certificates").select("brand, level, kind, awarded_on").ilike("email", like)),
-    safe(db.from("past_attendees").select("brand, level, event_date, place, status").ilike("email", like)),
+    safe(db.from("past_certificates").select("brand, level, kind, awarded_on").ilike("email", like).is("revoked_at", null)),
+    safe(db.from("past_attendees").select("brand, level, event_date, place, status").ilike("email", like).is("revoked_at", null)),
     safe(db.schema("train").from("athletes").select("id").ilike("email", like).limit(5)),
   ]);
 
