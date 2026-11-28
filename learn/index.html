@@ -1404,9 +1404,12 @@ function nearCard(c) {
 // /shop/learner-tees.js.
 // The private "Class of" online course tee (Nathan, 20 Nov 2026): TGC or TCC
 // Level 1 online, for people who bought it through BirdBox Learn (paid on the
-// website or by invoice), not LearnWorlds imports, staff "all courses" access
-// or TCC Level 2 (that one comes with a seminar). The year is the year they
-// enrolled. Same 25% off and basket link as the seminar tee.
+// website or by invoice), not staff "all courses" access or TCC Level 2 (that
+// one comes with a seminar). The year is the year they enrolled. Same 25% off
+// and basket link as the seminar tee.
+// LearnWorlds imports (Nathan, 28 Nov 2026): people who finished on the old
+// academy get the tee too, for the year they finished (we don't have the year
+// they enrolled there). Not finished there = no tee.
 function showOnlineTee(enr) {
   const L = window.BB_LEARNER_TEES;
   const NAME = { tgc: "TGC", tcc: "TCC" };
@@ -1414,8 +1417,10 @@ function showOnlineTee(enr) {
   for (const e of enr) {
     const c = e.learn_courses;
     if (!L || !c || !NAME[c.brand] || String(c.level) !== "1") continue;
-    if (!/^(Bought on birdboxcoaching\.com|Paid by invoice)/i.test(String(e.source || ""))) continue;
-    const year = String(e.created_at || "").slice(0, 4);
+    const bought = /^(Bought on birdboxcoaching\.com|Paid by invoice)/i.test(String(e.source || ""));
+    const lw = /^learnworlds import/i.test(String(e.source || "")) && e.lw_completed_at;
+    if (!bought && !lw) continue;
+    const year = String((bought ? e.created_at : e.lw_completed_at) || "").slice(0, 4);
     const key = c.brand + "-online-" + year;
     if (seen.has(key) || !L.tees[key]) continue;
     seen.add(key);
