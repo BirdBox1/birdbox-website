@@ -41,11 +41,13 @@ export default async (req) => {
     // An online course, or a seminar or workshop booking (the seminar
     // confirmation sends this link too: Nathan, 20 Nov 2026).
     const like = email.replace(/[%_\\]/g, "\\$&");
-    const [{ data: enr }, { data: reg }] = await Promise.all([
+    // A BirdBox Mentorship pre-registration with a saved card counts too (25 Nov 2026).
+    const [{ data: enr }, { data: reg }, { data: men }] = await Promise.all([
       db.from("learn_enrolments").select("id").eq("email", email).limit(1),
       db.from("registrations").select("id").ilike("email", like).eq("status", "active").limit(1),
+      db.from("mentor_applications").select("id").ilike("email", like).not("status", "in", "(pending_card,withdrawn,declined)").limit(1),
     ]);
-    if (!enr?.length && !reg?.length) return go(fallback);
+    if (!enr?.length && !reg?.length && !men?.length) return go(fallback);
 
     const { error: cErr } = await db.auth.admin.createUser({ email, email_confirm: true });
     if (cErr && !/already|registered|exists/i.test(cErr.message || "")) console.error("learn-start createUser:", cErr.message);

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Pre-register | BirdBox Mentorship</title>
+<link rel="icon" href="/favicon-birdbox.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-birdbox-32.png">
+<style>
+  :root { --paper:#14100F; --panel:#1C1719; --field:#110d0c; --ink:#F2EFEF; --muted:#8A8385; --soft:#C9C3C5; --line:#342F31; --blue:#2f7fd0; --blueText:#8cbcf0; --bad:#e8505b; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; background:var(--paper); }
+  body { font-family:-apple-system,"Helvetica Neue",Arial,sans-serif; color:var(--ink); -webkit-font-smoothing:antialiased; line-height:1.5; }
+  a { color:var(--blueText); }
+  .bb-topbar { display:flex; justify-content:center; flex-wrap:wrap; gap:28px; padding:16px 24px; border-bottom:1px solid var(--line); font-size:13px; letter-spacing:.04em; text-transform:uppercase; }
+  .bb-topbar a { color:#ADA6A8; text-decoration:none; } .bb-topbar a:hover { color:#fff; }
+  .wrap { max-width:680px; margin:0 auto; padding:36px 20px 80px; }
+  .eyebrow { font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--blueText); font-weight:600; }
+  h1 { font-size:30px; margin:8px 0 6px; text-transform:uppercase; letter-spacing:.01em; }
+  .sub { color:var(--soft); margin:0 0 22px; }
+  .bar { display:flex; gap:6px; margin:0 0 24px; }
+  .bar span { flex:1; height:5px; border-radius:3px; background:var(--line); }
+  .bar span.on { background:var(--blue); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:22px; display:flex; flex-direction:column; gap:16px; }
+  .card h2 { margin:0; font-size:19px; }
+  .card .hint { margin:-8px 0 0; color:var(--muted); font-size:14px; }
+  label.f { display:flex; flex-direction:column; gap:6px; font-size:14px; color:var(--soft); }
+  label.f b { color:var(--ink); font-weight:600; }
+  label.f i { font-style:normal; color:var(--muted); font-weight:400; }
+  input[type=text], input[type=email], input[type=tel], select, textarea { width:100%; background:var(--field); border:1px solid var(--line); color:var(--ink); border-radius:8px; padding:11px 12px; font:inherit; font-size:16px; }
+  textarea { resize:vertical; min-height:84px; }
+  input:focus, select:focus, textarea:focus { outline:0; border-color:var(--blue); }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:560px) { .two { grid-template-columns:1fr; } }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chips button { background:var(--field); border:1px solid var(--line); color:var(--ink); border-radius:20px; padding:7px 13px; font:inherit; font-size:14px; cursor:pointer; }
+  .chips button.on { background:var(--blue); border-color:var(--blue); color:#fff; }
+  .pick { display:flex; gap:12px; align-items:center; background:var(--field); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .pick img { width:52px; height:52px; border-radius:50%; object-fit:cover; flex:none; }
+  .pick b { display:block; } .pick span { font-size:13px; color:var(--muted); }
+  .mentors { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; }
+  .mentors button { background:var(--field); border:1px solid var(--line); color:var(--ink); border-radius:10px; padding:8px; font:inherit; cursor:pointer; display:flex; gap:8px; align-items:center; text-align:left; }
+  .mentors button img { width:36px; height:36px; border-radius:50%; object-fit:cover; flex:none; }
+  .mentors button small { display:block; color:var(--muted); font-size:12px; }
+  .mentors button.on { border-color:var(--blue); background:#16202d; }
+  .check { display:flex; gap:10px; align-items:flex-start; font-size:14px; color:var(--soft); }
+  .check input { width:18px; height:18px; accent-color:var(--blue); margin-top:2px; flex:none; }
+  .nav { display:flex; justify-content:space-between; gap:10px; margin-top:18px; }
+  .btn { background:var(--blue); color:#fff; border:0; border-radius:8px; padding:13px 20px; font:inherit; font-weight:700; font-size:16px; cursor:pointer; }
+  .btn.ghost { background:transparent; border:1px solid var(--line); color:var(--ink); }
+  .btn:disabled { opacity:.6; cursor:default; }
+  .err { color:var(--bad); font-size:14px; min-height:1em; }
+  .box { background:rgba(47,127,208,.12); border:1px solid rgba(47,127,208,.4); border-radius:10px; padding:14px 16px; color:#cfe2f7; font-size:14px; }
+  .box b { color:#fff; }
+  .hidden { display:none !important; }
+  .sum { display:grid; grid-template-columns:140px 1fr; gap:6px 12px; font-size:14px; }
+  .sum dt { color:var(--muted); } .sum dd { margin:0; }
+</style>
+</head>
+<body>
+<nav class="bb-topbar"></nav>
+<div class="wrap">
+  <div class="eyebrow">BirdBox Mentorship · starts 4 January 2027</div>
+  <h1>Pre-register</h1>
+  <p class="sub">A few minutes, four short steps. Only the questions marked <b>*</b> are needed; everything else just helps your mentor get to know you before the call.</p>
+  <div class="bar" id="bar"><span></span><span></span><span></span><span></span></div>
+  <form id="f" novalidate>
+
+    <!-- 1 -->
+    <div class="card" data-step="1">
+      <h2>About you</h2>
+      <div class="two"><label class="f"><b>First name *</b><input type="text" name="first_name" autocomplete="given-name" required></label><label class="f"><b>Last name *</b><input type="text" name="last_name" autocomplete="family-name" required></label></div>
+      <label class="f"><b>Email *</b><input type="email" name="email" autocomplete="email" required><i>We'll use this for your BirdBox account. If you already have one, use the same email.</i></label>
+      <div class="two"><label class="f"><b>Country *</b><select name="country" required id="country"></select></label><label class="f"><b>Time zone where you coach</b><select name="tz" id="tz"></select></label></div>
+      <p class="box hidden" id="tznote" style="margin:0"></p>
+      <div class="f"><b style="font-size:14px">Phone or WhatsApp</b> <i style="font-size:14px">optional</i>
+        <div style="display:grid;grid-template-columns:130px 1fr;gap:8px"><select id="dial" aria-label="Country code"></select><input type="tel" id="phonenum" autocomplete="tel-national" placeholder="Number"></div></div>
+    </div>
+
+    <!-- 2 -->
+    <div class="card hidden" data-step="2">
+      <h2>Your coaching</h2>
+      <div class="two"><label class="f"><b>Your role *</b><select name="role" required><option value="">Choose…</option><option>Class coach</option><option>Head coach</option><option>Gym owner</option><option>Personal trainer</option><option>Other</option></select></label>
+        <label class="f"><b>Years coaching *</b><select name="years" required><option value="">Choose…</option><option>Under 1</option><option>1–2</option><option>3–5</option><option>6–10</option><option>Over 10</option></select></label></div>
+      <label class="f"><b>Where you coach</b> <i>optional</i><input type="text" name="gym" placeholder="Gym or club name, town"></label>
+      <div class="f"><b style="font-size:14px">What would you most like help with? *</b> <span style="font-size:13px;color:var(--muted)">Pick any</span>
+        <div class="chips" data-chips="help">${HELP}</div></div>
+      <label class="f"><b>In a sentence or two, what do you want from mentorship?</b> <i>optional</i><textarea name="why" placeholder="e.g. I want to keep a big group engaged and give feedback that actually changes how people move."></textarea></label>
+      <label class="f"><b>Qualifications</b> <i>optional</i><input type="text" name="quals" placeholder="e.g. CF-L2, TCC Level 1, TGC Level 1"></label>
+    </div>
+
+    <!-- 3 -->
+    <div class="card hidden" data-step="3">
+      <h2>Your mentor and times</h2>
+      <p class="hint" id="mentorhint">Tell us when you can do calls, and pick a preferred mentor if you have one.</p>
+      <p class="box hidden" id="nomentors" style="margin:0"><b>We'll match you with your mentor.</b> We pair you with the right coach for you, in a time zone that works.</p>
+      <div id="mentorbox" class="hidden" style="display:flex;flex-direction:column;gap:12px"><label class="f"><b>Preferred mentor</b>
+        <select id="mentorsel"><option value="">No preference: best match for me</option></select></label>
+      <div class="pick hidden" id="mentorpick"><img id="mpimg" alt=""><div><b id="mpname"></b><span id="mpline"></span></div></div></div>
+      <div class="f"><b style="font-size:14px">Best times for calls</b> <span style="font-size:13px;color:var(--muted)">In your time zone (<span id="tzshow"></span>). Pick any</span>
+        <div class="chips" data-chips="times">${TIMES}</div></div>
+      <label class="f"><b>How did you hear about us?</b> <i>optional</i><select name="heard"><option value="">Choose…</option><option>BirdBox course or seminar</option><option>Instagram</option><option>A BirdBox coach</option><option>A friend or colleague</option><option>Search</option><option>Other</option></select></label>
+    </div>
+
+    <!-- 4 -->
+    <div class="card hidden" data-step="4">
+      <h2>Hold your place</h2>
+      <div class="box"><b>Nothing is charged today.</b> We save your card securely with Stripe to hold your place for January. The €150 discovery call fee is only taken once your call is booked and confirmed.</div>
+      <label class="check"><input type="checkbox" name="business" id="business"> <span>I'm pre-registering as a business (for invoices with your business details)</span></label>
+      <div class="hidden" id="bizbox"><div class="two"><label class="f"><b>Business name</b><input type="text" name="business_name"></label><label class="f"><b>VAT number <i>(EU businesses)</i></b><input type="text" name="vat_number" placeholder="e.g. ESB12345678"></label></div>
+        <p class="hint" style="margin-top:6px">We check EU VAT numbers with the EU register. A valid number from outside Ireland means no VAT on your invoices.</p></div>
+      <dl class="sum" id="sum"></dl>
+      <label class="check"><input type="checkbox" name="agree_record" required> <span>I understand my discovery call is transcribed (not video recorded) so my mentor can write my Discovery Report. *</span></label>
+      <label class="check"><input type="checkbox" name="agree_card" required> <span>I agree that BirdBox can charge €150 to this card once my discovery call is booked and confirmed. *</span></label>
+    </div>
+
+    <p class="err" id="err" role="alert"></p>
+    <div class="nav"><button type="button" class="btn ghost" id="back">‹ Back</button><button type="button" class="btn" id="next">Next ›</button></div>
+  </form>
+</div>
+
+<script>
+const HELP = ["Leading group classes","Feedback and cueing","Gymnastics","Weightlifting","Endurance","Programming","Leading a coaching team","Running my gym","Member retention","Confidence","Communication","Something else"];
+const TIMES = ["Early mornings","Mornings","Lunchtimes","Afternoons","Evenings","Weekends"];
+const COUNTRIES = [["IE","Ireland"],["GB","United Kingdom"],["AT","Austria"],["BE","Belgium"],["BG","Bulgaria"],["HR","Croatia"],["CY","Cyprus"],["CZ","Czechia"],["DK","Denmark"],["EE","Estonia"],["FI","Finland"],["FR","France"],["DE","Germany"],["GR","Greece"],["HU","Hungary"],["IT","Italy"],["LV","Latvia"],["LT","Lithuania"],["LU","Luxembourg"],["MT","Malta"],["NL","Netherlands"],["PL","Poland"],["PT","Portugal"],["RO","Romania"],["SK","Slovakia"],["SI","Slovenia"],["ES","Spain"],["SE","Sweden"],["NO","Norway"],["CH","Switzerland"],["IS","Iceland"],["US","United States"],["CA","Canada"],["MX","Mexico"],["BR","Brazil"],["AR","Argentina"],["CL","Chile"],["CO","Colombia"],["AU","Australia"],["NZ","New Zealand"],["ZA","South Africa"],["AE","United Arab Emirates"],["SA","Saudi Arabia"],["QA","Qatar"],["IL","Israel"],["TR","Turkey"],["IN","India"],["SG","Singapore"],["HK","Hong Kong"],["JP","Japan"],["KR","South Korea"],["TW","Taiwan"],["CN","China"],["PH","Philippines"],["TH","Thailand"],["MY","Malaysia"],["ID","Indonesia"]];
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const f = $("#f"); let step = 1; const chosen = { help: [], times: [], mentor: "" };
+document.querySelectorAll("[data-chips]").forEach((el) => { const key = el.dataset.chips; el.innerHTML = (key === "help" ? HELP : TIMES).map((x) => `<button type="button" data-v="${x}">${x}</button>`).join("");
+  el.onclick = (e) => { const b = e.target.closest("button"); if (!b) return; b.classList.toggle("on"); const v = b.dataset.v; chosen[key] = chosen[key].includes(v) ? chosen[key].filter((x) => x !== v) : [...chosen[key], v]; }; });
+// Preferred mentor: the mentor team, with each mentor's price and places left.
+let MENTORS = [];
+const lineFor = (m) => `€${m.price || 70} a week · ${m.placesLeft} place${m.placesLeft === 1 ? "" : "s"} left` + (m.region ? ` · ${m.region}` : "");
+// Only mentors with places left are offered. If nobody has places yet,
+// no names are shown at all: we match them ourselves (Nathan, 26 Nov).
+function drawMentors() {
+  const open = MENTORS.filter((m) => m.placesLeft > 0);
+  if (!open.some((m) => m.id === chosen.mentor)) chosen.mentor = "";
+  $("#mentorbox").classList.toggle("hidden", !open.length);
+  $("#nomentors").classList.toggle("hidden", !!open.length);
+  $("#mentorhint").textContent = open.length ? "Tell us when you can do calls, and pick a preferred mentor if you have one." : "Tell us when you can do calls.";
+  $("#mentorsel").innerHTML = `<option value="">No preference: best match for me</option>` + open.map((m) => `<option value="${m.id}" ${m.id === chosen.mentor ? "selected" : ""}>${esc(m.name)} — ${esc(lineFor(m))}</option>`).join("");
+  showPick();
+}
+function showPick() {
+  const m = MENTORS.find((x) => x.id === chosen.mentor);
+  $("#mentorpick").classList.toggle("hidden", !m);
+  if (m) { $("#mpimg").src = m.photo; $("#mpname").textContent = m.name; $("#mpline").textContent = lineFor(m); }
+}
+$("#mentorsel").onchange = (e) => { chosen.mentor = e.target.value; showPick(); };
+import("/portal/mentor/mentor-team.js?v=3").then(({ MENTOR_TEAM }) => {
+  MENTORS = MENTOR_TEAM.map((m) => ({ id: m.id, name: m.name, price: m.price || 70, photo: `/birdbox-team/${m.photo}.jpeg`, placesLeft: 0 }));
+  drawMentors();
+  return fetch("/.netlify/functions/mentorship-mentors").then((r) => r.json()).then(({ mentors }) => { if (mentors && mentors.length) { MENTORS = mentors; drawMentors(); } });
+}).catch(() => {});
+$("#country").innerHTML = `<option value="">Choose…</option>` + COUNTRIES.map(([code, name]) => `<option value="${code}">${name}</option>`).join("");
+const here = Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Dublin";
+const zones = (Intl.supportedValuesOf ? Intl.supportedValuesOf("timeZone") : [here]);
+$("#tz").innerHTML = (zones.includes(here) ? zones : [here, ...zones]).map((z) => `<option ${z === here ? "selected" : ""}>${z}</option>`).join("");
+// Time zone follows the country they coach in, not where their device is
+// today (e.g. on holiday). Countries with more than one zone list theirs.
+const ZONES = { IE:["Europe/Dublin"], GB:["Europe/London"], AT:["Europe/Vienna"], BE:["Europe/Brussels"], BG:["Europe/Sofia"], HR:["Europe/Zagreb"], CY:["Asia/Nicosia"], CZ:["Europe/Prague"], DK:["Europe/Copenhagen"], EE:["Europe/Tallinn"], FI:["Europe/Helsinki"], FR:["Europe/Paris"], DE:["Europe/Berlin"], GR:["Europe/Athens"], HU:["Europe/Budapest"], IT:["Europe/Rome"], LV:["Europe/Riga"], LT:["Europe/Vilnius"], LU:["Europe/Luxembourg"], MT:["Europe/Malta"], NL:["Europe/Amsterdam"], PL:["Europe/Warsaw"], PT:["Europe/Lisbon","Atlantic/Azores","Atlantic/Madeira"], RO:["Europe/Bucharest"], SK:["Europe/Bratislava"], SI:["Europe/Ljubljana"], ES:["Europe/Madrid","Atlantic/Canary"], SE:["Europe/Stockholm"], NO:["Europe/Oslo"], CH:["Europe/Zurich"], IS:["Atlantic/Reykjavik"],
+  US:["America/New_York","America/Chicago","America/Denver","America/Phoenix","America/Los_Angeles","America/Anchorage","Pacific/Honolulu"], CA:["America/St_Johns","America/Halifax","America/Toronto","America/Winnipeg","America/Edmonton","America/Vancouver"], MX:["America/Mexico_City","America/Cancun","America/Tijuana","America/Monterrey"], BR:["America/Sao_Paulo","America/Manaus","America/Recife"], AR:["America/Argentina/Buenos_Aires"], CL:["America/Santiago"], CO:["America/Bogota"],
+  AU:["Australia/Sydney","Australia/Melbourne","Australia/Brisbane","Australia/Adelaide","Australia/Perth","Australia/Hobart","Australia/Darwin"], NZ:["Pacific/Auckland"], ZA:["Africa/Johannesburg"], AE:["Asia/Dubai"], SA:["Asia/Riyadh"], QA:["Asia/Qatar"], IL:["Asia/Jerusalem"], TR:["Europe/Istanbul"], IN:["Asia/Kolkata"], SG:["Asia/Singapore"], HK:["Asia/Hong_Kong"], JP:["Asia/Tokyo"], KR:["Asia/Seoul"], TW:["Asia/Taipei"], CN:["Asia/Shanghai"], PH:["Asia/Manila"], TH:["Asia/Bangkok"], MY:["Asia/Kuala_Lumpur"], ID:["Asia/Jakarta","Asia/Makassar","Asia/Jayapura"] };
+const pretty = (z) => z.replace(/_/g, " ");
+// Dialling codes, set from their country (they can change it).
+const DIAL = { IE:"353",GB:"44",AT:"43",BE:"32",BG:"359",HR:"385",CY:"357",CZ:"420",DK:"45",EE:"372",FI:"358",FR:"33",DE:"49",GR:"30",HU:"36",IT:"39",LV:"371",LT:"370",LU:"352",MT:"356",NL:"31",PL:"48",PT:"351",RO:"40",SK:"421",SI:"386",ES:"34",SE:"46",NO:"47",CH:"41",IS:"354",US:"1",CA:"1",MX:"52",BR:"55",AR:"54",CL:"56",CO:"57",AU:"61",NZ:"64",ZA:"27",AE:"971",SA:"966",QA:"974",IL:"972",TR:"90",IN:"91",SG:"65",HK:"852",JP:"81",KR:"82",TW:"886",CN:"86",PH:"63",TH:"66",MY:"60",ID:"62" };
+$("#dial").innerHTML = `<option value="">Code</option>` + COUNTRIES.map(([c, n]) => `<option value="${DIAL[c]}" data-c="${c}">${n.length > 12 ? c : n} +${DIAL[c]}</option>`).join("");
+const setDial = () => { const c = $("#country").value; if (!c || !DIAL[c]) return; const o = [...$("#dial").options].find((x) => x.dataset.c === c); if (o) $("#dial").value = o.value, o.selected = true; };
+$("#country").addEventListener("change", setDial);
+$("#country").onchange = () => {
+  const list = ZONES[$("#country").value]; const note = $("#tznote");
+  if (!list) { note.classList.add("hidden"); return; }
+  const tzSel = $("#tz");
+  if (list.includes(here)) { tzSel.value = here; note.classList.add("hidden"); return; }
+  tzSel.value = list[0];
+  note.innerHTML = list.length === 1
+    ? `Your device is set to <b>${pretty(here)}</b>, so we've used <b>${pretty(list[0])}</b> for where you coach. Change it if that's not right.`
+    : `Your device is set to <b>${pretty(here)}</b>. Pick the time zone where you coach: ${list.map((z) => `<a href="#" data-z="${z}">${pretty(z)}</a>`).join(" · ")}`;
+  note.classList.remove("hidden");
+  note.querySelectorAll("[data-z]").forEach((a) => a.onclick = (e) => { e.preventDefault(); tzSel.value = a.dataset.z; note.classList.add("hidden"); });
+};
+$("#business").onchange = (e) => $("#bizbox").classList.toggle("hidden", !e.target.checked);
+
+function data() { const d = Object.fromEntries(new FormData(f));
+  // drop the leading 0 people type before a local number (Italy keeps it)
+  let num = String($("#phonenum").value || "").replace(/[^\d]/g, "");
+  if ($("#dial").value !== "39") num = num.replace(/^0+/, "");
+  d.phone = num ? ($("#dial").value ? `+${$("#dial").value} ${num}` : num) : ""; d.help = chosen.help; d.times = chosen.times; d.preferred_mentor = chosen.mentor; d.business = !!$("#business").checked; d.agree_record = !!f.agree_record.checked; d.agree_card = !!f.agree_card.checked; return d; }
+function check(n) {
+  const d = data(); const need = { 1: [["first_name","your first name"],["last_name","your last name"],["email","your email"],["country","your country"]], 2: [["role","your role"],["years","how long you've coached"]] }[n] || [];
+  for (const [k, l] of need) if (!String(d[k] || "").trim()) return `Please add ${l}.`;
+  if (n === 1 && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) return "Please check your email address.";
+  if (n === 2 && !d.help.length) return "Pick at least one thing you'd like help with.";
+  if (n === 4) { if (d.business && !String(d.business_name || "").trim()) return "Add your business name, or untick the business box."; if (!d.agree_record || !d.agree_card) return "Please tick both boxes to continue."; }
+  return "";
+}
+function show() {
+  document.querySelectorAll("[data-step]").forEach((c) => c.classList.toggle("hidden", +c.dataset.step !== step));
+  document.querySelectorAll("#bar span").forEach((s, i) => s.classList.toggle("on", i < step));
+  $("#back").style.visibility = step === 1 ? "hidden" : "visible";
+  $("#next").textContent = step === 4 ? "Save my card and pre-register ›" : "Next ›";
+  if (step === 4) { const d = data(); const m = MENTORS.find((x) => x.id === d.preferred_mentor); $("#sum").innerHTML = `<dt>Name</dt><dd>${esc(d.first_name)} ${esc(d.last_name)}</dd><dt>Email</dt><dd>${esc(d.email)}</dd><dt>Mentor</dt><dd>${esc(m ? m.name + " (€" + (m.price || 70) + " a week)" : "No preference")}</dd><dt>Starts</dt><dd>Monday 4 January 2027</dd><dt>Today</dt><dd><b>Nothing charged</b></dd>`; }
+  const tz = $("#tz").value; $("#tzshow").textContent = tz.replace(/_/g, " ");
+  $("#err").textContent = ""; window.scrollTo({ top: 0, behavior: "smooth" });
+}
+$("#back").onclick = () => { if (step > 1) { step--; show(); } };
+$("#next").onclick = async () => {
+  const e = check(step); if (e) { $("#err").textContent = e; return; }
+  if (step < 4) { step++; show(); return; }
+  const btn = $("#next"); btn.disabled = true; btn.textContent = "Opening secure card page…";
+  try {
+    const res = await fetch("/.netlify/functions/mentorship-apply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data()) });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok || !out.url) throw new Error(out.error || "Something went wrong. Please try again.");
+    location.href = out.url; // Stripe's own page, to save the card (nothing charged)
+  } catch (err) { $("#err").textContent = err.message; btn.disabled = false; btn.textContent = "Save my card and pre-register ›"; }
+};
+show();
+if (new URLSearchParams(location.search).has("cancelled")) $("#err").textContent = "Your card wasn't saved, so you're not pre-registered yet. You can try again.";
+</script>
+<script src="/nav.js"></script>
+</body>
+</html>

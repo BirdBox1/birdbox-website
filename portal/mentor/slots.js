@@ -47,7 +47,7 @@ export function weekdayOf(dateStr) { // 0 = Monday
 }
 export function mondayOf(dateStr) { return addDays(dateStr, -weekdayOf(dateStr)); }
 
-export const DEFAULT_SETTINGS = { tz: "Europe/Dublin", weekly_minutes: 30, opening_minutes: 60, buffer_minutes: 10, notice_hours: 12, max_per_day: 4 };
+export const DEFAULT_SETTINGS = { tz: "Europe/Dublin", weekly_minutes: 30, opening_minutes: 60, buffer_minutes: 10, notice_hours: 12, max_per_day: 4, places: 0 };
 
 // ---------- open slots ----------
 
